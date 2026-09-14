@@ -18,29 +18,32 @@ pool: AsyncConnectionPool | None = None
 
 async def init_pool(database_url: str, *, min_size: int = 2, max_size: int = 10) -> None:
     global pool
-    if pool is None:
-        pool = AsyncConnectionPool(
-            database_url,
-            min_size=min_size,
-            max_size=max_size,
-            open=False,
-            kwargs={
-                "row_factory": dict_row,
-                "autocommit": True,
-                # Requerido detras de PgBouncer en modo transaction (Supabase
-                # pooler :6543): los prepared statements de psycopg no
-                # sobreviven al pool y fallan con "prepared statement does
-                # not exist". Desactivarlos es seguro y sin costo practico.
-                "prepare_threshold": 0,
-            },
-        )
-        await pool.open()
+    if pool is not None and not pool.closed:
+        return
+    if pool is not None:  # pool cerrado/roto: descartar y recrear
         try:
-            await pool.wait()  # espera primeras conexiones
+            await pool.close()
         except Exception:
-            # Serverless: si la DB no responde al arranque, no tumbar la
-            # funcion; cada request reintenta (conexiones perezosas).
             pass
+        pool = None
+    pool = AsyncConnectionPool(
+        database_url,
+        min_size=min_size,
+        max_size=max_size,
+        # open(wait=False): no bloquea el arranque y NO cierra el pool si la
+        # DB no responde todavia; las conexiones se establecen en background y
+        # cada request reintenta. Evita el modo "pool cacheado y cerrado".
+        open=True,
+        kwargs={
+            "row_factory": dict_row,
+            "autocommit": True,
+            # Requerido detras de PgBouncer en modo transaction (Supabase
+            # pooler :6543): los prepared statements de psycopg no
+            # sobreviven al pool y fallan con "prepared statement does
+            # not exist". Desactivarlos es seguro y sin costo practico.
+            "prepare_threshold": 0,
+        },
+    )
 
 
 async def close_pool() -> None:
@@ -51,9 +54,11 @@ async def close_pool() -> None:
 
 
 async def get_db() -> Generator[psycopg.AsyncConnection, None, None]:
-    if pool is None:
+    global pool
+    if pool is None or pool.closed:
         # Serverless (Vercel): el lifespan puede no correr antes del primer
         # request; inicializamos el pool de forma perezosa (idempotente).
+        # Si el pool quedo cerrado (DB caida al arrancar), se recrea.
         await init_pool(get_settings().database_url)
     async with pool.connection() as conn:
         yield conn

@@ -9,6 +9,21 @@ function firstVenueId(user) {
   return ids[0] ?? null;
 }
 
+const NEXT_ACTIONS = {
+  draft: [{ action: "publish", label: "Publicar evento" }],
+  published: [{ action: "live", label: "Abrir puertas" }],
+  live: [{ action: "end", label: "Finalizar evento" }],
+  ended: [],
+  cancelled: [],
+};
+
+const TICKET_STATUS = {
+  issued: { label: "Activa", cls: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40" },
+  redeemed: { label: "Redimida", cls: "bg-sky-500/15 text-sky-300 ring-sky-500/40" },
+  voided: { label: "Anulada", cls: "bg-red-500/15 text-red-300 ring-red-500/40" },
+  refunded: { label: "Reembolsada", cls: "bg-amber-500/15 text-amber-300 ring-amber-500/40" },
+};
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const venueId = firstVenueId(user);
@@ -17,20 +32,31 @@ export default function AdminDashboard() {
   const [types, setTypes] = useState([]);
   const [allocations, setAllocations] = useState([]);
   const [report, setReport] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [tickets, setTickets] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [error, setError] = useState("");
+  const [busyAction, setBusyAction] = useState("");
   const [form, setForm] = useState({ name: "", capacity: 100 });
 
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
     const data = await apiFetch(`/venues/${venueId}/events`);
     setEvents(data);
-    if (data.length > 0) setSelectedEvent((prev) => prev ?? data[0].id);
+    if (data.length > 0) setSelectedEvent((prev) => (data.some((e) => e.id === prev) ? prev : data[0].id));
   }, [venueId]);
 
   useEffect(() => {
     loadEvents().catch((e) => setError(e.message));
   }, [loadEvents]);
+
+  // Usuarios de la venue: para asignar cupos con nombres reales
+  useEffect(() => {
+    if (!venueId) return;
+    apiFetch(`/venues/${venueId}/users`)
+      .then(setUsers)
+      .catch(() => setUsers([]));
+  }, [venueId]);
 
   useEffect(() => {
     if (!selectedEvent) return;
@@ -43,7 +69,41 @@ export default function AdminDashboard() {
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`)
       .then(setReport)
       .catch((e) => setError(e.message));
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/tickets`)
+      .then(setTickets)
+      .catch(() => setTickets([]));
   }, [selectedEvent, venueId]);
+
+  async function refreshEventData() {
+    if (!selectedEvent) return;
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`).then(setReport).catch(() => {});
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/tickets`).then(setTickets).catch(() => {});
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`).then(setAllocations).catch(() => {});
+  }
+
+  async function runAction(action, label) {
+    if (!selectedEvent) return;
+    const confirmMsg =
+      action === "cancel"
+        ? "¿Cancelar el evento? No se podrá revertir."
+        : action === "end"
+          ? "¿Finalizar el evento? La puerta dejará de aceptar escaneos."
+          : null;
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    setBusyAction(action);
+    setError("");
+    try {
+      const updated = await apiFetch(`/venues/${venueId}/events/${selectedEvent}/${action}`, {
+        method: "POST",
+      });
+      setEvents((evs) => evs.map((e) => (e.id === updated.id ? updated : e)));
+      await refreshEventData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyAction("");
+    }
+  }
 
   async function createEvent(e) {
     e.preventDefault();
@@ -65,6 +125,7 @@ export default function AdminDashboard() {
   }
 
   const selectedEventData = events.find((ev) => ev.id === selectedEvent);
+  const actions = selectedEventData ? NEXT_ACTIONS[selectedEventData.status] ?? [] : [];
 
   if (!venueId) {
     return (
@@ -140,6 +201,29 @@ export default function AdminDashboard() {
         <>
           <ReportWidget report={report} />
 
+          {/* Ciclo de vida del evento */}
+          {actions.length > 0 && (
+            <div className="card flex flex-wrap items-center gap-3 p-4">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Ciclo de vida
+              </span>
+              {actions.map(({ action, label }) => (
+                <button
+                  key={action}
+                  onClick={() => runAction(action, label)}
+                  disabled={busyAction === action}
+                  className={
+                    action === "publish"
+                      ? "btn-primary !py-2 text-sm"
+                      : "btn-ghost text-sm font-bold"
+                  }
+                >
+                  {busyAction === action ? "Procesando…" : label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="grid gap-5 lg:grid-cols-2">
             <TypeManager
               venueId={venueId}
@@ -152,9 +236,18 @@ export default function AdminDashboard() {
               eventId={selectedEvent}
               allocations={allocations}
               types={types}
+              users={users}
               onChange={setAllocations}
             />
           </div>
+
+          <TicketList
+            venueId={venueId}
+            eventId={selectedEvent}
+            tickets={tickets}
+            onChanged={refreshEventData}
+            onError={setError}
+          />
         </>
       )}
     </div>
@@ -231,11 +324,15 @@ function TypeManager({ venueId, eventId, types, onChange }) {
   );
 }
 
-function AllocationManager({ venueId, eventId, allocations, types, onChange }) {
+function AllocationManager({ venueId, eventId, allocations, types, users, onChange }) {
   const [promoterId, setPromoterId] = useState("");
   const [typeId, setTypeId] = useState("");
   const [capacity, setCapacity] = useState("5");
   const [err, setErr] = useState("");
+
+  const promoters = (users || []).filter((u) =>
+    u.roles?.includes("promotor") || u.roles?.includes("admin")
+  );
 
   async function createAllocation(e) {
     e.preventDefault();
@@ -248,7 +345,7 @@ function AllocationManager({ venueId, eventId, allocations, types, onChange }) {
           capacity: Number(capacity),
         }),
       });
-      onChange([...(allocations || []), a]);
+      onChange([...(allocations || []).filter((x) => x.id !== a.id), a]);
       setErr("");
     } catch (e2) {
       setErr(e2.message);
@@ -261,11 +358,12 @@ function AllocationManager({ venueId, eventId, allocations, types, onChange }) {
       <ul className="mb-4 space-y-2">
         {(allocations || []).map((a) => {
           const t = (types || []).find((x) => x.id === a.ticket_type_id);
+          const u = (users || []).find((x) => x.id === a.promoter_id);
           return (
             <li key={a.id} className="rounded-lg bg-slate-800/40 px-3 py-2">
               <div className="mb-1.5 flex items-center justify-between text-sm">
                 <span className="font-semibold text-slate-200">
-                  Promotor #{a.promoter_id}
+                  {u ? u.full_name : `Promotor #${a.promoter_id}`}
                 </span>
                 <span className="tnum text-xs text-slate-400">
                   {t ? t.name : `tipo ${a.ticket_type_id}`}
@@ -282,7 +380,19 @@ function AllocationManager({ venueId, eventId, allocations, types, onChange }) {
         )}
       </ul>
       <form onSubmit={createAllocation} className="grid grid-cols-2 gap-2">
-        <input value={promoterId} onChange={(e) => setPromoterId(e.target.value)} className="field" placeholder="ID promotor" required />
+        <select
+          value={promoterId}
+          onChange={(e) => setPromoterId(e.target.value)}
+          className="field"
+          required
+        >
+          <option value="">Promotor…</option>
+          {promoters.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.full_name}
+            </option>
+          ))}
+        </select>
         <input value={capacity} onChange={(e) => setCapacity(e.target.value)} className="field" placeholder="Capacidad" required />
         <div className="col-span-2 flex gap-2">
           <select value={typeId} onChange={(e) => setTypeId(e.target.value)} className="field flex-1" required>
@@ -296,7 +406,115 @@ function AllocationManager({ venueId, eventId, allocations, types, onChange }) {
           <button className="btn-ghost font-bold">Asignar</button>
         </div>
         {err && <p className="col-span-2 text-xs text-red-400">{err}</p>}
+        {promoters.length === 0 && (
+          <p className="col-span-2 text-xs text-amber-400">
+            No hay usuarios en esta venue todavía — créalos con POST /seed o agregándolos a la DB.
+          </p>
+        )}
       </form>
+    </div>
+  );
+}
+
+function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
+  const [voidingId, setVoidingId] = useState(null);
+  const [reason, setReason] = useState("Error de digitación");
+  const [busy, setBusy] = useState(false);
+
+  async function voidTicket(t) {
+    if (!window.confirm(`¿Anular la boleta #${t.id} de ${t.customer_name}? El cupo quedará liberado.`)) return;
+    setBusy(true);
+    try {
+      await apiFetch(`/venues/${venueId}/events/${eventId}/tickets/${t.id}/void`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
+      setVoidingId(null);
+      await onChanged();
+    } catch (e) {
+      onError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-bold text-slate-200">Boletas emitidas</h3>
+        <span className="tnum text-xs text-slate-500">{(tickets || []).length} recientes</span>
+      </div>
+      <ul className="space-y-2">
+        {(tickets || []).map((t) => {
+          const st = TICKET_STATUS[t.status] ?? TICKET_STATUS.issued;
+          const canVoid = t.status === "issued";
+          return (
+            <li
+              key={t.id}
+              className="rounded-lg bg-slate-800/40 px-3 py-2.5 text-sm"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-200">
+                    <span className="tnum text-slate-500">#{t.id}</span> · {t.customer_name}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {t.type_name ?? "—"}
+                    {t.from_allocation ? " · cupo promotor" : " · venta directa"}
+                    {t.sold_by_name ? ` · por ${t.sold_by_name}` : ""}
+                    {t.price_cents_snapshot > 0
+                      ? ` · $${(t.price_cents_snapshot / 100).toLocaleString("es-CO")}`
+                      : " · cortesía"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${st.cls}`}>
+                    {st.label}
+                  </span>
+                  {canVoid && voidingId !== t.id && (
+                    <button
+                      onClick={() => { setVoidingId(t.id); setReason("Error de digitación"); }}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                    >
+                      Anular
+                    </button>
+                  )}
+                </div>
+              </div>
+              {voidingId === t.id && (
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="field !py-1.5 text-xs"
+                    placeholder="Motivo de anulación"
+                    minLength={3}
+                    required
+                  />
+                  <button
+                    onClick={() => voidTicket(t)}
+                    disabled={busy || reason.trim().length < 3}
+                    className="rounded-lg bg-red-500/90 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-500 disabled:opacity-50"
+                  >
+                    {busy ? "Anulando…" : "Confirmar"}
+                  </button>
+                  <button
+                    onClick={() => setVoidingId(null)}
+                    className="rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </li>
+          );
+        })}
+        {(tickets || []).length === 0 && (
+          <li className="rounded-lg bg-slate-800/40 px-3 py-3 text-sm text-slate-500">
+            Todavía no se han emitido boletas para este evento.
+          </li>
+        )}
+      </ul>
     </div>
   );
 }

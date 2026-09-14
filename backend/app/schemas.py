@@ -131,6 +131,34 @@ class RedeemOut(BaseModel):
 
 
 # --------------------------------------------------------------------------
+# Ciclo de vida / anulación / usuarios de la venue
+# --------------------------------------------------------------------------
+class VoidRequest(BaseModel):
+    reason: str = Field(min_length=3, max_length=300)
+
+
+class VenueUserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    email: str
+    full_name: str
+    roles: list[str] = []
+
+
+class TicketOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    customer_name: str
+    customer_phone: str | None = None
+    status: str
+    issued_at: datetime
+    price_cents_snapshot: int
+    type_name: str | None = None
+    sold_by_name: str | None = None
+    from_allocation: bool = False
+
+
+# --------------------------------------------------------------------------
 # Reporte en vivo
 # --------------------------------------------------------------------------
 class EventReport(BaseModel):
