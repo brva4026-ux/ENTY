@@ -14,5 +14,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server.mjs ./server.mjs
+# Render inyecta $PORT; server.mjs lo lee de env (argv como fallback)
 EXPOSE 12000
-CMD ["node", "server.mjs", "12000"]
+CMD ["sh", "-c", "node server.mjs ${PORT:-12000}"]

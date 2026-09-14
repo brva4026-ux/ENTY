@@ -1,7 +1,7 @@
 # Render Blueprint — TicketFlow (API + UI)
 # Despliegue: Render Dashboard > "New +" > "Blueprint" > selecciona este repo.
 #
-# La base de datos (Neon Postgres) se crea aparte: pega su connection string
+# La base de datos (Supabase Postgres) ya existe: pega su connection string
 # en la env var DATABASE_URL del servicio `ticketflow-api` (Render dashboard
 # > ticketflow-api > Environment). También genera y pega un JWT_SECRET propio.
 #

@@ -10,11 +10,12 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import http from "node:http";
+import https from "node:https";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(__dirname, "dist");
 const PORT = parseInt(process.env.PORT || process.argv[2] || "12000", 10);
-const BACKEND = process.env.VITE_BACKEND_URL || "http://localhost:8000";
+const BACKEND = process.env.VITE_BACKEND_URL || process.argv[3] || "http://localhost:8000";
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -60,11 +61,14 @@ async function serveStatic(req, res, pathname) {
 }
 
 function proxyApi(req, res) {
+  // Soporta targets http:// y https:// (Render inyecta https://...onrender.com)
+  const isHttps = BACKEND.startsWith("https://");
+  const transport = isHttps ? https : http;
   const [host, port] = BACKEND.replace(/^https?:\/\//, "").split(":");
-  const upstream = http.request(
+  const upstream = transport.request(
     {
       host,
-      port: port || 80,
+      port: port || (isHttps ? 443 : 80),
       path: req.url.replace(/^\/api/, ""),
       method: req.method,
       headers: { ...req.headers, host },
