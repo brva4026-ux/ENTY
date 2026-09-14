@@ -14,8 +14,8 @@ export default function AdminDashboard() {
   const venueId = firstVenueId(user);
 
   const [events, setEvents] = useState([]);
-  const [types, setTypes] = useState({});
-  const [allocations, setAllocations] = useState({});
+  const [types, setTypes] = useState([]);
+  const [allocations, setAllocations] = useState([]);
   const [report, setReport] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [error, setError] = useState("");
