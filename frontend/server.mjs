@@ -1,0 +1,100 @@
+// Servidor de producción para el frontend TicketFlow.
+// - Sirve los archivos estaticos de ./dist (SPA con fallback a index.html)
+// - Hace proxy de /api -> backend:8000 (mantiene el mismo origin, sin CORS)
+// - Escucha en 0.0.0.0:PORT (por defecto 12000) y NO bloquea hosts (a
+//   diferencia de `vite preview` que aplica proteccion DNS-rebinding).
+//
+// Uso: node server.mjs [port]   (o PORT=12000)
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
+import http from "node:http";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const DIST = join(__dirname, "dist");
+const PORT = parseInt(process.env.PORT || process.argv[2] || "12000", 10);
+const BACKEND = process.env.VITE_BACKEND_URL || "http://localhost:8000";
+
+const MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".webp": "image/webp",
+  ".map": "application/json",
+};
+
+async function serveStatic(req, res, pathname) {
+  let filePath = normalize(join(DIST, pathname));
+  if (!filePath.startsWith(DIST)) {
+    res.writeHead(403);
+    res.end("forbidden");
+    return;
+  }
+  try {
+    const data = await readFile(filePath);
+    const ext = extname(filePath).toLowerCase();
+    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+    res.end(data);
+  } catch {
+    // SPA fallback: cualquier ruta que no sea archivo devuelve index.html
+    try {
+      const data = await readFile(join(DIST, "index.html"));
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(data);
+    } catch {
+      res.writeHead(500);
+      res.end("dist no encontrado. Ejecuta: npm run build");
+    }
+  }
+}
+
+function proxyApi(req, res) {
+  const [host, port] = BACKEND.replace(/^https?:\/\//, "").split(":");
+  const upstream = http.request(
+    {
+      host,
+      port: port || 80,
+      path: req.url.replace(/^\/api/, ""),
+      method: req.method,
+      headers: { ...req.headers, host },
+    },
+    (upRes) => {
+      res.writeHead(upRes.statusCode || 502, upRes.headers);
+      upRes.pipe(res);
+    }
+  );
+  upstream.on("error", (err) => {
+    res.writeHead(502, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ detail: "Backend no disponible: " + err.message }));
+  });
+  req.pipe(upstream);
+}
+
+const server = createServer((req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  if (url.pathname === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok", service: "ticketflow-frontend" }));
+    return;
+  }
+  if (url.pathname.startsWith("/api/")) {
+    return proxyApi(req, res);
+  }
+  serveStatic(req, res, url.pathname);
+});
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`[frontend] TicketFlow sirviendo en http://0.0.0.0:${PORT}`);
+  console.log(`[frontend] dist=${DIST} backend=${BACKEND}`);
+});

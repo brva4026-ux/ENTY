@@ -43,9 +43,10 @@ services:
     build: ./frontend
     container_name: ticketflow_frontend
     ports:
-      - "5173:80"
+      - "12000:12000"
     environment:
       VITE_BACKEND_URL: http://backend:8000
+      PORT: 12000
     depends_on:
       - backend
 
