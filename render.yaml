@@ -1,0 +1,46 @@
+# Render Blueprint — TicketFlow (API + UI)
+# Despliegue: Render Dashboard > "New +" > "Blueprint" > selecciona este repo.
+#
+# La base de datos (Neon Postgres) se crea aparte: pega su connection string
+# en la env var DATABASE_URL del servicio `ticketflow-api` (Render dashboard
+# > ticketflow-api > Environment). También genera y pega un JWT_SECRET propio.
+#
+# Nota: el plan free de Render duerme el servicio tras ~15 min de inactividad;
+# el primer arranque tarda ~50 s (aceptable para el piloto, no para producción).
+
+services:
+  # ------------------------------------------------------------------
+  # API FastAPI (Docker, puerto $PORT inyectado por Render)
+  # ------------------------------------------------------------------
+  - type: web
+    name: ticketflow-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # pega aquí el connection string de Neon
+      - key: JWT_SECRET
+        generateValue: true  # Render genera un secreto aleatorio
+      - key: CORS_ORIGINS
+        value: "*"           # mismo-origin via proxy /api; abierto por si acceden directo
+      - key: API_HOST
+        value: 0.0.0.0
+
+  # ------------------------------------------------------------------
+  # UI React (build Vite + server.mjs que sirve dist y proxya /api)
+  # ------------------------------------------------------------------
+  - type: web
+    name: ticketflow-ui
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /health
+    plan: free
+    envVars:
+      # server.mjs proxya /api aquí. Render resuelve el nombre interno del
+      # servicio con .onrender.com; el puerto del proxy upstream es 443.
+      - key: VITE_BACKEND_URL
+        value: https://ticketflow-api.onrender.com

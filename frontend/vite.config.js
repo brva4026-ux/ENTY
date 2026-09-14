@@ -4,6 +4,12 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Config PostCSS inline (vacía): evita que Vite busque configs hacia
+  // directorios padres (p.ej. postcss.config.js inválidos en el HOME).
+  // Tailwind v4 se aplica via plugin @tailwindcss/vite, no necesita postcssrc.
+  css: {
+    postcss: {},
+  },
   server: {
     host: "0.0.0.0",
     port: 12000,

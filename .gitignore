@@ -19,7 +19,13 @@ build/
 .DS_Store
 
 # Temp
-*.log# Python packaging
+*.log
+
+# Python packaging
 *.egg-info/
-build/
-dist/
+
+# Infraestructura local (Postgres portable, etc.)
+.local/
+
+# Evidencias de navegador (playwright-cli)
+.playwright-cli/

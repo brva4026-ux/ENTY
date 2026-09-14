@@ -1,5 +1,13 @@
 """TicketFlow API — FastAPI application factory."""
+import asyncio
+import sys
 from contextlib import asynccontextmanager
+
+if sys.platform == "win32":
+    # psycopg en modo async no es compatible con ProactorEventLoop (default
+    # de Windows); SelectorEventLoop sí lo es. Debe fijarse antes de que
+    # uvicorn cree el loop (la policy se aplica en asyncio.run).
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
