@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import TicketPreview from "../components/TicketPreview";
+import { QuotaMeter } from "../components/Brand";
 
 function firstVenueId(user) {
   const ids = Object.keys(user?.roles || {}).map(Number);
@@ -51,7 +52,6 @@ export default function PromoterDashboard() {
   }, [selectedEvent, venueId]);
 
   const courtesyTypes = types.filter((t) => t.is_courtesy);
-  const paidTypes = types.filter((t) => !t.is_courtesy);
   // cupos del promotor actual, filtrados por tipo cortesía
   const myAllocations = allocations.filter(
     (a) => a.promoter_id === user.id && courtesyTypes.some((t) => t.id === a.ticket_type_id)
@@ -72,9 +72,10 @@ export default function PromoterDashboard() {
     try {
       const ticket = await apiFetch(`/venues/${venueId}/events/${selectedEvent}/tickets`, {
         method: "POST",
-        body: JSON.stringify(form),
+        // "" no es un int válido para Pydantic: normalizar a null
+        body: JSON.stringify({ ...form, allocation_id: form.allocation_id || null }),
       });
-      setLastTicket(ticket);
+      setLastTicket({ ...ticket, customerName: form.customer_name });
       setForm({ ...form, customer_name: "", customer_phone: "", customer_email: "" });
     } catch (err) {
       setError(err.message);
@@ -85,54 +86,58 @@ export default function PromoterDashboard() {
 
   const waLink = lastTicket
     ? `https://wa.me/?text=${encodeURIComponent(
-        "Tu boleta esta lista. Guarda el codigo QR y presentalo en la puerta.\nCodigo: " +
-          lastTicket.raw_token +
-          "\nID boleta: #" +
-          lastTicket.ticket_id
+        `Tu boleta está lista 🎟️\nEvento: ${events.find((ev) => ev.id === selectedEvent)?.name ?? ""}\nNombre: ${
+          lastTicket.customerName ?? ""
+        }\nCódigo: ${lastTicket.raw_token}\nID boleta: #${lastTicket.ticket_id}`
       )}`
     : null;
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Panel del promotor</h2>
-      <p className="text-sm text-slate-400">
-        Hola {user?.full_name}. Emite boletas dentro de tu cupo asignado.
-      </p>
+    <div className="animate-rise space-y-6">
+      <div>
+        <h2 className="text-2xl font-black tracking-tight text-white">Panel del promotor</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Hola {user?.full_name}. Emite boletas dentro de tu cupo asignado.
+        </p>
+      </div>
 
       {error && (
-        <div className="rounded-lg border border-red-900 bg-red-950/60 px-3 py-2 text-sm text-red-300">
+        <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       )}
 
       {events.length === 0 && (
-        <p className="text-sm text-slate-500">No hay eventos publicados.</p>
+        <div className="card p-8 text-center">
+          <p className="text-slate-400">No hay eventos publicados todavía.</p>
+          <p className="mt-1 text-sm text-slate-500">Cuando el admin publique uno, aparecerá aquí.</p>
+        </div>
       )}
 
       {events.length > 0 && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Formulario */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-slate-200">Emitir boleta</h3>
+          <div className="card p-5">
+            <h3 className="mb-3 text-sm font-bold text-slate-200">Emitir boleta</h3>
 
-            <label className="mb-1 block text-xs text-slate-400">Evento</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Evento</label>
             <select
               value={selectedEvent}
               onChange={(e) => setSelectedEvent(Number(e.target.value))}
-              className="mb-3 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-2 text-sm text-white"
+              className="field mb-4"
             >
               {events.map((ev) => (
                 <option key={ev.id} value={ev.id}>{ev.name}</option>
               ))}
             </select>
 
-            <form onSubmit={emit} className="space-y-3">
+            <form onSubmit={emit} className="space-y-3.5">
               <div>
-                <label className="mb-1 block text-xs text-slate-400">Tipo de boleta</label>
+                <label className="mb-1 block text-xs font-medium text-slate-400">Tipo de boleta</label>
                 <select
                   value={form.ticket_type_id}
                   onChange={(e) => handleTypeChange(e.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-2 text-sm text-white"
+                  className="field"
                   required
                 >
                   {types.map((t) => (
@@ -144,97 +149,96 @@ export default function PromoterDashboard() {
               </div>
 
               {myAllocations.length > 0 && (
-                <div>
-                  <label className="mb-1 block text-xs text-slate-400">Cupo de promotor</label>
-                  <select
-                    value={form.allocation_id ?? ""}
-                    onChange={(e) => setForm({ ...form, allocation_id: Number(e.target.value) })}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-2 text-sm text-white"
-                  >
-                    {myAllocations.map((a) => {
-                      const t = types.find((x) => x.id === a.ticket_type_id);
-                      return (
-                        <option key={a.id} value={a.id}>
-                          {t?.name} — usados {a.issued ?? 0}/{a.capacity}
-                        </option>
-                      );
-                    })}
-                  </select>
+                <div className="space-y-2">
+                  {myAllocations.map((a) => (
+                    <QuotaMeter
+                      key={a.id}
+                      used={a.issued ?? 0}
+                      total={a.capacity}
+                      label={`Cupo ${types.find((x) => x.id === a.ticket_type_id)?.name ?? ""}`}
+                    />
+                  ))}
                 </div>
               )}
 
               <div>
-                <label className="mb-1 block text-xs text-slate-400">Nombre del asistente *</label>
+                <label className="mb-1 block text-xs font-medium text-slate-400">Nombre del asistente *</label>
                 <input
                   value={form.customer_name}
                   onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                  className="field"
+                  placeholder="Nombre y apellido"
                   required
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-slate-400">Teléfono *</label>
+                <label className="mb-1 block text-xs font-medium text-slate-400">Teléfono *</label>
                 <input
                   value={form.customer_phone}
                   onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                  className="field"
+                  placeholder="573001234567"
+                  inputMode="tel"
                   required
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-slate-400">Correo (opcional)</label>
+                <label className="mb-1 block text-xs font-medium text-slate-400">Correo (opcional)</label>
                 <input
                   value={form.customer_email}
                   onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                  className="field"
+                  type="email"
+                  placeholder="asistente@correo.com"
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={busy}
-                className="w-full rounded-lg bg-indigo-500 py-2.5 font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
-              >
+              <button type="submit" disabled={busy} className="btn-primary w-full">
                 {busy ? "Emitiendo…" : "Emitir boleta"}
               </button>
             </form>
           </div>
 
           {/* Boleta resultante + wa.me */}
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <h3 className="mb-3 text-sm font-semibold text-slate-200">
-                {lastTicket ? "Boleta generada" : "Vista previa"}
-              </h3>
-              {lastTicket ? (
-                <div className="space-y-4">
-                  <TicketPreview
+          <div className="card h-fit p-5">
+            <h3 className="mb-3 text-sm font-bold text-slate-200">
+              {lastTicket ? "Boleta generada" : "Vista previa"}
+            </h3>
+            {lastTicket ? (
+              <div className="animate-rise space-y-4">                  <TicketPreview
                     rawToken={lastTicket.raw_token}
                     ticketId={lastTicket.ticket_id}
-                    name={form.customer_name || "—"}
-                    color="#6366f1"
+                    name={lastTicket.customerName || "Asistente"}
+                    eventName={events.find((ev) => ev.id === selectedEvent)?.name}
                   />
-                  <div className="rounded-lg bg-slate-800 p-3">
-                    <p className="mb-1 text-xs text-slate-400">Código (solo el promotor lo ve)</p>
-                    <p className="break-all font-mono text-xs text-slate-200">{lastTicket.raw_token}</p>
-                  </div>
-                  {waLink && (
-                    <a
-                      href={waLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block rounded-lg bg-emerald-500 py-2.5 text-center font-semibold text-white hover:bg-emerald-400"
-                    >
-                      Enviar por WhatsApp
-                    </a>
-                  )}
+                <div className="rounded-lg bg-slate-800/60 p-3 ring-1 ring-slate-700/50">
+                  <p className="mb-1 text-xs font-medium text-slate-400">
+                    Código (solo el promotor lo ve)
+                  </p>
+                  <p className="break-all font-mono text-xs text-slate-200">{lastTicket.raw_token}</p>
                 </div>
-              ) : (
+                {waLink && (
+                  <a
+                    href={waLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                      <path d="M12.04 2a9.9 9.9 0 0 0-8.51 14.93L2 22l5.2-1.49A9.9 9.9 0 1 0 12.04 2zm5.77 14.06c-.24.68-1.4 1.3-1.93 1.35-.52.05-1.01.24-3.4-.71-2.87-1.13-4.68-4.06-4.82-4.25-.14-.19-1.15-1.53-1.15-2.92 0-1.39.73-2.07 .99-2.35.26-.28.57-.35.76-.35h.55c.18 0 .42-.07.66.5.24.57.83 1.97.9 2.11.07.14.12.31.02.5-.09.19-.14.3-.28.47-.14.17-.3.38-.42.51-.14.14-.29.3-.12.58.16.28.73 1.2 1.57 1.95 1.08.96 1.99 1.26 2.27 1.4.28.14.44.12.6-.07.17-.19.7-.81.88-1.09.19-.28.38-.23.63-.14.26.09 1.63.77 1.91.91.28.14.47.21.54.33.07.12.07.68-.17 1.36z" />
+                    </svg>
+                    Enviar por WhatsApp
+                  </a>
+                )}
+              </div>
+            ) : (
+              <div className="py-10 text-center">
+                <div className="mx-auto mb-3 h-24 w-24 rounded-xl bg-slate-800/60 ring-1 ring-slate-700/50" />
                 <p className="text-sm text-slate-500">
                   Emite una boleta para ver el QR y el enlace de envío.
                 </p>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

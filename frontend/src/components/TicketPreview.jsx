@@ -1,57 +1,58 @@
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 
-/**
- * Dibuja un QR ASCII/patrón en canvas como vista previa real de la boleta.
- * En producción se usará la imagen generada por el backend (services/ticket_image.py).
- */
-export default function TicketPreview({ rawToken, ticketId, name, color = "#6366f1" }) {
-  const [hash, setHash] = useState(0);
+/** Boleta visual con QR real (escaneable por la app del bouncer). */
+export default function TicketPreview({ rawToken, ticketId, name, eventName }) {
+  const [qrDataUrl, setQrDataUrl] = useState(null);
 
   useEffect(() => {
-    // hash simple del token para variar el patrón
-    let h = 0;
-    for (let i = 0; i < rawToken.length; i++) h = (h * 31 + rawToken.charCodeAt(i)) | 0;
-    setHash(Math.abs(h));
+    let alive = true;
+    QRCode.toDataURL(rawToken, {
+      width: 480,
+      margin: 1,
+      errorCorrectionLevel: "M",
+      color: { dark: "#0f172a", light: "#ffffff" },
+    })
+      .then((url) => {
+        if (alive) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (alive) setQrDataUrl(null);
+      });
+    return () => {
+      alive = false;
+    };
   }, [rawToken]);
 
   return (
-    <div className="overflow-hidden rounded-xl bg-slate-950">
-      <div className="flex items-center gap-4 p-4">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-white">{name}</p>
-          <p className="text-xs text-slate-400">Boleta #{ticketId}</p>
-        </div>
-        <FakeQr hash={hash} color={color} />
-      </div>
-      <div className="border-t border-slate-800 px-4 py-2 text-[10px] text-slate-500">
-        Presenta este código en la entrada · TicketFlow
-      </div>
-    </div>
-  );
-}
+    <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 ring-1 ring-slate-700/60">
+      <div className="relative flex items-center gap-4 p-5">
+        {/* perforación lateral estilo ticket */}
+        <div aria-hidden className="absolute left-[calc(100%-7.25rem)] top-0 h-full w-px bg-slate-700/70" />
+        <div aria-hidden className="absolute -left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-slate-950 ring-1 ring-slate-700" />
+        <div aria-hidden className="absolute -right-[6.6rem] top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-slate-950 ring-1 ring-slate-700" />
 
-function FakeQr({ hash, color }) {
-  const N = 11; // grid 11x11 (determinista salvo 3 finder)
-  const cells = [];
-  for (let i = 0; i < N; i++) {
-    for (let j = 0; j < N; j++) {
-      const inFinderA = i < 3 && j < 3;
-      const inFinderB = i < 3 && j >= N - 3;
-      const inFinderC = i >= N - 3 && j < 3;
-      if (inFinderA || inFinderB || inFinderC) continue;
-      cells.push({ x: j, y: i, on: ((hash >> ((i * 7 + j) % 31)) & 1) === 1 });
-    }
-  }
-  return (
-    <div className="shrink-0 rounded-md bg-white p-1">
-      <div className="grid grid-cols-11 gap-px" style={{ width: 88, height: 88 }}>
-        {Array.from({ length: N * N }).map((_, idx) => {
-          const i = Math.floor(idx / N);
-          const j = idx % N;
-          const inAnyFinder = (i < 3 && j < 3) || (i < 3 && j >= N - 3) || (i >= N - 3 && j < 3);
-          const on = cells.find((c) => c.x === j && c.y === i)?.on ?? inAnyFinder;
-          return <span key={idx} style={{ background: on ? "#000" : "#fff" }} />;
-        })}
+        <div className="min-w-0 flex-1">
+          {eventName && (
+            <p className="mb-0.5 truncate text-xs font-bold uppercase tracking-wider text-brand-400">
+              {eventName}
+            </p>
+          )}
+          <p className="truncate text-lg font-black text-white">{name}</p>
+          <p className="tnum text-xs text-slate-500">Boleta #{ticketId}</p>
+        </div>
+        <div className="shrink-0 rounded-lg bg-white p-1.5 shadow-lg">
+          {qrDataUrl ? (
+            <img src={qrDataUrl} alt="QR de la boleta" className="h-24 w-24" />
+          ) : (
+            <div className="skeleton h-24 w-24 !rounded-md" />
+          )}
+        </div>
+      </div>
+      <div className="border-t border-dashed border-slate-700/70 px-5 py-2.5">
+        <p className="text-[11px] font-medium text-slate-500">
+          Presenta este QR en la entrada · TicketFlow
+        </p>
       </div>
     </div>
   );
