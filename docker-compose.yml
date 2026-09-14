@@ -1,0 +1,51 @@
+# =============================================================================
+# Configuracion de infraestructura local de desarrollo.
+# Uso:
+#   docker compose up -d db     # solo postgres
+#   docker compose up -d        # postgres + backend + frontend (prod-like local)
+# =============================================================================
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ticketflow_db
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-ticketflow}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Aplica el esquema (idempotente) al primer arranque
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ticketflow}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: ticketflow_backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-devpassword}@db:5432/${POSTGRES_DB:-ticketflow}
+    ports:
+      - "8000:8000"
+    volumes:
+      # desarrollo: refleja los cambios sin rebuild
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: ticketflow_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

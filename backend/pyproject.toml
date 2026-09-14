@@ -1,0 +1,29 @@
+[project]
+name = "ticketflow-backend"
+version = "0.1.0"
+description = "Sistema de boleteria y control de aforo - backend FastAPI"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "email-validator>=2.2",
+    "python-jose[cryptography]>=3.3",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt==4.0.1",  # pin: passlib se rompe con bcrypt>=4.1 (bug de deteccion del wrap)
+    "qrcode[pil]>=7.4",
+    "Pillow>=10.3",
+    "python-multipart>=0.0.9",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27",
+    "pytest>=8.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
