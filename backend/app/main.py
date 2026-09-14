@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         description="Sistema de boleteria y control de aforo (Etapa 0 MVP)",
         lifespan=lifespan,
+        root_path=settings.api_root_path,
     )
 
     app.add_middleware(

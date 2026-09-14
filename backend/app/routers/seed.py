@@ -128,7 +128,10 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
 
 @router.post("")
 async def seed(settings=Depends(get_settings), db=Depends(get_db)):
-    """Lanza el seed demo. Solo disponible cuando IS_DEMO=true."""
-    if not getattr(settings, "IS_DEMO", False) and getattr(settings, "ENV", "local") != "local":
-        raise HTTPException(403, "Seed solo disponible en local")
+    """Lanza el seed demo. Requiere IS_DEMO=true explicito en el entorno."""
+    if not settings.is_demo:
+        raise HTTPException(
+            403,
+            "Seed deshabilitado. Define IS_DEMO=true solo en entornos de prueba.",
+        )
     return await seed_demo_data(db)

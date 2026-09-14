@@ -24,10 +24,23 @@ async def init_pool(database_url: str, *, min_size: int = 2, max_size: int = 10)
             min_size=min_size,
             max_size=max_size,
             open=False,
-            kwargs={"row_factory": dict_row, "autocommit": True},
+            kwargs={
+                "row_factory": dict_row,
+                "autocommit": True,
+                # Requerido detras de PgBouncer en modo transaction (Supabase
+                # pooler :6543): los prepared statements de psycopg no
+                # sobreviven al pool y fallan con "prepared statement does
+                # not exist". Desactivarlos es seguro y sin costo practico.
+                "prepare_threshold": 0,
+            },
         )
         await pool.open()
-        await pool.wait()  # espera primeras conexiones
+        try:
+            await pool.wait()  # espera primeras conexiones
+        except Exception:
+            # Serverless: si la DB no responde al arranque, no tumbar la
+            # funcion; cada request reintenta (conexiones perezosas).
+            pass
 
 
 async def close_pool() -> None:
@@ -39,6 +52,8 @@ async def close_pool() -> None:
 
 async def get_db() -> Generator[psycopg.AsyncConnection, None, None]:
     if pool is None:
-        raise RuntimeError("Pool de conexiones no inicializado")
+        # Serverless (Vercel): el lifespan puede no correr antes del primer
+        # request; inicializamos el pool de forma perezosa (idempotente).
+        await init_pool(get_settings().database_url)
     async with pool.connection() as conn:
         yield conn

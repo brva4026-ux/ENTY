@@ -1,0 +1,12 @@
+backend/.venv
+backend/uvicorn.log
+backend/.env
+.local
+.playwright-cli
+.git
+docs
+db/tests
+frontend/node_modules
+frontend/vite.log
+**/__pycache__
+*.pyc

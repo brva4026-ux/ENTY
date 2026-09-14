@@ -1,0 +1,9 @@
+{
+  "name": "ticketflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TicketFlow - boleteria y control de aforo (monorepo: frontend/ + backend/ + api/)",
+  "scripts": {
+    "start": "bash start-local.sh"
+  }
+}

@@ -30,17 +30,34 @@ async def get_current_user(
 
     user_id = int(payload["sub"])
     async with db.cursor() as cur:
-        await cur.execute("SELECT id, email, full_name, is_active FROM users WHERE id = %s", (user_id,))
+        await cur.execute(
+            "SELECT id, email, full_name, is_active FROM users WHERE id = %s", (user_id,)
+        )
         user = await cur.fetchone()
     if not user or not user["is_active"]:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario inactivo")
+
+    # Re-verificar roles en la DB en cada request: el JWT guarda las venues,
+    # pero la fuente de verdad de permisos es venue_user_roles. Asi un rol
+    # revocado (o un usuario desactivado de una venue) aplica de inmediato
+    # sin esperar a que expire el token.
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT venue_id, role FROM venue_user_roles WHERE user_id = %s",
+            (user_id,),
+        )
+        rows = await cur.fetchall()
+
+    roles: dict[int, list[str]] = {}
+    for r in rows:
+        roles.setdefault(int(r["venue_id"]), []).append(r["role"])
 
     return {
         "id": user["id"],
         "email": user["email"],
         "full_name": user["full_name"],
-        "venue_ids": [int(v) for v in payload.get("vids", [])],
-        "roles": {int(k): v for k, v in payload.get("roles", {}).items()},
+        "venue_ids": sorted(roles.keys()),
+        "roles": roles,
     }
 
 

@@ -29,3 +29,5 @@ build/
 
 # Evidencias de navegador (playwright-cli)
 .playwright-cli/
+.vercel
+.env*

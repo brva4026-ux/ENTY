@@ -27,6 +27,7 @@ export default function BouncerScanner() {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [manualCode, setManualCode] = useState("");
   const scannerRef = useRef(null);
   const html5Ref = useRef(null);
   const lastScannedRef = useRef("");
@@ -80,19 +81,40 @@ export default function BouncerScanner() {
     setScanning(false);
   }
 
-  async function onScanSuccess(decodedText) {
-    // ignora lecturas repetidas del mismo código (bouncer apunta al mismo QR)
-    if (decodedText === lastScannedRef.current) return;
-    lastScannedRef.current = decodedText;
+  async function redeemToken(rawToken, { manual = false } = {}) {
+    if (!selectedEvent) {
+      setError("Selecciona un evento primero");
+      return;
+    }
+    // ignora lecturas repetidas del mismo código (bouncer apunta al mismo QR);
+    // la entrada manual siempre se envía porque fue un submit explícito
+    if (!manual && rawToken === lastScannedRef.current) return;
+    lastScannedRef.current = rawToken;
     try {
       const data = await apiFetch(`/venues/${venueId}/events/${selectedEvent}/redeem`, {
         method: "POST",
-        body: JSON.stringify({ raw_token: decodedText }),
+        body: JSON.stringify({ raw_token: rawToken }),
       });
       setResult(data);
     } catch (err) {
       setResult({ code: "NETWORK_ERROR", detail: err.message });
     }
+  }
+
+  async function onScanSuccess(decodedText) {
+    await redeemToken(decodedText);
+  }
+
+  async function submitManual(e) {
+    e.preventDefault();
+    const token = manualCode.trim();
+    if (token.length < 8) {
+      setError("El código es demasiado corto");
+      return;
+    }
+    setError("");
+    setManualCode("");
+    await redeemToken(token, { manual: true });
   }
 
   function resetScan() {
@@ -161,6 +183,22 @@ export default function BouncerScanner() {
               Detener escaneo
             </button>
           )}
+          <form onSubmit={submitManual} className="mt-4 flex w-full max-w-sm gap-2">
+            <input
+              value={manualCode}
+              onChange={(e) => setManualCode(e.target.value)}
+              placeholder="Código manual de la boleta"
+              autoComplete="off"
+              spellCheck={false}
+              className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+            />
+            <button
+              type="submit"
+              className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-bold text-white hover:bg-slate-600"
+            >
+              Validar
+            </button>
+          </form>
           {error && <p className="mt-3 max-w-sm text-sm text-red-400">{error}</p>}
           <p className="mt-4 max-w-sm text-center text-xs text-slate-500">
             Apunta la cámara al QR de la boleta. El resultado aparece en pantalla
