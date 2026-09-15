@@ -142,6 +142,11 @@ export default function AdminDashboard() {
         {selectedEventData && <EventStatusBadge status={selectedEventData.status} />}
       </div>
 
+      <TeamManager venueId={venueId} users={users} onCreated={(u) => setUsers((prev) => {
+        const exists = prev.some((x) => x.id === u.id);
+        return exists ? prev.map((x) => (x.id === u.id ? u : x)) : [...prev, u];
+      })} />
+
       {error && (
         <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
           {error}
@@ -412,6 +417,112 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
           </p>
         )}
       </form>
+    </div>
+  );
+}
+
+function TeamManager({ venueId, users, onCreated }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "promotor" });
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function createUser(e) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    try {
+      const u = await apiFetch(`/venues/${venueId}/users`, {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+      onCreated(u);
+      setForm({ full_name: "", email: "", password: "", role: "promotor" });
+      setOpen(false);
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-slate-200">Equipo de la venue</h3>
+        <button onClick={() => setOpen((v) => !v)} className="btn-ghost text-xs font-bold">
+          {open ? "Cerrar" : "+ Agregar"}
+        </button>
+      </div>
+      <ul className="mb-4 space-y-2">
+        {(users || []).map((u) => (
+          <li
+            key={u.id}
+            className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-800/40 px-3 py-2 text-sm"
+          >
+            <span className="font-semibold text-slate-200">{u.full_name}</span>
+            <span className="flex items-center gap-1.5">
+              {(u.roles || []).map((r) => (
+                <span
+                  key={r}
+                  className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-brand-300 ring-1 ring-brand-500/30"
+                >
+                  {r}
+                </span>
+              ))}
+            </span>
+          </li>
+        ))}
+        {(users || []).length === 0 && (
+          <li className="rounded-lg bg-slate-800/40 px-3 py-2 text-sm text-slate-500">
+            Sin usuarios todavía — agrega a tu equipo arriba.
+          </li>
+        )}
+      </ul>
+      {open && (
+        <form onSubmit={createUser} className="grid grid-cols-2 gap-2">
+          <input
+            value={form.full_name}
+            onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+            className="field"
+            placeholder="Nombre completo"
+            required
+          />
+          <select
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value })}
+            className="field"
+          >
+            <option value="promotor">Promotor</option>
+            <option value="bouncer">Portero (puerta)</option>
+            <option value="admin">Admin</option>
+          </select>
+          <input
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            className="field"
+            type="email"
+            placeholder="correo@ejemplo.com"
+            required
+          />
+          <input
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            className="field"
+            type="password"
+            placeholder="Contraseña (mín. 8)"
+            minLength={8}
+            required
+          />
+          {err && <p className="col-span-2 text-xs text-red-400">{err}</p>}
+          <button disabled={busy} className="btn-primary col-span-2">
+            {busy ? "Creando…" : "Crear usuario"}
+          </button>
+          <p className="col-span-2 text-xs text-slate-500">
+            Si el correo ya existe, solo se le agrega el rol en esta venue.
+          </p>
+        </form>
+      )}
     </div>
   );
 }

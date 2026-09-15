@@ -1,0 +1,25 @@
+{
+  "name": "TicketFlow — Boletería y Aforo",
+  "short_name": "TicketFlow",
+  "description": "Boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

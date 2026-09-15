@@ -16,6 +16,21 @@ export async function apiFetch(path, options = {}) {
     data = {};
   }
   if (!res.ok) {
+    // Token expirado/revocado en un endpoint autenticado: cerrar sesion
+    // y mandar al login (el login mismo y el /auth/me ya manejan su caso).
+    const hadToken = localStorage.getItem("tf_token");
+    if (
+      res.status === 401 &&
+      hadToken &&
+      path !== "/auth/login" &&
+      path !== "/auth/me"
+    ) {
+      localStorage.removeItem("tf_token");
+      window.location.assign("/login");
+      const err = new Error("Tu sesión expiró. Ingresa de nuevo.");
+      err.status = 401;
+      throw err;
+    }
     const detail = data?.detail;
     const msg = typeof detail === "string" ? detail : "Error en la petición";
     const err = new Error(msg);

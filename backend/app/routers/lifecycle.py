@@ -7,7 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
-from app.schemas import EventOut, MessageOut, TicketOut, VenueUserOut, VoidRequest
+from app.schemas import (
+    CreateVenueUser,
+    EventOut,
+    MessageOut,
+    TicketOut,
+    VenueUserOut,
+    VoidRequest,
+)
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["ciclo de vida"])
 
@@ -156,6 +163,72 @@ async def list_users(
         )
         rows = await cur.fetchall()
     return rows
+
+
+# ---------------------------------------------------------------------------
+# Alta de personal de la venue (equipo) desde la UI del admin
+# ---------------------------------------------------------------------------
+@router.post("/users", response_model=VenueUserOut, status_code=status.HTTP_201_CREATED)
+async def create_venue_user(
+    venue_id: int,
+    body: CreateVenueUser,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Crea (o reutiliza) un usuario y le asigna rol en esta venue.
+
+    - Email existente: solo agrega el rol (si ya lo tiene, es idempotente).
+    - Email nuevo: crea el usuario con el password dado (hasheado bcrypt).
+    - super_admin nunca se asigna desde aqui (es rol de plataforma).
+    """
+    from app.core.security import hash_password
+
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute("SELECT id FROM venues WHERE id=%s", (venue_id,))
+        if not await cur.fetchone():
+            raise HTTPException(404, "Venue no encontrada")
+
+        await cur.execute(
+            "SELECT id FROM users WHERE lower(email)=lower(%s)", (body.email,)
+        )
+        row = await cur.fetchone()
+        if row:
+            target_id = row["id"]
+        else:
+            await cur.execute(
+                """
+                INSERT INTO users (email, password_hash, full_name)
+                VALUES (%s, %s, %s)
+                RETURNING id
+                """,
+                (body.email, hash_password(body.password), body.full_name),
+            )
+            target_id = (await cur.fetchone())["id"]
+
+        await cur.execute(
+            """
+            INSERT INTO venue_user_roles (venue_id, user_id, role)
+            VALUES (%s, %s, %s)
+            ON CONFLICT DO NOTHING
+            """,
+            (venue_id, target_id, body.role),
+        )
+
+        await cur.execute(
+            """
+            SELECT u.id, u.email, u.full_name,
+                   array_agg(DISTINCT r.role)::text[] AS roles
+            FROM users u
+            JOIN venue_user_roles r ON r.user_id = u.id AND r.venue_id = %s
+            WHERE u.id = %s
+            GROUP BY u.id, u.email, u.full_name
+            """,
+            (venue_id, target_id),
+        )
+        out = await cur.fetchone()
+        await db.commit()
+    return out
 
 
 # ---------------------------------------------------------------------------

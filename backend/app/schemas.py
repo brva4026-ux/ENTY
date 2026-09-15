@@ -145,6 +145,19 @@ class VenueUserOut(BaseModel):
     roles: list[str] = []
 
 
+class CreateVenueUser(BaseModel):
+    """Alta de personal de la venue (equipo) desde la UI del admin.
+
+    super_admin NO se admite aqui: es un rol de plataforma, se asigna por DB.
+    Si el email ya existe (ej. promotor de otro evento), solo se le agrega el
+    rol en esta venue (idempotente).
+    """
+    email: str = Field(min_length=5, max_length=200, pattern=_EMAIL_RE.pattern)
+    full_name: str = Field(min_length=1, max_length=120)
+    password: str = Field(min_length=8, max_length=128)
+    role: str = Field(pattern=r"^(admin|promotor|bouncer)$")
+
+
 class TicketOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
