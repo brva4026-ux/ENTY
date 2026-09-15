@@ -4,6 +4,7 @@ Usamos una unica conexion por request vía dependency `get_db()`, que provee la
 transaction. Las funciones criticas del esquema (emit_ticket/redeem_ticket) ya
 manejan sus propias transacciones internamente.
 """
+import os
 from collections.abc import Generator
 
 import psycopg
@@ -11,6 +12,22 @@ from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
 from app.core.config import get_settings
+
+# Vercel inyecta VERCEL=1 en las funciones serverless. Ahi NO usamos pool:
+# cada invocacion puede correr en un event loop distinto y el proceso se
+# congela entre requests; un pool asyncio queda atado al loop que lo creo y
+# sus conexiones mueren en el freeze (500 en requests tibios). Una conexion
+# efimera por request es barata detras del pooler de Supabase.
+_SERVERLESS = os.environ.get("VERCEL") == "1"
+
+_CONNECT_KWARGS = {
+    "row_factory": dict_row,
+    "autocommit": True,
+    # Requerido detras de PgBouncer en modo transaction (Supabase pooler
+    # :6543): los prepared statements de psycopg no sobreviven al pool.
+    "prepare_threshold": 0,
+    "connect_timeout": 10,
+}
 
 # Pool compartido creado en el lifespan de la app.
 pool: AsyncConnectionPool | None = None
@@ -55,10 +72,19 @@ async def close_pool() -> None:
 
 async def get_db() -> Generator[psycopg.AsyncConnection, None, None]:
     global pool
+    if _SERVERLESS:
+        conn = await psycopg.AsyncConnection.connect(
+            get_settings().database_url, **_CONNECT_KWARGS
+        )
+        try:
+            yield conn
+        finally:
+            await conn.close()
+        return
     if pool is None or pool.closed:
-        # Serverless (Vercel): el lifespan puede no correr antes del primer
-        # request; inicializamos el pool de forma perezosa (idempotente).
-        # Si el pool quedo cerrado (DB caida al arrancar), se recrea.
+        # Local: el lifespan puede no correr antes del primer request;
+        # inicializamos el pool de forma perezosa (idempotente). Si el pool
+        # quedo cerrado (DB caida al arrancar), se recrea.
         await init_pool(get_settings().database_url)
     async with pool.connection() as conn:
         yield conn
