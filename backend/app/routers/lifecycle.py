@@ -7,6 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
+# fetch_event vive en events.py para que listar, crear y transicionar devuelvan
+# el mismo shape de evento (ver EVENT_COLUMNS).
+from app.routers.events import fetch_event
 from app.schemas import (
     CreateVenueUser,
     EventOut,
@@ -57,12 +60,7 @@ async def _transition(venue_id, event_id, user, db, action):
             await cur.execute("SELECT set_event_status(%s, %s, %s)", (event_id, p_from, p_to))
         except psycopg.errors.Error as e:
             raise _error_to_http(e)
-        await cur.execute(
-            "SELECT id, venue_id, name, starts_at, capacity, status "
-            "FROM events WHERE id=%s",
-            (event_id,),
-        )
-        out = await cur.fetchone()
+        out = await fetch_event(cur, event_id, venue_id)
         await db.commit()
     return out
 

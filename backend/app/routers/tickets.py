@@ -36,6 +36,15 @@ def _handle(venue_id: int, e: psycopg.errors.Error) -> None:
         raise HTTPException(409, "Sin disponibilidad para este tipo/evento")
     if "event_not_open_for_sales" in primary:
         raise HTTPException(409, "El evento no esta abierto para emision")
+    # Migracion 004: el tipo/cupo archivado no acepta boletas nuevas (trigger).
+    if "ticket_type_inactive" in primary:
+        raise HTTPException(
+            409, "Ese tipo de boleta esta archivado: no se pueden emitir mas boletas de ese tipo"
+        )
+    if "allocation_inactive" in primary:
+        raise HTTPException(
+            409, "Tu cupo esta archivado: pidele al admin que lo reactive"
+        )
     if "paid_ticket_tied_to_promoter_allocation" in primary:
         raise HTTPException(400, "Una boleta de pago no puede usar cupo de promotor")
     raise e

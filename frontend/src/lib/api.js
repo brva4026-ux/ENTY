@@ -32,10 +32,27 @@ export async function apiFetch(path, options = {}) {
       throw err;
     }
     const detail = data?.detail;
-    const msg = typeof detail === "string" ? detail : "Error en la petición";
+    let msg = "Error en la petición";
+    if (typeof detail === "string") {
+      msg = detail;
+    } else if (Array.isArray(detail)) {
+      // 422 de FastAPI: lista de errores de validación, uno por campo. Mejor
+      // mostrarlos que un "Error en la petición" que no dice nada.
+      const msgs = detail.map((d) => d?.msg).filter(Boolean);
+      if (msgs.length) msg = msgs.join(" · ");
+    }
     const err = new Error(msg);
     err.status = res.status;
     throw err;
   }
   return data;
+}
+
+/**
+ * URL pública de la boleta (imagen con QR) que se envía al cliente.
+ * No requiere sesión: el token crudo es el secreto de la boleta. Sirve tanto
+ * en dev (Vite proxya /api) como en producción (mismo origen).
+ */
+export function publicTicketImageUrl(rawToken) {
+  return `${window.location.origin}${BASE}/public/tickets/${encodeURIComponent(rawToken)}/image.jpg`;
 }

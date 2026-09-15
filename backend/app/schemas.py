@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 # Regex de email pragmática: acepta tlds de prueba (.test, .local) y hosts reales.
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
@@ -54,20 +54,46 @@ class VenueCreate(BaseModel):
 
 class EventCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
-    description: str | None = None
-    flyer_url: str | None = None
+    description: str | None = Field(default=None, max_length=2000)
+    # HttpUrl (no str): el flyer se pinta en un <img>, asi que solo aceptamos
+    # URLs http(s) reales y no cualquier cadena.
+    flyer_url: HttpUrl | None = None
     starts_at: datetime
     ends_at: datetime | None = None
     event_timezone: str = "America/Bogota"
     capacity: int = Field(gt=0)
 
+    @model_validator(mode="after")
+    def _check_window(self) -> "EventCreate":
+        """El cierre no puede ser anterior a la apertura.
+
+        Se exige que ambas fechas usen el mismo formato de zona horaria: mezclar
+        una aware con una naive revienta al comparar (TypeError -> 500).
+        """
+        if self.ends_at is None:
+            return self
+        if (self.starts_at.tzinfo is None) != (self.ends_at.tzinfo is None):
+            raise ValueError("starts_at y ends_at deben usar el mismo formato de zona horaria")
+        if self.ends_at <= self.starts_at:
+            raise ValueError("ends_at debe ser posterior a starts_at")
+        return self
+
 
 class EventOut(BaseModel):
+    """Shape completo del evento.
+
+    `event_timezone` es obligatorio (en la DB es NOT NULL): asi una consulta a la
+    que se le olvide seleccionarlo falla fuerte en vez de devolver null.
+    """
     model_config = ConfigDict(from_attributes=True)
     id: int
     venue_id: int
     name: str
+    description: str | None = None
+    flyer_url: str | None = None
     starts_at: datetime
+    ends_at: datetime | None = None
+    event_timezone: str
     capacity: int
     status: str
 
@@ -87,12 +113,46 @@ class TicketTypeOut(BaseModel):
     price_cents: int
     quantity: int
     is_courtesy: bool
+    # FALSE = archivado: sigue visible para el admin (con su historial) pero ya
+    # no se puede emitir contra él.
+    is_active: bool = True
+
+
+class TicketTypeUpdate(BaseModel):
+    """Edición parcial de un tipo de boleta. Solo se aplican los campos enviados.
+
+    `quantity` no puede quedar por debajo de lo ya emitido de ese tipo
+    (lo valida `update_ticket_type` en la DB).
+    """
+    name: str | None = Field(default=None, min_length=1, max_length=60)
+    price_cents: int | None = Field(default=None, ge=0)
+    quantity: int | None = Field(default=None, gt=0)
+    is_courtesy: bool | None = None
+    is_active: bool | None = None
 
 
 class AllocationCreate(BaseModel):
     ticket_type_id: int
     promoter_id: int
     capacity: int = Field(ge=0)
+
+
+class AllocationUpdate(BaseModel):
+    """Edición parcial de un cupo. La capacidad no puede quedar por debajo de
+    las boletas ya emitidas contra ese cupo (lo valida la DB)."""
+    capacity: int | None = Field(default=None, ge=0)
+    is_active: bool | None = None
+
+
+class DeleteOut(BaseModel):
+    """Resultado de eliminar un tipo/cupo.
+
+    `archived=True` significa que tenía historial y solo se archivó (el registro
+    se conserva); `False` que la fila se borró de verdad.
+    """
+    id: int
+    archived: bool
+    detail: str
 
 
 class AllocationOut(BaseModel):
@@ -103,6 +163,9 @@ class AllocationOut(BaseModel):
     promoter_id: int
     capacity: int
     is_active: bool
+    # Boletas activas (no anuladas ni reembolsadas) del cupo. Mismo criterio que
+    # usa emit_ticket() para rechazar sobreventa, para que la UI nunca mienta.
+    issued: int = 0
 
 
 class TicketEmitRequest(BaseModel):

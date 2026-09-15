@@ -9,7 +9,7 @@ COPY app ./app
 RUN pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir "." || \
     pip install --no-cache-dir fastapi uvicorn psycopg[binary] pydantic pydantic-settings \
-        python-jose[cryptography] passlib[bcrypt] qrcode[pil] Pillow python-multipart
+        python-jose[cryptography] passlib[bcrypt] qrcode[pil] Pillow python-multipart tzdata
 
 EXPOSE 8000
 

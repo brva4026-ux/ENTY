@@ -9,6 +9,59 @@ function firstVenueId(user) {
   return ids[0] ?? null;
 }
 
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+/** Date -> valor para <input type="datetime-local"> (hora LOCAL, sin zona). */
+function toLocalInput(date) {
+  return (
+    `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}` +
+    `T${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+  );
+}
+
+/** Evento nuevo por defecto: dentro de una semana a las 8 p.m. */
+function defaultEventForm() {
+  const start = new Date(Date.now() + 7 * 86400000);
+  start.setHours(20, 0, 0, 0);
+  return {
+    name: "",
+    capacity: 100,
+    starts_at: toLocalInput(start),
+    ends_at: "",
+    flyer_url: "",
+    description: "",
+  };
+}
+
+function formatEventDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("es-CO", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** Fecha corta para las pestañas de evento (los chips no dan para más). */
+function formatShortDate(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("es-CO", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 const NEXT_ACTIONS = {
   draft: [{ action: "publish", label: "Publicar evento" }],
   published: [{ action: "live", label: "Abrir puertas" }],
@@ -36,8 +89,12 @@ export default function AdminDashboard() {
   const [tickets, setTickets] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [creating, setCreating] = useState(false);
+  // URL de flyer que ya falló al cargar: evita pintar el ícono de imagen rota.
+  const [badFlyer, setBadFlyer] = useState("");
   const [busyAction, setBusyAction] = useState("");
-  const [form, setForm] = useState({ name: "", capacity: 100 });
+  const [form, setForm] = useState(defaultEventForm);
 
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
@@ -107,20 +164,51 @@ export default function AdminDashboard() {
 
   async function createEvent(e) {
     e.preventDefault();
+    setFormError("");
+
+    const startsAt = new Date(form.starts_at);
+    if (Number.isNaN(startsAt.getTime())) {
+      setFormError("Elige una fecha y hora de apertura validas.");
+      return;
+    }
+    const endsAt = form.ends_at ? new Date(form.ends_at) : null;
+    if (endsAt && Number.isNaN(endsAt.getTime())) {
+      setFormError("La fecha de cierre no es valida.");
+      return;
+    }
+    if (endsAt && endsAt <= startsAt) {
+      setFormError("El cierre debe ser posterior a la apertura.");
+      return;
+    }
+
+    setCreating(true);
     try {
       const ev = await apiFetch(`/venues/${venueId}/events`, {
         method: "POST",
         body: JSON.stringify({
-          name: form.name,
+          name: form.name.trim(),
           capacity: Number(form.capacity),
-          starts_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+          // datetime-local viene SIN zona horaria: new Date(...) lo interpreta
+          // como hora local del navegador y toISOString() lo lleva al instante
+          // UTC correcto. Mandarlo crudo lo guardaría como si fuera UTC.
+          starts_at: startsAt.toISOString(),
+          ends_at: endsAt ? endsAt.toISOString() : null,
+          description: form.description.trim() || null,
+          flyer_url: form.flyer_url.trim() || null,
+          // La zona del evento es la del admin que lo crea: así la hora que
+          // escribió es la que queda impresa en la boleta del cliente.
+          event_timezone:
+            Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Bogota",
         }),
       });
-      setForm({ name: "", capacity: 100 });
+      setForm(defaultEventForm());
+      setBadFlyer("");
       setSelectedEvent(ev.id);
       await loadEvents();
     } catch (err) {
-      setError(err.message);
+      setFormError(err.message);
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -155,25 +243,113 @@ export default function AdminDashboard() {
 
       {/* Crear evento */}
       <form onSubmit={createEvent} className="card p-5">
-        <h3 className="mb-3 text-sm font-bold text-slate-200">Crear evento</h3>
-        <div className="flex flex-wrap gap-2">
-          <input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Nombre del evento"
-            className="field !w-auto min-w-44 flex-1"
-            required
-          />
-          <input
-            type="number"
-            value={form.capacity}
-            onChange={(e) => setForm({ ...form, capacity: e.target.value })}
-            placeholder="Aforo"
-            className="field !w-28"
-            min="1"
-            required
-          />
-          <button className="btn-primary">Crear</button>
+        <h3 className="mb-1 text-sm font-bold text-slate-200">Crear evento</h3>
+        <p className="mb-4 text-xs text-slate-500">
+          Nace en borrador: publícalo cuando esté listo para vender.
+        </p>
+
+        <div className="grid gap-3.5 sm:grid-cols-2">
+          <label className="sm:col-span-2">
+            <span className="mb-1 block text-xs font-medium text-slate-400">
+              Nombre del evento *
+            </span>
+            <input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Noche Electrónica"
+              className="field"
+              maxLength={200}
+              required
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-medium text-slate-400">
+              Apertura de puertas *
+            </span>
+            <input
+              type="datetime-local"
+              value={form.starts_at}
+              onChange={(e) => setForm({ ...form, starts_at: e.target.value })}
+              className="field"
+              required
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-medium text-slate-400">
+              Aforo (personas) *
+            </span>
+            <input
+              type="number"
+              value={form.capacity}
+              onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+              className="field"
+              placeholder="100"
+              min="1"
+              required
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-medium text-slate-400">
+              Cierre (opcional)
+            </span>
+            <input
+              type="datetime-local"
+              value={form.ends_at}
+              onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
+              className="field"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-medium text-slate-400">
+              Flyer (URL de la imagen)
+            </span>
+            <input
+              type="url"
+              value={form.flyer_url}
+              onChange={(e) => setForm({ ...form, flyer_url: e.target.value })}
+              className="field"
+              placeholder="https://…/flyer.jpg"
+            />
+          </label>
+
+          <label className="sm:col-span-2">
+            <span className="mb-1 block text-xs font-medium text-slate-400">
+              Descripción (opcional)
+            </span>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="field"
+              rows={2}
+              maxLength={2000}
+              placeholder="DJ set + open bar cortesías"
+            />
+          </label>
+        </div>
+
+        {formError && (
+          <p className="mt-3 text-xs text-red-400">{formError}</p>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button className="btn-primary" disabled={creating}>
+            {creating ? "Creando…" : "Crear evento"}
+          </button>
+          {form.flyer_url && form.flyer_url !== badFlyer && (
+            <img
+              src={form.flyer_url}
+              alt="Previsualización del flyer"
+              onError={() => setBadFlyer(form.flyer_url)}
+              className="h-12 w-12 rounded-lg object-cover ring-1 ring-slate-700"
+            />
+          )}
+          <span className="text-xs text-slate-500">
+            La hora se guarda en tu zona ({Intl.DateTimeFormat().resolvedOptions().timeZone}).
+          </span>
         </div>
       </form>
 
@@ -192,6 +368,9 @@ export default function AdminDashboard() {
               }`}
             >
               {ev.name}
+              <span className="ml-2 text-[11px] font-medium opacity-75">
+                {formatShortDate(ev.starts_at)}
+              </span>
             </button>
           ))}
         </div>
@@ -204,6 +383,35 @@ export default function AdminDashboard() {
 
       {selectedEvent && (
         <>
+          {selectedEventData && (
+            <div className="card flex flex-wrap items-start gap-4 p-4">
+              {selectedEventData.flyer_url &&
+                selectedEventData.flyer_url !== badFlyer && (
+                  <img
+                    src={selectedEventData.flyer_url}
+                    alt=""
+                    onError={() => setBadFlyer(selectedEventData.flyer_url)}
+                    className="h-24 w-24 shrink-0 rounded-xl object-cover ring-1 ring-slate-700"
+                  />
+                )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-white">{selectedEventData.name}</p>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {formatEventDate(selectedEventData.starts_at)}
+                  {selectedEventData.ends_at
+                    ? ` → ${formatEventDate(selectedEventData.ends_at)}`
+                    : ""}
+                  {" · "}aforo {selectedEventData.capacity}
+                </p>
+                {selectedEventData.description && (
+                  <p className="mt-2 whitespace-pre-line text-sm text-slate-300">
+                    {selectedEventData.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           <ReportWidget report={report} />
 
           {/* Ciclo de vida del evento */}
@@ -265,6 +473,16 @@ function TypeManager({ venueId, eventId, types, onChange }) {
   const [qty, setQty] = useState("50");
   const [isCourtesy, setIsCourtesy] = useState(false);
   const [err, setErr] = useState("");
+  const [info, setInfo] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState({ name: "", price: "", qty: "", isCourtesy: false });
+  const [busyId, setBusyId] = useState(null);
+
+  const typeUrl = (t) => `/venues/${venueId}/events/${eventId}/types/${t.id}`;
+
+  function replaceType(updated) {
+    onChange((types || []).map((x) => (x.id === updated.id ? updated : x)));
+  }
 
   async function createType(e) {
     e.preventDefault();
@@ -285,6 +503,80 @@ function TypeManager({ venueId, eventId, types, onChange }) {
     }
   }
 
+  function startEdit(t) {
+    setEditingId(t.id);
+    setErr("");
+    setInfo("");
+    setDraft({
+      name: t.name,
+      price: String(t.price_cents),
+      qty: String(t.quantity),
+      isCourtesy: t.is_courtesy,
+    });
+  }
+
+  async function saveEdit(t) {
+    setBusyId(t.id);
+    setErr("");
+    try {
+      const updated = await apiFetch(typeUrl(t), {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: draft.name.trim(),
+          price_cents: Number(draft.price),
+          quantity: Number(draft.qty),
+          is_courtesy: draft.isCourtesy,
+        }),
+      });
+      replaceType(updated);
+      setEditingId(null);
+      setInfo("Tipo actualizado.");
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function toggleTypeActive(t) {
+    setBusyId(t.id);
+    setErr("");
+    try {
+      const updated = await apiFetch(typeUrl(t), {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !t.is_active }),
+      });
+      replaceType(updated);
+      setInfo(updated.is_active ? "Tipo reactivado." : "Tipo archivado.");
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function removeType(t) {
+    const ok = window.confirm(
+      `¿Eliminar el tipo "${t.name}"?\n\nSi ya tiene boletas emitidas se archivará para no perder el historial.`
+    );
+    if (!ok) return;
+    setBusyId(t.id);
+    setErr("");
+    try {
+      const res = await apiFetch(typeUrl(t), { method: "DELETE" });
+      if (res.archived) {
+        replaceType({ ...t, is_active: false });
+      } else {
+        onChange((types || []).filter((x) => x.id !== t.id));
+      }
+      setInfo(res.detail);
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="card p-5">
       <h3 className="mb-3 text-sm font-bold text-slate-200">Tipos de boleta</h3>
@@ -292,20 +584,102 @@ function TypeManager({ venueId, eventId, types, onChange }) {
         {(types || []).map((t) => (
           <li
             key={t.id}
-            className="flex items-center justify-between rounded-lg bg-slate-800/40 px-3 py-2 text-sm"
+            className={`rounded-lg bg-slate-800/40 px-3 py-2 text-sm ${
+              t.is_active === false ? "opacity-60" : ""
+            }`}
           >
-            <span className="font-semibold text-slate-200">
-              {t.name}
-              {t.is_courtesy && (
-                <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-300 ring-1 ring-emerald-500/30">
-                  cortesía
+            {editingId === t.id ? (
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  className="field col-span-2"
+                  placeholder="Nombre"
+                />
+                <input
+                  value={draft.price}
+                  onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+                  className="field"
+                  placeholder="Precio (centavos)"
+                  inputMode="numeric"
+                />
+                <input
+                  value={draft.qty}
+                  onChange={(e) => setDraft({ ...draft, qty: e.target.value })}
+                  className="field"
+                  placeholder="Cantidad"
+                  inputMode="numeric"
+                />
+                <label className="col-span-2 flex items-center gap-2 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={draft.isCourtesy}
+                    onChange={(e) => setDraft({ ...draft, isCourtesy: e.target.checked })}
+                    className="accent-brand-500"
+                  />
+                  Cortesía (precio 0)
+                </label>
+                <div className="col-span-2 flex gap-2">
+                  <button
+                    onClick={() => saveEdit(t)}
+                    disabled={busyId === t.id}
+                    className="btn-primary flex-1 !py-1.5 text-xs"
+                  >
+                    {busyId === t.id ? "Guardando…" : "Guardar"}
+                  </button>
+                  <button onClick={() => setEditingId(null)} className="btn-ghost text-xs">
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="flex items-center gap-2 font-semibold text-slate-200">
+                  {t.name}
+                  {t.is_courtesy && (
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-300 ring-1 ring-emerald-500/30">
+                      cortesía
+                    </span>
+                  )}
+                  {t.is_active === false && (
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-300 ring-1 ring-amber-500/30">
+                      archivado
+                    </span>
+                  )}
                 </span>
-              )}
-            </span>
-            <span className="tnum text-slate-400">
-              {t.price_cents > 0 ? `$${(t.price_cents / 100).toLocaleString("es-CO")}` : "gratis"}{" "}
-              · cupo {t.quantity}
-            </span>
+                <span className="flex items-center gap-2">
+                  <span className="tnum text-slate-400">
+                    {t.price_cents > 0
+                      ? `$${(t.price_cents / 100).toLocaleString("es-CO")}`
+                      : "gratis"}{" "}
+                    · cupo {t.quantity}
+                  </span>
+                  <button
+                    onClick={() => startEdit(t)}
+                    className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10"
+                  >
+                    Editar
+                  </button>
+                  {t.is_active === false ? (
+                    <button
+                      onClick={() => toggleTypeActive(t)}
+                      disabled={busyId === t.id}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/10"
+                    >
+                      Reactivar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => removeType(t)}
+                      disabled={busyId === t.id}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                    >
+                      Eliminar
+                    </button>
+                  )}
+                </span>
+              </div>
+            )}
           </li>
         ))}
         {(types || []).length === 0 && (
@@ -323,6 +697,7 @@ function TypeManager({ venueId, eventId, types, onChange }) {
           Cortesía (precio 0)
         </label>
         {err && <p className="col-span-2 text-xs text-red-400">{err}</p>}
+        {info && <p className="col-span-2 text-xs text-amber-300">{info}</p>}
         <button className="btn-ghost col-span-2 font-bold">Agregar tipo</button>
       </form>
     </div>
@@ -334,10 +709,20 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
   const [typeId, setTypeId] = useState("");
   const [capacity, setCapacity] = useState("5");
   const [err, setErr] = useState("");
+  const [info, setInfo] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [draftCapacity, setDraftCapacity] = useState("5");
+  const [busyId, setBusyId] = useState(null);
 
   const promoters = (users || []).filter((u) =>
     u.roles?.includes("promotor") || u.roles?.includes("admin")
   );
+
+  const allocationUrl = (a) => `/venues/${venueId}/events/${eventId}/allocations/${a.id}`;
+
+  function replaceAllocation(updated) {
+    onChange((allocations || []).map((x) => (x.id === updated.id ? updated : x)));
+  }
 
   async function createAllocation(e) {
     e.preventDefault();
@@ -357,6 +742,71 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
     }
   }
 
+  function startEdit(a) {
+    setEditingId(a.id);
+    setErr("");
+    setInfo("");
+    setDraftCapacity(String(a.capacity));
+  }
+
+  async function saveEdit(a) {
+    setBusyId(a.id);
+    setErr("");
+    try {
+      const updated = await apiFetch(allocationUrl(a), {
+        method: "PATCH",
+        body: JSON.stringify({ capacity: Number(draftCapacity) }),
+      });
+      replaceAllocation(updated);
+      setEditingId(null);
+      setInfo("Cupo actualizado.");
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function toggleAllocationActive(a) {
+    setBusyId(a.id);
+    setErr("");
+    try {
+      const updated = await apiFetch(allocationUrl(a), {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !a.is_active }),
+      });
+      replaceAllocation(updated);
+      setInfo(updated.is_active ? "Cupo reactivado." : "Cupo archivado.");
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function removeAllocation(a) {
+    const who = (users || []).find((x) => x.id === a.promoter_id);
+    const ok = window.confirm(
+      `¿Eliminar el cupo de ${who ? who.full_name : `#${a.promoter_id}`}?\n\nSi ya tiene boletas emitidas se archivará para no perder el historial.`
+    );
+    if (!ok) return;
+    setBusyId(a.id);
+    setErr("");
+    try {
+      const res = await apiFetch(allocationUrl(a), { method: "DELETE" });
+      if (res.archived) {
+        replaceAllocation({ ...a, is_active: false });
+      } else {
+        onChange((allocations || []).filter((x) => x.id !== a.id));
+      }
+      setInfo(res.detail);
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="card p-5">
       <h3 className="mb-3 text-sm font-bold text-slate-200">Cupos de promotor</h3>
@@ -365,16 +815,73 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
           const t = (types || []).find((x) => x.id === a.ticket_type_id);
           const u = (users || []).find((x) => x.id === a.promoter_id);
           return (
-            <li key={a.id} className="rounded-lg bg-slate-800/40 px-3 py-2">
-              <div className="mb-1.5 flex items-center justify-between text-sm">
-                <span className="font-semibold text-slate-200">
+            <li
+              key={a.id}
+              className={`rounded-lg bg-slate-800/40 px-3 py-2 ${
+                a.is_active === false ? "opacity-60" : ""
+              }`}
+            >
+              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="flex items-center gap-2 font-semibold text-slate-200">
                   {u ? u.full_name : `Promotor #${a.promoter_id}`}
+                  {a.is_active === false && (
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-300 ring-1 ring-amber-500/30">
+                      archivado
+                    </span>
+                  )}
                 </span>
-                <span className="tnum text-xs text-slate-400">
-                  {t ? t.name : `tipo ${a.ticket_type_id}`}
+                <span className="flex items-center gap-2">
+                  <span className="tnum text-xs text-slate-400">
+                    {t ? t.name : `tipo ${a.ticket_type_id}`}
+                  </span>
+                  <button
+                    onClick={() => startEdit(a)}
+                    className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10"
+                  >
+                    Editar
+                  </button>
+                  {a.is_active === false ? (
+                    <button
+                      onClick={() => toggleAllocationActive(a)}
+                      disabled={busyId === a.id}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/10"
+                    >
+                      Reactivar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => removeAllocation(a)}
+                      disabled={busyId === a.id}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                    >
+                      Eliminar
+                    </button>
+                  )}
                 </span>
               </div>
-              <QuotaMeter used={a.issued ?? 0} total={a.capacity} label="Usados" compact />
+              {editingId === a.id ? (
+                <div className="flex gap-2">
+                  <input
+                    value={draftCapacity}
+                    onChange={(e) => setDraftCapacity(e.target.value)}
+                    className="field !py-1.5 text-xs"
+                    placeholder="Capacidad"
+                    inputMode="numeric"
+                  />
+                  <button
+                    onClick={() => saveEdit(a)}
+                    disabled={busyId === a.id}
+                    className="btn-primary !py-1.5 text-xs"
+                  >
+                    {busyId === a.id ? "Guardando…" : "Guardar"}
+                  </button>
+                  <button onClick={() => setEditingId(null)} className="btn-ghost text-xs">
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <QuotaMeter used={a.issued ?? 0} total={a.capacity} label="Usados" compact />
+              )}
             </li>
           );
         })}
@@ -411,6 +918,7 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
           <button className="btn-ghost font-bold">Asignar</button>
         </div>
         {err && <p className="col-span-2 text-xs text-red-400">{err}</p>}
+        {info && <p className="col-span-2 text-xs text-amber-300">{info}</p>}
         {promoters.length === 0 && (
           <p className="col-span-2 text-xs text-amber-400">
             No hay usuarios en esta venue todavía — créalos con POST /seed o agregándolos a la DB.

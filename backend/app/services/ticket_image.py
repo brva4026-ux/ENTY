@@ -13,7 +13,10 @@ _TICKET_H = 500
 
 
 def _load_font(size: int) -> ImageFont.ImageFont:
-    """Elige la fuente. Evita depender de sistema usando DejaVuSans (muy comun)."""
+    """Elige la fuente: DejaVuSans si el sistema la trae (Linux), y si no la
+    fuente por defecto de Pillow **con tamaño** (>=10.1), que tambien es
+    escalable. El fallback sin tamaño daria texto diminuto e ilegible en las
+    imagenes Docker slim, donde DejaVu no esta instalada."""
     candidates = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -23,7 +26,7 @@ def _load_font(size: int) -> ImageFont.ImageFont:
             return ImageFont.truetype(path, size)
         except Exception:
             continue
-    return ImageFont.load_default()
+    return ImageFont.load_default(size=size)
 
 
 def _qr_image(data: str) -> Image.Image:

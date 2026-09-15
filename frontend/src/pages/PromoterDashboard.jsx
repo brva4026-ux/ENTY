@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { apiFetch } from "../lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { apiFetch, publicTicketImageUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import TicketPreview from "../components/TicketPreview";
 import { QuotaMeter } from "../components/Brand";
@@ -27,6 +27,7 @@ export default function PromoterDashboard() {
   const [lastTicket, setLastTicket] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!venueId) return;
@@ -38,18 +39,30 @@ export default function PromoterDashboard() {
       .catch((e) => setError(e.message));
   }, [venueId]);
 
+  // Recargable: se llama al cambiar de evento y tras emitir, para que el
+  // medidor de cupo refleje las boletas realmente usadas.
+  const loadAllocations = useCallback(async () => {
+    if (!selectedEvent) return;
+    try {
+      setAllocations(await apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`));
+    } catch {
+      setAllocations([]);
+    }
+  }, [selectedEvent, venueId]);
+
   useEffect(() => {
     if (!selectedEvent) return;
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/types`)
       .then((d) => {
-        setTypes(d);
-        setForm((f) => ({ ...f, ticket_type_id: d[0]?.id ?? "" }));
+        // Los tipos archivados por el admin no se ofrecen (la DB los rechaza
+        // igual, con `ticket_type_inactive`).
+        const active = d.filter((t) => t.is_active !== false);
+        setTypes(active);
+        setForm((f) => ({ ...f, ticket_type_id: active[0]?.id ?? "" }));
       })
       .catch((e) => setError(e.message));
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`)
-      .then(setAllocations)
-      .catch(() => setAllocations([]));
-  }, [selectedEvent, venueId]);
+    loadAllocations();
+  }, [selectedEvent, venueId, loadAllocations]);
 
   const courtesyTypes = types.filter((t) => t.is_courtesy);
   // cupos del promotor actual, filtrados por tipo cortesía
@@ -75,8 +88,14 @@ export default function PromoterDashboard() {
         // "" no es un int válido para Pydantic: normalizar a null
         body: JSON.stringify({ ...form, allocation_id: form.allocation_id || null }),
       });
-      setLastTicket({ ...ticket, customerName: form.customer_name });
+      setLastTicket({
+        ...ticket,
+        customerName: form.customer_name,
+        customerPhone: form.customer_phone,
+      });
+      setCopied(false);
       setForm({ ...form, customer_name: "", customer_phone: "", customer_email: "" });
+      await loadAllocations();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -84,13 +103,38 @@ export default function PromoterDashboard() {
     }
   }
 
+  const eventName = events.find((ev) => ev.id === selectedEvent)?.name ?? "";
+  // Entrega real: el cliente abre este link y ve su QR (sin sesión).
+  const ticketUrl = lastTicket ? publicTicketImageUrl(lastTicket.raw_token) : null;
+
+  // wa.me exige el número solo con dígitos, código de país incluido. Si viene
+  // incompleto abrimos el selector de contactos en vez de un chat equivocado.
+  const waDigits = String(lastTicket?.customerPhone ?? "").replace(/\D/g, "");
+
+  const waMessage = lastTicket
+    ? [
+        "🎟️ Tu boleta está lista",
+        `Evento: ${eventName}`,
+        `Nombre: ${lastTicket.customerName ?? ""}`,
+        `Boleta #${lastTicket.ticket_id}`,
+        "",
+        `Ábrela y guárdala aquí (el QR para entrar): ${ticketUrl}`,
+      ].join("\n")
+    : "";
+
   const waLink = lastTicket
-    ? `https://wa.me/?text=${encodeURIComponent(
-        `Tu boleta está lista 🎟️\nEvento: ${events.find((ev) => ev.id === selectedEvent)?.name ?? ""}\nNombre: ${
-          lastTicket.customerName ?? ""
-        }\nCódigo: ${lastTicket.raw_token}\nID boleta: #${lastTicket.ticket_id}`
-      )}`
+    ? `https://wa.me/${waDigits.length >= 8 ? waDigits : ""}?text=${encodeURIComponent(waMessage)}`
     : null;
+
+  async function copyTicketUrl() {
+    try {
+      await navigator.clipboard.writeText(ticketUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("No se pudo copiar el enlace. Cópialo manualmente.");
+    }
+  }
 
   return (
     <div className="animate-rise space-y-6">
@@ -172,7 +216,9 @@ export default function PromoterDashboard() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-400">Teléfono *</label>
+                <label className="mb-1 block text-xs font-medium text-slate-400">
+                  Teléfono (con código de país) *
+                </label>
                 <input
                   value={form.customer_phone}
                   onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
@@ -205,18 +251,14 @@ export default function PromoterDashboard() {
               {lastTicket ? "Boleta generada" : "Vista previa"}
             </h3>
             {lastTicket ? (
-              <div className="animate-rise space-y-4">                  <TicketPreview
-                    rawToken={lastTicket.raw_token}
-                    ticketId={lastTicket.ticket_id}
-                    name={lastTicket.customerName || "Asistente"}
-                    eventName={events.find((ev) => ev.id === selectedEvent)?.name}
-                  />
-                <div className="rounded-lg bg-slate-800/60 p-3 ring-1 ring-slate-700/50">
-                  <p className="mb-1 text-xs font-medium text-slate-400">
-                    Código (solo el promotor lo ve)
-                  </p>
-                  <p className="break-all font-mono text-xs text-slate-200">{lastTicket.raw_token}</p>
-                </div>
+              <div className="animate-rise space-y-4">
+                <TicketPreview
+                  rawToken={lastTicket.raw_token}
+                  ticketId={lastTicket.ticket_id}
+                  name={lastTicket.customerName || "Asistente"}
+                  eventName={eventName}
+                />
+
                 {waLink && (
                   <a
                     href={waLink}
@@ -230,6 +272,40 @@ export default function PromoterDashboard() {
                     Enviar por WhatsApp
                   </a>
                 )}
+
+                {/* Lo que se le entrega al cliente: abre el QR sin sesión */}
+                <div className="rounded-lg bg-slate-800/60 p-3 ring-1 ring-slate-700/50">
+                  <p className="mb-1 text-xs font-medium text-slate-400">
+                    Enlace de la boleta (el cliente abre aquí su QR)
+                  </p>
+                  <p className="break-all font-mono text-xs text-slate-300">{ticketUrl}</p>
+                  <div className="mt-2 flex gap-2">
+                    <a
+                      href={ticketUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-ghost flex-1 text-xs font-bold"
+                    >
+                      Ver boleta
+                    </a>
+                    <button
+                      type="button"
+                      onClick={copyTicketUrl}
+                      className="btn-ghost flex-1 text-xs font-bold"
+                    >
+                      {copied ? "¡Enlace copiado!" : "Copiar enlace"}
+                    </button>
+                  </div>
+                </div>
+
+                <details className="rounded-lg bg-slate-900/60 p-3 ring-1 ring-slate-800">
+                  <summary className="cursor-pointer text-xs font-medium text-slate-500">
+                    Código de respaldo (validar sin cámara)
+                  </summary>
+                  <p className="mt-2 break-all font-mono text-xs text-slate-400">
+                    {lastTicket.raw_token}
+                  </p>
+                </details>
               </div>
             ) : (
               <div className="py-10 text-center">
