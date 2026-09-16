@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import ReportWidget from "../components/ReportWidget";
+import IssuedTicket from "../components/IssuedTicket";
 import Icon from "../components/Icon";
 import { EventStatusBadge, QuotaMeter } from "../components/Brand";
-import { eventDate } from "../lib/format";
+import { eventDate, money } from "../lib/format";
 
 function firstVenueId(user) {
   const ids = Object.keys(user?.roles || {}).map(Number);
@@ -40,6 +41,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
   const [form, setForm] = useState({ name: "", capacity: 100 });
+  // Boleta recien emitida: se muestra con QR y enlace de envio.
+  const [lastTicket, setLastTicket] = useState(null);
 
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
@@ -62,6 +65,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!selectedEvent) return;
+    // La boleta emitida pertenece a un evento: al cambiar de evento deja de
+    // ser valida como "recien emitida" y confundiria el panel.
+    setLastTicket(null);
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/types`)
       .then(setTypes)
       .catch((e) => setError(e.message));
@@ -266,6 +272,35 @@ export default function AdminDashboard() {
           )}
 
           <div className="grid gap-5 lg:grid-cols-2">
+            <EmitTicketPanel
+              venueId={venueId}
+              eventId={selectedEvent}
+              event={selectedEventData}
+              types={types}
+              onIssued={(ticket) => {
+                setLastTicket(ticket);
+                refreshEventData();
+              }}
+              onError={setError}
+            />
+            <div className="card-lit card h-fit p-5">
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-200">
+                <Icon name="ticket" className="h-4 w-4 text-brand-400" />
+                {lastTicket ? "Boleta generada" : "Vista previa"}
+              </h3>
+              {lastTicket ? (
+                <IssuedTicket ticket={lastTicket} eventName={selectedEventData?.name} />
+              ) : (
+                <div className="py-12 text-center">
+                  <span className="tile mx-auto mb-3 grid h-16 w-16">
+                    <Icon name="qr" className="h-8 w-8" />
+                  </span>
+                  <p className="text-sm text-slate-500">
+                    Emite una boleta para ver el QR y el enlace de envío.
+                  </p>
+                </div>
+              )}
+            </div>
             <TypeManager
               venueId={venueId}
               eventId={selectedEvent}
@@ -290,6 +325,144 @@ export default function AdminDashboard() {
             onError={setError}
           />
         </>
+      )}
+    </div>
+  );
+}
+
+function EmitTicketPanel({ venueId, eventId, event, types, onIssued, onError }) {
+  const [form, setForm] = useState({
+    ticket_type_id: "",
+    customer_name: "",
+    customer_phone: "",
+    customer_email: "",
+  });
+  const [busy, setBusy] = useState(false);
+
+  // La emision solo procede con el evento abierto: el backend responde 409 en
+  // draft/ended/cancelled (`event_not_open_for_sales`). Se avisa antes en vez
+  // de dejar que el admin llene el formulario para recibir un error.
+  const open = event?.status === "published" || event?.status === "live";
+
+  useEffect(() => {
+    setForm((f) => ({ ...f, ticket_type_id: types?.[0]?.id ?? "" }));
+  }, [types]);
+
+  const selectedType = (types || []).find((t) => t.id === Number(form.ticket_type_id));
+
+  async function emit(e) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      // Venta directa: sin `allocation_id`. Las boletas de pago no pueden ir
+      // contra cupo de promotor, y el admin emite siempre a nombre del bar.
+      const ticket = await apiFetch(`/venues/${venueId}/events/${eventId}/tickets`, {
+        method: "POST",
+        body: JSON.stringify({
+          ticket_type_id: Number(form.ticket_type_id),
+          customer_name: form.customer_name,
+          customer_phone: form.customer_phone,
+          customer_email: form.customer_email || null,
+        }),
+      });
+      // La respuesta no trae nombre/telefono: se conservan para armar el wa.me.
+      onIssued({
+        ...ticket,
+        customerName: form.customer_name,
+        customer_phone: form.customer_phone,
+      });
+      setForm((f) => ({ ...f, customer_name: "", customer_phone: "", customer_email: "" }));
+    } catch (err) {
+      onError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card-lit card p-5">
+      <h3 className="mb-1 flex items-center gap-2 text-sm font-bold text-slate-200">
+        <Icon name="plus" className="h-4 w-4 text-brand-400" />
+        Emitir boleta
+      </h3>
+      <p className="mb-4 text-xs text-slate-500">
+        Venta directa en puerta o taquilla. No consume cupo de promotor.
+      </p>
+
+      {!open ? (
+        <p className="rounded-lg bg-amber-500/10 px-3 py-2.5 text-xs text-amber-300 ring-1 ring-amber-500/30">
+          Este evento está {event?.status === "draft" ? "en borrador" : "cerrado"}: publícalo
+          para poder emitir boletas.
+        </p>
+      ) : (types || []).length === 0 ? (
+        <p className="rounded-lg bg-slate-800/40 px-3 py-2.5 text-xs text-slate-500">
+          Crea al menos un tipo de boleta (abajo) antes de emitir.
+        </p>
+      ) : (
+        <form onSubmit={emit} className="space-y-3.5">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-400">
+              Tipo de boleta
+            </label>
+            <select
+              value={form.ticket_type_id}
+              onChange={(e) => setForm({ ...form, ticket_type_id: e.target.value })}
+              className="field"
+              required
+            >
+              {(types || []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} {t.price_cents > 0 ? money(t.price_cents) : "(cortesía)"}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-400">
+              Nombre del asistente *
+            </label>
+            <input
+              value={form.customer_name}
+              onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
+              className="field"
+              placeholder="Nombre y apellido"
+              required
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Teléfono *</label>
+            <input
+              value={form.customer_phone}
+              onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
+              className="field"
+              placeholder="573001234567"
+              inputMode="tel"
+              required
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-400">
+              Correo (opcional)
+            </label>
+            <input
+              value={form.customer_email}
+              onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
+              className="field"
+              type="email"
+              placeholder="asistente@correo.com"
+            />
+          </div>
+
+          {selectedType?.is_courtesy && (
+            <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-300 ring-1 ring-emerald-500/30">
+              Cortesía: se emite sin costo. Queda registrada como venta directa del bar.
+            </p>
+          )}
+
+          <button type="submit" disabled={busy} className="btn-primary w-full">
+            {busy ? "Emitiendo…" : "Emitir boleta"}
+          </button>
+        </form>
       )}
     </div>
   );

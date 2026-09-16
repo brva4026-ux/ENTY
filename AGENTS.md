@@ -25,7 +25,7 @@ el puerto es configurable con `API_PORT`.
 ## Tests
 
 ```bash
-cd backend && .venv/bin/python -m pytest tests/ -q     # 46 tests
+cd backend && .venv/bin/python -m pytest tests/ -q     # 52 tests
 cd frontend && npm run build                            # verificacion de build
 ```
 

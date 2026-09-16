@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch, listTickets, reissueTicket } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import TicketPreview from "../components/TicketPreview";
+import IssuedTicket from "../components/IssuedTicket";
 import { QuotaMeter } from "../components/Brand";
 import Icon from "../components/Icon";
 
@@ -137,18 +137,9 @@ export default function PromoterDashboard() {
 
   // El invitado no puede escanear un texto: se le manda el ENLACE a su boleta
   // (/t#<token>), donde ve el QR. El token va en el fragmento, asi que no
-  // viaja al servidor en los logs ni en el Referer.
-  const ticketUrl = lastTicket
-    ? `${window.location.origin}/t#${encodeURIComponent(lastTicket.raw_token)}`
-    : null;
-
-  const waLink = lastTicket
-    ? `https://wa.me/${(lastTicket.customer_phone ?? "").replace(/\D/g, "")}?text=${encodeURIComponent(
-        `Tu boleta está lista 🎟️\nEvento: ${events.find((ev) => ev.id === selectedEvent)?.name ?? ""}\nNombre: ${
-          lastTicket.customerName ?? ""
-        }\nÁbrela aquí y muestra el QR en la entrada:\n${ticketUrl}`
-      )}`
-    : null;
+  // viaja al servidor en los logs ni en el Referer. El armado del enlace y
+  // del mensaje de WhatsApp vive en IssuedTicket.
+  const eventName = events.find((ev) => ev.id === selectedEvent)?.name;
 
   return (
     <div className="animate-rise space-y-6">
@@ -289,40 +280,7 @@ export default function PromoterDashboard() {
               {lastTicket ? "Boleta generada" : "Vista previa"}
             </h3>
             {lastTicket ? (
-              <div className="animate-rise space-y-4">
-                <TicketPreview
-                  rawToken={lastTicket.raw_token}
-                  ticketId={lastTicket.ticket_id}
-                  name={lastTicket.customerName || "Asistente"}
-                  eventName={events.find((ev) => ev.id === selectedEvent)?.name}
-                />
-                <div className="rounded-lg bg-slate-800/60 p-3 ring-1 ring-slate-700/50">
-                  <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-400">
-                    <Icon name="shield" className="h-3.5 w-3.5" />
-                    Enlace del invitado (ábrelo y verá su QR)
-                  </p>
-                  <p className="break-all font-mono text-xs text-slate-200">{ticketUrl}</p>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard?.writeText(ticketUrl)}
-                    className="chip tap-target mt-2"
-                  >
-                    <Icon name="plus" className="h-3.5 w-3.5" />
-                    Copiar enlace
-                  </button>
-                </div>
-                {waLink && (
-                  <a
-                    href={waLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400"
-                  >
-                    <Icon name="whatsapp" className="h-5 w-5" />
-                    Enviar por WhatsApp
-                  </a>
-                )}
-              </div>
+              <IssuedTicket ticket={lastTicket} eventName={eventName} />
             ) : (
               <div className="py-12 text-center">
                 <span className="tile mx-auto mb-3 grid h-16 w-16">

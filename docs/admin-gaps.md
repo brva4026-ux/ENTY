@@ -132,12 +132,29 @@ todavía tiene la versión rota**. Queda abierto: alinear `schema.sql` con 002.
 `granted | already_redeemed | not_found | invalid_event`, pero el código también
 inserta `event_not_live`. Menor, pero es documentación que miente.
 
+### 2.11 La venta directa del admin no tenía pantalla — **CORREGIDO**
+
+Evidencia: el backend aceptaba `POST /venues/{id}/events/{id}/tickets` con rol
+`admin` desde el Sprint 1 (verificado: `201` con token crudo), pero ningún
+componente del frontend lo llamaba. El admin solo podía emitir con `curl`, así
+que en la práctica la taquilla del bar no existía.
+
+Corrección: `EmitTicketPanel` en `/admin`, junto a los tipos de boleta. Emite
+sin `allocation_id` (venta del bar, no cupo de promotor), avisa antes cuando el
+evento no está abierto —`draft`/`ended` responden `409`— y reusa el mismo
+`IssuedTicket` que el promotor para el QR, el enlace del invitado y el envío
+por WhatsApp.
+
+Detalle que quedó unificado: el armado del enlace `/t#<token>` y del mensaje de
+WhatsApp vivía dentro del panel del promotor. Se extrajo a
+`components/IssuedTicket.jsx`, que ahora usan las dos pantallas.
+
 ## 3. Lo que sigue abierto
 
 | # | Pendiente | Por qué importa |
 |---|-----------|-----------------|
 | 1 | `schema.sql` con el `INSERT` roto de `not_found` | Instalaciones nuevas heredan un bug ya corregido en migración |
-| 2 | No hay UI para emitir boletas de pago desde el admin | La venta directa solo existe por API |
+| 2 | ~~No hay UI para emitir boletas de pago desde el admin~~ **CORREGIDO** | La venta directa solo existía por API; ahora hay formulario en `/admin` |
 | 3 | No hay endpoint de `redemptions` con detalle | Se ve el conteo, no el registro escaneo por escaneo |
 | 4 | Sin rango de fechas ni exportación | El reporte es "ahora", no cierre de caja |
 | 5 | Sin alerta en vivo al detectar duplicados | Hoy se descubre al mirar el panel |
@@ -146,7 +163,7 @@ El punto 1 es el de mayor riesgo y el más barato de cerrar.
 
 ## 4. Verificación
 
-- `backend`: 23/23 tests en verde, incluidos 11 nuevos para el reporte.
+- `backend`: 52/52 tests en verde (46 previos + 6 nuevos de emisión directa).
 - `frontend`: `npm run build` limpio.
 - Extremo a extremo con datos reales (43 boletas, 31 accesos, 7 rechazos):
   los números del panel cuadran contra la consulta SQL directa.
