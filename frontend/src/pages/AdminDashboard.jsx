@@ -3,6 +3,7 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import ReportWidget from "../components/ReportWidget";
 import { EventStatusBadge, QuotaMeter } from "../components/Brand";
+import { eventDate } from "../lib/format";
 
 function firstVenueId(user) {
   const ids = Object.keys(user?.roles || {}).map(Number);
@@ -66,7 +67,9 @@ export default function AdminDashboard() {
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`)
       .then(setAllocations)
       .catch((e) => setError(e.message));
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`)
+    // El admin ve la caja: usa `/summary` (incluye ingresos e integridad de
+    // puerta). El promotor sigue con `/report`, que no expone dinero.
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/summary`)
       .then(setReport)
       .catch((e) => setError(e.message));
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/tickets`)
@@ -74,9 +77,19 @@ export default function AdminDashboard() {
       .catch(() => setTickets([]));
   }, [selectedEvent, venueId]);
 
+  // En puerta el admin deja esta pantalla abierta: refrescar sola cada 20s
+  // evita que decida con cifras viejas.
+  useEffect(() => {
+    if (!selectedEvent) return;
+    const id = setInterval(() => {
+      refreshEventData();
+    }, 20000);
+    return () => clearInterval(id);
+  }, [selectedEvent, venueId]);
+
   async function refreshEventData() {
     if (!selectedEvent) return;
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`).then(setReport).catch(() => {});
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/summary`).then(setReport).catch(() => {});
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/tickets`).then(setTickets).catch(() => {});
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`).then(setAllocations).catch(() => {});
   }
@@ -138,7 +151,12 @@ export default function AdminDashboard() {
   return (
     <div className="animate-rise space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-2xl font-black tracking-tight text-white">Panel de administración</h2>
+        <div>
+          <p className="eyebrow">Administración</p>
+          <h2 className="mt-1 font-display text-3xl font-extrabold tracking-tight text-white">
+            Panel de administración
+          </h2>
+        </div>
         {selectedEventData && <EventStatusBadge status={selectedEventData.status} />}
       </div>
 
@@ -180,18 +198,28 @@ export default function AdminDashboard() {
       {/* Selector de evento */}
       {events.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-slate-500">Evento:</span>
+          <span className="eyebrow">Evento</span>
           {events.map((ev) => (
             <button
               key={ev.id}
               onClick={() => setSelectedEvent(ev.id)}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+              className={`group rounded-xl border px-3.5 py-2 text-left transition ${
                 selectedEvent === ev.id
-                  ? "bg-gradient-to-r from-brand-600 to-accent-500 text-white shadow-lg shadow-brand-600/25"
-                  : "bg-slate-800/70 text-slate-300 hover:bg-slate-700"
+                  ? "border-brand-500/50 bg-gradient-to-b from-brand-600/25 to-brand-600/5 shadow-lg shadow-brand-600/10"
+                  : "border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-800/60"
               }`}
             >
-              {ev.name}
+              <span
+                className={`block text-sm font-semibold ${
+                  selectedEvent === ev.id ? "text-white" : "text-slate-300"
+                }`}
+              >
+                {ev.name}
+              </span>
+              {/* La fecha evita confundir dos eventos con el mismo nombre. */}
+              <span className="tnum mt-0.5 block font-mono text-[10px] text-slate-500">
+                {eventDate(ev.starts_at)}
+              </span>
             </button>
           ))}
         </div>
@@ -531,6 +559,22 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
   const [voidingId, setVoidingId] = useState(null);
   const [reason, setReason] = useState("Error de digitación");
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+  const [onlyProblem, setOnlyProblem] = useState(false);
+
+  const all = tickets || [];
+  // El endpoint devuelve las 200 mas recientes; el filtro es en cliente para
+  // que buscar sea instantaneo mientras el admin tiene a alguien en la puerta.
+  const q = query.trim().toLowerCase();
+  const shown = all.filter((t) => {
+    if (onlyProblem && t.status !== "voided" && t.status !== "refunded") return false;
+    if (!q) return true;
+    return (
+      String(t.id) === q ||
+      (t.customer_name || "").toLowerCase().includes(q) ||
+      (t.customer_phone || "").toLowerCase().includes(q)
+    );
+  });
 
   async function voidTicket(t) {
     if (!window.confirm(`¿Anular la boleta #${t.id} de ${t.customer_name}? El cupo quedará liberado.`)) return;
@@ -551,12 +595,37 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
 
   return (
     <div className="card p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-200">Boletas emitidas</h3>
-        <span className="tnum text-xs text-slate-500">{(tickets || []).length} recientes</span>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="eyebrow">Boletas</p>
+          <p className="mt-1 text-sm text-slate-400">
+            {shown.length === all.length
+              ? `${all.length} recientes`
+              : `${shown.length} de ${all.length}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setOnlyProblem((v) => !v)}
+            className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+              onlyProblem
+                ? "bg-red-500/15 text-red-300 ring-1 ring-red-500/40"
+                : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+            }`}
+          >
+            Solo anuladas
+          </button>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar #, nombre o teléfono"
+            className="field !w-56 !py-1.5 text-xs"
+          />
+        </div>
       </div>
+
       <ul className="space-y-2">
-        {(tickets || []).map((t) => {
+        {shown.map((t) => {
           const st = TICKET_STATUS[t.status] ?? TICKET_STATUS.issued;
           const canVoid = t.status === "issued";
           return (
@@ -567,7 +636,7 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-slate-200">
-                    <span className="tnum text-slate-500">#{t.id}</span> · {t.customer_name}
+                    <span className="tnum font-mono text-slate-500">#{t.id}</span> · {t.customer_name}
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
                     {t.type_name ?? "—"}
@@ -620,9 +689,11 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
             </li>
           );
         })}
-        {(tickets || []).length === 0 && (
+        {shown.length === 0 && (
           <li className="rounded-lg bg-slate-800/40 px-3 py-3 text-sm text-slate-500">
-            Todavía no se han emitido boletas para este evento.
+            {all.length === 0
+              ? "Todavía no se han emitido boletas para este evento."
+              : "Ninguna boleta coincide con la búsqueda."}
           </li>
         )}
       </ul>

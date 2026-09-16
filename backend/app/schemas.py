@@ -190,5 +190,41 @@ class EventReport(BaseModel):
     by_promoter: list[dict]
 
 
+class DoorScanStats(BaseModel):
+    """Integridad de la puerta: cuanto paso y cuanto no cuadro."""
+
+    granted: int = 0
+    already_redeemed: int = 0
+    not_found: int = 0
+    other_failed: int = 0
+    failed: int = 0
+    total: int = 0
+    last_scan_at: datetime | None = None
+    last_granted_at: datetime | None = None
+    scanned_by: list[dict] = []
+
+
+class ReportSummary(BaseModel):
+    """KPIs de caja del evento. `revenue_cents` cuenta boletas vivas
+    (issued + redeemed); anuladas y reembolsadas no facturan.
+    """
+
+    event_id: int
+    event_name: str
+    capacity: int
+    issued: int
+    redeemed: int
+    pending: int
+    voided: int
+    occupancy_pct: float
+    revenue_cents: int
+    avg_ticket_cents: int
+    paid_tickets: int
+    courtesy_tickets: int
+    door: DoorScanStats
+    by_type: list[dict]
+    by_promoter: list[dict]
+
+
 class MessageOut(BaseModel):
     detail: str

@@ -70,3 +70,44 @@ export function QuotaMeter({ used, total, label, compact = false }) {
     </div>
   );
 }
+
+/** Barra de progreso suelta, para desgloses que no son un cupo. */
+export function Bar({ pct, tone = "brand", gradient }) {
+  const tones = {
+    brand: "bg-brand-400",
+    emerald: "bg-emerald-400",
+    amber: "bg-amber-400",
+    red: "bg-red-400",
+  };
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+      <div
+        className={`h-full rounded-full transition-all duration-700 ${
+          gradient ? `bg-gradient-to-r ${gradient}` : tones[tone]
+        }`}
+        style={{ width: `${Math.max(0, Math.min(pct, 100))}%` }}
+      />
+    </div>
+  );
+}
+
+/** Tarjeta de KPI del command deck. `i` escalona la entrada. */
+export function Stat({ label, value, accent = "slate", i = 0 }) {
+  const dots = {
+    slate: "bg-slate-400",
+    emerald: "bg-emerald-400",
+    brand: "bg-brand-400",
+    red: "bg-red-400",
+  };
+  return (
+    <div className="stat stagger p-3.5" style={{ "--i": i }}>
+      <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+        <span className={`h-2 w-2 rounded-full ${dots[accent]}`} />
+        {label}
+      </div>
+      <div className="tnum mt-1.5 font-display text-3xl font-extrabold leading-none tracking-tight text-white">
+        {value}
+      </div>
+    </div>
+  );
+}

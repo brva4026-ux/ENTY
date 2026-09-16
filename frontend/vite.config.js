@@ -13,6 +13,13 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 12000,
+    // Mismo caso que en `preview`: el runtime sirve la app por subdominio
+    // propio y Vite bloquea hosts desconocidos por defecto.
+    allowedHosts: [
+      "localhost",
+      ".prod-runtime.all-hands.dev",
+      ".all-hands.dev",
+    ],
     proxy: {
       // En dev/proxy, las llamadas a /api van al backend
       "/api": {
