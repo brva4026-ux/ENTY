@@ -122,6 +122,26 @@ class TicketEmitResponse(BaseModel):
     status: str
 
 
+class TicketReissueRequest(BaseModel):
+    """Motivo opcional de la reemisión (queda en la auditoría)."""
+
+    reason: str | None = Field(default=None, max_length=200)
+
+
+class TicketReissueResponse(BaseModel):
+    """Token nuevo para volver a mostrar/reenviar el QR de una boleta viva.
+
+    El token viejo deja de funcionar en el acto: en la DB solo hay un hash por
+    boleta, asi que rotarlo invalida el anterior.
+    """
+
+    ticket_id: int
+    raw_token: str
+    customer_name: str
+    customer_phone: str | None = None
+    status: str
+
+
 class TicketRedeemRequest(BaseModel):
     raw_token: str = Field(min_length=8)
 

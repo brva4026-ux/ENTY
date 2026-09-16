@@ -25,7 +25,7 @@ el puerto es configurable con `API_PORT`.
 ## Tests
 
 ```bash
-cd backend && .venv/bin/python -m pytest tests/ -q     # 23 tests
+cd backend && .venv/bin/python -m pytest tests/ -q     # 46 tests
 cd frontend && npm run build                            # verificacion de build
 ```
 
@@ -92,6 +92,25 @@ El invitado **no recibe el token como texto**: recibe un enlace
   `size`** devuelve una bitmap de 10px e ilegible en serverless.
 - La DB **solo guarda el SHA-256** del token (`tickets.token_hash`), así que el
   QR no se puede regenerar desde `ticket_id`; siempre hace falta el token crudo.
+
+## Recuperar una boleta (reemisión)
+
+El token crudo se entrega **una sola vez**; si se pierde, no se puede "leer" de
+la DB. La recuperación **rota** el token (`reissue_ticket` en la migración
+`004_ticket_reissue.sql`): mismo `ticket_id`, `token_hash` nuevo, y el anterior
+muere en el acto.
+
+- `GET /venues/{id}/events/{id}/tickets` — el promotor ve **solo las suyas**
+  (antes era admin-only y por eso no podía ni listar lo que vendió). El staff ve
+  todo el evento; el bouncer no lista. `?phone=` busca por sufijo de dígitos.
+- `POST /venues/{id}/events/{id}/tickets/{tid}/reissue` — devuelve `raw_token`
+  nuevo. Lo permite el dueño de la boleta o el staff.
+- No se reemite una boleta `redeemed` (sería una segunda entrada gratis) ni una
+  `voided`/`refunded` (reviviría la anulación). No consume cupo ni aforo.
+- Cada rotación queda en `ticket_reissues` (quién, cuándo, por qué, hash viejo),
+  nunca el token crudo.
+- Si agregás objetos de esquema, sumalos al `DROP` del `conftest` o los tests
+  arrastran estado entre sesiones.
 
 ## Git / GitHub
 

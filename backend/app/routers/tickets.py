@@ -17,6 +17,8 @@ from app.schemas import (
     TicketEmitRequest,
     TicketEmitResponse,
     TicketRedeemRequest,
+    TicketReissueRequest,
+    TicketReissueResponse,
 )
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["tickets"])
@@ -38,6 +40,16 @@ def _handle(venue_id: int, e: psycopg.errors.Error) -> None:
         raise HTTPException(409, "El evento no esta abierto para emision")
     if "paid_ticket_tied_to_promoter_allocation" in primary:
         raise HTTPException(400, "Una boleta de pago no puede usar cupo de promotor")
+    if "ticket_not_found" in primary:
+        raise HTTPException(404, "Boleta no encontrada")
+    if "cannot_reissue_redeemed" in primary:
+        raise HTTPException(409, "La boleta ya fue usada: no se puede reemitir")
+    if "cannot_reissue_ticket" in primary:
+        raise HTTPException(
+            409, "La boleta no esta vigente (anulada o reembolsada): no se puede reemitir"
+        )
+    if "event_closed" in primary:
+        raise HTTPException(409, "El evento ya cerro: no se puede reemitir")
     raise e
 
 
@@ -122,3 +134,76 @@ async def redeem(
                 out.ticket_id = info["id"]
                 out.customer_name = info["customer_name"]
     return out
+
+
+@router.post(
+    "/events/{event_id}/tickets/{ticket_id}/reissue",
+    response_model=TicketReissueResponse,
+)
+async def reissue_ticket(
+    venue_id: int,
+    event_id: int,
+    ticket_id: int,
+    body: TicketReissueRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Recupera una boleta viva rotando su token y devuelve el QR nuevo.
+
+    El token crudo se entrego una sola vez al emitir y en la DB solo hay su
+    SHA-256, asi que la boleta era irrecuperable si el invitado perdia el enlace
+    (WhatsApp no salio, borro el chat, el promotor cerro la pestaña). No se puede
+    resucitar el token viejo sin guardarlo en claro -justo lo que el hash evita-,
+    asi que se emite uno nuevo: misma boleta, mismo cupo, mismo aforo.
+
+    El token anterior deja de servir en el acto (el hash se reemplaza), lo que
+    ademas corta cualquier copia del QR viejo que haya circulado.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.status, t.sold_by_user_id
+              FROM tickets t
+              JOIN events e ON e.id = t.event_id
+             WHERE t.id = %s AND t.event_id = %s AND e.venue_id = %s
+            """,
+            (ticket_id, event_id, venue_id),
+        )
+        row = await cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Boleta no encontrada")
+
+        # Un promotor solo reemite SUS boletas: si no, podria rotar el QR de un
+        # invitado ajeno y quedarse con la entrada (o invalidarsela).
+        roles = user["roles"].get(venue_id, [])
+        is_staff = any(r in ("super_admin", "admin") for r in roles)
+        if not is_staff and row["sold_by_user_id"] != user["id"]:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "Solo puedes reemitir tus propias boletas"
+            )
+
+        raw_token = secrets.token_urlsafe(24)  # credencial nueva para el QR
+        try:
+            await cur.execute(
+                "SELECT reissue_ticket(%s, %s, %s, %s)",
+                (ticket_id, raw_token, user["id"], body.reason),
+            )
+            await db.commit()
+        except psycopg.errors.Error as e:
+            _handle(venue_id, e)
+
+        await cur.execute(
+            "SELECT customer_name, customer_phone FROM tickets WHERE id = %s",
+            (ticket_id,),
+        )
+        info = await cur.fetchone()
+
+    return TicketReissueResponse(
+        ticket_id=ticket_id,
+        raw_token=raw_token,
+        customer_name=info["customer_name"],
+        customer_phone=info["customer_phone"],
+        status="issued",
+    )
