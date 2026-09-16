@@ -112,11 +112,40 @@ muere en el acto.
 - Si agregás objetos de esquema, sumalos al `DROP` del `conftest` o los tests
   arrastran estado entre sesiones.
 
+## Revisar un preview (Vercel)
+
+El login del preview no se puede automatizar: la herramienta de navegador no
+dispara el `onChange` de React en inputs controlados, así que el formulario
+nunca queda válido y el submit no pasa. Para llegar a una pantalla autenticada
+del preview, pedir el token por API y sembrarlo en `localStorage`:
+
+```bash
+PRE=https://ticketflow-git-<rama>-brva4026-uxs-projects.vercel.app
+curl -s -X POST "$PRE/api/auth/login" -H "Content-Type: application/json" \
+  -d '{"email":"admin@bar.test","password":"demo1234"}'   # access_token (1 h)
+```
+
+Luego `localStorage.setItem("tf_token", <access_token>)` en el origen del
+preview y recargar. El preview comparte la **DB de producción**, así que las
+boletas que emitas ahí quedan de verdad: no lo uses para probar en serio sin
+avisar.
+
 ## Git / GitHub
 
 - El `GITHUB_TOKEN` del entorno **no** ve este repo privado (la API devuelve
   404). El PAT del remote en `.git/config` sí funciona; para llamar la API:
-  `PAT=$(git remote get-url origin | sed -E 's|https://[^:]+:([^@]+)@.*|\1|')`.
+
+  ```bash
+  # el remote guarda el PAT como unico userinfo, sin "usuario:pass":
+  #   https://<PAT>@github.com/...
+  PAT=$(git remote get-url origin | sed -E 's|https://([^@]+)@.*|\1|')
+  ```
+
+  Ojo: el `sed` con `[^:]+:` (que asumia la forma `usuario:pass@`) devuelve la
+  URL entera y la API responde **401**, no 404. Si un `curl` falla con 401,
+  revisá primero que el PAT se haya extraido bien antes que el token.
+  `default_create_pr` no sirve acá: usa el `GITHUB_TOKEN` del entorno y da 404.
+  Crear el PR con la API y el PAT del remote.
 - **Autor de los commits = Vercel**: el plan Hobby de Vercel bloquea el deploy
   si el autor del commit no tiene acceso al proyecto. En la práctica Vercel
   compara el **email del autor** contra las cuentas con acceso. Si el email no
@@ -188,6 +217,11 @@ muere en el acto.
   HTTP 200 con la pantalla "Deployment is building" — un 200 ahí **no** prueba
   que la API funcione. Un "Vercel: success" en el commit solo dice que el build
   pasó, no que la función arranque.
+- **¿Llegó mi cambio al deploy?** El build es determinista: si el bundle
+  desplegado pesa lo mismo y `cmp` contra `frontend/dist/assets/index-*.js` sale
+  limpio, es exactamente tu build. Para un string puntual, `grep -i` — el bundle
+  en minúscula puede no coincidir en mayúsculas con el fuente y dar un falso
+  negativo que parece "mi cambio no está".
 - `vercel.json`: build de `frontend/`, salida `frontend/dist`, `/api/*` →
   función serverless Python (`api/index.py`, FastAPI).
 - Preview por rama:
