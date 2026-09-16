@@ -112,6 +112,24 @@ muere en el acto.
 - Si agregás objetos de esquema, sumalos al `DROP` del `conftest` o los tests
   arrastran estado entre sesiones.
 
+## Revisar un preview (Vercel)
+
+El login del preview no se puede automatizar: la herramienta de navegador no
+dispara el `onChange` de React en inputs controlados, así que el formulario
+nunca queda válido y el submit no pasa. Para llegar a una pantalla autenticada
+del preview, pedir el token por API y sembrarlo en `localStorage`:
+
+```bash
+PRE=https://ticketflow-git-<rama>-brva4026-uxs-projects.vercel.app
+curl -s -X POST "$PRE/api/auth/login" -H "Content-Type: application/json" \
+  -d '{"email":"admin@bar.test","password":"demo1234"}'   # access_token (1 h)
+```
+
+Luego `localStorage.setItem("tf_token", <access_token>)` en el origen del
+preview y recargar. El preview comparte la **DB de producción**, así que las
+boletas que emitas ahí quedan de verdad: no lo uses para probar en serio sin
+avisar.
+
 ## Git / GitHub
 
 - El `GITHUB_TOKEN` del entorno **no** ve este repo privado (la API devuelve
