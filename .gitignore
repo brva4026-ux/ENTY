@@ -29,5 +29,6 @@ build/
 
 # Evidencias de navegador (playwright-cli)
 .playwright-cli/
+.agents_tmp/
 .vercel
 .env*

@@ -76,7 +76,13 @@ export default function PromoterDashboard() {
         // "" no es un int válido para Pydantic: normalizar a null
         body: JSON.stringify({ ...form, allocation_id: form.allocation_id || null }),
       });
-      setLastTicket({ ...ticket, customerName: form.customer_name });
+      // La respuesta de emision no trae telefono/email: se conservan del
+      // formulario para poder armar el wa.me dirigido al invitado.
+      setLastTicket({
+        ...ticket,
+        customerName: form.customer_name,
+        customer_phone: form.customer_phone,
+      });
       setForm({ ...form, customer_name: "", customer_phone: "", customer_email: "" });
     } catch (err) {
       setError(err.message);
@@ -85,11 +91,18 @@ export default function PromoterDashboard() {
     }
   }
 
+  // El invitado no puede escanear un texto: se le manda el ENLACE a su boleta
+  // (/t#<token>), donde ve el QR. El token va en el fragmento, asi que no
+  // viaja al servidor en los logs ni en el Referer.
+  const ticketUrl = lastTicket
+    ? `${window.location.origin}/t#${encodeURIComponent(lastTicket.raw_token)}`
+    : null;
+
   const waLink = lastTicket
-    ? `https://wa.me/?text=${encodeURIComponent(
+    ? `https://wa.me/${(lastTicket.customer_phone ?? "").replace(/\D/g, "")}?text=${encodeURIComponent(
         `Tu boleta está lista 🎟️\nEvento: ${events.find((ev) => ev.id === selectedEvent)?.name ?? ""}\nNombre: ${
           lastTicket.customerName ?? ""
-        }\nCódigo: ${lastTicket.raw_token}\nID boleta: #${lastTicket.ticket_id}`
+        }\nÁbrela aquí y muestra el QR en la entrada:\n${ticketUrl}`
       )}`
     : null;
 
@@ -242,9 +255,17 @@ export default function PromoterDashboard() {
                 <div className="rounded-lg bg-slate-800/60 p-3 ring-1 ring-slate-700/50">
                   <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-400">
                     <Icon name="shield" className="h-3.5 w-3.5" />
-                    Código (solo el promotor lo ve)
+                    Enlace del invitado (ábrelo y verá su QR)
                   </p>
-                  <p className="break-all font-mono text-xs text-slate-200">{lastTicket.raw_token}</p>
+                  <p className="break-all font-mono text-xs text-slate-200">{ticketUrl}</p>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard?.writeText(ticketUrl)}
+                    className="chip tap-target mt-2"
+                  >
+                    <Icon name="plus" className="h-3.5 w-3.5" />
+                    Copiar enlace
+                  </button>
                 </div>
                 {waLink && (
                   <a

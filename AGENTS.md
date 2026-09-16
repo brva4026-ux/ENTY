@@ -51,7 +51,7 @@ cd frontend && npm run build                            # verificacion de build
 
 ## Datos demo
 
-Venue `Bar Esquina` (id 25), evento `Noche Electrónica` (id 25).
+Venue `Bar Esquina` (id 31), evento `Noche Electrónica` (id 31).
 Usuarios con contraseña `demo1234`:
 
 | email | rol |
@@ -60,6 +60,38 @@ Usuarios con contraseña `demo1234`:
 | `promo1@bar.test` | promotor (cupo 5) |
 | `promo2@bar.test` | promotor (cupo 3) |
 | `puerta@bar.test` | bouncer |
+
+Ojo: los ids son `GENERATED ALWAYS AS IDENTITY`, así que **cambian en cada
+seed**. No los fijes en scripts; consúltalos. Además, correr `pytest` **borra
+estos datos** (el `conftest` hace `DROP TABLE`), así que después de testear hay
+que re-sembrar:
+
+```bash
+cd backend && .venv/bin/python -c "
+import asyncio, psycopg
+from psycopg.rows import dict_row
+from app.routers.seed import seed_demo_data
+async def m():
+    c = await psycopg.AsyncConnection.connect('<DATABASE_URL>', autocommit=True, row_factory=dict_row)
+    print(await seed_demo_data(c)); await c.close()
+asyncio.run(m())"
+```
+
+## Boleta del invitado (QR)
+
+El invitado **no recibe el token como texto**: recibe un enlace
+`<origin>/t#<token>` y abre ahí su QR para que el bouncer lo escanee.
+
+- El token va en el **fragmento** (`#`), no en la ruta: el navegador nunca lo
+  manda al servidor, así que no queda en los logs de Vercel ni en el `Referer`.
+- Endpoints públicos (sin auth, el token de 192 bits es la credencial):
+  `POST /tickets/preview` (datos) y `POST /tickets/image` (JPEG con flyer + QR).
+  El token viaja en el **cuerpo**, nunca en la URL.
+- `backend/app/services/ticket_image.py` compone la imagen con Pillow. Fuente:
+  usa DejaVu si existe; el fallback es `ImageFont.load_default(size)` — **sin el
+  `size`** devuelve una bitmap de 10px e ilegible en serverless.
+- La DB **solo guarda el SHA-256** del token (`tickets.token_hash`), así que el
+  QR no se puede regenerar desde `ticket_id`; siempre hace falta el token crudo.
 
 ## Git / GitHub
 
