@@ -137,6 +137,26 @@ El invitado **no recibe el token como texto**: recibe un enlace
 
 - Producción: `https://ticketflow-brva4026-uxs-projects.vercel.app` (proyecto `ticketflow`
   en el team `brva4026-uxs-projects`).
+- **Dependencias serverless: `api/requirements.txt`, no `backend/pyproject.toml`.**
+  La función solo instala ese archivo. Un import nuevo que no esté ahí hace
+  que `app.main` no cargue y **toda la API devuelva 500
+  `FUNCTION_INVOCATION_FAILED`**, incluido `/health` — porque el import corre
+  antes de cualquier ruta. Ya pasó con `qrcode`/`Pillow` al cablear el QR.
+  `tests/test_serverless_deps.py` compara imports vs requirements y lo detecta.
+- **Versión de Python: `.python-version` (3.12).** El backend usa `X | None` a
+  nivel módulo, que necesita ≥3.10: en 3.9 `db.py` falla al importar con
+  `TypeError: unsupported operand type(s) for |`. No dependas del default de
+  Vercel, que va a cambiar con el tiempo.
+- **Síntoma de un import roto**: el navegador muestra "Error en la petición".
+  Es el fallback de `api.js` cuando la respuesta no es JSON; Vercel devuelve
+  texto plano `A server error has occurred`. Si ves eso en *todos* los
+  endpoints, sospechá del import, no de la DB.
+- **Verificar un deploy de verdad**: `curl` a la URL *inmutable* del deployment
+  (`https://ticketflow-<id>-brva4026-uxs-projects.vercel.app/api/health`) y
+  exigí `content_type: application/json`. Las URLs por rama pueden devolver
+  HTTP 200 con la pantalla "Deployment is building" — un 200 ahí **no** prueba
+  que la API funcione. Un "Vercel: success" en el commit solo dice que el build
+  pasó, no que la función arranque.
 - `vercel.json`: build de `frontend/`, salida `frontend/dist`, `/api/*` →
   función serverless Python (`api/index.py`, FastAPI).
 - Preview por rama:
