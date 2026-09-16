@@ -2,6 +2,42 @@
 // En producción el frontend se sirve junto al backend o via gateway.
 const BASE = "/api";
 
+/**
+ * Llamada a los endpoints publicos de boleta (invitado). No manda el token de
+ * sesion ni espera JSON: estos endpoints devuelven datos o el JPEG de la boleta.
+ * El token crudo viaja en el cuerpo para no quedar en logs ni en el historial.
+ */
+async function postBlob(path, rawToken) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ raw_token: rawToken }),
+  });
+  if (!res.ok) {
+    let detail = "";
+    try {
+      detail = (await res.json())?.detail ?? "";
+    } catch {
+      detail = "";
+    }
+    const err = new Error(detail || "No pudimos cargar la boleta");
+    err.status = res.status;
+    throw err;
+  }
+  return res.blob();
+}
+
+export function fetchPublicTicket(rawToken) {
+  return apiFetch("/tickets/preview", {
+    method: "POST",
+    body: JSON.stringify({ raw_token: rawToken }),
+  });
+}
+
+export function fetchTicketImage(rawToken) {
+  return postBlob("/tickets/image", rawToken);
+}
+
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem("tf_token");
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };

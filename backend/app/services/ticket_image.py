@@ -12,8 +12,13 @@ _TICKET_W = 900
 _TICKET_H = 500
 
 
-def _load_font(size: int) -> ImageFont.ImageFont:
-    """Elige la fuente. Evita depender de sistema usando DejaVuSans (muy comun)."""
+def _load_font(size: int) -> ImageFont.FreeTypeFont:
+    """Elige la fuente. Evita depender de sistema usando DejaVuSans (muy comun).
+
+    En serverless la imagen base puede no traer DejaVu. `load_default(size)`
+    devuelve una fuente escalable con ese tamano; sin el argumento seria una
+    bitmap fija de 10px y el texto saldria ilegible en la boleta.
+    """
     candidates = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -23,7 +28,7 @@ def _load_font(size: int) -> ImageFont.ImageFont:
             return ImageFont.truetype(path, size)
         except Exception:
             continue
-    return ImageFont.load_default()
+    return ImageFont.load_default(size)
 
 
 def _qr_image(data: str) -> Image.Image:
