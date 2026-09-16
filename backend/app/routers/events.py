@@ -18,6 +18,16 @@ from app.schemas import (
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["eventos"])
 
+# `issued` = boletas vivas contra el cupo (mismo criterio que emit_ticket:
+# anuladas y reembolsadas no consumen). Se calcula aca y no se almacena para
+# no tener un contador que se desincronice del estado real de las boletas.
+_ALLOC_COLUMNS = """
+    a.id, a.event_id, a.ticket_type_id, a.promoter_id, a.capacity, a.is_active,
+    (SELECT count(*)::int FROM tickets t
+      WHERE t.allocation_id = a.id
+        AND t.status NOT IN ('voided', 'refunded')) AS issued
+"""
+
 
 def _event_ctx(venue_id: int, user: dict):
     if venue_id not in user["venue_ids"]:
@@ -134,9 +144,9 @@ async def list_allocations(
     _event_ctx(venue_id, user)
     async with db.cursor() as cur:
         await cur.execute(
-            """
-            SELECT id, event_id, ticket_type_id, promoter_id, capacity, is_active
-            FROM promoter_allocations WHERE event_id=%s ORDER BY promoter_id
+            f"""
+            SELECT {_ALLOC_COLUMNS}
+            FROM promoter_allocations a WHERE a.event_id=%s ORDER BY a.promoter_id
             """,
             (event_id,),
         )
@@ -164,11 +174,11 @@ async def create_allocation(
         if not await cur.fetchone():
             raise HTTPException(404, "Tipo de boleta no pertenece a este evento")
         await cur.execute(
-            """
-            INSERT INTO promoter_allocations (event_id, ticket_type_id, promoter_id, capacity)
+            f"""
+            INSERT INTO promoter_allocations AS a (event_id, ticket_type_id, promoter_id, capacity)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (event_id, ticket_type_id, promoter_id) DO UPDATE SET capacity=EXCLUDED.capacity
-            RETURNING id, event_id, ticket_type_id, promoter_id, capacity, is_active
+            RETURNING {_ALLOC_COLUMNS}
             """,
             (event_id, body.ticket_type_id, body.promoter_id, body.capacity),
         )
