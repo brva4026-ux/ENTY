@@ -103,7 +103,7 @@ Usuarios con contraseña `demo1234`:
 
 ## Despliegue (Vercel)
 
-- Producción: `https://ticketflow-brva4026-ux.vercel.app` (proyecto `ticketflow`
+- Producción: `https://ticketflow-brva4026-uxs-projects.vercel.app` (proyecto `ticketflow`
   en el team `brva4026-uxs-projects`).
 - `vercel.json`: build de `frontend/`, salida `frontend/dist`, `/api/*` →
   función serverless Python (`api/index.py`, FastAPI).

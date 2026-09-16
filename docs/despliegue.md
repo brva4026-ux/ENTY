@@ -8,7 +8,7 @@ repo (`render.yaml`) pero **no es la activa**.
 
 ```
 [ Navegador / Teléfono bouncer ]
-        │  https://ticketflow-brva4026-ux.vercel.app
+        │  https://ticketflow-brva4026-uxs-projects.vercel.app
         ▼
 [ Vercel: proyecto ticketflow ]
         ├─ UI estática (build Vite de frontend/)
@@ -182,10 +182,10 @@ de la cuenta.
 ## Checklist post-deploy
 
 ```bash
-curl -s https://ticketflow-brva4026-ux.vercel.app/api/health
+curl -s https://ticketflow-brva4026-uxs-projects.vercel.app/api/health
 #  -> {"status":"ok","app":"TicketFlow API"}
 
-curl -s -X POST https://ticketflow-brva4026-ux.vercel.app/api/auth/login \
+curl -s -X POST https://ticketflow-brva4026-uxs-projects.vercel.app/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"admin@bar.test","password":"demo1234"}'
 #  -> 200 con access_token
