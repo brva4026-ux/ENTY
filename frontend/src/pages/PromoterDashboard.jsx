@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiFetch } from "../lib/api";
+import { apiFetch, listTickets, reissueTicket } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import TicketPreview from "../components/TicketPreview";
 import { QuotaMeter } from "../components/Brand";
@@ -28,6 +28,28 @@ export default function PromoterDashboard() {
   const [lastTicket, setLastTicket] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Recuperación: boletas propias del evento y búsqueda por teléfono.
+  const [myTickets, setMyTickets] = useState([]);
+  const [phoneQuery, setPhoneQuery] = useState("");
+  const [recoveringId, setRecoveringId] = useState(null);
+
+  // El listado era admin-only, así que el promotor no podía ni ver lo que había
+  // vendido: si perdía el enlace de una boleta, era irrecuperable.
+  async function refreshTickets(phone) {
+    if (!selectedEvent) return;
+    try {
+      setMyTickets(await listTickets(venueId, selectedEvent, phone));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  useEffect(() => {
+    refreshTickets();
+    setPhoneQuery("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEvent]);
 
   useEffect(() => {
     if (!venueId) return;
@@ -84,10 +106,32 @@ export default function PromoterDashboard() {
         customer_phone: form.customer_phone,
       });
       setForm({ ...form, customer_name: "", customer_phone: "", customer_email: "" });
+      refreshTickets();
     } catch (err) {
       setError(err.message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  // Recuperar = rotar el token. El QR viejo muere y se muestra/reenvía el nuevo,
+  // que es la única forma de volver a tener un QR válido sin guardar el crudo.
+  async function recover(ticket) {
+    setRecoveringId(ticket.id);
+    setError("");
+    try {
+      const fresh = await reissueTicket(venueId, selectedEvent, ticket.id, "reenvío");
+      setLastTicket({
+        ticket_id: fresh.ticket_id,
+        raw_token: fresh.raw_token,
+        customerName: fresh.customer_name,
+        customer_phone: fresh.customer_phone,
+      });
+      await refreshTickets(phoneQuery);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRecoveringId(null);
     }
   }
 
@@ -290,6 +334,92 @@ export default function PromoterDashboard() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {events.length > 0 && (
+        <div className="card-lit card p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-slate-200">
+              <Icon name="ticket" className="h-4 w-4 text-brand-400" />
+              Mis boletas
+            </h3>
+            <div className="flex items-center gap-2">
+              <input
+                value={phoneQuery}
+                onChange={(e) => setPhoneQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    refreshTickets(phoneQuery);
+                  }
+                }}
+                className="field !w-44 !py-1.5 text-xs"
+                placeholder="Buscar por teléfono"
+                inputMode="tel"
+              />
+              <button
+                type="button"
+                onClick={() => refreshTickets(phoneQuery)}
+                className="chip tap-target"
+              >
+                <Icon name="search" className="h-3.5 w-3.5" />
+                Buscar
+              </button>
+            </div>
+          </div>
+
+          {myTickets.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-500">
+              {phoneQuery
+                ? "No hay boletas con ese teléfono."
+                : "Todavía no emitiste boletas en este evento."}
+            </p>
+          ) : (
+            <ul className="divide-y divide-slate-800">
+              {myTickets.map((t) => {
+                const live = t.status === "issued";
+                return (
+                  <li key={t.id} className="flex items-center gap-3 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-200">
+                        {t.customer_name}
+                      </p>
+                      <p className="tnum truncate text-xs text-slate-500">
+                        Boleta #{t.id} · {t.type_name} · {t.customer_phone ?? "sin teléfono"}
+                      </p>
+                    </div>
+                    <span
+                      className={
+                        live
+                          ? "rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300"
+                          : "rounded-full bg-slate-700/40 px-2.5 py-0.5 text-[11px] font-bold text-slate-400"
+                      }
+                    >
+                      {live ? "Vigente" : t.status}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={!live || recoveringId === t.id}
+                      onClick={() => recover(t)}
+                      title={
+                        live
+                          ? "Genera un QR nuevo y reenvíalo"
+                          : "Solo se pueden reenviar boletas vigentes"
+                      }
+                      className="chip tap-target disabled:opacity-40"
+                    >
+                      <Icon name="whatsapp" className="h-3.5 w-3.5" />
+                      {recoveringId === t.id ? "Generando…" : "Reenviar"}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="mt-3 text-xs text-slate-600">
+            Reenviar genera un QR nuevo: el anterior deja de funcionar.
+          </p>
         </div>
       )}
     </div>

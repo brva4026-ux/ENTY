@@ -16,6 +16,7 @@ SQL_FILES = [
     ROOT / "db" / "schema.sql",
     ROOT / "db" / "migrations" / "002_lifecycle.sql",
     ROOT / "db" / "migrations" / "003_ops_hardening.sql",
+    ROOT / "db" / "migrations" / "004_ticket_reissue.sql",
 ]
 
 
@@ -38,11 +39,12 @@ def db():
     # Esquema limpio en cada sesión de tests (orden inverso de dependencias)
     conn.execute(
         """
-        DROP TABLE IF EXISTS redemptions, tickets, promoter_allocations,
-            ticket_types, events, venue_user_roles, venues, users CASCADE;
+        DROP TABLE IF EXISTS ticket_reissues, redemptions, tickets,
+            promoter_allocations, ticket_types, events, venue_user_roles,
+            venues, users CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;
         DROP FUNCTION IF EXISTS emit_ticket, redeem_ticket, void_ticket,
-            set_event_status, events_check_capacity CASCADE;
+            reissue_ticket, set_event_status, events_check_capacity CASCADE;
         """
     )
     for f in SQL_FILES:

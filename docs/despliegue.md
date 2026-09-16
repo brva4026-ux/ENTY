@@ -71,6 +71,24 @@ Agrega lo que el MVP no traía (idempotente, safe re-run):
 node run-sql.js ../db/migrations/002_lifecycle.sql
 ```
 
+## Paso 2b — Endurecimiento y recuperación de boletas
+
+Migraciones posteriores, ambas idempotentes:
+
+- `db/migrations/003_ops_hardening.sql` — validaciones de emisión (estado del
+  evento, inventario unificado contra aforo).
+- `db/migrations/004_ticket_reissue.sql` — **recuperación de boletas**:
+  `reissue_ticket()` rota el token de una boleta viva (el QR viejo muere) y la
+  tabla `ticket_reissues` deja auditoría de la rotación.
+
+**Sin la 004 el endpoint `POST .../tickets/{id}/reissue` devuelve 500**: la
+función no existe. Aplicala antes de desplegar el código que la usa.
+
+```bash
+node run-sql.js ../db/migrations/003_ops_hardening.sql
+node run-sql.js ../db/migrations/004_ticket_reissue.sql
+```
+
 ## Paso 3 — Datos demo (`scripts/seed_prod.sql`)
 
 Equivalente a `POST /seed` pero **seguro para producción**: usa hashes bcrypt
@@ -131,6 +149,8 @@ Si prefieres psql (útil en local con el Postgres portable de `.local/pgsql/`):
 psql "postgresql://postgres:<pass>@db.<ref>.supabase.co:5432/postgres" \
   -v ON_ERROR_STOP=1 -f db/schema.sql
 psql "..." -f db/migrations/002_lifecycle.sql
+psql "..." -f db/migrations/003_ops_hardening.sql
+psql "..." -f db/migrations/004_ticket_reissue.sql
 psql "..." -f scripts/seed_prod.sql
 ```
 

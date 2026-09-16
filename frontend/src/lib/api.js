@@ -38,6 +38,18 @@ export function fetchTicketImage(rawToken) {
   return postBlob("/tickets/image", rawToken);
 }
 
+export function listTickets(venueId, eventId, phone) {
+  const q = phone ? `?phone=${encodeURIComponent(phone)}` : "";
+  return apiFetch(`/venues/${venueId}/events/${eventId}/tickets${q}`);
+}
+
+export function reissueTicket(venueId, eventId, ticketId, reason) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/tickets/${ticketId}/reissue`, {
+    method: "POST",
+    body: JSON.stringify({ reason: reason || null }),
+  });
+}
+
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem("tf_token");
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
