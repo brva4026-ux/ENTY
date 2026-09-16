@@ -126,6 +126,27 @@ class TicketRedeemRequest(BaseModel):
     raw_token: str = Field(min_length=8)
 
 
+class TicketLookupRequest(BaseModel):
+    """Identifica una boleta por su token crudo (el contenido del QR).
+
+    El token es la credencial: ~192 bits, no adivinable. Quien lo tiene puede
+    ver la boleta, por eso no se expone telefono ni correo en la respuesta.
+    """
+
+    raw_token: str = Field(min_length=8, max_length=200)
+
+
+class PublicTicketOut(BaseModel):
+    """Datos minimos para pintar la boleta del invitado. Sin PII de contacto."""
+
+    ticket_id: int
+    customer_name: str
+    event_name: str
+    venue_name: str
+    starts_at: str
+    status: str
+
+
 class RedeemOut(BaseModel):
     code: str = ""  # GRANTED | ALREADY_REDEEMED | NOT_FOUND | INVALID_EVENT | EVENT_NOT_LIVE | NOT_VALID
     ticket_id: int | None = None

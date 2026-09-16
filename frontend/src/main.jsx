@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import PromoterDashboard from "./pages/PromoterDashboard";
 import BouncerScanner from "./pages/BouncerScanner";
+import PublicTicketPage from "./pages/PublicTicketPage";
 import Layout from "./components/Layout";
 
 function RequireRole({ role, children }) {
@@ -35,6 +36,9 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Boleta del invitado: publica, sin login. El token llega en el
+              fragmento (#), que el navegador no envia al servidor. */}
+          <Route path="/t" element={<PublicTicketPage />} />
           <Route
             path="/admin"
             element={
