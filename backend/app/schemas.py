@@ -103,6 +103,9 @@ class AllocationOut(BaseModel):
     promoter_id: int
     capacity: int
     is_active: bool
+    # Boletas vivas contra este cupo (excluye anuladas/reembolsadas). La UI lo
+    # necesita para el medidor "Usados X/Y" del promotor.
+    issued: int = 0
 
 
 class TicketEmitRequest(BaseModel):
