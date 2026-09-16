@@ -154,6 +154,18 @@ muere en el acto.
 
 ## Despliegue (Vercel)
 
+- **Regla del proyecto: lo que se trabaja se entrega en producción.** El valor
+  está en lo desplegado, no en una rama. Un PR abierto **no** cambia la app: la
+  URL de producción sirve `master`, así que mientras el PR no se mergee, el
+  cambio es invisible para quien entra a `ticketflow-brva4026-uxs-projects.vercel.app`.
+  Terminar el trabajo = mergear a `master` y verificar la URL de producción.
+  No dar por entregado algo mostrando solo la URL del preview.
+- **Revisar en el preview, entregar en producción.** El preview
+  (URL por rama) es para que el usuario vea el cambio antes de mergear; si el
+  usuario dice "no veo nada", confirmar **qué URL está mirando** antes de tocar
+  el código. `curl` la de producción y buscá un string del cambio en el bundle:
+  si no está, es que falta el merge, no que el código esté mal.
+
 - Producción: `https://ticketflow-brva4026-uxs-projects.vercel.app` (proyecto `ticketflow`
   en el team `brva4026-uxs-projects`).
 - **Dependencias serverless: `api/requirements.txt`, no `backend/pyproject.toml`.**
