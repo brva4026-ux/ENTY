@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import ReportWidget from "../components/ReportWidget";
+import Icon from "../components/Icon";
 import { EventStatusBadge, QuotaMeter } from "../components/Brand";
 import { eventDate } from "../lib/format";
 
@@ -142,7 +143,7 @@ export default function AdminDashboard() {
 
   if (!venueId) {
     return (
-      <div className="card p-6 text-center text-slate-400">
+      <div className="card-lit card p-6 text-center text-slate-400">
         No tienes venues asociadas. Habla con un super admin.
       </div>
     );
@@ -166,14 +167,18 @@ export default function AdminDashboard() {
       })} />
 
       {error && (
-        <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-start gap-2.5 rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
+          <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
 
       {/* Crear evento */}
-      <form onSubmit={createEvent} className="card p-5">
-        <h3 className="mb-3 text-sm font-bold text-slate-200">Crear evento</h3>
+      <form onSubmit={createEvent} className="card-lit card p-5">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-200">
+          <Icon name="plus" className="h-4 w-4 text-brand-400" />
+          Crear evento
+        </h3>
         <div className="flex flex-wrap gap-2">
           <input
             value={form.name}
@@ -224,19 +229,22 @@ export default function AdminDashboard() {
           ))}
         </div>
       ) : (
-        <div className="card p-8 text-center">
-          <p className="text-slate-400">Aún no hay eventos.</p>
+        <div className="card-lit card p-10 text-center">
+          <span className="tile mx-auto mb-3 grid h-12 w-12">
+            <Icon name="flag" className="h-6 w-6" />
+          </span>
+          <p className="font-semibold text-slate-300">Aún no hay eventos.</p>
           <p className="mt-1 text-sm text-slate-500">Crea el primero arriba para empezar.</p>
         </div>
       )}
 
       {selectedEvent && (
         <>
-          <ReportWidget report={report} />
+          <ReportWidget report={report} live={selectedEventData?.status === "live"} />
 
           {/* Ciclo de vida del evento */}
           {actions.length > 0 && (
-            <div className="card flex flex-wrap items-center gap-3 p-4">
+            <div className="card-lit card flex flex-wrap items-center gap-3 p-4">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Ciclo de vida
               </span>
@@ -314,8 +322,11 @@ function TypeManager({ venueId, eventId, types, onChange }) {
   }
 
   return (
-    <div className="card p-5">
-      <h3 className="mb-3 text-sm font-bold text-slate-200">Tipos de boleta</h3>
+    <div className="card-lit card p-5">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-200">
+        <Icon name="ticket" className="h-4 w-4 text-brand-400" />
+        Tipos de boleta
+      </h3>
       <ul className="mb-4 space-y-2">
         {(types || []).map((t) => (
           <li
@@ -386,8 +397,11 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
   }
 
   return (
-    <div className="card p-5">
-      <h3 className="mb-3 text-sm font-bold text-slate-200">Cupos de promotor</h3>
+    <div className="card-lit card p-5">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-200">
+        <Icon name="users" className="h-4 w-4 text-brand-400" />
+        Cupos de promotor
+      </h3>
       <ul className="mb-4 space-y-2">
         {(allocations || []).map((a) => {
           const t = (types || []).find((x) => x.id === a.ticket_type_id);
@@ -475,9 +489,12 @@ function TeamManager({ venueId, users, onCreated }) {
   }
 
   return (
-    <div className="card p-5">
+    <div className="card-lit card p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-200">Equipo de la venue</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-slate-200">
+          <Icon name="users" className="h-4 w-4 text-brand-400" />
+          Equipo de la venue
+        </h3>
         <button onClick={() => setOpen((v) => !v)} className="btn-ghost text-xs font-bold">
           {open ? "Cerrar" : "+ Agregar"}
         </button>
@@ -594,7 +611,7 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
   }
 
   return (
-    <div className="card p-5">
+    <div className="card-lit card p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="eyebrow">Boletas</p>
@@ -607,10 +624,8 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setOnlyProblem((v) => !v)}
-            className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-              onlyProblem
-                ? "bg-red-500/15 text-red-300 ring-1 ring-red-500/40"
-                : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+            className={`chip !py-1.5 text-xs ${
+              onlyProblem ? "!border-red-500/40 !bg-red-500/15 !text-red-300" : ""
             }`}
           >
             Solo anuladas

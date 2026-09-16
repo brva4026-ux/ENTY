@@ -34,6 +34,37 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* --- Foco visible --------------------------------------------------------
+   `:focus-visible` y no `:focus`: con teclado hay que ver dónde estás, con
+   mouse el anillo estorba. El `outline` con `offset` respeta la forma del
+   elemento (los `ring` la ignoran). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Selección de texto en tono de marca en vez del azul del sistema. */
+::selection {
+  background: rgba(139, 92, 246, 0.4);
+  color: #fff;
+}
+
+/* Scrollbar propio: la del sistema rompe el tema oscuro. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: #475569; background-clip: content-box; }
+
 /* --- Atmósfera -----------------------------------------------------------
    El fondo plano hace que todo se vea "de plantilla". Estas capas dan
    profundidad: un halo de marca arriba, una retícula tenue que sugiere
@@ -53,6 +84,20 @@ body {
   mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.5) 55%, transparent 100%);
 }
 
+/* --- Grano ---------------------------------------------------------------
+   Una capa de ruido muy tenue encima de todo. Es lo que separa una superficie
+   "digital" de una que parece tener textura física; sin ella los degradados
+   se ven plastificados. Es SVG (no PNG) para no depender de una petición. */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 /* Números tabulares en métricas: los dígitos no "bailan" al refrescar */
 .tnum {
   font-variant-numeric: tabular-nums;
@@ -69,6 +114,14 @@ body {
   box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
 }
 
+/* Canto iluminado: vano aparte porque `card` ya carga fondo y sombra, y
+   agregarlo a la clase base oscurecería el borde en las tarjetas chicas. */
+.card-lit {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    0 10px 30px -12px rgba(0, 0, 0, 0.6);
+}
+
 /* Panel destacado: el que lleva la cifra protagonista. */
 .card-hero {
   position: relative;
@@ -81,6 +134,16 @@ body {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
     0 24px 60px -28px rgba(0, 0, 0, 0.9);
   overflow: hidden;
+}
+
+/* Filo superior de luz: se activa por clase para no repetir el gradiente. */
+.card-hero::before {
+  content: "";
+  position: absolute;
+  inset-inline: 10%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(196, 181, 253, 0.5), transparent);
 }
 
 /* Tarjeta de KPI: más chica, con un filo de color según su semántica. */
@@ -145,6 +208,10 @@ body {
 }
 .btn-ghost:hover { background: rgba(30, 41, 59, 0.6); border-color: #64748b; }
 
+/* Zona táctil cómoda en el celular de la puerta: 44px es el mínimo que
+   recomiendan las guías de accesibilidad para un dedo con prisa. */
+.tap-target { min-height: 44px; min-width: 44px; }
+
 /* Etiqueta de sección: versalitas espaciadas, como un panel de control. */
 .eyebrow {
   font-size: 0.6875rem;
@@ -152,6 +219,74 @@ body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #64748b;
+}
+
+/* --- Chips y mosaicos ----------------------------------------------------
+   `.chip` unifica los selectores segmentados y los filtros. Antes el tab
+   activo era ad-hoc en cada pantalla y ya divergían. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(30 41 59);
+  padding: 0.5rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #94a3b8;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.chip:hover { border-color: rgb(71 85 105); color: #e2e8f0; }
+.chip-active {
+  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(124, 58, 237, 0.16);
+  color: #c4b5fd;
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.18) inset;
+}
+
+/* Mosaico de iconos decorativos del fondo del login. */
+.tile {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(15, 23, 42, 0.5);
+  display: grid;
+  place-items: center;
+  color: rgba(196, 181, 253, 0.55);
+}
+
+/* --- Visor de escaneo ----------------------------------------------------
+   Esquinas del visor (marco tipo cámara) sin cuatro divs absolutos: un
+   gradiente por esquina, recortado con `mask`. */
+.viewfinder-corner {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-color: var(--color-brand-400);
+  border-style: solid;
+  border-width: 0;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.45));
+}
+.viewfinder-tl { top: 10px; left: 10px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 10px; }
+.viewfinder-tr { top: 10px; right: 10px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 10px; }
+.viewfinder-bl { bottom: 10px; left: 10px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 10px; }
+.viewfinder-br { bottom: 10px; right: 10px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 10px; }
+
+/* Línea que barre el visor mientras se busca un QR. */
+@keyframes sweep {
+  0% { top: 8%; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { top: 92%; opacity: 0; }
+}
+.viewfinder-sweep {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, var(--color-accent-400), transparent);
+  box-shadow: 0 0 12px rgba(217, 70, 239, 0.6);
+  animation: sweep 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
 /* Animaciones utilitarias */
@@ -171,6 +306,14 @@ body {
   animation: stagger 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--i, 0) * 70ms);
 }
+
+/* El veredicto de la puerta entra con golpe: es un resultado, no un adorno. */
+@keyframes verdict {
+  0% { opacity: 0; transform: scale(0.82); }
+  55% { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-verdict { animation: verdict 0.4s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
 
 @keyframes shimmer {
   0% { background-position: -400px 0; }
@@ -192,8 +335,9 @@ body {
 
 /* Respeto a usuarios con movimiento reducido */
 @media (prefers-reduced-motion: reduce) {
-  .animate-rise, .skeleton, .stagger, .breathe { animation: none; }
+  .animate-rise, .animate-verdict, .skeleton, .stagger, .breathe { animation: none; }
   .stat:hover { transform: none; }
+  .viewfinder-sweep { display: none; }
 }
 
 /* Ocultar barra de scroll en vistas de escaneo sin perder scroll */

@@ -3,6 +3,7 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import TicketPreview from "../components/TicketPreview";
 import { QuotaMeter } from "../components/Brand";
+import Icon from "../components/Icon";
 
 function firstVenueId(user) {
   const ids = Object.keys(user?.roles || {}).map(Number);
@@ -94,31 +95,56 @@ export default function PromoterDashboard() {
 
   return (
     <div className="animate-rise space-y-6">
-      <div>
-        <h2 className="text-2xl font-black tracking-tight text-white">Panel del promotor</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Hola {user?.full_name}. Emite boletas dentro de tu cupo asignado.
-        </p>
+      {/* Cabecera: la misma jerarquia que el panel de admin (eyebrow + display)
+          para que las dos pantallas se lean como el mismo producto. */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">Promotor</p>
+          <h2 className="mt-1 font-display text-3xl font-extrabold tracking-tight text-white">
+            {user?.full_name}
+          </h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Emite boletas dentro de tu cupo asignado.
+          </p>
+        </div>
+        {myAllocations.length > 0 && (
+          <div className="flex items-center gap-2 rounded-xl border border-brand-500/25 bg-brand-600/10 px-3.5 py-2">
+            <Icon name="sparkle" className="h-4 w-4 text-brand-300" />
+            <span className="text-xs font-semibold text-brand-200">
+              {myAllocations.reduce((a, x) => a + (x.capacity - (x.issued ?? 0)), 0)} cortesías
+              disponibles
+            </span>
+          </div>
+        )}
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-start gap-2.5 rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
+          <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
 
       {events.length === 0 && (
-        <div className="card p-8 text-center">
-          <p className="text-slate-400">No hay eventos publicados todavía.</p>
-          <p className="mt-1 text-sm text-slate-500">Cuando el admin publique uno, aparecerá aquí.</p>
+        <div className="card-lit card p-10 text-center">
+          <span className="tile mx-auto mb-3 grid h-12 w-12">
+            <Icon name="ticket" className="h-6 w-6" />
+          </span>
+          <p className="font-semibold text-slate-300">No hay eventos publicados todavía.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Cuando el admin publique uno, aparecerá aquí.
+          </p>
         </div>
       )}
 
       {events.length > 0 && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Formulario */}
-          <div className="card p-5">
-            <h3 className="mb-3 text-sm font-bold text-slate-200">Emitir boleta</h3>
+          <div className="card-lit card stagger p-5" style={{ "--i": 1 }}>
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-200">
+              <Icon name="plus" className="h-4 w-4 text-brand-400" />
+              Emitir boleta
+            </h3>
 
             <label className="mb-1 block text-xs font-medium text-slate-400">Evento</label>
             <select
@@ -200,19 +226,22 @@ export default function PromoterDashboard() {
           </div>
 
           {/* Boleta resultante + wa.me */}
-          <div className="card h-fit p-5">
-            <h3 className="mb-3 text-sm font-bold text-slate-200">
+          <div className="card-lit card stagger h-fit p-5" style={{ "--i": 2 }}>
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-200">
+              <Icon name="ticket" className="h-4 w-4 text-brand-400" />
               {lastTicket ? "Boleta generada" : "Vista previa"}
             </h3>
             {lastTicket ? (
-              <div className="animate-rise space-y-4">                  <TicketPreview
-                    rawToken={lastTicket.raw_token}
-                    ticketId={lastTicket.ticket_id}
-                    name={lastTicket.customerName || "Asistente"}
-                    eventName={events.find((ev) => ev.id === selectedEvent)?.name}
-                  />
+              <div className="animate-rise space-y-4">
+                <TicketPreview
+                  rawToken={lastTicket.raw_token}
+                  ticketId={lastTicket.ticket_id}
+                  name={lastTicket.customerName || "Asistente"}
+                  eventName={events.find((ev) => ev.id === selectedEvent)?.name}
+                />
                 <div className="rounded-lg bg-slate-800/60 p-3 ring-1 ring-slate-700/50">
-                  <p className="mb-1 text-xs font-medium text-slate-400">
+                  <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                    <Icon name="shield" className="h-3.5 w-3.5" />
                     Código (solo el promotor lo ve)
                   </p>
                   <p className="break-all font-mono text-xs text-slate-200">{lastTicket.raw_token}</p>
@@ -224,16 +253,16 @@ export default function PromoterDashboard() {
                     rel="noreferrer"
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400"
                   >
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-                      <path d="M12.04 2a9.9 9.9 0 0 0-8.51 14.93L2 22l5.2-1.49A9.9 9.9 0 1 0 12.04 2zm5.77 14.06c-.24.68-1.4 1.3-1.93 1.35-.52.05-1.01.24-3.4-.71-2.87-1.13-4.68-4.06-4.82-4.25-.14-.19-1.15-1.53-1.15-2.92 0-1.39.73-2.07 .99-2.35.26-.28.57-.35.76-.35h.55c.18 0 .42-.07.66.5.24.57.83 1.97.9 2.11.07.14.12.31.02.5-.09.19-.14.3-.28.47-.14.17-.3.38-.42.51-.14.14-.29.3-.12.58.16.28.73 1.2 1.57 1.95 1.08.96 1.99 1.26 2.27 1.4.28.14.44.12.6-.07.17-.19.7-.81.88-1.09.19-.28.38-.23.63-.14.26.09 1.63.77 1.91.91.28.14.47.21.54.33.07.12.07.68-.17 1.36z" />
-                    </svg>
+                    <Icon name="whatsapp" className="h-5 w-5" />
                     Enviar por WhatsApp
                   </a>
                 )}
               </div>
             ) : (
-              <div className="py-10 text-center">
-                <div className="mx-auto mb-3 h-24 w-24 rounded-xl bg-slate-800/60 ring-1 ring-slate-700/50" />
+              <div className="py-12 text-center">
+                <span className="tile mx-auto mb-3 grid h-16 w-16">
+                  <Icon name="qr" className="h-8 w-8" />
+                </span>
                 <p className="text-sm text-slate-500">
                   Emite una boleta para ver el QR y el enlace de envío.
                 </p>
