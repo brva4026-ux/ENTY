@@ -22,9 +22,10 @@ export default function Layout({ children }) {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="relative min-h-screen bg-slate-950">
+      <div className="atmosphere" aria-hidden="true" />
       <header className="sticky top-0 z-20 border-b border-slate-800/80 bg-slate-950/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-5">
             <Link to="/" aria-label="Inicio">
               <Logo />
@@ -69,7 +70,7 @@ export default function Layout({ children }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-6">{children}</main>
     </div>
   );
 }

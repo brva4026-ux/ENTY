@@ -1,8 +1,12 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Tres voces: display para cifras y titulos, sans para leer, mono para
+     datos exactos (IDs, horas, codigos) donde los digitos deben alinearse. */
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
   /* Acento de marca: violeta -> fucsia (energía nocturna) */
   --color-brand-300: #c4b5fd;
   --color-brand-400: #a78bfa;
@@ -11,6 +15,11 @@
   --color-brand-700: #6d28d9;
   --color-accent-400: #e879f9;
   --color-accent-500: #d946ef;
+
+  /* Oro: solo para dinero. Un color con un único significado se lee sin leyenda. */
+  --color-gold-300: #fcd34d;
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
 }
 
 html, body, #root {
@@ -25,19 +34,65 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* --- Atmósfera -----------------------------------------------------------
+   El fondo plano hace que todo se vea "de plantilla". Estas capas dan
+   profundidad: un halo de marca arriba, una retícula tenue que sugiere
+   instrumentación, y un velo que evita que el texto pierda contraste.
+   Son fijas y no interactivas: no atrapan clics ni scrollean. */
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(70rem 40rem at 15% -10%, rgba(124, 58, 237, 0.16), transparent 60%),
+    radial-gradient(50rem 30rem at 95% 0%, rgba(217, 70, 239, 0.10), transparent 55%),
+    linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.5) 55%, transparent 100%);
+}
+
 /* Números tabulares en métricas: los dígitos no "bailan" al refrescar */
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
 
-/* Tarjeta base del sistema: superficie con profundidad */
+/* --- Superficies ---------------------------------------------------------
+   Jerarquía de tres niveles. El borde superior claro simula luz cayendo
+   sobre el canto de la tarjeta: es lo que separa "caja" de "panel". */
 .card {
   border-radius: 1rem;
   border: 1px solid rgb(30 41 59);
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.9));
   box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
 }
+
+/* Panel destacado: el que lleva la cifra protagonista. */
+.card-hero {
+  position: relative;
+  border-radius: 1.25rem;
+  border: 1px solid rgb(51 65 85);
+  background:
+    radial-gradient(40rem 20rem at 0% 0%, rgba(124, 58, 237, 0.14), transparent 60%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.98));
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+    0 24px 60px -28px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+}
+
+/* Tarjeta de KPI: más chica, con un filo de color según su semántica. */
+.stat {
+  position: relative;
+  border-radius: 0.875rem;
+  border: 1px solid rgb(30 41 59);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.75), rgba(2, 6, 23, 0.75));
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.2s, transform 0.2s;
+}
+.stat:hover { border-color: rgb(71 85 105); transform: translateY(-1px); }
 
 /* Input base con foco de marca */
 .field {
@@ -90,12 +145,32 @@ body {
 }
 .btn-ghost:hover { background: rgba(30, 41, 59, 0.6); border-color: #64748b; }
 
+/* Etiqueta de sección: versalitas espaciadas, como un panel de control. */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
 /* Animaciones utilitarias */
 @keyframes rise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-rise { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Entrada escalonada: un solo gesto orquestado al cargar, en vez de que
+   cada tarjeta aparezca suelta. `--i` lo fija el componente. */
+@keyframes stagger {
+  from { opacity: 0; transform: translateY(14px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.stagger {
+  animation: stagger 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
 
 @keyframes shimmer {
   0% { background-position: -400px 0; }
@@ -108,9 +183,17 @@ body {
   border-radius: 0.5rem;
 }
 
+/* Pulso del evento en vivo: late en el anillo, no en un borde entero. */
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.breathe { animation: breathe 2.4s ease-in-out infinite; }
+
 /* Respeto a usuarios con movimiento reducido */
 @media (prefers-reduced-motion: reduce) {
-  .animate-rise, .skeleton { animation: none; }
+  .animate-rise, .skeleton, .stagger, .breathe { animation: none; }
+  .stat:hover { transform: none; }
 }
 
 /* Ocultar barra de scroll en vistas de escaneo sin perder scroll */
