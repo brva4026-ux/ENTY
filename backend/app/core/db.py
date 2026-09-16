@@ -25,7 +25,8 @@ _CONNECT_KWARGS = {
     "autocommit": True,
     # Requerido detras de PgBouncer en modo transaction (Supabase pooler
     # :6543): los prepared statements de psycopg no sobreviven al pool.
-    "prepare_threshold": 0,
+    # None los desactiva; 0 los prepara en el primer uso (lo contrario).
+    "prepare_threshold": None,
     "connect_timeout": 10,
 }
 
@@ -58,7 +59,8 @@ async def init_pool(database_url: str, *, min_size: int = 2, max_size: int = 10)
             # pooler :6543): los prepared statements de psycopg no
             # sobreviven al pool y fallan con "prepared statement does
             # not exist". Desactivarlos es seguro y sin costo practico.
-            "prepare_threshold": 0,
+            # None los desactiva; 0 los prepara en el primer uso.
+            "prepare_threshold": None,
         },
     )
 

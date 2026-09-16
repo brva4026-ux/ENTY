@@ -8,6 +8,7 @@
  */
 import { Bar, Stat } from "./Brand";
 import OccupancyRing from "./OccupancyRing";
+import Icon from "./Icon";
 import { clockTime, money, timeAgo } from "../lib/format";
 
 function Skeleton() {
@@ -26,11 +27,10 @@ function Skeleton() {
   );
 }
 
-export default function ReportWidget({ report }) {
+export default function ReportWidget({ report, live = false }) {
   if (!report) return <Skeleton />;
 
   const door = report.door ?? {};
-  const live = false;
   const occupancy = Math.min(report.occupancy_pct ?? 0, 100);
   const soldOut = occupancy >= 95;
   const failed = door.failed ?? 0;
@@ -43,7 +43,17 @@ export default function ReportWidget({ report }) {
       <div className="card-hero stagger p-6" style={{ "--i": 0 }}>
         <div className="relative flex flex-wrap items-start justify-between gap-6">
           <div className="min-w-0">
-            <p className="eyebrow">Reporte en vivo</p>
+            <div className="flex items-center gap-2.5">
+              <p className="eyebrow">Reporte en vivo</p>
+              {/* Solo cuando las puertas estan abiertas: un punto que late
+                  durante horas pierde sentido si late siempre. */}
+              {live && (
+                <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-500/30">
+                  <span className="breathe h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  En puerta
+                </span>
+              )}
+            </div>
             <h3 className="mt-1.5 font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
               {report.event_name}
             </h3>
@@ -109,19 +119,39 @@ export default function ReportWidget({ report }) {
         <Stat label="Anuladas" value={report.voided} accent="red" i={5} />
       </div>
 
-      {/* --- Integridad de la puerta ------------------------------------ */}
-      <div className="card stagger p-5" style={{ "--i": 6 }}>
+      {/* --- Integridad de la puerta ------------------------------------
+          El estado sano y el alerta no pueden verse igual: si hay rechazos,
+          el borde y el titulo cambian para que salte a la vista. */}
+      <div
+        className="card-lit card stagger p-5"
+        style={{
+          "--i": 6,
+          ...(failed > 0 ? { borderColor: "rgba(245,158,11,0.35)" } : {}),
+        }}
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="eyebrow">Integridad de la puerta</p>
-            <p className="mt-1 text-sm text-slate-400">
-              {door.total === 0
-                ? "Sin escaneos todavía."
-                : `${door.total} escaneos · ${rejectRate}% rechazado`}
-            </p>
+          <div className="flex items-start gap-3">
+            <span
+              className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg ring-1 ${
+                failed > 0
+                  ? "bg-amber-500/15 text-amber-300 ring-amber-500/30"
+                  : "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30"
+              }`}
+            >
+              <Icon name="shield" className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="eyebrow">Integridad de la puerta</p>
+              <p className="mt-1 text-sm text-slate-400">
+                {door.total === 0
+                  ? "Sin escaneos todavía."
+                  : `${door.total} escaneos · ${rejectRate}% rechazado`}
+              </p>
+            </div>
           </div>
           {door.last_granted_at && (
-            <p className="tnum font-mono text-xs text-slate-500">
+            <p className="tnum flex items-center gap-1.5 font-mono text-xs text-slate-500">
+              <Icon name="clock" className="h-3.5 w-3.5" />
               último acceso {clockTime(door.last_granted_at)}
             </p>
           )}
@@ -134,10 +164,13 @@ export default function ReportWidget({ report }) {
         </div>
 
         {failed > 0 && (
-          <p className="mt-3.5 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-xs text-amber-300/90">
-            <b className="font-semibold text-amber-200">{failed} intentos rechazados.</b>{" "}
-            Revisa duplicados y capturas: es la señal de boletas clonadas
-            {door.last_scan_at ? ` (último ${timeAgo(door.last_scan_at)})` : ""}.
+          <p className="mt-3.5 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-xs text-amber-300/90">
+            <Icon name="alert" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              <b className="font-semibold text-amber-200">{failed} intentos rechazados.</b>{" "}
+              Revisa duplicados y capturas: es la señal de boletas clonadas
+              {door.last_scan_at ? ` (último ${timeAgo(door.last_scan_at)})` : ""}.
+            </span>
           </p>
         )}
 
