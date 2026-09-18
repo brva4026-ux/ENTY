@@ -1,118 +1,402 @@
+/* La fuente se declara ANTES de tailwindcss: al inlinearse Tailwind v4,
+   el @import de la fuente queda primero y el navegador la descarga sin
+   warning de orden CSS (además, index.html hace preconnect). */
+@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,450;14..32,500;14..32,600;14..32,700;14..32,800&display=swap");
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  /* Acento de marca: violeta -> fucsia (energía nocturna) */
+  /* Un solo acento disciplinado: violeta 600. Nada de arcoíris. */
+  --color-brand-200: #ddd6fe;
   --color-brand-300: #c4b5fd;
   --color-brand-400: #a78bfa;
   --color-brand-500: #8b5cf6;
   --color-brand-600: #7c3aed;
   --color-brand-700: #6d28d9;
-  --color-accent-400: #e879f9;
-  --color-accent-500: #d946ef;
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #8b5cf6;
 }
 
-html, body, #root {
-  height: 100%;
-}
+html, body, #root { height: 100%; }
 
 body {
   font-family: var(--font-sans);
-  background: #020617;
-  color: #f1f5f9;
+  /* Superficie plana y oscura. Cero auras: la jerarquía la dan tipografía,
+     bordes y espaciado — no decoración. */
+  background: #09090b;
+  color: #e4e4e7;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  font-feature-settings: "cv05" 1; /* Inter: 'l' con cola, más legible */
 }
 
-/* Números tabulares en métricas: los dígitos no "bailan" al refrescar */
-.tnum {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
+::selection { background: rgba(124, 58, 237, 0.4); color: #fff; }
+
+/* Scrollbar discreto */
+* { scrollbar-width: thin; scrollbar-color: #27272a transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: #27272a; border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Números tabulares: las cifras no "bailan" al refrescar */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* Eyebrow: etiqueta pequeña MAYÚSCULA que encabeza secciones (Stripe) */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #71717a;
 }
 
-/* Tarjeta base del sistema: superficie con profundidad */
+/* Titulares: apretados, pesados, oscuro sobre claro de zinc */
+.display {
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  color: #fafafa;
+}
+
+/* Tarjeta: superficie plana de zinc con borde real. Sin glass, sin glow. */
 .card {
-  border-radius: 1rem;
-  border: 1px solid rgb(30 41 59);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.9));
-  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  border-radius: 0.75rem;
+  border: 1px solid #1f1f23;
+  background: #101013;
 }
 
-/* Input base con foco de marca */
+/* Separadores internos consistentes */
+.divide-list > :not([hidden]) ~ :not([hidden]) {
+  border-top: 1px solid #1c1c1f;
+}
+
+/* Inputs: fondo hundido, borde real, foco con acento */
 .field {
   width: 100%;
-  border-radius: 0.625rem;
-  border: 1px solid rgb(51 65 85);
-  background: rgba(2, 6, 23, 0.6);
+  border-radius: 0.5rem;
+  border: 1px solid #2a2a2e;
+  background: #0c0c0e;
   padding: 0.55rem 0.75rem;
   font-size: 0.875rem;
-  color: #f8fafc;
+  color: #fafafa;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.12s, box-shadow 0.12s;
 }
-.field::placeholder { color: #64748b; }
+.field::placeholder { color: #52525b; }
+.field:hover { border-color: #3f3f46; }
 .field:focus {
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
 }
 
-/* Botón primario con gradiente de marca */
+/* Botón primario: sólido blanco — contraste máximo, cero llamatividad.
+   Es la técnica de Vercel/Linear: el CTA blanco es el punto focal. */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 0.625rem;
-  background: linear-gradient(135deg, #7c3aed, #d946ef);
-  padding: 0.6rem 1.1rem;
+  border-radius: 0.5rem;
+  background: #fafafa;
+  color: #101013;
+  border: 1px solid #fafafa;
+  padding: 0.55rem 1rem;
   font-size: 0.875rem;
-  font-weight: 700;
-  color: white;
-  box-shadow: 0 8px 20px -8px rgba(139, 92, 246, 0.55);
-  transition: filter 0.15s, transform 0.05s;
+  font-weight: 600;
+  transition: background 0.12s, border-color 0.12s, transform 0.1s ease;
 }
-.btn-primary:hover { filter: brightness(1.12); }
-.btn-primary:active { transform: translateY(1px); }
-.btn-primary:disabled { opacity: 0.55; filter: none; }
+.btn-primary:hover { background: #e4e4e7; border-color: #e4e4e7; }
+.btn-primary:active { background: #d4d4d8; transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.45; pointer-events: none; }
 
-/* Botón fantasma secundario */
+/* Botón secundario: outline zinc */
 .btn-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.625rem;
-  border: 1px solid rgb(51 65 85);
-  padding: 0.5rem 1rem;
+  gap: 0.4rem;
+  border-radius: 0.5rem;
+  border: 1px solid #27272a;
+  background: transparent;
+  padding: 0.5rem 0.9rem;
   font-size: 0.875rem;
-  color: #cbd5e1;
-  transition: background 0.15s, border-color 0.15s;
+  font-weight: 500;
+  color: #d4d4d8;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.1s ease;
 }
-.btn-ghost:hover { background: rgba(30, 41, 59, 0.6); border-color: #64748b; }
+.btn-ghost:hover { background: #18181b; border-color: #3f3f46; color: #fafafa; }
+.btn-ghost:active { transform: scale(0.98); }
 
-/* Animaciones utilitarias */
+/* Botón de peligro: texto rojo, relleno solo al hover */
+.btn-danger-text {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #f87171;
+  transition: background 0.12s;
+}
+.btn-danger-text:hover { background: rgba(239, 68, 68, 0.09); color: #fca5a5; }
+
+/* Chips de evento: pill sobria, activa = superficie clara */
+.chip {
+  border-radius: 999px;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.chip-active {
+  background: #fafafa !important;
+  color: #101013 !important;
+  font-weight: 600;
+}
+
+/* Badges de estado: punto + texto, fondo tenue del propio color */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.badge-dot { width: 0.375rem; height: 0.375rem; border-radius: 999px; }
+
+/* Barras de progreso: pista hundida, relleno plano */
+.meter {
+  height: 0.375rem;
+  border-radius: 999px;
+  background: #1c1c1f;
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #7c3aed;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Filas de lista (boletas, tipos, cupos): hover perceptible, no chillón */
+.row {
+  border-radius: 0.5rem;
+  transition: background 0.1s;
+}
+.row:hover { background: #141417; }
+
+/* ===========================================================================
+   MOTION — capa de coreografía premium.
+   Principios: entrada con easing expo (llega y se asienta), micro-
+   interacciones físicas (el botón se hunde, la tarjeta flota), cifras que
+   cuentan hasta su valor y jerarquía animada por escalones (stagger).
+   Todo se desactiva con prefers-reduced-motion.
+   =========================================================================== */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
 @keyframes rise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-rise { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-rise { animation: rise 0.55s var(--ease-out-expo) both; }
+
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade { animation: fade 0.3s ease-out both; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-scale-in { animation: scale-in 0.45s var(--ease-out-expo) both; }
+
+/* Pop con overshoot: para badges, chips activos y elementos que "aparecen" */
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  60% { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-pop { animation: pop 0.4s var(--ease-out-expo) both; }
+
+/* Logo: aparece con un giro de resorte, como app nativa */
+@keyframes logo-pop {
+  0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.logo-pop { animation: logo-pop 0.6s var(--ease-spring) both; display: inline-flex; }
+
+/* Escalonado: los hijos de .reveal entran en cascada (50ms por nivel) */
+.reveal > * {
+  opacity: 0;
+  animation: rise 0.55s var(--ease-out-expo) forwards;
+}
+.reveal > :nth-child(1) { animation-delay: 0.02s; }
+.reveal > :nth-child(2) { animation-delay: 0.07s; }
+.reveal > :nth-child(3) { animation-delay: 0.12s; }
+.reveal > :nth-child(4) { animation-delay: 0.17s; }
+.reveal > :nth-child(5) { animation-delay: 0.22s; }
+.reveal > :nth-child(6) { animation-delay: 0.27s; }
+.reveal > :nth-child(7) { animation-delay: 0.32s; }
+.reveal > :nth-child(8) { animation-delay: 0.37s; }
+.reveal > :nth-child(9) { animation-delay: 0.42s; }
+.reveal > :nth-child(n + 10) { animation-delay: 0.47s; }
+
+/* Tarjeta interactiva: flota 2px al pasar, se asienta al pulsar */
+.card-interactive {
+  transition: transform 0.25s var(--ease-out-expo), border-color 0.2s, box-shadow 0.25s var(--ease-out-expo);
+}
+.card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: #2c2c31;
+  box-shadow: 0 10px 28px -14px rgba(0, 0, 0, 0.65);
+}
+.card-interactive:active { transform: translateY(0); transition-duration: 0.08s; }
+
+/* Enlaces con subrayado animado (footer/login auxiliares) */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  transition: background-size 0.25s var(--ease-out-expo);
+}
+.link-underline:hover { background-size: 100% 1px; }
 
 @keyframes shimmer {
   0% { background-position: -400px 0; }
   100% { background-position: 400px 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #0f172a 25%, #1e293b 50%, #0f172a 75%);
+  background: linear-gradient(90deg, #101013 25%, #1a1a1e 50%, #101013 75%);
   background-size: 800px 100%;
   animation: shimmer 1.4s infinite linear;
   border-radius: 0.5rem;
 }
 
-/* Respeto a usuarios con movimiento reducido */
-@media (prefers-reduced-motion: reduce) {
-  .animate-rise, .skeleton { animation: none; }
+/* Splash: pantalla de marca mientras se restaura la sesión. El logo respira
+   (escala sutil) y la salida es un fundido corto, nunca un salto. */
+@keyframes splash-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+.splash-logo { animation: splash-breathe 1.6s ease-in-out infinite; }
+
+@keyframes splash-out {
+  from { opacity: 1; }
+  to { opacity: 0; visibility: hidden; }
+}
+.splash-exit { animation: splash-out 0.25s ease-out forwards; }
+
+/* Pull-to-refresh: spinner de trazo que gira mientras se carga. */
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
+.ptr-spinner {
+  animation: ptr-spin 0.8s linear infinite;
+  color: #a78bfa;
 }
 
-/* Ocultar barra de scroll en vistas de escaneo sin perder scroll */
+/* Indicador En vivo: punto pulsante + anillo que se expande (radar) */
+@keyframes live-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.live-dot { background: #34d399; animation: live-glow 2s ease-in-out infinite; }
+
+/* ===========================================================================
+   TOASTS Y DIÁLOGOS (lib/ui.jsx) — reemplazan window.confirm/prompt/alert
+   =========================================================================== */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.toast-in { animation: toast-in 0.32s var(--ease-out-expo) both; }
+
+@keyframes dialog-backdrop { from { opacity: 0; } to { opacity: 1; } }
+.dialog-backdrop {
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(2px);
+  animation: dialog-backdrop 0.2s ease-out both;
+}
+.dialog-backdrop-out { background: rgba(0, 0, 0, 0.62); animation: dialog-backdrop 0.15s ease-in reverse both; }
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.dialog-in { animation: dialog-in 0.3s var(--ease-out-expo) both; }
+.dialog-out { animation: dialog-in 0.14s ease-in reverse both; }
+
+/* Banner offline: baja desde arriba con easing expo */
+@keyframes offline-in {
+  from { transform: translateY(-100%); }
+  to { transform: none; }
+}
+.offline-in { animation: offline-in 0.35s var(--ease-out-expo) both; }
+
+/* Confeti del onboarding: emojis que caen y giran una sola vez */
+@keyframes confetti-fall {
+  0% { opacity: 0; transform: translateY(-12px) rotate(0deg) scale(0.8); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(120px) rotate(320deg) scale(1.1); }
+}
+.confetti { top: 8px; animation: confetti-fall 2.2s var(--ease-out-expo) both; }
+
+@keyframes live-ping {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+.live-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #34d399;
+  animation: live-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise, .animate-fade, .animate-scale-in, .animate-pop,
+  .logo-pop, .skeleton, .live-dot, .live-ping, .splash-logo,
+  .ptr-spinner, .toast-in, .dialog-in {
+    animation: none;
+  }
+  .splash-exit { animation: none; opacity: 0; visibility: hidden; }
+  .reveal > * { animation: none; opacity: 1; }
+  .card-interactive, .btn-primary, .btn-ghost, .btn-danger-text {
+    transition: none;
+  }
+  .card-interactive:hover { transform: none; box-shadow: none; }
+  .btn-primary:active, .btn-ghost:active { transform: none; }
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ===========================================================================
+   PULIDO MÓVIL
+   - Inputs a 16px en móvil: iOS Safari hace zoom automático si el input
+     enfocado está por debajo (y el zoom rompe el layout al volver).
+   - Tap targets >= 44px en zona táctil (guía de accesibilidad Apple/Google).
+   - Sin resaltado azul de tap y sin rebotes horizontales.
+   =========================================================================== */
+html { -webkit-tap-highlight-color: transparent; }
+body { overscroll-behavior-y: none; }
+
+@media (max-width: 640px) {
+  .field {
+    /* 16px: umbral anti-zoom de iOS. Desktop conserva los 14px compactos. */
+    font-size: 1rem;
+    padding: 0.65rem 0.75rem;
+  }
+  .btn-primary, .btn-ghost, .btn-danger-text {
+    min-height: 44px;
+  }
+  .chip {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}

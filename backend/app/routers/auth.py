@@ -9,6 +9,7 @@ El login incluye:
   medida fuerte seria un contador en la DB.
 """
 from collections import defaultdict, deque
+from secrets import token_hex
 from time import monotonic
 from typing import Annotated
 
@@ -17,8 +18,20 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.db import get_db
 from app.core.security import create_access_token, hash_password, verify_password
-from app.deps import get_current_user
-from app.schemas import LoginRequest, TokenResponse, UserSummary, VenueSummary
+from app.deps import ensure_roles, get_current_user
+from app.schemas import (
+    ChangePasswordRequest,
+    DeleteAccountRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    MessageOut,
+    RegisterRequest,
+    TokenResponse,
+    UpdateProfileRequest,
+    UpdateVenueRequest,
+    UserSummary,
+    VenueSummary,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -159,3 +172,279 @@ async def me(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     return await _build_user_summary(db, user["id"])
+
+
+# ---------------------------------------------------------------------------
+# Registro self-service: el dueño crea su negocio y su cuenta de admin
+# ---------------------------------------------------------------------------
+def _slugify(name: str) -> str:
+    import re
+    import unicodedata
+
+    s = unicodedata.normalize("NFKD", name.lower()).encode("ascii", "ignore").decode()
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    return s or "venue"
+
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def register(
+    body: RegisterRequest,
+    request: Request,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Crea una venue nueva con su administrador y devuelve la sesión.
+
+    Rate-limited con el mismo mecanismo del login (es un endpoint público que
+    crea filas: sin límite sería un vector de basura en la DB)."""
+    key = f"{_client_ip(request)}:register"
+    if _login_blocked(key):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Demasiados intentos. Espera unos minutos.",
+        )
+    _register_failure(key)  # se limpia al tener éxito
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT id FROM users WHERE lower(email)=lower(%s)", (body.email,)
+        )
+        if await cur.fetchone():
+            _register_failure(key)
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Ese email ya tiene una cuenta. Inicia sesión o usa otro.",
+            )
+
+        # Venue con slug único (colisión -> sufijo corto aleatorio)
+        base_slug = _slugify(body.venue_name)
+        slug = base_slug
+        for _ in range(5):
+            await cur.execute("SELECT id FROM venues WHERE slug=%s", (slug,))
+            if not await cur.fetchone():
+                break
+            slug = f"{base_slug}-{token_hex(2)}"
+        await cur.execute(
+            """INSERT INTO venues (name, slug) VALUES (%s, %s) RETURNING id""",
+            (body.venue_name.strip(), slug),
+        )
+        venue_id = (await cur.fetchone())["id"]
+
+        await cur.execute(
+            """INSERT INTO users (email, password_hash, full_name)
+               VALUES (%s, %s, %s) RETURNING id""",
+            (body.email, hash_password(body.password), body.full_name.strip()),
+        )
+        user_id = (await cur.fetchone())["id"]
+
+        await cur.execute(
+            "INSERT INTO venue_user_roles (venue_id, user_id, role) VALUES (%s, %s, 'admin')",
+            (venue_id, user_id),
+        )
+        await db.commit()
+
+    _FAILURES.pop(key, None)
+    roles = {str(venue_id): ["admin"]}
+    token = create_access_token(user_id, [venue_id], roles)
+    summary = await _build_user_summary(db, user_id)
+    return TokenResponse(access_token=token, user=summary)
+
+
+# ---------------------------------------------------------------------------
+# Recuperación de contraseña (sin proveedor de email aún)
+# ---------------------------------------------------------------------------
+@router.post("/forgot-password", response_model=MessageOut)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Responde SIEMPRE lo mismo (no revela qué emails existen).
+
+    Sin proveedor de email configurado, orienta al usuario: self-service de
+    venue (registro) o reset operado por un admin de su venue.
+    """
+    async with db.cursor() as cur:
+        await cur.execute(
+            """SELECT u.is_active
+               FROM users u
+               JOIN venue_user_roles vr ON vr.user_id = u.id
+               WHERE lower(u.email)=lower(%s)
+               LIMIT 1""",
+            (body.email,),
+        )
+        row = await cur.fetchone()
+    hint = (
+        "Tu cuenta está desactivada: pide a un administrador de tu negocio "
+        "que la reactive."
+        if row and not row["is_active"]
+        else "Si el email existe, un administrador puede reestablecer tu "
+        "contraseña desde Equipo, o crea un negocio nuevo desde 'Crear cuenta'."
+    )
+    return MessageOut(detail=hint)
+
+
+# ---------------------------------------------------------------------------
+# Edición del perfil propio y del negocio (venue)
+# ---------------------------------------------------------------------------
+@router.patch("/profile", response_model=UserSummary)
+async def update_profile(
+    body: UpdateProfileRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Actualiza el nombre visible del usuario autenticado."""
+    async with db.cursor() as cur:
+        await cur.execute(
+            "UPDATE users SET full_name=%s WHERE id=%s",
+            (body.full_name.strip(), user["id"]),
+        )
+        await db.commit()
+    return await _build_user_summary(db, user["id"])
+
+
+@router.patch("/venues/{venue_id}", response_model=VenueSummary)
+async def update_venue_settings(
+    venue_id: int,
+    body: UpdateVenueRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Nombre y logo del negocio (solo admin de la venue).
+
+    PATCH parcial: solo aplica los campos enviados. logo_url="" limpia el
+    logo (queda NULL). El logo se referencía por URL (http/s); no hay
+    almacenamiento de archivos propio todavía."""
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute("SELECT id FROM venues WHERE id=%s", (venue_id,))
+        if not await cur.fetchone():
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Venue no encontrada")
+
+        if body.name is not None:
+            await cur.execute(
+                "UPDATE venues SET name=%s WHERE id=%s",
+                (body.name.strip(), venue_id),
+            )
+        if body.logo_url is not None:
+            await cur.execute(
+                "UPDATE venues SET logo_url=%s WHERE id=%s",
+                (body.logo_url.strip() or None, venue_id),
+            )
+        await db.commit()
+
+        await cur.execute(
+            """SELECT id, name, slug, logo_url, primary_color
+               FROM venues WHERE id=%s""",
+            (venue_id,),
+        )
+        row = await cur.fetchone()
+    return VenueSummary(
+        id=row["id"],
+        name=row["name"],
+        slug=row["slug"],
+        logo_url=row["logo_url"],
+        primary_color=row["primary_color"],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Cambio de contraseña propia (autenticado)
+# ---------------------------------------------------------------------------
+@router.post("/change-password", response_model=MessageOut)
+async def change_password(
+    body: ChangePasswordRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Cambia la contraseña del usuario autenticado.
+
+    Exige la contraseña vigente (protege sesiones dejadas abiertas: quien
+    solo robaría el token no podría cerrar al dueño de su cuenta). La nueva
+    debe ser distinta de la actual."""
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT password_hash FROM users WHERE id=%s", (user["id"],)
+        )
+        row = await cur.fetchone()
+        if not row or not verify_password(
+            body.current_password, row["password_hash"]
+        ):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "La contraseña actual no es correcta.",
+            )
+        if verify_password(body.new_password, row["password_hash"]):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "La nueva contraseña debe ser distinta de la actual.",
+            )
+        await cur.execute(
+            "UPDATE users SET password_hash=%s WHERE id=%s",
+            (hash_password(body.new_password), user["id"]),
+        )
+        await db.commit()
+    return MessageOut(detail="Contraseña actualizada.")
+
+
+# ---------------------------------------------------------------------------
+# Borrado definitivo de la propia cuenta
+# ---------------------------------------------------------------------------
+@router.delete("/account", response_model=MessageOut)
+async def delete_own_account(
+    body: DeleteAccountRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Elimina la cuenta y sus membresías. Sola, o con toda la venue si es
+    admin único. Pide la contraseña: confirmación fuerte e irrevocable."""
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT password_hash FROM users WHERE id=%s", (user["id"],)
+        )
+        row = await cur.fetchone()
+        if not row or not verify_password(body.password, row["password_hash"]):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Contraseña incorrecta")
+
+        await cur.execute(
+            "SELECT venue_id FROM venue_user_roles WHERE user_id=%s",
+            (user["id"],),
+        )
+        venue_ids = [r["venue_id"] for r in await cur.fetchall()]
+
+        for vid in venue_ids:
+            await cur.execute(
+                """SELECT count(*)::int AS n FROM venue_user_roles
+                   WHERE venue_id=%s AND role='admin'""",
+                (vid,),
+            )
+            admins = (await cur.fetchone())["n"]
+            await cur.execute(
+                "SELECT count(*)::int AS n FROM venue_user_roles WHERE venue_id=%s",
+                (vid,),
+            )
+            members = (await cur.fetchone())["n"]
+            if admins == 1 and members > 1:
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    "Eres el único administrador con miembros activos en tu "
+                    "negocio: asígnale otro admin antes de borrar tu cuenta.",
+                )
+
+        await cur.execute(
+            """SELECT venue_id FROM venue_user_roles
+               WHERE venue_id = ANY(%s) AND user_id <> %s""",
+            (venue_ids or [0], user["id"]),
+        )
+        protected = {r["venue_id"] for r in await cur.fetchall()}
+        doomed = [v for v in venue_ids if v not in protected]
+        if doomed:
+            # events/tickets de la venue cascada vía FK ON DELETE CASCADE
+            await cur.execute("DELETE FROM venues WHERE id = ANY(%s)", (doomed,))
+        await cur.execute("DELETE FROM users WHERE id=%s", (user["id"],))
+        await db.commit()
+    return MessageOut(detail="Cuenta eliminada definitivamente.")
+
+
+# ---------------------------------------------------------------------------
+# NOTA: la purga definitiva de un usuario vive en lifecycle.py (rutas de
+# gestión del equipo, prefijo /venues/{venue_id}).
+# ---------------------------------------------------------------------------

@@ -20,11 +20,12 @@ dependencies = [
     # Zonas horarias para formatear el inicio del evento en la boleta-imagen
     # (ZoneInfo); 'UTC' fijo no basta para 'America/Bogota'.
     "tzdata>=2024.1",
+    # Cliente HTTP async para Web Push (envio a los endpoints de los browsers)
+    "httpx>=0.27",
 ]
 
 [dependency-groups]
 dev = [
-    "httpx>=0.27",
     "pytest>=8.2",
 ]
 

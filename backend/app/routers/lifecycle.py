@@ -2,19 +2,28 @@
 y listado de usuarios de la venue (para asignar cupos con nombres reales)."""
 from typing import Annotated
 
-import psycopg
-from fastapi import APIRouter, Depends, HTTPException, status
+import csv
+import io
 
+import psycopg
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+
+from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.pusher import notify_venue
 from app.deps import ensure_roles, get_current_user
 # fetch_event vive en events.py para que listar, crear y transicionar devuelvan
 # el mismo shape de evento (ver EVENT_COLUMNS).
 from app.routers.events import fetch_event
 from app.schemas import (
     CreateVenueUser,
+    DeleteEventRequest,
     EventOut,
     MessageOut,
+    PurgeUserRequest,
+    ResetPassword,
     TicketOut,
+    UpdateVenueUser,
     VenueUserOut,
     VoidRequest,
 )
@@ -25,7 +34,10 @@ VALID_TRANSITIONS = {
     "publish": ("draft", "published"),
     "live": ("published", "live"),
     "end": ("live", "ended"),
-    "cancel": ("draft", "cancelled"),
+    # Se puede cancelar desde borrador O publicado (migración 005: el trigger de
+    # DB valida la matriz completa, así que 'live/ended/cancelled -> cancelled'
+    # queda bloqueado a nivel DB aunque el endpoint lo intentara).
+    "cancel": (None, "cancelled"),
 }
 
 
@@ -56,6 +68,19 @@ async def _transition(venue_id, event_id, user, db, action):
         )
         if not await cur.fetchone():
             raise HTTPException(404, "Evento no encontrado")
+
+        # Cancelar vale desde draft y published (trigger de DB valida el resto).
+        if action == "cancel":
+            await cur.execute("SELECT status FROM events WHERE id=%s", (event_id,))
+            status_now = (await cur.fetchone())["status"]
+            if status_now not in ("draft", "published"):
+                raise HTTPException(
+                    409,
+                    "Solo se puede cancelar un evento en borrador o publicado "
+                    "(en puerta, terminado o ya cancelado no)",
+                )
+            p_from = status_now
+
         try:
             await cur.execute("SELECT set_event_status(%s, %s, %s)", (event_id, p_from, p_to))
         except psycopg.errors.Error as e:
@@ -80,7 +105,56 @@ async def go_live(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    return await _transition(venue_id, event_id, user, db, "live")
+    """Abre puertas (published -> live) y avisa por Web Push a los
+    dispositivos de la puerta suscritos a esta venue.
+
+    El push es best-effort: fallar el envío NUNCA impide abrir puertas. Sus
+    suscripciones muertas (404/410 del push service) se limpian."""
+    out = await _transition(venue_id, event_id, user, db, "live")
+
+    settings = get_settings()
+    if settings.vapid_private_key_b64:
+        try:
+            async with db.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT id, endpoint, p256dh, auth
+                    FROM push_subscriptions
+                    WHERE venue_id = %s
+                    """,
+                    (venue_id,),
+                )
+                rows = await cur.fetchall()
+
+            dead, sent = await notify_venue(
+                rows,
+                {
+                    "title": "🚪 Puertas abiertas",
+                    "body": (
+                        f"{out['name']} está en puerta. Activa el escáner para "
+                        "empezar a validar boletas."
+                    ),
+                    "tag": f"event-live-{event_id}",
+                    "url": "/bouncer",
+                },
+                vapid_private_b64=settings.vapid_private_key_b64,
+                vapid_subject=settings.vapid_subject,
+            )
+
+            if dead:
+                # Cursor nuevo: el bloque `async with` de la consulta anterior
+                # ya cerró `cur`.
+                async with db.cursor() as cur_del:
+                    await cur_del.execute(
+                        "DELETE FROM push_subscriptions WHERE id = ANY(%s)",
+                        (dead,),
+                    )
+                await db.commit()
+        except Exception:
+            # Un fallo de push (red, claves, DB) no debe revertir la apertura.
+            pass
+
+    return out
 
 
 @router.post("/events/{event_id}/end", response_model=EventOut)
@@ -101,9 +175,419 @@ async def cancel_event(
     return await _transition(venue_id, event_id, user, db, "cancel")
 
 
+@router.delete("/events/{event_id}", response_model=MessageOut)
+async def delete_event(
+    venue_id: int, event_id: int,
+    body: DeleteEventRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Elimina definitivamente un evento y sus boletas.
+
+    Regla de negocio: solo puede borrarse en `draft` (no hay nada que
+    perdimos) o `cancelled` con cero boletas activas; un evento con
+    historial comercial se cancela, no se borra. El admin debe escribir el
+    nombre exacto del evento para confirmar."""
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT name FROM events WHERE id=%s AND venue_id=%s",
+            (event_id, venue_id),
+        )
+        ev = await cur.fetchone()
+        if not ev:
+            raise HTTPException(404, "Evento no encontrado")
+        if ev["name"] != body.confirm.strip():
+            raise HTTPException(
+                400, "Escribe el nombre exacto del evento para confirmar el borrado."
+            )
+
+        await cur.execute(
+            "SELECT status FROM events WHERE id=%s", (event_id,)
+        )
+        st = (await cur.fetchone())["status"]
+        if st not in ("draft", "cancelled", "ended"):
+            raise HTTPException(
+                409,
+                "Solo se pueden borrar eventos en borrador, cancelados o "
+                "finalizados. Un evento publicado se cancela, no se borra.",
+            )
+        if st != "draft":
+            await cur.execute(
+                """SELECT count(*)::int AS n FROM tickets
+                   WHERE event_id=%s AND status='issued'""",
+                (event_id,),
+            )
+            pending = (await cur.fetchone())["n"]
+            if pending > 0:
+                if st == "ended":
+                    # En un evento finalizado las boletas emitidas son
+                    # historial contable (void_ticket bloquea anularlas).
+                    raise HTTPException(
+                        409,
+                        "El evento tiene boletas emitidas en su historial: se "
+                        "conserva como registro y no puede borrarse.",
+                    )
+                raise HTTPException(
+                    409,
+                    "Tiene boletas pendientes de uso: anúlalas antes de "
+                    "borrar el evento.",
+                )
+
+        await cur.execute("DELETE FROM events WHERE id=%s", (event_id,))
+        await db.commit()
+    return MessageOut(detail=f"Evento '{ev['name']}' eliminado.")
+
+
 # ---------------------------------------------------------------------------
-# Anular boleta
+# Gestión de un miembro del equipo: editar, desactivar, borrar, reset password
 # ---------------------------------------------------------------------------
+async def _target_membership(cur, venue_id: int, target_user_id: int) -> list[str]:
+    """Devuelve los roles del usuario en la venue o 404 si no pertenece."""
+    await cur.execute(
+        "SELECT role FROM venue_user_roles WHERE venue_id=%s AND user_id=%s",
+        (venue_id, target_user_id),
+    )
+    roles = [r["role"] for r in await cur.fetchall()]
+    if not roles:
+        raise HTTPException(404, "Ese usuario no pertenece a esta venue")
+    return roles
+
+
+@router.patch("/users/{user_id}", response_model=VenueUserOut)
+async def update_venue_user(
+    venue_id: int, user_id: int,
+    body: UpdateVenueUser,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Edición parcial: nombre, rol y desactivación.
+
+    - Desactivar (is_active=false): el usuario deja de poder iniciar sesión
+      de inmediato (get_current_user lo rechaza) — es el modo "se fue de la
+      empresa", conserva historial.
+    - Cambiar rol: quita el rol anterior y asigna el nuevo (transaccional).
+    - El admin no puede desactivarse a sí mismo ni modificar a un super_admin.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        roles = await _target_membership(cur, venue_id, user_id)
+        if "super_admin" in roles:
+            raise HTTPException(400, "No puedes modificar a un super_admin desde aquí")
+        if user_id == user["id"] and body.is_active is False:
+            raise HTTPException(400, "No puedes desactivar tu propia cuenta")
+
+        if body.is_active is not None:
+            await cur.execute("UPDATE users SET is_active=%s WHERE id=%s", (body.is_active, user_id))
+
+        if body.full_name is not None:
+            await cur.execute("UPDATE users SET full_name=%s WHERE id=%s", (body.full_name, user_id))
+
+        if body.role is not None:
+            for r in roles:
+                if r != body.role:
+                    await cur.execute(
+                        "DELETE FROM venue_user_roles WHERE venue_id=%s AND user_id=%s AND role=%s",
+                        (venue_id, user_id, r),
+                    )
+            await cur.execute(
+                """INSERT INTO venue_user_roles (venue_id, user_id, role)
+                   VALUES (%s, %s, %s) ON CONFLICT DO NOTHING""",
+                (venue_id, user_id, body.role),
+            )
+
+        await cur.execute(
+            """
+            SELECT u.id, u.email, u.full_name, u.is_active,
+                   COALESCE(array_agg(DISTINCT r.role) FILTER (WHERE r.role IS NOT NULL), '{}')::text[] AS roles
+            FROM users u
+            LEFT JOIN venue_user_roles r ON r.user_id = u.id AND r.venue_id = %s
+            WHERE u.id = %s
+            GROUP BY u.id, u.email, u.full_name, u.is_active
+            """,
+            (venue_id, user_id),
+        )
+        out = await cur.fetchone()
+        await db.commit()
+    if not out:
+        raise HTTPException(404, "Usuario no encontrado")
+    return out
+
+
+@router.delete("/users/{user_id}", response_model=MessageOut)
+async def remove_venue_user(
+    venue_id: int, user_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Quita al usuario de la venue (revoca acceso).
+
+    Mantiene el usuario y su historial de boletas (ON DELETE SET NULL / RESTRICT
+    lo requieren): esto es una desvinculación, no un borrado físico. Si el
+    usuario no tiene roles en ninguna otra venue, también queda desactivado
+    para que no pueda iniciar sesión en ningún lado.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        roles = await _target_membership(cur, venue_id, user_id)
+        if "super_admin" in roles:
+            raise HTTPException(400, "No puedes revocar a un super_admin")
+        if user_id == user["id"]:
+            raise HTTPException(400, "No puedes quitarte a ti mismo de la venue")
+
+        await cur.execute(
+            "DELETE FROM venue_user_roles WHERE venue_id=%s AND user_id=%s",
+            (venue_id, user_id),
+        )
+        # Si quedó sin ninguna venue, desactivar (no puede loguearse a nada).
+        await cur.execute(
+            "SELECT count(*)::int AS n FROM venue_user_roles WHERE user_id=%s",
+            (user_id,),
+        )
+        remaining = (await cur.fetchone())["n"]
+        if remaining == 0:
+            await cur.execute("UPDATE users SET is_active=false WHERE id=%s", (user_id,))
+        await db.commit()
+    return MessageOut(detail="Usuario removido de la venue.")
+
+
+@router.post("/users/{user_id}/reset-password", response_model=MessageOut)
+async def reset_venue_user_password(
+    venue_id: int, user_id: int,
+    body: ResetPassword,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Reset de contraseña por el admin (flujo operativo, no self-service)."""
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    from app.core.security import hash_password
+
+    async with db.cursor() as cur:
+        await _target_membership(cur, venue_id, user_id)
+        await cur.execute(
+            "UPDATE users SET password_hash=%s WHERE id=%s",
+            (hash_password(body.new_password), user_id),
+        )
+        await db.commit()
+    return MessageOut(detail="Contraseña actualizada.")
+
+
+@router.delete("/users/{user_id}/purge", response_model=MessageOut)
+async def purge_venue_user(
+    venue_id: int, user_id: int,
+    body: PurgeUserRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Elimina al usuario de la plataforma de forma definitiva.
+
+    Diferencia con DELETE /users/{id} (remover de la venue): esto borra la
+    fila en users. Sus boletas emitidas conservan su nombre (LEFT JOIN).
+    `confirm` debe ser el email exacto del usuario. Protege al último admin
+    con miembros a cargo y nunca aplica a un super_admin."""
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        roles = await _target_membership(cur, venue_id, user_id)
+        if "super_admin" in roles:
+            raise HTTPException(400, "No puedes eliminar a un super_admin")
+        if user_id == user["id"]:
+            raise HTTPException(400, "Usa tu perfil para borrar tu propia cuenta")
+
+        await cur.execute("SELECT email FROM users WHERE id=%s", (user_id,))
+        target = await cur.fetchone()
+        if not target or target["email"].lower() != body.confirm.strip().lower():
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "La confirmación no coincide con el email del usuario.",
+            )
+
+        await cur.execute(
+            """SELECT count(*)::int AS n FROM venue_user_roles
+               WHERE venue_id=%s AND role='admin' AND user_id<>%s""",
+            (venue_id, user_id),
+        )
+        other_admins = (await cur.fetchone())["n"]
+        await cur.execute(
+            """SELECT count(*)::int AS n FROM venue_user_roles
+               WHERE venue_id=%s AND user_id<>%s""",
+            (venue_id, user_id),
+        )
+        others = (await cur.fetchone())["n"]
+        if other_admins == 0 and others > 0:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Es el último administrador con miembros en el equipo: asigna "
+                "otro admin antes de eliminarlo.",
+            )
+
+        await cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
+        await db.commit()
+    return MessageOut(detail="Usuario eliminado definitivamente.")
+
+
+# ---------------------------------------------------------------------------
+# Export CSV: invitados del evento y resumen de recaudo
+# ---------------------------------------------------------------------------
+def _csv_response(filename: str, header: list[str], rows: list[list]) -> Response:
+    """Arma la respuesta CSV con BOM UTF-8 (Excel/Sheets la abren bien)."""
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(header)
+    w.writerows(rows)
+    content = "\ufeff" + buf.getvalue()
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/events/{event_id}/guests.csv")
+async def export_guests_csv(
+    venue_id: int, event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Lista de invitados (todas las boletas del evento).
+
+    Doble propósito: respaldo de puerta (se puede chequear a mano si falla el
+    escáner) y control del organizador.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT name FROM events WHERE id=%s AND venue_id=%s", (event_id, venue_id)
+        )
+        ev = await cur.fetchone()
+        if not ev:
+            raise HTTPException(404, "Evento no encontrado")
+        await cur.execute(
+            """
+            SELECT t.id, t.customer_name, t.customer_phone, t.customer_email,
+                   t.status, t.issued_at, t.redeemed_at,
+                   tt.name AS type_name, tt.is_courtesy,
+                   u.full_name AS sold_by
+            FROM tickets t
+            JOIN ticket_types tt ON tt.id = t.ticket_type_id
+            LEFT JOIN users u ON u.id = t.sold_by_user_id
+            WHERE t.event_id = %s
+            ORDER BY t.id
+            """,
+            (event_id,),
+        )
+        rows = await cur.fetchall()
+
+    data = [
+        [
+            r["id"],
+            r["customer_name"],
+            r["customer_phone"] or "",
+            r["customer_email"] or "",
+            r["type_name"] + (" (cortesía)" if r["is_courtesy"] else ""),
+            r["status"],
+            ("SI" if r["redeemed_at"] else "NO"),
+            r["sold_by"] or "",
+            r["issued_at"].strftime("%Y-%m-%d %H:%M"),
+        ]
+        for r in rows
+    ]
+    return _csv_response(
+        f"invitados-evento-{event_id}.csv",
+        ["Boleta", "Nombre", "Telefono", "Email", "Tipo", "Estado", "Ingresó", "Emitida por", "Fecha emision"],
+        data,
+    )
+
+
+@router.get("/events/{event_id}/revenue.csv")
+async def export_revenue_csv(
+    venue_id: int, event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Resumen de recaudo del evento: por tipo de boleta y total."""
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT tt.name, tt.is_courtesy,
+                   count(t.id) FILTER (WHERE t.status NOT IN ('voided','refunded'))::int AS emitidas,
+                   count(t.id) FILTER (WHERE t.status='voided')::int AS anuladas,
+                   count(t.id) FILTER (WHERE t.status='redeemed')::int AS canjeadas,
+                   COALESCE(SUM(t.price_cents_snapshot) FILTER (
+                       WHERE t.status NOT IN ('voided','refunded')
+                         AND NOT tt.is_courtesy), 0)::bigint AS recaudo
+            FROM ticket_types tt
+            LEFT JOIN tickets t ON t.ticket_type_id = tt.id AND t.event_id = %s
+            WHERE tt.event_id = %s
+            GROUP BY tt.name, tt.is_courtesy ORDER BY tt.name
+            """,
+            (event_id, event_id),
+        )
+        by_type = await cur.fetchall()
+        total = sum(r["recaudo"] for r in by_type)
+
+    data = [[r["name"] + (" (cortesía)" if r["is_courtesy"] else ""), r["emitidas"], r["anuladas"], r["canjeadas"], r["recaudo"]] for r in by_type]
+    data.append(["TOTAL", sum(r["emitidas"] for r in by_type), sum(r["anuladas"] for r in by_type), sum(r["canjeadas"] for r in by_type), total])
+    return _csv_response(
+        f"recaudo-evento-{event_id}.csv",
+        ["Tipo de boleta", "Emitidas", "Anuladas", "Canjeadas", "Recaudo (cents)"],
+        data,
+    )
+
+
+@router.get("/events/{event_id}/noshow.csv")
+async def export_noshow_csv(
+    venue_id: int, event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """No-shows del evento: boletas ACTIVAS que nunca ingresaron.
+
+    Es la lista de re-marketing: personas que confirmaron asistencia
+    (cortesía o venta) pero no llegaron. Excluye anuladas, reembolsadas y
+    canjeadas; solo incluye quienes tienen teléfono o email para contactar.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT name FROM events WHERE id=%s AND venue_id=%s", (event_id, venue_id)
+        )
+        ev = await cur.fetchone()
+        if not ev:
+            raise HTTPException(404, "Evento no encontrado")
+        await cur.execute(
+            """
+            SELECT t.id, t.customer_name, t.customer_phone, t.customer_email,
+                   tt.name AS type_name, tt.is_courtesy,
+                   u.full_name AS sold_by, t.issued_at
+            FROM tickets t
+            JOIN ticket_types tt ON tt.id = t.ticket_type_id
+            LEFT JOIN users u ON u.id = t.sold_by_user_id
+            WHERE t.event_id = %s
+              AND t.status = 'issued'
+              AND (t.customer_phone IS NOT NULL OR t.customer_email IS NOT NULL)
+            ORDER BY t.id
+            """,
+            (event_id,),
+        )
+        rows = await cur.fetchall()
+
+    data = [
+        [
+            r["customer_name"],
+            r["customer_phone"] or "",
+            r["customer_email"] or "",
+            r["type_name"] + (" (cortesía)" if r["is_courtesy"] else ""),
+            r["sold_by"] or "",
+            r["issued_at"].strftime("%Y-%m-%d %H:%M"),
+        ]
+        for r in rows
+    ]
+    return _csv_response(
+        f"noshow-evento-{event_id}.csv",
+        ["Nombre", "Telefono", "Email", "Tipo", "Emitida por", "Fecha emision"],
+        data,
+    )
 @router.post("/events/{event_id}/tickets/{ticket_id}/void", response_model=MessageOut)
 async def void_ticket(
     venue_id: int, event_id: int, ticket_id: int,
@@ -142,6 +626,7 @@ async def list_users(
     venue_id: int,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    include_inactive: bool = False,
 ):
     ensure_roles(user, venue_id, "super_admin", "admin")
     if venue_id not in user["venue_ids"]:
@@ -149,15 +634,15 @@ async def list_users(
     async with db.cursor() as cur:
         await cur.execute(
             """
-            SELECT u.id, u.email, u.full_name,
+            SELECT u.id, u.email, u.full_name, u.is_active,
                    array_agg(DISTINCT r.role)::text[] AS roles
             FROM venue_user_roles r
-            JOIN users u ON u.id = r.user_id AND u.is_active
-            WHERE r.venue_id = %s
-            GROUP BY u.id, u.email, u.full_name
-            ORDER BY u.full_name
+            JOIN users u ON u.id = r.user_id
+            WHERE r.venue_id = %s AND (%s OR u.is_active)
+            GROUP BY u.id, u.email, u.full_name, u.is_active
+            ORDER BY u.is_active DESC, u.full_name
             """,
-            (venue_id,),
+            (venue_id, include_inactive),
         )
         rows = await cur.fetchall()
     return rows
@@ -193,6 +678,13 @@ async def create_venue_user(
         row = await cur.fetchone()
         if row:
             target_id = row["id"]
+            # Si el usuario estaba desactivado (ej. fue removido de su única
+            # venue), al reincorporarlo recupera el acceso. Sin esto, un
+            # recontratado aparecía en el equipo pero no podía iniciar sesión.
+            await cur.execute(
+                "UPDATE users SET is_active=true WHERE id=%s AND NOT is_active",
+                (target_id,),
+            )
         else:
             await cur.execute(
                 """

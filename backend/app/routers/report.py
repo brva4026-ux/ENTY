@@ -42,9 +42,17 @@ async def event_report(
         )
         by_status = {r["status"]: r["n"] for r in await cur.fetchall()}
 
+        # Desglose por tipo. El LEFT JOIN trae tipos sin boletas (issued=0) para
+        # que el admin vea el inventario completo; `issued` cuenta solo boletas
+        # ACTIVAS (criterio emit_ticket) y revenue = issued x price_cents del
+        # snapshot del tipo. Suma por snapshot en la query de recaudo total.
         await cur.execute(
             """
-            SELECT tt.name, tt.price_cents, count(t.id)::int AS issued,
+            SELECT tt.id AS ticket_type_id, tt.name, tt.price_cents,
+                   tt.quantity, tt.is_courtesy, tt.is_active,
+                   count(t.id) FILTER (
+                       WHERE t.status NOT IN ('voided', 'refunded')
+                   )::int AS issued,
                    count(t.id) FILTER (WHERE t.status='redeemed')::int AS redeemed
             FROM ticket_types tt
             LEFT JOIN tickets t ON t.ticket_type_id=tt.id AND t.event_id=%s
@@ -53,7 +61,7 @@ async def event_report(
             """,
             (event_id, event_id),
         )
-        by_type = await cur.fetchall()
+        by_type_rows = await cur.fetchall()
 
         await cur.execute(
             """
@@ -70,13 +78,62 @@ async def event_report(
             """,
             (event_id,),
         )
-        by_promoter = await cur.fetchall()
+        by_promoter_rows = await cur.fetchall()
+
+        # Recaudo vivo desde el snapshot de precio de cada boleta (inmutable
+        # aunque el admin edite el tipo después). Solo boletas activas y NO
+        # cortesías: una cortesía no recauda aunque su tipo tenga precio.
+        await cur.execute(
+            """
+            SELECT COALESCE(SUM(t.price_cents_snapshot), 0)::bigint AS revenue
+            FROM tickets t
+            JOIN ticket_types tt ON tt.id = t.ticket_type_id
+            WHERE t.event_id=%s AND t.status NOT IN ('voided', 'refunded')
+              AND NOT tt.is_courtesy
+            """,
+            (event_id,),
+        )
+        revenue_row = await cur.fetchone()
+
+        # Mismo criterio por tipo, para que el desglose sume exactamente el
+        # total (y el CSV de recaudo cuadre con el reporte).
+        await cur.execute(
+            """
+            SELECT t.ticket_type_id,
+                   COALESCE(SUM(t.price_cents_snapshot), 0)::bigint AS revenue
+            FROM tickets t
+            JOIN ticket_types tt ON tt.id = t.ticket_type_id
+            WHERE t.event_id=%s AND t.status NOT IN ('voided', 'refunded')
+              AND NOT tt.is_courtesy
+            GROUP BY t.ticket_type_id
+            """,
+            (event_id,),
+        )
+        revenue_by_type = {r["ticket_type_id"]: r["revenue"] for r in await cur.fetchall()}
 
     total_active = by_status.get("issued", 0) + by_status.get("redeemed", 0)
     redeemed = by_status.get("redeemed", 0)
     voided = by_status.get("voided", 0)
     pending = total_active - redeemed
     occupancy = (total_active / ev["capacity"] * 100) if ev["capacity"] else 0
+
+    # by_type: el recaudo viene del snapshot de cada boleta (no del precio
+    # vigente del tipo: editar un precio no reescribe el pasado). Las cortesías
+    # no recaudan por definición, aunque su tipo tenga precio.
+    by_type = [
+        {
+            "ticket_type_id": r["ticket_type_id"],
+            "name": r["name"],
+            "price_cents": r["price_cents"],
+            "quantity": r["quantity"],
+            "is_courtesy": r["is_courtesy"],
+            "is_active": r["is_active"],
+            "issued": r["issued"],
+            "redeemed": r["redeemed"],
+            "revenue_cents": revenue_by_type.get(r["ticket_type_id"], 0),
+        }
+        for r in by_type_rows
+    ]
 
     return EventReport(
         event_id=ev["id"],
@@ -87,6 +144,7 @@ async def event_report(
         pending=pending,
         voided=voided,
         occupancy_pct=round(occupancy, 1),
+        revenue_cents=int(revenue_row["revenue"]),
         by_type=by_type,
-        by_promoter=by_promoter,
+        by_promoter=by_promoter_rows,
     )

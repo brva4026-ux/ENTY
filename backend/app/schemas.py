@@ -79,6 +79,37 @@ class EventCreate(BaseModel):
         return self
 
 
+class EventUpdate(BaseModel):
+    """Edición parcial del evento. Solo se aplican los campos enviados.
+
+    La validación que importa vive en la DB (`update_event` + trigger de
+    transiciones): aforo >= boletas activas, ventana coherente y fechas no en
+    el pasado para draft/published. Aquí solo se valida el shape.
+    """
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    flyer_url: HttpUrl | None = None
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
+    event_timezone: str | None = Field(default=None, max_length=60)
+    capacity: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _check_window(self) -> "EventUpdate":
+        """Si llegan ambas fechas, el cierre debe ser posterior a la apertura.
+
+        No se exige el mismo formato aware/naive entre sí cuando solo llega una:
+        esa combinación se valida en la DB contra el valor vigente del otro
+        campo.
+        """
+        if self.starts_at is not None and self.ends_at is not None:
+            if (self.starts_at.tzinfo is None) != (self.ends_at.tzinfo is None):
+                raise ValueError("starts_at y ends_at deben usar el mismo formato de zona horaria")
+            if self.ends_at <= self.starts_at:
+                raise ValueError("ends_at debe ser posterior a starts_at")
+        return self
+
+
 class EventOut(BaseModel):
     """Shape completo del evento.
 
@@ -184,13 +215,129 @@ class TicketEmitResponse(BaseModel):
 
 class TicketRedeemRequest(BaseModel):
     raw_token: str = Field(min_length=8)
+    # Filtro de fila en puerta (mig 008): si viene, una boleta válida del
+    # evento pero de OTRO tipo se rechaza con code=WRONG_TYPE sin consumirla.
+    ticket_type_id: int | None = None
+
+
+class TicketHistoryItem(BaseModel):
+    ticket_id: int
+    customer_name: str
+    customer_phone: str | None = None
+    ticket_type: str
+    is_courtesy: bool = False
+    status: str
+    issued_at: datetime
+
+
+class TicketHistoryOut(BaseModel):
+    tickets: list[TicketHistoryItem]
+
+
+class UpdateVenueUser(BaseModel):
+    """Edición parcial de un miembro del equipo (PATCH: solo campos enviados)."""
+    full_name: str | None = Field(default=None, min_length=2, max_length=120)
+    role: str | None = None
+    is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def _role_allowed(self):
+        if self.role is not None and self.role not in {"admin", "promotor", "bouncer"}:
+            raise ValueError("rol inválido")
+        return self
+
+
+class ResetPassword(BaseModel):
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class RegisterRequest(BaseModel):
+    """Self-service: crea la venue del negocio + la cuenta de su administrador."""
+    venue_name: str = Field(min_length=2, max_length=120)
+    full_name: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=5, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
+    password: str = Field(min_length=8, max_length=128)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=200)
+
+
+class ChangePasswordRequest(BaseModel):
+    """Cambio de contraseña propia: exige la vigente."""
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class UpdateProfileRequest(BaseModel):
+    """Datos propios editables por el usuario (nombre visible en la app)."""
+    full_name: str = Field(min_length=2, max_length=120)
+
+
+class UpdateVenueRequest(BaseModel):
+    """Edición del negocio por su admin: nombre y logo (URL http(s));
+    logo_url="" limpia el logo."""
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    logo_url: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _logo_url_shape(self):
+        if self.logo_url:
+            u = self.logo_url.strip()
+            if not (u.startswith("http://") or u.startswith("https://")):
+                raise ValueError("logo_url debe ser una URL http(s)")
+            self.logo_url = u
+        return self
+
+
+class DeleteAccountRequest(BaseModel):
+    """Borrado definitivo de la propia cuenta (requiere confirmar password)."""
+    password: str
+
+
+class PurgeUserRequest(BaseModel):
+    """Eliminación definitiva de un usuario de la venue por el admin.
+
+    `confirm` debe ser el email del usuario: protección contra borrar a
+    alguien por error (la acción no tiene deshacer)."""
+    confirm: str
+
+
+class DeleteEventRequest(BaseModel):
+    """Borrado definitivo de un evento: `confirm` = nombre exacto del evento."""
+    confirm: str
+
+
+# --------------------------------------------------------------------------
+# Web Push (suscripción de dispositivos)
+# --------------------------------------------------------------------------
+class PushKeys(BaseModel):
+    """Claves criptográficas que entrega pushManager.subscribe() (RFC 8291)."""
+    p256dh: str = Field(min_length=20, max_length=200)
+    auth: str = Field(min_length=8, max_length=100)
+
+
+class PushSubscribeRequest(BaseModel):
+    """Suscripción tal cual llega de pushManager.subscribe(), + la venue.
+
+    `endpoint` debe ser https: los push services reales solo usan https y
+    así se evita guardar URLs malformadas."""
+    venue_id: int
+    endpoint: str = Field(min_length=20, max_length=1000, pattern=r"^https://")
+    keys: PushKeys
+
+
+class PushUnsubscribeRequest(BaseModel):
+    endpoint: str = Field(min_length=20, max_length=1000)
 
 
 class RedeemOut(BaseModel):
-    code: str = ""  # GRANTED | ALREADY_REDEEMED | NOT_FOUND | INVALID_EVENT | EVENT_NOT_LIVE | NOT_VALID
+    code: str = ""  # GRANTED | ALREADY_REDEEMED | NOT_FOUND | INVALID_EVENT | EVENT_NOT_LIVE | NOT_VALID | WRONG_TYPE
     ticket_id: int | None = None
     customer_name: str | None = None
     redeemed: bool = False
+    # Detalle opcional para la puerta (p.ej. WRONG_TYPE: "Boleta de General").
+    detail: str | None = None
 
 
 # --------------------------------------------------------------------------
@@ -206,6 +353,7 @@ class VenueUserOut(BaseModel):
     email: str
     full_name: str
     roles: list[str] = []
+    is_active: bool = True
 
 
 class CreateVenueUser(BaseModel):
@@ -237,6 +385,33 @@ class TicketOut(BaseModel):
 # --------------------------------------------------------------------------
 # Reporte en vivo
 # --------------------------------------------------------------------------
+class ReportByType(BaseModel):
+    """Fila del desglose por tipo de boleta.
+
+    `issued` cuenta solo boletas ACTIVAS (no anuladas ni reembolsadas): es el
+    mismo criterio que usa emit_ticket() para rechazar sobreventa, y el que
+    hace que issued x price_cents sea el recaudo real del tipo.
+    """
+    ticket_type_id: int
+    name: str
+    price_cents: int
+    quantity: int
+    is_courtesy: bool
+    is_active: bool = True
+    issued: int = 0
+    redeemed: int = 0
+    revenue_cents: int = 0
+
+
+class ReportByPromoter(BaseModel):
+    """Fila del desglose por promotor (boletas emitidas contra su cupo)."""
+    promoter_id: int
+    full_name: str
+    capacity: int
+    issued: int = 0
+    redeemed: int = 0
+
+
 class EventReport(BaseModel):
     event_id: int
     event_name: str
@@ -246,8 +421,11 @@ class EventReport(BaseModel):
     pending: int
     voided: int
     occupancy_pct: float
-    by_type: list[dict]
-    by_promoter: list[dict]
+    # Recaudo vivo: suma de price_cents_snapshot de las boletas activas.
+    # (Anular/reembolsar lo baja; emitir lo sube. NO es "lo vendido histórico".)
+    revenue_cents: int = 0
+    by_type: list[ReportByType]
+    by_promoter: list[ReportByPromoter]
 
 
 class MessageOut(BaseModel):

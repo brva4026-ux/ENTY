@@ -13,6 +13,7 @@ from app.schemas import (
     DeleteOut,
     EventCreate,
     EventOut,
+    EventUpdate,
     MessageOut,
     TicketTypeCreate,
     TicketTypeOut,
@@ -93,10 +94,21 @@ def _edit_error(e: psycopg.errors.Error) -> None:
         raise HTTPException(
             409, "No puedes dejar la capacidad por debajo de las boletas ya emitidas"
         )
+    if "capacity_cannot_be_below_issued" in primary:
+        # Aforo del evento (update_event y trigger events_check_capacity).
+        raise HTTPException(
+            409, "No puedes bajar el aforo por debajo de las boletas ya emitidas"
+        )
     if "invalid_quantity" in primary:
         raise HTTPException(400, "La cantidad debe ser mayor que cero")
     if "invalid_capacity" in primary:
         raise HTTPException(400, "La capacidad no puede ser negativa")
+    if "invalid_window" in primary or "starts_at_in_past" in primary:
+        raise HTTPException(
+            400,
+            "La ventana del evento no es válida: el cierre debe ser posterior a "
+            "la apertura y la apertura no puede estar en el pasado",
+        )
     if "ticket_types_event_id_name_key" in primary or constraint == "ticket_types_event_id_name_key":
         raise HTTPException(
             409, "Ya existe un tipo con ese nombre en este evento"
@@ -173,6 +185,66 @@ async def create_event(
         created = await cur.fetchone()
         await db.commit()
     return created
+
+
+@router.patch("/events/{event_id}", response_model=EventOut)
+async def update_event(
+    venue_id: int,
+    event_id: int,
+    body: EventUpdate,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Edición parcial del evento (nombre, fechas, aforo, flyer, descripción).
+
+    Solo draft y published son editables: en live la puerta ya está corriendo y
+    en ended/cancelled el evento es histórico. La validación que importa (aforo
+    >= boletas activas, ventana coherente, fechas no en el pasado) vive en la
+    DB, dentro de `update_event` (migración 005).
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        current = await fetch_event(cur, event_id, venue_id)
+        if not current:
+            raise HTTPException(404, "Evento no encontrado")
+        if current["status"] not in ("draft", "published"):
+            raise HTTPException(
+                409,
+                "Solo se pueden editar eventos en borrador o publicados "
+                "(no en puerta, terminados ni cancelados)",
+            )
+
+        # Sin los None: los campos NOT NULL nunca se envían vacíos a la DB.
+        changes = {
+            k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None
+        }
+        merged = {**current, **changes}
+        # Normalize a str for the DB (pydantic gave us an HttpUrl object).
+        if merged.get("flyer_url") is not None:
+            merged["flyer_url"] = str(merged["flyer_url"])
+
+        try:
+            await cur.execute(
+                """
+                SELECT update_event(%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    event_id,
+                    merged["name"],
+                    merged["description"],
+                    merged["flyer_url"],
+                    merged["starts_at"],
+                    merged["ends_at"],
+                    merged["event_timezone"],
+                    merged["capacity"],
+                ),
+            )
+        except psycopg.errors.Error as e:
+            _edit_error(e)
+
+        updated = await fetch_event(cur, event_id, venue_id)
+        await db.commit()
+    return updated
 
 
 # --------------------------------------------------------------------------

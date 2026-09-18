@@ -1,25 +1,26 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
 import { AuthProvider, useAuth } from "./lib/auth";
-import { apiFetch } from "./lib/api";
+import { UIProvider } from "./lib/ui";
+import { OfflineBanner } from "./components/OfflineBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ProfilePage from "./pages/ProfilePage";
 import AdminDashboard from "./pages/AdminDashboard";
 import PromoterDashboard from "./pages/PromoterDashboard";
-import BouncerScanner from "./pages/BouncerScanner";
+// El escáner carga html5-qrcode (~300 KB): chunk separado que solo baja quien
+// entra a la puerta. El resto de roles nunca paga ese costo.
+const BouncerScanner = lazy(() => import("./pages/BouncerScanner"));
 import Layout from "./components/Layout";
+import { SplashScreen } from "./components/SplashScreen";
 
 function RequireRole({ role, children }) {
   const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center text-slate-400">
-        Cargando…
-      </div>
-    );
-  }
+  // Splash de marca mientras se restaura la sesión (nunca un flash de login).
+  if (loading) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
   // roles: {"<venue_id>": ["admin", ...]}; si tiene rol en alguna venue, pasa
   const hasAny = Object.values(user.roles || {}).flat().includes(role);
@@ -27,14 +28,33 @@ function RequireRole({ role, children }) {
   return children;
 }
 
+function RequireAuth({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <SplashScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
 function App() {
-  // exDevel: puente para probar la API sin tocar el backend proxy de Vite
-  window.__apiFetch = apiFetch;
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <UIProvider>
+        <OfflineBanner />
+        <BrowserRouter>
+          <Suspense fallback={<SplashScreen />}>
+          <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/perfil"
+            element={
+              <RequireAuth>
+                <Layout>
+                  <ProfilePage />
+                </Layout>
+              </RequireAuth>
+            }
+          />
           <Route
             path="/admin"
             element={
@@ -65,15 +85,17 @@ function App() {
           />
           <Route path="/" element={<HomeRedirect />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </UIProvider>
     </AuthProvider>
   );
 }
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
   const roles = Object.values(user.roles || {}).flat();
   if (roles.includes("admin")) return <Navigate to="/admin" replace />;

@@ -31,3 +31,7 @@ build/
 .playwright-cli/
 .vercel
 .env*
+
+# Evidencias de QA (capturas de pantalla) y estado local del agente
+*.png
+.freebuff/

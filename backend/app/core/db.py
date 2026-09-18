@@ -23,9 +23,14 @@ _SERVERLESS = os.environ.get("VERCEL") == "1"
 _CONNECT_KWARGS = {
     "row_factory": dict_row,
     "autocommit": True,
-    # Requerido detras de PgBouncer en modo transaction (Supabase pooler
-    # :6543): los prepared statements de psycopg no sobreviven al pool.
-    "prepare_threshold": 0,
+    # Requerido detras de PgBouncer/Supavisor en modo transaction (Supabase
+    # pooler :6543): los prepared statements de psycopg no sobreviven al pool.
+    # OJO: el valor que los DESACTIVA es None. `0` significa "preparar en la
+    # primera ejecucion", que es justo lo contrario: como el pooler reutiliza
+    # el backend entre clientes, la segunda conexion que ejecuta la misma
+    # query choca con DuplicatePreparedStatement (_pg3_0 already exists) y
+    # todo endpoint que toque la DB devuelve 500.
+    "prepare_threshold": None,
     "connect_timeout": 10,
 }
 
@@ -57,8 +62,10 @@ async def init_pool(database_url: str, *, min_size: int = 2, max_size: int = 10)
             # Requerido detras de PgBouncer en modo transaction (Supabase
             # pooler :6543): los prepared statements de psycopg no
             # sobreviven al pool y fallan con "prepared statement does
-            # not exist". Desactivarlos es seguro y sin costo practico.
-            "prepare_threshold": 0,
+            # not exist" o DuplicatePreparedStatement cuando el pooler
+            # reutiliza el backend. Desactivarlos es seguro y sin costo
+            # practico: None = desactivados, 0 = preparar al primer uso.
+            "prepare_threshold": None,
         },
     )
 

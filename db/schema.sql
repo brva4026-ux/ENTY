@@ -204,6 +204,25 @@ CREATE TABLE redemptions (
 CREATE INDEX idx_redemptions_ticket ON redemptions (ticket_id, scanned_at);
 CREATE INDEX idx_redemptions_event  ON redemptions (event_id, scanned_at);
 
+-- ---------------------------------------------------------------------------
+-- Suscripciones Web Push (migración 007): "avísame cuando abran puertas".
+-- 1 fila por (usuario, dispositivo); endpoint es único por navegador.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE push_subscriptions (
+    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id     bigint REFERENCES users(id) ON DELETE SET NULL,
+    venue_id    bigint NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    endpoint    text   NOT NULL UNIQUE,
+    p256dh      text   NOT NULL,
+    auth        text   NOT NULL,
+    user_agent  text,
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_push_subs_venue ON push_subscriptions (venue_id);
+CREATE INDEX idx_push_subs_user  ON push_subscriptions (user_id);
+
 -- =============================================================================
 -- FUNCIONES TRANSACCIONALES (TODA la logica critica vive aqui, en la DB)
 -- =============================================================================
@@ -312,7 +331,8 @@ $$;
 CREATE OR REPLACE FUNCTION redeem_ticket(
     p_event_id      bigint,
     p_raw_token     text,
-    p_scanned_by_user_id bigint
+    p_scanned_by_user_id bigint,
+    p_expected_ticket_type_id bigint DEFAULT NULL  -- filtro de fila en puerta (mig 008)
 )
 RETURNS text
 LANGUAGE plpgsql
@@ -326,13 +346,19 @@ BEGIN
         RAISE EXCEPTION 'invalid_token_format';
     END IF;
 
+    -- Guardia: el evento del escaneo debe existir (migracion 006). Sin esto,
+    -- el INSERT del log rompe la FK y el escaner recibe un 500 opaco.
+    IF NOT EXISTS (SELECT 1 FROM events WHERE id = p_event_id) THEN
+        RAISE EXCEPTION 'event_not_found';
+    END IF;
+
     v_token_hash := encode(digest(p_raw_token, 'sha256'), 'hex');
 
     SELECT * INTO v_ticket FROM tickets WHERE token_hash = v_token_hash;
     IF NOT FOUND THEN
+        -- ticket_id NULL: el escaneo existe como huella, sin boleta asociada
         INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-        SELECT t.id, p_event_id, p_scanned_by_user_id, 'not_found'
-          FROM tickets t WHERE t.token_hash = v_token_hash;
+        VALUES (NULL, p_event_id, p_scanned_by_user_id, 'not_found');
         RETURN 'NOT_FOUND';
     END IF;
 
@@ -347,6 +373,15 @@ BEGIN
         INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
         VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'event_not_live');
         RETURN 'EVENT_NOT_LIVE';
+    END IF;
+
+    -- Filtro de fila (mig 008): con tipo esperado, una boleta válida de otro
+    -- tipo NO entra y NO se consume (auditado como 'wrong_type').
+    IF p_expected_ticket_type_id IS NOT NULL
+       AND v_ticket.ticket_type_id <> p_expected_ticket_type_id THEN
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'wrong_type');
+        RETURN 'WRONG_TYPE';
     END IF;
 
     IF v_ticket.status = 'voided' OR v_ticket.status = 'refunded' THEN

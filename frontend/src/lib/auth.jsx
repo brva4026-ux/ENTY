@@ -32,13 +32,23 @@ export function AuthProvider({ children }) {
     return data.user;
   }
 
+  async function register(payload) {
+    const data = await apiFetch("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    localStorage.setItem("tf_token", data.access_token);
+    setUser(data.user);
+    return data.user;
+  }
+
   function logout() {
     localStorage.removeItem("tf_token");
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );

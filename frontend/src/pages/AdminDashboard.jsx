@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useLiveRefresh } from "../lib/useLiveRefresh";
+import { haptics } from "../lib/haptics";
 import ReportWidget from "../components/ReportWidget";
-import { EventStatusBadge, QuotaMeter } from "../components/Brand";
+import { EventStatusBadge, LiveIndicator, QuotaMeter } from "../components/Brand";
+import { PullToRefresh } from "../components/PullToRefresh";
+import { InstallPrompt } from "../components/InstallPrompt";
+import { ListSkeleton, SelectSkeleton, Skeleton, StatSkeletonRow } from "../components/Skeleton";
+import { useUI } from "../lib/ui";
+import { OnboardingChecklist } from "../components/OnboardingChecklist";
 
 function firstVenueId(user) {
   const ids = Object.keys(user?.roles || {}).map(Number);
@@ -63,8 +70,14 @@ function formatShortDate(value) {
 }
 
 const NEXT_ACTIONS = {
-  draft: [{ action: "publish", label: "Publicar evento" }],
-  published: [{ action: "live", label: "Abrir puertas" }],
+  draft: [
+    { action: "publish", label: "Publicar evento" },
+    { action: "cancel", label: "Cancelar", danger: true },
+  ],
+  published: [
+    { action: "live", label: "Abrir puertas" },
+    { action: "cancel", label: "Cancelar evento", danger: true },
+  ],
   live: [{ action: "end", label: "Finalizar evento" }],
   ended: [],
   cancelled: [],
@@ -79,9 +92,10 @@ const TICKET_STATUS = {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const ui = useUI();
   const venueId = firstVenueId(user);
 
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState(null); // null = primera carga (skeleton)
   const [types, setTypes] = useState([]);
   const [allocations, setAllocations] = useState([]);
   const [report, setReport] = useState(null);
@@ -95,6 +109,17 @@ export default function AdminDashboard() {
   const [badFlyer, setBadFlyer] = useState("");
   const [busyAction, setBusyAction] = useState("");
   const [form, setForm] = useState(defaultEventForm);
+  // Edición del evento seleccionado: null = cerrado, objeto = formulario abierto.
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [editError, setEditError] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  // Navegación por secciones: el admin trabaja por TAREA, no con todo apilado.
+  const [section, setSection] = useState("overview");
+  const [creatingOpen, setCreatingOpen] = useState(false);
+
+  // events === null significa "primera carga": se muestra skeleton en vez de
+  // un vacío engañoso ("Aún no hay eventos") que no es verdad aún.
+  const booting = events === null;
 
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
@@ -108,12 +133,15 @@ export default function AdminDashboard() {
   }, [loadEvents]);
 
   // Usuarios de la venue: para asignar cupos con nombres reales
-  useEffect(() => {
-    if (!venueId) return;
-    apiFetch(`/venues/${venueId}/users`)
+  const reloadUsers = useCallback(() => {
+    if (!venueId) return Promise.resolve();
+    return apiFetch(`/venues/${venueId}/users?include_inactive=true`)
       .then(setUsers)
       .catch(() => setUsers([]));
   }, [venueId]);
+  useEffect(() => {
+    reloadUsers();
+  }, [reloadUsers]);
 
   useEffect(() => {
     if (!selectedEvent) return;
@@ -131,22 +159,41 @@ export default function AdminDashboard() {
       .catch(() => setTickets([]));
   }, [selectedEvent, venueId]);
 
-  async function refreshEventData() {
+  // Memoizado: es dependencia de reloadAll (PTR) y de useLiveRefresh; sin
+  // memo, ambas corren con una closure vieja cuando cambia el evento elegido.
+  const refreshEventData = useCallback(async () => {
     if (!selectedEvent) return;
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`).then(setReport).catch(() => {});
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/tickets`).then(setTickets).catch(() => {});
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`).then(setAllocations).catch(() => {});
-  }
+  }, [selectedEvent, venueId]);
+
+  // Recarga completa para pull-to-refresh: eventos, equipo y datos del evento
+  // seleccionado. Nunca lanza: el PTR solo necesita terminar.
+  const reloadAll = useCallback(async () => {
+    await Promise.allSettled([loadEvents(), reloadUsers(), refreshEventData()]);
+    // refreshEventData ya cubre selectedEvent/venueId; si falta alguna dep,
+    // el PTR refrescaría datos de un evento que ya no está seleccionado.
+  }, [loadEvents, reloadUsers, refreshEventData]);
 
   async function runAction(action, label) {
     if (!selectedEvent) return;
-    const confirmMsg =
-      action === "cancel"
-        ? "¿Cancelar el evento? No se podrá revertir."
-        : action === "end"
-          ? "¿Finalizar el evento? La puerta dejará de aceptar escaneos."
-          : null;
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    if (action === "cancel") {
+      const ok = await ui.confirm("¿Cancelar el evento?", {
+        message:
+          "Las boletas emitidas dejarán de ser válidas en la puerta y no se podrá revertir.",
+        danger: true,
+        confirmLabel: "Sí, cancelar evento",
+      });
+      if (!ok) return;
+    }
+    if (action === "end") {
+      const ok = await ui.confirm("¿Finalizar el evento?", {
+        message: "La puerta dejará de aceptar escaneos.",
+        confirmLabel: "Finalizar",
+      });
+      if (!ok) return;
+    }
     setBusyAction(action);
     setError("");
     try {
@@ -155,10 +202,80 @@ export default function AdminDashboard() {
       });
       setEvents((evs) => evs.map((e) => (e.id === updated.id ? updated : e)));
       await refreshEventData();
+      ui.success(
+        action === "publish"
+          ? "Evento publicado: ya puede vender 🎟️"
+          : action === "live"
+            ? "Puertas abiertas: la puerta fue avisada 🚪"
+            : action === "end"
+              ? "Evento finalizado"
+              : "Evento cancelado"
+      );
     } catch (err) {
       setError(err.message);
     } finally {
       setBusyAction("");
+    }
+  }
+
+  function startEditEvent() {
+    const ev = selectedEventData;
+    setEditError("");
+    setEditingEvent({
+      name: ev.name ?? "",
+      description: ev.description ?? "",
+      flyer_url: ev.flyer_url ?? "",
+      starts_at: toLocalInput(new Date(ev.starts_at)),
+      ends_at: ev.ends_at ? toLocalInput(new Date(ev.ends_at)) : "",
+      capacity: String(ev.capacity),
+    });
+    setBadFlyer("");
+  }
+
+  async function saveEventEdit(e) {
+    e.preventDefault();
+    setEditError("");
+
+    const startsAt = new Date(editingEvent.starts_at);
+    if (Number.isNaN(startsAt.getTime())) {
+      setEditError("Elige una fecha y hora de apertura valida.");
+      return;
+    }
+    const endsAt = editingEvent.ends_at ? new Date(editingEvent.ends_at) : null;
+    if (endsAt && Number.isNaN(endsAt.getTime())) {
+      setEditError("La fecha de cierre no es valida.");
+      return;
+    }
+    if (endsAt && endsAt <= startsAt) {
+      setEditError("El cierre debe ser posterior a la apertura.");
+      return;
+    }
+    const capacity = Number(editingEvent.capacity);
+    if (!Number.isInteger(capacity) || capacity < 1) {
+      setEditError("El aforo debe ser un entero mayor que cero.");
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const updated = await apiFetch(`/venues/${venueId}/events/${selectedEvent}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: editingEvent.name.trim(),
+          capacity,
+          starts_at: startsAt.toISOString(),
+          ends_at: endsAt ? endsAt.toISOString() : null,
+          description: editingEvent.description.trim() || null,
+          flyer_url: editingEvent.flyer_url.trim() || null,
+        }),
+      });
+      setEvents((evs) => evs.map((x) => (x.id === updated.id ? updated : x)));
+      setEditingEvent(null);
+      ui.success("Cambios guardados");
+    } catch (err) {
+      setEditError(err.message);
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -205,6 +322,7 @@ export default function AdminDashboard() {
       setBadFlyer("");
       setSelectedEvent(ev.id);
       await loadEvents();
+      ui.success("Evento creado: añade tipos y cupos 🎟️");
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -212,28 +330,126 @@ export default function AdminDashboard() {
     }
   }
 
-  const selectedEventData = events.find((ev) => ev.id === selectedEvent);
+  async function deleteSelectedEvent() {
+    const ev = selectedEventData;
+    if (!ev) return;
+    const confirm = await ui.prompt(`Eliminar "${ev.name}"`, {
+      message:
+        "Se borran también sus tipos, cupos y boletas. Esta acción no tiene deshacer.\nEscribe el nombre del evento para confirmar:",
+      placeholder: ev.name,
+      danger: true,
+      confirmLabel: "Eliminar definitivamente",
+    });
+    if (confirm === null) return;
+    setError("");
+    try {
+      await apiFetch(`/venues/${venueId}/events/${ev.id}`, {
+        method: "DELETE",
+        body: JSON.stringify({ confirm }),
+      });
+      setSelectedEvent(null);
+      await loadEvents();
+      ui.success("Evento eliminado");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  const selectedEventData = (events ?? []).find((ev) => ev.id === selectedEvent);
   const actions = selectedEventData ? NEXT_ACTIONS[selectedEventData.status] ?? [] : [];
+  const editable =
+    selectedEventData && ["draft", "published"].includes(selectedEventData.status);
+
+  // Auto-refresh en puerta (live): el reporte cambia con los escaneos de la
+  // puerta, así que el admin no debería tener que recargar para ver el aforo.
+  // El hook pausa el intervalo con la pestaña oculta y refresca al volver.
+  const isLive = selectedEventData?.status === "live";
+  const lastUpdated = useLiveRefresh(refreshEventData, isLive);
 
   if (!venueId) {
     return (
-      <div className="card p-6 text-center text-slate-400">
+      <div className="card p-6 text-center text-zinc-400">
         No tienes venues asociadas. Habla con un super admin.
       </div>
     );
   }
 
+  // Contadores por pestaña: contexto de un vistazo sin cambiar de sección.
+  // - overview: ocupación del evento (activas/aforo)
+  // - boletas: boletas activas emitidas
+  // - equipo: personas con acceso a la venue
+  const activeIssued = report?.issued ?? null;
+  const capacity = selectedEventData?.capacity ?? null;
+  const SECTIONS = [
+    {
+      id: "overview",
+      label: "Vista general",
+      count:
+        activeIssued !== null && capacity
+          ? `${activeIssued}/${capacity}`
+          : null,
+    },
+    { id: "boletas", label: "Boletas y cupos", count: activeIssued },
+    { id: "equipo", label: "Equipo", count: users.length || null },
+  ];
+
   return (
-    <div className="animate-rise space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-2xl font-black tracking-tight text-white">Panel de administración</h2>
-        {selectedEventData && <EventStatusBadge status={selectedEventData.status} />}
+    <PullToRefresh onRefresh={reloadAll}>
+    <div className="reveal space-y-5">
+      {/* En móvil: invita a instalar la PWA (se oculta sola si ya está instalada) */}
+      <InstallPrompt />
+      {/* Guía del admin primerizo: se autodescarta al completar los 4 pasos */}
+      {events !== null && (
+        <OnboardingChecklist
+          hasEvent={events.length > 0}
+          hasTypes={types.length > 0}
+          hasAllocations={allocations.length > 0}
+          isPublished={selectedEventData ? ["published", "live"].includes(selectedEventData.status) : false}
+        />
+      )}
+      {/* Navegación de secciones: el admin trabaja por TAREA, no con todo apilado */}
+      <div className="border-b border-zinc-800 pb-1">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="display text-2xl text-white">Panel de administración</h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <LiveIndicator live={isLive} lastUpdated={lastUpdated} />
+            {selectedEventData && <EventStatusBadge status={selectedEventData.status} />}
+          </div>
+        </div>
+
+        {/* En móvil las pestañas desbordan: scroll horizontal sin scrollbar */}
+        <nav className="no-scrollbar -mx-4 mt-4 flex gap-1 overflow-x-auto px-4 pb-1">
+          {SECTIONS.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setSection(s.id)}
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3.5 py-2 text-sm font-medium transition ${
+                section === s.id
+                  ? "bg-zinc-800 text-white"
+                  : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+              }`}
+            >
+              {s.label}
+              {s.count !== null && s.count !== undefined && (
+                <span
+                  className={`tnum rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
+                    section === s.id
+                      ? "bg-zinc-700 text-zinc-200"
+                      : "bg-zinc-800/80 text-zinc-500"
+                  }`}
+                >
+                  {s.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
       </div>
 
-      <TeamManager venueId={venueId} users={users} onCreated={(u) => setUsers((prev) => {
-        const exists = prev.some((x) => x.id === u.id);
-        return exists ? prev.map((x) => (x.id === u.id ? u : x)) : [...prev, u];
-      })} />
+      {/* ====== SECCIÓN: EQUIPO ====== */}
+      {section === "equipo" && (
+        <TeamManager venueId={venueId} users={users} onChanged={reloadUsers} />
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
@@ -241,16 +457,26 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Crear evento */}
-      <form onSubmit={createEvent} className="card p-5">
-        <h3 className="mb-1 text-sm font-bold text-slate-200">Crear evento</h3>
-        <p className="mb-4 text-xs text-slate-500">
-          Nace en borrador: publícalo cuando esté listo para vender.
-        </p>
-
+      {/* Crear evento: panel colapsable — no roba espacio las 24 horas */}
+      <div className="card">
+        <button
+          type="button"
+          onClick={() => setCreatingOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-2 px-5 py-4 text-left"
+        >
+          <span>
+            <span className="display block text-base text-white">Crear evento</span>
+            <span className="text-xs text-zinc-500">Nace en borrador: publícalo cuando esté listo para vender.</span>
+          </span>
+          <span className={`btn-ghost shrink-0 !px-3 !py-1.5 text-xs font-semibold`}>
+            {creatingOpen ? "Cerrar" : "+ Nuevo"}
+          </span>
+        </button>
+        {creatingOpen && (
+        <form onSubmit={createEvent} className="border-t border-zinc-800/80 p-5">
         <div className="grid gap-3.5 sm:grid-cols-2">
-          <label className="sm:col-span-2">
-            <span className="mb-1 block text-xs font-medium text-slate-400">
+          <label className="sm:col-span-full">
+            <span className="mb-1 block text-xs font-medium text-zinc-400">
               Nombre del evento *
             </span>
             <input
@@ -264,7 +490,7 @@ export default function AdminDashboard() {
           </label>
 
           <label>
-            <span className="mb-1 block text-xs font-medium text-slate-400">
+            <span className="mb-1 block text-xs font-medium text-zinc-400">
               Apertura de puertas *
             </span>
             <input
@@ -277,7 +503,7 @@ export default function AdminDashboard() {
           </label>
 
           <label>
-            <span className="mb-1 block text-xs font-medium text-slate-400">
+            <span className="mb-1 block text-xs font-medium text-zinc-400">
               Aforo (personas) *
             </span>
             <input
@@ -292,7 +518,7 @@ export default function AdminDashboard() {
           </label>
 
           <label>
-            <span className="mb-1 block text-xs font-medium text-slate-400">
+            <span className="mb-1 block text-xs font-medium text-zinc-400">
               Cierre (opcional)
             </span>
             <input
@@ -304,7 +530,7 @@ export default function AdminDashboard() {
           </label>
 
           <label>
-            <span className="mb-1 block text-xs font-medium text-slate-400">
+            <span className="mb-1 block text-xs font-medium text-zinc-400">
               Flyer (URL de la imagen)
             </span>
             <input
@@ -316,8 +542,8 @@ export default function AdminDashboard() {
             />
           </label>
 
-          <label className="sm:col-span-2">
-            <span className="mb-1 block text-xs font-medium text-slate-400">
+          <label className="sm:col-span-full">
+            <span className="mb-1 block text-xs font-medium text-zinc-400">
               Descripción (opcional)
             </span>
             <textarea
@@ -344,27 +570,32 @@ export default function AdminDashboard() {
               src={form.flyer_url}
               alt="Previsualización del flyer"
               onError={() => setBadFlyer(form.flyer_url)}
-              className="h-12 w-12 rounded-lg object-cover ring-1 ring-slate-700"
+              className="h-12 w-12 rounded-lg object-cover ring-1 ring-zinc-700"
             />
           )}
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-zinc-500">
             La hora se guarda en tu zona ({Intl.DateTimeFormat().resolvedOptions().timeZone}).
           </span>
         </div>
-      </form>
+        </form>
+        )}
+      </div>
 
       {/* Selector de evento */}
-      {events.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-slate-500">Evento:</span>
+      {booting ? (
+        <SelectSkeleton className="max-w-xs" />
+      ) : events.length > 0 ? (
+        <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
+          <div className="flex w-max items-center gap-2">
+            <span className="text-sm font-medium text-zinc-500">Evento:</span>
           {events.map((ev) => (
             <button
               key={ev.id}
               onClick={() => setSelectedEvent(ev.id)}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+              className={`chip rounded-full px-4 py-1.5 text-sm font-semibold ${
                 selectedEvent === ev.id
-                  ? "bg-gradient-to-r from-brand-600 to-accent-500 text-white shadow-lg shadow-brand-600/25"
-                  : "bg-slate-800/70 text-slate-300 hover:bg-slate-700"
+                  ? "chip-active text-white"
+                  : "bg-zinc-800/70 text-zinc-300 hover:bg-zinc-700"
               }`}
             >
               {ev.name}
@@ -373,11 +604,12 @@ export default function AdminDashboard() {
               </span>
             </button>
           ))}
+          </div>
         </div>
       ) : (
         <div className="card p-8 text-center">
-          <p className="text-slate-400">Aún no hay eventos.</p>
-          <p className="mt-1 text-sm text-slate-500">Crea el primero arriba para empezar.</p>
+          <p className="text-zinc-400">Aún no hay eventos.</p>
+          <p className="mt-1 text-sm text-zinc-500">Crea el primero arriba para empezar.</p>
         </div>
       )}
 
@@ -391,12 +623,12 @@ export default function AdminDashboard() {
                     src={selectedEventData.flyer_url}
                     alt=""
                     onError={() => setBadFlyer(selectedEventData.flyer_url)}
-                    className="h-24 w-24 shrink-0 rounded-xl object-cover ring-1 ring-slate-700"
+                    className="h-24 w-24 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
                   />
                 )}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-white">{selectedEventData.name}</p>
-                <p className="mt-0.5 text-xs text-slate-400">
+                <p className="mt-0.5 text-xs text-zinc-400">
                   {formatEventDate(selectedEventData.starts_at)}
                   {selectedEventData.ends_at
                     ? ` → ${formatEventDate(selectedEventData.ends_at)}`
@@ -404,31 +636,171 @@ export default function AdminDashboard() {
                   {" · "}aforo {selectedEventData.capacity}
                 </p>
                 {selectedEventData.description && (
-                  <p className="mt-2 whitespace-pre-line text-sm text-slate-300">
+                  <p className="mt-2 whitespace-pre-line text-sm text-zinc-300">
                     {selectedEventData.description}
                   </p>
                 )}
               </div>
+              {editable && (
+                <button
+                  onClick={startEditEvent}
+                  className="btn-ghost shrink-0 text-xs font-bold"
+                >
+                  Editar
+                </button>
+              )}
+              {["draft", "cancelled"].includes(selectedEventData.status) && (
+                <button
+                  onClick={deleteSelectedEvent}
+                  className="btn-ghost shrink-0 text-xs font-bold text-red-400"
+                >
+                  Eliminar
+                </button>
+              )}
             </div>
           )}
 
-          <ReportWidget report={report} />
+          {/* Edición del evento (draft/published) */}
+          {editingEvent && editable && (
+            <form onSubmit={saveEventEdit} className="card p-5">
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="display text-base">Editar evento</h3>
+                <button
+                  type="button"
+                  onClick={() => setEditingEvent(null)}
+                  className="text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
+                >
+                  Cerrar
+                </button>
+              </div>
+              <p className="mb-4 text-xs text-zinc-500">
+                El aforo no puede bajar de las boletas ya emitidas ni la apertura
+                moverse al pasado.
+              </p>
 
-          {/* Ciclo de vida del evento */}
+              <div className="grid gap-3.5 sm:grid-cols-2">
+                <label className="sm:col-span-full">
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">Nombre *</span>
+                  <input
+                    value={editingEvent.name}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, name: e.target.value })}
+                    className="field"
+                    maxLength={200}
+                    required
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">Apertura *</span>
+                  <input
+                    type="datetime-local"
+                    value={editingEvent.starts_at}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, starts_at: e.target.value })
+                    }
+                    className="field"
+                    required
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">Cierre</span>
+                  <input
+                    type="datetime-local"
+                    value={editingEvent.ends_at}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, ends_at: e.target.value })
+                    }
+                    className="field"
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">Aforo *</span>
+                  <input
+                    type="number"
+                    value={editingEvent.capacity}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, capacity: e.target.value })
+                    }
+                    className="field"
+                    min="1"
+                    required
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">Flyer (URL)</span>
+                  <input
+                    type="url"
+                    value={editingEvent.flyer_url}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, flyer_url: e.target.value })
+                    }
+                    className="field"
+                    placeholder="https://…/flyer.jpg"
+                  />
+                </label>
+
+                <label className="sm:col-span-full">
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">Descripción</span>
+                  <textarea
+                    value={editingEvent.description}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, description: e.target.value })
+                    }
+                    className="field"
+                    rows={2}
+                    maxLength={2000}
+                  />
+                </label>
+              </div>
+
+              {editError && <p className="mt-3 text-xs text-red-400">{editError}</p>}
+
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button className="btn-primary" disabled={savingEdit}>
+                  {savingEdit ? "Guardando…" : "Guardar cambios"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingEvent(null)}
+                  className="btn-ghost text-sm font-bold"
+                >
+                  Cancelar
+                </button>
+                {editingEvent.flyer_url && editingEvent.flyer_url !== badFlyer && (
+                  <img
+                    src={editingEvent.flyer_url}
+                    alt="Previsualización del flyer"
+                    onError={() => setBadFlyer(editingEvent.flyer_url)}
+                    className="h-12 w-12 rounded-lg object-cover ring-1 ring-zinc-700"
+                  />
+                )}
+              </div>
+            </form>
+          )}
+
+          {(section === "overview" || section === "boletas") &&
+            (report ? <ReportWidget report={report} /> : <StatSkeletonRow />)}
+
+          {/* Ciclo de vida del evento — solo en Vista general */}
           {actions.length > 0 && (
-            <div className="card flex flex-wrap items-center gap-3 p-4">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+              <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Ciclo de vida
               </span>
-              {actions.map(({ action, label }) => (
+              {actions.map(({ action, label, danger }) => (
                 <button
                   key={action}
                   onClick={() => runAction(action, label)}
                   disabled={busyAction === action}
                   className={
                     action === "publish"
-                      ? "btn-primary !py-2 text-sm"
-                      : "btn-ghost text-sm font-bold"
+                      ? "btn-primary w-full !py-2.5 text-sm sm:w-auto"
+                      : danger
+                        ? "btn-danger-text font-semibold"
+                        : "btn-ghost text-sm font-semibold"
                   }
                 >
                   {busyAction === action ? "Procesando…" : label}
@@ -437,37 +809,43 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          <div className="grid gap-5 lg:grid-cols-2">
-            <TypeManager
-              venueId={venueId}
-              eventId={selectedEvent}
-              types={types}
-              onChange={setTypes}
-            />
-            <AllocationManager
-              venueId={venueId}
-              eventId={selectedEvent}
-              allocations={allocations}
-              types={types}
-              users={users}
-              onChange={setAllocations}
-            />
-          </div>
+          {(section === "overview" || section === "boletas") && (
+            <div className="grid gap-5 lg:grid-cols-2">
+              <TypeManager
+                venueId={venueId}
+                eventId={selectedEvent}
+                types={types}
+                onChange={setTypes}
+              />
+              <AllocationManager
+                venueId={venueId}
+                eventId={selectedEvent}
+                allocations={allocations}
+                types={types}
+                users={users}
+                onChange={setAllocations}
+              />
+            </div>
+          )}
 
-          <TicketList
-            venueId={venueId}
-            eventId={selectedEvent}
-            tickets={tickets}
-            onChanged={refreshEventData}
-            onError={setError}
-          />
+          {section === "boletas" && (
+            <TicketList
+              venueId={venueId}
+              eventId={selectedEvent}
+              tickets={tickets}
+              onChanged={refreshEventData}
+              onError={setError}
+            />
+          )}
         </>
       )}
     </div>
+    </PullToRefresh>
   );
 }
 
 function TypeManager({ venueId, eventId, types, onChange }) {
+  const ui = useUI();
   const [name, setName] = useState("General");
   const [price, setPrice] = useState("30000");
   const [qty, setQty] = useState("50");
@@ -498,6 +876,7 @@ function TypeManager({ venueId, eventId, types, onChange }) {
       });
       onChange([...(types || []), t]);
       setErr("");
+      ui.success(`Tipo "${t.name}" agregado`);
     } catch (e2) {
       setErr(e2.message);
     }
@@ -556,9 +935,11 @@ function TypeManager({ venueId, eventId, types, onChange }) {
   }
 
   async function removeType(t) {
-    const ok = window.confirm(
-      `¿Eliminar el tipo "${t.name}"?\n\nSi ya tiene boletas emitidas se archivará para no perder el historial.`
-    );
+    const ok = await ui.confirm(`¿Eliminar el tipo "${t.name}"?`, {
+      message: "Si ya tiene boletas emitidas se archivará para no perder el historial.",
+      danger: true,
+      confirmLabel: "Eliminar",
+    });
     if (!ok) return;
     setBusyId(t.id);
     setErr("");
@@ -579,21 +960,21 @@ function TypeManager({ venueId, eventId, types, onChange }) {
 
   return (
     <div className="card p-5">
-      <h3 className="mb-3 text-sm font-bold text-slate-200">Tipos de boleta</h3>
+      <h3 className="display mb-3 text-base">Tipos de boleta</h3>
       <ul className="mb-4 space-y-2">
         {(types || []).map((t) => (
           <li
             key={t.id}
-            className={`rounded-lg bg-slate-800/40 px-3 py-2 text-sm ${
+            className={`rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-sm ${
               t.is_active === false ? "opacity-60" : ""
             }`}
           >
             {editingId === t.id ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  className="field col-span-2"
+                  className="field col-span-full"
                   placeholder="Nombre"
                 />
                 <input
@@ -610,7 +991,7 @@ function TypeManager({ venueId, eventId, types, onChange }) {
                   placeholder="Cantidad"
                   inputMode="numeric"
                 />
-                <label className="col-span-2 flex items-center gap-2 text-xs text-slate-300">
+                <label className="col-span-full flex items-center gap-2 text-xs text-zinc-300">
                   <input
                     type="checkbox"
                     checked={draft.isCourtesy}
@@ -619,7 +1000,7 @@ function TypeManager({ venueId, eventId, types, onChange }) {
                   />
                   Cortesía (precio 0)
                 </label>
-                <div className="col-span-2 flex gap-2">
+                <div className="col-span-full flex gap-2">
                   <button
                     onClick={() => saveEdit(t)}
                     disabled={busyId === t.id}
@@ -634,7 +1015,7 @@ function TypeManager({ venueId, eventId, types, onChange }) {
               </div>
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="flex items-center gap-2 font-semibold text-slate-200">
+                <span className="flex items-center gap-2 font-semibold text-zinc-200">
                   {t.name}
                   {t.is_courtesy && (
                     <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-300 ring-1 ring-emerald-500/30">
@@ -648,7 +1029,7 @@ function TypeManager({ venueId, eventId, types, onChange }) {
                   )}
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="tnum text-slate-400">
+                  <span className="tnum text-zinc-400">
                     {t.price_cents > 0
                       ? `$${(t.price_cents / 100).toLocaleString("es-CO")}`
                       : "gratis"}{" "}
@@ -683,28 +1064,29 @@ function TypeManager({ venueId, eventId, types, onChange }) {
           </li>
         ))}
         {(types || []).length === 0 && (
-          <li className="rounded-lg bg-slate-800/40 px-3 py-2 text-sm text-slate-500">
+          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-500">
             Sin tipos aún — agrega el primero abajo.
           </li>
         )}
       </ul>
-      <form onSubmit={createType} className="grid grid-cols-2 gap-2">
-        <input value={name} onChange={(e) => setName(e.target.value)} className="field col-span-2" placeholder="Nombre" />
+      <form onSubmit={createType} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <input value={name} onChange={(e) => setName(e.target.value)} className="field col-span-full" placeholder="Nombre" />
         <input value={price} onChange={(e) => setPrice(e.target.value)} className="field" placeholder="Precio (centavos)" />
         <input value={qty} onChange={(e) => setQty(e.target.value)} className="field" placeholder="Cantidad" />
-        <label className="col-span-2 flex items-center gap-2 text-sm text-slate-300">
+        <label className="col-span-full flex items-center gap-2 text-sm text-zinc-300">
           <input type="checkbox" checked={isCourtesy} onChange={(e) => setIsCourtesy(e.target.checked)} className="accent-brand-500" />
           Cortesía (precio 0)
         </label>
-        {err && <p className="col-span-2 text-xs text-red-400">{err}</p>}
-        {info && <p className="col-span-2 text-xs text-amber-300">{info}</p>}
-        <button className="btn-ghost col-span-2 font-bold">Agregar tipo</button>
+        {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
+        {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
+        <button className="btn-ghost col-span-full font-bold">Agregar tipo</button>
       </form>
     </div>
   );
 }
 
 function AllocationManager({ venueId, eventId, allocations, types, users, onChange }) {
+  const ui = useUI();
   const [promoterId, setPromoterId] = useState("");
   const [typeId, setTypeId] = useState("");
   const [capacity, setCapacity] = useState("5");
@@ -786,9 +1168,11 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
 
   async function removeAllocation(a) {
     const who = (users || []).find((x) => x.id === a.promoter_id);
-    const ok = window.confirm(
-      `¿Eliminar el cupo de ${who ? who.full_name : `#${a.promoter_id}`}?\n\nSi ya tiene boletas emitidas se archivará para no perder el historial.`
-    );
+    const ok = await ui.confirm(`¿Eliminar el cupo de ${who ? who.full_name : `#${a.promoter_id}`}?`, {
+      message: "Si ya tiene boletas emitidas se archivará para no perder el historial.",
+      danger: true,
+      confirmLabel: "Eliminar",
+    });
     if (!ok) return;
     setBusyId(a.id);
     setErr("");
@@ -809,7 +1193,7 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
 
   return (
     <div className="card p-5">
-      <h3 className="mb-3 text-sm font-bold text-slate-200">Cupos de promotor</h3>
+      <h3 className="display mb-3 text-base">Cupos de promotor</h3>
       <ul className="mb-4 space-y-2">
         {(allocations || []).map((a) => {
           const t = (types || []).find((x) => x.id === a.ticket_type_id);
@@ -817,12 +1201,12 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
           return (
             <li
               key={a.id}
-              className={`rounded-lg bg-slate-800/40 px-3 py-2 ${
+              className={`rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 ${
                 a.is_active === false ? "opacity-60" : ""
               }`}
             >
               <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="flex items-center gap-2 font-semibold text-slate-200">
+                <span className="flex items-center gap-2 font-semibold text-zinc-200">
                   {u ? u.full_name : `Promotor #${a.promoter_id}`}
                   {a.is_active === false && (
                     <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-300 ring-1 ring-amber-500/30">
@@ -831,7 +1215,7 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
                   )}
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="tnum text-xs text-slate-400">
+                  <span className="tnum text-xs text-zinc-400">
                     {t ? t.name : `tipo ${a.ticket_type_id}`}
                   </span>
                   <button
@@ -886,12 +1270,12 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
           );
         })}
         {(allocations || []).length === 0 && (
-          <li className="rounded-lg bg-slate-800/40 px-3 py-2 text-sm text-slate-500">
+          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-500">
             Sin cupos asignados todavía.
           </li>
         )}
       </ul>
-      <form onSubmit={createAllocation} className="grid grid-cols-2 gap-2">
+      <form onSubmit={createAllocation} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <select
           value={promoterId}
           onChange={(e) => setPromoterId(e.target.value)}
@@ -906,7 +1290,7 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
           ))}
         </select>
         <input value={capacity} onChange={(e) => setCapacity(e.target.value)} className="field" placeholder="Capacidad" required />
-        <div className="col-span-2 flex gap-2">
+        <div className="col-span-full flex gap-2">
           <select value={typeId} onChange={(e) => setTypeId(e.target.value)} className="field flex-1" required>
             <option value="">Tipo…</option>
             {(types || []).map((t) => (
@@ -917,10 +1301,10 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
           </select>
           <button className="btn-ghost font-bold">Asignar</button>
         </div>
-        {err && <p className="col-span-2 text-xs text-red-400">{err}</p>}
-        {info && <p className="col-span-2 text-xs text-amber-300">{info}</p>}
+        {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
+        {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
         {promoters.length === 0 && (
-          <p className="col-span-2 text-xs text-amber-400">
+          <p className="col-span-full text-xs text-amber-400">
             No hay usuarios en esta venue todavía — créalos con POST /seed o agregándolos a la DB.
           </p>
         )}
@@ -929,24 +1313,29 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
   );
 }
 
-function TeamManager({ venueId, users, onCreated }) {
+function TeamManager({ venueId, users, onChanged }) {
+  const ui = useUI();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "promotor" });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [menuFor, setMenuFor] = useState(null);
+  const [resetFor, setResetFor] = useState(null);
+  const [newPass, setNewPass] = useState("");
 
   async function createUser(e) {
     e.preventDefault();
     setBusy(true);
     setErr("");
     try {
-      const u = await apiFetch(`/venues/${venueId}/users`, {
+      await apiFetch(`/venues/${venueId}/users`, {
         method: "POST",
         body: JSON.stringify(form),
       });
-      onCreated(u);
+      await onChanged();
       setForm({ full_name: "", email: "", password: "", role: "promotor" });
       setOpen(false);
+      ui.success(`${form.full_name} agregado al equipo`);
     } catch (e2) {
       setErr(e2.message);
     } finally {
@@ -954,41 +1343,198 @@ function TeamManager({ venueId, users, onCreated }) {
     }
   }
 
+  async function patchUser(u, body, confirmSpec) {
+    if (confirmSpec) {
+      const ok = await ui.confirm(confirmSpec.title, {
+        message: confirmSpec.message,
+        danger: confirmSpec.danger,
+        confirmLabel: confirmSpec.confirmLabel,
+      });
+      if (!ok) return;
+    }
+    setErr("");
+    try {
+      await apiFetch(`/venues/${venueId}/users/${u.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      setMenuFor(null);
+      await onChanged();
+    } catch (e2) {
+      setErr(e2.message);
+    }
+  }
+
+  async function removeUser(u) {
+    const ok = await ui.confirm(`¿Quitar a ${u.full_name} de la venue?`, {
+      message: "Perderá el acceso de inmediato.",
+      danger: true,
+      confirmLabel: "Quitar",
+    });
+    if (!ok) return;
+    setErr("");
+    try {
+      await apiFetch(`/venues/${venueId}/users/${u.id}`, { method: "DELETE" });
+      setMenuFor(null);
+      await onChanged();
+      ui.success(`${u.full_name} removido de la venue`);
+    } catch (e2) {
+      setErr(e2.message);
+    }
+  }
+
+  async function purgeUser(u) {
+    const confirm = await ui.prompt(`Eliminar definitivamente a ${u.full_name}`, {
+      message: `Se borra su cuenta de la plataforma. Sus boletas emitidas conservan su nombre en el historial.\nEscribe su email (${u.email}) para confirmar:`,
+      placeholder: u.email,
+      danger: true,
+      confirmLabel: "Eliminar definitivamente",
+    });
+    if (confirm === null) return;
+    setErr("");
+    try {
+      await apiFetch(`/venues/${venueId}/users/${u.id}/purge`, {
+        method: "DELETE",
+        body: JSON.stringify({ confirm }),
+      });
+      setMenuFor(null);
+      await onChanged();
+    } catch (e2) {
+      setErr(e2.message);
+    }
+  }
+
+  async function resetPassword(u) {
+    setErr("");
+    try {
+      await apiFetch(`/venues/${venueId}/users/${u.id}/reset-password`, {
+        method: "POST",
+        body: JSON.stringify({ new_password: newPass }),
+      });
+      setResetFor(null);
+      setNewPass("");
+      setMenuFor(null);
+      ui.success(`Contraseña actualizada para ${u.full_name}. Comunícasela por un canal seguro.`);
+    } catch (e2) {
+      setErr(e2.message);
+    }
+  }
+
   return (
     <div className="card p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-200">Equipo de la venue</h3>
+        <div className="flex items-baseline gap-2"><h3 className="display text-base">Equipo</h3><span className="text-xs text-zinc-600">personal con acceso</span></div>
         <button onClick={() => setOpen((v) => !v)} className="btn-ghost text-xs font-bold">
           {open ? "Cerrar" : "+ Agregar"}
         </button>
       </div>
+      {err && <p className="mb-2 text-xs text-red-400">{err}</p>}
       <ul className="mb-4 space-y-2">
         {(users || []).map((u) => (
           <li
             key={u.id}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-800/40 px-3 py-2 text-sm"
+            className={`rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-sm ${u.is_active === false ? "opacity-50" : ""}`}
           >
-            <span className="font-semibold text-slate-200">{u.full_name}</span>
-            <span className="flex items-center gap-1.5">
-              {(u.roles || []).map((r) => (
-                <span
-                  key={r}
-                  className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-brand-300 ring-1 ring-brand-500/30"
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold text-zinc-200">{u.full_name}</span>
+                {u.is_active === false && (
+                  <span className="ml-2 rounded-full bg-red-950/60 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300 ring-1 ring-red-800/60">inactivo</span>
+                )}
+                <p className="truncate text-xs text-zinc-500">{u.email}</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {(u.roles || []).map((r) => (
+                  <span
+                    key={r}
+                    className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-brand-300 ring-1 ring-brand-500/30"
+                  >
+                    {r}
+                  </span>
+                ))}
+                <button
+                  onClick={() => setMenuFor(menuFor === u.id ? null : u.id)}
+                  className="rounded-md px-1.5 py-0.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+                  aria-label={`Gestionar ${u.full_name}`}
                 >
-                  {r}
-                </span>
-              ))}
-            </span>
+                  ⋯
+                </button>
+              </div>
+            </div>
+            {menuFor === u.id && (
+              <div className="mt-2 space-y-1.5 border-t border-zinc-800 pt-2">
+                <select
+                  value={(u.roles || [])[0] || "promotor"}
+                  onChange={(e) =>
+                    patchUser(u, { role: e.target.value }, {
+                      title: `¿Cambiar el rol de ${u.full_name}?`,
+                      message: `Pasa a ser ${e.target.value === "bouncer" ? "portero" : e.target.value} en esta venue.`,
+                      confirmLabel: "Cambiar rol",
+                    })
+                  }
+                  className="field py-1 text-xs"
+                >
+                  <option value="promotor">Rol: Promotor</option>
+                  <option value="bouncer">Rol: Portero</option>
+                  <option value="admin">Rol: Admin</option>
+                </select>
+                <div className="flex flex-wrap gap-1.5">
+                  <button onClick={() => setResetFor(resetFor === u.id ? null : u.id)} className="btn-ghost text-xs font-bold">
+                    Reset contraseña
+                  </button>
+                  {u.is_active === false ? (
+                    <button onClick={() => patchUser(u, { is_active: true })} className="btn-ghost text-xs font-bold">
+                      Reactivar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        patchUser(u, { is_active: false }, {
+                          title: `¿Desactivar a ${u.full_name}?`,
+                          message: "No podrá iniciar sesión hasta que lo reactives.",
+                          danger: true,
+                          confirmLabel: "Desactivar",
+                        })
+                      }
+                      className="btn-ghost text-xs font-bold text-amber-400"
+                    >
+                      Desactivar
+                    </button>
+                  )}
+                  <button onClick={() => removeUser(u)} className="btn-ghost text-xs font-bold text-red-400">
+                    Quitar de la venue
+                  </button>
+                  <button onClick={() => purgeUser(u)} className="btn-ghost text-xs font-bold text-red-500 underline decoration-red-500/40">
+                    Eliminar definitivamente
+                  </button>
+                </div>
+                {resetFor === u.id && (
+                  <div className="flex gap-1.5">
+                    <input
+                      value={newPass}
+                      onChange={(e) => setNewPass(e.target.value)}
+                      className="field py-1 text-xs"
+                      type="password"
+                      placeholder="Nueva contraseña (mín. 8)"
+                      minLength={8}
+                    />
+                    <button onClick={() => resetPassword(u)} disabled={newPass.length < 8} className="btn-primary px-3 py-1 text-xs font-bold disabled:opacity-40">
+                      Guardar
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </li>
         ))}
         {(users || []).length === 0 && (
-          <li className="rounded-lg bg-slate-800/40 px-3 py-2 text-sm text-slate-500">
+          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-500">
             Sin usuarios todavía — agrega a tu equipo arriba.
           </li>
         )}
       </ul>
       {open && (
-        <form onSubmit={createUser} className="grid grid-cols-2 gap-2">
+        <form onSubmit={createUser} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <input
             value={form.full_name}
             onChange={(e) => setForm({ ...form, full_name: e.target.value })}
@@ -1022,11 +1568,11 @@ function TeamManager({ venueId, users, onCreated }) {
             minLength={8}
             required
           />
-          {err && <p className="col-span-2 text-xs text-red-400">{err}</p>}
-          <button disabled={busy} className="btn-primary col-span-2">
+          {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
+          <button disabled={busy} className="btn-primary col-span-full">
             {busy ? "Creando…" : "Crear usuario"}
           </button>
-          <p className="col-span-2 text-xs text-slate-500">
+          <p className="col-span-full text-xs text-zinc-500">
             Si el correo ya existe, solo se le agrega el rol en esta venue.
           </p>
         </form>
@@ -1036,12 +1582,18 @@ function TeamManager({ venueId, users, onCreated }) {
 }
 
 function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
+  const ui = useUI();
   const [voidingId, setVoidingId] = useState(null);
   const [reason, setReason] = useState("Error de digitación");
   const [busy, setBusy] = useState(false);
 
   async function voidTicket(t) {
-    if (!window.confirm(`¿Anular la boleta #${t.id} de ${t.customer_name}? El cupo quedará liberado.`)) return;
+    const ok = await ui.confirm(`¿Anular la boleta #${t.id}?`, {
+      message: `Se anula la boleta de ${t.customer_name}. El cupo quedará liberado.`,
+      danger: true,
+      confirmLabel: "Anular boleta",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await apiFetch(`/venues/${venueId}/events/${eventId}/tickets/${t.id}/void`, {
@@ -1050,6 +1602,7 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
       });
       setVoidingId(null);
       await onChanged();
+      ui.success(`Boleta #${t.id} anulada`);
     } catch (e) {
       onError(e.message);
     } finally {
@@ -1057,27 +1610,69 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
     }
   }
 
+  const [query, setQuery] = useState("");
+  const filtered = (tickets || []).filter((t) => {
+    if (!query.trim()) return true;
+    const q = query.trim().toLowerCase();
+    return (
+      String(t.id) === q.replace("#", "") ||
+      t.customer_name?.toLowerCase().includes(q) ||
+      t.customer_phone?.includes(q) ||
+      t.type_name?.toLowerCase().includes(q) ||
+      t.sold_by_name?.toLowerCase().includes(q)
+    );
+  });
+
+  async function downloadCsv(kind) {
+    try {
+      const res = await fetch(`/api/venues/${venueId}/events/${eventId}/${kind}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("tf_token")}` },
+      });
+      if (!res.ok) throw new Error("No se pudo generar el archivo");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${kind.replace(".csv", "")}-evento-${eventId}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      onError(e.message);
+    }
+  }
+
   return (
     <div className="card p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-200">Boletas emitidas</h3>
-        <span className="tnum text-xs text-slate-500">{(tickets || []).length} recientes</span>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="display text-base">Boletas emitidas</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => downloadCsv("guests.csv")} className="btn-ghost text-xs font-bold">Exportar invitados</button>
+          <button onClick={() => downloadCsv("revenue.csv")} className="btn-ghost text-xs font-bold">Exportar recaudo</button>
+          <button onClick={() => downloadCsv("noshow.csv")} className="btn-ghost text-xs font-bold">No-shows</button>
+          <span className="tnum text-xs text-zinc-500">{(tickets || []).length} recientes</span>
+        </div>
       </div>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="field mb-3"
+        placeholder="Buscar por nombre, teléfono, #boleta, tipo o promotor…"
+      />
       <ul className="space-y-2">
-        {(tickets || []).map((t) => {
+        {filtered.map((t) => {
           const st = TICKET_STATUS[t.status] ?? TICKET_STATUS.issued;
           const canVoid = t.status === "issued";
           return (
             <li
               key={t.id}
-              className="rounded-lg bg-slate-800/40 px-3 py-2.5 text-sm"
+              className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2.5 text-sm"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-200">
-                    <span className="tnum text-slate-500">#{t.id}</span> · {t.customer_name}
+                  <p className="truncate font-semibold text-zinc-200">
+                    <span className="tnum text-zinc-500">#{t.id}</span> · {t.customer_name}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-zinc-500">
                     {t.type_name ?? "—"}
                     {t.from_allocation ? " · cupo promotor" : " · venta directa"}
                     {t.sold_by_name ? ` · por ${t.sold_by_name}` : ""}
@@ -1119,7 +1714,7 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
                   </button>
                   <button
                     onClick={() => setVoidingId(null)}
-                    className="rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200"
+                    className="rounded-lg px-2 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
                   >
                     Cancelar
                   </button>
@@ -1128,8 +1723,13 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
             </li>
           );
         })}
+        {filtered.length === 0 && (tickets || []).length > 0 && (
+          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-3 text-sm text-zinc-500">
+            Ninguna boleta coincide con la búsqueda.
+          </li>
+        )}
         {(tickets || []).length === 0 && (
-          <li className="rounded-lg bg-slate-800/40 px-3 py-3 text-sm text-slate-500">
+          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-3 text-sm text-zinc-500">
             Todavía no se han emitido boletas para este evento.
           </li>
         )}

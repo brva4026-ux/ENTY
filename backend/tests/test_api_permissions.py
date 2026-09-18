@@ -110,3 +110,65 @@ def test_bouncer_has_its_own_permissions(api):
     )
     assert redeem.status_code == 200
     assert redeem.json()["code"] == "NOT_FOUND"
+
+
+def test_redeem_with_deleted_event_is_404_not_500(api):
+    """Migración 006: escanear con un evento inexistente (borrado por el admin
+    mientras el portero lo tiene seleccionado) debe responder 404 con mensaje
+    accionable, nunca un 500 por violación de FK en redemptions."""
+    scen = api.scenario()
+    emitted = api.post(
+        f"/venues/{scen['venue']}/events/{scen['event']}/tickets",
+        "admin",
+        {
+            "ticket_type_id": scen["type"],
+            "customer_name": "QA Evento Fantasma",
+            "customer_phone": "3000000001",
+        },
+    )
+    assert emitted.status_code == 201
+    token = emitted.json()["raw_token"]
+
+    res = api.post(
+        f"/venues/{scen['venue']}/events/99999999/redeem",
+        "bouncer",
+        {"raw_token": token},
+    )
+    assert res.status_code == 404
+    assert "escaner" in res.json()["detail"].lower()
+
+
+def test_redeem_cross_event_reports_invalid_event(api):
+    """Un QR válido escaneado en el evento equivocado es un 200 semántico
+    (INVALID_EVENT), no un error: el portero debe poder seguir escaneando."""
+    scen = api.scenario()
+    emitted = api.post(
+        f"/venues/{scen['venue']}/events/{scen['event']}/tickets",
+        "admin",
+        {
+            "ticket_type_id": scen["type"],
+            "customer_name": "QA Evento Cruzado",
+            "customer_phone": "3000000002",
+        },
+    )
+    assert emitted.status_code == 201
+    token = emitted.json()["raw_token"]
+
+    other = api.create_event("admin", scen["venue"])
+    api.publish("admin", scen["venue"], other["id"])
+
+    res = api.post(
+        f"/venues/{scen['venue']}/events/{other['id']}/redeem",
+        "bouncer",
+        {"raw_token": token},
+    )
+    assert res.status_code == 200
+    assert res.json()["code"] == "INVALID_EVENT"
+
+    # La boleta original sigue válida para su evento real.
+    ok = api.post(
+        f"/venues/{scen['venue']}/events/{scen['event']}/redeem",
+        "bouncer",
+        {"raw_token": token},
+    )
+    assert ok.json()["code"] == "GRANTED"

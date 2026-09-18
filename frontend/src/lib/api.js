@@ -56,3 +56,12 @@ export async function apiFetch(path, options = {}) {
 export function publicTicketImageUrl(rawToken) {
   return `${window.location.origin}${BASE}/public/tickets/${encodeURIComponent(rawToken)}/image.jpg`;
 }
+
+/**
+ * Página pública de la boleta: link reenviable con vista previa de WhatsApp
+ * (og:image) y estado en vivo (una boleta anulada se ve como tal). Es el link
+ * que se le envía al cliente; la imagen cruda queda para og:image/respaldo.
+ */
+export function publicTicketPageUrl(rawToken) {
+  return `${window.location.origin}${BASE}/public/tickets/${encodeURIComponent(rawToken)}`;
+}
