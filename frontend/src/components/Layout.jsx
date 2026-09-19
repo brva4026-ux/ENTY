@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { haptics } from "../lib/haptics";
 import { Logo } from "./Brand";
+import NotificationBell from "./NotificationBell";
 
 /** Iconos de pestaña (trazo 1.8, 20px): mismo lenguaje visual en toda la app. */
 const TAB_ICONS = {
@@ -82,6 +83,7 @@ export default function Layout({ children }) {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
+            <NotificationBell />
             <div className="hidden text-right sm:block">
               <p className="text-[13px] font-medium leading-tight text-zinc-200">{user?.full_name}</p>
               <p className="text-[11px] leading-tight text-zinc-500">

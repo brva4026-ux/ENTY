@@ -1,0 +1,177 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Icon from "./Icon";
+import {
+  fetchUnreadCount,
+  listNotifications,
+  markNotificationsRead,
+} from "../lib/notifications";
+import { timeAgo } from "../lib/useLiveRefresh";
+
+/**
+ * Campana de notificaciones in-app (mig 012, transplante de unicall-blue).
+ *
+ * - Badge con el conteo de no leídas (polling ligero mientras hay sesión).
+ * - Dropdown con el feed: las no leídas con punto, "hace X" relativo.
+ * - Tap en "Marcar leídas": POST /notifications/read con los ids visibles.
+ * - Notificación con `link`: navega a la ruta interna que dejó el trigger.
+ *
+ * El contenido lo escribe la DB (triggers sobre liquidaciones, invitaciones
+ * y reemisiones): este componente no interpreta eventos de negocio.
+ */
+const KIND_STYLE = {
+  payout_created: "bg-emerald-500/15 text-emerald-400",
+  payout_reviewed: "bg-emerald-500/15 text-emerald-400",
+  payout_disputed: "bg-amber-500/15 text-amber-400",
+  invitation_accepted: "bg-sky-500/15 text-sky-400",
+  ticket_reissued: "bg-zinc-500/20 text-zinc-300",
+};
+
+const KIND_LABEL = {
+  payout_created: "Liquidación",
+  payout_reviewed: "Liquidación",
+  payout_disputed: "Disputa",
+  invitation_accepted: "Equipo",
+  ticket_reissued: "Boleta",
+};
+
+export default function NotificationBell() {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState([]);
+  const [unread, setUnread] = useState(0);
+  const rootRef = useRef(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      const [feed, count] = await Promise.all([
+        listNotifications(),
+        fetchUnreadCount(),
+      ]);
+      setItems(feed);
+      setUnread(count.count);
+    } catch {
+      // Silencio: la campana nunca debe romper la app (401 redirige solo).
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    // Polling suave: igual cadencia que el reporte en vivo (useLiveRefresh).
+    const id = setInterval(() => {
+      if (!document.hidden) refresh();
+    }, 15_000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  // Cerrar al hacer click fuera (patrón dropdown).
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const markAll = async () => {
+    const pending = items.filter((n) => !n.read_at).map((n) => n.id);
+    if (!pending.length) return;
+    try {
+      await markNotificationsRead(pending);
+      await refresh();
+    } catch {
+      // Silencio: reintenta en el próximo poll.
+    }
+  };
+
+  const openItem = async (n) => {
+    if (!n.read_at) {
+      // Optimista: la UI responde al toque; el server confirma después.
+      setItems((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x)),
+      );
+      setUnread((u) => Math.max(0, u - 1));
+      markNotificationsRead([n.id]).catch(() => {});
+    }
+    setOpen(false);
+    if (n.link) navigate(n.link);
+  };
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <button
+        onClick={() => {
+          setOpen((o) => !o);
+          if (!open) refresh();
+        }}
+        aria-label={`Notificaciones${unread ? ` (${unread} sin leer)` : ""}`}
+        className="relative grid h-8 w-8 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
+      >
+        <Icon name="bell" className="h-5 w-5" />
+        {unread > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-500 px-1 text-[10px] font-bold text-white">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl shadow-black/40">
+          <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
+            <p className="text-sm font-semibold text-zinc-200">Notificaciones</p>
+            {unread > 0 && (
+              <button
+                onClick={markAll}
+                className="text-xs font-medium text-brand-400 hover:text-brand-300"
+              >
+                Marcar leídas
+              </button>
+            )}
+          </div>
+
+          <div className="max-h-96 overflow-y-auto">
+            {items.length === 0 && (
+              <p className="px-4 py-6 text-center text-sm text-zinc-500">
+                Todo tranquilo por acá.
+              </p>
+            )}
+            {items.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => openItem(n)}
+                className={`flex w-full items-start gap-3 border-b border-zinc-800/60 px-4 py-3 text-left transition last:border-0 hover:bg-zinc-800/60 ${
+                  n.read_at ? "opacity-60" : ""
+                }`}
+              >
+                <span
+                  className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    KIND_STYLE[n.kind] || "bg-zinc-700/40 text-zinc-300"
+                  }`}
+                >
+                  {KIND_LABEL[n.kind] || "Aviso"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-[13px] font-semibold text-zinc-100">
+                      {n.title}
+                    </span>
+                    {!n.read_at && (
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-400" aria-hidden />
+                    )}
+                  </span>
+                  <span className="mt-0.5 line-clamp-2 block text-xs text-zinc-400">
+                    {n.body}
+                  </span>
+                  <span className="mt-1 block text-[10px] text-zinc-500">
+                    {timeAgo(new Date(n.created_at))}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

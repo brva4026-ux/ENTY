@@ -230,7 +230,7 @@ async def accept_invitation(
             UPDATE staff_invitations
             SET accepted_at = now()
             WHERE token_hash = %s AND {_expired_cond()}
-            RETURNING venue_id, role, email, full_name
+            RETURNING id, venue_id, role, email, full_name
             """,
             (_hash_token(body.token),),
         )
@@ -274,6 +274,13 @@ async def accept_invitation(
             ON CONFLICT DO NOTHING
             """,
             (inv["venue_id"], user_id, inv["role"]),
+        )
+        # Registrar QUIEN acepto (la columna quedaba NULL siempre): el trigger
+        # de notificaciones (mig 012) dispara sobre este UPDATE y el historial
+        # de invitaciones queda trazable por usuario, no solo por email.
+        await cur.execute(
+            "UPDATE staff_invitations SET accepted_user_id = %s WHERE id = %s",
+            (user_id, inv["id"]),
         )
         await db.commit()
 

@@ -19,6 +19,7 @@ from app.routers import (
     invitations,
     events,
     lifecycle,
+    notifications,
     public,
     public_tickets,
     push,
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     app.include_router(events.router)
     app.include_router(lifecycle.router)
     app.include_router(push.router)
+    app.include_router(notifications.router)
     app.include_router(tickets.router)
     app.include_router(public_tickets.router)
     app.include_router(report.router)

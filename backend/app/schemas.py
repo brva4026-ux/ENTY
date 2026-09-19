@@ -637,3 +637,26 @@ class InvitationPreview(BaseModel):
     full_name: str
     venue_name: str
     expires_at: datetime
+
+
+# --------------------------------------------------------------------------
+# Notificaciones in-app (mig 012, transplante de unicall-blue)
+# --------------------------------------------------------------------------
+class NotificationOut(BaseModel):
+    """Fila del feed de notificaciones del usuario autenticado.
+
+    `kind` permite al frontend elegir icono y color por tipo sin parsear el
+    texto; `link` es la ruta interna a la que lleva el tap (opcional).
+    """
+    id: int
+    kind: str
+    title: str
+    body: str
+    link: str | None = None
+    read_at: datetime | None = None
+    created_at: datetime
+
+
+class NotificationReadRequest(BaseModel):
+    """ids vacío = marcar todas; con ids = solo esas (ajenas se ignoran)."""
+    ids: list[int] = Field(default_factory=list, max_length=200)
