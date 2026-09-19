@@ -88,6 +88,24 @@ const EV_CHIP = {
   cancelled: "bg-red-500/15 text-red-300",
 };
 
+/* Peso operativo de cada estado: la franja se lee de arriba hacia abajo, así
+ * que lo VIVO va primero (en puerta, luego a la venta), los borradores al
+ * medio y lo MUERTO al final. Dentro de los vivos manda lo próximo (lo que
+ * urge); entre los pasados, lo más reciente primero. El aterrizaje por
+ * defecto usa el mismo orden: abrir /admin te deja en el evento que importa. */
+const STATUS_WEIGHT = { live: 0, published: 1, draft: 2, ended: 3, cancelled: 4 };
+
+function sortEventsForStrip(events) {
+  return [...(events || [])].sort((a, b) => {
+    const wa = STATUS_WEIGHT[a.status] ?? 3;
+    const wb = STATUS_WEIGHT[b.status] ?? 3;
+    if (wa !== wb) return wa - wb;
+    const ta = new Date(a.starts_at).getTime();
+    const tb = new Date(b.starts_at).getTime();
+    return wa >= 3 ? tb - ta : ta - tb;
+  });
+}
+
 const TICKET_STATUS = {
   issued: { label: "Activa", cls: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40" },
   redeemed: { label: "Redimida", cls: "bg-sky-500/15 text-sky-300 ring-sky-500/40" },
@@ -169,9 +187,14 @@ export default function AdminDashboard() {
     } else if (events.length > 0) {
       // Sin evento en la URL: aterrizar en el primero SOLO si no hay selección
       // vigente (p.ej. tras "Invitar al equipo", que limpia ?event= pero no
-      // debe cambiar el evento abierto con cada refresh).
+      // debe cambiar el evento abierto con cada refresh). "Primero" es el
+      // primero de la franja ordenada por prioridad operativa: con un evento
+      // en puerta, abrir /admin te deja DENTRO de la puerta, no en el último
+      // evento creado.
       setSelectedEvent((prev) =>
-        prev !== null && events.some((e) => e.id === prev) ? prev : events[0].id
+        prev !== null && events.some((e) => e.id === prev)
+          ? prev
+          : sortEventsForStrip(events)[0].id
       );
     } else if (selectedEvent !== null) {
       setSelectedEvent(null);
@@ -485,8 +508,7 @@ export default function AdminDashboard() {
             </EmptyState>
           ) : (
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {[...events]
-                .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at))
+              {sortEventsForStrip(events)
                 .map((ev) => {
                   const active = ev.id === selectedEvent;
                   // Pulso del evento: boletas activas (issued+redeemed), del
