@@ -6,14 +6,14 @@ import { haptics } from "../lib/haptics";
 import TicketPreview from "../components/TicketPreview";
 import { PullToRefresh } from "../components/PullToRefresh";
 import { useUI } from "../lib/ui";
+import { activeVenueId } from "../lib/venue";
 import EmptyState from "../components/EmptyState";
 import { StatSkeletonRow } from "../components/Skeleton";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
 import { STATUS_META, sortEventsForStrip } from "../components/EventWorkbench";
 
 function firstVenueId(user) {
-  const ids = Object.keys(user?.roles || {}).map(Number);
-  return ids[0] ?? null;
+  return activeVenueId(user);
 }
 
 export default function PromoterDashboard() {

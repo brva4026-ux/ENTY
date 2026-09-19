@@ -29,6 +29,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "011_staff_invitations.sql",
     ROOT / "db" / "migrations" / "012_in_app_notifications.sql",
     ROOT / "db" / "migrations" / "013_qr_activation.sql",
+    ROOT / "db" / "migrations" / "014_push_outbox_and_location.sql",
 ]
 
 

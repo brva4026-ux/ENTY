@@ -152,6 +152,12 @@ export default function EventWorkbench({
               {ev.ends_at ? ` → ${formatEventDate(ev.ends_at)}` : ""}
               <span className="text-zinc-600">·</span>
               <span className="tnum">aforo {ev.capacity}</span>
+              {ev.location && (
+                <>
+                  <span className="text-zinc-600">·</span>
+                  <span className="truncate">{ev.location}</span>
+                </>
+              )}
               <span className="text-zinc-600">·</span>
               <span className="tnum">QR +{ev.qr_unlock_minutes ?? 60} min</span>
             </p>

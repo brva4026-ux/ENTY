@@ -61,6 +61,9 @@ class EventCreate(BaseModel):
     # HttpUrl (no str): el flyer se pinta en un <img>, asi que solo aceptamos
     # URLs http(s) reales y no cualquier cadena.
     flyer_url: HttpUrl | None = None
+    # Lugar del evento (texto libre): viaja a la boleta del invitado y al
+    # og:image de WhatsApp. Opcional: no todos los eventos tienen dirección.
+    location: str | None = Field(default=None, max_length=200)
     starts_at: datetime
     ends_at: datetime | None = None
     event_timezone: str = "America/Bogota"
@@ -96,6 +99,7 @@ class EventUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
     flyer_url: HttpUrl | None = None
+    location: str | None = Field(default=None, max_length=200)
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     event_timezone: str | None = Field(default=None, max_length=60)
@@ -384,6 +388,8 @@ class PublicTicketOut(BaseModel):
     customer_name: str
     event_name: str
     venue_name: str
+    # Lugar del evento (mig 014): la boleta del invitado dice DÓNDE es.
+    location: str | None = None
     starts_at: str
     status: str
     # Activación del QR (mig 013, patrón DICE): visible solo dentro de la

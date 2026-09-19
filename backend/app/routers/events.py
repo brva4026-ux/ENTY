@@ -47,7 +47,7 @@ def _event_ctx(venue_id: int, user: dict):
 # borraria la descripcion y el flyer de la vista.
 # ---------------------------------------------------------------------------
 EVENT_COLUMNS = (
-    "id, venue_id, name, description, flyer_url, starts_at, ends_at, "
+    "id, venue_id, name, description, flyer_url, location, starts_at, ends_at, "
     "event_timezone, capacity, qr_unlock_minutes, status"
 )
 
@@ -206,9 +206,9 @@ async def create_event(
         await cur.execute(
             f"""
             INSERT INTO events (venue_id, name, description, flyer_url,
-                                starts_at, ends_at, event_timezone, capacity,
-                                qr_unlock_minutes, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft')
+                                location, starts_at, ends_at, event_timezone,
+                                capacity, qr_unlock_minutes, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft')
             RETURNING {EVENT_COLUMNS}
             """,
             (
@@ -217,6 +217,7 @@ async def create_event(
                 body.description,
                 # HttpUrl -> texto plano para la columna flyer_url
                 str(body.flyer_url) if body.flyer_url else None,
+                (body.location or None) if body.location is not None else None,
                 body.starts_at,
                 body.ends_at,
                 body.event_timezone,
@@ -271,6 +272,13 @@ async def update_event(
             await cur.execute(
                 "UPDATE events SET qr_unlock_minutes=%s WHERE id=%s",
                 (body.qr_unlock_minutes, event_id),
+            )
+        # Igual que qr_unlock_minutes: location no está en la firma de la
+        # función SQL, se aplica directo (location="" limpia -> NULL).
+        if "location" in body.model_dump(exclude_unset=True):
+            await cur.execute(
+                "UPDATE events SET location=%s WHERE id=%s",
+                ((body.location or "").strip() or None, event_id),
             )
 
         try:

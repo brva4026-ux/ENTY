@@ -47,6 +47,7 @@ def build_ticket_image(
     starts_at: str,
     raw_token: str,
     venue_name: str,
+    location: str | None = None,
     flyer: Image.Image | None = None,
 ) -> bytes:
     """Compone la imagen y devuelve bytes JPEG."""
@@ -81,6 +82,11 @@ def build_ticket_image(
     y += 45
     draw.text((x, y), f"Inicio: {starts_at}", font=font_meta, fill="#BBBBBB")
     y += 45
+    # Lugar del evento (mig 014): si el admin lo escribió, viaja en la imagen
+    # — el invitado ve DÓNDE es sin abrir la página.
+    if location:
+        draw.text((x, y), f"Lugar: {location}", font=font_meta, fill="#BBBBBB")
+        y += 45
     draw.text((x, y), f"Boleta #{ticket_number}", font=font_meta, fill="#BBBBBB")
     y += 60
     draw.text((x, y), "Entera con la foto de tu documento", font=font_pad, fill="#888899")

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { apiFetch } from "../lib/api";
+import { activeVenueId } from "../lib/venue";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { LiveIndicator } from "../components/Brand";
 import { PushToggle } from "../components/PushToggle";
 
 function firstVenueId(user) {
-  const ids = Object.keys(user?.roles || {}).map(Number);
-  return ids[0] ?? null;
+  return activeVenueId(user);
 }
 
 const RESULT_STYLES = {
@@ -231,9 +231,33 @@ export default function BouncerScanner() {
   }
 
   const style = result ? RESULT_STYLES[result.code] ?? RESULT_STYLES.NOT_FOUND : null;
+  // La puerta no puede esperar a que un escaneo falle para enterarse: el
+  // banner de red aparece en vivo con el estado real de conexión.
+  const [offline, setOffline] = useState(!navigator.onLine);
+  useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-zinc-950 pb-[env(safe-area-inset-bottom)]">
+      {/* Sin red, el bouncer lo sabe ANTES de escanear: el canje es server-
+          autoritativo (los tokens crudos solo existen en el teléfono del
+          invitado), así que sin conexión no hay validación posible — y no se
+          inventa una cola que admitiría después QRs que hoy no se pueden
+          verificar (screenshot de una boleta anulada entraría igual). */}
+      {offline && (
+        <div className="bg-amber-950/80 px-4 py-2 text-center text-xs font-semibold text-amber-200">
+          ⚠️ Sin conexión: el escáner valida contra el server. Reconectá el
+          dato para poder canjear.
+        </div>
+      )}
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
         <div>
           <h1 className="text-lg font-bold tracking-tight text-white">Control de puerta</h1>

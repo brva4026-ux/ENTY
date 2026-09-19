@@ -99,7 +99,7 @@ async def public_ticket_image(
         await cur.execute(
             """
             SELECT t.id AS ticket_number, t.customer_name, t.status,
-                   e.name AS event_name, e.starts_at, e.event_timezone,
+                   e.name AS event_name, e.location, e.starts_at, e.event_timezone,
                    e.qr_unlock_minutes, v.name AS venue_name
             FROM tickets t
             JOIN events e ON e.id = t.event_id
@@ -132,6 +132,7 @@ async def public_ticket_image(
         starts_at=_starts_at_label(row["starts_at"], row["event_timezone"]),
         raw_token=raw_token,
         venue_name=row["venue_name"],
+        location=row["location"],
     )
     return Response(content=image, media_type="image/jpeg", headers=_IMAGE_HEADERS)
 
@@ -164,7 +165,7 @@ async def public_ticket_page(
         await cur.execute(
             """
             SELECT t.id AS ticket_number, t.customer_name, t.status,
-                   e.name AS event_name, e.starts_at, e.event_timezone,
+                   e.name AS event_name, e.location, e.starts_at, e.event_timezone,
                    e.qr_unlock_minutes, v.name AS venue_name
             FROM tickets t
             JOIN events e ON e.id = t.event_id
@@ -179,6 +180,8 @@ async def public_ticket_page(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Boleta no encontrada")
 
     image_url = f"/api/public/tickets/{raw_token}/image.jpg"
+    # El lugar, si existe, va en la descripción de WhatsApp y en la página.
+    where_line = f" · {row['location']}" if row["location"] else ""
     status_text, status_color = _STATUS_TEXT.get(row["status"], (row["status"], "#9ca3af"))
     qr_active, qr_msg = _qr_window(row)
     if row["status"] in ("voided", "refunded"):
@@ -195,9 +198,10 @@ async def public_ticket_page(
         <p class='hint'>{qr_msg}</p>
         <p class='hint'>Vuelve a este enlace cuando se active tu QR.</p></div>"""
     else:
+        where_html = f"<p class='where'>{row['location']}</p>" if row["location"] else ""
         body = f"""
         <div class='box'><img src='{image_url}' alt='Boleta con QR' class='ticket'/>
-        <p class='ok'>{status_text}</p>
+        <p class='ok'>{status_text}</p>{where_html}
         <p class='hint'>Presenta este QR en la puerta junto con tu documento.</p></div>"""
 
     title = f"Boleta #{row['ticket_number']} · {row['event_name']}"
@@ -206,7 +210,7 @@ async def public_ticket_page(
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 <meta name='robots' content='noindex, nofollow'>
 <meta property='og:title' content='{title}'>
-<meta property='og:description' content='{row["customer_name"]} · {status_text}'>
+<meta property='og:description' content='{row["customer_name"]} · {status_text}{where_line}'>
 <meta property='og:image' content='{image_url}'>
 <title>{title}</title>
 <style>
@@ -217,5 +221,7 @@ async def public_ticket_page(
   .ok {{ color:#34d399; font-weight:600; margin:14px 0 4px; }}
   .bad {{ color:#f87171; font-weight:700; font-size:1.2em; margin-bottom:6px; }}
   .hint {{ color:#a1a1aa; font-size:.9em; }}
+  .where {{ color:#e4e4e7; font-weight:600; font-size:.95em; margin:4px 0 0; }}
+  .where::before {{ content:'📍 '; }}
 </style></head><body>{body}</body></html>"""
     return Response(content=html, media_type="text/html; charset=utf-8", headers=_IMAGE_HEADERS)

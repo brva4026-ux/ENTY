@@ -63,6 +63,7 @@ _TICKET_SQL = """
            t.customer_name     AS customer_name,
            t.status::text      AS status,
            e.name              AS event_name,
+           e.location          AS location,
            e.event_timezone    AS event_timezone,
            e.starts_at         AS starts_at_raw,
            e.qr_unlock_minutes AS qr_unlock_minutes,
@@ -124,6 +125,7 @@ async def preview_ticket(
         customer_name=row["customer_name"],
         event_name=row["event_name"],
         venue_name=row["venue_name"],
+        location=row["location"],
         starts_at=row["starts_at"],
         status=row["status"],
         qr_active=active,
@@ -155,6 +157,7 @@ async def ticket_image(
         starts_at=row["starts_at"],
         raw_token=body.raw_token,
         venue_name=row["venue_name"],
+        location=row["location"],
     )
     # no-store: la imagen lleva el token del QR dentro; que no quede en caches
     # intermedias ni en el disco del navegador.

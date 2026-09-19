@@ -207,6 +207,12 @@ export default function PublicTicketPage() {
                   <Icon name="clock" className="h-3.5 w-3.5" />
                   {ticket?.starts_at}
                 </p>
+                {ticket?.location && (
+                  <p className="flex items-start gap-1.5 text-xs text-slate-300">
+                    <Icon name="door" className="mt-px h-3.5 w-3.5 shrink-0" />
+                    {ticket.location}
+                  </p>
+                )}
                 {ticket && (
                   <p className="tnum text-xs text-slate-500">
                     Boleta #{ticket.ticket_id}

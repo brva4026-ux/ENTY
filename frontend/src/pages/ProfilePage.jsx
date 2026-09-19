@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
+import { activeVenueId, setActiveVenueId } from "../lib/venue";
 
 const roleLabel = (role) =>
   ({ admin: "Administrador", promotor: "Promotor", bouncer: "Portero" })[role] ?? role;
@@ -11,6 +12,9 @@ const roleLabel = (role) =>
 export default function ProfilePage() {
   const { user, logout, setUser } = useAuth();
   const nav = useNavigate();
+  // Negocio activo (multi-negocio): estado local para re-pintar el selector
+  // al instante; los paneles leen el valor persistido en cada carga.
+  const [currentVenueId, setCurrentVenueId] = useState(() => activeVenueId(user));
 
   // Edición de datos propios
   const [name, setName] = useState(user?.full_name || "");
@@ -166,6 +170,49 @@ export default function ProfilePage() {
           </p>
         </div>
       </div>
+
+      {/* Negocio activo (solo si pertenece a varias): qué panel abre y
+          sobre qué venue trabaja cada pantalla. */}
+      {user.venues?.length > 1 && (
+        <div className="card p-5">
+          <h3 className="display mb-1 text-base">Negocio activo</h3>
+          <p className="mb-4 text-xs text-zinc-500">
+            Trabajas con varios negocios: elige con cuál abren los paneles.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {user.venues.map((v) => {
+              const active = v.id === currentVenueId;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveVenueId(v.id);
+                    setCurrentVenueId(v.id);
+                  }}
+                  className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
+                    active
+                      ? "border-brand-500/60 bg-brand-500/[0.06]"
+                      : "border-zinc-800/80 hover:border-zinc-700"
+                  }`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold text-white">{v.name}</span>
+                    <span className="block text-xs text-zinc-500">
+                      {(user.roles?.[String(v.id)] || []).map(roleLabel).join(", ")}
+                    </span>
+                  </span>
+                  {active && (
+                    <span className="shrink-0 rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-brand-300 ring-1 ring-brand-500/40">
+                      Activa
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Datos propios */}
       <div className="card p-5">

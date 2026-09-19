@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.db import close_pool, init_pool
+from app.core.push_worker import push_outbox_worker
 from app.routers import (
     auth,
     invitations,
@@ -35,8 +36,20 @@ from app.routers import (
 async def lifespan(app: FastAPI):
     settings = get_settings()
     await init_pool(settings.database_url)
-    yield
-    await close_pool()
+    # Worker del outbox de push (mig 014): las notificaciones in-app nacen en
+    # triggers SQL; este loop envía el Web Push de cada una fuera de la
+    # transacción de negocio. Solo corre con VAPID configurado; en serverless
+    # cada arranque de función drena lo pendiente y el intervalo acota la
+    # ventana de espera.
+    push_stop = asyncio.Event()
+    push_task = asyncio.create_task(push_outbox_worker(push_stop))
+    try:
+        yield
+    finally:
+        push_stop.set()
+        push_task.cancel()
+        await asyncio.gather(push_task, return_exceptions=True)
+        await close_pool()
 
 
 def create_app() -> FastAPI:
@@ -72,7 +85,17 @@ def create_app() -> FastAPI:
 
     @app.get("/health", tags=["ops"])
     async def health():
-        return {"status": "ok", "app": settings.app_name}
+        # push_enabled: telemetría operativa — si VAPID no está configurado,
+        # la campana in-app funciona pero el push del celular no; este campo
+        # lo dice sin entrar al dashboard.
+        push_enabled = bool(
+            settings.vapid_public_key_b64 and settings.vapid_private_key_b64
+        )
+        return {
+            "status": "ok",
+            "app": settings.app_name,
+            "push_enabled": push_enabled,
+        }
 
     return app
 

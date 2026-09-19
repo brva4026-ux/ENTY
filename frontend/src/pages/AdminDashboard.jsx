@@ -11,6 +11,7 @@ import { PullToRefresh } from "../components/PullToRefresh";
 import { InstallPrompt } from "../components/InstallPrompt";
 import { ListSkeleton, SelectSkeleton, Skeleton, StatSkeletonRow } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
+import { activeVenueId } from "../lib/venue";
 
 import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
@@ -24,8 +25,9 @@ import InvitationsManager from "../components/InvitationsManager";
 import PayoutsManager from "../components/PayoutsManager";
 
 function firstVenueId(user) {
-  const ids = Object.keys(user?.roles || {}).map(Number);
-  return ids[0] ?? null;
+  // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
+  // sin elección, la primera disponible (comportamiento de siempre).
+  return activeVenueId(user);
 }
 
 function pad2(n) {
@@ -53,6 +55,7 @@ function defaultEventForm() {
     starts_at: toLocalInput(start),
     ends_at: "",
     flyer_url: "",
+    location: "",
     description: "",
   };
 }
@@ -294,6 +297,7 @@ export default function AdminDashboard() {
       name: ev.name ?? "",
       description: ev.description ?? "",
       flyer_url: ev.flyer_url ?? "",
+      location: ev.location ?? "",
       starts_at: toLocalInput(new Date(ev.starts_at)),
       ends_at: ev.ends_at ? toLocalInput(new Date(ev.ends_at)) : "",
       capacity: String(ev.capacity),
@@ -338,6 +342,7 @@ export default function AdminDashboard() {
           ends_at: endsAt ? endsAt.toISOString() : null,
           description: editingEvent.description.trim() || null,
           flyer_url: editingEvent.flyer_url.trim() || null,
+          location: editingEvent.location.trim() || null,
         }),
       });
       setEvents((evs) => evs.map((x) => (x.id === updated.id ? updated : x)));
@@ -384,6 +389,7 @@ export default function AdminDashboard() {
           ends_at: endsAt ? endsAt.toISOString() : null,
           description: form.description.trim() || null,
           flyer_url: form.flyer_url.trim() || null,
+          location: form.location.trim() || null,
           // La zona del evento es la del admin que lo crea: así la hora que
           // escribió es la que queda impresa en la boleta del cliente.
           event_timezone:
@@ -668,6 +674,22 @@ export default function AdminDashboard() {
 
           <label className="sm:col-span-full">
             <span className="mb-1 block text-xs font-medium text-zinc-400">
+              Lugar del evento
+            </span>
+            <input
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              className="field"
+              placeholder="Calle 45 #12-30, Medellín"
+              maxLength={200}
+            />
+            <span className="mt-1 block text-[11px] text-zinc-500">
+              Aparece en la boleta del invitado y en la vista previa de WhatsApp.
+            </span>
+          </label>
+
+          <label className="sm:col-span-full">
+            <span className="mb-1 block text-xs font-medium text-zinc-400">
               Descripción (opcional)
             </span>
             <textarea
@@ -818,6 +840,19 @@ export default function AdminDashboard() {
                     }
                     className="field"
                     placeholder="https://…/flyer.jpg"
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">Lugar</span>
+                  <input
+                    value={editingEvent.location}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, location: e.target.value })
+                    }
+                    className="field"
+                    placeholder="Calle 45 #12-30"
+                    maxLength={200}
                   />
                 </label>
 
