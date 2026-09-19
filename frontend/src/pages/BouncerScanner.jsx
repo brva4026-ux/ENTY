@@ -25,10 +25,16 @@ const RESULT_STYLES = {
   // Error HTTP con mensaje del servidor (p.ej. el evento fue borrado mientras
   // el portero lo tenía seleccionado): se muestra el detalle real.
   SCAN_ERROR: { bg: "bg-amber-600", text: "ERROR", icon: "!", sub: "" },
+  // Mig 013: boleta VÁLIDA cuya ventana de activación aún no abrió. Ámbar
+  // (no rojo: no es fraude, es temprano). El detalle trae la hora exacta.
+  NOT_ACTIVE: { bg: "bg-amber-600", text: "AÚN NO ACTIVA", icon: "⏳", sub: "" },
 };
 
 // ms que dura el resultado en pantalla antes de volver a escanear
 const RESULT_RESET_MS = 4000;
+// Anti-spam de reintentos de NOT_ACTIVE: el servidor no cobra por cada
+// escaneo, pero martillar no cambia la hora del evento.
+const RETRY_COOLDOWN_MS = 20_000;
 
 export default function BouncerScanner() {
   const { user, logout } = useAuth();
@@ -40,6 +46,9 @@ export default function BouncerScanner() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [manualCode, setManualCode] = useState("");
+  // Reintento de NOT_ACTIVE: token esperando y disponibilidad del reintento.
+  const [pendingRetry, setPendingRetry] = useState(null); // raw_token
+  const [retryIn, setRetryIn] = useState(0); // segundos restantes de cooldown
   // Filtro de fila (v1.1): cuando la venue tiene varias entradas (VIP,
   // general…), cada teléfono puede quedar asignado a UNA fila. Vacío =
   // aceptar boletas de cualquier tipo (comportamiento clásico).
@@ -104,6 +113,13 @@ export default function BouncerScanner() {
     if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
   }, []);
 
+  // Cuenta atrás del cooldown de reintento (solo mientras hay uno pendiente).
+  useEffect(() => {
+    if (retryIn <= 0) return;
+    const id = setInterval(() => setRetryIn((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [retryIn > 0]);
+
   async function startScanner() {
     setError("");
     setResult(null);
@@ -159,9 +175,18 @@ export default function BouncerScanner() {
         }),
       });
       setResult(data);
-      // vibración háptica: verde = pulso corto, rojo = doble pulso
+      // vibración háptica: verde = pulso corto, rojo = doble pulso,
+      // NOT_ACTIVE = triple corto (diferente de un rechazo definitivo)
       if (navigator.vibrate) {
-        navigator.vibrate(data.redeemed ? [80] : [60, 60, 60]);
+        navigator.vibrate(data.redeemed ? [80] : data.code === "NOT_ACTIVE" ? [40, 60, 40] : [60, 60, 60]);
+      }
+      if (data.code === "NOT_ACTIVE") {
+        // No entra pero su boleta sirve: queda "aparcado" para reintentar
+        // desde la misma pantalla cuando llegue la hora.
+        setPendingRetry(rawToken);
+        setRetryIn(RETRY_COOLDOWN_MS / 1000);
+      } else {
+        setPendingRetry(null);
       }
       // auto-reset para volver a escanear sin tocar nada
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
@@ -196,6 +221,13 @@ export default function BouncerScanner() {
   function resetScan() {
     setResult(null);
     lastScannedRef.current = "";
+  }
+
+  /** Reintento del token aparcado por NOT_ACTIVE: mismo flujo que un
+      escaneo (manual:true salta el dedupe del mismo código). */
+  async function retryPending() {
+    if (!pendingRetry || retryIn > 0) return;
+    await redeemToken(pendingRetry, { manual: true });
   }
 
   const style = result ? RESULT_STYLES[result.code] ?? RESULT_STYLES.NOT_FOUND : null;
@@ -243,10 +275,18 @@ export default function BouncerScanner() {
             {style.text}
           </span>
           <span className="animate-fade mt-2 text-lg font-semibold text-white/90">
-            {(result?.code === "SCAN_ERROR" || result?.code === "WRONG_TYPE") && result.detail
+            {(result?.code === "SCAN_ERROR" ||
+              result?.code === "WRONG_TYPE" ||
+              result?.code === "NOT_ACTIVE") &&
+            result.detail
               ? result.detail
               : style.sub}
           </span>
+          {result?.code === "NOT_ACTIVE" && (
+            <span className="animate-fade mt-3 max-w-sm rounded-xl bg-black/25 px-4 py-2 text-center text-sm font-medium text-white/85">
+              La boleta es válida: se escanea igual cuando llegue la hora. No se gastó.
+            </span>
+          )}
           {result?.customer_name && (
             <span className="animate-pop mt-5 rounded-full bg-black/30 px-5 py-1.5 text-2xl font-semibold text-white">
               {result.customer_name}
@@ -271,6 +311,21 @@ export default function BouncerScanner() {
           )}
 
           {error && <p className="mt-3 max-w-sm text-center text-sm text-red-400">{error}</p>}
+
+          {/* Reintento de la boleta aparcada por NOT_ACTIVE: sigue visible
+              (aunque el resultado se haya ido) hasta que entre o se escanee
+              otra boleta. Cooldown anti-spam de 20s. */}
+          {pendingRetry && (
+            <button
+              onClick={retryPending}
+              disabled={retryIn > 0}
+              className="btn-ghost mt-3 w-full max-w-sm font-semibold disabled:opacity-50"
+            >
+              {retryIn > 0
+                ? `Reintentar en ${retryIn}s`
+                : "Reintentar boleta en espera"}
+            </button>
+          )}
 
           {/* Respaldo manual: cámara rota, permisos denegados, QR dañado */}
           <form onSubmit={submitManual} className="mt-5 flex w-full max-w-sm items-center gap-2">

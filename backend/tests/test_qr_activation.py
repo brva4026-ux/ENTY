@@ -141,6 +141,8 @@ def test_scan_rejected_not_active_outside_window(api, dbcur):
     out = _scan(api, ev, ticket["raw_token"])
     assert out["code"] == "NOT_ACTIVE"
     assert out["redeemed"] is False
+    # Accionable en la puerta: la hora exacta de activación, no un "vuelve luego".
+    assert out["detail"] and "QR se activa" in out["detail"]
 
     # No se consumió y el intento quedó auditado.
     dbcur.execute("SELECT status FROM tickets WHERE id=%s", (ticket["ticket_id"],))

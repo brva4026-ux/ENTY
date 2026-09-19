@@ -5,7 +5,9 @@ expresamos los parametros y generamos el token crudo de alta entropia que va
 en el QR (en la DB se guarda unicamente su SHA-256).
 """
 import secrets
+from datetime import datetime, timedelta
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -231,8 +233,31 @@ async def redeem(
     out = RedeemOut(code=code, redeemed=(code == "GRANTED"))
     if code == "NOT_ACTIVE":
         # Mig 013: boleta válida pero su QR aún no se activa (fuera de la
-        # ventana). No se consumió: podrá entrar cuando abra la ventana.
-        out.detail = "El QR de esta boleta aún no está activo para escanear"
+        # ventana). No se consumió: podrá entrar cuando abra la ventana. Se
+        # informa LA HORA exacta (en la zona del evento): en la puerta eso es
+        # lo accionable — "vuelve a las 22:00" y no "vuelve más tarde".
+        async with db.cursor() as cur2:
+            await cur2.execute(
+                """
+                SELECT starts_at, event_timezone,
+                       (starts_at - (qr_unlock_minutes * INTERVAL '1 minute')) AS ready_at
+                FROM events WHERE id = %s
+                """,
+                (event_id,),
+            )
+            ev = await cur2.fetchone()
+        if ev:
+            try:
+                tz = ZoneInfo(ev["event_timezone"])
+            except Exception:
+                tz = ZoneInfo("UTC")
+            fmt = lambda d: d.astimezone(tz).strftime("%H:%M")
+            out.detail = (
+                f"QR se activa a las {fmt(ev['ready_at'])} "
+                f"(evento {fmt(ev['starts_at'])})"
+            )
+        else:
+            out.detail = "El QR de esta boleta aún no está activo"
     if code == "WRONG_TYPE":
         # Boleta válida del evento pero de otra fila: no se consumió. Se
         # informa el tipo real para que el portero la redireccione.
