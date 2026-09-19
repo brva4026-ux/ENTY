@@ -17,6 +17,7 @@ from app.deps import ensure_roles, get_current_user
 from app.schemas import (
     RedeemOut,
     TicketContactEditRequest,
+    TicketContactEditOut,
     TicketContactEditResponse,
     TicketEmitRequest,
     TicketEmitResponse,
@@ -448,3 +449,59 @@ async def edit_ticket_contact(
         customer_phone=info["customer_phone"],
         status=info["status"],
     )
+
+
+@router.get(
+    "/events/{event_id}/tickets/{ticket_id}/contact-edits",
+    response_model=list[TicketContactEditOut],
+)
+async def list_ticket_contact_edits(
+    venue_id: int,
+    event_id: int,
+    ticket_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Auditoría de correcciones de contacto de una boleta (mig 015).
+
+    Misma política que el PATCH: el promotor ve el historial de SUS boletas y
+    el staff el de cualquiera del evento. Sirve para responder "quién cambió
+    el teléfono y cuándo" sin abrir la DB.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.sold_by_user_id
+              FROM tickets t
+              JOIN events e ON e.id = t.event_id
+             WHERE t.id = %s AND t.event_id = %s AND e.venue_id = %s
+            """,
+            (ticket_id, event_id, venue_id),
+        )
+        row = await cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Boleta no encontrada")
+
+        roles = user["roles"].get(venue_id, [])
+        is_staff = any(r in ("super_admin", "admin") for r in roles)
+        if not is_staff and row["sold_by_user_id"] != user["id"]:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "Solo puedes ver el historial de tus propias boletas"
+            )
+
+        await cur.execute(
+            """
+            SELECT ce.id, ce.old_name, ce.new_name, ce.old_phone, ce.new_phone,
+                   ce.reason, ce.created_at, u.full_name AS edited_by_name
+              FROM ticket_contact_edits ce
+              LEFT JOIN users u ON u.id = ce.edited_by_user_id
+             WHERE ce.ticket_id = %s
+             ORDER BY ce.created_at DESC, ce.id DESC
+            """,
+            (ticket_id,),
+        )
+        rows = await cur.fetchall()
+
+    return rows

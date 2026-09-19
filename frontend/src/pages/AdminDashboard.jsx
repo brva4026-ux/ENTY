@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch, publicTicketPageUrl } from "../lib/api";
+import ContactEditsHistory from "../components/ContactEditsHistory";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { haptics } from "../lib/haptics";
@@ -1745,6 +1746,10 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
                   </div>
                 </div>
               )}
+              {/* Auditoría de la mig 015: quién corrigió el contacto y cuándo.
+                  Cargada perezosa al expandir: con cientos de boletas no se
+                  pueden N fetches por listado. */}
+              <ContactEditsHistory venueId={venueId} eventId={eventId} ticket={t} ticketIdField="id" />
             </li>
           );
         })}

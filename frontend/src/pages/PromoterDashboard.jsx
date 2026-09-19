@@ -8,6 +8,7 @@ import { PullToRefresh } from "../components/PullToRefresh";
 import { useUI } from "../lib/ui";
 import { activeVenueId } from "../lib/venue";
 import EmptyState from "../components/EmptyState";
+import ContactEditsHistory from "../components/ContactEditsHistory";
 import { StatSkeletonRow } from "../components/Skeleton";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
 import { STATUS_META, sortEventsForStrip } from "../components/EventWorkbench";
@@ -530,6 +531,8 @@ export default function PromoterDashboard() {
                         </div>
                       </div>
                     )}
+                    {/* Auditoría de la mig 015 para sus propias boletas. */}
+                    <ContactEditsHistory venueId={venueId} eventId={selectedEvent} ticket={t} ticketIdField="ticket_id" />
                   </li>
                 ))}
               </ul>

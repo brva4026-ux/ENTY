@@ -51,6 +51,38 @@ def test_admin_corrects_phone_with_audit(api, db):
     assert row["reason"] == "Quedo mal escrito"
 
 
+def test_contact_history_endpoint(api):
+    """GET /contact-edits: el historial visible desde la UI (quien y cuando)."""
+    s, ticket = _scenario_with_ticket(api)
+    base = f"{api.event_url(s['venue'], s['event'])}/tickets/{ticket['ticket_id']}"
+
+    # Sin correcciones previas: lista vacia (no error).
+    res = api.get(f"{base}/contact-edits", "promoter")
+    assert res.status_code == 200, res.text
+    assert res.json() == []
+
+    # Dos correcciones consecutivas quedan ambas, la mas nueva primero.
+    api.patch(f"{base}/contact", "promoter", {"customer_phone": "3111111111"})
+    api.patch(f"{base}/contact", "admin", {"customer_name": "Nombre Bien", "reason": "reo"})
+    res = api.get(f"{base}/contact-edits", "promoter")
+    assert res.status_code == 200
+    rows = res.json()
+    assert len(rows) == 2
+    assert rows[0]["edited_by_name"].startswith("Usuario admin")
+    assert rows[0]["old_name"] == "Nombre Mal Escrito"
+    assert rows[0]["new_name"] == "Nombre Bien"
+    assert rows[1]["edited_by_name"].startswith("Usuario promotor")
+    assert rows[1]["old_phone"] == "3001234567"
+    assert rows[1]["new_phone"] == "3111111111"
+    assert rows[1]["new_name"] == rows[1]["old_name"]  # no cambio en esa edicion
+
+    # Otro promotor no ve el historial ajeno; staff si.
+    res = api.get(f"{base}/contact-edits", "promoter2")
+    assert res.status_code == 403
+    res = api.get(f"{base}/contact-edits", "admin")
+    assert res.status_code == 200
+
+
 def test_promoter_corrects_own_but_not_others(api):
     s, ticket = _scenario_with_ticket(api)
     url = f"{api.event_url(s['venue'], s['event'])}/tickets/{ticket['ticket_id']}/contact"

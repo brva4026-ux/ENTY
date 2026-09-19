@@ -271,6 +271,26 @@ class TicketContactEditResponse(BaseModel):
     status: str
 
 
+class TicketContactEditOut(BaseModel):
+    """Fila de auditoría de correcciones de contacto (mig 015).
+
+    `old_*`/`new_*` traen ambos valores (igual si el campo no cambió en esa
+    edición): el cliente muestra solo los que difieren. `edited_by_name` viene
+    del JOIN con users y puede ser NULL si el usuario fue borrado.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    old_name: str | None = None
+    new_name: str | None = None
+    old_phone: str | None = None
+    new_phone: str | None = None
+    reason: str | None = None
+    created_at: datetime
+    edited_by_name: str | None = None
+
+
 class TicketRedeemRequest(BaseModel):
     raw_token: str = Field(min_length=8)
     # Mig 013 (patrón DICE): cuando el escaneo devuelve NOT_ACTIVE, la puerta
