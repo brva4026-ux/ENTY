@@ -4,13 +4,12 @@ El login incluye:
 - Igualacion de timing: cuando el email no existe se verifica contra un hash
   dummy, para que un atacante no distinga "email inexistente" de "password
   incorrecta" por tiempo de respuesta.
-- Rate limit en memoria por IP+email: tras varios fallos consecutivos responde
-  429 durante una ventana. Es best-effort en serverless (por instancia); la
-  medida fuerte seria un contador en la DB.
+- Lockout real en la DB (mig 016): 8 fallos en 15 min bloquean 15 min, con
+  cubos independientes por email y por IP. Vive en Postgres porque en
+  serverless la memoria de cada instancia lambda cuenta por su lado y muere
+  en cada cold start: el estado compartido solo puede vivir en la DB.
 """
-from collections import defaultdict, deque
 from secrets import token_hex
-from time import monotonic
 from typing import Annotated
 
 import psycopg
@@ -36,15 +35,23 @@ from app.schemas import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # ---------------------------------------------------------------------------
-# Rate limit de login (en memoria, best-effort)
+# Lockout de login (mig 016): cubos por email e IP en la DB.
 # ---------------------------------------------------------------------------
 _MAX_FAILURES = 8
-_WINDOW_SECONDS = 300.0
-_FAILURES: dict[str, deque[float]] = defaultdict(deque)
+_WINDOW_MINUTES = 15
 
 # Hash dummy (bcrypt real) para igualar el tiempo de respuesta cuando el
 # email no existe; se calcula una sola vez al importar.
 _DUMMY_HASH = hash_password("equalizer-password-not-a-real-account")
+
+
+async def _clear_failures(db: psycopg.AsyncConnection, email: str, ip: str) -> None:
+    """El éxito limpia SOLO el par (email, ip): nadie desbloquea a otro."""
+    try:
+        async with db.cursor() as cur:
+            await cur.execute("SELECT clear_login_failures(%s, %s)", (email, ip))
+    except psycopg.Error:
+        pass
 
 
 def _client_ip(request: Request) -> str:
@@ -57,22 +64,31 @@ def _client_ip(request: Request) -> str:
     )
 
 
-def _login_blocked(key: str) -> bool:
-    q = _FAILURES[key]
-    now = monotonic()
-    while q and now - q[0] > _WINDOW_SECONDS:
-        q.popleft()
-    return len(q) >= _MAX_FAILURES
+async def _login_locked(db: psycopg.AsyncConnection, email: str, ip: str) -> bool:
+    """¿Este intento está bloqueado? Consulta en la DB (compartida entre
+    instancias serverless). Si la DB falla, se permite el intento: el lockout
+    es defensa en profundidad, nunca una llave que deje fuera a los usuarios
+    legitimos por un incidente de infraestructura."""
+    try:
+        async with db.cursor() as cur:
+            await cur.execute(
+                "SELECT login_locked(%s, %s, %s, %s) AS locked",
+                (email, ip, _MAX_FAILURES, _WINDOW_MINUTES),
+            )
+            return (await cur.fetchone())["locked"]
+    except psycopg.Error:
+        return False
 
 
-def _register_failure(key: str) -> None:
-    q = _FAILURES[key]
-    q.append(monotonic())
-    # limpiar claves viejas para no crecer sin limite
-    if len(_FAILURES) > 10_000:
-        now = monotonic()
-        for k in [k for k, v in _FAILURES.items() if not v or now - v[-1] > _WINDOW_SECONDS]:
-            _FAILURES.pop(k, None)
+async def _register_failure(db: psycopg.AsyncConnection, email: str, ip: str) -> None:
+    """Registra el fallo y poda la ventana vieja (mismo statement de poda en
+    cada fallo: sin cron en serverless, la tabla se autolimite)."""
+    try:
+        async with db.cursor() as cur:
+            await cur.execute("SELECT register_login_failure(%s, %s)", (email, ip))
+            await cur.execute("SELECT prune_login_attempts(60)")
+    except psycopg.Error:
+        pass  # un fallo de auditoría no debe ocultar el 401 real
 
 
 async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> UserSummary:
@@ -124,11 +140,12 @@ async def login(
     request: Request,
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    key = f"{_client_ip(request)}:{body.email.lower()}"
-    if _login_blocked(key):
+    ip = _client_ip(request)
+    email_norm = body.email.strip().lower()
+    if await _login_locked(db, email_norm, ip):
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
-            "Demasiados intentos fallidos. Espera unos minutos.",
+            "Demasiados intentos fallidos. Espera unos minutos e intenta de nuevo.",
         )
 
     async with db.cursor() as cur:
@@ -141,15 +158,15 @@ async def login(
     if not user:
         # igualar timing del bcrypt antes de rechazar
         verify_password(body.password, _DUMMY_HASH)
-        _register_failure(key)
+        await _register_failure(db, email_norm, ip)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales invalidas")
     if not verify_password(body.password, user["password_hash"]):
-        _register_failure(key)
+        await _register_failure(db, email_norm, ip)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales invalidas")
     if not user["is_active"]:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario inactivo")
 
-    _FAILURES.pop(key, None)  # exito limpia el contador
+    await _clear_failures(db, email_norm, ip)  # éxito limpia solo este par
 
     # Último acceso exitoso (mig 009): alimenta la actividad del módulo Equipo.
     await db.execute(
@@ -200,22 +217,23 @@ async def register(
 ):
     """Crea una venue nueva con su administrador y devuelve la sesión.
 
-    Rate-limited con el mismo mecanismo del login (es un endpoint público que
-    crea filas: sin límite sería un vector de basura en la DB)."""
-    key = f"{_client_ip(request)}:register"
-    if _login_blocked(key):
+    Rate-limited con el lockout en DB (mig 016, cubo por IP con email
+    sentinel): es un endpoint público que crea filas, sin límite sería un
+    vector de basura en la DB."""
+    ip = _client_ip(request)
+    if await _login_locked(db, "__register__", ip):
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             "Demasiados intentos. Espera unos minutos.",
         )
-    _register_failure(key)  # se limpia al tener éxito
+    await _register_failure(db, "__register__", ip)  # el éxito lo deja así
 
     async with db.cursor() as cur:
         await cur.execute(
             "SELECT id FROM users WHERE lower(email)=lower(%s)", (body.email,)
         )
         if await cur.fetchone():
-            _register_failure(key)
+            await _register_failure(db, "__register__", ip)
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
                 "Ese email ya tiene una cuenta. Inicia sesión o usa otro.",
@@ -248,7 +266,6 @@ async def register(
         )
         await db.commit()
 
-    _FAILURES.pop(key, None)
     roles = {str(venue_id): ["admin"]}
     token = create_access_token(user_id, [venue_id], roles)
     summary = await _build_user_summary(db, user_id)

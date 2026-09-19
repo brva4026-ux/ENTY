@@ -31,7 +31,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.core.db import get_db
 from app.core.security import create_access_token, hash_password
 from app.deps import ensure_roles, get_current_user
-from app.routers.auth import _client_ip, _login_blocked, _register_failure
+from app.routers.auth import _client_ip, _login_locked, _register_failure
 from app.schemas import (
     AcceptInvitationRequest,
     InvitationPreview,
@@ -214,13 +214,17 @@ async def accept_invitation(
     request: Request,
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    key = f"{_client_ip(request)}:invite"
-    if _login_blocked(key):
+    # Lockout en DB (mig 016): cubo por IP con email sentinel. Cada intento
+    # de canje cuenta como fallo; el éxito está en el UPDATE que sigue (el
+    # token válido canjea aunque el cubo tenga entradas, no hay login que
+    # "limpiar" — la ventana de 15 min se agota sola).
+    ip = _client_ip(request)
+    if await _login_locked(db, "__invite__", ip):
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             "Demasiados intentos. Espera unos minutos.",
         )
-    _register_failure(key)  # se limpia al tener éxito
+    await _register_failure(db, "__invite__", ip)
 
     async with db.cursor() as cur:
         # Concurrencia segura: el UPDATE solo gana una vez por token. Sin
