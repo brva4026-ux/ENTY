@@ -7,7 +7,7 @@ busca al entregarla. Por eso el nombre del asistente va impreso en la imagen y
 el bouncer lo compara en la puerta (ver docs/arquitectura/03-seguridad.md).
 """
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
@@ -45,6 +45,32 @@ _IMAGE_HEADERS = {
 }
 
 
+def _qr_window(row: dict) -> tuple[bool, str | None]:
+    """Ventana de activación del QR (mig 013, patrón DICE).
+
+    El QR se dibuja solo desde starts_at - qr_unlock_minutes. Misma regla
+    que public_tickets._activation: el GET de imagen es complementario al
+    POST, y el QR regenerable desde el token exige que AMBOS honren la
+    ventana. Devuelve (activo, mensaje_para_la_pagina).
+    """
+    unlock = row.get("qr_unlock_minutes")
+    if unlock is None:
+        unlock = 60
+    starts_at: datetime = row["starts_at"]
+    ready_at = starts_at - timedelta(minutes=unlock)
+    if datetime.now(ready_at.tzinfo) >= ready_at:
+        return True, None
+    try:
+        tz = ZoneInfo(row["event_timezone"])
+    except Exception:
+        tz = ready_at.tzinfo
+    msg = (
+        f"Tu QR se activa el {ready_at.astimezone(tz).strftime('%d/%m %H:%M')}. "
+        f"El evento empieza el {starts_at.astimezone(tz).strftime('%d/%m %H:%M')}."
+    )
+    return False, msg
+
+
 def _starts_at_label(starts_at: datetime, tz_name: str | None) -> str:
     """Inicio del evento en su zona horaria, con la zona visible.
 
@@ -74,10 +100,11 @@ async def public_ticket_image(
             """
             SELECT t.id AS ticket_number, t.customer_name, t.status,
                    e.name AS event_name, e.starts_at, e.event_timezone,
-                   v.name AS venue_name
+                   e.qr_unlock_minutes, v.name AS venue_name
             FROM tickets t
             JOIN events e ON e.id = t.event_id
             JOIN venues v ON v.id = e.venue_id
+
             WHERE t.token_hash = encode(digest(%s, 'sha256'), 'hex')
             """,
             (raw_token,),
@@ -90,6 +117,11 @@ async def public_ticket_image(
         # El link sigue circulando por WhatsApp: mejor un 410 explícito que
         # mostrar un QR que la puerta ya va a rechazar.
         raise HTTPException(status.HTTP_410_GONE, "Boleta anulada")
+    qr_active, _qr_msg = _qr_window(row)
+    if not qr_active:
+        # La imagen lleva el QR dentro: fuera de la ventana, 403 con el
+        # motivo (WhatsApp no tendrá og:image, a propósito).
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "El QR aún no está activo")
 
     # Pillow + QR son CPU-bound: al threadpool para no bloquear el event loop.
     image = await run_in_threadpool(
@@ -133,7 +165,7 @@ async def public_ticket_page(
             """
             SELECT t.id AS ticket_number, t.customer_name, t.status,
                    e.name AS event_name, e.starts_at, e.event_timezone,
-                   v.name AS venue_name
+                   e.qr_unlock_minutes, v.name AS venue_name
             FROM tickets t
             JOIN events e ON e.id = t.event_id
             JOIN venues v ON v.id = e.venue_id
@@ -148,11 +180,20 @@ async def public_ticket_page(
 
     image_url = f"/api/public/tickets/{raw_token}/image.jpg"
     status_text, status_color = _STATUS_TEXT.get(row["status"], (row["status"], "#9ca3af"))
+    qr_active, qr_msg = _qr_window(row)
     if row["status"] in ("voided", "refunded"):
         # El QR ya no sirve; la página lo dice claro en vez de mostrar imagen.
         body = f"""
         <div class='box'><p class='bad'>{status_text}</p>
         <p>Esta boleta fue anulada por el organizador y no permite el ingreso.</p></div>"""
+    elif not qr_active:
+        # Mig 013: el enlace sigue sirviendo (quien lo recibió no queda
+        # fuera), pero el QR no se dibuja fuera de la ventana. La imagen no
+        # se referencia: tampoco se compone por fuera de la ventana.
+        body = f"""
+        <div class='box'><p class='ok'>{status_text}</p>
+        <p class='hint'>{qr_msg}</p>
+        <p class='hint'>Vuelve a este enlace cuando se active tu QR.</p></div>"""
     else:
         body = f"""
         <div class='box'><img src='{image_url}' alt='Boleta con QR' class='ticket'/>

@@ -39,6 +39,9 @@ function defaultEventForm() {
   return {
     name: "",
     capacity: 100,
+    // Ventana de activación del QR del invitado (patrón DICE): 60 min
+    // antes de la apertura el QR "existe". 0 = solo con la apertura.
+    qr_unlock_minutes: 60,
     starts_at: toLocalInput(start),
     ends_at: "",
     flyer_url: "",
@@ -232,6 +235,7 @@ export default function AdminDashboard() {
       starts_at: toLocalInput(new Date(ev.starts_at)),
       ends_at: ev.ends_at ? toLocalInput(new Date(ev.ends_at)) : "",
       capacity: String(ev.capacity),
+      qr_unlock_minutes: String(ev.qr_unlock_minutes ?? 60),
     });
     setBadFlyer("");
   }
@@ -267,6 +271,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({
           name: editingEvent.name.trim(),
           capacity,
+          qr_unlock_minutes: Number(editingEvent.qr_unlock_minutes),
           starts_at: startsAt.toISOString(),
           ends_at: endsAt ? endsAt.toISOString() : null,
           description: editingEvent.description.trim() || null,
@@ -309,6 +314,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({
           name: form.name.trim(),
           capacity: Number(form.capacity),
+          qr_unlock_minutes: Number(form.qr_unlock_minutes),
           // datetime-local viene SIN zona horaria: new Date(...) lo interpreta
           // como hora local del navegador y toISOString() lo lleva al instante
           // UTC correcto. Mandarlo crudo lo guardaría como si fuera UTC.
@@ -533,6 +539,24 @@ export default function AdminDashboard() {
 
           <label>
             <span className="mb-1 block text-xs font-medium text-zinc-400">
+              El QR se activa (min antes)
+            </span>
+            <input
+              type="number"
+              value={form.qr_unlock_minutes}
+              onChange={(e) => setForm({ ...form, qr_unlock_minutes: e.target.value })}
+              className="field"
+              placeholder="60"
+              min="0"
+              required
+            />
+            <span className="mt-1 block text-[11px] text-zinc-500">
+              Anti reenvío: el invitado ve su QR solo dentro de esta ventana (60 = estándar; 0 = al abrir puertas).
+            </span>
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-medium text-zinc-400">
               Cierre (opcional)
             </span>
             <input
@@ -726,6 +750,20 @@ export default function AdminDashboard() {
                       setEditingEvent({ ...editingEvent, ends_at: e.target.value })
                     }
                     className="field"
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">QR se activa (min antes)</span>
+                  <input
+                    type="number"
+                    value={editingEvent.qr_unlock_minutes}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, qr_unlock_minutes: e.target.value })
+                    }
+                    className="field"
+                    min="0"
+                    required
                   />
                 </label>
 

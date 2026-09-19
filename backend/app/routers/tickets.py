@@ -174,6 +174,10 @@ async def redeem(
 ):
     ensure_roles(user, venue_id, "super_admin", "admin", "bouncer")
 
+    # `force` (mig 013): solo staff, nunca el escáner automático del bouncer.
+    if body.force:
+        ensure_roles(user, venue_id, "super_admin", "admin")
+
     async with db.cursor() as cur:
         try:
             await cur.execute(
@@ -182,11 +186,53 @@ async def redeem(
             )
             row = await cur.fetchone()
             code = row["redeem_ticket"] if isinstance(row, dict) else row[0]
+
+            if code == "NOT_ACTIVE" and body.force:
+                # El staff decide dejar pasar fuera de ventana: consulta la
+                # ventana sin exigirla. La boleta aún NO está consumida: el
+                # UPDATE de abajo hace el canje real (mismo CAS de siempre).
+                await cur.execute(
+                    """
+                    SELECT (starts_at - (qr_unlock_minutes * INTERVAL '1 minute')) <= now()
+                           OR qr_unlock_minutes = 0
+                       AS ok
+                    FROM events WHERE id=%s
+                    """,
+                    (event_id,),
+                )
+                forced = (await cur.fetchone())["ok"]
+                if forced:  # NOT_ACTIVE es exactamente 'no'; si ya activó, no forzar
+                    await cur.execute(
+                        """
+                        UPDATE tickets
+                           SET status='redeemed', redeemed_at=now(),
+                               redeemed_by_user_id=%s
+                         WHERE id=(SELECT id FROM tickets
+                                    WHERE token_hash=encode(digest(%s,'sha256'),'hex'))
+                           AND status='issued'
+                        """,
+                        (user["id"], body.raw_token),
+                    )
+                    if cur.rowcount == 1:
+                        await cur.execute(
+                            """
+                            INSERT INTO redemptions
+                                (ticket_id, event_id, scanned_by_user_id, outcome)
+                            SELECT id, %s, %s, 'granted_forced' FROM tickets
+                             WHERE token_hash=encode(digest(%s,'sha256'),'hex')
+                            """,
+                            (event_id, user["id"], body.raw_token),
+                        )
+                        code = "GRANTED"
             await db.commit()
         except psycopg.errors.Error as e:
             _handle(venue_id, e)
 
     out = RedeemOut(code=code, redeemed=(code == "GRANTED"))
+    if code == "NOT_ACTIVE":
+        # Mig 013: boleta válida pero su QR aún no se activa (fuera de la
+        # ventana). No se consumió: podrá entrar cuando abra la ventana.
+        out.detail = "El QR de esta boleta aún no está activo para escanear"
     if code == "WRONG_TYPE":
         # Boleta válida del evento pero de otra fila: no se consumió. Se
         # informa el tipo real para que el portero la redireccione.

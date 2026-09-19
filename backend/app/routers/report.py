@@ -171,12 +171,12 @@ async def event_summary(
 
         await cur.execute(
             """
-            SELECT count(*) FILTER (WHERE outcome='granted')::int          AS granted,
+            SELECT count(*) FILTER (WHERE outcome IN ('granted','granted_forced'))::int AS granted,
                    count(*) FILTER (WHERE outcome='already_redeemed')::int AS already_redeemed,
                    count(*) FILTER (WHERE outcome='not_found')::int        AS not_found,
                    count(*)::int                                           AS total,
                    max(scanned_at)                                         AS last_scan_at,
-                   max(scanned_at) FILTER (WHERE outcome='granted')         AS last_granted_at
+                   max(scanned_at) FILTER (WHERE outcome IN ('granted','granted_forced')) AS last_granted_at
             FROM redemptions WHERE event_id=%s
             """,
             (event_id,),
@@ -186,7 +186,7 @@ async def event_summary(
         await cur.execute(
             """
             SELECT coalesce(u.full_name, 'Sin identificar') AS full_name,
-                   count(*) FILTER (WHERE r.outcome='granted')::int  AS granted,
+                   count(*) FILTER (WHERE r.outcome IN ('granted','granted_forced'))::int  AS granted,
                    count(*) FILTER (WHERE r.outcome<>'granted')::int AS failed,
                    count(*)::int                                    AS total
             FROM redemptions r

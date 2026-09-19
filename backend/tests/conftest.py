@@ -6,6 +6,7 @@ para no romper flujos que no dependen de la DB.
 """
 import os
 import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import psycopg
@@ -27,6 +28,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "010_promoter_payouts.sql",
     ROOT / "db" / "migrations" / "011_staff_invitations.sql",
     ROOT / "db" / "migrations" / "012_in_app_notifications.sql",
+    ROOT / "db" / "migrations" / "013_qr_activation.sql",
 ]
 
 
@@ -213,9 +215,12 @@ class Api:
         capacity: int = 100,
         **extra,
     ) -> dict:
+        # +29h: dentro de la ventana de activación del QR (default 60 min
+        # antes, mig 013) pero con la apertura a futuro para poder publicar.
+        # Los tests que necesitan la ventana CERRADA la crean explícita.
         payload = {
             "name": name,
-            "starts_at": "2026-10-01T20:00:00+00:00",
+            "starts_at": (datetime.now(timezone.utc) + timedelta(hours=29)).isoformat(),
             "capacity": capacity,
         }
         payload.update(extra)  # description, flyer_url, ends_at, event_timezone...

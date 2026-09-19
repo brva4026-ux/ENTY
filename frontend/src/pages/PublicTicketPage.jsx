@@ -104,6 +104,12 @@ export default function PublicTicketPage() {
   }
 
   const redeemed = ticket?.status === "redeemed";
+  // Activación del QR (mig 013, patrón DICE): el backend decide si el QR
+  // es visible y, si no, manda el mensaje con la hora de activación. El QR
+  // local se genera solo con la boleta activa: fuera de ventana el invitado
+  // ve el aviso, no el código.
+  const qrActive = ticket ? ticket.qr_active !== false : true;
+  const qrMessage = ticket?.qr_message ?? null;
 
   /**
    * Ciclo de vida de la boleta (patrón timeline de reportes de distri-stream):
@@ -147,24 +153,39 @@ export default function PublicTicketPage() {
             </div>
           ) : (
             <>
-              <div className="relative mx-auto w-fit rounded-2xl bg-white p-3 shadow-2xl">
-                {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="QR de tu boleta" className="h-56 w-56" />
-                ) : (
-                  <div className="skeleton h-56 w-56 !rounded-lg" />
-                )}
-                {redeemed && (
-                  <div className="absolute inset-0 grid place-items-center rounded-2xl bg-slate-950/70">
-                    <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-slate-900">
-                      Ya usada
-                    </span>
+              {!qrActive ? (
+                <div className="rounded-2xl bg-slate-800/60 p-6 text-center ring-1 ring-slate-700/50">
+                  <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-brand-500/15">
+                    <Icon name="clock" className="h-7 w-7 text-brand-300" />
+                  </span>
+                  <p className="text-sm font-bold text-white">Tu QR aún no se activa</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-300">{qrMessage}</p>
+                  <p className="mt-3 text-[11px] text-slate-400">
+                    Guarda este enlace: es tu boleta y en la puerta va a funcionar.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="relative mx-auto w-fit rounded-2xl bg-white p-3 shadow-2xl">
+                    {qrDataUrl ? (
+                      <img src={qrDataUrl} alt="QR de tu boleta" className="h-56 w-56" />
+                    ) : (
+                      <div className="skeleton h-56 w-56 !rounded-lg" />
+                    )}
+                    {redeemed && (
+                      <div className="absolute inset-0 grid place-items-center rounded-2xl bg-slate-950/70">
+                        <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-slate-900">
+                          Ya usada
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              <p className="mt-3 text-center text-sm text-slate-400">
-                Muestra este QR en la entrada
-              </p>
+                  <p className="mt-3 text-center text-sm text-slate-400">
+                    Muestra este QR en la entrada
+                  </p>
+                </>
+              )}
 
               {lifecycle && (
                 <div className="ticket-timeline mt-4 rounded-xl bg-slate-800/40 px-4 py-3 ring-1 ring-slate-700/40">
@@ -196,11 +217,16 @@ export default function PublicTicketPage() {
               <button
                 type="button"
                 onClick={shareOrDownload}
-                disabled={!imageUrl || busy}
+                disabled={!imageUrl || busy || !qrActive}
+                title={!qrActive ? "El QR se activa cerca de la fecha del evento" : undefined}
                 className="btn-primary mt-4 w-full disabled:opacity-50"
               >
                 <Icon name="whatsapp" className="h-4 w-4" />
-                {busy ? "Abriendo…" : "Compartir o guardar imagen"}
+                {busy
+                  ? "Abriendo…"
+                  : qrActive
+                    ? "Compartir o guardar imagen"
+                    : "Imagen disponible cuando se active el QR"}
               </button>
             </>
           )}

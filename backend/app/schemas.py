@@ -65,6 +65,10 @@ class EventCreate(BaseModel):
     ends_at: datetime | None = None
     event_timezone: str = "America/Bogota"
     capacity: int = Field(gt=0)
+    # Ventana de activación del QR del invitado (patrón DICE): minutos antes
+    # de la apertura en que el QR se dibuja. 0 = siempre visible. Default 60,
+    # el estándar del rubio.
+    qr_unlock_minutes: int = Field(default=60, ge=0, le=10080)
 
     @model_validator(mode="after")
     def _check_window(self) -> "EventCreate":
@@ -96,6 +100,7 @@ class EventUpdate(BaseModel):
     ends_at: datetime | None = None
     event_timezone: str | None = Field(default=None, max_length=60)
     capacity: int | None = Field(default=None, gt=0)
+    qr_unlock_minutes: int | None = Field(default=None, ge=0, le=10080)
 
     @model_validator(mode="after")
     def _check_window(self) -> "EventUpdate":
@@ -129,6 +134,7 @@ class EventOut(BaseModel):
     ends_at: datetime | None = None
     event_timezone: str
     capacity: int
+    qr_unlock_minutes: int = 60
     status: str
 
 
@@ -238,6 +244,11 @@ class TicketReissueResponse(BaseModel):
 
 class TicketRedeemRequest(BaseModel):
     raw_token: str = Field(min_length=8)
+    # Mig 013 (patrón DICE): cuando el escaneo devuelve NOT_ACTIVE, la puerta
+    # pide `force` para dejar pasar a alguien cuya boleta aún no se activa
+    # (lista, cortesía del dueño, QR en papel). Con force, el router consulta
+    # la ventana sin exigirla: la decisión (y el registro) es del portero.
+    force: bool = False
     # Filtro de fila en puerta (mig 008): si viene, una boleta válida del
     # evento pero de OTRO tipo se rechaza con code=WRONG_TYPE sin consumirla.
     ticket_type_id: int | None = None
@@ -375,6 +386,10 @@ class PublicTicketOut(BaseModel):
     venue_name: str
     starts_at: str
     status: str
+    # Activación del QR (mig 013, patrón DICE): visible solo dentro de la
+    # ventana; `qr_message` explica cuándo se activa si aún no es hora.
+    qr_active: bool = True
+    qr_message: str | None = None
 
 
 class RedeemOut(BaseModel):

@@ -15,6 +15,9 @@ from typing import Annotated
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
 from app.core.db import get_db
 from app.schemas import PublicTicketOut, TicketLookupRequest
 from app.services.ticket_image import build_ticket_image
@@ -53,13 +56,16 @@ def _check_rate(request: Request) -> None:
 
 
 # Un solo SELECT para las dos vistas: la boleta se identifica por el hash del
-# token, que es lo unico que guarda la DB.
+# token, que es lo unico que guarda la DB. Trae también la ventana de
+# activación del QR (mig 013): el QR se dibuja solo dentro de la ventana.
 _TICKET_SQL = """
     SELECT t.id                AS ticket_id,
            t.customer_name     AS customer_name,
            t.status::text      AS status,
            e.name              AS event_name,
            e.event_timezone    AS event_timezone,
+           e.starts_at         AS starts_at_raw,
+           e.qr_unlock_minutes AS qr_unlock_minutes,
            to_char(e.starts_at AT TIME ZONE e.event_timezone,
                    'DD/MM/YYYY HH24:MI') AS starts_at,
            v.name              AS venue_name
@@ -68,6 +74,28 @@ _TICKET_SQL = """
       JOIN venues v ON v.id = e.venue_id
      WHERE t.token_hash = encode(digest(%s, 'sha256'), 'hex')
 """
+
+
+def _activation(row: dict) -> tuple[bool, str | None]:
+    """Devuelve (qr_visible, motivo_para_la_ui).
+
+    Regla DICE: el QR se dibuja solo dentro de la ventana
+    [starts_at - unlock, fin). 0 = se activa con la apertura.
+    """
+    unlock = row.get("qr_unlock_minutes")
+    starts_at: datetime = row["starts_at_raw"]
+    if unlock is None:
+        unlock = 60
+    qr_ready_at = starts_at - timedelta(minutes=unlock)
+    if datetime.now( qr_ready_at.tzinfo) >= qr_ready_at:
+        return True, None
+    # Fuera de ventana: la UI recibe cuándo se activa y cuándo empieza.
+    try:
+        tz = ZoneInfo(row["event_timezone"])
+    except Exception:
+        tz = qr_ready_at.tzinfo
+    fmt = lambda d: d.astimezone(tz).strftime("%d/%m %H:%M")
+    return False, f"Tu QR se activa el {fmt(qr_ready_at)} · El evento empieza el {fmt(starts_at)}"
 
 
 async def _load_ticket(db: psycopg.AsyncConnection, raw_token: str) -> dict:
@@ -89,7 +117,18 @@ async def preview_ticket(
 ):
     """Datos de la boleta para pintarla en la pagina del invitado."""
     _check_rate(request)
-    return await _load_ticket(db, body.raw_token)
+    row = await _load_ticket(db, body.raw_token)
+    active, msg = _activation(row)
+    return PublicTicketOut(
+        ticket_id=row["ticket_id"],
+        customer_name=row["customer_name"],
+        event_name=row["event_name"],
+        venue_name=row["venue_name"],
+        starts_at=row["starts_at"],
+        status=row["status"],
+        qr_active=active,
+        qr_message=msg,
+    )
 
 
 @router.post("/image")
@@ -101,6 +140,13 @@ async def ticket_image(
     """Imagen JPEG de la boleta (flyer + QR) para descargar o compartir."""
     _check_rate(request)
     row = await _load_ticket(db, body.raw_token)
+    active, msg = _activation(row)
+    if not active:
+        # La imagen lleva el QR dentro: fuera de la ventana NO se compone.
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            msg or "El QR aún no está activo",
+        )
 
     jpeg = build_ticket_image(
         ticket_number=row["ticket_id"],

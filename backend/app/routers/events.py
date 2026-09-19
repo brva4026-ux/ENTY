@@ -48,7 +48,7 @@ def _event_ctx(venue_id: int, user: dict):
 # ---------------------------------------------------------------------------
 EVENT_COLUMNS = (
     "id, venue_id, name, description, flyer_url, starts_at, ends_at, "
-    "event_timezone, capacity, status"
+    "event_timezone, capacity, qr_unlock_minutes, status"
 )
 
 
@@ -176,8 +176,9 @@ async def create_event(
         await cur.execute(
             f"""
             INSERT INTO events (venue_id, name, description, flyer_url,
-                                starts_at, ends_at, event_timezone, capacity, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'draft')
+                                starts_at, ends_at, event_timezone, capacity,
+                                qr_unlock_minutes, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft')
             RETURNING {EVENT_COLUMNS}
             """,
             (
@@ -190,6 +191,7 @@ async def create_event(
                 body.ends_at,
                 body.event_timezone,
                 body.capacity,
+                body.qr_unlock_minutes,
             ),
         )
         created = await cur.fetchone()
@@ -232,6 +234,14 @@ async def update_event(
         # Normalize a str for the DB (pydantic gave us an HttpUrl object).
         if merged.get("flyer_url") is not None:
             merged["flyer_url"] = str(merged["flyer_url"])
+
+        # La ventana de activación del QR no pasa por update_event (su firma
+        # es estable): UPDATE directo con el mismo guard de estado.
+        if "qr_unlock_minutes" in body.model_dump(exclude_unset=True):
+            await cur.execute(
+                "UPDATE events SET qr_unlock_minutes=%s WHERE id=%s",
+                (body.qr_unlock_minutes, event_id),
+            )
 
         try:
             await cur.execute(
