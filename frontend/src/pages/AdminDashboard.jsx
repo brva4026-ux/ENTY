@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { apiFetch } from "../lib/api";
+import { apiFetch, publicTicketPageUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { haptics } from "../lib/haptics";
@@ -1486,6 +1486,9 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
   const [voidingId, setVoidingId] = useState(null);
   const [reason, setReason] = useState("Error de digitación");
   const [busy, setBusy] = useState(false);
+  // Mig 015: corrección de contacto (nombre/teléfono) con auditoría.
+  const [editingId, setEditingId] = useState(null);
+  const [edit, setEdit] = useState({ name: "", phone: "", reason: "" });
 
   async function voidTicket(t) {
     const ok = await ui.confirm(`¿Anular la boleta #${t.id}?`, {
@@ -1503,6 +1506,66 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
       setVoidingId(null);
       await onChanged();
       ui.success(`Boleta #${t.id} anulada`);
+    } catch (e) {
+      onError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Reemite una boleta vigente (mig 004): rota el token y entrega el enlace
+      nuevo. En el admin la entrega práctica es el portapapeles: el enlace
+      copiado se pega en el chat del invitado. Si el portapapeles falla (http,
+      permisos), el enlace queda visible en un diálogo para copiarlo a mano. */
+  async function reissueTicket(t) {
+    const ok = await ui.confirm(`¿Reemitir la boleta #${t.id}?`, {
+      message: `Se genera un enlace NUEVO para ${t.customer_name}. El enlace anterior deja de funcionar de inmediato.`,
+      confirmLabel: "Reemitir boleta",
+    });
+    if (!ok) return;
+    setBusy(true);
+    try {
+      const res = await apiFetch(
+        `/venues/${venueId}/events/${eventId}/tickets/${t.id}/reissue`,
+        { method: "POST", body: JSON.stringify({ reason: "Recuperación de enlace (WhatsApp perdido o borrado)" }) },
+      );
+      await onChanged();
+      const url = publicTicketPageUrl(res.raw_token);
+      try {
+        await navigator.clipboard.writeText(url);
+        ui.success(`Boleta #${t.id} reemitida: enlace copiado, pégalo en el chat del invitado`);
+      } catch {
+        ui.alert("Enlace nuevo de la boleta (cópialo manualmente):", { message: url });
+      }
+    } catch (e) {
+      onError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Corrección de contacto (mig 015): PATCH con auditoría en la DB. Al menos
+      un campo debe venir; el backend valida el teléfono y los permisos. */
+  async function saveContact(t) {
+    const name = edit.name.trim();
+    const phone = edit.phone.trim();
+    if (!name && !phone) {
+      onError("Escribe nombre o teléfono: al menos uno.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await apiFetch(`/venues/${venueId}/events/${eventId}/tickets/${t.id}/contact`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          ...(name ? { customer_name: name } : {}),
+          ...(phone ? { customer_phone: phone } : {}),
+          ...(edit.reason.trim() ? { reason: edit.reason.trim() } : {}),
+        }),
+      });
+      setEditingId(null);
+      await onChanged();
+      ui.success(`Contacto de la boleta #${t.id} actualizado`);
     } catch (e) {
       onError(e.message);
     } finally {
@@ -1574,6 +1637,7 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
                   </p>
                   <p className="mt-0.5 text-xs text-zinc-500">
                     {t.type_name ?? "—"}
+                    {t.customer_phone ? ` · ${t.customer_phone}` : ""}
                     {t.from_allocation ? " · cupo promotor" : " · venta directa"}
                     {t.sold_by_name ? ` · por ${t.sold_by_name}` : ""}
                     {t.price_cents_snapshot > 0
@@ -1581,17 +1645,35 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
                       : " · cortesía"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${st.cls}`}>
                     {st.label}
                   </span>
-                  {canVoid && voidingId !== t.id && (
-                    <button
-                      onClick={() => { setVoidingId(t.id); setReason("Error de digitación"); }}
-                      className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
-                    >
-                      Anular
-                    </button>
+                  {canVoid && voidingId !== t.id && editingId !== t.id && (
+                    <>
+                      <button
+                        onClick={() => reissueTicket(t)}
+                        disabled={busy}
+                        className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
+                      >
+                        Reemitir
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingId(t.id);
+                          setEdit({ name: t.customer_name ?? "", phone: t.customer_phone ?? "", reason: "" });
+                        }}
+                        className="rounded-lg px-2 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800"
+                      >
+                        Corregir
+                      </button>
+                      <button
+                        onClick={() => { setVoidingId(t.id); setReason("Error de digitación"); }}
+                        className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                      >
+                        Anular
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -1618,6 +1700,49 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
                   >
                     Cancelar
                   </button>
+                </div>
+              )}
+              {editingId === t.id && (
+                <div className="mt-2 space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                  <p className="text-xs font-semibold text-zinc-400">
+                    Corregir contacto · queda en auditoría (mig 015)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      value={edit.name}
+                      onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+                      className="field !py-1.5 text-xs sm:flex-1"
+                      placeholder="Nombre del asistente"
+                    />
+                    <input
+                      value={edit.phone}
+                      onChange={(e) => setEdit({ ...edit, phone: e.target.value })}
+                      className="field !py-1.5 text-xs sm:flex-1"
+                      placeholder="Teléfono (WhatsApp)"
+                      inputMode="tel"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={edit.reason}
+                      onChange={(e) => setEdit({ ...edit, reason: e.target.value })}
+                      className="field !py-1.5 flex-1 text-xs"
+                      placeholder="Motivo (opcional): quedó mal escrito, cambió de número…"
+                    />
+                    <button
+                      onClick={() => saveContact(t)}
+                      disabled={busy || (!edit.name.trim() && !edit.phone.trim())}
+                      className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                    >
+                      {busy ? "Guardando…" : "Guardar"}
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="rounded-lg px-2 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
               )}
             </li>

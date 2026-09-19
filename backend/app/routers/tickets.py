@@ -16,6 +16,8 @@ from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
 from app.schemas import (
     RedeemOut,
+    TicketContactEditRequest,
+    TicketContactEditResponse,
     TicketEmitRequest,
     TicketEmitResponse,
     TicketHistoryItem,
@@ -69,6 +71,17 @@ def _handle(venue_id: int, e: psycopg.errors.Error) -> None:
         )
     if "event_closed" in primary:
         raise HTTPException(409, "El evento ya cerro: no se puede reemitir")
+    # Mig 015: corrección de contacto del asistente.
+    if "cannot_edit_ticket_status" in primary:
+        raise HTTPException(
+            409, "Solo se puede corregir el contacto de boletas vigentes (no usadas ni anuladas)"
+        )
+    if "invalid_phone" in primary:
+        raise HTTPException(400, "El teléfono no parece válido")
+    if "invalid_name" in primary:
+        raise HTTPException(400, "El nombre no puede quedar vacío")
+    if "nothing_to_update" in primary:
+        raise HTTPException(400, "No hay nada que actualizar: envía nombre o teléfono")
     raise e
 
 
@@ -363,4 +376,75 @@ async def reissue_ticket(
         customer_name=info["customer_name"],
         customer_phone=info["customer_phone"],
         status="issued",
+    )
+
+
+@router.patch(
+    "/events/{event_id}/tickets/{ticket_id}/contact",
+    response_model=TicketContactEditResponse,
+)
+async def edit_ticket_contact(
+    venue_id: int,
+    event_id: int,
+    ticket_id: int,
+    body: TicketContactEditRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Corrige nombre y/o teléfono del asistente de una boleta vigente.
+
+    El error más común del flujo de emisión: el promotor digitó mal el teléfono
+    y el WhatsApp del QR nunca llegó. Antes la única salida era anular +
+    reemitir (fricción doble); ahora se corrige al vuelo, con auditoría completa
+    en la DB (mig 015: quién, cuándo, valores anteriores).
+
+    Permisos espejo de reissue: el promotor corrige SOLO sus boletas; el staff
+    (super_admin/admin) cualquiera del evento. El motivo es opcional y queda en
+    la auditoría.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.status, t.sold_by_user_id
+              FROM tickets t
+              JOIN events e ON e.id = t.event_id
+             WHERE t.id = %s AND t.event_id = %s AND e.venue_id = %s
+            """,
+            (ticket_id, event_id, venue_id),
+        )
+        row = await cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Boleta no encontrada")
+
+        # Espejo del reissue: un promotor no puede tocar boletas ajenas (podría
+        # redirigir el QR de un invitado de otro promotor).
+        roles = user["roles"].get(venue_id, [])
+        is_staff = any(r in ("super_admin", "admin") for r in roles)
+        if not is_staff and row["sold_by_user_id"] != user["id"]:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "Solo puedes corregir tus propias boletas"
+            )
+
+        try:
+            await cur.execute(
+                "SELECT correct_ticket_contact(%s, %s, %s, %s, %s)",
+                (ticket_id, body.customer_name, body.customer_phone, user["id"], body.reason),
+            )
+            await db.commit()
+        except psycopg.errors.Error as e:
+            _handle(venue_id, e)
+
+        await cur.execute(
+            "SELECT id, customer_name, customer_phone, status::text AS status FROM tickets WHERE id = %s",
+            (ticket_id,),
+        )
+        info = await cur.fetchone()
+
+    return TicketContactEditResponse(
+        ticket_id=info["id"],
+        customer_name=info["customer_name"],
+        customer_phone=info["customer_phone"],
+        status=info["status"],
     )

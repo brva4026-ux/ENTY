@@ -249,6 +249,28 @@ class TicketReissueResponse(BaseModel):
     status: str
 
 
+class TicketContactEditRequest(BaseModel):
+    """Corrección de contacto del asistente.
+
+    Nombre y teléfono son opcionales pero AL MENOS uno debe venir (la DB lo
+    valida con `nothing_to_update`). La auditoría de la mig 015 guarda los
+    valores anteriores.
+    """
+
+    customer_name: str | None = Field(default=None, min_length=1, max_length=200)
+    customer_phone: str | None = Field(default=None, min_length=5, max_length=30)
+    reason: str | None = Field(default=None, max_length=200)
+
+
+class TicketContactEditResponse(BaseModel):
+    """Boleta con el contacto ya corregido (sirve para actualizar la fila)."""
+
+    ticket_id: int
+    customer_name: str
+    customer_phone: str | None = None
+    status: str
+
+
 class TicketRedeemRequest(BaseModel):
     raw_token: str = Field(min_length=8)
     # Mig 013 (patrón DICE): cuando el escaneo devuelve NOT_ACTIVE, la puerta
@@ -488,6 +510,7 @@ class TicketOut(BaseModel):
     id: int
     customer_name: str
     customer_phone: str | None = None
+    customer_email: str | None = None
     status: str
     issued_at: datetime
     price_cents_snapshot: int

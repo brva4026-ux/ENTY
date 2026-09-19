@@ -35,6 +35,8 @@ export default function PromoterDashboard() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [reissuingId, setReissuingId] = useState(null);
+  const ui = useUI();
 
   useEffect(() => {
     if (!venueId) return;
@@ -153,9 +155,46 @@ export default function PromoterDashboard() {
   }
 
   const eventName = (events ?? []).find((ev) => ev.id === selectedEvent)?.name ?? "";
+
+  /** Reemite una boleta VIGENTE (mig 004): rota el token y entrega el enlace
+      nuevo. Se usa cuando el invitado perdió el WhatsApp, borró el chat o el
+      enlace murió con la pestaña: la boleta es la misma, solo cambia la
+      credencial del QR (el enlace anterior deja de servir en el acto). */
+  async function reissueTicket(t) {
+    const ok = await ui.confirm(`¿Reemitir la boleta #${t.ticket_id}?`, {
+      message: `Se genera un enlace NUEVO para ${t.customer_name}. El enlace anterior deja de funcionar de inmediato: si alguien ya tenía el QR viejo, ya no le sirve.`,
+      confirmLabel: "Reemitir boleta",
+    });
+    if (!ok) return;
+    setReissuingId(t.ticket_id);
+    setError("");
+    try {
+      const res = await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/tickets/${t.ticket_id}/reissue`,
+        { method: "POST", body: JSON.stringify({ reason: "Recuperación de enlace (WhatsApp perdido o borrado)" }) },
+      );
+      setLastTicket({
+        ...res,
+        customerName: res.customer_name,
+        customerPhone: res.customer_phone,
+      });
+      setCopied(false);
+      haptics.success();
+      await loadHistory();
+      ui.success(`Boleta #${t.ticket_id} reemitida: entrega el enlace nuevo de la columna derecha`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setReissuingId(null);
+    }
+  }
+
   // Entrega real: el cliente abre este link y ve su QR (sin sesión). Es la
   // página HTML (reenviable, con vista previa de WhatsApp), no la imagen cruda.
-  const ticketUrl = lastTicket ? publicTicketPageUrl(lastTicket.raw_token) : null;
+  // Desde el historial el objeto puede venir sin raw_token (nunca se guarda en
+  // claro en la DB): entonces no hay URL que copiar hasta reemitir.
+  const ticketUrl =
+    lastTicket?.raw_token != null ? publicTicketPageUrl(lastTicket.raw_token) : null;
 
   // wa.me exige el número solo con dígitos, código de país incluido. Si viene
   // incompleto abrimos el selector de contactos en vez de un chat equivocado.
@@ -389,7 +428,18 @@ export default function PromoterDashboard() {
                         {t.customer_phone ? ` · ${t.customer_phone}` : ""}
                       </p>
                     </div>
-                    <TicketStatusPill status={t.status} />
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {t.status === "issued" && (
+                        <button
+                          onClick={() => reissueTicket(t)}
+                          disabled={reissuingId === t.ticket_id}
+                          className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
+                        >
+                          {reissuingId === t.ticket_id ? "Reemitindo…" : "Reemitir"}
+                        </button>
+                      )}
+                      <TicketStatusPill status={t.status} />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -403,7 +453,7 @@ export default function PromoterDashboard() {
               {lastTicket ? "Boleta generada" : "Vista previa"}
             </h3>
             {lastTicket ? (
-              <div className="animate-rise space-y-4">
+              <div className="animate-rise space-y-4" key={lastTicket.raw_token ?? lastTicket.ticket_id}>
                 <a href={ticketUrl} target="_blank" rel="noreferrer" className="block">
                   <TicketPreview
                     rawToken={lastTicket.raw_token}

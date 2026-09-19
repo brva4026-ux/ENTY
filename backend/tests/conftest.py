@@ -30,6 +30,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "012_in_app_notifications.sql",
     ROOT / "db" / "migrations" / "013_qr_activation.sql",
     ROOT / "db" / "migrations" / "014_push_outbox_and_location.sql",
+    ROOT / "db" / "migrations" / "015_ticket_contact_audit.sql",
 ]
 
 
@@ -53,6 +54,7 @@ def db():
     conn.execute(
         """
         DROP TABLE IF EXISTS notifications, staff_invitations, push_subscriptions, ticket_reissues,
+            ticket_contact_edits,
             redemptions, promoter_payouts, tickets, promoter_allocations, ticket_types, events,
             venue_user_roles, venues, users CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;
@@ -63,7 +65,7 @@ def db():
         DROP FUNCTION IF EXISTS emit_ticket, void_ticket,
             reissue_ticket, set_event_status, notify_user, notify_venue_admins,
             notify_payout_lifecycle, notify_invitation_accepted,
-            notify_ticket_reissued, events_check_capacity,
+            notify_ticket_reissued, correct_ticket_contact, events_check_capacity,
             update_ticket_type, update_promoter_allocation,
             delete_ticket_type, delete_promoter_allocation,
             tickets_check_active_refs, update_event,

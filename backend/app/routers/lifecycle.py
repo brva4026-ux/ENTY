@@ -774,7 +774,7 @@ async def list_tickets(
             raise HTTPException(404, "Evento no encontrado")
         await cur.execute(
             f"""
-            SELECT t.id, t.customer_name, t.customer_phone, t.status,
+            SELECT t.id, t.customer_name, t.customer_phone, t.customer_email, t.status,
                    t.issued_at, t.price_cents_snapshot,
                    tt.name AS type_name,
                    u.full_name AS sold_by_name,

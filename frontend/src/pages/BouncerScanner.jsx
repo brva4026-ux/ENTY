@@ -38,6 +38,20 @@ const RESULT_STYLES = {
 
 // ms que dura el resultado en pantalla antes de volver a escanear
 const RESULT_RESET_MS = 4000;
+
+// Etiquetas del log local (cortas: la fila se lee de un vistazo en la puerta).
+const SCAN_LOG_LABEL = {
+  GRANTED: "ENTRA",
+  ALREADY_REDEEMED: "YA USADA",
+  NOT_FOUND: "NO EXISTE",
+  INVALID_EVENT: "OTRO EVENTO",
+  EVENT_NOT_LIVE: "EVENTO CERRADO",
+  NOT_VALID: "ANULADA",
+  WRONG_TYPE: "FILA EQUIVOCADA",
+  NETWORK_ERROR: "SIN RED",
+  SCAN_ERROR: "ERROR",
+  NOT_ACTIVE: "AÚN NO ACTIVA",
+};
 // Anti-spam de reintentos de NOT_ACTIVE: el servidor no cobra por cada
 // escaneo, pero martillar no cambia la hora del evento.
 const RETRY_COOLDOWN_MS = 20_000;
@@ -60,6 +74,11 @@ export default function BouncerScanner() {
   // aceptar boletas de cualquier tipo (comportamiento clásico).
   const [types, setTypes] = useState([]);
   const [rowFilter, setRowFilter] = useState("");
+  // Log de los últimos escaneos de ESTE dispositivo (el más nuevo primero).
+  // Para "yo sí entré": el portero muestra la hora y el resultado sin depender
+  // del admin. Nunca sale del teléfono — no es reporte, es respaldo en puerta.
+  const [scanLog, setScanLog] = useState([]);
+  const [logOpen, setLogOpen] = useState(false);
   const scannerRef = useRef(null);
   const html5Ref = useRef(null);
   const lastScannedRef = useRef("");
@@ -188,6 +207,18 @@ export default function BouncerScanner() {
         }),
       });
       setResult(data);
+      // Al log local: hora + resultado + nombre si el server lo devolvió.
+      setScanLog((prev) =>
+        [
+          {
+            at: new Date().toISOString(),
+            code: data.code ?? (data.redeemed ? "GRANTED" : "NOT_VALID"),
+            name: data.customer_name ?? null,
+            detail: data.detail ?? null,
+          },
+          ...prev,
+        ].slice(0, 20),
+      );
       // Tres canales al mismo tiempo: vista (pantalla), tacto (vibración)
       // y oído (firma sonora por resultado — en un roncino no se siente la
       // vibración y no siempre se puede mirar la pantalla).
@@ -213,10 +244,12 @@ export default function BouncerScanner() {
     } catch (err) {
       // Un error HTTP trae semántica de negocio desde el servidor (err.status
       // + mensaje accionable); solo la falta de conexión es "sin red".
-      setResult(
-        err.status
-          ? { code: "SCAN_ERROR", detail: err.message }
-          : { code: "NETWORK_ERROR", detail: err.message },
+      const errCode = err.status ? "SCAN_ERROR" : "NETWORK_ERROR";
+      setResult({ code: errCode, detail: err.message });
+      // Los fallos también quedan: "se escaneó y no pasó nada" es una
+      // discusión de puerta tan real como un canje dudoso.
+      setScanLog((prev) =>
+        [{ at: new Date().toISOString(), code: errCode, name: null, detail: err.message }, ...prev].slice(0, 20),
       );
       if (!err.status) {
         try {
@@ -425,6 +458,53 @@ export default function BouncerScanner() {
           <p className="mt-4 max-w-sm text-center text-xs text-zinc-600">
             Verde = entra · Rojo = no entra. El resultado también aparece con el código manual.
           </p>
+
+          {/* Log de los últimos escaneos de este teléfono: respaldo para
+              discusiones en puerta ("yo sí entré"). Colapsado por defecto:
+              durante el turno manda el escaneo, no la lectura. */}
+          {scanLog.length > 0 && (
+            <div className="mt-4 w-full max-w-sm">
+              <button
+                onClick={() => setLogOpen((v) => !v)}
+                className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-900"
+              >
+                <span>
+                  Últimos escaneos <span className="tnum text-zinc-500">({scanLog.length})</span>
+                </span>
+                <span className="text-zinc-500">{logOpen ? "ocultar ▲" : "ver ▼"}</span>
+              </button>
+              {logOpen && (
+                <ul className="mt-2 divide-y divide-zinc-800/70 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
+                  {scanLog.map((s, i) => (
+                    <li key={`${s.at}-${i}`} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          s.code === "GRANTED"
+                            ? "bg-emerald-400"
+                            : ["NOT_ACTIVE", "WRONG_TYPE", "NETWORK_ERROR", "SCAN_ERROR"].includes(s.code)
+                              ? "bg-amber-400"
+                              : "bg-red-400"
+                        }`}
+                      />
+                      <span className="tnum shrink-0 text-zinc-500">
+                        {new Date(s.at).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                      </span>
+                      <span className="truncate font-semibold text-zinc-300">
+                        {SCAN_LOG_LABEL[s.code] ?? s.code}
+                        {s.name ? ` · ${s.name}` : ""}
+                      </span>
+                      {s.detail && i === 0 && (
+                        <span className="ml-auto truncate text-zinc-600">{s.detail}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-1 text-center text-[10px] text-zinc-600">
+                Solo en este dispositivo · sirve para aclarar en puerta
+              </p>
+            </div>
+          )}
 
           {/* Aviso push cuando el admin abra puertas (published -> live) */}
           <div className="w-full max-w-sm">
