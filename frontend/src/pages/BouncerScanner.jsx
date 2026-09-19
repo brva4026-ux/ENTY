@@ -2,6 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { apiFetch } from "../lib/api";
 import { activeVenueId } from "../lib/venue";
+import { playForCode, playOffline } from "../lib/doorSounds";
+import {
+  requestWakeLock,
+  releaseWakeLock,
+  autoReacquireWakeLock,
+} from "../lib/wakeLock";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { LiveIndicator } from "../components/Brand";
@@ -108,9 +114,11 @@ export default function BouncerScanner() {
     setRowFilter("");
   }, [loadTypes]);
 
-  // limpieza del timer al desmontar
+  // limpieza del timer al desmontar (y del wake lock: la pantalla vuelve a
+  // apagarse normal cuando el bouncer sale del escáner)
   useEffect(() => () => {
     if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    releaseWakeLock();
   }, []);
 
   // Cuenta atrás del cooldown de reintento (solo mientras hay uno pendiente).
@@ -127,6 +135,10 @@ export default function BouncerScanner() {
       setError("Selecciona un evento primero");
       return;
     }
+    // El gesto de activar la cámara habilita también el audio (iOS lo exige)
+    // y mantiene la pantalla encendida durante el servicio.
+    requestWakeLock();
+    autoReacquireWakeLock();
     try {
       const qr = new Html5Qrcode("qr-reader-region");
       html5Ref.current = qr;
@@ -152,6 +164,7 @@ export default function BouncerScanner() {
       }
       html5Ref.current = null;
     }
+    releaseWakeLock();
     setScanning(false);
   }
 
@@ -175,10 +188,16 @@ export default function BouncerScanner() {
         }),
       });
       setResult(data);
-      // vibración háptica: verde = pulso corto, rojo = doble pulso,
-      // NOT_ACTIVE = triple corto (diferente de un rechazo definitivo)
+      // Tres canales al mismo tiempo: vista (pantalla), tacto (vibración)
+      // y oído (firma sonora por resultado — en un roncino no se siente la
+      // vibración y no siempre se puede mirar la pantalla).
       if (navigator.vibrate) {
         navigator.vibrate(data.redeemed ? [80] : data.code === "NOT_ACTIVE" ? [40, 60, 40] : [60, 60, 60]);
+      }
+      try {
+        playForCode(data.code ?? (data.redeemed ? "GRANTED" : "NOT_VALID"));
+      } catch {
+        /* el audio nunca debe romper el canje */
       }
       if (data.code === "NOT_ACTIVE") {
         // No entra pero su boleta sirve: queda "aparcado" para reintentar
@@ -199,6 +218,13 @@ export default function BouncerScanner() {
           ? { code: "SCAN_ERROR", detail: err.message }
           : { code: "NETWORK_ERROR", detail: err.message },
       );
+      if (!err.status) {
+        try {
+          playOffline(); // "no puedes trabajar así" — distinto de un rechazo
+        } catch {
+          /* ignore */
+        }
+      }
     }
   }
 
