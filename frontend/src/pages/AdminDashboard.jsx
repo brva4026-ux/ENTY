@@ -11,6 +11,7 @@ import { ListSkeleton, SelectSkeleton, Skeleton, StatSkeletonRow } from "../comp
 import { useUI } from "../lib/ui";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import TeamManager from "../components/TeamManager";
+import PayoutsManager from "../components/PayoutsManager";
 
 function firstVenueId(user) {
   const ids = Object.keys(user?.roles || {}).map(Number);
@@ -392,6 +393,7 @@ export default function AdminDashboard() {
     },
     { id: "boletas", label: "Boletas y cupos", count: activeIssued },
     { id: "equipo", label: "Equipo", count: users.length || null },
+    { id: "liquidaciones", label: "Liquidaciones" },
   ];
 
   return (
@@ -450,6 +452,11 @@ export default function AdminDashboard() {
       {/* ====== SECCIÓN: EQUIPO ====== */}
       {section === "equipo" && (
         <TeamManager venueId={venueId} users={users} onChanged={reloadUsers} />
+      )}
+
+      {/* ====== SECCIÓN: LIQUIDACIONES ====== */}
+      {section === "liquidaciones" && (
+        <PayoutsManager venueId={venueId} users={users} />
       )}
 
       {error && (

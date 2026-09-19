@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
@@ -37,6 +37,7 @@ class VenueSummary(BaseModel):
     slug: str
     logo_url: str | None = None
     primary_color: str | None = None
+    commission_pct: float = 0
 
 
 # --------------------------------------------------------------------------
@@ -50,6 +51,7 @@ class VenueCreate(BaseModel):
     currency: str = "COP"
     logo_url: str | None = None
     primary_color: str | None = None
+    commission_pct: float = 0
 
 
 class EventCreate(BaseModel):
@@ -299,6 +301,8 @@ class UpdateVenueRequest(BaseModel):
     logo_url="" limpia el logo."""
     name: str | None = Field(default=None, min_length=2, max_length=120)
     logo_url: str | None = Field(default=None, max_length=500)
+    # Comision del promotor (0-100): base del calculo de liquidaciones.
+    commission_pct: float | None = Field(default=None, ge=0, le=100)
 
     @model_validator(mode="after")
     def _logo_url_shape(self):
@@ -551,3 +555,43 @@ class ReportSummary(BaseModel):
 
 class MessageOut(BaseModel):
     detail: str
+
+# --------------------------------------------------------------------------
+# Liquidaciones de promotores (mig 010)
+# --------------------------------------------------------------------------
+class PayoutGenerateRequest(BaseModel):
+    """Cierre de liquidacion de un promotor por rango de fechas."""
+    promoter_id: int
+    period_start: date
+    period_end: date
+
+
+class PayoutReviewRequest(BaseModel):
+    """Resolucion del admin sobre una liquidacion."""
+    action: str = Field(pattern="^(pay|reject)$")
+    paid_cents: int | None = Field(default=None, ge=0)
+    note: str | None = Field(default=None, max_length=500)
+
+
+class PayoutDisputeRequest(BaseModel):
+    """Disputa del promotor: por que considera que la liquidacion no cuadra."""
+    reason: str = Field(min_length=10, max_length=500)
+
+
+class PayoutOut(BaseModel):
+    id: int
+    promoter_id: int
+    promoter_name: str = ""
+    period_start: date
+    period_end: date
+    tickets_count: int
+    revenue_cents: int
+    commission_pct: float
+    commission_cents: int
+    status: str
+    paid_cents: int | None = None
+    paid_at: datetime | None = None
+    disputed_reason: str | None = None
+    review_note: str | None = None
+    reviewed_at: datetime | None = None
+    created_at: datetime

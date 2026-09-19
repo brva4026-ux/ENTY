@@ -23,6 +23,9 @@ export default function ProfilePage() {
   );
   const [venueName, setVenueName] = useState(adminVenue?.name || "");
   const [venueLogo, setVenueLogo] = useState(adminVenue?.logo_url || "");
+  const [venueCommission, setVenueCommission] = useState(
+    adminVenue?.commission_pct != null ? String(adminVenue.commission_pct) : "0",
+  );
   const [logoError, setLogoError] = useState("");
   const [venueMsg, setVenueMsg] = useState(null);
   const [venueBusy, setVenueBusy] = useState(false);
@@ -104,13 +107,19 @@ export default function ProfilePage() {
     try {
       const updated = await apiFetch(`/auth/venues/${adminVenue.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ name: venueName, logo_url: venueLogo }),
+        body: JSON.stringify({
+          name: venueName,
+          logo_url: venueLogo,
+          commission_pct: Number(venueCommission) || 0,
+        }),
       });
       // Refrescar la venue dentro del user del contexto global
       setUser({
         ...user,
         venues: user.venues.map((v) =>
-          v.id === updated.id ? { ...v, name: updated.name, logo_url: updated.logo_url } : v
+          v.id === updated.id
+            ? { ...v, name: updated.name, logo_url: updated.logo_url, commission_pct: updated.commission_pct }
+            : v
         ),
       });
       setVenueMsg({ ok: true, text: "Datos del negocio actualizados." });
@@ -263,9 +272,29 @@ export default function ProfilePage() {
                 {venueMsg.text}
               </div>
             )}
+            {/* Comisión del promotor: base de las liquidaciones (se congela
+                por liquidación al cerrar el periodo). */}
+            <div className="mt-4">
+              <label htmlFor="venue-commission" className="mb-1 block text-xs font-medium text-zinc-400">
+                Comisión del promotor (%)
+              </label>
+              <input
+                id="venue-commission"
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                value={venueCommission}
+                onChange={(e) => setVenueCommission(e.target.value)}
+                className="field"
+              />
+              <p className="mt-1 text-xs text-zinc-500">
+                Se aplica al recaudo de cada promotor al cerrar su liquidación.
+              </p>
+            </div>
             <button
               type="submit"
-              disabled={venueBusy || (venueName.trim() === adminVenue.name && venueLogo === (adminVenue.logo_url || ""))}
+              disabled={venueBusy || (venueName.trim() === adminVenue.name && venueLogo === (adminVenue.logo_url || "") && venueCommission === String(adminVenue.commission_pct ?? 0))}
               className="btn-primary disabled:opacity-40"
             >
               {venueBusy ? "Guardando…" : "Guardar negocio"}

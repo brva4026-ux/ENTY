@@ -5,6 +5,7 @@ import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { haptics } from "../lib/haptics";
 import TicketPreview from "../components/TicketPreview";
 import { PullToRefresh } from "../components/PullToRefresh";
+import { useUI } from "../lib/ui";
 import { StatSkeletonRow } from "../components/Skeleton";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
 
@@ -181,11 +182,26 @@ export default function PromoterDashboard() {
   }
 
   // Recarga completa para pull-to-refresh.
+  // Liquidaciones propias: el promotor ve cuanto ha ganado y puede disputar.
+  const [payouts, setPayouts] = useState(null);
+  const loadPayouts = useCallback(async () => {
+    try {
+      setPayouts(await apiFetch(`/venues/${venueId}/payouts/mine`));
+    } catch {
+      setPayouts([]);
+    }
+  }, [venueId]);
+
+  useEffect(() => {
+    if (venueId) loadPayouts();
+  }, [loadPayouts, venueId]);
+
   const reloadAll = useCallback(
     async () =>
       Promise.allSettled([
         loadEvents(),
         selectedEvent ? refreshOperational() : Promise.resolve(),
+        loadPayouts(),
       ]),
     [loadEvents, refreshOperational, selectedEvent]
   );
@@ -432,10 +448,151 @@ export default function PromoterDashboard() {
             )}
           </div>
           </div>
+
+          {/* ====== MIS LIQUIDACIONES ====== */}
+          <MyPayouts venueId={venueId} payouts={payouts} onReload={loadPayouts} />
         </>
       )}
     </div>
     </PullToRefresh>
+  );
+}
+
+/* Panel de liquidaciones del promotor: cuanto gano, en que estado, y la
+   disputa si no cuadra. El dinero se calcula del lado del backend. */
+function MyPayouts({ venueId, payouts, onReload }) {
+  const ui = useUI();
+  const [disputeFor, setDisputeFor] = useState(null);
+  const [reason, setReason] = useState("");
+  const [err, setErr] = useState("");
+
+  if (!payouts) return null;
+
+  const fmt = (c) =>
+    `$${Math.round((c || 0) / 100).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
+
+  async function submitDispute(p) {
+    setErr("");
+    try {
+      await apiFetch(`/venues/${venueId}/payouts/${p.id}/dispute`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
+      setDisputeFor(null);
+      setReason("");
+      onReload();
+      ui.success("Disputa enviada: el admin la revisará");
+    } catch (e2) {
+      setErr(e2.message);
+    }
+  }
+
+  const pending = payouts.filter((p) => p.status === "pending" || p.status === "disputed");
+  const paidTotal = payouts
+    .filter((p) => p.status === "paid")
+    .reduce((acc, p) => acc + (p.paid_cents || 0), 0);
+
+  return (
+    <div className="card p-5">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <p className="eyebrow">Tus ganancias</p>
+          <h3 className="display mt-0.5 text-base">Mis liquidaciones</h3>
+        </div>
+        <p className="tnum text-sm text-zinc-400">
+          Pagado: <span className="font-semibold text-emerald-400">{fmt(paidTotal)}</span>
+        </p>
+      </div>
+
+      {payouts.length === 0 ? (
+        <p className="text-sm text-zinc-500">
+          Cuando el admin cierre un periodo con tus ventas, tu liquidación aparecerá aquí.
+        </p>
+      ) : (
+        <ul className="divide-list overflow-hidden rounded-lg border border-zinc-800/80">
+          {payouts.map((p) => (
+            <li key={p.id} className="px-3.5 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="tnum text-sm font-semibold text-zinc-200">
+                    {p.period_start} → {p.period_end}
+                  </p>
+                  <p className="tnum text-xs text-zinc-500">
+                    {p.tickets_count} boletas · {fmt(p.revenue_cents)} · {p.commission_pct}%
+                  </p>
+                  {p.disputed_reason && (
+                    <p className="mt-1 text-xs text-amber-400">Tu disputa: {p.disputed_reason}</p>
+                  )}
+                  {p.review_note && (
+                    <p className="mt-1 text-xs text-zinc-500">Respuesta: {p.review_note}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="tnum display text-lg text-white">
+                    {fmt(p.status === "paid" ? p.paid_cents : p.commission_cents)}
+                  </p>
+                  <StatusPill status={p.status} onDispute={
+                    p.status === "pending"
+                      ? () => {
+                          setDisputeFor(disputeFor === p.id ? null : p.id);
+                          setReason("");
+                        }
+                      : null
+                  } />
+                </div>
+              </div>
+              {disputeFor === p.id && (
+                <div className="mt-2 space-y-2">
+                  {err && <p className="text-xs text-red-400">{err}</p>}
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="field min-h-20 text-sm"
+                    placeholder="Explica qué no cuadra (mínimo 10 caracteres)…"
+                    maxLength={500}
+                  />
+                  <button
+                    onClick={() => submitDispute(p)}
+                    disabled={reason.trim().length < 10}
+                    className="btn-primary px-3 py-1 text-xs font-bold disabled:opacity-40"
+                  >
+                    Enviar disputa
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {pending.length > 0 && (
+        <p className="mt-2 text-xs text-zinc-600">
+          {pending.length} liquidación{pending.length > 1 ? "es" : ""} por confirmar — si algo
+          no cuadra, dispútala antes de que se pague.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function StatusPill({ status, onDispute }) {
+  const map = {
+    pending: ["Pendiente", "bg-amber-950/60 text-amber-300 ring-amber-800/60"],
+    disputed: ["En disputa", "bg-red-950/60 text-red-300 ring-red-800/60"],
+    paid: ["Pagada", "bg-emerald-950/60 text-emerald-300 ring-emerald-800/60"],
+    rejected: ["Rechazada", "bg-zinc-800 text-zinc-400 ring-zinc-700"],
+  };
+  const [label, cls] = map[status] ?? [status, "bg-zinc-800 text-zinc-300 ring-zinc-700"];
+  return (
+    <span className="mt-1 inline-flex items-center gap-1.5">
+      <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${cls}`}>
+        {label}
+      </span>
+      {onDispute && (
+        <button onClick={onDispute} className="text-[10px] font-bold text-zinc-500 underline hover:text-zinc-300">
+          disputar
+        </button>
+      )}
+    </span>
   );
 }
 

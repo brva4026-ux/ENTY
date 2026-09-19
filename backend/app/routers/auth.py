@@ -88,7 +88,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         await cur.execute(
             """
             SELECT v.id AS venue_id, v.name, v.slug, v.logo_url, v.primary_color,
-                   vr.role
+                   v.commission_pct, vr.role
             FROM venue_user_roles vr
             JOIN venues v ON v.id = vr.venue_id
             WHERE vr.user_id = %s
@@ -105,6 +105,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
             venues[venue_id] = VenueSummary(
                 id=venue_id, name=row["name"], slug=row["slug"],
                 logo_url=row["logo_url"], primary_color=row["primary_color"],
+                commission_pct=float(row["commission_pct"] or 0),
             )
         roles_by_venue[str(venue_id)] = roles_by_venue.get(str(venue_id), []) + [row["role"]]
 
@@ -334,10 +335,15 @@ async def update_venue_settings(
                 "UPDATE venues SET logo_url=%s WHERE id=%s",
                 (body.logo_url.strip() or None, venue_id),
             )
+        if body.commission_pct is not None:
+            await cur.execute(
+                "UPDATE venues SET commission_pct=%s WHERE id=%s",
+                (body.commission_pct, venue_id),
+            )
         await db.commit()
 
         await cur.execute(
-            """SELECT id, name, slug, logo_url, primary_color
+            """SELECT id, name, slug, logo_url, primary_color, commission_pct
                FROM venues WHERE id=%s""",
             (venue_id,),
         )
@@ -348,6 +354,7 @@ async def update_venue_settings(
         slug=row["slug"],
         logo_url=row["logo_url"],
         primary_color=row["primary_color"],
+        commission_pct=float(row["commission_pct"] or 0),
     )
 
 

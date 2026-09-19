@@ -74,6 +74,8 @@ CREATE TABLE venues (
     currency      text NOT NULL DEFAULT 'COP',
     logo_url      text,
     primary_color text,
+    -- Comision del promotor en pct (0-100): base de las liquidaciones (mig 010).
+    commission_pct numeric(5,2) NOT NULL DEFAULT 0,
     is_active     boolean NOT NULL DEFAULT TRUE,
     created_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -416,3 +418,30 @@ END;
 $$;
 
 COMMIT;
+-- ---------------------------------------------------------------------------
+-- 10. LIQUIDACIONES DE PROMOTORES (mig 010, patron payment_issues de unicall)
+-- ---------------------------------------------------------------------------
+CREATE TABLE promoter_payouts (
+    id                 bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    venue_id           bigint NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    promoter_id        bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    period_start       date NOT NULL,
+    period_end         date NOT NULL,
+    tickets_count      integer NOT NULL DEFAULT 0,
+    revenue_cents      bigint NOT NULL DEFAULT 0,
+    commission_pct     numeric(5,2) NOT NULL DEFAULT 0,
+    commission_cents   bigint NOT NULL DEFAULT 0,
+    status             text NOT NULL DEFAULT 'pending',
+    paid_cents         bigint,
+    paid_at            timestamptz,
+    disputed_reason    text,
+    reviewed_by        bigint REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at        timestamptz,
+    review_note        text,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    CHECK (period_end >= period_start),
+    CHECK (status IN ('pending','disputed','paid','rejected'))
+);
+CREATE UNIQUE INDEX idx_payouts_unique_period ON promoter_payouts (venue_id, promoter_id, period_start);
+CREATE INDEX idx_payouts_venue_status ON promoter_payouts (venue_id, status, created_at DESC);
+CREATE INDEX idx_payouts_promoter ON promoter_payouts (promoter_id, venue_id, created_at DESC);

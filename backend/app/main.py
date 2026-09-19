@@ -21,6 +21,7 @@ from app.routers import (
     public,
     public_tickets,
     push,
+    payouts,
     report,
     seed,
     team,
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     app.include_router(public_tickets.router)
     app.include_router(report.router)
     app.include_router(team.router)
+    app.include_router(payouts.router)
     app.include_router(public.router)
     app.include_router(seed.router)
 

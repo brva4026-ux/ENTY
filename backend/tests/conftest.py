@@ -24,6 +24,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "007_push_subscriptions.sql",
     ROOT / "db" / "migrations" / "008_redeem_type_filter.sql",
     ROOT / "db" / "migrations" / "009_team_stats.sql",
+    ROOT / "db" / "migrations" / "010_promoter_payouts.sql",
 ]
 
 
@@ -47,7 +48,7 @@ def db():
     conn.execute(
         """
         DROP TABLE IF EXISTS push_subscriptions, ticket_reissues, redemptions,
-            tickets, promoter_allocations, ticket_types, events,
+            promoter_payouts, tickets, promoter_allocations, ticket_types, events,
             venue_user_roles, venues, users CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;
         -- redeem_ticket tuvo dos firmas (3 y 4 args, mig 008): un DROP sin
