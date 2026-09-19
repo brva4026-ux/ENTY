@@ -21,9 +21,16 @@ html, body, #root { height: 100%; }
 
 body {
   font-family: var(--font-sans);
-  /* Superficie plana y oscura. Cero auras: la jerarquía la dan tipografía,
-     bordes y espaciado — no decoración. */
-  background: #09090b;
+  /* Base oscura con aurora premium (estética distri-stream traducida a dark):
+     dos lavados radiales violeta/azul muy sutiles en la parte superior. La
+     jerarquía sigue viniendo de tipografía y profundidad — el brillo es
+     ambiente, no decoración. Estático (sin animación) y sin fixed-attachment
+     para no pagar repaint en scroll móvil. */
+  background:
+    radial-gradient(60rem 32rem at 50% -12rem, rgba(124, 58, 237, 0.18), transparent 62%),
+    radial-gradient(46rem 26rem at 88% -8rem, rgba(59, 130, 246, 0.09), transparent 60%),
+    #09090b;
+  background-repeat: no-repeat;
   color: #e4e4e7;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -42,13 +49,14 @@ body {
 /* Números tabulares: las cifras no "bailan" al refrescar */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
-/* Eyebrow: etiqueta pequeña MAYÚSCULA que encabeza secciones (Stripe) */
+/* Eyebrow: etiqueta pequeña MAYÚSCULA que encabeza secciones.
+   En brand-400 (como los encabezados azul/violeta de distri-stream). */
 .eyebrow {
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #71717a;
+  color: #a78bfa;
 }
 
 /* Titulares: apretados, pesados, oscuro sobre claro de zinc */
@@ -58,11 +66,18 @@ body {
   color: #fafafa;
 }
 
-/* Tarjeta: superficie plana de zinc con borde real. Sin glass, sin glow. */
+/* Tarjeta premium: superficie con luz propia — degradado sutil arriba (como
+   si hubiera una fuente de luz), borde translúcido, sombra profunda y radio
+   mayor. Es la sensación de "tarjeta elevada" de distri-stream en dark. */
 .card {
-  border-radius: 0.75rem;
-  border: 1px solid #1f1f23;
-  background: #101013;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 42%),
+    #101013;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+    0 10px 30px -12px rgba(0, 0, 0, 0.55);
 }
 
 /* Separadores internos consistentes */
@@ -85,28 +100,34 @@ body {
 .field::placeholder { color: #52525b; }
 .field:hover { border-color: #3f3f46; }
 .field:focus {
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22), 0 0 18px -6px rgba(139, 92, 246, 0.45);
 }
 
-/* Botón primario: sólido blanco — contraste máximo, cero llamatividad.
-   Es la técnica de Vercel/Linear: el CTA blanco es el punto focal. */
+/* Botón primario: degradado violeta → fucsia con glow (firma premium de
+   distri-stream: "Nuevo usuario", "Gestionar →"). El CTA es el punto de
+   color de la pantalla; el glow se intensifica al hover para invitar. */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   border-radius: 0.5rem;
-  background: #fafafa;
-  color: #101013;
-  border: 1px solid #fafafa;
+  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 48%, #a855f7 100%);
+  color: #ffffff;
+  border: 1px solid rgba(168, 85, 247, 0.55);
+  box-shadow: 0 4px 14px -4px rgba(124, 58, 237, 0.5);
   padding: 0.55rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
   transition: background 0.12s, border-color 0.12s, transform 0.1s ease;
 }
-.btn-primary:hover { background: #e4e4e7; border-color: #e4e4e7; }
-.btn-primary:active { background: #d4d4d8; transform: scale(0.98); }
+.btn-primary:hover {
+  background: linear-gradient(135deg, #8b5cf6 0%, #9d6bfa 48%, #b668f9 100%);
+  border-color: rgba(196, 181, 253, 0.7);
+  box-shadow: 0 6px 22px -6px rgba(139, 92, 246, 0.65);
+}
+.btn-primary:active { filter: brightness(0.96); transform: scale(0.98); }
 .btn-primary:disabled { opacity: 0.45; pointer-events: none; }
 
 /* Botón secundario: outline zinc */
@@ -124,7 +145,11 @@ body {
   color: #d4d4d8;
   transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.1s ease;
 }
-.btn-ghost:hover { background: #18181b; border-color: #3f3f46; color: #fafafa; }
+.btn-ghost:hover {
+  background: rgba(139, 92, 246, 0.08);
+  border-color: rgba(139, 92, 246, 0.45);
+  color: #fafafa;
+}
 .btn-ghost:active { transform: scale(0.98); }
 
 /* Botón de peligro: texto rojo, relleno solo al hover */
@@ -164,17 +189,20 @@ body {
 }
 .badge-dot { width: 0.375rem; height: 0.375rem; border-radius: 999px; }
 
-/* Barras de progreso: pista hundida, relleno plano */
+/* Barras de progreso: pista hundida + relleno con degradado y brillo de
+   punta (la barra "viva" de distri-stream, medida en el mismo violeta). */
 .meter {
-  height: 0.375rem;
+  height: 0.4375rem;
   border-radius: 999px;
   background: #1c1c1f;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
 .meter-fill {
   height: 100%;
   border-radius: 999px;
-  background: #7c3aed;
+  background: linear-gradient(90deg, #6d28d9, #8b5cf6 70%, #a78bfa);
+  box-shadow: 0 0 10px -2px rgba(139, 92, 246, 0.7);
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
