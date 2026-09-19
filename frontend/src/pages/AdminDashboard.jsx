@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { haptics } from "../lib/haptics";
 import ReportWidget from "../components/ReportWidget";
-import { EventStatusBadge, LiveIndicator, QuotaMeter } from "../components/Brand";
+import { LiveIndicator, QuotaMeter } from "../components/Brand";
 import { PullToRefresh } from "../components/PullToRefresh";
 import { InstallPrompt } from "../components/InstallPrompt";
 import { ListSkeleton, SelectSkeleton, Skeleton, StatSkeletonRow } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
 import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
+import EventWorkbench, { EventNotFound } from "../components/EventWorkbench";
 import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
 import PayoutsManager from "../components/PayoutsManager";
@@ -49,21 +51,7 @@ function defaultEventForm() {
   };
 }
 
-function formatEventDate(value) {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("es-CO", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-/** Fecha corta para las pestañas de evento (los chips no dan para más). */
+/** Fecha corta para la franja de eventos (los chips no dan para más). */
 function formatShortDate(value) {
   if (!value) return "";
   const d = new Date(value);
@@ -90,6 +78,15 @@ const NEXT_ACTIONS = {
   cancelled: [],
 };
 
+/* Chip de estado para la franja de eventos (versión compacta). */
+const EV_CHIP = {
+  draft: "bg-zinc-800 text-zinc-400",
+  published: "bg-brand-500/15 text-brand-300",
+  live: "bg-emerald-500/15 text-emerald-300",
+  ended: "bg-zinc-800 text-zinc-500",
+  cancelled: "bg-red-500/15 text-red-300",
+};
+
 const TICKET_STATUS = {
   issued: { label: "Activa", cls: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40" },
   redeemed: { label: "Redimida", cls: "bg-sky-500/15 text-sky-300 ring-sky-500/40" },
@@ -109,6 +106,11 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  // Fuente de verdad de la URL: el evento abierto y su pestaña viven en
+  // /admin?event=<id>&tab=<tab> — compartible, sobrevive recargas y back.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlEvent = searchParams.get("event");
+  const urlTab = searchParams.get("tab") || "resumen";
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [creating, setCreating] = useState(false);
@@ -120,9 +122,11 @@ export default function AdminDashboard() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [editError, setEditError] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
-  // Navegación por secciones: el admin trabaja por TAREA, no con todo apilado.
-  const [section, setSection] = useState("overview");
-  const [creatingOpen, setCreatingOpen] = useState(false);
+  // La pestaña activa es la de la URL (la mig 012 ya generaba ?tab=...);
+  // whitelist para no renderizar una pestaña inventada por el usuario.
+  const section = ["resumen", "boletas", "equipo", "liquidaciones", "invitaciones"].includes(urlTab)
+    ? urlTab
+    : "resumen";
 
   // events === null significa "primera carga": se muestra skeleton en vez de
   // un vacío engañoso ("Aún no hay eventos") que no es verdad aún.
@@ -132,12 +136,54 @@ export default function AdminDashboard() {
     if (!venueId) return;
     const data = await apiFetch(`/venues/${venueId}/events`);
     setEvents(data);
-    if (data.length > 0) setSelectedEvent((prev) => (data.some((e) => e.id === prev) ? prev : data[0].id));
   }, [venueId]);
 
   useEffect(() => {
     loadEvents().catch((e) => setError(e.message));
   }, [loadEvents]);
+
+  // Sincronización URL <-> selección. La URL manda si trae evento válido;
+  // sin evento en la URL, se aterriza en el primero (determinismo: la
+  // recarga con /admin a secas abre el mismo evento, no una pantalla vacía).
+  // Con eventos === null aún no se sabe si existe el de la URL: no tocar nada.
+  useEffect(() => {
+    if (events === null) return;
+    const wanted = urlEvent ? Number(urlEvent) : null;
+    const exists = wanted !== null && events.some((e) => e.id === wanted);
+    if (exists) {
+      if (wanted !== selectedEvent) setSelectedEvent(wanted);
+    } else if (urlEvent) {
+      // Evento inexistente en la URL (borrado/enlace viejo): se limpia el
+      // parámetro para que la URL diga la verdad de lo que se está viendo;
+      // la siguiente pasada aterriza en el primer evento.
+      setSearchParams({});
+    } else if (events.length > 0) {
+      // Sin evento en la URL: aterrizar en el primero SOLO si no hay selección
+      // vigente (p.ej. tras "Invitar al equipo", que limpia ?event= pero no
+      // debe cambiar el evento abierto con cada refresh).
+      setSelectedEvent((prev) =>
+        prev !== null && events.some((e) => e.id === prev) ? prev : events[0].id
+      );
+    } else if (selectedEvent !== null) {
+      setSelectedEvent(null);
+    }
+    // selectedEvent a propósito fuera de las deps: esta pantalla solo sigue a
+    // la URL y al catálogo, no re-detecciona en cada clic del selector.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, urlEvent]);
+
+  /** Navega al backstage de un evento (la URL es la fuente de verdad). */
+  function flyToEvent(id, tab) {
+    const params = new URLSearchParams();
+    params.set("event", String(id));
+    if (tab && tab !== "resumen") params.set("tab", tab);
+    setSearchParams(params); // push: back vuelve al evento/tab anterior
+  }
+
+  /** Cambia de pestaña dentro del backstage del evento abierto. */
+  function setSection(tab) {
+    flyToEvent(selectedEvent, tab);
+  }
 
   // Usuarios de la venue: para asignar cupos con nombres reales
   const reloadUsers = useCallback(() => {
@@ -330,7 +376,9 @@ export default function AdminDashboard() {
       });
       setForm(defaultEventForm());
       setBadFlyer("");
-      setSelectedEvent(ev.id);
+      // El evento recién creado ABRE su backstage: nace aparte y el admin
+      // aterriza directo en la pestaña de montaje (boletas y cupos).
+      flyToEvent(ev.id, "boletas");
       await loadEvents();
       ui.success("Evento creado: añade tipos y cupos 🎟️");
     } catch (err) {
@@ -358,6 +406,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({ confirm }),
       });
       setSelectedEvent(null);
+      setSearchParams({}); // sin ?event=…: el efecto de URL re-sienta en el primer evento restante
       await loadEvents();
       ui.success("Evento eliminado");
     } catch (err) {
@@ -384,27 +433,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // Contadores por pestaña: contexto de un vistazo sin cambiar de sección.
-  // - overview: ocupación del evento (activas/aforo)
-  // - boletas: boletas activas emitidas
-  // - equipo: personas con acceso a la venue
-  const activeIssued = report?.issued ?? null;
-  const capacity = selectedEventData?.capacity ?? null;
-  const SECTIONS = [
-    {
-      id: "overview",
-      label: "Vista general",
-      count:
-        activeIssued !== null && capacity
-          ? `${activeIssued}/${capacity}`
-          : null,
-    },
-    { id: "boletas", label: "Boletas y cupos", count: activeIssued },
-    { id: "equipo", label: "Equipo", count: users.length || null },
-    { id: "liquidaciones", label: "Liquidaciones" },
-    { id: "invitaciones", label: "Invitaciones" },
-  ];
-
   return (
     <PullToRefresh onRefresh={reloadAll}>
     <div className="reveal space-y-5">
@@ -419,81 +447,101 @@ export default function AdminDashboard() {
           isPublished={selectedEventData ? ["published", "live"].includes(selectedEventData.status) : false}
         />
       )}
-      {/* Navegación de secciones: el admin trabaja por TAREA, no con todo apilado */}
-      <div className="border-b border-zinc-800 pb-1">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="display text-gradient text-2xl">Panel de administración</h2>
-          <div className="flex flex-wrap items-center gap-3">
-            <LiveIndicator live={isLive} lastUpdated={lastUpdated} />
-            {selectedEventData && <EventStatusBadge status={selectedEventData.status} />}
-          </div>
-        </div>
-
-        {/* En móvil las pestañas desbordan: scroll horizontal sin scrollbar */}
-        <nav className="no-scrollbar -mx-4 mt-4 flex gap-1 overflow-x-auto px-4 pb-1">
-          {SECTIONS.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setSection(s.id)}
-              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3.5 py-2 text-sm font-medium transition ${
-                section === s.id
-                  ? "bg-zinc-800 text-white"
-                  : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-              }`}
-            >
-              {s.label}
-              {s.count !== null && s.count !== undefined && (
-                <span
-                  className={`tnum rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
-                    section === s.id
-                      ? "bg-zinc-700 text-zinc-200"
-                      : "bg-zinc-800/80 text-zinc-500"
-                  }`}
-                >
-                  {s.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* ====== SECCIÓN: EQUIPO ====== */}
-      {section === "equipo" && (
-        <TeamManager venueId={venueId} users={users} onChanged={reloadUsers} />
-      )}
-
-      {/* ====== SECCIÓN: LIQUIDACIONES ====== */}
-      {section === "liquidaciones" && (
-        <PayoutsManager venueId={venueId} users={users} />
-      )}
-      {section === "invitaciones" && (
-        <InvitationsManager venueId={venueId} />
-      )}
-
       {error && (
         <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       )}
 
-      {/* Crear evento: panel colapsable — no roba espacio las 24 horas */}
-      <div className="card">
-        <button
-          type="button"
-          onClick={() => setCreatingOpen((v) => !v)}
-          className="flex w-full items-center justify-between gap-2 px-5 py-4 text-left"
-        >
-          <span>
-            <span className="display block text-base text-white">Crear evento</span>
-            <span className="text-xs text-zinc-500">Nace en borrador: publícalo cuando esté listo para vender.</span>
-          </span>
-          <span className={`btn-ghost shrink-0 !px-3 !py-1.5 text-xs font-semibold`}>
-            {creatingOpen ? "Cerrar" : "+ Nuevo"}
-          </span>
-        </button>
-        {creatingOpen && (
-        <form onSubmit={createEvent} className="border-t border-zinc-800/80 p-5">
+      {/* ====== Franja "Todos los eventos": el mapa de la operación ====== */}
+      {booting ? (
+        <SelectSkeleton className="max-w-xs" />
+      ) : (
+        <section className="card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="display text-base">Todos los eventos</p>
+            <Link
+              to="?tab=invitaciones"
+              className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold text-amber-300 hover:text-amber-200"
+            >
+              Invitar al equipo
+            </Link>
+          </div>
+
+          {events.length === 0 ? (
+            <EmptyState icon="door" title="Aún no hay eventos">
+              Crea el primero: nace en borrador y te lleva directo a montarlo.
+            </EmptyState>
+          ) : (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {[...events]
+                .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at))
+                .map((ev) => {
+                  const active = ev.id === selectedEvent;
+                  // Roles del equipo de la venue (solo se sabe con /users
+                  // cargado; la franja del evento abierto muestra los suyos).
+                  const roles =
+                    ev.id === selectedEvent
+                      ? [...new Set(users.flatMap((u) => u.roles || []))]
+                      : [];
+                  return (
+                    <Link
+                      key={ev.id}
+                      to={`/admin?event=${ev.id}`}
+                      onClick={() => haptics.tick()}
+                      className={`card-interactive block rounded-xl border p-3.5 transition ${
+                        active
+                          ? "border-brand-500/60 bg-brand-500/[0.06]"
+                          : "border-zinc-800/80 hover:border-zinc-700"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 truncate text-sm font-bold text-white">
+                          {ev.name}
+                        </p>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                            EV_CHIP[ev.status] ?? EV_CHIP.draft
+                          }`}
+                        >
+                          {ev.status === "live" ? "en puerta" : ev.status === "published" ? "a la venta" : ev.status}
+                        </span>
+                      </div>
+                      <p className="tnum mt-1 text-xs text-zinc-400">
+                        {formatShortDate(ev.starts_at)} · aforo {ev.capacity}
+                      </p>
+                      <p className="mt-1.5 text-[11px] leading-snug text-zinc-500">
+                        {roles.length > 0 ? (
+                          roles.map((r) => (
+                            <span key={r} className="mr-1.5 inline-flex items-center gap-1">
+                              <span
+                                className={`inline-block h-1.5 w-1.5 rounded-full ${
+                                  r === "bouncer"
+                                    ? "bg-emerald-400"
+                                    : r === "admin"
+                                      ? "bg-amber-400"
+                                      : "bg-brand-400"
+                                }`}
+                                aria-hidden
+                              />
+                              {r === "bouncer" ? "Puerta" : r === "admin" ? "Admin" : "Promotor"}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-zinc-600">sin equipo asignado</span>
+                        )}
+                      </p>
+                    </Link>
+                  );
+                })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Crear evento: formulario siempre visible — el admin está aquí para trabajar */}
+      <div className="card p-5">
+        <form onSubmit={createEvent}>
         <div className="grid gap-3.5 sm:grid-cols-2">
           <label className="sm:col-span-full">
             <span className="mb-1 block text-xs font-medium text-zinc-400">
@@ -616,87 +664,28 @@ export default function AdminDashboard() {
           </span>
         </div>
         </form>
-        )}
       </div>
 
-      {/* Selector de evento */}
-      {booting ? (
-        <SelectSkeleton className="max-w-xs" />
-      ) : events.length > 0 ? (
-        <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
-          <div className="flex w-max items-center gap-2">
-            <span className="text-sm font-medium text-zinc-500">Evento:</span>
-          {events.map((ev) => (
-            <button
-              key={ev.id}
-              onClick={() => setSelectedEvent(ev.id)}
-              className={`chip rounded-full px-4 py-1.5 text-sm font-semibold ${
-                selectedEvent === ev.id
-                  ? "chip-active text-white"
-                  : "bg-zinc-800/70 text-zinc-300 hover:bg-zinc-700"
-              }`}
-            >
-              {ev.name}
-              <span className="ml-2 text-[11px] font-medium opacity-75">
-                {formatShortDate(ev.starts_at)}
-              </span>
-            </button>
-          ))}
-          </div>
-        </div>
-      ) : (
-        <div className="card p-8 text-center">
-          <p className="text-zinc-400">Aún no hay eventos.</p>
-          <p className="mt-1 text-sm text-zinc-500">Crea el primero arriba para empezar.</p>
-        </div>
-      )}
+      {/* Enlace viejo o evento borrado: pantalla honesta, no un limbo */}
+      {selectedEvent && !selectedEventData && <EventNotFound onBack={() => setSearchParams({})} />}
 
-      {selectedEvent && (
+      {selectedEvent && selectedEventData && (
         <>
-          {selectedEventData && (
-            <div className="card flex flex-wrap items-start gap-4 p-4">
-              {selectedEventData.flyer_url &&
-                selectedEventData.flyer_url !== badFlyer && (
-                  <img
-                    src={selectedEventData.flyer_url}
-                    alt=""
-                    onError={() => setBadFlyer(selectedEventData.flyer_url)}
-                    className="h-24 w-24 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
-                  />
-                )}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-white">{selectedEventData.name}</p>
-                <p className="mt-0.5 text-xs text-zinc-400">
-                  {formatEventDate(selectedEventData.starts_at)}
-                  {selectedEventData.ends_at
-                    ? ` → ${formatEventDate(selectedEventData.ends_at)}`
-                    : ""}
-                  {" · "}aforo {selectedEventData.capacity}
-                </p>
-                {selectedEventData.description && (
-                  <p className="mt-2 whitespace-pre-line text-sm text-zinc-300">
-                    {selectedEventData.description}
-                  </p>
-                )}
-              </div>
-              {editable && (
-                <button
-                  onClick={startEditEvent}
-                  className="btn-ghost shrink-0 text-xs font-bold"
-                >
-                  Editar
-                </button>
-              )}
-              {["draft", "cancelled"].includes(selectedEventData.status) && (
-                <button
-                  onClick={deleteSelectedEvent}
-                  className="btn-ghost shrink-0 text-xs font-bold text-red-400"
-                >
-                  Eliminar
-                </button>
-              )}
-            </div>
-          )}
+          {/* Backstage del evento: identidad, pulso y ciclo de vida */}
+          <EventWorkbench
+            ev={selectedEventData}
+            report={report}
+            tab={section}
+            onTab={setSection}
+            actions={actions}
+            onAction={runAction}
+            busyAction={busyAction}
+            isLive={isLive}
+            lastUpdated={lastUpdated}
+            onEdit={startEditEvent}
+            editable={editable}
+            onDelete={deleteSelectedEvent}
+          />
 
           {/* Edición del evento (draft/published) */}
           {editingEvent && editable && (
@@ -833,35 +822,41 @@ export default function AdminDashboard() {
             </form>
           )}
 
-          {(section === "overview" || section === "boletas") &&
-            (report ? <ReportWidget report={report} /> : <StatSkeletonRow />)}
-
-          {/* Ciclo de vida del evento — solo en Vista general */}
-          {actions.length > 0 && (
-            <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center">
-              <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Ciclo de vida
-              </span>
-              {actions.map(({ action, label, danger }) => (
-                <button
-                  key={action}
-                  onClick={() => runAction(action, label)}
-                  disabled={busyAction === action}
-                  className={
-                    action === "publish"
-                      ? "btn-primary w-full !py-2.5 text-sm sm:w-auto"
-                      : danger
-                        ? "btn-danger-text font-semibold"
-                        : "btn-ghost text-sm font-semibold"
-                  }
-                >
-                  {busyAction === action ? "Procesando…" : label}
-                </button>
-              ))}
+          {/* ====== Pestañas dentro del backstage ====== */}
+          {section === "resumen" && (
+            <div className="grid gap-5 lg:grid-cols-2">
+              {report ? <ReportWidget report={report} /> : <StatSkeletonRow />}
+              <div className="card p-4">
+                <p className="display mb-2 text-base">Ciclo de vida</p>
+                {actions.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {actions.map(({ action, label, danger }) => (
+                      <button
+                        key={action}
+                        onClick={() => runAction(action, label)}
+                        disabled={busyAction === action}
+                        className={
+                          action === "publish" || action === "live"
+                            ? "btn-primary !py-2 text-sm"
+                            : danger
+                              ? "btn-danger-text text-sm font-semibold"
+                              : "btn-ghost text-sm font-semibold"
+                        }
+                      >
+                        {busyAction === action ? "Procesando…" : label}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-zinc-500">
+                    Este evento cerró su ciclo: no tiene acciones pendientes.
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
-          {(section === "overview" || section === "boletas") && (
+          {(section === "resumen" || section === "boletas") && (
             <div className="grid gap-5 lg:grid-cols-2">
               <TypeManager
                 venueId={venueId}
@@ -890,6 +885,47 @@ export default function AdminDashboard() {
             />
           )}
         </>
+      )}
+
+      {/* ====== Tareas de la venue: viven fuera del evento ====== */}
+      {/* Sin evento abierto (venue nueva, enlace directo ?tab=equipo…) estas
+          pestañas necesitan su propia navegación: el workbench —con el strip
+          de pestañas completo— no está montado. */}
+      {!selectedEventData &&
+        ["equipo", "liquidaciones", "invitaciones"].includes(section) && (
+          <nav className="card flex flex-wrap items-center gap-2 p-4">
+            <p className="display mr-2 text-base">Tareas de la venue</p>
+            {[
+              ["equipo", "Equipo"],
+              ["liquidaciones", "Liquidaciones"],
+              ["invitaciones", "Invitaciones"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setSearchParams({ tab: id })}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  section === id
+                    ? "bg-zinc-800 text-white"
+                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        )}
+
+      {/* Se rendericen o no con evento abierto, estas secciones dependen solo
+          de la venue: sin evento (venue nueva, enlace directo ?tab=…) siguen
+          siendo alcanzables — no quedan rehenes del backstage. */}
+      {section === "equipo" && (
+        <TeamManager venueId={venueId} users={users} onChanged={reloadUsers} />
+      )}
+      {section === "liquidaciones" && (
+        <PayoutsManager venueId={venueId} users={users} />
+      )}
+      {section === "invitaciones" && (
+        <InvitationsManager venueId={venueId} />
       )}
     </div>
     </PullToRefresh>

@@ -6,11 +6,24 @@
  * como una boleta.
  */
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Logo } from "../components/Brand";
 import { apiFetch } from "../lib/api";
 
 const ROLE_LABEL = { promotor: "Promotor", bouncer: "Portero", admin: "Administrador" };
+
+/* Destino y explicación del rol: el nuevo integrante nunca aterriza a ciegas.
+ * La sesión ya quedó creada (el backend devuelve el access_token al canjear),
+ * así que estos enlaces entran directo sin volver a pasar por login. */
+const ROLE_HOME = { admin: "/admin", promotor: "/promotor", bouncer: "/bouncer" };
+const ROLE_WELCOME = {
+  admin:
+    "Entras al panel de administración: creas el evento y su backstage te lleva paso a paso (tipos, cupos, equipo y caja).",
+  promotor:
+    "Entras a tu panel: eliges el evento y emites boletas desde tu cupo. El enlace de cada boleta se comparte por WhatsApp.",
+  bouncer:
+    "Entras al escáner: eliges el evento en puerta y escaneas. Recuerda: el QR del invitado solo se activa en la ventana del evento.",
+};
 
 /* Medidor de contraseña: guía sin exigir adivinar reglas. */
 function passStrength(p) {
@@ -205,9 +218,27 @@ export default function AcceptInvitationPage() {
               </span>
               <h1 className="display text-lg">¡Listo, ya eres parte del equipo!</h1>
               <p className="text-sm text-zinc-400">Tu cuenta quedó creada con la contraseña que elegiste.</p>
-              <a href="/" className="btn-primary inline-block px-5 py-2.5 text-sm font-bold">
-                Entrar ahora
-              </a>
+
+              {/* Rol y destino: quién es y qué va a hacer desde ya */}
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-left">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+                  Entras como
+                </p>
+                <p className="display mt-0.5 text-base text-white">
+                  {ROLE_LABEL[preview?.role] || preview?.role} · {preview?.venue_name}
+                </p>
+                <p className="mt-1.5 text-sm text-zinc-400">
+                  {ROLE_WELCOME[preview?.role] ||
+                    "Tu cuenta ya tiene acceso: entra al panel para empezar."}
+                </p>
+              </div>
+
+              <Link
+                to={ROLE_HOME[preview?.role] || "/"}
+                className="btn-primary inline-block px-5 py-2.5 text-sm font-bold"
+              >
+                Ir a mi panel
+              </Link>
             </div>
           )}
         </div>
