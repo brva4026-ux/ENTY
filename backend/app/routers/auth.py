@@ -132,7 +132,7 @@ async def login(
 
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, email, full_name, password_hash, is_active FROM users WHERE lower(email)=lower(%s)",
+            "SELECT id, email, full_name, password_hash, is_active, last_login_at FROM users WHERE lower(email)=lower(%s)",
             (body.email,),
         )
         user = await cur.fetchone()
@@ -149,6 +149,11 @@ async def login(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario inactivo")
 
     _FAILURES.pop(key, None)  # exito limpia el contador
+
+    # Último acceso exitoso (mig 009): alimenta la actividad del módulo Equipo.
+    await db.execute(
+        "UPDATE users SET last_login_at = now() WHERE id = %s", (user["id"],)
+    )
 
     # venues + roles del usuario para el JWT
     async with db.cursor() as cur:

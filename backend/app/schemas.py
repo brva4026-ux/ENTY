@@ -397,6 +397,50 @@ class VenueUserOut(BaseModel):
     is_active: bool = True
 
 
+# --------------------------------------------------------------------------
+# Módulo Equipo: métricas de productividad por persona
+# --------------------------------------------------------------------------
+class MemberQuota(BaseModel):
+    """Ventas del miembro contra su cupo (promotores)."""
+    capacity: int = 0
+    issued: int = 0
+    redeemed: int = 0
+    revenue_cents: int = 0
+    allocations: int = 0
+
+
+class MemberDoor(BaseModel):
+    """Trabajo en puerta (porteros): escaneos buenos, bloqueados y totales."""
+    granted: int = 0
+    rejected: int = 0
+    total: int = 0
+
+
+class TeamMemberOut(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    roles: list[str] = []
+    is_active: bool = True
+    last_login_at: datetime | None = None
+    member_since: datetime | None = None
+    quota: MemberQuota = MemberQuota()
+    door: MemberDoor = MemberDoor()
+
+
+class TeamStatsOut(BaseModel):
+    """Resumen ejecutivo del equipo: KPIs + detalle por miembro."""
+    total_members: int
+    active_members: int
+    promoters_active: int
+    bouncers_active: int
+    # Personal operativo que entró a trabajar dentro de la ventana (last_login).
+    active_in_window: int
+    days_window: int
+    members: list[TeamMemberOut]
+    by_role: dict[str, list[int]]
+
+
 class CreateVenueUser(BaseModel):
     """Alta de personal de la venue (equipo) desde la UI del admin.
 

@@ -23,6 +23,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "006_redeem_event_guard.sql",
     ROOT / "db" / "migrations" / "007_push_subscriptions.sql",
     ROOT / "db" / "migrations" / "008_redeem_type_filter.sql",
+    ROOT / "db" / "migrations" / "009_team_stats.sql",
 ]
 
 

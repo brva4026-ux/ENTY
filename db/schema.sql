@@ -40,7 +40,9 @@ CREATE TABLE users (
     full_name        text NOT NULL,
     is_active        boolean NOT NULL DEFAULT TRUE,
     created_at       timestamptz NOT NULL DEFAULT now(),
-    updated_at       timestamptz NOT NULL DEFAULT now()
+    updated_at       timestamptz NOT NULL DEFAULT now(),
+    -- Último acceso exitoso: alimenta la actividad del módulo Equipo (mig 009).
+    last_login_at    timestamptz
 );
 
 -- Rol global (sin tabla extra):

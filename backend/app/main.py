@@ -23,6 +23,7 @@ from app.routers import (
     push,
     report,
     seed,
+    team,
     tickets,
 )
 
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(tickets.router)
     app.include_router(public_tickets.router)
     app.include_router(report.router)
+    app.include_router(team.router)
     app.include_router(public.router)
     app.include_router(seed.router)
 
