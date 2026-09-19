@@ -1,5 +1,6 @@
 import re
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
@@ -595,3 +596,44 @@ class PayoutOut(BaseModel):
     review_note: str | None = None
     reviewed_at: datetime | None = None
     created_at: datetime
+
+
+# --------------------------------------------------------------------------
+# Invitaciones de staff (alta de personal por enlace de un solo uso)
+# --------------------------------------------------------------------------
+class StaffInvitationCreate(BaseModel):
+    """El admin invita a una persona a su equipo sin inventar contraseñas."""
+    full_name: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=5, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
+    role: Literal["promotor", "bouncer", "admin"] = "promotor"
+    expires_hours: int = Field(default=72, ge=1, le=336)
+
+
+class StaffInvitationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    role: str
+    full_name: str
+    email: str
+    expires_at: datetime
+    created_at: datetime
+    accepted_at: datetime | None = None
+    revoked_at: datetime | None = None
+
+
+class StaffInvitationCreated(StaffInvitationOut):
+    """El token en claro viaja SOLO en esta respuesta de creación."""
+    invite_url: str
+
+
+class AcceptInvitationRequest(BaseModel):
+    token: str = Field(min_length=32, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class InvitationPreview(BaseModel):
+    """Lo único que ve el invitado antes de aceptar (sin datos sensibles)."""
+    role: str
+    full_name: str
+    venue_name: str
+    expires_at: datetime

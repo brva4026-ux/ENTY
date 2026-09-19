@@ -11,6 +11,7 @@ import { ListSkeleton, SelectSkeleton, Skeleton, StatSkeletonRow } from "../comp
 import { useUI } from "../lib/ui";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import TeamManager from "../components/TeamManager";
+import InvitationsManager from "../components/InvitationsManager";
 import PayoutsManager from "../components/PayoutsManager";
 
 function firstVenueId(user) {
@@ -394,6 +395,7 @@ export default function AdminDashboard() {
     { id: "boletas", label: "Boletas y cupos", count: activeIssued },
     { id: "equipo", label: "Equipo", count: users.length || null },
     { id: "liquidaciones", label: "Liquidaciones" },
+    { id: "invitaciones", label: "Invitaciones" },
   ];
 
   return (
@@ -457,6 +459,9 @@ export default function AdminDashboard() {
       {/* ====== SECCIÓN: LIQUIDACIONES ====== */}
       {section === "liquidaciones" && (
         <PayoutsManager venueId={venueId} users={users} />
+      )}
+      {section === "invitaciones" && (
+        <InvitationsManager venueId={venueId} />
       )}
 
       {error && (

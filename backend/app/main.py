@@ -16,6 +16,7 @@ from app.core.config import get_settings
 from app.core.db import close_pool, init_pool
 from app.routers import (
     auth,
+    invitations,
     events,
     lifecycle,
     public,
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(invitations.router)
     app.include_router(auth.router)
     app.include_router(events.router)
     app.include_router(lifecycle.router)

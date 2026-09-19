@@ -9,6 +9,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProfilePage from "./pages/ProfilePage";
+import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import PromoterDashboard from "./pages/PromoterDashboard";
 // El escáner carga html5-qrcode (~300 KB) y la boleta pública es una página
@@ -60,6 +61,7 @@ function App() {
           {/* Boleta del invitado: publica, sin login. El token llega en el
               fragmento (#), que el navegador no envia al servidor. */}
           <Route path="/t" element={<PublicTicketPage />} />
+          <Route path="/invitacion" element={<AcceptInvitationPage />} />
           <Route
             path="/admin"
             element={

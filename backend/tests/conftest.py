@@ -25,6 +25,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "008_redeem_type_filter.sql",
     ROOT / "db" / "migrations" / "009_team_stats.sql",
     ROOT / "db" / "migrations" / "010_promoter_payouts.sql",
+    ROOT / "db" / "migrations" / "011_staff_invitations.sql",
 ]
 
 
@@ -47,7 +48,7 @@ def db():
     # Esquema limpio en cada sesión de tests (orden inverso de dependencias)
     conn.execute(
         """
-        DROP TABLE IF EXISTS push_subscriptions, ticket_reissues, redemptions,
+        DROP TABLE IF EXISTS staff_invitations, push_subscriptions, ticket_reissues, redemptions,
             promoter_payouts, tickets, promoter_allocations, ticket_types, events,
             venue_user_roles, venues, users CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;

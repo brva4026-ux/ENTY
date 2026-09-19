@@ -60,6 +60,7 @@ CREATE TABLE venue_user_roles (
     PRIMARY KEY (venue_id, user_id, role)
 );
 
+
 -- ---------------------------------------------------------------------------
 -- 2. VENUE (multi-tenant): la discoteca/bar al que se factura
 -- ---------------------------------------------------------------------------
@@ -79,6 +80,25 @@ CREATE TABLE venues (
     is_active     boolean NOT NULL DEFAULT TRUE,
     created_at    timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE staff_invitations (
+    id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    venue_id         bigint NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    role             text   NOT NULL CHECK (role IN ('promotor', 'bouncer', 'admin')),
+    full_name        text   NOT NULL,
+    email            text   NOT NULL,
+    token_hash       text   NOT NULL UNIQUE,  -- solo hash: la DB filtrada no produce enlaces
+    expires_at       timestamptz NOT NULL,
+    accepted_at      timestamptz,
+    accepted_user_id bigint REFERENCES users(id),
+    created_by       bigint NOT NULL REFERENCES users(id),
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    revoked_at       timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_invitations_venue_open
+    ON staff_invitations (venue_id)
+    WHERE accepted_at IS NULL AND revoked_at IS NULL;
 
 ALTER TABLE venue_user_roles
     ADD CONSTRAINT venue_user_roles_venue_fk
