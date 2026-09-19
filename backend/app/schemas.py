@@ -134,6 +134,9 @@ class EventOut(BaseModel):
     name: str
     description: str | None = None
     flyer_url: str | None = None
+    # Lugar del evento (mig 014): el formulario lo edita y la boleta del
+    # invitado lo muestra.
+    location: str | None = None
     starts_at: datetime
     ends_at: datetime | None = None
     event_timezone: str
