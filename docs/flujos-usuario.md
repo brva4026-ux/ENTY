@@ -71,9 +71,38 @@ comisión por promotor sobre pago es la Etapa 3 (*settlement*).
 
 ### 2.3 Reimpresión / reenvío
 
-El promotor puede **reimprimir** la boleta de un asistente por teléfono:
-`boletas?phone=...`. No puede "generar otra": cada boleta es única
-(`token_hash` UNIQUE).
+El token crudo del QR se entrega **una sola vez** al emitir, y en la DB solo
+queda su SHA-256. Si el WhatsApp no salió, el invitado borró el chat o el
+promotor cerró la pestaña, **no hay forma de volver a mostrar ese QR**: el hash
+es de una vía y guardar el crudo anularía su propósito (que una filtración de la
+DB no permita reusar boletas ajenas).
+
+Por eso la recuperación no "reimprime" el token viejo: **lo rota**.
+
+1. `Promotor > Mis boletas` lista las boletas propias del evento
+   (`GET /venues/{id}/events/{id}/tickets`; el staff ve todo el evento, el
+   promotor solo lo que vendió él).
+2. Se puede acotar por teléfono con `?phone=...`, comparando por sufijo de
+   dígitos: `3001234567` encuentra a `+57 300 123-4567`.
+3. **Reenviar** (`POST .../tickets/{id}/reissue`) genera un token nuevo para la
+   misma boleta y devuelve el QR y el enlace listos para mandar.
+
+La boleta sigue siendo la misma (`token_hash` UNIQUE): no se emite una boleta
+nueva, así que **no consume cupo ni aforo adicionales**. Lo que cambia es la
+credencial del QR: el token anterior deja de funcionar en el acto, lo que
+además corta cualquier copia del QR viejo que haya circulado.
+
+**Restricciones:**
+
+- Un promotor solo reemite **sus** boletas; el staff (`admin`/`super_admin`)
+  reemite cualquiera del evento (caso real: el invitado llega a la puerta sin
+  QR).
+- Una boleta **ya usada** no se reemite: la entrada ya ocurrió y un token nuevo
+  sería una segunda entrada gratis.
+- Tampoco se reemite una boleta **anulada** o reembolsada: revivirla saltaría la
+  anulación.
+- Cada reemisión queda auditada en `ticket_reissues` (quién, cuándo, por qué y
+  el hash del token anterior), sin guardar nunca el token crudo.
 
 **Anti-reenvío (regla de UI):** la boleta muestra el **nombre** del asistente,
 y el bouncer lo compara visualmente. Solo se permite una boleta por teléfono

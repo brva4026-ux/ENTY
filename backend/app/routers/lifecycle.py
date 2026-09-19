@@ -722,15 +722,50 @@ async def create_venue_user(
 
 
 # ---------------------------------------------------------------------------
-# Listado de boletas del evento (para revisar y anular desde la UI)
+# Listado de boletas del evento (para revisar, anular y reimprimir desde la UI)
 # ---------------------------------------------------------------------------
 @router.get("/events/{event_id}/tickets", response_model=list[TicketOut])
 async def list_tickets(
     venue_id: int, event_id: int,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    phone: str | None = None,
 ):
-    ensure_roles(user, venue_id, "super_admin", "admin")
+    """Boletas del evento.
+
+    El staff (super_admin/admin) ve todas; el promotor ve SOLO las suyas. Antes
+    esto era admin-only y el promotor no podia ni listar lo que habia vendido,
+    asi que si perdia el enlace de una boleta no tenia forma de recuperarla.
+
+    `?phone=` (dijitos, se comparan normalizados) acota a un asistente, que es
+    el caso real de "el invitado no recibio su QR".
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+    roles = user["roles"].get(venue_id, [])
+    is_staff = any(r in ("super_admin", "admin") for r in roles)
+
+    params: list = [event_id]
+    # Un promotor puro solo ve las boletas que el mismo vendio. Si ademas es
+    # staff, manda el rol mas amplio (ve todo el evento).
+    owner_filter = ""
+    if not is_staff:
+        owner_filter = " AND t.sold_by_user_id = %s"
+        params.append(user["id"])
+
+    phone_filter = ""
+    if phone:
+        # El telefono puede estar guardado con +, espacios o guiones, y el
+        # usuario lo recuerda sin el codigo de pais. Se normalizan a digitos
+        # ambos lados y se compara por sufijo, asi "3001234567" encuentra a
+        # "+57 300 123-4567". Se exige un minimo de digitos para que una
+        # busqueda corta no arrastre medio evento.
+        digits = "".join(ch for ch in phone if ch.isdigit())
+        if len(digits) >= 6:
+            phone_filter = (
+                " AND right(regexp_replace(t.customer_phone, '\\D', '', 'g'), %s) = %s"
+            )
+            params.extend([len(digits), digits])
+
     async with db.cursor() as cur:
         await cur.execute(
             "SELECT 1 FROM events WHERE id=%s AND venue_id=%s", (event_id, venue_id)
@@ -738,7 +773,7 @@ async def list_tickets(
         if not await cur.fetchone():
             raise HTTPException(404, "Evento no encontrado")
         await cur.execute(
-            """
+            f"""
             SELECT t.id, t.customer_name, t.customer_phone, t.status,
                    t.issued_at, t.price_cents_snapshot,
                    tt.name AS type_name,
@@ -748,11 +783,11 @@ async def list_tickets(
             JOIN ticket_types tt ON tt.id = t.ticket_type_id
             LEFT JOIN users u ON u.id = t.sold_by_user_id
             LEFT JOIN promoter_allocations a ON a.id = t.allocation_id
-            WHERE t.event_id = %s
+            WHERE t.event_id = %s{owner_filter}{phone_filter}
             ORDER BY t.id DESC
             LIMIT 200
             """,
-            (event_id,),
+            tuple(params),
         )
         rows = await cur.fetchall()
     return rows

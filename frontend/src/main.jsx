@@ -11,9 +11,11 @@ import RegisterPage from "./pages/RegisterPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminDashboard from "./pages/AdminDashboard";
 import PromoterDashboard from "./pages/PromoterDashboard";
-// El escáner carga html5-qrcode (~300 KB): chunk separado que solo baja quien
-// entra a la puerta. El resto de roles nunca paga ese costo.
+// El escáner carga html5-qrcode (~300 KB) y la boleta pública es una página
+// aparte: chunks separados que solo baja quien los usa. El resto de roles
+// nunca paga ese costo.
 const BouncerScanner = lazy(() => import("./pages/BouncerScanner"));
+const PublicTicketPage = lazy(() => import("./pages/PublicTicketPage"));
 import Layout from "./components/Layout";
 import { SplashScreen } from "./components/SplashScreen";
 
@@ -55,6 +57,9 @@ function App() {
               </RequireAuth>
             }
           />
+          {/* Boleta del invitado: publica, sin login. El token llega en el
+              fragmento (#), que el navegador no envia al servidor. */}
+          <Route path="/t" element={<PublicTicketPage />} />
           <Route
             path="/admin"
             element={

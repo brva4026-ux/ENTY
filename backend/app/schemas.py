@@ -213,6 +213,26 @@ class TicketEmitResponse(BaseModel):
     status: str
 
 
+class TicketReissueRequest(BaseModel):
+    """Motivo opcional de la reemisión (queda en la auditoría)."""
+
+    reason: str | None = Field(default=None, max_length=200)
+
+
+class TicketReissueResponse(BaseModel):
+    """Token nuevo para volver a mostrar/reenviar el QR de una boleta viva.
+
+    El token viejo deja de funcionar en el acto: en la DB solo hay un hash por
+    boleta, asi que rotarlo invalida el anterior.
+    """
+
+    ticket_id: int
+    raw_token: str
+    customer_name: str
+    customer_phone: str | None = None
+    status: str
+
+
 class TicketRedeemRequest(BaseModel):
     raw_token: str = Field(min_length=8)
     # Filtro de fila en puerta (mig 008): si viene, una boleta válida del
@@ -331,6 +351,27 @@ class PushUnsubscribeRequest(BaseModel):
     endpoint: str = Field(min_length=20, max_length=1000)
 
 
+class TicketLookupRequest(BaseModel):
+    """Identifica una boleta por su token crudo (el contenido del QR).
+
+    El token es la credencial: ~192 bits, no adivinable. Quien lo tiene puede
+    ver la boleta, por eso no se expone telefono ni correo en la respuesta.
+    """
+
+    raw_token: str = Field(min_length=8, max_length=200)
+
+
+class PublicTicketOut(BaseModel):
+    """Datos minimos para pintar la boleta del invitado. Sin PII de contacto."""
+
+    ticket_id: int
+    customer_name: str
+    event_name: str
+    venue_name: str
+    starts_at: str
+    status: str
+
+
 class RedeemOut(BaseModel):
     code: str = ""  # GRANTED | ALREADY_REDEEMED | NOT_FOUND | INVALID_EVENT | EVENT_NOT_LIVE | NOT_VALID | WRONG_TYPE
     ticket_id: int | None = None
@@ -426,6 +467,42 @@ class EventReport(BaseModel):
     revenue_cents: int = 0
     by_type: list[ReportByType]
     by_promoter: list[ReportByPromoter]
+
+
+class DoorScanStats(BaseModel):
+    """Integridad de la puerta: cuanto paso y cuanto no cuadro."""
+
+    granted: int = 0
+    already_redeemed: int = 0
+    not_found: int = 0
+    other_failed: int = 0
+    failed: int = 0
+    total: int = 0
+    last_scan_at: datetime | None = None
+    last_granted_at: datetime | None = None
+    scanned_by: list[dict] = []
+
+
+class ReportSummary(BaseModel):
+    """KPIs de caja del evento. `revenue_cents` cuenta boletas vivas
+    (issued + redeemed); anuladas y reembolsadas no facturan.
+    """
+
+    event_id: int
+    event_name: str
+    capacity: int
+    issued: int
+    redeemed: int
+    pending: int
+    voided: int
+    occupancy_pct: float
+    revenue_cents: int
+    avg_ticket_cents: int
+    paid_tickets: int
+    courtesy_tickets: int
+    door: DoorScanStats
+    by_type: list[dict]
+    by_promoter: list[dict]
 
 
 class MessageOut(BaseModel):

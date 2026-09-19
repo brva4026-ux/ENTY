@@ -14,7 +14,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.db import close_pool, init_pool
-from app.routers import auth, events, lifecycle, public, push, report, seed, tickets
+from app.routers import (
+    auth,
+    events,
+    lifecycle,
+    public,
+    public_tickets,
+    push,
+    report,
+    seed,
+    tickets,
+)
 
 
 @asynccontextmanager
@@ -47,6 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(lifecycle.router)
     app.include_router(push.router)
     app.include_router(tickets.router)
+    app.include_router(public_tickets.router)
     app.include_router(report.router)
     app.include_router(public.router)
     app.include_router(seed.router)

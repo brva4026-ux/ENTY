@@ -8,7 +8,7 @@ repo (`render.yaml`) pero **no es la activa**.
 
 ```
 [ Navegador / Teléfono bouncer ]
-        │  https://ticketflow-brva4026-ux.vercel.app
+        │  https://ticketflow-brva4026-uxs-projects.vercel.app
         ▼
 [ Vercel: proyecto ticketflow ]
         ├─ UI estática (build Vite de frontend/)
@@ -71,37 +71,25 @@ Agrega lo que el MVP no traía (idempotente, safe re-run):
 node run-sql.js ../db/migrations/002_lifecycle.sql
 ```
 
-## Paso 3 — Endurecimiento operativo (`db/migrations/003_ops_hardening.sql`)
+## Paso 2b — Endurecimiento y recuperación de boletas
 
-- `emit_ticket()` rechaza eventos `ended`/`cancelled` (antes solo `draft`) y
-  valida el inventario contra la suma de `quantity` de todos los tipos.
-- `set_event_status()` no abre puertas (`published→live`) si el inventario quedó
-  por debajo de lo ya emitido.
+Migraciones posteriores, ambas idempotentes:
+
+- `db/migrations/003_ops_hardening.sql` — validaciones de emisión (estado del
+  evento, inventario unificado contra aforo).
+- `db/migrations/004_ticket_reissue.sql` — **recuperación de boletas**:
+  `reissue_ticket()` rota el token de una boleta viva (el QR viejo muere) y la
+  tabla `ticket_reissues` deja auditoría de la rotación.
+
+**Sin la 004 el endpoint `POST .../tickets/{id}/reissue` devuelve 500**: la
+función no existe. Aplicala antes de desplegar el código que la usa.
 
 ```bash
 node run-sql.js ../db/migrations/003_ops_hardening.sql
+node run-sql.js ../db/migrations/004_ticket_reissue.sql
 ```
 
-## Paso 4 — Edición y eliminación (`db/migrations/004_edit_and_delete.sql`)
-
-Habilita que el admin edite y elimine tipos de boleta y cupos de promotor:
-
-- `update_ticket_type()` / `update_promoter_allocation()` — edición con lock
-  (`SELECT ... FOR UPDATE` sobre la misma fila que bloquea `emit_ticket`, así
-  una emisión concurrente no se cuela entre el conteo y el UPDATE) y rechazo si
-  la cantidad/capacidad queda por debajo de lo ya emitido.
-- `delete_ticket_type()` / `delete_promoter_allocation()` — borra la fila si no
-  tiene boletas; si tiene historial, la archiva.
-- Trigger `trg_tickets_check_active_refs` — un tipo/cupo archivado
-  (`is_active = FALSE`) no acepta boletas nuevas. Sin él, las columnas
-  `is_active` existían desde el esquema inicial pero **ningún** camino las
-  miraba, así que archivar no tenía efecto real.
-
-```bash
-node run-sql.js ../db/migrations/004_edit_and_delete.sql
-```
-
-## Paso 5 — Datos demo (`scripts/seed_prod.sql`)
+## Paso 3 — Datos demo (`scripts/seed_prod.sql`)
 
 Equivalente a `POST /seed` pero **seguro para producción**: usa hashes bcrypt
 reales (no abre el endpoint de seed) y es **idempotente** — se puede re-ejecutar
@@ -139,10 +127,8 @@ echo "SELECT name, status FROM events;" > check.sql && node run-sql.js check.sql
 #  -> [{"name":"Noche Electronica","status":"published"}]
 
 echo "SELECT proname FROM pg_proc WHERE proname IN \
-('void_ticket','set_event_status','redeem_ticket','emit_ticket',\
- 'update_ticket_type','update_promoter_allocation',\
- 'delete_ticket_type','delete_promoter_allocation') ORDER BY 1;" > check.sql
-node run-sql.js check.sql   #  -> las 8 funciones
+('void_ticket','set_event_status','redeem_ticket') ORDER BY 1;" > check.sql
+node run-sql.js check.sql   #  -> las 3 funciones
 ```
 
 Valores esperados: `4 usuarios, 1 venue, 1 evento, 2 tipos, 2 cupos`.
@@ -163,6 +149,8 @@ Si prefieres psql (útil en local con el Postgres portable de `.local/pgsql/`):
 psql "postgresql://postgres:<pass>@db.<ref>.supabase.co:5432/postgres" \
   -v ON_ERROR_STOP=1 -f db/schema.sql
 psql "..." -f db/migrations/002_lifecycle.sql
+psql "..." -f db/migrations/003_ops_hardening.sql
+psql "..." -f db/migrations/004_ticket_reissue.sql
 psql "..." -f scripts/seed_prod.sql
 ```
 
@@ -178,8 +166,6 @@ mismos archivos, más el seed original de desarrollo:
 ```bash
 .local/pgsql/bin/psql.exe -h 127.0.0.1 -U postgres -d ticketflow -f db/schema.sql
 .local/pgsql/bin/psql.exe -h 127.0.0.1 -U postgres -d ticketflow -f db/migrations/002_lifecycle.sql
-.local/pgsql/bin/psql.exe -h 127.0.0.1 -U postgres -d ticketflow -f db/migrations/003_ops_hardening.sql
-.local/pgsql/bin/psql.exe -h 127.0.0.1 -U postgres -d ticketflow -f db/migrations/004_edit_and_delete.sql
 cd backend && ./.venv/Scripts/python.exe -m app.routers.seed   # o POST /seed con IS_DEMO=true
 ```
 
@@ -197,8 +183,8 @@ El proyecto ya está linkeado (`.vercel/project.json`). El build:
 
 1. Frontend: `npm run build` en `frontend/` → estáticos servidos por Vercel
 2. Backend: `api/index.py` envuelve `backend/app/main.py` como serverless
-   (`api/requirements.txt` tiene las dependencias, incluidas `qrcode`,
-   `Pillow` y `tzdata` que usa la boleta-imagen del endpoint público)
+   (`api/requirements.txt` tiene las dependencias; **excluye** Pillow/qrcode
+   a propósito — `ticket_image.py` aún no está cableado)
 
 ## ⚠️ Requisito: cuenta Vercel verificada
 
@@ -216,10 +202,10 @@ de la cuenta.
 ## Checklist post-deploy
 
 ```bash
-curl -s https://ticketflow-brva4026-ux.vercel.app/api/health
+curl -s https://ticketflow-brva4026-uxs-projects.vercel.app/api/health
 #  -> {"status":"ok","app":"TicketFlow API"}
 
-curl -s -X POST https://ticketflow-brva4026-ux.vercel.app/api/auth/login \
+curl -s -X POST https://ticketflow-brva4026-uxs-projects.vercel.app/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"admin@bar.test","password":"demo1234"}'
 #  -> 200 con access_token

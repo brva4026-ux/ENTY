@@ -18,6 +18,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "002_lifecycle.sql",
     ROOT / "db" / "migrations" / "003_ops_hardening.sql",
     ROOT / "db" / "migrations" / "004_edit_and_delete.sql",
+    ROOT / "db" / "migrations" / "004_ticket_reissue.sql",
     ROOT / "db" / "migrations" / "005_event_edit_and_cancel.sql",
     ROOT / "db" / "migrations" / "006_redeem_event_guard.sql",
     ROOT / "db" / "migrations" / "007_push_subscriptions.sql",
@@ -44,16 +45,16 @@ def db():
     # Esquema limpio en cada sesión de tests (orden inverso de dependencias)
     conn.execute(
         """
-        DROP TABLE IF EXISTS push_subscriptions, redemptions, tickets,
-            promoter_allocations, ticket_types, events, venue_user_roles,
-            venues, users CASCADE;
+        DROP TABLE IF EXISTS push_subscriptions, ticket_reissues, redemptions,
+            tickets, promoter_allocations, ticket_types, events,
+            venue_user_roles, venues, users CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;
         -- redeem_ticket tuvo dos firmas (3 y 4 args, mig 008): un DROP sin
         -- firma lanza AmbiguousFunction si conviven overloads.
         DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint);
         DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint, bigint);
         DROP FUNCTION IF EXISTS emit_ticket, void_ticket,
-            set_event_status, events_check_capacity,
+            reissue_ticket, set_event_status, events_check_capacity,
             update_ticket_type, update_promoter_allocation,
             delete_ticket_type, delete_promoter_allocation,
             tickets_check_active_refs, update_event,
