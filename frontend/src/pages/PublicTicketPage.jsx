@@ -105,6 +105,24 @@ export default function PublicTicketPage() {
 
   const redeemed = ticket?.status === "redeemed";
 
+  /**
+   * Ciclo de vida de la boleta (patrón timeline de reportes de distri-stream):
+   * emitida -> en la entrada -> usada. El punto "actual" pulsa en verde:
+   * el invitado ve de un vistazo que su QR está listo. Solo para el ciclo
+   * normal (issued/redeemed): anulada/reembolsada no lo muestra.
+   */
+  const lifecycle =
+    ticket?.status === "issued" || ticket?.status === "redeemed"
+      ? [
+          { label: "Emitida", state: "done" },
+          {
+            label: "En la entrada",
+            state: ticket.status === "redeemed" ? "done" : "current",
+          },
+          { label: ticket.status === "redeemed" ? "Usada" : "Escaneada", state: ticket.status === "redeemed" ? "done" : "" },
+        ]
+      : null;
+
   return (
     <div className="grain relative min-h-screen overflow-hidden bg-slate-950 px-4 py-8">
       <div className="atmosphere" aria-hidden="true" />
@@ -147,6 +165,17 @@ export default function PublicTicketPage() {
               <p className="mt-3 text-center text-sm text-slate-400">
                 Muestra este QR en la entrada
               </p>
+
+              {lifecycle && (
+                <div className="ticket-timeline mt-4 rounded-xl bg-slate-800/40 px-4 py-3 ring-1 ring-slate-700/40">
+                  {lifecycle.map((step) => (
+                    <div key={step.label} className={`ticket-step ${step.state}`}>
+                      <span className="ticket-step-dot" aria-hidden="true" />
+                      <span className="ticket-step-label">{step.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="mt-5 space-y-1 rounded-xl bg-slate-800/60 p-3 ring-1 ring-slate-700/50">
                 <p className="text-base font-bold text-white">

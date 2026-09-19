@@ -6,6 +6,7 @@ import { haptics } from "../lib/haptics";
 import TicketPreview from "../components/TicketPreview";
 import { PullToRefresh } from "../components/PullToRefresh";
 import { useUI } from "../lib/ui";
+import EmptyState from "../components/EmptyState";
 import { StatSkeletonRow } from "../components/Skeleton";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
 
@@ -212,7 +213,7 @@ export default function PromoterDashboard() {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="eyebrow">TicketFlow</p>
-          <h2 className="display text-2xl">Panel del promotor</h2>
+          <h2 className="display text-gradient text-2xl">Panel del promotor</h2>
           <p className="mt-1 text-sm text-zinc-400">
             Hola {user?.full_name}. Emite boletas dentro de tu cupo asignado.
           </p>
@@ -232,9 +233,10 @@ export default function PromoterDashboard() {
       {events === null ? (
         <StatSkeletonRow count={2} />
       ) : events.length === 0 ? (
-        <div className="card p-8 text-center">
-          <p className="text-zinc-400">No hay eventos publicados todavía.</p>
-          <p className="mt-1 text-sm text-zinc-500">Cuando el admin publique uno, aparecerá aquí.</p>
+        <div className="card">
+          <EmptyState icon="door" title="No hay eventos publicados todavía">
+            Cuando el admin publique uno, aparecerá aquí listo para vender.
+          </EmptyState>
         </div>
       ) : null}
 

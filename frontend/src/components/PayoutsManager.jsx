@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
+import EmptyState from "./EmptyState";
 
 const fmtCOP = (cents) =>
   `$${Math.round((cents || 0) / 100).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
@@ -174,9 +175,9 @@ export default function PayoutsManager({ venueId, users }) {
             {[0, 1].map((i) => <div key={i} className="skeleton h-16" />)}
           </div>
         ) : payouts.length === 0 ? (
-          <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-6 text-center text-sm text-zinc-500">
-            Aún no hay liquidaciones. Cierra el primer periodo arriba.
-          </p>
+          <EmptyState icon="money" title="Aún no hay liquidaciones">
+            Cierra el primer periodo arriba: el recaudo se calcula de las boletas reales del promotor.
+          </EmptyState>
         ) : (
           <ul className="divide-list overflow-hidden rounded-lg border border-zinc-800/80">
             {payouts.map((p) => (

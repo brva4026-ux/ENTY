@@ -9,6 +9,7 @@ import { PullToRefresh } from "../components/PullToRefresh";
 import { InstallPrompt } from "../components/InstallPrompt";
 import { ListSkeleton, SelectSkeleton, Skeleton, StatSkeletonRow } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
+import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
@@ -415,7 +416,7 @@ export default function AdminDashboard() {
       {/* Navegación de secciones: el admin trabaja por TAREA, no con todo apilado */}
       <div className="border-b border-zinc-800 pb-1">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="display text-2xl text-white">Panel de administración</h2>
+          <h2 className="display text-gradient text-2xl">Panel de administración</h2>
           <div className="flex flex-wrap items-center gap-3">
             <LiveIndicator live={isLive} lastUpdated={lastUpdated} />
             {selectedEventData && <EventStatusBadge status={selectedEventData.status} />}
@@ -1077,8 +1078,10 @@ function TypeManager({ venueId, eventId, types, onChange }) {
           </li>
         ))}
         {(types || []).length === 0 && (
-          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-500">
-            Sin tipos aún — agrega el primero abajo.
+          <li className="col-span-full list-none">
+            <EmptyState icon="ticket" title="Sin tipos de boleta aún">
+              Agrega el primero abajo: define precio y cantidad para empezar a vender.
+            </EmptyState>
           </li>
         )}
       </ul>
@@ -1283,8 +1286,10 @@ function AllocationManager({ venueId, eventId, allocations, types, users, onChan
           );
         })}
         {(allocations || []).length === 0 && (
-          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-500">
-            Sin cupos asignados todavía.
+          <li className="col-span-full list-none">
+            <EmptyState icon="users" title="Sin cupos asignados">
+              Asigna cuántas boletas puede emitir cada promotor: el anti-sobreventa vive aquí.
+            </EmptyState>
           </li>
         )}
       </ul>
@@ -1474,8 +1479,10 @@ function TicketList({ venueId, eventId, tickets, onChanged, onError }) {
           </li>
         )}
         {(tickets || []).length === 0 && (
-          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-3 text-sm text-zinc-500">
-            Todavía no se han emitido boletas para este evento.
+          <li className="list-none">
+            <EmptyState icon="ticket" title="Aún no hay boletas para este evento">
+              Cuando un promotor emita la primera, aparecerá aquí con su estado en vivo.
+            </EmptyState>
           </li>
         )}
       </ul>

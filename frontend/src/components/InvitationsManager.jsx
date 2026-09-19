@@ -10,6 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
+import EmptyState from "./EmptyState";
 import { useUI } from "../lib/ui";
 
 const ico = "h-4 w-4 shrink-0";
@@ -372,11 +373,15 @@ export default function InvitationsManager({ venueId }) {
         </div>
 
         {filtered.length === 0 ? (
-          <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-8 text-center text-sm text-zinc-500">
-            {counts.all === 0
-              ? "Aún no hay invitaciones — pulsa «Invitar» para agregar a tu primer miembro sin contraseñas a mano."
-              : "Nada en esta pestaña todavía."}
-          </p>
+          counts.all === 0 ? (
+            <EmptyState icon="users" title="Aún no hay invitaciones">
+              Pulsa «Invitar» para agregar a tu primer miembro sin contraseñas a mano.
+            </EmptyState>
+          ) : (
+            <EmptyState icon="search" title="Nada en esta pestaña todavía">
+              Prueba con otra pestaña: cada una agrupa un estado distinto del ciclo de vida.
+            </EmptyState>
+          )
         ) : (
           <ul className="space-y-2">
             {filtered.map((inv) => {

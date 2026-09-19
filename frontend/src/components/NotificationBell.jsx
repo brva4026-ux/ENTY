@@ -19,12 +19,14 @@ import { timeAgo } from "../lib/useLiveRefresh";
  * El contenido lo escribe la DB (triggers sobre liquidaciones, invitaciones
  * y reemisiones): este componente no interpreta eventos de negocio.
  */
-const KIND_STYLE = {
-  payout_created: "bg-emerald-500/15 text-emerald-400",
-  payout_reviewed: "bg-emerald-500/15 text-emerald-400",
-  payout_disputed: "bg-amber-500/15 text-amber-400",
-  invitation_accepted: "bg-sky-500/15 text-sky-400",
-  ticket_reissued: "bg-zinc-500/20 text-zinc-300",
+/** Tile de icono por tipo (patrón activity-icon de distri-stream): color
+    del módulo de origen, icono del set común. Desconocido = campana gris. */
+const KIND_TILE = {
+  payout_created: { icon: "money", tile: "bg-emerald-500/15 text-emerald-400" },
+  payout_reviewed: { icon: "check", tile: "bg-emerald-500/15 text-emerald-400" },
+  payout_disputed: { icon: "flag", tile: "bg-amber-500/15 text-amber-400" },
+  invitation_accepted: { icon: "users", tile: "bg-sky-500/15 text-sky-400" },
+  ticket_reissued: { icon: "qr", tile: "bg-violet-500/15 text-violet-300" },
 };
 
 const KIND_LABEL = {
@@ -135,40 +137,41 @@ export default function NotificationBell() {
               <p className="px-4 py-6 text-center text-sm text-zinc-500">
                 Todo tranquilo por acá.
               </p>
-            )}
-            {items.map((n) => (
-              <button
-                key={n.id}
-                onClick={() => openItem(n)}
-                className={`flex w-full items-start gap-3 border-b border-zinc-800/60 px-4 py-3 text-left transition last:border-0 hover:bg-zinc-800/60 ${
-                  n.read_at ? "opacity-60" : ""
-                }`}
-              >
-                <span
-                  className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                    KIND_STYLE[n.kind] || "bg-zinc-700/40 text-zinc-300"
+            )}            {items.map((n) => {
+              const meta = KIND_TILE[n.kind] || { icon: "bell", tile: "bg-zinc-700/40 text-zinc-300" };
+              return (
+                <button
+                  key={n.id}
+                  onClick={() => openItem(n)}
+                  className={`flex w-full items-start gap-3 border-b border-zinc-800/60 px-4 py-3 text-left transition last:border-0 hover:bg-zinc-800/60 ${
+                    n.read_at ? "opacity-60" : ""
                   }`}
                 >
-                  {KIND_LABEL[n.kind] || "Aviso"}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="truncate text-[13px] font-semibold text-zinc-100">
+                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.tile}`}>
+                    <Icon name={meta.icon} className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+                        {KIND_LABEL[n.kind] || "Aviso"}
+                      </span>
+                      {!n.read_at && (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-400" aria-hidden />
+                      )}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[13px] font-semibold text-zinc-100">
                       {n.title}
                     </span>
-                    {!n.read_at && (
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-400" aria-hidden />
-                    )}
+                    <span className="line-clamp-2 block text-xs text-zinc-400">
+                      {n.body}
+                    </span>
+                    <span className="mt-1 block text-[10px] text-zinc-500">
+                      {timeAgo(new Date(n.created_at))}
+                    </span>
                   </span>
-                  <span className="mt-0.5 line-clamp-2 block text-xs text-zinc-400">
-                    {n.body}
-                  </span>
-                  <span className="mt-1 block text-[10px] text-zinc-500">
-                    {timeAgo(new Date(n.created_at))}
-                  </span>
-                </span>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
