@@ -121,3 +121,75 @@ para cobrar (sin pasarela todavía: la comisión se factura por invoic a mano).
    el evento real sin recepción por parte del equipo.
 4. **Segundo pago:** el bar B (o el mismo bar, segundo evento) **vuelve** a
    usar la plataforma y lo confirma por escrito.
+
+---
+
+## Backlog post-MVP — el ciclo de la boleta personal (estándar DICE)
+
+> Investigación sep-2026 de DICE / Ticketmaster SafeTix / Eventbrite tras
+> implementar la activación del QR con ventana (mig 013). Lo que falta para
+> completar el modelo DICE: la boleta personal **vuelve** a la plataforma si
+> quien la tenía no va, y se la ofrece a quien la espera. Nunca hay reventa
+> libre: el anti-scalping es el producto.
+
+### E1 — Devolución de boletas (return de DICE)
+
+**Problema hoy:** la boleta que ya no se usará muere en el teléfono de
+alguien. El bar pierde aforo real y el promotor pierde la cara; reenviar el
+QR por WhatsApp pone a un desconocido en la lista (la ventana de activación
+lo frena, pero no da trazabilidad de quién terminó usando la boleta).
+
+**Modelo DICE:** el fan devuelve la boleta a la plataforma (a precio
+original, sin mercado libre); el lugar vuelve al pool y se lo lleva un fan
+de la lista de espera (E2).
+
+- [ ] **E1-1 Estado `returned`** — la boleta devuelta muere su token (mismo
+      mecanismo que reissue: hash nuevo o anulación del QR), deja de contar
+      como activa y LIBERA el cupo del promotor si lo usó. DoD: devolver
+      libera el cupo, la boleta no redime ni re-emite, y el historial queda
+      auditado (quién devolvió, cuándo).
+- [ ] **E1-2 Ventana límite** — configurable por evento: nunca después del
+      unlock del QR (una vez activado el QR, la devolución ya es problema de
+      puerta: cobija lista). DoD: devolver fuera de ventana rechaza con
+      motivo claro en la página del invitado.
+- [ ] **E1-3 UI en la boleta pública** — botón "No puedo ir" en
+      `/t#<token>` con confirmación (es irreversible) y aviso de que el QR
+      muere. Notificación al promotor/admin con el sistema de mig 012.
+      DoD: el invitado completa la devolución desde su teléfono sin pasar
+      por el promotor.
+- [ ] **E1-4 Imagen y QR tras devolver** — el link de WhatsApp sigue
+      circulando: la imagen pública pasa a estado "devuelta" (patrón del
+      410 de anuladas) en vez de seguir mostrando QR. DoD: el QR de una
+      boleta devuelta no se puede volver a generar por ningún canal.
+
+### E2 — Waiting list (lista de espera de DICE)
+
+**Problema hoy:** el evento agotado no captura demanda: la gente pregunta por
+WhatsApp y la respuesta es manual ("avísame si se libera algo").
+
+**Modelo DICE:** lista por evento en orden de llegada; al liberarse un
+lugar (devolución E1 o liberación manual de aforo), la plataforma lo ofrece
+al primero con una ventana corta para reclamarlo (~10 min en DICE); si no
+reclama, pasa al siguiente.
+
+- [ ] **E2-1 Modelo de datos** — `event_waitlist (event_id, phone, name,
+      position, status, created_at)` con UNIQUE (event_id, phone): el
+      teléfono es la identidad, igual que en la boleta — sin cuentas para el
+      público. DoD: migración + join idempotente.
+- [ ] **E2-2 Unirse desde el link público del evento** — visible solo cuando
+      el evento está agotado (o el admin lo abre). DoD: sin login, la
+      persona ve su posición ("eres el #3").
+- [ ] **E2-3 Oferta con ventana corta** — al liberarse cupo: ofrecer al
+      primero (push ya existe, mig 007; WhatsApp es etapa posterior),
+      ventana de X minutos, expirar y pasar al siguiente. DoD: simulación
+      con 3 en lista — si el #1 no reclama en la ventana, el #2 recibe la
+      oferta.
+- [ ] **E2-4 Reclamo = emisión nueva** — reclamar emite una boleta NUEVA
+      contra el cupo liberado (nunca se re-activa el token devuelto) y
+      entrega el enlace por el flujo estándar wa.me. DoD: el invitado nuevo
+      entra con su propio QR activado por la ventana de mig 013.
+
+**Dependencias:** E2 depende de E1 (la lista se alimenta de devoluciones).
+La pasarela de pagos (Etapa 2) NO es bloqueante: el reclamo se comporta
+como cortesía/cupo liberado y el cobro sigue siendo puerta o transferencia,
+como hoy.
