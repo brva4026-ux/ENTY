@@ -17,7 +17,11 @@
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
-const MARKER = "/*BUILD_ID*/";
+// El marcador cubre la ASIGNACIÓN COMPLETA: el sello reemplaza el valor de
+// VERSION (no solo un comentario). Con VERSION único por build, los caches
+// tf-shell-*/tf-runtime-* cambian de nombre y el `activate` del SW nuevo
+// borra TODOS los caches anteriores — invalidación real, no solo bytes.
+const MARKER = 'const VERSION = "v1"; /*BUILD_ID*/';
 const SW_PATH = "dist/sw.js";
 
 let content;
@@ -41,5 +45,5 @@ try {
 }
 
 const buildId = `build-${new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)}-${gitShort}`;
-writeFileSync(SW_PATH, content.replace(MARKER, `/* ${buildId} */`));
-console.log(`[sw-version] dist/sw.js sellado con ${buildId}`);
+writeFileSync(SW_PATH, content.replace(MARKER, `const VERSION = "${buildId}";`));
+console.log(`[sw-version] dist/sw.js con VERSION=${buildId} (caches únicos por deploy)`);
