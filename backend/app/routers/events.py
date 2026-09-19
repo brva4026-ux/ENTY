@@ -148,6 +148,36 @@ async def _fetch_allocation(
 # --------------------------------------------------------------------------
 # Eventos
 # --------------------------------------------------------------------------
+@router.get("/events/ticket-counts")
+async def list_event_ticket_counts(
+    venue_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Boletas activas por evento de la venue, en UNA consulta.
+
+    Alimenta la franja "Todos los eventos" del admin: ver el pulso de cada
+    evento sin abrirlo, sin N requests (un GET por franja, no por evento).
+    "Activas" = issued + redeemed (las vivas), igual que el reporte de puerta.
+    Ruta literal ANTES de /events/{event_id} para que no se la coma el router.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    _event_ctx(venue_id, user)
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT e.id, count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS active
+            FROM events e
+            LEFT JOIN tickets t ON t.event_id = e.id
+            WHERE e.venue_id = %s
+            GROUP BY e.id
+            """,
+            (venue_id,),
+        )
+        rows = await cur.fetchall()
+    return {str(r["id"]): r["active"] for r in rows}
+
+
 @router.get("/events", response_model=list[EventOut])
 async def list_events(
     venue_id: int,

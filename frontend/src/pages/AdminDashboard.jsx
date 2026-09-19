@@ -13,6 +13,7 @@ import { useUI } from "../lib/ui";
 import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import EventWorkbench, { EventNotFound } from "../components/EventWorkbench";
+import Icon from "../components/Icon";
 import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
 import PayoutsManager from "../components/PayoutsManager";
@@ -100,6 +101,9 @@ export default function AdminDashboard() {
   const venueId = firstVenueId(user);
 
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)
+  // Boletas activas por evento ({id: n}): el pulso de la franja sin abrir
+  // cada evento. Un solo GET agregado, no N requests.
+  const [ticketCounts, setTicketCounts] = useState({});
   const [types, setTypes] = useState([]);
   const [allocations, setAllocations] = useState([]);
   const [report, setReport] = useState(null);
@@ -136,6 +140,11 @@ export default function AdminDashboard() {
     if (!venueId) return;
     const data = await apiFetch(`/venues/${venueId}/events`);
     setEvents(data);
+    // Contadores de la franja: fire-and-forget (si falla, la franja muestra
+    // su chip vacío; no rompe el listado que ya llegó).
+    apiFetch(`/venues/${venueId}/events/ticket-counts`)
+      .then(setTicketCounts)
+      .catch(() => {});
   }, [venueId]);
 
   useEffect(() => {
@@ -219,6 +228,8 @@ export default function AdminDashboard() {
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`).then(setReport).catch(() => {});
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/tickets`).then(setTickets).catch(() => {});
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`).then(setAllocations).catch(() => {});
+    // El pulso de la franja también vive: en puerta cambia con cada escaneo.
+    apiFetch(`/venues/${venueId}/events/ticket-counts`).then(setTicketCounts).catch(() => {});
   }, [selectedEvent, venueId]);
 
   // Recarga completa para pull-to-refresh: eventos, equipo y datos del evento
@@ -478,6 +489,9 @@ export default function AdminDashboard() {
                 .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at))
                 .map((ev) => {
                   const active = ev.id === selectedEvent;
+                  // Pulso del evento: boletas activas (issued+redeemed), del
+                  // GET agregado. undefined = aún no llegó: chip oculto.
+                  const tc = ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
                   // Roles del equipo de la venue (solo se sabe con /users
                   // cargado; la franja del evento abierto muestra los suyos).
                   const roles =
@@ -507,8 +521,19 @@ export default function AdminDashboard() {
                           {ev.status === "live" ? "en puerta" : ev.status === "published" ? "a la venta" : ev.status}
                         </span>
                       </div>
-                      <p className="tnum mt-1 text-xs text-zinc-400">
-                        {formatShortDate(ev.starts_at)} · aforo {ev.capacity}
+                      <p className="tnum mt-1 flex items-center gap-2 text-xs text-zinc-400">
+                        <span>
+                          {formatShortDate(ev.starts_at)} · aforo {ev.capacity}
+                        </span>
+                        {tc !== undefined && tc !== null && (
+                          <span
+                            className="ml-auto inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-bold text-zinc-300"
+                            title="Boletas activas de este evento"
+                          >
+                            <Icon name="ticket" className="h-3 w-3" />
+                            {tc}
+                          </span>
+                        )}
                       </p>
                       <p className="mt-1.5 text-[11px] leading-snug text-zinc-500">
                         {roles.length > 0 ? (
