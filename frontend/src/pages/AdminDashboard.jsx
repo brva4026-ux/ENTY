@@ -6,13 +6,18 @@ import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { haptics } from "../lib/haptics";
 import ReportWidget from "../components/ReportWidget";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
+import { STATUS_META as EV_CHIP } from "../components/EventWorkbench";
 import { PullToRefresh } from "../components/PullToRefresh";
 import { InstallPrompt } from "../components/InstallPrompt";
 import { ListSkeleton, SelectSkeleton, Skeleton, StatSkeletonRow } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
+
 import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
-import EventWorkbench, { EventNotFound } from "../components/EventWorkbench";
+import EventWorkbench, {
+  EventNotFound,
+  sortEventsForStrip,
+} from "../components/EventWorkbench";
 import Icon from "../components/Icon";
 import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
@@ -79,32 +84,9 @@ const NEXT_ACTIONS = {
   cancelled: [],
 };
 
-/* Chip de estado para la franja de eventos (versión compacta). */
-const EV_CHIP = {
-  draft: "bg-zinc-800 text-zinc-400",
-  published: "bg-brand-500/15 text-brand-300",
-  live: "bg-emerald-500/15 text-emerald-300",
-  ended: "bg-zinc-800 text-zinc-500",
-  cancelled: "bg-red-500/15 text-red-300",
-};
-
-/* Peso operativo de cada estado: la franja se lee de arriba hacia abajo, así
- * que lo VIVO va primero (en puerta, luego a la venta), los borradores al
- * medio y lo MUERTO al final. Dentro de los vivos manda lo próximo (lo que
- * urge); entre los pasados, lo más reciente primero. El aterrizaje por
- * defecto usa el mismo orden: abrir /admin te deja en el evento que importa. */
-const STATUS_WEIGHT = { live: 0, published: 1, draft: 2, ended: 3, cancelled: 4 };
-
-function sortEventsForStrip(events) {
-  return [...(events || [])].sort((a, b) => {
-    const wa = STATUS_WEIGHT[a.status] ?? 3;
-    const wb = STATUS_WEIGHT[b.status] ?? 3;
-    if (wa !== wb) return wa - wb;
-    const ta = new Date(a.starts_at).getTime();
-    const tb = new Date(b.starts_at).getTime();
-    return wa >= 3 ? tb - ta : ta - tb;
-  });
-}
+/* Chip de estado para la franja de eventos (compacto, en español) y orden
+ * por prioridad operativa: vivos arriba, pasados al final. Ambos viven en
+ * EventWorkbench — un solo vocabulario de estados en toda la app. */
 
 const TICKET_STATUS = {
   issued: { label: "Activa", cls: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40" },
@@ -415,6 +397,9 @@ export default function AdminDashboard() {
       flyToEvent(ev.id, "boletas");
       await loadEvents();
       ui.success("Evento creado: añade tipos y cupos 🎟️");
+      // La venue acaba de dejar de ser nueva: el checklist se despide solo
+      // (sin esperar a que alguien lo cierre a mano).
+      localStorage.setItem("tf_onboarding_done", "1");
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -472,13 +457,15 @@ export default function AdminDashboard() {
     <div className="reveal space-y-5">
       {/* En móvil: invita a instalar la PWA (se oculta sola si ya está instalada) */}
       <InstallPrompt />
-      {/* Guía del admin primerizo: se autodescarta al completar los 4 pasos */}
-      {events !== null && (
+      {/* Guía del admin primerizo: SOLO mientras la venue es nueva (sin
+          eventos). Con negocio operando era ruido permanente: un checklist
+          "Crea tu primer evento" sobre una lista llena de eventos. */}
+      {events !== null && events.length === 0 && (
         <OnboardingChecklist
-          hasEvent={events.length > 0}
+          hasEvent={false}
           hasTypes={types.length > 0}
           hasAllocations={allocations.length > 0}
-          isPublished={selectedEventData ? ["published", "live"].includes(selectedEventData.status) : false}
+          isPublished={false}
         />
       )}
       {error && (
@@ -525,10 +512,14 @@ export default function AdminDashboard() {
                       key={ev.id}
                       to={`/admin?event=${ev.id}`}
                       onClick={() => haptics.tick()}
-                      className={`card-interactive block rounded-xl border p-3.5 transition ${
+                      className={`event-card card-interactive block rounded-xl border p-3.5 ${
+                        ev.status === "live"
+                          ? "is-live "
+                          : ""
+                      }${
                         active
                           ? "border-brand-500/60 bg-brand-500/[0.06]"
-                          : "border-zinc-800/80 hover:border-zinc-700"
+                          : "border-zinc-800/80"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -536,11 +527,11 @@ export default function AdminDashboard() {
                           {ev.name}
                         </p>
                         <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                            EV_CHIP[ev.status] ?? EV_CHIP.draft
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${
+                            (EV_CHIP[ev.status] ?? EV_CHIP.draft).cls
                           }`}
                         >
-                          {ev.status === "live" ? "en puerta" : ev.status === "published" ? "a la venta" : ev.status}
+                          {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
                         </span>
                       </div>
                       <p className="tnum mt-1 flex items-center gap-2 text-xs text-zinc-400">
@@ -873,30 +864,33 @@ export default function AdminDashboard() {
           {section === "resumen" && (
             <div className="grid gap-5 lg:grid-cols-2">
               {report ? <ReportWidget report={report} /> : <StatSkeletonRow />}
+              {/* Tips operativos: el qué-hacer-now del evento, sin duplicar
+                  el ciclo de vida (que vive siempre visible en el header). */}
               <div className="card p-4">
-                <p className="display mb-2 text-base">Ciclo de vida</p>
-                {actions.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {actions.map(({ action, label, danger }) => (
-                      <button
-                        key={action}
-                        onClick={() => runAction(action, label)}
-                        disabled={busyAction === action}
-                        className={
-                          action === "publish" || action === "live"
-                            ? "btn-primary !py-2 text-sm"
-                            : danger
-                              ? "btn-danger-text text-sm font-semibold"
-                              : "btn-ghost text-sm font-semibold"
-                        }
-                      >
-                        {busyAction === action ? "Procesando…" : label}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500">
-                    Este evento cerró su ciclo: no tiene acciones pendientes.
+                <p className="display mb-2 text-base">Cómo va la puerta</p>
+                <ul className="space-y-2 text-sm text-zinc-300">
+                  <li className="flex items-center justify-between gap-2">
+                    <span>Boletas pendientes de entrar</span>
+                    <span className="tnum font-bold text-amber-300">
+                      {(report?.issued ?? 0) - (report?.redeemed ?? 0)}
+                    </span>
+                  </li>
+                  <li className="flex items-center justify-between gap-2">
+                    <span>Ya ingresaron</span>
+                    <span className="tnum font-bold text-emerald-300">
+                      {report?.redeemed ?? 0}
+                    </span>
+                  </li>
+                  <li className="flex items-center justify-between gap-2">
+                    <span>Aforo disponible</span>
+                    <span className="tnum font-bold text-zinc-100">
+                      {Math.max(0, (selectedEventData?.capacity ?? 0) - (report?.issued ?? 0))}
+                    </span>
+                    </li>
+                </ul>
+                {isLive && (
+                  <p className="mt-3 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
+                    🚪 Puertas abiertas: los escaneos actualizan estos números en vivo.
                   </p>
                 )}
               </div>

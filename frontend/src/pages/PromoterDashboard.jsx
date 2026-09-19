@@ -9,6 +9,7 @@ import { useUI } from "../lib/ui";
 import EmptyState from "../components/EmptyState";
 import { StatSkeletonRow } from "../components/Skeleton";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
+import { STATUS_META, sortEventsForStrip } from "../components/EventWorkbench";
 
 function firstVenueId(user) {
   const ids = Object.keys(user?.roles || {}).map(Number);
@@ -40,7 +41,10 @@ export default function PromoterDashboard() {
     apiFetch(`/venues/${venueId}/events`)
       .then((data) => {
         setEvents(data);
-        if (data.length) setSelectedEvent(data[0].id);
+        // Aterrizar en el evento que importa: el primero por prioridad
+        // operativa (en puerta > a la venta > ...). Un promotor con un evento
+        // en puerta NO debe llegar al panel viendo un evento terminado.
+        if (data.length) setSelectedEvent(sortEventsForStrip(data)[0].id);
       })
       .catch((e) => setError(e.message));
   }, [venueId]);
@@ -242,7 +246,8 @@ export default function PromoterDashboard() {
 
       {events != null && events.length > 0 && (
         <>
-          {/* Contexto del evento: siempre visible arriba, fuera del formulario */}
+          {/* Contexto del evento: siempre visible arriba, fuera del formulario.
+              Selector premium: el estado en español con su color en CADA opción. */}
           <div className="card p-4">
             <div className="flex flex-wrap items-center gap-3">
               <select
@@ -251,11 +256,21 @@ export default function PromoterDashboard() {
                 className="field h-auto w-auto min-w-40 flex-1 py-1.5 text-sm font-semibold"
                 aria-label="Evento"
               >
-                {events.map((ev) => (
-                  <option key={ev.id} value={ev.id}>{ev.name}</option>
+                {sortEventsForStrip(events).map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} — {(STATUS_META[ev.status] ?? STATUS_META.draft).label}
+                  </option>
                 ))}
               </select>
-              {selectedEventData && <StatusBadge status={selectedEventData.status} />}
+              {selectedEventData && (
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ring-1 ${
+                    (STATUS_META[selectedEventData.status] ?? STATUS_META.draft).cls
+                  }`}
+                >
+                  {(STATUS_META[selectedEventData.status] ?? STATUS_META.draft).label}
+                </span>
+              )}
             </div>
             {myAllocations.length > 0 && (
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -334,8 +349,14 @@ export default function PromoterDashboard() {
                 />
               </div>
 
-              <button type="submit" disabled={busy} className="btn-primary w-full">
-                {busy ? "Emitiendo…" : "Emitir boleta"}
+              <button
+                type="submit"
+                disabled={busy}
+                className={
+                  lastTicket ? "btn-ghost w-full" : "btn-primary w-full"
+                }
+              >
+                {busy ? "Emitiendo…" : lastTicket ? "Emitir otra boleta" : "Emitir boleta"}
               </button>
             </form>
             {myAllocations.length === 0 && (
@@ -441,10 +462,13 @@ export default function PromoterDashboard() {
                 </details>
               </div>
             ) : (
-              <div className="py-10 text-center">
-                <div className="mx-auto mb-3 h-24 w-24 rounded-xl bg-zinc-800/60 ring-1 ring-zinc-700/50" />
-                <p className="text-sm text-zinc-500">
-                  Emite una boleta para ver el QR y el enlace de envío.
+              <div className="py-8 text-center">
+                {/* Estado vacío del preview: mini-boleta abstracta, no un
+                    rectángulo vacío. Mismo lenguaje visual que EmptyState. */}
+                <div className="ticket-ghost mx-auto mb-4 h-28 w-28" aria-hidden />
+                <p className="display text-base">Tu próxima boleta</p>
+                <p className="mx-auto mt-1 max-w-56 text-sm text-zinc-500">
+                  Llena los datos y emite: aquí aparece el QR listo para enviar por WhatsApp.
                 </p>
               </div>
             )}
@@ -613,19 +637,3 @@ function TicketStatusPill({ status }) {
   );
 }
 
-function StatusBadge({ status }) {
-  if (!status) return null;
-  const map = {
-    draft: ["Borrador", "bg-zinc-800 text-zinc-300 ring-zinc-700"],
-    published: ["Venta abierta", "bg-violet-950/60 text-violet-300 ring-violet-800/60"],
-    live: ["En puerta", "bg-emerald-950/60 text-emerald-300 ring-emerald-800/60"],
-    ended: ["Finalizado", "bg-zinc-800 text-zinc-400 ring-zinc-700"],
-    cancelled: ["Cancelado", "bg-red-950/60 text-red-300 ring-red-800/60"],
-  };
-  const [label, cls] = map[status] ?? [status, "bg-zinc-800 text-zinc-300 ring-zinc-700"];
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${cls}`}>
-      {label}
-    </span>
-  );
-}

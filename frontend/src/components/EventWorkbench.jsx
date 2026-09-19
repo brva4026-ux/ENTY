@@ -14,14 +14,32 @@ import { LiveIndicator } from "./Brand";
 import EmptyState from "./EmptyState";
 import Icon from "./Icon";
 
-/* Etiqueta y color por estado para la franja del header. */
-const STATUS_META = {
+/* Etiqueta y color por estado — compartidos con la franja de eventos del
+ * admin y el selector del promotor (un solo vocabulario en toda la app). */
+export const STATUS_META = {
   draft: { label: "Borrador", cls: "bg-zinc-800 text-zinc-300 ring-zinc-600/50" },
   published: { label: "A la venta", cls: "bg-brand-500/15 text-brand-300 ring-brand-500/40" },
   live: { label: "En puerta", cls: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40" },
   ended: { label: "Finalizado", cls: "bg-zinc-800 text-zinc-400 ring-zinc-700" },
   cancelled: { label: "Cancelado", cls: "bg-red-500/15 text-red-300 ring-red-500/40" },
 };
+
+/** Peso operativo: vivos primero, muertos al final (ver AdminDashboard). */
+export const STATUS_WEIGHT = { live: 0, published: 1, draft: 2, ended: 3, cancelled: 4 };
+
+/** Orden de la franja: lo vivo arriba (lo próximo primero), lo pasado al
+ * final (lo más reciente primero). Mismo orden para el aterrizaje por
+ * defecto: abrir la app te deja en el evento que importa. */
+export function sortEventsForStrip(events) {
+  return [...(events || [])].sort((a, b) => {
+    const wa = STATUS_WEIGHT[a.status] ?? 3;
+    const wb = STATUS_WEIGHT[b.status] ?? 3;
+    if (wa !== wb) return wa - wb;
+    const ta = new Date(a.starts_at).getTime();
+    const tb = new Date(b.starts_at).getTime();
+    return wa >= 3 ? tb - ta : ta - tb;
+  });
+}
 
 function formatEventDate(value) {
   if (!value) return "—";
