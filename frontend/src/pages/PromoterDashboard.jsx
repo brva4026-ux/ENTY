@@ -36,6 +36,11 @@ export default function PromoterDashboard() {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [reissuingId, setReissuingId] = useState(null);
+  // Mig 015: corrección de contacto del asistente (nombre/teléfono) con
+  // auditoría en la DB. El error más común: el teléfono mal digitado y el
+  // WhatsApp del QR nunca llegó.
+  const [editingId, setEditingId] = useState(null);
+  const [edit, setEdit] = useState({ name: "", phone: "", reason: "" });
   const ui = useUI();
 
   useEffect(() => {
@@ -186,6 +191,36 @@ export default function PromoterDashboard() {
       setError(err.message);
     } finally {
       setReissuingId(null);
+    }
+  }
+
+  /** Corrección de contacto (mig 015): PATCH con auditoría en la DB. Al menos
+      un campo debe venir; el backend valida teléfono y permisos (el historial
+      ya solo trae boletas propias, así que el 403 no debería aparecer). */
+  async function saveContact(t) {
+    const name = edit.name.trim();
+    const phone = edit.phone.trim();
+    if (!name && !phone) {
+      setError("Escribe nombre o teléfono: al menos uno.");
+      return;
+    }
+    try {
+      await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/tickets/${t.ticket_id}/contact`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            ...(name ? { customer_name: name } : {}),
+            ...(phone ? { customer_phone: phone } : {}),
+            ...(edit.reason.trim() ? { reason: edit.reason.trim() } : {}),
+          }),
+        },
+      );
+      setEditingId(null);
+      await loadHistory();
+      ui.success(`Contacto de la boleta #${t.ticket_id} actualizado`);
+    } catch (err) {
+      setError(err.message);
     }
   }
 
@@ -418,7 +453,7 @@ export default function PromoterDashboard() {
             ) : (
               <ul className="divide-y divide-zinc-800">
                 {history.map((t) => (
-                  <li key={t.ticket_id} className="flex items-center justify-between gap-3 py-2.5">
+                  <li key={t.ticket_id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-zinc-200">
                         #{t.ticket_id} · {t.customer_name}
@@ -430,16 +465,71 @@ export default function PromoterDashboard() {
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
                       {t.status === "issued" && (
-                        <button
-                          onClick={() => reissueTicket(t)}
-                          disabled={reissuingId === t.ticket_id}
-                          className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
-                        >
-                          {reissuingId === t.ticket_id ? "Reemitindo…" : "Reemitir"}
-                        </button>
+                        <>
+                          <button
+                            onClick={() => reissueTicket(t)}
+                            disabled={reissuingId === t.ticket_id || editingId === t.ticket_id}
+                            className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
+                          >
+                            {reissuingId === t.ticket_id ? "Reemitindo…" : "Reemitir"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingId(editingId === t.ticket_id ? null : t.ticket_id);
+                              setEdit({ name: t.customer_name ?? "", phone: t.customer_phone ?? "", reason: "" });
+                            }}
+                            disabled={reissuingId === t.ticket_id}
+                            className="rounded-lg px-2 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-50"
+                          >
+                            Corregir
+                          </button>
+                        </>
                       )}
                       <TicketStatusPill status={t.status} />
                     </div>
+                    {editingId === t.ticket_id && (
+                      <div className="w-full space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                        <p className="text-xs font-semibold text-zinc-400">
+                          Corregir contacto · queda en auditoría
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <input
+                            value={edit.name}
+                            onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+                            className="field !py-1.5 text-xs sm:flex-1"
+                            placeholder="Nombre del asistente"
+                          />
+                          <input
+                            value={edit.phone}
+                            onChange={(e) => setEdit({ ...edit, phone: e.target.value })}
+                            className="field !py-1.5 text-xs sm:flex-1"
+                            placeholder="Teléfono (WhatsApp)"
+                            inputMode="tel"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            value={edit.reason}
+                            onChange={(e) => setEdit({ ...edit, reason: e.target.value })}
+                            className="field !py-1.5 flex-1 text-xs"
+                            placeholder="Motivo (opcional): quedó mal escrito, cambió de número…"
+                          />
+                          <button
+                            onClick={() => saveContact(t)}
+                            disabled={!edit.name.trim() && !edit.phone.trim()}
+                            className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                          >
+                            Guardar
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="rounded-lg px-2 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
