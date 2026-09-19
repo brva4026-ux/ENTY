@@ -19,7 +19,8 @@ from app.schemas import EventReport, ReportSummary
 router = APIRouter(prefix="/venues/{venue_id}", tags=["reporte"])
 
 _BY_TYPE_SQL = """
-    SELECT tt.name, tt.price_cents, tt.is_courtesy, tt.quantity,
+    SELECT tt.id AS ticket_type_id, tt.name, tt.price_cents, tt.is_courtesy,
+           tt.is_active, tt.quantity,
            count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS issued,
            count(t.id) FILTER (WHERE t.status = 'redeemed')::int AS redeemed,
            coalesce(sum(t.price_cents_snapshot)
@@ -36,7 +37,8 @@ _BY_TYPE_SQL = """
 # bouncer, y no deben leer la caja del bar. Sin este corte, agregar
 # `revenue_cents` al desglose se filtra por el endpoint de menor privilegio.
 _BY_TYPE_NO_MONEY_SQL = """
-    SELECT tt.name, tt.price_cents, tt.is_courtesy, tt.quantity,
+    SELECT tt.id AS ticket_type_id, tt.name, tt.price_cents, tt.is_courtesy,
+           tt.is_active, tt.quantity,
            count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS issued,
            count(t.id) FILTER (WHERE t.status = 'redeemed')::int AS redeemed
     FROM ticket_types tt
@@ -105,17 +107,28 @@ async def event_report(
         ev = await _event_or_404(cur, event_id, venue_id)
         by_status = await _by_status(cur, event_id)
 
-        await cur.execute(_BY_TYPE_NO_MONEY_SQL, (event_id, event_id))
+        await cur.execute(_BY_TYPE_SQL, (event_id, event_id))
         by_type = await cur.fetchall()
 
         await cur.execute(_BY_PROMOTER_SQL, (event_id,))
         by_promoter = await cur.fetchall()
+
+        # Recaudo vivo: suma de snapshots de boletas activas (criterio local,
+        # validado por tests: anular lo baja, emitir lo sube).
+        await cur.execute(
+            "SELECT coalesce(sum(price_cents_snapshot) "
+            "FILTER (WHERE status IN ('issued','redeemed')), 0)::bigint AS revenue "
+            "FROM tickets WHERE event_id=%s",
+            (event_id,),
+        )
+        revenue = (await cur.fetchone())["revenue"]
 
     return EventReport(
         event_id=ev["id"],
         event_name=ev["name"],
         capacity=ev["capacity"],
         **_totals(by_status, ev["capacity"]),
+        revenue_cents=revenue,
         by_type=by_type,
         by_promoter=by_promoter,
     )

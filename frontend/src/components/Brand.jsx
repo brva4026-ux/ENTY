@@ -135,6 +135,8 @@ export function QuotaMeter({ used, total, label, compact = false }) {
     </>
   );
   return compact ? body : <div className="rounded-lg bg-zinc-900/60 p-3">{body}</div>;
+}
+
 /** Barra de progreso suelta, para desgloses que no son un cupo. */
 export function Bar({ pct, tone = "brand", gradient }) {
   const tones = {

@@ -1,275 +1,155 @@
-/**
- * Command deck del evento. Es la pantalla que el admin abre en la puerta
- * para saber, de un vistazo, si el evento esta sano: cuanto entro de plata,
- * cuanta gente paso y si alguien intento colarse.
- *
- * Jerarquia deliberada: los ingresos mandan, el aforo los acompana, y la
- * integridad de la puerta cierra como alerta. Todo lo demas es detalle.
- */
-import { Bar, Stat } from "./Brand";
-import OccupancyRing from "./OccupancyRing";
-import Icon from "./Icon";
-import { clockTime, money, timeAgo } from "../lib/format";
+import { AnimatedNumber } from "./Brand";
 
-function Skeleton() {
-  return (
-    <div className="card-hero p-6">
-      <div className="skeleton h-5 w-56" />
-      <div className="mt-6 grid gap-6 lg:grid-cols-[auto_1fr]">
-        <div className="skeleton h-32 w-32 rounded-full" />
-        <div className="grid grid-cols-2 gap-3">
+const fmtCOP = (cents) =>
+  `$${(cents / 100).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
+
+export default function ReportWidget({ report }) {
+  if (!report) {
+    return (
+      <div className="card p-5">
+        <div className="skeleton h-6 w-48" />
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="skeleton h-20" />
+            <div key={i} className="skeleton h-16" />
           ))}
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-export default function ReportWidget({ report, live = false }) {
-  if (!report) return <Skeleton />;
+  const occupancy = Math.min(report.occupancy_pct, 100);
+  const fill =
+    occupancy >= 90 ? "bg-red-500" : occupancy >= 70 ? "bg-amber-500" : "bg-brand-600";
 
-  const door = report.door ?? {};
-  const occupancy = Math.min(report.occupancy_pct ?? 0, 100);
-  const soldOut = occupancy >= 95;
-  const failed = door.failed ?? 0;
-  // Tasa de rechazo: lo que separa "nadie intento colarse" de "el QR se filtra".
-  const rejectRate = door.total > 0 ? Math.round((failed / door.total) * 100) : 0;
+  // Tipos con datos, ordenados por recaudo desc.
+  const breakdown = (report.by_type || [])
+    .filter((t) => t.issued > 0 || (t.is_active !== false && !t.is_courtesy))
+    .sort((a, b) => b.revenue_cents - a.revenue_cents || b.issued - a.issued);
+
+  const stats = [
+    { label: "Emitidas", value: report.issued },
+    { label: "Redimidas", value: report.redeemed },
+    { label: "Pendientes", value: report.pending },
+    { label: "Anuladas", value: report.voided },
+  ];
 
   return (
-    <div className="space-y-5">
-      {/* --- Cabecera + aforo ------------------------------------------- */}
-      <div className="card-hero stagger p-6" style={{ "--i": 0 }}>
-        <div className="relative flex flex-wrap items-start justify-between gap-6">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <p className="eyebrow">Reporte en vivo</p>
-              {/* Solo cuando las puertas estan abiertas: un punto que late
-                  durante horas pierde sentido si late siempre. */}
-              {live && (
-                <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-500/30">
-                  <span className="breathe h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  En puerta
-                </span>
-              )}
-            </div>
-            <h3 className="mt-1.5 font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-              {report.event_name}
-            </h3>
-            <p className="tnum mt-1 text-sm text-slate-500">
-              {report.capacity.toLocaleString("es-CO")} personas de aforo
-            </p>
-          </div>
-          <OccupancyRing
-            pct={occupancy}
-            used={report.issued}
-            total={report.capacity}
-            live={live}
-          />
+    <div className="card">
+      {/* Cabecera del reporte */}
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-800/80 px-5 py-4">
+        <div>
+          <p className="eyebrow">Reporte en vivo</p>
+          <h3 className="display mt-0.5 text-lg">{report.event_name}</h3>
         </div>
-
-        {soldOut && (
-          <p className="relative mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
-            Aforo casi agotado — considera cerrar venta para no sobrevender la puerta.
-          </p>
-        )}
+        <p className="tnum text-sm text-zinc-500">
+          Aforo <span className="font-semibold text-zinc-200">{report.occupancy_pct}%</span>
+          <span className="mx-1.5 text-zinc-700">·</span>
+          {report.capacity} cupos
+        </p>
       </div>
 
-      {/* --- Caja ------------------------------------------------------- */}
-      <div
-        className="card stagger overflow-hidden"
-        style={{ "--i": 1, borderColor: "rgba(245,158,11,0.22)" }}
-      >
-        <div className="flex flex-wrap items-end justify-between gap-4 p-5">
+      <div className="p-5">
+        {/* Recaudo: la cifra principal, arriba a la izquierda como en un dashboard financiero */}
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="eyebrow">Ingresos del evento</p>
-            <p className="tnum mt-2 font-display text-4xl font-extrabold leading-none text-gold-300 sm:text-5xl">
-              {money(report.revenue_cents)}
+            <p className="eyebrow">Recaudo</p>
+            <p className="tnum display mt-1 text-4xl text-white">
+              <AnimatedNumber
+                value={report.revenue_cents / 100}
+                format={(v) =>
+                  `$${Math.round(v).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`
+                }
+              />
             </p>
-            <p className="tnum mt-2.5 text-xs text-slate-500">
-              {report.paid_tickets} boletas pagas · ticket promedio{" "}
-              <span className="font-semibold text-slate-300">
-                {money(report.avg_ticket_cents)}
-              </span>
+            <p className="mt-1 text-xs text-zinc-600">
+              Boletas activas al precio de emisión · anular lo reduce
             </p>
           </div>
-          <div className="flex gap-5 text-right">
-            <div>
-              <p className="eyebrow">Cortesías</p>
-              <p className="tnum mt-1 font-display text-2xl font-extrabold text-slate-200">
-                {report.courtesy_tickets}
+        </div>
+
+        {/* Ocupación */}
+        <div className="meter mb-1">
+          <div className={`meter-fill ${fill}`} style={{ width: `${occupancy}%` }} />
+        </div>
+        <div className="mb-5 flex justify-between text-[11px] text-zinc-600">
+          <span>Ocupación</span>
+          <span className="tnum">{occupancy}%</span>
+        </div>
+
+        {/* Métricas: fila única con separadores verticales, sin cajitas */}
+        <div className="grid grid-cols-2 divide-zinc-800/80 sm:grid-cols-4 sm:divide-x">
+          {stats.map((b) => (
+            <div key={b.label} className="px-2 py-2 first:pl-0 sm:text-center">
+              <p className="text-xs text-zinc-500">{b.label}</p>
+              <p className="tnum display mt-0.5 text-2xl">
+                <AnimatedNumber value={b.value} />
               </p>
             </div>
-            <div>
-              <p className="eyebrow">Anuladas</p>
-              <p className="tnum mt-1 font-display text-2xl font-extrabold text-slate-200">
-                {report.voided}
-              </p>
+          ))}
+        </div>
+
+        {/* Desglose por tipo: filas divididas con columnas numéricas alineadas */}
+        {breakdown.length > 0 && (
+          <div className="mt-6">
+            <p className="eyebrow mb-2">Por tipo de boleta</p>
+            <div className="divide-list reveal overflow-hidden rounded-lg border border-zinc-800/80">
+              {breakdown.map((t) => (
+                <div
+                  key={t.ticket_type_id}
+                  className={`grid grid-cols-[1fr_auto] items-center gap-2 px-3.5 py-2.5 sm:grid-cols-[1fr_auto_auto] ${
+                    t.is_active === false ? "opacity-50" : ""
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-zinc-200">
+                    <span className="truncate">{t.name}</span>
+                    {t.is_courtesy && (
+                      <span className="badge bg-zinc-800/80 text-zinc-400">cortesía</span>
+                    )}
+                    {t.is_active === false && (
+                      <span className="badge bg-amber-950/60 text-amber-400">archivado</span>
+                    )}
+                  </span>
+                  <span className="tnum hidden text-right text-xs text-zinc-500 sm:block">
+                    {t.issued}/{t.quantity} emitidas
+                    <span className="mx-1 text-zinc-700">·</span>
+                    {t.redeemed} en puerta
+                  </span>
+                  <span className="tnum text-right text-sm font-semibold text-white">
+                    {t.revenue_cents > 0 ? fmtCOP(t.revenue_cents) : <span className="font-normal text-zinc-600">—</span>}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* --- Pulso de la operacion -------------------------------------- */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Emitidas" value={report.issued} accent="slate" i={2} />
-        <Stat label="En puerta" value={report.redeemed} accent="emerald" i={3} />
-        <Stat label="Sin entrar" value={report.pending} accent="brand" i={4} />
-        <Stat label="Anuladas" value={report.voided} accent="red" i={5} />
-      </div>
-
-      {/* --- Integridad de la puerta ------------------------------------
-          El estado sano y el alerta no pueden verse igual: si hay rechazos,
-          el borde y el titulo cambian para que salte a la vista. */}
-      <div
-        className="card-lit card stagger p-5"
-        style={{
-          "--i": 6,
-          ...(failed > 0 ? { borderColor: "rgba(245,158,11,0.35)" } : {}),
-        }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <span
-              className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg ring-1 ${
-                failed > 0
-                  ? "bg-amber-500/15 text-amber-300 ring-amber-500/30"
-                  : "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30"
-              }`}
-            >
-              <Icon name="shield" className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="eyebrow">Integridad de la puerta</p>
-              <p className="mt-1 text-sm text-slate-400">
-                {door.total === 0
-                  ? "Sin escaneos todavía."
-                  : `${door.total} escaneos · ${rejectRate}% rechazado`}
-              </p>
-            </div>
-          </div>
-          {door.last_granted_at && (
-            <p className="tnum flex items-center gap-1.5 font-mono text-xs text-slate-500">
-              <Icon name="clock" className="h-3.5 w-3.5" />
-              último acceso {clockTime(door.last_granted_at)}
-            </p>
-          )}
-        </div>
-
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          <MiniStat label="Aceptados" value={door.granted ?? 0} tone="emerald" />
-          <MiniStat label="Duplicados" value={door.already_redeemed ?? 0} tone="amber" />
-          <MiniStat label="QR inválidos" value={door.not_found ?? 0} tone="red" />
-        </div>
-
-        {failed > 0 && (
-          <p className="mt-3.5 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-xs text-amber-300/90">
-            <Icon name="alert" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>
-              <b className="font-semibold text-amber-200">{failed} intentos rechazados.</b>{" "}
-              Revisa duplicados y capturas: es la señal de boletas clonadas
-              {door.last_scan_at ? ` (último ${timeAgo(door.last_scan_at)})` : ""}.
-            </span>
-          </p>
         )}
 
-        {door.scanned_by?.length > 0 && (
-          <ul className="mt-4 space-y-1.5 border-t border-slate-800 pt-3">
-            {door.scanned_by.map((s) => (
-              <li
-                key={s.full_name}
-                className="flex items-center justify-between gap-3 text-xs"
-              >
-                <span className="truncate text-slate-400">{s.full_name}</span>
-                <span className="tnum shrink-0 font-mono text-slate-500">
-                  {s.granted} ok · {s.failed} rechaz.
-                </span>
-              </li>
-            ))}
-          </ul>
+        {/* Por promotor: mismo lenguaje visual */}
+        {report.by_promoter?.length > 0 && (
+          <div className="mt-6">
+            <p className="eyebrow mb-2">Por promotor</p>
+            <div className="divide-list overflow-hidden rounded-lg border border-zinc-800/80">
+              {report.by_promoter.map((p) => {
+                const pct = p.capacity > 0 ? Math.min((p.issued / p.capacity) * 100, 100) : 0;
+                return (
+                  <div key={p.promoter_id} className="px-3.5 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="truncate text-sm font-medium text-zinc-200">{p.full_name}</span>
+                      <span className="tnum shrink-0 text-xs text-zinc-500">
+                        {p.issued}/{p.capacity} cupos
+                        <span className="mx-1 text-zinc-700">·</span>
+                        {p.redeemed} en puerta
+                      </span>
+                    </div>
+                    <div className="meter mt-2">
+                      <div className="meter-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
-
-      {/* --- Desglose por tipo ------------------------------------------ */}
-      {report.by_type?.length > 0 && (
-        <div className="card stagger p-5" style={{ "--i": 7 }}>
-          <p className="eyebrow">Por tipo de boleta</p>
-          <ul className="mt-4 space-y-3.5">
-            {report.by_type.map((t) => {
-              const pct = t.quantity > 0 ? Math.min((t.issued / t.quantity) * 100, 100) : 0;
-              return (
-                <li key={t.name}>
-                  <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <span className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-                      {t.name}
-                      {t.is_courtesy && (
-                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-300 ring-1 ring-emerald-500/30">
-                          cortesía
-                        </span>
-                      )}
-                    </span>
-                    <span className="tnum font-mono text-xs text-slate-400">
-                      {t.issued}/{t.quantity}
-                      <span className="text-gold-400"> · {money(t.revenue_cents)}</span>
-                    </span>
-                  </div>
-                  <Bar pct={pct} tone={pct >= 100 ? "amber" : "brand"} />
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* --- Desglose por promotor -------------------------------------- */}
-      {report.by_promoter?.length > 0 && (
-        <div className="card stagger p-5" style={{ "--i": 8 }}>
-          <p className="eyebrow">Por promotor</p>
-          <ul className="mt-4 space-y-3.5">
-            {report.by_promoter.map((p) => {
-              const pct = p.capacity > 0 ? Math.min((p.issued / p.capacity) * 100, 100) : 0;
-              return (
-                <li key={p.promoter_id}>
-                  <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <span className="truncate text-sm font-medium text-slate-300">
-                      {p.full_name}
-                    </span>
-                    <span className="tnum shrink-0 font-mono text-xs text-slate-500">
-                      {p.issued}/{p.capacity} cupos · {p.redeemed} en puerta
-                      {p.voided > 0 && (
-                        <span className="text-red-400"> · {p.voided} anuladas</span>
-                      )}
-                    </span>
-                  </div>
-                  <Bar
-                    pct={pct}
-                    tone={pct >= 100 ? "red" : "brand"}
-                    gradient="from-brand-500 to-accent-500"
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Cifra secundaria con un filo de color: lee como estado, no como caja. */
-function MiniStat({ label, value, tone }) {
-  const tones = {
-    emerald: "text-emerald-300 border-emerald-500/20",
-    amber: "text-amber-300 border-amber-500/20",
-    red: "text-red-300 border-red-500/20",
-  };
-  return (
-    <div className={`rounded-lg border bg-slate-900/40 px-3 py-2.5 ${tones[tone]}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-        {label}
-      </p>
-      <p className="tnum mt-1 font-display text-2xl font-extrabold">{value}</p>
     </div>
   );
 }

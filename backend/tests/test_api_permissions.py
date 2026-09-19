@@ -46,7 +46,11 @@ def test_outsider_admin_cannot_touch_other_venue(api, world):
 
 @pytest.mark.parametrize("who", ["promoter", "bouncer", "outsider"])
 def test_event_management_is_admin_only(api, who):
-    """Tipos, cupos y listado de boletas quedan fuera del alcance de los demás roles."""
+    """Tipos y cupos quedan fuera del alcance de los demás roles.
+
+    El listado de boletas admite al promotor desde la fusión (ve SOLO las que
+    él emitió — recuperación de enlaces perdidos); bouncer/outsider siguen en 403.
+    """
     scen = api.scenario()
 
     assert (
@@ -73,7 +77,13 @@ def test_event_management_is_admin_only(api, who):
         ).status_code
         == 403
     )
-    assert api.get(f"/venues/{scen['venue']}/events/{scen['event']}/tickets", who).status_code == 403
+    # Contrato fusionado: promotor = 200 (scoping interno a sold_by_user_id,
+    # cubierto en test_ticket_roles_are_scoped); bouncer/outsider = 403.
+    expected_tickets = 200 if who == "promoter" else 403
+    assert (
+        api.get(f"/venues/{scen['venue']}/events/{scen['event']}/tickets", who).status_code
+        == expected_tickets
+    )
 
 
 def test_ticket_roles_are_scoped(api):
