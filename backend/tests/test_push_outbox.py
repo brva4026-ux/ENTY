@@ -67,6 +67,9 @@ def test_drain_once_marks_letter_processed(db, dbcur, world):
     nadie a quien avisar = carta cumplida (no se reintenta eterno)."""
     import asyncio
 
+    import psycopg
+    from psycopg.rows import dict_row
+
     from app.core.push_worker import _drain_once
 
     venue = world["venue_a"]
@@ -76,7 +79,26 @@ def test_drain_once_marks_letter_processed(db, dbcur, world):
         (user["id"], venue),
     )
 
-    processed = asyncio.run(_drain_once(db))
+    # _drain_once es async y exige conexion psycopg ASYNC: abrimos la nuestra
+    # (misma DB de prueba) y corremos el drenador REAL, no una copia del SQL.
+    def _dsn() -> str:
+        import os
+
+        return os.environ.get(
+            "TEST_DATABASE_URL",
+            "postgresql://postgres:devpassword@127.0.0.1:5432/ticketflow",
+        )
+
+    async def _drain():
+        conn = await psycopg.AsyncConnection.connect(
+            _dsn(), autocommit=True, row_factory=dict_row
+        )
+        try:
+            return await _drain_once(conn)
+        finally:
+            await conn.close()
+
+    processed = asyncio.run(_drain())
     assert processed >= 1
 
     row = dbcur.execute(
@@ -84,7 +106,7 @@ def test_drain_once_marks_letter_processed(db, dbcur, world):
         SELECT o.processed_at
         FROM push_outbox o
         JOIN notifications n ON n.id = o.notification_id
-        WHERE n.user_id = %s AND n.kind = 'test_drain'
+        WHERE n.user_id = %s AND n.kind = 'payout_reviewed'
         ORDER BY o.id DESC LIMIT 1
         """,
         (user["id"],),

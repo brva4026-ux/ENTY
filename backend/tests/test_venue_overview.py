@@ -12,9 +12,9 @@ def test_overview_counts_live_tickets_only(api, db):
     s = api.scenario()
     venue = s["venue"]
     # Emitir 3 boletas (2 quedarán vivas, 1 anulada).
-    t1 = api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"])
-    t2 = api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"])
-    api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"])
+    t1 = api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"]["id"])
+    t2 = api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"]["id"])
+    api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"]["id"])
     # Anular la tercera (admin).
     res = api.client.post(
         f"/venues/{venue}/events/{s['event']}/tickets/{t1['ticket_id']}/void",

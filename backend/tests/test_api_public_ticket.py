@@ -11,7 +11,7 @@ def _url(ticket) -> str:
 
 
 def _emit_one(api, scen, name: str = "Ana Pérez") -> dict:
-    return api.emit(
+    ticket = api.emit(
         "promoter",
         scen["venue"],
         scen["event"],
@@ -19,6 +19,14 @@ def _emit_one(api, scen, name: str = "Ana Pérez") -> dict:
         allocation_id=scen["allocation"]["id"],
         customer_name=name,
     )
+    # El QR del invitado vive solo dentro de su ventana (mig 013): todos los
+    # escenarios de IMAGEN suponen la ventana ya abierta (evento empezado).
+    # Va por DB porque la API no acepta ediciones con starts_at en el pasado.
+    api.run_sql(
+        f"UPDATE events SET starts_at = now() - interval '1 hour' "
+        f"WHERE id = {scen['event']}"
+    )
+    return ticket
 
 
 def test_client_gets_the_ticket_image_without_a_session(api_client, api):

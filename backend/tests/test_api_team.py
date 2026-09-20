@@ -116,6 +116,12 @@ def test_bouncer_door_stats_aggregated(api):
 
     # Abrir puertas y escanear: un éxito y un token falso (rechazado).
     api.post(f"/venues/{scen['venue']}/events/{scen['event']}/live", "admin")
+    # El escaneo es el día del evento: la ventana del QR (mig 013) ya abrió.
+    # Va por DB porque la API no acepta ediciones con starts_at en el pasado.
+    api.run_sql(
+        f"UPDATE events SET starts_at = now() - interval '1 hour' "
+        f"WHERE id = {scen['event']}"
+    )
 
     api.post(f"/venues/{scen['venue']}/events/{scen['event']}/redeem", "bouncer",
              {"raw_token": t1["raw_token"]})

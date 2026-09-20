@@ -38,7 +38,9 @@ BEGIN
     SELECT count(*) INTO v_closed FROM closed;
 
     -- published -> ended (venta vencida que nadie cerro; no pasa por live:
-    -- nunca abrio puerta, cierra directo al historial)
+    -- nunca abrio puerta, cierra directo al historial). Se ACUMULA: un
+    -- SELECT INTO simple sobrescribiria el conteo del bloque anterior y el
+    -- total devuelto mentiria (solo contaria published).
     WITH closed AS (
         UPDATE events
            SET status = 'ended', updated_at = now()
@@ -47,7 +49,7 @@ BEGIN
            AND ends_at < now()
         RETURNING 1
     )
-    SELECT count(*) INTO v_closed FROM closed;
+    SELECT v_closed + count(*) INTO v_closed FROM closed;
 
     RETURN v_closed;
 END;

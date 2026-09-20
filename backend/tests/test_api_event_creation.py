@@ -9,6 +9,13 @@ from datetime import datetime, timezone
 
 import pytest
 
+# PNG 1x1 real (mismo que test_media): para flyers via /media/{id}.
+_PNG_1PX = (
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
+    "YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+)
+
 
 def _post_event(api, venue_id, **extra):
     payload = {
@@ -21,11 +28,19 @@ def _post_event(api, venue_id, **extra):
 
 
 def test_create_event_with_date_description_and_flyer(api, world):
+    # El flyer viaja como imagen subida (/media/{id}, mig 018): la guardia
+    # SSRF resuelve DNS al validar URLs externas y en CI no hay red.
+    media = api.post(
+        f"/venues/{world['venue_a']}/media", "admin", {"data_url": _PNG_1PX}
+    )
+    assert media.status_code == 201, media.text
+    flyer = media.json()["url"]
+
     res = _post_event(
         api,
         world["venue_a"],
         description="DJ set + open bar",
-        flyer_url="https://cdn.example.test/flyer.jpg",
+        flyer_url=flyer,
         ends_at="2026-11-21T02:00:00-05:00",  # = 07:00 UTC
         event_timezone="America/Bogota",
     )
@@ -33,7 +48,7 @@ def test_create_event_with_date_description_and_flyer(api, world):
     body = res.json()
 
     assert body["description"] == "DJ set + open bar"
-    assert body["flyer_url"] == "https://cdn.example.test/flyer.jpg"
+    assert body["flyer_url"] == flyer
     assert body["event_timezone"] == "America/Bogota"
     assert body["capacity"] == 250
     assert body["status"] == "draft"
@@ -61,13 +76,13 @@ def test_event_is_listed_with_its_full_data(api, world):
         venue,
         name="Con flyer",
         description="Descripción del evento",
-        flyer_url="https://cdn.example.test/f2.png",
+        flyer_url=flyer,
     )
 
     [listed] = api.get(f"/venues/{venue}/events", "admin").json()
     assert listed["id"] == created["id"]
     assert listed["description"] == "Descripción del evento"
-    assert listed["flyer_url"] == "https://cdn.example.test/f2.png"
+    assert listed["flyer_url"] == flyer
     assert listed["event_timezone"] == created["event_timezone"]
 
 
@@ -75,17 +90,22 @@ def test_transition_returns_the_full_event(api, world):
     """La transición reemplaza el evento en el estado del frontend: una consulta
     recortada borraría la descripción y el flyer de la vista."""
     venue = world["venue_a"]
+    media = api.post(
+        f"/venues/{venue}/media", "admin", {"data_url": _PNG_1PX}
+    )
+    assert media.status_code == 201, media.text
+    flyer = media.json()["url"]
     created = api.create_event(
         "admin",
         venue,
         name="Con flyer",
         description="DJ set + open bar",
-        flyer_url="https://cdn.example.test/flyer.jpg",
+        flyer_url=flyer,
     )
 
     published = api.publish("admin", venue, created["id"])
     assert published["description"] == "DJ set + open bar"
-    assert published["flyer_url"] == "https://cdn.example.test/flyer.jpg"
+    assert published["flyer_url"] == flyer
     assert published["event_timezone"] == created["event_timezone"]
     assert published["starts_at"] == created["starts_at"]
     assert published["capacity"] == created["capacity"]

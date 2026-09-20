@@ -309,7 +309,7 @@ class Api:
         event_id: int,
         *,
         ticket_type_id: int,
-        allocation_id: int,
+        allocation_id: int | None,
         customer_name: str = "Asistente",
     ) -> dict:
         res = self.post(

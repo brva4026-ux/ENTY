@@ -134,7 +134,7 @@ def test_invitation_accepted_notifies_admins(api):
     venue = api.world["venue_a"]
     # El admin crea la invitación; un invitado real la acepta desde la página pública.
     res = api.post(
-        f"/venues/{venue}/invitations",
+        f"/auth/venues/{venue}/invitations",
         "admin",
         {
             "full_name": "Portero Notificado",
@@ -148,7 +148,7 @@ def test_invitation_accepted_notifies_admins(api):
 
     res = api.client.post(
         "/auth/invitations/accept",
-        json={"token": token, "password": "clave-segura-123"},
+        json={"token": token, "password": "Clave-Segura-123"},
     )
     assert res.status_code == 200, res.text
     accepted = res.json()
@@ -178,7 +178,7 @@ def test_reissue_notifies_admins(api):
     venue, event = s["venue"], s["event"]
     ticket = api.emit(
         "promoter", venue, event,
-        ticket_type_id=s["type"], allocation_id=s["allocation"],
+        ticket_type_id=s["type"], allocation_id=s["allocation"]["id"],
     )
     _notifications_for(api, "admin")  # limpia el baseline
 

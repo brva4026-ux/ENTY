@@ -29,7 +29,7 @@ def test_password_change_revokes_old_sessions(api):
         headers={"Authorization": f"Bearer {old_token}"},
         json={
             "current_password": api.world["password"],
-            "new_password": "nueva-clave-456",
+            "new_password": "Nueva-Clave-456",
         },
     )
     assert res.status_code == 200, res.text
@@ -61,7 +61,7 @@ def test_admin_reset_revokes_target_sessions(api):
     res = api.post(
         f"/venues/{venue}/users/{uid}/reset-password",
         "admin",
-        {"new_password": "clave-admin-789"},
+        {"new_password": "Clave-Admin-789"},
     )
     assert res.status_code == 200, res.text
 
@@ -122,7 +122,7 @@ def test_allocation_change_is_audited(dbcur, api):
     """Mover el cupo de un promotor deja rastro."""
     scen = api.scenario()
     res = api.patch(
-        api.allocation_url(scen["venue"], scen["event"], scen["allocation"]),
+        api.allocation_url(scen["venue"], scen["event"], scen["allocation"]["id"]),
         "admin",
         {"capacity": 99},
     )
@@ -132,7 +132,7 @@ def test_allocation_change_is_audited(dbcur, api):
         """SELECT details FROM audit_log
            WHERE kind = 'allocation_change' AND entity_id = %s
            ORDER BY id DESC LIMIT 1""",
-        (scen["allocation"],),
+        (scen["allocation"]["id"],),
     )
     row = dbcur.fetchone()
     assert row is not None
@@ -145,7 +145,7 @@ def test_csv_export_is_audited(dbcur, api):
     ttype = api.types("admin", scen["venue"], scen["event"])[0]
     api.emit(
         "promoter", scen["venue"], scen["event"],
-        ticket_type_id=ttype["id"], allocation_id=scen["allocation"],
+        ticket_type_id=ttype["id"], allocation_id=scen["allocation"]["id"],
         customer_name="Exportado",
     )
 
@@ -173,7 +173,7 @@ def test_csv_export_cut_for_promoter(dbcur, api):
     ttype = api.types("admin", scen["venue"], scen["event"])[0]
     api.emit(
         "promoter", scen["venue"], scen["event"],
-        ticket_type_id=ttype["id"], allocation_id=scen["allocation"],
+        ticket_type_id=ttype["id"], allocation_id=scen["allocation"]["id"],
         customer_name="De Promo Uno",
     )
 
@@ -206,7 +206,7 @@ def test_redeem_rate_limited_after_burst(dbcur, api):
     ttype = api.types("admin", scen["venue"], scen["event"])[0]
     t = api.emit(
         "promoter", scen["venue"], scen["event"],
-        ticket_type_id=ttype["id"], allocation_id=scen["allocation"],
+        ticket_type_id=ttype["id"], allocation_id=scen["allocation"]["id"],
     )
 
     # 40 escaneos sinteticos recientes del mismo bouncer (boleta real: FK).
@@ -232,7 +232,7 @@ def test_redeem_below_limit_passes_rate_check(dbcur, api):
     ttype = api.types("admin", scen["venue"], scen["event"])[0]
     t = api.emit(
         "promoter", scen["venue"], scen["event"],
-        ticket_type_id=ttype["id"], allocation_id=scen["allocation"],
+        ticket_type_id=ttype["id"], allocation_id=scen["allocation"]["id"],
     )
 
     dbcur.execute(

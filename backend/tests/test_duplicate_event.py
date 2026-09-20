@@ -130,9 +130,11 @@ def test_duplicate_carries_no_tickets(api, world):
         api.event_url(world["venue_a"], ev["id"]) + "/publish", "admin"
     )
     assert res.status_code == 200, res.text
+    # Boleta de PAGO via venta directa del admin (una pagada no puede usar
+    # cupo de promotor). El objetivo del test es el duplicado, no el cupo.
     emitida = api.emit(
-        "promoter", world["venue_a"], ev["id"],
-        ticket_type_id=general["id"], allocation_id=alloc["id"],
+        "admin", world["venue_a"], ev["id"],
+        ticket_type_id=general["id"], allocation_id=None,
         customer_name="Invitado Original",
     )
     assert emitida["ticket_id"] > 0

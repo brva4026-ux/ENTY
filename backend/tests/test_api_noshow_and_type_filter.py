@@ -24,6 +24,11 @@ def _open_doors(api, venue: int, event_id: int) -> None:
     """published -> live (la puerta solo acepta escaneos así)."""
     res = api.post(f"/venues/{venue}/events/{event_id}/live", "admin")
     assert res.status_code == 200, res.text
+    # El escaneo es el día del evento: la ventana del QR (mig 013) ya abrió.
+    # Va por DB porque la API no acepta ediciones con starts_at en el pasado.
+    api.run_sql(
+        f"UPDATE events SET starts_at = now() - interval '1 hour' WHERE id = {event_id}"
+    )
 
 
 # ===========================================================================

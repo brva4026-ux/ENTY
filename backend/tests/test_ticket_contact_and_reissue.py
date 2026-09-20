@@ -15,7 +15,7 @@ def _scenario_with_ticket(api):
     s = api.scenario()
     ticket = api.emit(
         "promoter", s["venue"], s["event"],
-        ticket_type_id=s["type"], allocation_id=s["allocation"],
+        ticket_type_id=s["type"], allocation_id=s["allocation"]["id"],
         customer_name="Nombre Mal Escrito",
     )
     return s, ticket

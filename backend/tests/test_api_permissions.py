@@ -141,7 +141,7 @@ def test_report_scope_by_role(api):
         "promoter",
         {"ticket_type_id": scen["type"], "customer_name": "Mia", "customer_phone": "3001112222"},
     )
-    assert emit.status_code == 200
+    assert emit.status_code == 201
 
     # ADMIN: vista completa (recaudo + desglose por promotor).
     admin = api.get(f"/venues/{scen['venue']}/events/{scen['event']}/report", "admin")
@@ -204,6 +204,12 @@ def test_redeem_cross_event_reports_invalid_event(api):
     )
     assert emitted.status_code == 201
     token = emitted.json()["raw_token"]
+
+    # El escaneo sucede el día del evento (ventana del QR ya abierta, mig 013).
+    api.run_sql(
+        f"UPDATE events SET starts_at = now() - interval '1 hour' "
+        f"WHERE id = {scen['event']}"
+    )
 
     other = api.create_event("admin", scen["venue"])
     api.publish("admin", scen["venue"], other["id"])

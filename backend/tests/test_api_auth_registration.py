@@ -7,6 +7,13 @@
   en draft/cancelled.
 """
 
+# PNG 1x1 real (mismo que test_media): para el logo del venue.
+_PNG_1PX = (
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
+    "YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+)
+
 
 def test_register_creates_venue_and_admin(api):
     payload = {
@@ -166,19 +173,25 @@ def test_update_venue_name_and_logo(api):
     headers = {"Authorization": f"Bearer {body['access_token']}"}
     venue_id = body["user"]["venues"][0]["id"]
 
+    # El logo viaja como imagen subida (/media/{id}, mig 018): la guardia
+    # SSRF rechaza 127.0.0.1 (y en CI sin red no hay host externo posible).
+    media = api.client.post(
+        f"/venues/{venue_id}/media",
+        headers=headers,
+        json={"data_url": _PNG_1PX},
+    )
+    assert media.status_code == 201, media.text
+    logo = media.json()["url"]
+
     res = api.client.patch(
         f"/auth/venues/{venue_id}",
         headers=headers,
-        # La guardia SSRF (mig 017) RESUELVE el host al validar URLs externas:
-        # en CI sin red, example.com no resuelve y daria 422. Se usa 127.0.0.1
-        # (host literal, sin DNS) y http (la guardia lo permite para hosts
-        # locales de desarrollo).
-        json={"name": "Bar Renombrado", "logo_url": "http://127.0.0.1:5/logo.png"},
+        json={"name": "Bar Renombrado", "logo_url": logo},
     )
     assert res.status_code == 200, res.text
     data = res.json()
     assert data["name"] == "Bar Renombrado"
-    assert data["logo_url"] == "http://127.0.0.1:5/logo.png"
+    assert data["logo_url"] == logo
 
     # Limpiar logo con string vacío
     res = api.client.patch(

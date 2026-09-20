@@ -29,7 +29,6 @@ def _register(api, password, email="pol@example.test"):
         ("aaaa1234", "mayúscula"),    # sin mayuscula
         ("AAAA1234", "minúscula"),    # sin minuscula
         ("Abcdefgh", "número"),       # sin numero
-        ("Ab1x", "mínimo"),           # demasiado corta (422 por longitud)
     ],
 )
 def test_register_rejects_weak_passwords(api, password, requirement):
@@ -38,6 +37,16 @@ def test_register_rejects_weak_passwords(api, password, requirement):
     detail = str(res.json().get("detail", ""))
     if requirement:
         assert requirement in detail.lower()
+
+
+def test_register_rejects_too_short_password(api):
+    """Menos de 8 caracteres: 422 por longitud, sin mensaje de la policy."""
+    res = _register(api, "Ab1x")
+    assert res.status_code == 422
+    detail = str(res.json().get("detail", ""))
+    # pydantic rechaza por min_length ANTES de la policy: el texto 'mínimo'
+    # vive en la policy, no en el validador de longitud del schema.
+    assert "at least 8 characters" in detail or "mínimo" in detail
 
 
 def test_register_accepts_strong_password(api):

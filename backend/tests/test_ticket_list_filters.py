@@ -53,13 +53,14 @@ def test_filter_by_status(api):
     tickets = api.client.get(
         f"/venues/{venue}/events/{ev}/tickets", headers=api.headers("admin")
     ).json()["items"]
-    res = api.client.request(
-        "PATCH",
-        f"/venues/{venue}/events/{ev}/tickets/{tickets[0]['id']}",
+    # La anulacion no es un PATCH de estado: es POST .../void con motivo
+    # (auditoria obligatoria, mig 002/019).
+    res = api.client.post(
+        f"/venues/{venue}/events/{ev}/tickets/{tickets[0]['id']}/void",
         headers=api.headers("admin"),
-        json={"status": "voided", "reason": "test"},
+        json={"reason": "test"},
     )
-    assert res.status_code in (200, 204), res.text
+    assert res.status_code == 200, res.text
     body = api.client.get(
         f"/venues/{venue}/events/{ev}/tickets?status=voided", headers=api.headers("admin")
     ).json()

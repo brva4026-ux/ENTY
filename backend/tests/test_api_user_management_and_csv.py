@@ -102,12 +102,12 @@ def test_reset_password_invalidates_old_credentials(api):
     res = api.post(
         f"/venues/{venue}/users/{user['id']}/reset-password",
         "admin",
-        {"new_password": "otra-clave-456"},
+        {"new_password": "Otra-Clave-456"},
     )
     assert res.status_code == 200, res.text
 
     assert api.client.post("/auth/login", json={"email": user["email"], "password": PASSWORD}).status_code == 401
-    assert api.client.post("/auth/login", json={"email": user["email"], "password": "otra-clave-456"}).status_code == 200
+    assert api.client.post("/auth/login", json={"email": user["email"], "password": "Otra-Clave-456"}).status_code == 200
 
 
 def test_deactivate_revokes_active_session(api):
@@ -186,7 +186,9 @@ def test_guests_csv_lists_all_tickets_with_bom(api):
     assert raw.startswith("\ufeff"), "Excel requiere BOM UTF-8"
 
     rows = list(csv.DictReader(io.StringIO(raw.lstrip("\ufeff"))))
-    expected = len(api.get(f"/venues/{venue}/events/{event}/tickets", "admin").json())
+    # El total del listado paginado (Fase 2) trae {total, items[]}.
+    listing = api.get(f"/venues/{venue}/events/{event}/tickets", "admin").json()
+    expected = listing["total"]
     assert len(rows) == expected > 0
     assert {"Boleta", "Nombre", "Estado", "Ingresó"} <= set(rows[0].keys())
 
