@@ -37,8 +37,9 @@ def _seed(dbcur, slug: str) -> dict:
     vid = dbcur.fetchone()["id"]
     dbcur.execute("DELETE FROM events WHERE name=%s", (f"Evento {slug}",))
     dbcur.execute(
+        # starts_at en el pasado: el QR del token es visible YA (mig 013)
         "INSERT INTO events (venue_id, name, starts_at, capacity, status) "
-        "VALUES (%s, %s, now() + interval '3 days', 100, 'published') RETURNING id",
+        "VALUES (%s, %s, now() - interval '2 hours', 100, 'published') RETURNING id",
         (vid, f"Evento {slug}"),
     )
     eid = dbcur.fetchone()["id"]

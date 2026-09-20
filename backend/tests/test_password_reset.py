@@ -131,7 +131,13 @@ def test_full_reset_flow_changes_credentials(api, db):
     )
     assert r2.status_code == 400
 
-    # Credenciales intercambiadas
+    # Credenciales intercambiadas. OJO: el martillo de 8 fallos de arriba
+    # sigue contando para el cubo de IP (el reset limpia el cubo del EMAIL,
+    # no el de IP) — el login exitoso con la clave nueva lo limpia, pero el
+    # 401 esperado de la clave vieja puede venir precedido del 429 del cubo
+    # de IP. Por eso se limpia el cubo de IP antes de verificar credenciales:
+    # lo que este test verifica es el CAMBIO de credenciales, no el lockout.
+    db.execute("DELETE FROM login_attempts WHERE ip = 'testclient'")
     assert (
         api.client.post(
             "/auth/login", json={"email": payload["email"], "password": "ClaveVieja1"}

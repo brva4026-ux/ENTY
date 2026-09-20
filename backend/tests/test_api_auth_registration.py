@@ -169,12 +169,16 @@ def test_update_venue_name_and_logo(api):
     res = api.client.patch(
         f"/auth/venues/{venue_id}",
         headers=headers,
-        json={"name": "Bar Renombrado", "logo_url": "https://cdn.example.com/logo.png"},
+        # La guardia SSRF (mig 017) RESUELVE el host al validar URLs externas:
+        # en CI sin red, example.com no resuelve y daria 422. Se usa 127.0.0.1
+        # (host literal, sin DNS) y http (la guardia lo permite para hosts
+        # locales de desarrollo).
+        json={"name": "Bar Renombrado", "logo_url": "http://127.0.0.1:5/logo.png"},
     )
     assert res.status_code == 200, res.text
     data = res.json()
     assert data["name"] == "Bar Renombrado"
-    assert data["logo_url"] == "https://cdn.example.com/logo.png"
+    assert data["logo_url"] == "http://127.0.0.1:5/logo.png"
 
     # Limpiar logo con string vacío
     res = api.client.patch(

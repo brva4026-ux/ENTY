@@ -112,6 +112,12 @@ def api_client(db):
     """
     os.environ["DATABASE_URL"] = _dsn()
     os.environ["JWT_SECRET"] = os.environ.get("JWT_SECRET", "test-secret")
+    # El lockout de login (mig 016) cuenta fallos por IP en la DB. En tests,
+    # TODOS los requests salen de la misma IP del TestClient: los 422/403 que
+    # los tests de permisos provocan a propósito envenenan el cubo de IP y el
+    # login de TODO test posterior responde 429. Cada test arranca con los
+    # cubos limpios (los tests específicos del lockout siembran lo suyo).
+    db.execute("DELETE FROM login_attempts")
 
     from fastapi.testclient import TestClient
 
@@ -130,7 +136,12 @@ def api_client(db):
             await conn.close()
 
     app.dependency_overrides[get_db] = _override_get_db
-    yield TestClient(app)
+    client = TestClient(app, base_url="http://testserver")
+    # IP del TestClient conocida y constante: el lockout por IP queda
+    # acotado a 'testclient' y cualquier test puede limpiarlo sin tocar
+    # filas de otros cubos.
+    client.headers.update({"x-real-ip": "testclient"})
+    yield client
     get_settings.cache_clear()
 
 

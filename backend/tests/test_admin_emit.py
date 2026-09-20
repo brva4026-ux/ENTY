@@ -143,7 +143,11 @@ def test_admin_direct_sale_shows_as_venta_directa_in_list(client, dbcur):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 200, r.text
-    tickets = r.json()
+    # Mig Fase-2: el listado paginado devuelve {total, items[]} (antes una
+    # lista cruda). El total SIEMPRE respeta el corte por promotor.
+    body = r.json()
+    tickets = body["items"]
+    assert body["total"] == 1
     assert len(tickets) == 1
     assert tickets[0]["from_allocation"] is False
     assert tickets[0]["sold_by_name"]

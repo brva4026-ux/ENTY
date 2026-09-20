@@ -65,8 +65,9 @@ def _seed(cur, slug: str, capacity: int = 100) -> dict:
 
     cur.execute("DELETE FROM events WHERE name=%s", (f"Evento {slug}",))
     cur.execute(
+        # starts_at en el pasado: QR ya activo (mig 013) y canje permitido (006)
         "INSERT INTO events (venue_id, name, starts_at, capacity, status) "
-        "VALUES (%s, %s, now() + interval '3 days', %s, 'published') RETURNING id",
+        "VALUES (%s, %s, now() - interval '2 hours', %s, 'published') RETURNING id",
         (vid, f"Evento {slug}", capacity),
     )
     eid = cur.fetchone()["id"]
@@ -325,7 +326,8 @@ def test_promoter_lists_only_own_tickets(client, dbcur):
         headers={"Authorization": f"Bearer {p1tok}"},
     )
     assert r.status_code == 200, r.text
-    ids = [t["id"] for t in r.json()]
+    # Mig Fase-2: el listado es paginado ({total, items[]})
+    ids = [t["id"] for t in r.json()["items"]]
     assert mine_id in ids, "el promotor no ve su propia boleta"
     assert other_id not in ids, "el promotor no debe ver boletas ajenas"
 
@@ -342,7 +344,7 @@ def test_admin_lists_all_tickets(client, dbcur):
         headers={"Authorization": f"Bearer {atok}"},
     )
     assert r.status_code == 200, r.text
-    ids = [t["id"] for t in r.json()]
+    ids = [t["id"] for t in r.json()["items"]]
     assert a_id in ids and b_id in ids
 
 
@@ -391,7 +393,7 @@ def test_phone_search_finds_ticket_with_uneven_format(client, dbcur):
         headers={"Authorization": f"Bearer {ptok}"},
     )
     assert r.status_code == 200, r.text
-    assert [t["id"] for t in r.json()] == [ticket_id], "el filtro por telefono no encontro la boleta"
+    assert [t["id"] for t in r.json()["items"]] == [ticket_id], "el filtro por telefono no encontro la boleta"
 
 
 def test_phone_search_respects_ownership(client, dbcur):
@@ -405,4 +407,5 @@ def test_phone_search_respects_ownership(client, dbcur):
         headers={"Authorization": f"Bearer {p1tok}"},
     )
     assert r.status_code == 200, r.text
-    assert r.json() == [], "el promotor no debe encontrar boletas ajenas por telefono"
+    body = r.json()
+    assert body["total"] == 0 and body["items"] == [], "el promotor no debe encontrar boletas ajenas por telefono"

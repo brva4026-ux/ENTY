@@ -44,8 +44,11 @@ def _role(cur, venue_id, user_id, role):
 def _event(cur, venue_id, name, capacity, status="published") -> int:
     cur.execute("DELETE FROM events WHERE name=%s", (name,))
     cur.execute(
+        # starts_at en el pasado: la boleta nace ACTIVA (ventana de
+        # activacion del QR ya abierta, mig 013) y el evento publicado
+        # acepta canje (guard de la mig 006).
         "INSERT INTO events (venue_id, name, starts_at, capacity, status) "
-        "VALUES (%s, %s, now() + interval '3 days', %s, %s) RETURNING id",
+        "VALUES (%s, %s, now() - interval '2 hours', %s, %s) RETURNING id",
         (venue_id, name, capacity, status),
     )
     return cur.fetchone()["id"]

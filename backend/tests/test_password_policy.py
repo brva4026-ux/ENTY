@@ -21,12 +21,15 @@ def _register(api, password, email="pol@example.test"):
 
 
 @pytest.mark.parametrize(
+    # 'num'/'min'/'may' nunca fueron claves de la policy: son 'digit'/'lower'
+    # /'upper', y el mensaje es en español ("número", etc.). El assert busca
+    # en el texto REAL del error (str(dict) en minúsculas).
     "password, requirement",
     [
-        ("aaaa1234", "may"),          # sin mayuscula
-        ("AAAA1234", "min"),          # sin minuscula
-        ("Abcdefgh", "num"),          # sin numero
-        ("Ab1x", None),               # demasiado corta (422 por longitud)
+        ("aaaa1234", "mayúscula"),    # sin mayuscula
+        ("AAAA1234", "minúscula"),    # sin minuscula
+        ("Abcdefgh", "número"),       # sin numero
+        ("Ab1x", "mínimo"),           # demasiado corta (422 por longitud)
     ],
 )
 def test_register_rejects_weak_passwords(api, password, requirement):

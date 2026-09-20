@@ -14,7 +14,7 @@ def test_notify_user_writes_outbox_letter(db, dbcur, world):
     user = world["promoter"]
 
     dbcur.execute(
-        "SELECT notify_user(%s, %s, 'test_kind', 'Titulo', 'Cuerpo', '/promotor')",
+        "SELECT notify_user(%s, %s, 'payout_created', 'Titulo', 'Cuerpo', '/promotor')",
         (user["id"], venue),
     )
     dbcur.execute(
@@ -22,7 +22,7 @@ def test_notify_user_writes_outbox_letter(db, dbcur, world):
         SELECT n.id, o.processed_at, n.kind, n.link
         FROM notifications n
         JOIN push_outbox o ON o.notification_id = n.id
-        WHERE n.user_id = %s AND n.kind = 'test_kind'
+        WHERE n.user_id = %s AND n.kind = 'payout_created'
         ORDER BY n.id DESC LIMIT 1
         """,
         (user["id"],),
@@ -46,7 +46,7 @@ def test_notify_venue_admins_one_letter_each(db, dbcur, world):
     ).fetchone()["n"]
 
     dbcur.execute(
-        "SELECT notify_venue_admins(%s, 'test_admins', 'Titulo', 'Cuerpo', '/admin')",
+        "SELECT notify_venue_admins(%s, 'payout_disputed', 'Titulo', 'Cuerpo', '/admin')",
         (venue,),
     )
     cartas = dbcur.execute(
@@ -54,7 +54,7 @@ def test_notify_venue_admins_one_letter_each(db, dbcur, world):
         SELECT count(*) AS n
         FROM push_outbox o
         JOIN notifications n ON n.id = o.notification_id
-        WHERE n.venue_id = %s AND n.kind = 'test_admins'
+        WHERE n.venue_id = %s AND n.kind = 'payout_disputed'
         """,
         (venue,),
     ).fetchone()["n"]
@@ -72,7 +72,7 @@ def test_drain_once_marks_letter_processed(db, dbcur, world):
     venue = world["venue_a"]
     user = world["promoter"]
     dbcur.execute(
-        "SELECT notify_user(%s, %s, 'test_drain', 'Titulo', 'Cuerpo', NULL)",
+        "SELECT notify_user(%s, %s, 'payout_reviewed', 'Titulo', 'Cuerpo', NULL)",
         (user["id"], venue),
     )
 

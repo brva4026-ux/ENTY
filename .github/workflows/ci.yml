@@ -52,7 +52,7 @@ jobs:
           cd backend
           pip install --no-cache-dir ".[dev]" || pip install --no-cache-dir -e "."
           pip install --no-cache-dir pytest
-    - name: Run business-rule tests
-      run: |
-        cd backend
-        python -m pytest tests/ -v
+      - name: Run business-rule tests
+        run: |
+          cd backend
+          python -m pytest tests/ -v
