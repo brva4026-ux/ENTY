@@ -65,19 +65,27 @@ export default function RegisterPage() {
   const filled = Object.values(form).filter((v) => v.trim()).length;
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+      {/* Mismos halos de marca que el login: una sola experiencia de entrada */}
+      <div
+        className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-brand-600/25 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-sky-500/15 blur-3xl"
+        aria-hidden="true"
+      />
+
+      <div className="relative w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Logo size="lg" />
-          <p className="mt-3 text-sm text-zinc-500">
+          <Logo size="xl" />
+          <p className="mt-4 text-sm font-medium text-zinc-400">
             Crea el panel de tu negocio en un minuto
           </p>
         </div>
 
-        <div className="card card-interactive reveal p-6">
-          <h1 className="display mb-1 text-lg">
-            Crear cuenta de administrador
-          </h1>
+        <div className="auth-card card-interactive reveal p-6 sm:p-7">
+          <h1 className="display mb-1 text-lg">Crea tu cuenta</h1>
           <p className="eyebrow mb-5">Tu negocio, bajo tu control</p>
 
           <form onSubmit={submit}>
@@ -127,19 +135,34 @@ export default function RegisterPage() {
                 value={form.password}
                 onChange={(e) => set("password", e.target.value)}
                 placeholder="Mínimo 8 caracteres"
-                className="field mb-0 !pr-16"
+                className="field mb-0 !pr-12"
                 autoComplete="new-password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPass((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
+                className="absolute right-1.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-800/60 hover:text-zinc-100"
                 aria-label={
                   showPass ? "Ocultar contraseña" : "Mostrar contraseña"
                 }
+                aria-pressed={showPass}
               >
-                {showPass ? "Ocultar" : "Ver"}
+                {/* Ojo con icono (mismo lenguaje visual del sistema) */}
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+                  <circle cx="12" cy="12" r="3.2" />
+                  {!showPass && <path d="M4.5 19.5 19.5 4.5" />}
+                </svg>
               </button>
             </div>
 

@@ -29,6 +29,26 @@ function loginErrorMessage(err) {
   return raw || "No pudimos iniciar sesión. Inténtalo de nuevo.";
 }
 
+/** Ojo mostrar/ocultar: icono trazado, mismo lenguaje visual del sistema. */
+function EyeIcon({ open }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="3.2" />
+      {!open && <path d="M4.5 19.5 19.5 4.5" />}
+    </svg>
+  );
+}
+
 export default function LoginPage() {
   const { login } = useAuth();
   const nav = useNavigate();
@@ -81,15 +101,29 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+      {/* Ambiente de marca: dos halos de gradiente anclados a las esquinas.
+          Es la firma visual de la app (aurora violeta), ampliada aquí porque
+          la entrada es la vitrina — en el resto del producto es sutil. */}
+      <div
+        className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-brand-600/25 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-sky-500/15 blur-3xl"
+        aria-hidden="true"
+      />
+
+      <div className="relative w-full max-w-sm">
+        {/* Marca: isotipo con gradiente y halo, wordmark con brillo */}
         <div className="mb-8 flex flex-col items-center text-center">
-          <Logo size="lg" />
-          <p className="mt-3 text-sm text-zinc-500">
-            Boletería, cupos y puerta — en una sola app
+          <Logo size="xl" />
+          <p className="mt-4 text-sm font-medium text-zinc-400">
+            La boletería de tu bar, en tu bolsillo
           </p>
         </div>
-        <div className="card card-interactive reveal p-6">
+
+        <div className="auth-card card-interactive reveal p-6 sm:p-7">
           <h1 className="display mb-1 text-lg">Ingresar</h1>
           <p className="eyebrow mb-5">Acceso del personal</p>
 
@@ -125,19 +159,20 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Tu contraseña"
-                className="field mb-0 !pr-16"
+                className="field mb-0 !pr-12"
                 autoComplete="current-password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPass((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
+                className="absolute right-1.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-800/60 hover:text-zinc-100"
                 aria-label={
                   showPass ? "Ocultar contraseña" : "Mostrar contraseña"
                 }
+                aria-pressed={showPass}
               >
-                {showPass ? "Ocultar" : "Ver"}
+                <EyeIcon open={showPass} />
               </button>
             </div>
 
@@ -155,8 +190,8 @@ export default function LoginPage() {
             {forgotOpen && (
               <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
                 <p className="mb-2 text-xs leading-relaxed text-zinc-400">
-                  Escribe tu correo arriba y te enviamos un enlace para
-                  crear una contraseña nueva.
+                  Escribe tu correo arriba y te enviamos un enlace para crear
+                  una contraseña nueva.
                 </p>
                 <button
                   type="button"
@@ -166,7 +201,11 @@ export default function LoginPage() {
                 >
                   {forgotBusy ? (
                     <>
-                      <svg className="btn-spinner" viewBox="0 0 24 24" aria-hidden="true">
+                      <svg
+                        className="btn-spinner"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
                         <circle cx="12" cy="12" r="9" />
                       </svg>
                       Enviando…
@@ -209,7 +248,8 @@ export default function LoginPage() {
               {busy ? "Entrando…" : "Entrar"}
             </button>
           </form>
-        </div>{" "}
+        </div>
+
         <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
           ¿Nuevo en TicketFlow?{" "}
           <button
@@ -219,6 +259,61 @@ export default function LoginPage() {
             Crea tu negocio
           </button>
         </p>
+
+        {/* Confianza: tres pruebas concretas del producto, no marketing vacío */}
+        <div className="mt-7 flex items-center justify-center gap-2 text-[11px] font-medium text-zinc-500">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800/80 bg-zinc-900/50 px-2.5 py-1.5">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-3 w-3 text-emerald-400"
+              aria-hidden="true"
+            >
+              <path
+                d="m5 13 4 4L19 7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            QR de un solo uso
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800/80 bg-zinc-900/50 px-2.5 py-1.5">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-3 w-3 text-emerald-400"
+              aria-hidden="true"
+            >
+              <path
+                d="m5 13 4 4L19 7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Venta en puerta
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800/80 bg-zinc-900/50 px-2.5 py-1.5">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-3 w-3 text-emerald-400"
+              aria-hidden="true"
+            >
+              <path
+                d="m5 13 4 4L19 7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Pagos claros
+          </span>
+        </div>
       </div>
     </div>
   );
