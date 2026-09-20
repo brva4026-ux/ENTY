@@ -322,6 +322,7 @@ async def venue_overview(
     ensure_roles(user, venue_id, "super_admin", "admin")
 
     tz = "America/Bogota"  # zona del negocio; los eventos la traen igual
+    tzinfo = ZoneInfo(tz)
     if month:
         try:
             year, mon = (int(x) for x in month.split("-"))
@@ -331,9 +332,15 @@ async def venue_overview(
             raise HTTPException(400, "month debe ser YYYY-MM")
         month_start = datetime(year, mon, 1)
     else:
-        now = datetime.now(ZoneInfo(tz))
+        now = datetime.now(tzinfo)
         month_start = datetime(now.year, now.month, 1)
         month = f"{now.year:04d}-{now.month:02d}"
+    # month_start debe llevar la ZONA del negocio adjunta: si viaja naive,
+    # Postgres lo interpreta como UTC y la medianoche del dia 1 en Bogota
+    # retrocede al ultimo dia del mes anterior (month=2026-10 agregaba
+    # septiembre). Con tzinfo adjunta, el AT TIME ZONE del SQL ve la
+    # medianoche LOCAL exacta del dia 1.
+    month_start = month_start.replace(tzinfo=tzinfo)
 
     params = {"venue": venue_id, "tz": tz, "month_start": month_start.isoformat()}
 
