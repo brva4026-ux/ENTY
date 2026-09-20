@@ -1,15 +1,27 @@
 import React from "react";
+import { captureError } from "../lib/sentry";
 
 /**
  * ErrorBoundary global: si un componente interno falla (p.ej. un .map sobre
  * un dato inesperado), muestra el error en pantalla en lugar de una página
  * en blanco. Facilita el debug en producción y en el celular.
+ *
+ * Además reporta a Sentry (no-op sin DSN): el crash llega al dashboard con
+ * stacktrace antes de que el usuario escriba a soporte.
  */
 export default class ErrorBoundary extends React.Component {
   state = { error: null };
 
   static getDerivedStateFromError(error) {
     return { error };
+  }
+
+  componentDidCatch(error, info) {
+    captureError(error, {
+      kind: "react_error_boundary",
+      component_stack: info?.componentStack ?? "",
+    });
+    this.props.onError?.(error);
   }
 
   render() {

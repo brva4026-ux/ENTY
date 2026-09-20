@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.db import close_pool, init_pool
+from app.core.observability import capture_exception, init_sentry
 from app.core.push_worker import push_outbox_worker
 from app.routers import (
     auth,
@@ -34,6 +35,10 @@ from app.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Sentry para el servidor directo (uvicorn local / cualquier host no
+    # serverless). En Vercel lo inicializa antes api/index.py, para cubrir
+    # también el fallo de import; init_sentry es idempotente.
+    init_sentry()
     settings = get_settings()
     await init_pool(settings.database_url)
     # Worker del outbox de push (mig 014): las notificaciones in-app nacen en
@@ -48,7 +53,12 @@ async def lifespan(app: FastAPI):
     finally:
         push_stop.set()
         push_task.cancel()
-        await asyncio.gather(push_task, return_exceptions=True)
+        results = await asyncio.gather(push_task, return_exceptions=True)
+        # Un worker que murió con excepción es un hallazgo real: sin esto, el
+        # push se apaga silenciosamente hasta el próximo arranque.
+        for r in results:
+            if isinstance(r, BaseException):
+                capture_exception(r, context={"component": "push_outbox_worker"})
         await close_pool()
 
 

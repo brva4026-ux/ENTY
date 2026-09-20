@@ -25,6 +25,7 @@ import psycopg
 from psycopg.rows import dict_row
 
 from app.core.config import get_settings
+from app.core.observability import capture_exception
 from app.core.pusher import send_web_push
 
 logger = logging.getLogger("ticketflow.push")
@@ -173,6 +174,10 @@ async def drain_push_outbox() -> None:
             logger.info("push outbox: %d notificaciones enviadas", processed)
     except Exception as e:  # noqa: BLE001 — el worker jamás tumba el proceso
         logger.warning("push outbox: drenaje falló (%s); reintenta en el próximo tick", e)
+        # Persistente = señal real (DB caída, VAPID malformado): Sentry lo
+        # agrupa por firma y no spamea; los fallos de red transitorios se
+        # repiten poco y quedan como warning local.
+        capture_exception(e, context={"component": "push_outbox_worker"})
 
 
 async def push_outbox_worker(stop: asyncio.Event) -> None:

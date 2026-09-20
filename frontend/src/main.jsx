@@ -2,6 +2,10 @@ import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
+// Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
+// durante el arranque también se reportan.
+import { initFrontendSentry, captureError } from "./lib/sentry";
+initFrontendSentry();
 import { AuthProvider, useAuth } from "./lib/auth";
 import { UIProvider } from "./lib/ui";
 import { OfflineBanner } from "./components/OfflineBanner";
@@ -14,9 +18,20 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PromoterDashboard from "./pages/PromoterDashboard";
 // El escáner carga html5-qrcode (~300 KB) y la boleta pública es una página
 // aparte: chunks separados que solo baja quien los usa. El resto de roles
-// nunca paga ese costo.
-const BouncerScanner = lazy(() => import("./pages/BouncerScanner"));
-const PublicTicketPage = lazy(() => import("./pages/PublicTicketPage"));
+// nunca paga ese costo. Si un chunk falla al cargar (deploy nuevo + chunk
+// viejo en caché, red flaca), se reporta y ofrece recargar.
+const lazyPage = (loader) => {
+  const Component = lazy(loader);
+  return (props) => (
+    <Suspense fallback={<SplashScreen />}>
+      <ErrorBoundary onError={(e) => captureError(e, { kind: "chunk_error" })}>
+        <Component {...props} />
+      </ErrorBoundary>
+    </Suspense>
+  );
+};
+const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
+const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
 import Layout from "./components/Layout";
 import { SplashScreen } from "./components/SplashScreen";
 

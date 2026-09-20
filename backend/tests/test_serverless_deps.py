@@ -26,6 +26,7 @@ IMPORT_TO_PACKAGE = {
     "jose": "python-jose",
     "psycopg_pool": "psycopg-pool",
     "pydantic_settings": "pydantic-settings",
+    "sentry_sdk": "sentry-sdk",
 }
 
 

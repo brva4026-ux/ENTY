@@ -1,5 +1,7 @@
 // Cliente API. En dev, Vite hace proxy de /api -> backend:8000.
 // En producción el frontend se sirve junto al backend o via gateway.
+import { captureApiError } from "./sentry";
+
 const BASE = "/api";
 
 /**
@@ -55,7 +57,14 @@ export async function apiFetch(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, { ...options, headers });
+  } catch (networkErr) {
+    // Sin respuesta (offline, DNS, abort): también es señal operativa.
+    captureApiError(networkErr, { method: options.method ?? "GET", path, status: 0 });
+    throw networkErr;
+  }
 
   let data = null;
   try {
@@ -91,6 +100,11 @@ export async function apiFetch(path, options = {}) {
     }
     const err = new Error(msg);
     err.status = res.status;
+    // Los 5xx (y los fallos sin respuesta) son el signal que el dueño de la
+    // app quiere antes que los usuarios; los 4xx son negocio normal.
+    if (res.status >= 500) {
+      captureApiError(err, { method: options.method ?? "GET", path, status: res.status });
+    }
     throw err;
   }
   return data;
