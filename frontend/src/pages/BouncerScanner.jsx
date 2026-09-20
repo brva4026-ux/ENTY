@@ -416,7 +416,10 @@ export default function BouncerScanner() {
           inventa una cola que admitiría después QRs que hoy no se pueden
           verificar (screenshot de una boleta anulada entraría igual). */}
       {offline && (
-        <div className="bg-amber-950/80 px-4 py-2 text-center text-xs font-semibold text-amber-200">
+        <div
+          role="alert"
+          className="bg-amber-950/80 px-4 py-2 text-center text-xs font-semibold text-amber-200"
+        >
           ⚠️ Sin conexión: el escáner valida contra el server. Reconectá el dato
           para poder canjear.
         </div>
@@ -444,7 +447,7 @@ export default function BouncerScanner() {
             onTouchEnd={cancelHold}
             onTouchCancel={cancelHold}
             onContextMenu={(e) => e.preventDefault()}
-            className="relative select-none overflow-hidden rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300"
+            className="relative min-h-[44px] select-none overflow-hidden rounded-lg border border-zinc-700 px-4 font-semibold text-zinc-300"
             aria-label="Mantén presionado para salir del modo kiosco"
           >
             <span
@@ -495,9 +498,18 @@ export default function BouncerScanner() {
       {style ? (
         <button
           onClick={resetScan}
+          /* El resultado se ANUNCIA (lectores de pantalla): en la oscuridad
+             de la puerta el canal de respaldo no puede ser solo visual. */
+          role="status"
+          aria-live="assertive"
           className={`flex flex-1 flex-col items-center justify-center ${style.bg} p-6 transition-colors`}
         >
-          <span className="animate-pop text-8xl font-black text-white drop-shadow-lg">
+          {/* El icono gigante es decorado para ojo humano (ya está el color,
+              el texto y el anuncio): oculto al lector para no leerlo dos veces. */}
+          <span
+            aria-hidden="true"
+            className="animate-pop text-8xl font-black text-white drop-shadow-lg"
+          >
             {style.icon}
           </span>
           <span className="animate-scale-in mt-4 text-5xl font-black uppercase tracking-tight text-white">
@@ -580,7 +592,10 @@ export default function BouncerScanner() {
               spellCheck={false}
               className="field min-w-0 flex-1"
             />
-            <button type="submit" className="btn-ghost shrink-0 font-bold">
+            <button
+              type="submit"
+              className="btn-ghost min-h-[44px] shrink-0 font-bold"
+            >
               Validar
             </button>
           </form>
@@ -593,7 +608,7 @@ export default function BouncerScanner() {
                 <button
                   onClick={() => setRowFilter("")}
                   aria-pressed={rowFilter === ""}
-                  className={`chip rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  className={`chip min-h-[44px] rounded-full px-4 text-xs font-semibold ${
                     rowFilter === ""
                       ? "chip-active"
                       : "bg-zinc-800/70 text-zinc-300"
@@ -606,7 +621,7 @@ export default function BouncerScanner() {
                     key={t.id}
                     onClick={() => setRowFilter(t.id)}
                     aria-pressed={rowFilter === t.id}
-                    className={`chip rounded-full px-3 py-1.5 text-xs font-semibold ${
+                    className={`chip min-h-[44px] rounded-full px-4 text-xs font-semibold ${
                       rowFilter === t.id
                         ? "chip-active"
                         : "bg-zinc-800/70 text-zinc-300"
