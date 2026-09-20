@@ -20,7 +20,10 @@ function loginErrorMessage(err) {
   if (err?.status === 422) {
     return "Revisa el formato del correo e inténtalo de nuevo.";
   }
-  if (raw.toLowerCase().includes("failed to fetch") || raw.toLowerCase().includes("network")) {
+  if (
+    raw.toLowerCase().includes("failed to fetch") ||
+    raw.toLowerCase().includes("network")
+  ) {
     return "No hay conexión con el servidor. Verifica tu internet.";
   }
   return raw || "No pudimos iniciar sesión. Inténtalo de nuevo.";
@@ -70,7 +73,7 @@ export default function LoginPage() {
       setForgotMsg(res.detail);
     } catch (err) {
       setForgotMsg(
-        "No pudimos procesar la solicitud ahora. Inténtalo en unos minutos."
+        "No pudimos procesar la solicitud ahora. Inténtalo en unos minutos.",
       );
     } finally {
       setForgotBusy(false);
@@ -86,7 +89,6 @@ export default function LoginPage() {
             Boletería, cupos y puerta — en una sola app
           </p>
         </div>
-
         <div className="card card-interactive reveal p-6">
           <h1 className="display mb-1 text-lg">Ingresar</h1>
           <p className="eyebrow mb-5">Acceso del personal</p>
@@ -131,7 +133,9 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setShowPass((v) => !v)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
-                aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-label={
+                  showPass ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
               >
                 {showPass ? "Ocultar" : "Ver"}
               </button>
@@ -179,12 +183,26 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button type="submit" disabled={busy} className="btn-primary w-full">
+            <button
+              type="submit"
+              disabled={busy}
+              className="btn-primary w-full"
+            >
+              {busy && (
+                <svg
+                  className="btn-spinner"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+              )}
               {busy ? "Entrando…" : "Entrar"}
             </button>
           </form>
-        </div>        <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
-          ¿Nuevo en TicketFlow? {" "}
+        </div>{" "}
+        <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
+          ¿Nuevo en TicketFlow?{" "}
           <button
             onClick={() => nav("/register")}
             className="link-underline font-semibold text-brand-300"

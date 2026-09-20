@@ -5,7 +5,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
   /* Un solo acento disciplinado: violeta 600. Nada de arcoíris. */
   --color-brand-200: #ddd6fe;
   --color-brand-300: #c4b5fd;
@@ -17,7 +19,18 @@
   --color-accent-500: #8b5cf6;
 }
 
-html, body, #root { height: 100%; }
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Widgets nativos (date/time pickers, select, autoscroll) en su variante
+   dark: sin esto, el calendario nativo de iOS/Chrome se pinta blanco y
+   rompe la ilusión de producto coherente. */
+html {
+  color-scheme: dark;
+}
 
 body {
   font-family: var(--font-sans);
@@ -27,8 +40,16 @@ body {
      ambiente, no decoración. Estático (sin animación) y sin fixed-attachment
      para no pagar repaint en scroll móvil. */
   background:
-    radial-gradient(60rem 32rem at 50% -12rem, rgba(124, 58, 237, 0.18), transparent 62%),
-    radial-gradient(46rem 26rem at 88% -8rem, rgba(59, 130, 246, 0.09), transparent 60%),
+    radial-gradient(
+      60rem 32rem at 50% -12rem,
+      rgba(124, 58, 237, 0.18),
+      transparent 62%
+    ),
+    radial-gradient(
+      46rem 26rem at 88% -8rem,
+      rgba(59, 130, 246, 0.09),
+      transparent 60%
+    ),
     #09090b;
   background-repeat: no-repeat;
   color: #e4e4e7;
@@ -37,14 +58,19 @@ body {
   font-feature-settings: "cv05" 1; /* Inter: 'l' con cola, más legible */
 }
 
-::selection { background: rgba(124, 58, 237, 0.4); color: #fff; }
+::selection {
+  background: rgba(124, 58, 237, 0.4);
+  color: #fff;
+}
 
 /* ----------------------------------------------------------------------
    ACCESIBILIDAD: foco de teclado visible y consistente.
    :focus-visible solo activa el anillo con teclado (Tab); el clic no pinta
    halos molestos. Nunca outline: none a secas — eso ciega la navegación.
    ---------------------------------------------------------------------- */
-:focus { outline: none; }
+:focus {
+  outline: none;
+}
 :focus-visible {
   outline: 2px solid var(--color-brand-400);
   outline-offset: 2px;
@@ -67,17 +93,35 @@ body {
   font-weight: 600;
   transition: transform 0.15s ease;
 }
-.skip-link:focus-visible { transform: translate(-50%, 0); }
+.skip-link:focus-visible {
+  transform: translate(-50%, 0);
+}
 
 /* Scrollbar discreto */
-* { scrollbar-width: thin; scrollbar-color: #27272a transparent; }
-*::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: #27272a; border-radius: 8px; }
-*::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
-*::-webkit-scrollbar-track { background: transparent; }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #27272a transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
 
 /* Números tabulares: las cifras no "bailan" al refrescar */
-.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
 
 /* Eyebrow: etiqueta pequeña MAYÚSCULA que encabeza secciones.
    En brand-400 (como los encabezados azul/violeta de distri-stream). */
@@ -89,11 +133,14 @@ body {
   color: #a78bfa;
 }
 
-/* Titulares: apretados, pesados, oscuro sobre claro de zinc */
+/* Titulares: apretados, pesados, con tamaño óptico de la variable Inter
+   (opsz sube el contraste de trazos en tamaños grandes: el titular se ve
+   "impreso", no "renderizado"). */
 .display {
   letter-spacing: -0.025em;
   font-weight: 700;
   color: #fafafa;
+  font-variation-settings: "opsz" 32;
 }
 
 /* Tarjeta premium: superficie con luz propia — degradado sutil arriba (como
@@ -103,7 +150,11 @@ body {
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.07);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(255, 255, 255, 0) 42%
+    ),
     #101013;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
@@ -125,13 +176,21 @@ body {
   font-size: 0.875rem;
   color: #fafafa;
   outline: none;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
 }
-.field::placeholder { color: #52525b; }
-.field:hover { border-color: #3f3f46; }
+.field::placeholder {
+  color: #52525b;
+}
+.field:hover {
+  border-color: #3f3f46;
+}
 .field:focus {
   border-color: #a78bfa;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22), 0 0 18px -6px rgba(139, 92, 246, 0.45);
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.22),
+    0 0 18px -6px rgba(139, 92, 246, 0.45);
 }
 
 /* Botón primario: degradado violeta → fucsia con glow (firma premium de
@@ -150,15 +209,24 @@ body {
   padding: 0.55rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
-  transition: background 0.12s, border-color 0.12s, transform 0.1s ease;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    transform 0.1s ease;
 }
 .btn-primary:hover {
   background: linear-gradient(135deg, #8b5cf6 0%, #9d6bfa 48%, #b668f9 100%);
   border-color: rgba(196, 181, 253, 0.7);
   box-shadow: 0 6px 22px -6px rgba(139, 92, 246, 0.65);
 }
-.btn-primary:active { filter: brightness(0.96); transform: scale(0.98); }
-.btn-primary:disabled { opacity: 0.45; pointer-events: none; }
+.btn-primary:active {
+  filter: brightness(0.96);
+  transform: scale(0.98);
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
 
 /* Botón secundario: outline zinc */
 .btn-ghost {
@@ -173,16 +241,22 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   color: #d4d4d8;
-  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.1s ease;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.1s ease;
 }
 .btn-ghost:hover {
   background: rgba(139, 92, 246, 0.08);
   border-color: rgba(139, 92, 246, 0.45);
   color: #fafafa;
 }
-.btn-ghost:active { transform: scale(0.98); }
+.btn-ghost:active {
+  transform: scale(0.98);
+}
 
-/* Botón de peligro: texto rojo, relleno solo al hover */
+/* Botón de peligro (texto): relleno tenue solo al hover */
 .btn-danger-text {
   display: inline-flex;
   align-items: center;
@@ -193,17 +267,178 @@ body {
   color: #f87171;
   transition: background 0.12s;
 }
-.btn-danger-text:hover { background: rgba(239, 68, 68, 0.09); color: #fca5a5; }
+.btn-danger-text:hover {
+  background: rgba(239, 68, 68, 0.09);
+  color: #fca5a5;
+}
+
+/* Botón de peligro sólido: para la acción destructiva CONFIRMADA (diálogos,
+   anulaciones). Jerarquía roja real: el hover no lo descubre, lo insiste. */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: #ffffff;
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  box-shadow: 0 4px 14px -4px rgba(220, 38, 38, 0.5);
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    transform 0.1s ease;
+}
+.btn-danger:hover {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  border-color: rgba(252, 165, 165, 0.7);
+  box-shadow: 0 6px 22px -6px rgba(239, 68, 68, 0.6);
+}
+.btn-danger:active {
+  filter: brightness(0.96);
+  transform: scale(0.98);
+}
+.btn-danger:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Spinner dentro de botones: la promesa de "está pasando algo" in situ.
+   stroke-dashoffset animado = arco que corre sin JavaScript. */
+.btn-spinner {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  animation: spin 0.7s linear infinite;
+}
+.btn-spinner circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-dasharray: 42;
+  stroke-dashoffset: 18;
+  stroke-linecap: round;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* Chips de evento: pill sobria, activa = superficie clara */
 .chip {
   border-radius: 999px;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
 }
 .chip-active {
   background: #fafafa !important;
   color: #101013 !important;
   font-weight: 600;
+}
+
+/* ===========================================================================
+   TOOLTIPS (data-tip): reemplazan al atributo title nativo, que tarda ~1s,
+   no se puede estilar y se ve del SO de quien mira. Aparecen tras un delay
+   corto con fade+rise; solo con hover (no tocan el flujo táctil).
+   Uso: <button data-tip="Guardar cambios">…</button>
+   =========================================================================== */
+[data-tip] {
+  position: relative;
+}
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) translateY(3px);
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.4rem;
+  background: #18181b;
+  color: #e4e4e7;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.7);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 60;
+  transition:
+    opacity 0.15s ease 0.35s,
+    transform 0.15s ease 0.35s;
+}
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+/* El tooltip se corta si el padre tiene overflow hidden — opt-out disponible */
+[data-tip-static]::after {
+  position: fixed;
+}
+@media (hover: none) {
+  /* En táctil no existen hovers: el tooltip nunca estorba. */
+  [data-tip]::after {
+    display: none;
+  }
+}
+
+/* ===========================================================================
+   TABS PREMIUM: contenedor pill hundido con indicador que se desliza.
+   La pestaña activa levanta una superficie clara — el mismo gesto de
+   .chip-active pero en barra: se lee como un segmented control nativo.
+   =========================================================================== */
+.tabbar {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  overflow-x: auto;
+  max-width: 100%;
+}
+.tabbar-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.55rem;
+  padding: 0.42rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  white-space: nowrap;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.tabbar-item:hover {
+  color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.05);
+}
+.tabbar-item[aria-selected="true"] {
+  background: linear-gradient(180deg, #27272a, #1c1c1f);
+  color: #fafafa;
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 2px 8px -2px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.tabbar-item[aria-selected="true"] .text-brand-300 {
+  color: #c4b5fd;
 }
 
 /* Badges de estado: punto + texto, fondo tenue del propio color */
@@ -217,7 +452,11 @@ body {
   font-weight: 600;
   letter-spacing: 0.02em;
 }
-.badge-dot { width: 0.375rem; height: 0.375rem; border-radius: 999px; }
+.badge-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+}
 
 /* Barras de progreso: pista hundida + relleno con degradado y brillo de
    punta (la barra "viva" de distri-stream, medida en el mismo violeta). */
@@ -241,7 +480,9 @@ body {
   border-radius: 0.5rem;
   transition: background 0.1s;
 }
-.row:hover { background: #141417; }
+.row:hover {
+  background: #141417;
+}
 
 /* ===========================================================================
    FIRMA VISUAL (segunda ola, de distri-stream)
@@ -274,7 +515,11 @@ body {
   place-items: center;
   border-radius: 999px;
   color: #c4b5fd;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.24), rgba(139, 92, 246, 0.07));
+  background: linear-gradient(
+    135deg,
+    rgba(124, 58, 237, 0.24),
+    rgba(139, 92, 246, 0.07)
+  );
   box-shadow:
     inset 0 0 0 1px rgba(167, 139, 250, 0.35),
     0 0 26px -10px rgba(139, 92, 246, 0.55);
@@ -291,7 +536,9 @@ body {
   line-height: 1.55;
   color: #a1a1aa;
 }
-.empty-state-cta { margin-top: 1rem; }
+.empty-state-cta {
+  margin-top: 1rem;
+}
 
 .ticket-timeline {
   position: relative;
@@ -304,7 +551,11 @@ body {
   bottom: 10px;
   width: 2px;
   border-radius: 2px;
-  background: linear-gradient(180deg, rgba(167, 139, 250, 0.55), rgba(63, 63, 70, 0.5));
+  background: linear-gradient(
+    180deg,
+    rgba(167, 139, 250, 0.55),
+    rgba(63, 63, 70, 0.5)
+  );
 }
 .ticket-step {
   position: relative;
@@ -344,15 +595,23 @@ body {
   animation: step-pulse 1.6s ease-out infinite;
 }
 @keyframes step-pulse {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(2.1); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
 }
 .ticket-step-label {
   font-size: 0.75rem;
   font-weight: 500;
   color: #71717a;
 }
-.ticket-step.done .ticket-step-label { color: #a1a1aa; }
+.ticket-step.done .ticket-step-label {
+  color: #a1a1aa;
+}
 .ticket-step.current .ticket-step-label {
   color: #fafafa;
   font-weight: 600;
@@ -371,64 +630,132 @@ body {
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.animate-rise { animation: rise 0.55s var(--ease-out-expo) both; }
+.animate-rise {
+  animation: rise 0.55s var(--ease-out-expo) both;
+}
 
 @keyframes fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
-.animate-fade { animation: fade 0.3s ease-out both; }
+.animate-fade {
+  animation: fade 0.3s ease-out both;
+}
 
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.96) translateY(6px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
-.animate-scale-in { animation: scale-in 0.45s var(--ease-out-expo) both; }
+.animate-scale-in {
+  animation: scale-in 0.45s var(--ease-out-expo) both;
+}
 
 /* Pop con overshoot: para badges, chips activos y elementos que "aparecen" */
 @keyframes pop {
-  0% { opacity: 0; transform: scale(0.6); }
-  60% { opacity: 1; transform: scale(1.06); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
-.animate-pop { animation: pop 0.4s var(--ease-out-expo) both; }
+.animate-pop {
+  animation: pop 0.4s var(--ease-out-expo) both;
+}
 
 /* Logo: aparece con un giro de resorte, como app nativa */
 @keyframes logo-pop {
-  0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
 }
-.logo-pop { animation: logo-pop 0.6s var(--ease-spring) both; display: inline-flex; }
+.logo-pop {
+  animation: logo-pop 0.6s var(--ease-spring) both;
+  display: inline-flex;
+}
 
 /* Escalonado: los hijos de .reveal entran en cascada (50ms por nivel) */
 .reveal > * {
   opacity: 0;
   animation: rise 0.55s var(--ease-out-expo) forwards;
 }
-.reveal > :nth-child(1) { animation-delay: 0.02s; }
-.reveal > :nth-child(2) { animation-delay: 0.07s; }
-.reveal > :nth-child(3) { animation-delay: 0.12s; }
-.reveal > :nth-child(4) { animation-delay: 0.17s; }
-.reveal > :nth-child(5) { animation-delay: 0.22s; }
-.reveal > :nth-child(6) { animation-delay: 0.27s; }
-.reveal > :nth-child(7) { animation-delay: 0.32s; }
-.reveal > :nth-child(8) { animation-delay: 0.37s; }
-.reveal > :nth-child(9) { animation-delay: 0.42s; }
-.reveal > :nth-child(n + 10) { animation-delay: 0.47s; }
+.reveal > :nth-child(1) {
+  animation-delay: 0.02s;
+}
+.reveal > :nth-child(2) {
+  animation-delay: 0.07s;
+}
+.reveal > :nth-child(3) {
+  animation-delay: 0.12s;
+}
+.reveal > :nth-child(4) {
+  animation-delay: 0.17s;
+}
+.reveal > :nth-child(5) {
+  animation-delay: 0.22s;
+}
+.reveal > :nth-child(6) {
+  animation-delay: 0.27s;
+}
+.reveal > :nth-child(7) {
+  animation-delay: 0.32s;
+}
+.reveal > :nth-child(8) {
+  animation-delay: 0.37s;
+}
+.reveal > :nth-child(9) {
+  animation-delay: 0.42s;
+}
+.reveal > :nth-child(n + 10) {
+  animation-delay: 0.47s;
+}
 
 /* Tarjeta interactiva: flota 2px al pasar, se asienta al pulsar */
 .card-interactive {
-  transition: transform 0.25s var(--ease-out-expo), border-color 0.2s, box-shadow 0.25s var(--ease-out-expo);
+  transition:
+    transform 0.25s var(--ease-out-expo),
+    border-color 0.2s,
+    box-shadow 0.25s var(--ease-out-expo);
 }
 .card-interactive:hover {
   transform: translateY(-2px);
   border-color: #2c2c31;
   box-shadow: 0 10px 28px -14px rgba(0, 0, 0, 0.65);
 }
-.card-interactive:active { transform: translateY(0); transition-duration: 0.08s; }
+.card-interactive:active {
+  transform: translateY(0);
+  transition-duration: 0.08s;
+}
 
 /* Enlaces con subrayado animado (footer/login auxiliares) */
 .link-underline {
@@ -438,11 +765,17 @@ body {
   background-position: left bottom;
   transition: background-size 0.25s var(--ease-out-expo);
 }
-.link-underline:hover { background-size: 100% 1px; }
+.link-underline:hover {
+  background-size: 100% 1px;
+}
 
 @keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
 }
 .skeleton {
   background: linear-gradient(90deg, #101013 25%, #1a1a1e 50%, #101013 75%);
@@ -454,19 +787,39 @@ body {
 /* Splash: pantalla de marca mientras se restaura la sesión. El logo respira
    (escala sutil) y la salida es un fundido corto, nunca un salto. */
 @keyframes splash-breathe {
-  0%, 100% { transform: scale(1); opacity: 0.92; }
-  50% { transform: scale(1.04); opacity: 1; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
 }
-.splash-logo { animation: splash-breathe 1.6s ease-in-out infinite; }
+.splash-logo {
+  animation: splash-breathe 1.6s ease-in-out infinite;
+}
 
 @keyframes splash-out {
-  from { opacity: 1; }
-  to { opacity: 0; visibility: hidden; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
-.splash-exit { animation: splash-out 0.25s ease-out forwards; }
+.splash-exit {
+  animation: splash-out 0.25s ease-out forwards;
+}
 
 /* Pull-to-refresh: spinner de trazo que gira mientras se carga. */
-@keyframes ptr-spin { to { transform: rotate(360deg); } }
+@keyframes ptr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .ptr-spinner {
   animation: ptr-spin 0.8s linear infinite;
   color: #a78bfa;
@@ -474,53 +827,112 @@ body {
 
 /* Indicador En vivo: punto pulsante + anillo que se expande (radar) */
 @keyframes live-glow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
 }
-.live-dot { background: #34d399; animation: live-glow 2s ease-in-out infinite; }
+.live-dot {
+  background: #34d399;
+  animation: live-glow 2s ease-in-out infinite;
+}
 
 /* ===========================================================================
    TOASTS Y DIÁLOGOS (lib/ui.jsx) — reemplazan window.confirm/prompt/alert
    =========================================================================== */
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.97); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-.toast-in { animation: toast-in 0.32s var(--ease-out-expo) both; }
+.toast-in {
+  animation: toast-in 0.32s var(--ease-out-expo) both;
+}
 
-@keyframes dialog-backdrop { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dialog-backdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .dialog-backdrop {
   background: rgba(0, 0, 0, 0.62);
   backdrop-filter: blur(2px);
   animation: dialog-backdrop 0.2s ease-out both;
 }
-.dialog-backdrop-out { background: rgba(0, 0, 0, 0.62); animation: dialog-backdrop 0.15s ease-in reverse both; }
+.dialog-backdrop-out {
+  background: rgba(0, 0, 0, 0.62);
+  animation: dialog-backdrop 0.15s ease-in reverse both;
+}
 
 @keyframes dialog-in {
-  from { opacity: 0; transform: translateY(18px) scale(0.96); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-.dialog-in { animation: dialog-in 0.3s var(--ease-out-expo) both; }
-.dialog-out { animation: dialog-in 0.14s ease-in reverse both; }
+.dialog-in {
+  animation: dialog-in 0.3s var(--ease-out-expo) both;
+}
+.dialog-out {
+  animation: dialog-in 0.14s ease-in reverse both;
+}
 
 /* Banner offline: baja desde arriba con easing expo */
 @keyframes offline-in {
-  from { transform: translateY(-100%); }
-  to { transform: none; }
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: none;
+  }
 }
-.offline-in { animation: offline-in 0.35s var(--ease-out-expo) both; }
+.offline-in {
+  animation: offline-in 0.35s var(--ease-out-expo) both;
+}
 
 /* Confeti del onboarding: emojis que caen y giran una sola vez */
 @keyframes confetti-fall {
-  0% { opacity: 0; transform: translateY(-12px) rotate(0deg) scale(0.8); }
-  15% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(120px) rotate(320deg) scale(1.1); }
+  0% {
+    opacity: 0;
+    transform: translateY(-12px) rotate(0deg) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(120px) rotate(320deg) scale(1.1);
+  }
 }
-.confetti { top: 8px; animation: confetti-fall 2.2s var(--ease-out-expo) both; }
+.confetti {
+  top: 8px;
+  animation: confetti-fall 2.2s var(--ease-out-expo) both;
+}
 
 @keyframes live-ping {
-  0% { transform: scale(1); opacity: 0.7; }
-  100% { transform: scale(2.8); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
 }
 .live-ping {
   position: absolute;
@@ -531,23 +943,64 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-rise, .animate-fade, .animate-scale-in, .animate-pop,
-  .logo-pop, .skeleton, .live-dot, .live-ping, .splash-logo,
-  .ptr-spinner, .toast-in, .dialog-in {
+  .animate-rise,
+  .animate-fade,
+  .animate-scale-in,
+  .animate-pop,
+  .logo-pop,
+  .skeleton,
+  .live-dot,
+  .live-ping,
+  .splash-logo,
+  .ptr-spinner,
+  .toast-in,
+  .dialog-in {
     animation: none;
   }
-  .ticket-step.current .ticket-step-dot::after { animation: none; opacity: 0.25; }
-  .splash-exit { animation: none; opacity: 0; visibility: hidden; }
-  .reveal > * { animation: none; opacity: 1; }
-  .card-interactive, .btn-primary, .btn-ghost, .btn-danger-text {
+  .ticket-step.current .ticket-step-dot::after {
+    animation: none;
+    opacity: 0.25;
+  }
+  .splash-exit {
+    animation: none;
+    opacity: 0;
+    visibility: hidden;
+  }
+  .reveal > * {
+    animation: none;
+    opacity: 1;
+  }
+  .card-interactive,
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger-text,
+  .btn-danger {
     transition: none;
   }
-  .card-interactive:hover { transform: none; box-shadow: none; }
-  .btn-primary:active, .btn-ghost:active { transform: none; }
+  .card-interactive:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .btn-primary:active,
+  .btn-ghost:active,
+  .btn-danger:active {
+    transform: none;
+  }
+  .btn-spinner {
+    animation-duration: 1.5s;
+  }
+  [data-tip]::after {
+    transition: none;
+  }
 }
 
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 /* ===========================================================================
    CAPA PREMIUM (pasada 3): micro-detalles que se sienten, no que decoran
@@ -559,11 +1012,17 @@ body {
 .ticket-ghost {
   border-radius: 1.1rem;
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(139, 92, 246, 0.28), transparent 62%),
+    radial-gradient(
+      120% 90% at 50% 0%,
+      rgba(139, 92, 246, 0.28),
+      transparent 62%
+    ),
     linear-gradient(180deg, #18181b, #101013);
   border: 1px dashed rgba(167, 139, 250, 0.45);
   position: relative;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 30px -16px rgba(124, 58, 237, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 30px -16px rgba(124, 58, 237, 0.5);
 }
 .ticket-ghost::after {
   content: "";
@@ -577,21 +1036,30 @@ body {
 /* Tarjeta de evento de la franja: lift + glow de marca al hover. El evento
    EN PUERTA lleva borde esmeralda vivo: se encuentra de un vistazo. */
 .event-card {
-  transition: transform 0.15s var(--ease-out-expo), box-shadow 0.15s ease, border-color 0.15s ease;
+  transition:
+    transform 0.15s var(--ease-out-expo),
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 .event-card:hover {
   transform: translateY(-2px);
   border-color: rgba(167, 139, 250, 0.45);
   box-shadow: 0 12px 32px -14px rgba(124, 58, 237, 0.45);
 }
-.event-card.is-live { border-color: rgba(52, 211, 153, 0.4); }
+.event-card.is-live {
+  border-color: rgba(52, 211, 153, 0.4);
+}
 .event-card.is-live:hover {
   border-color: rgba(52, 211, 153, 0.65);
   box-shadow: 0 12px 32px -14px rgba(16, 185, 129, 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .event-card, .event-card:hover { transition: none; transform: none; }
+  .event-card,
+  .event-card:hover {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* ===========================================================================
@@ -601,8 +1069,12 @@ body {
    - Tap targets >= 44px en zona táctil (guía de accesibilidad Apple/Google).
    - Sin resaltado azul de tap y sin rebotes horizontales.
    =========================================================================== */
-html { -webkit-tap-highlight-color: transparent; }
-body { overscroll-behavior-y: none; }
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  overscroll-behavior-y: none;
+}
 
 @media (max-width: 640px) {
   .field {
@@ -610,7 +1082,9 @@ body { overscroll-behavior-y: none; }
     font-size: 1rem;
     padding: 0.65rem 0.75rem;
   }
-  .btn-primary, .btn-ghost, .btn-danger-text {
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger-text {
     min-height: 44px;
   }
   .chip {

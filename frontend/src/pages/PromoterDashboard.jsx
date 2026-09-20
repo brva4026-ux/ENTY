@@ -425,7 +425,7 @@ export default function PromoterDashboard() {
               sobrevive recargas y back. "Vender" es el default: es lo que el
               promotor abre para. */}
             <nav
-              className="card flex flex-wrap items-center gap-2 p-2"
+              className="tabbar no-scrollbar max-w-full"
               aria-label="Secciones del promotor"
             >
               {[
@@ -435,15 +435,12 @@ export default function PromoterDashboard() {
               ].map(([id, label, icon]) => (
                 <button
                   key={id}
+                  role="tab"
+                  aria-selected={tab === id}
                   onClick={() => setSearchParams({ tab: id })}
-                  aria-current={tab === id ? "page" : undefined}
-                  className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold transition ${
-                    tab === id
-                      ? "bg-zinc-800 text-white ring-1 ring-zinc-700"
-                      : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-                  }`}
+                  className="tabbar-item flex-1 sm:flex-none"
                 >
-                  <Icon name={icon} className="h-3.5 w-3.5" />
+                  <Icon name={icon} className="h-4 w-4" />
                   {label}
                 </button>
               ))}
@@ -541,6 +538,15 @@ export default function PromoterDashboard() {
                           lastTicket ? "btn-ghost w-full" : "btn-primary w-full"
                         }
                       >
+                        {busy && (
+                          <svg
+                            className="btn-spinner"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <circle cx="12" cy="12" r="9" />
+                          </svg>
+                        )}
                         {busy
                           ? "Emitiendo…"
                           : lastTicket
@@ -554,7 +560,6 @@ export default function PromoterDashboard() {
                       </p>
                     )}
                   </div>
-
                 </div>
 
                 {/* Boleta resultante + wa.me */}

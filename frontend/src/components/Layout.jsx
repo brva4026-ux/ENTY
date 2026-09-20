@@ -98,7 +98,7 @@ export default function Layout({ children }) {
             </div>
             <Link
               to="/perfil"
-              title="Tu perfil"
+              data-tip="Tu perfil"
               aria-label="Tu perfil"
               className="grid h-7 w-7 place-items-center rounded-full bg-zinc-800 text-[11px] font-semibold text-zinc-300 ring-1 ring-zinc-700 transition hover:ring-brand-500"
             >

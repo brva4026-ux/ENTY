@@ -11,21 +11,43 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { LiveIndicator } from "./Brand";
+import CountUpNumber from "./CountUpNumber";
 import EmptyState from "./EmptyState";
 import Icon from "./Icon";
 
 /* Etiqueta y color por estado — compartidos con la franja de eventos del
  * admin y el selector del promotor (un solo vocabulario en toda la app). */
 export const STATUS_META = {
-  draft: { label: "Borrador", cls: "bg-zinc-800 text-zinc-300 ring-zinc-600/50" },
-  published: { label: "A la venta", cls: "bg-brand-500/15 text-brand-300 ring-brand-500/40" },
-  live: { label: "En puerta", cls: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40" },
-  ended: { label: "Finalizado", cls: "bg-zinc-800 text-zinc-400 ring-zinc-700" },
-  cancelled: { label: "Cancelado", cls: "bg-red-500/15 text-red-300 ring-red-500/40" },
+  draft: {
+    label: "Borrador",
+    cls: "bg-zinc-800 text-zinc-300 ring-zinc-600/50",
+  },
+  published: {
+    label: "A la venta",
+    cls: "bg-brand-500/15 text-brand-300 ring-brand-500/40",
+  },
+  live: {
+    label: "En puerta",
+    cls: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40",
+  },
+  ended: {
+    label: "Finalizado",
+    cls: "bg-zinc-800 text-zinc-400 ring-zinc-700",
+  },
+  cancelled: {
+    label: "Cancelado",
+    cls: "bg-red-500/15 text-red-300 ring-red-500/40",
+  },
 };
 
 /** Peso operativo: vivos primero, muertos al final (ver AdminDashboard). */
-export const STATUS_WEIGHT = { live: 0, published: 1, draft: 2, ended: 3, cancelled: 4 };
+export const STATUS_WEIGHT = {
+  live: 0,
+  published: 1,
+  draft: 2,
+  ended: 3,
+  cancelled: 4,
+};
 
 /** Orden de la franja: lo vivo arriba (lo próximo primero), lo pasado al
  * final (lo más reciente primero). Mismo orden para el aterrizaje por
@@ -54,12 +76,18 @@ function formatEventDate(value) {
   });
 }
 
-/** KPI compacto del header: cifra dominante + etiqueta, sin tarjeta extra. */
+/** KPI compacto del header: cifra dominante (cuenta al entrar) + etiqueta. */
 function Kpi({ value, label, accent }) {
   return (
     <div className="min-w-16">
-      <p className={`tnum text-xl font-bold leading-none ${accent ?? "text-white"}`}>{value}</p>
-      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">{label}</p>
+      <p
+        className={`tnum text-xl font-bold leading-none ${accent ?? "text-white"}`}
+      >
+        {typeof value === "number" ? <CountUpNumber value={value} /> : value}
+      </p>
+      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+        {label}
+      </p>
     </div>
   );
 }
@@ -92,11 +120,12 @@ export default function EventWorkbench({
   editable,
   onDelete,
 }) {
+  // Hooks SIEMPRE antes de cualquier return condicional (reglas de hooks:
+  // un return temprano encima de useState crashea al re-render con ev=null).
+  const [badFlyer, setBadFlyer] = useState("");
   if (!ev) return null;
   const status = STATUS_META[ev.status] ?? STATUS_META.draft;
   // URL de flyer que ya falló al cargar: el padre reinicia esto al editar.
-  // Estado local por evento (id) para no ocultar el flyer del siguiente.
-  const [badFlyer, setBadFlyer] = useState("");
   const showFlyer = ev.flyer_url && ev.flyer_url !== badFlyer;
 
   // KPIs del header: el pulso del evento sin entrar a ninguna pestaña.
@@ -142,7 +171,9 @@ export default function EventWorkbench({
               <h2 className="display text-gradient truncate text-xl font-extrabold sm:text-2xl">
                 {ev.name}
               </h2>
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${status.cls}`}>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${status.cls}`}
+              >
                 {status.label}
               </span>
             </div>
@@ -169,7 +200,10 @@ export default function EventWorkbench({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {editable && (
-              <button onClick={onEdit} className="btn-ghost !px-3 !py-1.5 text-xs font-bold">
+              <button
+                onClick={onEdit}
+                className="btn-ghost !px-3 !py-1.5 text-xs font-bold"
+              >
                 Editar
               </button>
             )}
@@ -187,7 +221,11 @@ export default function EventWorkbench({
         {/* Pulso del evento: cifras vivas a un vistazo */}
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 pl-2">
           <Kpi value={issued ?? "—"} label="Emitidas" />
-          <Kpi value={redeemed ?? "—"} label="Ingresaron" accent="text-sky-300" />
+          <Kpi
+            value={redeemed ?? "—"}
+            label="Ingresaron"
+            accent="text-sky-300"
+          />
           <Kpi
             value={
               revenue !== null
@@ -222,6 +260,15 @@ export default function EventWorkbench({
                       : "btn-ghost text-xs font-semibold"
                 }
               >
+                {busyAction === action && (
+                  <svg
+                    className="btn-spinner"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                  </svg>
+                )}
                 {busyAction === action ? "Procesando…" : label}
               </button>
             ))}
@@ -230,18 +277,14 @@ export default function EventWorkbench({
       </section>
 
       {/* ====== Pestañas internas del evento (también en la URL) ====== */}
-      <nav className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto px-4 pb-1" role="tablist">
+      <nav className="tabbar no-scrollbar -mx-4 max-w-full px-4" role="tablist">
         {tabs.map((t) => (
           <button
             key={t.id}
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => onTab(t.id)}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3.5 py-2 text-sm font-medium transition ${
-              tab === t.id
-                ? "bg-zinc-800 text-white"
-                : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-            }`}
+            className="tabbar-item shrink-0"
           >
             <Icon name={t.icon} className="h-4 w-4" />
             {t.label}
@@ -258,7 +301,11 @@ export function EventNotFound({ onBack }) {
     <EmptyState icon="alert" title="Este evento no existe">
       Puede que el enlace sea viejo o que el evento se haya eliminado.
       <span className="mt-3 block">
-        <Link to="/admin" onClick={() => onBack?.()} className="btn-primary inline-block px-4 py-2 text-xs font-bold">
+        <Link
+          to="/admin"
+          onClick={() => onBack?.()}
+          className="btn-primary inline-block px-4 py-2 text-xs font-bold"
+        >
           Ver mis eventos
         </Link>
       </span>

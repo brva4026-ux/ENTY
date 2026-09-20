@@ -24,20 +24,41 @@ const ico = "h-4 w-4 shrink-0";
 function IconRole({ role, className = ico }) {
   if (role === "bouncer")
     return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className={className}
+        aria-hidden
+      >
         <path d="M12 3 5 6v5c0 4.4 3 8.4 7 10 4-1.6 7-5.6 7-10V6l-7-3Z" />
       </svg>
     );
   if (role === "admin" || role === "super_admin")
     return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className={className}
+        aria-hidden
+      >
         <path d="M16 10l-4 4-4-4" />
         <circle cx="12" cy="12" r="9" />
       </svg>
     );
   /* promotor: boletos */
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+      aria-hidden
+    >
       <path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a2 2 0 0 1 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v3Z" />
       <path d="M14 5v2M14 11v2M14 17v2" strokeDasharray="2 2" />
     </svg>
@@ -46,7 +67,14 @@ function IconRole({ role, className = ico }) {
 
 function IconKey({ className = ico }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+      aria-hidden
+    >
       <circle cx="8" cy="15" r="4" />
       <path d="m11 12 9-9M17 5l2 2M14 8l2 2" />
     </svg>
@@ -54,7 +82,14 @@ function IconKey({ className = ico }) {
 }
 function IconBan({ className = ico }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M5.6 5.6l12.8 12.8" />
     </svg>
@@ -62,35 +97,70 @@ function IconBan({ className = ico }) {
 }
 function IconCheck({ className = ico }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+      aria-hidden
+    >
       <path d="m4 12.5 5 5L20 6.5" />
     </svg>
   );
 }
 function IconDoorOut({ className = ico }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+      aria-hidden
+    >
       <path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10" />
     </svg>
   );
 }
 function IconTrash({ className = ico }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+      aria-hidden
+    >
       <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />
     </svg>
   );
 }
 function IconSwap({ className = ico }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+      aria-hidden
+    >
       <path d="M4 8h13l-3-3M20 16H7l3 3" />
     </svg>
   );
 }
 function IconSearch({ className = ico }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+      aria-hidden
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
     </svg>
@@ -98,7 +168,14 @@ function IconSearch({ className = ico }) {
 }
 function IconPlus({ className = ico }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className={className} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      className={className}
+      aria-hidden
+    >
       <path d="M12 5v14M5 12h14" />
     </svg>
   );
@@ -108,9 +185,30 @@ function IconPlus({ className = ico }) {
  * Identidad por rol: color + etiqueta (un solo lugar decide cómo se ve cada rol)
  * ------------------------------------------------------------------------ */
 const ROLE_META = {
-  promotor: { label: "Promotor", plural: "Promotores", hint: "venden boletas y cortesías", chip: "bg-brand-500/15 text-brand-300 ring-brand-500/30", avatar: "bg-brand-500/20 text-brand-300 ring-brand-500/40", tabAccent: "text-brand-300" },
-  bouncer: { label: "Portero", plural: "Puerta", hint: "escanean y validan en puerta", chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30", avatar: "bg-emerald-500/20 text-emerald-300 ring-emerald-500/40", tabAccent: "text-emerald-300" },
-  admin: { label: "Admin", plural: "Administración", hint: "gestionan eventos, caja y equipo", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30", avatar: "bg-amber-500/20 text-amber-300 ring-amber-500/40", tabAccent: "text-amber-300" },
+  promotor: {
+    label: "Promotor",
+    plural: "Promotores",
+    hint: "venden boletas y cortesías",
+    chip: "bg-brand-500/15 text-brand-300 ring-brand-500/30",
+    avatar: "bg-brand-500/20 text-brand-300 ring-brand-500/40",
+    tabAccent: "text-brand-300",
+  },
+  bouncer: {
+    label: "Portero",
+    plural: "Puerta",
+    hint: "escanean y validan en puerta",
+    chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
+    avatar: "bg-emerald-500/20 text-emerald-300 ring-emerald-500/40",
+    tabAccent: "text-emerald-300",
+  },
+  admin: {
+    label: "Admin",
+    plural: "Administración",
+    hint: "gestionan eventos, caja y equipo",
+    chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
+    avatar: "bg-amber-500/20 text-amber-300 ring-amber-500/40",
+    tabAccent: "text-amber-300",
+  },
 };
 
 function primaryRoleOf(m) {
@@ -140,13 +238,24 @@ function relTime(value) {
   if (hours < 24) return `hace ${hours} h`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `hace ${days} d`;
-  return new Date(value).toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+  return new Date(value).toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 /* ---------------------------------------------------------------------------
  * Fila de persona: avatar, identidad, métricas y acciones de icono.
  * ------------------------------------------------------------------------ */
-function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setResetId }) {
+function MemberRow({
+  m,
+  venueId,
+  onChanged,
+  openId,
+  setOpenId,
+  resetId,
+  setResetId,
+}) {
   const ui = useUI();
   const [err, setErr] = useState("");
   const [newPass, setNewPass] = useState("");
@@ -202,12 +311,15 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
   }
 
   async function purgeUser() {
-    const confirm = await ui.prompt(`Eliminar definitivamente a ${m.full_name}`, {
-      message: `Se borra su cuenta de la plataforma. Sus boletas emitidas conservan su nombre en el historial.\nEscribe su email (${m.email}) para confirmar:`,
-      placeholder: m.email,
-      danger: true,
-      confirmLabel: "Eliminar definitivamente",
-    });
+    const confirm = await ui.prompt(
+      `Eliminar definitivamente a ${m.full_name}`,
+      {
+        message: `Se borra su cuenta de la plataforma. Sus boletas emitidas conservan su nombre en el historial.\nEscribe su email (${m.email}) para confirmar:`,
+        placeholder: m.email,
+        danger: true,
+        confirmLabel: "Eliminar definitivamente",
+      },
+    );
     if (confirm === null) return;
     setErr("");
     setBusyAction("purge");
@@ -242,7 +354,9 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
       setResetId(null);
       setNewPass("");
       setOpenId(null);
-      ui.success(`Contraseña actualizada para ${m.full_name}. Comunícasela por un canal seguro.`);
+      ui.success(
+        `Contraseña actualizada para ${m.full_name}. Comunícasela por un canal seguro.`,
+      );
     } catch (e2) {
       setErr(e2.message);
     } finally {
@@ -252,8 +366,9 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
 
   const isPromoter = m.roles.includes("promotor");
   const isBouncer = m.roles.includes("bouncer");
-  const showMetrics = (isPromoter && m.quota && (m.quota.capacity > 0 || m.quota.issued > 0))
-    || (isBouncer && m.door && m.door.total > 0);
+  const showMetrics =
+    (isPromoter && m.quota && (m.quota.capacity > 0 || m.quota.issued > 0)) ||
+    (isBouncer && m.door && m.door.total > 0);
 
   /* Acciones de icono (patrón unicall-blue): cada una con tooltip claro. */
   const actions = [
@@ -305,21 +420,32 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
   ];
 
   return (
-    <li className={`rounded-xl border transition-colors ${isOpen ? "border-zinc-700 bg-zinc-900/70" : "border-zinc-800/60 bg-zinc-900/40"} ${m.is_active === false ? "opacity-60" : ""}`}>
+    <li
+      className={`rounded-xl border transition-colors ${isOpen ? "border-zinc-700 bg-zinc-900/70" : "border-zinc-800/60 bg-zinc-900/40"} ${m.is_active === false ? "opacity-60" : ""}`}
+    >
       <div className="flex items-center gap-3 px-3 py-2.5">
         {/* Avatar con iniciales + anillo del rol (patrón unicall-blue) */}
         <button
           onClick={() => setOpenId(isOpen ? null : m.id)}
           className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold ring-1 ${meta.avatar}`}
-          aria-label={isOpen ? `Ocultar detalles de ${m.full_name}` : `Ver detalles de ${m.full_name}`}
+          aria-label={
+            isOpen
+              ? `Ocultar detalles de ${m.full_name}`
+              : `Ver detalles de ${m.full_name}`
+          }
           aria-expanded={isOpen}
         >
           {initials(m.full_name)}
         </button>
 
-        <button onClick={() => setOpenId(isOpen ? null : m.id)} className="min-w-0 flex-1 text-left">
+        <button
+          onClick={() => setOpenId(isOpen ? null : m.id)}
+          className="min-w-0 flex-1 text-left"
+        >
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="truncate font-semibold text-zinc-200">{m.full_name}</span>
+            <span className="truncate font-semibold text-zinc-200">
+              {m.full_name}
+            </span>
             {/* Chip de estado con icono (patrón unicall-blue "Registrado") */}
             <span
               className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1 ${
@@ -328,10 +454,16 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
                   : "bg-emerald-950/50 text-emerald-400 ring-emerald-900/60"
               }`}
             >
-              {m.is_active === false ? <IconBan className="h-2.5 w-2.5" /> : <IconCheck className="h-2.5 w-2.5" />}
+              {m.is_active === false ? (
+                <IconBan className="h-2.5 w-2.5" />
+              ) : (
+                <IconCheck className="h-2.5 w-2.5" />
+              )}
               {m.is_active === false ? "inactivo" : "activo"}
             </span>
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${meta.chip}`}>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${meta.chip}`}
+            >
               <IconRole role={primaryRoleOf(m)} className="h-3 w-3" />
               {meta.label}
             </span>
@@ -339,26 +471,42 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
           <p className="truncate text-xs text-zinc-500">
             {m.email}
             <span className="mx-1.5 text-zinc-700">·</span>
-            <span className={m.last_login_at ? "text-zinc-400" : "text-amber-500/90"}>{relTime(m.last_login_at)}</span>
+            <span
+              className={
+                m.last_login_at ? "text-zinc-400" : "text-amber-500/90"
+              }
+            >
+              {relTime(m.last_login_at)}
+            </span>
           </p>
         </button>
 
         {/* Métricas productivas inline */}
         {showMetrics && (
           <div className="hidden shrink-0 text-right sm:block">
-            {isPromoter && m.quota && (m.quota.capacity > 0 || m.quota.issued > 0) && (
-              <>
-                <p className="tnum text-sm font-semibold text-zinc-200">
-                  {m.quota.issued}
-                  <span className="text-zinc-600">/{m.quota.capacity || "–"}</span>
-                </p>
-                <p className="text-[10px] uppercase tracking-wide text-zinc-600">vendidas</p>
-              </>
-            )}
+            {isPromoter &&
+              m.quota &&
+              (m.quota.capacity > 0 || m.quota.issued > 0) && (
+                <>
+                  <p className="tnum text-sm font-semibold text-zinc-200">
+                    {m.quota.issued}
+                    <span className="text-zinc-600">
+                      /{m.quota.capacity || "–"}
+                    </span>
+                  </p>
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-600">
+                    vendidas
+                  </p>
+                </>
+              )}
             {isBouncer && m.door && m.door.total > 0 && (
               <>
-                <p className="tnum text-sm font-semibold text-zinc-200">{m.door.granted}</p>
-                <p className="text-[10px] uppercase tracking-wide text-zinc-600">escaneos</p>
+                <p className="tnum text-sm font-semibold text-zinc-200">
+                  {m.door.granted}
+                </p>
+                <p className="text-[10px] uppercase tracking-wide text-zinc-600">
+                  escaneos
+                </p>
               </>
             )}
           </div>
@@ -393,22 +541,29 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
                   <div className="mb-1 flex items-baseline justify-between text-xs">
                     <span className="text-zinc-500">Cupo usado</span>
                     <span className="tnum text-zinc-300">
-                      {m.quota.issued} de {m.quota.capacity || "—"} en {m.quota.allocations}{" "}
+                      {m.quota.issued} de {m.quota.capacity || "—"} en{" "}
+                      {m.quota.allocations}{" "}
                       {m.quota.allocations === 1 ? "evento" : "eventos"}
                     </span>
                   </div>
                   <div className="meter">
                     <div
                       className="meter-fill"
-                      style={{ width: `${m.quota.capacity ? Math.min((m.quota.issued / m.quota.capacity) * 100, 100) : 0}%` }}
+                      style={{
+                        width: `${m.quota.capacity ? Math.min((m.quota.issued / m.quota.capacity) * 100, 100) : 0}%`,
+                      }}
                     />
                   </div>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
                     <span className="tnum">
-                      Canjeadas: <span className="text-zinc-300">{m.quota.redeemed}</span>
+                      Canjeadas:{" "}
+                      <span className="text-zinc-300">{m.quota.redeemed}</span>
                     </span>
                     <span className="tnum">
-                      Recaudo: <span className="text-zinc-300">{fmtCOP(m.quota.revenue_cents)}</span>
+                      Recaudo:{" "}
+                      <span className="text-zinc-300">
+                        {fmtCOP(m.quota.revenue_cents)}
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -416,13 +571,16 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
               {isBouncer && m.door && (
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
                   <span className="tnum">
-                    Accesos concedidos: <span className="text-emerald-400">{m.door.granted}</span>
+                    Accesos concedidos:{" "}
+                    <span className="text-emerald-400">{m.door.granted}</span>
                   </span>
                   <span className="tnum">
-                    Bloqueados: <span className="text-amber-400">{m.door.rejected}</span>
+                    Bloqueados:{" "}
+                    <span className="text-amber-400">{m.door.rejected}</span>
                   </span>
                   <span className="tnum">
-                    Total escaneos: <span className="text-zinc-300">{m.door.total}</span>
+                    Total escaneos:{" "}
+                    <span className="text-zinc-300">{m.door.total}</span>
                   </span>
                 </div>
               )}
@@ -433,7 +591,11 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
           <div className="flex flex-wrap items-center gap-2">
             <IconSwap className="h-3.5 w-3.5 text-zinc-600" />
             <select
-              value={m.roles.find((r) => r !== "super_admin") || m.roles[0] || "promotor"}
+              value={
+                m.roles.find((r) => r !== "super_admin") ||
+                m.roles[0] ||
+                "promotor"
+              }
               onChange={(e) =>
                 patchUser(
                   { role: e.target.value },
@@ -451,7 +613,9 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
               <option value="bouncer">Portero</option>
               <option value="admin">Admin</option>
             </select>
-            <span className="text-[11px] text-zinc-600">El cambio es inmediato en esta venue.</span>
+            <span className="text-[11px] text-zinc-600">
+              El cambio es inmediato en esta venue.
+            </span>
           </div>
 
           {resetId === m.id && (
@@ -496,7 +660,12 @@ const TABS = [
 export default function TeamManager({ venueId, users, onChanged }) {
   const ui = useUI();
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "promotor" });
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    password: "",
+    role: "promotor",
+  });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
@@ -548,7 +717,9 @@ export default function TeamManager({ venueId, users, onChanged }) {
     () => ({
       all: members.length,
       promotor: members.filter((m) => m.roles.includes("promotor")).length,
-      bouncer: members.filter((m) => m.roles.includes("bouncer") && !m.roles.includes("promotor")).length,
+      bouncer: members.filter(
+        (m) => m.roles.includes("bouncer") && !m.roles.includes("promotor"),
+      ).length,
       admin: members.filter(
         (m) =>
           (m.roles.includes("admin") || m.roles.includes("super_admin")) &&
@@ -588,29 +759,41 @@ export default function TeamManager({ venueId, users, onChanged }) {
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-800/80 px-5 py-4">
             <div>
               <p className="eyebrow">Resumen del equipo</p>
-              <h3 className="display mt-0.5 text-lg">Quién hace qué — y qué tan bien</h3>
+              <h3 className="display mt-0.5 text-lg">
+                Quién hace qué — y qué tan bien
+              </h3>
             </div>
-            <p className="text-xs text-zinc-500">Últimos {stats.days_window} días</p>
+            <p className="text-xs text-zinc-500">
+              Últimos {stats.days_window} días
+            </p>
           </div>
           <div className="grid grid-cols-2 divide-zinc-800/80 sm:grid-cols-4 sm:divide-x">
             <div className="px-2 py-2 text-center">
               <p className="text-xs text-zinc-500">Miembros activos</p>
               <p className="tnum display mt-0.5 text-2xl text-white">
                 {stats.active_members}
-                <span className="text-base text-zinc-600">/{stats.total_members}</span>
+                <span className="text-base text-zinc-600">
+                  /{stats.total_members}
+                </span>
               </p>
             </div>
             <div className="px-2 py-2 text-center">
               <p className="text-xs text-zinc-500">Promotores</p>
-              <p className="tnum display mt-0.5 text-2xl text-white">{stats.promoters_active}</p>
+              <p className="tnum display mt-0.5 text-2xl text-white">
+                {stats.promoters_active}
+              </p>
             </div>
             <div className="px-2 py-2 text-center">
               <p className="text-xs text-zinc-500">Porteros</p>
-              <p className="tnum display mt-0.5 text-2xl text-white">{stats.bouncers_active}</p>
+              <p className="tnum display mt-0.5 text-2xl text-white">
+                {stats.bouncers_active}
+              </p>
             </div>
             <div className="px-2 py-2 text-center">
               <p className="text-xs text-zinc-500">Entraron a trabajar</p>
-              <p className={`tnum display mt-0.5 text-2xl ${stats.active_in_window === 0 ? "text-amber-400" : "text-emerald-400"}`}>
+              <p
+                className={`tnum display mt-0.5 text-2xl ${stats.active_in_window === 0 ? "text-amber-400" : "text-emerald-400"}`}
+              >
                 {stats.active_in_window}
               </p>
             </div>
@@ -630,7 +813,10 @@ export default function TeamManager({ venueId, users, onChanged }) {
           />
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
         </div>
-        <button onClick={() => setAddOpen((v) => !v)} className="btn-primary inline-flex items-center gap-1.5 whitespace-nowrap">
+        <button
+          onClick={() => setAddOpen((v) => !v)}
+          className="btn-primary inline-flex items-center gap-1.5 whitespace-nowrap"
+        >
           <IconPlus className="h-3.5 w-3.5" />
           Nuevo usuario
         </button>
@@ -638,7 +824,11 @@ export default function TeamManager({ venueId, users, onChanged }) {
 
       {/* Pestañas por rol con icono + contador (patrón distri-stream) */}
       <div className="card p-5">
-        <div className="-mx-1 mb-4 flex gap-1 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Filtrar por rol">
+        <div
+          className="tabbar no-scrollbar mb-4 max-w-full"
+          role="tablist"
+          aria-label="Filtrar por rol"
+        >
           {TABS.map((t) => {
             const active = tab === t.id;
             const meta = t.icon ? ROLE_META[t.icon] : null;
@@ -648,23 +838,28 @@ export default function TeamManager({ venueId, users, onChanged }) {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setTab(t.id)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
-                  active
-                    ? "border-zinc-600 bg-zinc-800 text-white"
-                    : "border-zinc-800/70 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-                }`}
+                className="tabbar-item shrink-0 !text-xs"
               >
                 {meta ? (
-                  <IconRole role={t.icon} className={`h-3.5 w-3.5 ${active ? meta.tabAccent : ""}`} />
+                  <IconRole role={t.icon} className="h-3.5 w-3.5" />
                 ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5" aria-hidden>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-3.5 w-3.5"
+                    aria-hidden
+                  >
                     <path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M10 3.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7ZM21 19v-1a4 4 0 0 0-2.5-3.7M15 3.6a3.5 3.5 0 0 1 0 6.8" />
                   </svg>
                 )}
                 {t.label}
                 <span
                   className={`tnum rounded-full px-1.5 text-[10px] ring-1 ${
-                    active ? "bg-zinc-700/80 text-zinc-200 ring-zinc-600" : "bg-zinc-800/80 text-zinc-500 ring-zinc-700/70"
+                    active
+                      ? "bg-zinc-700/80 text-zinc-200 ring-zinc-600"
+                      : "bg-zinc-800/80 text-zinc-500 ring-zinc-700/70"
                   }`}
                 >
                   {counts[t.id]}
@@ -702,7 +897,8 @@ export default function TeamManager({ venueId, users, onChanged }) {
 
         {tab !== "all" && filtered.length > 0 && (
           <p className="mt-3 text-[11px] text-zinc-600">
-            {ROLE_META[tab]?.hint} — mostrando {filtered.length} de {counts[tab]}.
+            {ROLE_META[tab]?.hint} — mostrando {filtered.length} de{" "}
+            {counts[tab]}.
           </p>
         )}
       </div>
@@ -715,7 +911,10 @@ export default function TeamManager({ venueId, users, onChanged }) {
             <h3 className="display mt-0.5 text-base">Agregar al equipo</h3>
           </div>
           {err && <p className="mb-2 text-xs text-red-400">{err}</p>}
-          <form onSubmit={createUser} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <form
+            onSubmit={createUser}
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+          >
             <input
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
@@ -725,7 +924,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
             />
             {/* Selector con icono del rol: la intención se ve antes de guardar */}
             <div className="grid grid-cols-3 gap-1.5">
-              {(["promotor", "bouncer", "admin"]).map((r) => (
+              {["promotor", "bouncer", "admin"].map((r) => (
                 <button
                   key={r}
                   type="button"
@@ -737,7 +936,10 @@ export default function TeamManager({ venueId, users, onChanged }) {
                       : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700"
                   }`}
                 >
-                  <IconRole role={r} className={`h-3.5 w-3.5 ${ROLE_META[r].tabAccent}`} />
+                  <IconRole
+                    role={r}
+                    className={`h-3.5 w-3.5 ${ROLE_META[r].tabAccent}`}
+                  />
                   {ROLE_META[r].label}
                 </button>
               ))}

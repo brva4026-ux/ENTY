@@ -523,7 +523,7 @@ export default function AdminDashboard() {
                         {tc !== undefined && tc !== null && (
                           <span
                             className="ml-auto inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-bold text-zinc-300"
-                            title="Boletas activas de este evento"
+                            data-tip="Boletas activas de este evento"
                           >
                             <Icon name="ticket" className="h-3 w-3" />
                             {tc}

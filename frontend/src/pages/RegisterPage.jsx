@@ -53,7 +53,9 @@ export default function RegisterPage() {
       } else if (raw.includes("demasiados") || err?.status === 429) {
         setError("Demasiados intentos. Espera unos minutos.");
       } else {
-        setError(err?.message || "No pudimos crear tu cuenta. Inténtalo de nuevo.");
+        setError(
+          err?.message || "No pudimos crear tu cuenta. Inténtalo de nuevo.",
+        );
       }
     } finally {
       setBusy(false);
@@ -73,7 +75,9 @@ export default function RegisterPage() {
         </div>
 
         <div className="card card-interactive reveal p-6">
-          <h1 className="display mb-1 text-lg">Crear cuenta de administrador</h1>
+          <h1 className="display mb-1 text-lg">
+            Crear cuenta de administrador
+          </h1>
           <p className="eyebrow mb-5">Tu negocio, bajo tu control</p>
 
           <form onSubmit={submit}>
@@ -131,7 +135,9 @@ export default function RegisterPage() {
                 type="button"
                 onClick={() => setShowPass((v) => !v)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
-                aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-label={
+                  showPass ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
               >
                 {showPass ? "Ocultar" : "Ver"}
               </button>
@@ -167,6 +173,15 @@ export default function RegisterPage() {
               disabled={busy || issues.length > 0}
               className="btn-primary w-full"
             >
+              {busy && (
+                <svg
+                  className="btn-spinner"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+              )}
               {busy ? "Creando tu panel…" : "Crear mi panel"}
             </button>
 
