@@ -2,8 +2,10 @@
 
 Dos vistas sobre los mismos datos:
 
-- `EventReport` (`/report`): forma original, sin dinero. La consumen el
-  promotor y el bouncer (no deben ver la caja del bar).
+- `EventReport` (`/report`): forma original. Solo admin/super_admin ven la
+  caja completa y las ventas de cada promotor; el promotor recibe una
+  vista recortada (ocupacion del evento + sus propios numeros, sin dinero
+  global ni ventas de colegas). El bouncer no tiene acceso.
 - `ReportSummary` (`/summary`): solo admin/super_admin. Agrega ingresos y
   la integridad de la puerta (que escaneos no cuadraron).
 """
@@ -19,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
 from app.core.audit import write_audit
-from app.schemas import EventReport, ReportSummary, VenueOverview
+from app.schemas import EventReport, ReportByPromoter, ReportSummary, VenueOverview
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["reporte"])
 
@@ -106,7 +108,70 @@ async def event_report(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
+    """Pulso del evento para su backstage.
+
+    Matriz RBAC (docs/arquitectura/08-rbac.md):
+    - admin: TODO (dinero incluido) y las ventas de cada promotor.
+    - promotor: ocupacion del evento y su propio trabajo. El dinero global
+      (recaudo, ventas por promotor) se oculta: saber cuanto recauda la
+      fiesta o cuanto vendio un colega no aporta a su trabajo y si es
+      sensible (quien se va a la competencia se lleva la cartera).
+    - bouncer: SIN ACCESO. En puerta ninguna pregunta la responde este
+      endpoint: su app es el escaner y no ve ventas.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+    is_admin = bool(set(user["roles"].get(venue_id, [])) & {"super_admin", "admin"})
+
+    if not is_admin:
+        # Vista del promotor: ocupacion del evento + SOLO sus numeros. Cero
+        # recaudo global, cero ventas de colegas (ni siquiera el agregado).
+        async with db.cursor() as cur:
+            ev = await _event_or_404(cur, event_id, venue_id)
+            await cur.execute(
+                "SELECT count(*)::int AS redeemed FROM tickets "
+                "WHERE event_id=%s AND status='redeemed'",
+                (event_id,),
+            )
+            event_redeemed = (await cur.fetchone())["redeemed"]
+            await cur.execute(
+                "SELECT coalesce(sum(price_cents_snapshot) "
+                "FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint AS mine, "
+                "count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS issued, "
+                "count(t.id) FILTER (WHERE t.status = 'redeemed')::int AS redeemed "
+                "FROM tickets t WHERE t.event_id=%s AND t.sold_by_user_id=%s",
+                (event_id, user["id"]),
+            )
+            mine = await cur.fetchone()
+            await cur.execute(
+                "SELECT coalesce(sum(capacity), 0)::int AS cap FROM allocations "
+                "WHERE event_id=%s AND promoter_id=%s",
+                (event_id, user["id"]),
+            )
+            my_cap = (await cur.fetchone())["cap"]
+
+        return EventReport(
+            event_id=ev["id"],
+            event_name=ev["name"],
+            capacity=ev["capacity"],
+            issued=event_redeemed,
+            redeemed=event_redeemed,
+            pending=0,
+            voided=0,
+            occupancy_pct=(
+                round(event_redeemed / ev["capacity"] * 100, 1) if ev["capacity"] else 0.0
+            ),
+            revenue_cents=mine["mine"],
+            by_type=[],
+            by_promoter=[
+                ReportByPromoter(
+                    promoter_id=user["id"],
+                    full_name=user["full_name"],
+                    capacity=my_cap,
+                    issued=mine["issued"],
+                    redeemed=mine["redeemed"],
+                )
+            ],
+        )
 
     async with db.cursor() as cur:
         ev = await _event_or_404(cur, event_id, venue_id)

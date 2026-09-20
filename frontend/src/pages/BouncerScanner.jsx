@@ -18,22 +18,67 @@ function firstVenueId(user) {
 }
 
 const RESULT_STYLES = {
-  GRANTED: { bg: "bg-emerald-600", text: "ENTRA", icon: "✓", sub: "Boleta válida" },
-  ALREADY_REDEEMED: { bg: "bg-red-600", text: "YA USADA", icon: "✗", sub: "Presentada anteriormente" },
-  NOT_FOUND: { bg: "bg-red-600", text: "NO EXISTE", icon: "✗", sub: "Código inválido" },
-  INVALID_EVENT: { bg: "bg-zinc-700", text: "OTRO EVENTO", icon: "!", sub: "Boleta de otra fiesta" },
-  EVENT_NOT_LIVE: { bg: "bg-zinc-700", text: "EVENTO CERRADO", icon: "!", sub: "La puerta no está abierta" },
-  NOT_VALID: { bg: "bg-red-600", text: "ANULADA", icon: "✗", sub: "Boleta revocada" },
+  GRANTED: {
+    bg: "bg-emerald-600",
+    text: "ENTRA",
+    icon: "✓",
+    sub: "Boleta válida",
+  },
+  ALREADY_REDEEMED: {
+    bg: "bg-red-600",
+    text: "YA USADA",
+    icon: "✗",
+    sub: "Presentada anteriormente",
+  },
+  NOT_FOUND: {
+    bg: "bg-red-600",
+    text: "NO EXISTE",
+    icon: "✗",
+    sub: "Código inválido",
+  },
+  INVALID_EVENT: {
+    bg: "bg-zinc-700",
+    text: "OTRO EVENTO",
+    icon: "!",
+    sub: "Boleta de otra fiesta",
+  },
+  EVENT_NOT_LIVE: {
+    bg: "bg-zinc-700",
+    text: "EVENTO CERRADO",
+    icon: "!",
+    sub: "La puerta no está abierta",
+  },
+  NOT_VALID: {
+    bg: "bg-red-600",
+    text: "ANULADA",
+    icon: "✗",
+    sub: "Boleta revocada",
+  },
   // Boleta válida del evento pero de otra fila: no entra y NO se consume
   // (puede entrar por la fila correcta). El detalle dice de qué fila era.
-  WRONG_TYPE: { bg: "bg-amber-600", text: "FILA EQUIVOCADA", icon: "!", sub: "" },
-  NETWORK_ERROR: { bg: "bg-amber-600", text: "SIN RED", icon: "!", sub: "Revisa tu conexión" },
+  WRONG_TYPE: {
+    bg: "bg-amber-600",
+    text: "FILA EQUIVOCADA",
+    icon: "!",
+    sub: "",
+  },
+  NETWORK_ERROR: {
+    bg: "bg-amber-600",
+    text: "SIN RED",
+    icon: "!",
+    sub: "Revisa tu conexión",
+  },
   // Error HTTP con mensaje del servidor (p.ej. el evento fue borrado mientras
   // el portero lo tenía seleccionado): se muestra el detalle real.
   SCAN_ERROR: { bg: "bg-amber-600", text: "ERROR", icon: "!", sub: "" },
   // Mig 013: boleta VÁLIDA cuya ventana de activación aún no abrió. Ámbar
   // (no rojo: no es fraude, es temprano). El detalle trae la hora exacta.
-  NOT_ACTIVE: { bg: "bg-amber-600", text: "AÚN NO ACTIVA", icon: "⏳", sub: "" },
+  NOT_ACTIVE: {
+    bg: "bg-amber-600",
+    text: "AÚN NO ACTIVA",
+    icon: "⏳",
+    sub: "",
+  },
 };
 
 // ms que dura el resultado en pantalla antes de volver a escanear
@@ -55,6 +100,11 @@ const SCAN_LOG_LABEL = {
 // Anti-spam de reintentos de NOT_ACTIVE: el servidor no cobra por cada
 // escaneo, pero martillar no cambia la hora del evento.
 const RETRY_COOLDOWN_MS = 20_000;
+
+// Modo kiosco: ms que hay que MANTENER presionado "Salir" para desbloquear.
+// Un toque accidental (bolsillo, roce, niño curioso) no saca a nadie del
+// escáner en plena fila — el patrón de los puntos de venta.
+const EXIT_HOLD_MS = 1500;
 
 export default function BouncerScanner() {
   const { user, logout } = useAuth();
@@ -79,6 +129,12 @@ export default function BouncerScanner() {
   // del admin. Nunca sale del teléfono — no es reporte, es respaldo en puerta.
   const [scanLog, setScanLog] = useState([]);
   const [logOpen, setLogOpen] = useState(false);
+  // Kiosco (default): pantalla completa, sin selector de evento ni Salir a un
+  // toque. La puerta no navega libre; desbloquear exige mantener presionado.
+  const [kiosk, setKiosk] = useState(true);
+  const [holdPct, setHoldPct] = useState(0);
+  const holdTimerRef = useRef(null);
+  const holdTickRef = useRef(null);
   const scannerRef = useRef(null);
   const html5Ref = useRef(null);
   const lastScannedRef = useRef("");
@@ -105,6 +161,8 @@ export default function BouncerScanner() {
     loadEvents();
     return () => {
       stopScanner();
+      clearTimeout(holdTimerRef.current);
+      clearInterval(holdTickRef.current);
     };
   }, [loadEvents]);
 
@@ -119,7 +177,9 @@ export default function BouncerScanner() {
       return;
     }
     try {
-      const data = await apiFetch(`/venues/${venueId}/events/${selectedEvent}/types`);
+      const data = await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/types`,
+      );
       setTypes(data.filter((t) => t.is_active !== false));
     } catch {
       setTypes([]);
@@ -135,10 +195,13 @@ export default function BouncerScanner() {
 
   // limpieza del timer al desmontar (y del wake lock: la pantalla vuelve a
   // apagarse normal cuando el bouncer sale del escáner)
-  useEffect(() => () => {
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    releaseWakeLock();
-  }, []);
+  useEffect(
+    () => () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      releaseWakeLock();
+    },
+    [],
+  );
 
   // Cuenta atrás del cooldown de reintento (solo mientras hay uno pendiente).
   useEffect(() => {
@@ -165,7 +228,7 @@ export default function BouncerScanner() {
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 240, height: 240 } },
         onScanSuccess,
-        () => {}
+        () => {},
       );
       setScanning(true);
     } catch (err) {
@@ -197,15 +260,18 @@ export default function BouncerScanner() {
     if (!manual && rawToken === lastScannedRef.current) return;
     lastScannedRef.current = rawToken;
     try {
-      const data = await apiFetch(`/venues/${venueId}/events/${selectedEvent}/redeem`, {
-        method: "POST",
-        // Con fila asignada, el servidor rechaza boletas de otro tipo con
-        // code=WRONG_TYPE (sin consumirlas). Sin filtro se omite el campo.
-        body: JSON.stringify({
-          raw_token: rawToken,
-          ...(rowFilter ? { ticket_type_id: rowFilter } : {}),
-        }),
-      });
+      const data = await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/redeem`,
+        {
+          method: "POST",
+          // Con fila asignada, el servidor rechaza boletas de otro tipo con
+          // code=WRONG_TYPE (sin consumirlas). Sin filtro se omite el campo.
+          body: JSON.stringify({
+            raw_token: rawToken,
+            ...(rowFilter ? { ticket_type_id: rowFilter } : {}),
+          }),
+        },
+      );
       setResult(data);
       // Al log local: hora + resultado + nombre si el server lo devolvió.
       setScanLog((prev) =>
@@ -223,7 +289,13 @@ export default function BouncerScanner() {
       // y oído (firma sonora por resultado — en un roncino no se siente la
       // vibración y no siempre se puede mirar la pantalla).
       if (navigator.vibrate) {
-        navigator.vibrate(data.redeemed ? [80] : data.code === "NOT_ACTIVE" ? [40, 60, 40] : [60, 60, 60]);
+        navigator.vibrate(
+          data.redeemed
+            ? [80]
+            : data.code === "NOT_ACTIVE"
+              ? [40, 60, 40]
+              : [60, 60, 60],
+        );
       }
       try {
         playForCode(data.code ?? (data.redeemed ? "GRANTED" : "NOT_VALID"));
@@ -249,7 +321,15 @@ export default function BouncerScanner() {
       // Los fallos también quedan: "se escaneó y no pasó nada" es una
       // discusión de puerta tan real como un canje dudoso.
       setScanLog((prev) =>
-        [{ at: new Date().toISOString(), code: errCode, name: null, detail: err.message }, ...prev].slice(0, 20),
+        [
+          {
+            at: new Date().toISOString(),
+            code: errCode,
+            name: null,
+            detail: err.message,
+          },
+          ...prev,
+        ].slice(0, 20),
       );
       if (!err.status) {
         try {
@@ -289,7 +369,31 @@ export default function BouncerScanner() {
     await redeemToken(pendingRetry, { manual: true });
   }
 
-  const style = result ? RESULT_STYLES[result.code] ?? RESULT_STYLES.NOT_FOUND : null;
+  const style = result
+    ? (RESULT_STYLES[result.code] ?? RESULT_STYLES.NOT_FOUND)
+    : null;
+  const selectedEventName =
+    (events ?? []).find((ev) => ev.id === selectedEvent)?.name ?? "";
+
+  // ===== Modo kiosco: desbloqueo por mantener presionado =====
+  function startHold() {
+    const t0 = Date.now();
+    setHoldPct(0);
+    holdTickRef.current = setInterval(() => {
+      setHoldPct(Math.min(100, ((Date.now() - t0) / EXIT_HOLD_MS) * 100));
+    }, 50);
+    holdTimerRef.current = setTimeout(() => {
+      clearInterval(holdTickRef.current);
+      setKiosk(false);
+      setHoldPct(0);
+      if (navigator.vibrate) navigator.vibrate(60);
+    }, EXIT_HOLD_MS);
+  }
+  function cancelHold() {
+    clearTimeout(holdTimerRef.current);
+    clearInterval(holdTickRef.current);
+    setHoldPct(0);
+  }
   // La puerta no puede esperar a que un escaneo falle para enterarse: el
   // banner de red aparece en vivo con el estado real de conexión.
   const [offline, setOffline] = useState(!navigator.onLine);
@@ -313,38 +417,78 @@ export default function BouncerScanner() {
           verificar (screenshot de una boleta anulada entraría igual). */}
       {offline && (
         <div className="bg-amber-950/80 px-4 py-2 text-center text-xs font-semibold text-amber-200">
-          ⚠️ Sin conexión: el escáner valida contra el server. Reconectá el
-          dato para poder canjear.
+          ⚠️ Sin conexión: el escáner valida contra el server. Reconectá el dato
+          para poder canjear.
         </div>
       )}
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
         <div>
-          <h1 className="text-lg font-bold tracking-tight text-white">Control de puerta</h1>
-          <p className="text-xs text-zinc-500">{user?.full_name}</p>
+          <h1 className="text-lg font-bold tracking-tight text-white">
+            Control de puerta
+          </h1>
+          <p className="text-xs text-zinc-500">
+            {user?.full_name}
+            {selectedEventName ? ` · ${selectedEventName}` : ""}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="hidden sm:inline-flex">
-            <LiveIndicator lastUpdated={lastEventsUpdate} live={false} />
-          </span>
-          <select
-            value={selectedEvent ?? ""}
-            onChange={(e) => setSelectedEvent(Number(e.target.value))}
-            className="max-w-[52vw] rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-sm text-white sm:max-w-none"
-          >
-            <option value="" disabled>Evento…</option>
-            {events === null
-              ? null // el select se renderiza vacío un instante; el error global cubre fallos
-              : events.map((ev) => (
-                <option key={ev.id} value={ev.id}>{ev.name}</option>
-              ))}
-          </select>
+        {kiosk ? (
+          /* Kiosco: salir exige MANTENER presionado (la barra llena el botón
+             como feedback). Un toque accidental — bolsillo, roce — no saca a
+             nadie del escáner en plena fila. El selector de evento y la
+             navegación viven detrás del desbloqueo. */
           <button
-            onClick={logout}
-            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
+            onMouseDown={startHold}
+            onMouseUp={cancelHold}
+            onMouseLeave={cancelHold}
+            onTouchStart={startHold}
+            onTouchEnd={cancelHold}
+            onTouchCancel={cancelHold}
+            onContextMenu={(e) => e.preventDefault()}
+            className="relative select-none overflow-hidden rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300"
+            aria-label="Mantén presionado para salir del modo kiosco"
           >
-            Salir
+            <span
+              className="absolute inset-y-0 left-0 bg-zinc-600"
+              style={{ width: `${holdPct}%` }}
+              aria-hidden="true"
+            />
+            <span className="relative">Mantén para salir</span>
           </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline-flex">
+              <LiveIndicator lastUpdated={lastEventsUpdate} live={false} />
+            </span>
+            <select
+              value={selectedEvent ?? ""}
+              onChange={(e) => setSelectedEvent(Number(e.target.value))}
+              className="max-w-[52vw] rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-sm text-white sm:max-w-none"
+            >
+              <option value="" disabled>
+                Evento…
+              </option>
+              {events === null
+                ? null // el select se renderiza vacío un instante; el error global cubre fallos
+                : events.map((ev) => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.name}
+                    </option>
+                  ))}
+            </select>
+            <button
+              onClick={() => setKiosk(true)}
+              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
+            >
+              Bloquear
+            </button>
+            <button
+              onClick={logout}
+              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
+            >
+              Salir
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Resultado a pantalla completa (semántica: verde entra, rojo no) */}
@@ -353,7 +497,9 @@ export default function BouncerScanner() {
           onClick={resetScan}
           className={`flex flex-1 flex-col items-center justify-center ${style.bg} p-6 transition-colors`}
         >
-          <span className="animate-pop text-8xl font-black text-white drop-shadow-lg">{style.icon}</span>
+          <span className="animate-pop text-8xl font-black text-white drop-shadow-lg">
+            {style.icon}
+          </span>
           <span className="animate-scale-in mt-4 text-5xl font-black uppercase tracking-tight text-white">
             {style.text}
           </span>
@@ -367,7 +513,8 @@ export default function BouncerScanner() {
           </span>
           {result?.code === "NOT_ACTIVE" && (
             <span className="animate-fade mt-3 max-w-sm rounded-xl bg-black/25 px-4 py-2 text-center text-sm font-medium text-white/85">
-              La boleta es válida: se escanea igual cuando llegue la hora. No se gastó.
+              La boleta es válida: se escanea igual cuando llegue la hora. No se
+              gastó.
             </span>
           )}
           {result?.customer_name && (
@@ -381,9 +528,15 @@ export default function BouncerScanner() {
         </button>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center p-4">
-          <div id="qr-reader-region" className="w-full max-w-sm overflow-hidden rounded-2xl ring-1 ring-zinc-800" />
+          <div
+            id="qr-reader-region"
+            className="w-full max-w-sm overflow-hidden rounded-2xl ring-1 ring-zinc-800"
+          />
           {!scanning && (
-            <button onClick={startScanner} className="btn-primary mt-4 w-full max-w-sm !py-4 !text-lg">
+            <button
+              onClick={startScanner}
+              className="btn-primary mt-4 w-full max-w-sm !py-4 !text-lg"
+            >
               Activar cámara
             </button>
           )}
@@ -393,7 +546,11 @@ export default function BouncerScanner() {
             </button>
           )}
 
-          {error && <p className="mt-3 max-w-sm text-center text-sm text-red-400">{error}</p>}
+          {error && (
+            <p className="mt-3 max-w-sm text-center text-sm text-red-400">
+              {error}
+            </p>
+          )}
 
           {/* Reintento de la boleta aparcada por NOT_ACTIVE: sigue visible
               (aunque el resultado se haya ido) hasta que entre o se escanee
@@ -411,7 +568,10 @@ export default function BouncerScanner() {
           )}
 
           {/* Respaldo manual: cámara rota, permisos denegados, QR dañado */}
-          <form onSubmit={submitManual} className="mt-5 flex w-full max-w-sm items-center gap-2">
+          <form
+            onSubmit={submitManual}
+            className="mt-5 flex w-full max-w-sm items-center gap-2"
+          >
             <input
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
@@ -434,7 +594,9 @@ export default function BouncerScanner() {
                   onClick={() => setRowFilter("")}
                   aria-pressed={rowFilter === ""}
                   className={`chip rounded-full px-3 py-1.5 text-xs font-semibold ${
-                    rowFilter === "" ? "chip-active" : "bg-zinc-800/70 text-zinc-300"
+                    rowFilter === ""
+                      ? "chip-active"
+                      : "bg-zinc-800/70 text-zinc-300"
                   }`}
                 >
                   Todas las filas
@@ -445,7 +607,9 @@ export default function BouncerScanner() {
                     onClick={() => setRowFilter(t.id)}
                     aria-pressed={rowFilter === t.id}
                     className={`chip rounded-full px-3 py-1.5 text-xs font-semibold ${
-                      rowFilter === t.id ? "chip-active" : "bg-zinc-800/70 text-zinc-300"
+                      rowFilter === t.id
+                        ? "chip-active"
+                        : "bg-zinc-800/70 text-zinc-300"
                     }`}
                   >
                     {t.name}
@@ -456,7 +620,8 @@ export default function BouncerScanner() {
           )}
 
           <p className="mt-4 max-w-sm text-center text-xs text-zinc-600">
-            Verde = entra · Rojo = no entra. El resultado también aparece con el código manual.
+            Verde = entra · Rojo = no entra. El resultado también aparece con el
+            código manual.
           </p>
 
           {/* Log de los últimos escaneos de este teléfono: respaldo para
@@ -469,32 +634,49 @@ export default function BouncerScanner() {
                 className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-900"
               >
                 <span>
-                  Últimos escaneos <span className="tnum text-zinc-500">({scanLog.length})</span>
+                  Últimos escaneos{" "}
+                  <span className="tnum text-zinc-500">({scanLog.length})</span>
                 </span>
-                <span className="text-zinc-500">{logOpen ? "ocultar ▲" : "ver ▼"}</span>
+                <span className="text-zinc-500">
+                  {logOpen ? "ocultar ▲" : "ver ▼"}
+                </span>
               </button>
               {logOpen && (
                 <ul className="mt-2 divide-y divide-zinc-800/70 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
                   {scanLog.map((s, i) => (
-                    <li key={`${s.at}-${i}`} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                    <li
+                      key={`${s.at}-${i}`}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs"
+                    >
                       <span
                         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
                           s.code === "GRANTED"
                             ? "bg-emerald-400"
-                            : ["NOT_ACTIVE", "WRONG_TYPE", "NETWORK_ERROR", "SCAN_ERROR"].includes(s.code)
+                            : [
+                                  "NOT_ACTIVE",
+                                  "WRONG_TYPE",
+                                  "NETWORK_ERROR",
+                                  "SCAN_ERROR",
+                                ].includes(s.code)
                               ? "bg-amber-400"
                               : "bg-red-400"
                         }`}
                       />
                       <span className="tnum shrink-0 text-zinc-500">
-                        {new Date(s.at).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                        {new Date(s.at).toLocaleTimeString("es-CO", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })}
                       </span>
                       <span className="truncate font-semibold text-zinc-300">
                         {SCAN_LOG_LABEL[s.code] ?? s.code}
                         {s.name ? ` · ${s.name}` : ""}
                       </span>
                       {s.detail && i === 0 && (
-                        <span className="ml-auto truncate text-zinc-600">{s.detail}</span>
+                        <span className="ml-auto truncate text-zinc-600">
+                          {s.detail}
+                        </span>
                       )}
                     </li>
                   ))}

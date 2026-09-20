@@ -106,12 +106,15 @@ def test_ticket_roles_are_scoped(api):
 
 
 def test_bouncer_has_its_own_permissions(api):
-    """Contra-prueba: el bouncer sí puede ver el reporte y validar en puerta."""
+    """Contra-prueba: el bouncer valida en puerta y NO ve reportes de ventas.
+
+    El /report expone recaudo y ventas por promotor: para la puerta es dato
+    que no aporta (su app es el escaner) y para el negocio es sensible.
+    """
     scen = api.scenario()
 
     report = api.get(f"/venues/{scen['venue']}/events/{scen['event']}/report", "bouncer")
-    assert report.status_code == 200
-    assert report.json()["event_id"] == scen["event"]
+    assert report.status_code == 403
 
     redeem = api.post(
         f"/venues/{scen['venue']}/events/{scen['event']}/redeem",
@@ -120,6 +123,44 @@ def test_bouncer_has_its_own_permissions(api):
     )
     assert redeem.status_code == 200
     assert redeem.json()["code"] == "NOT_FOUND"
+
+
+def test_report_scope_by_role(api):
+    """Matriz RBAC del /report (mig P0-rbac):
+
+    - promotor: 200 pero recortado. Ve ocupacion del evento y SOLO sus
+      numeros; ni el recaudo global ni las ventas de otros promotores.
+    - bouncer: 403.
+    - admin: 200 con el desglose completo.
+    """
+    scen = api.scenario()
+
+    # El promotor emite una boleta propia para tener un numero verificable.
+    emit = api.post(
+        f"/venues/{scen['venue']}/events/{scen['event']}/tickets",
+        "promoter",
+        {"ticket_type_id": scen["type"], "customer_name": "Mia", "customer_phone": "3001112222"},
+    )
+    assert emit.status_code == 200
+
+    # ADMIN: vista completa (recaudo + desglose por promotor).
+    admin = api.get(f"/venues/{scen['venue']}/events/{scen['event']}/report", "admin")
+    assert admin.status_code == 200
+    body = admin.json()
+    assert body["issued"] == 1
+    assert len(body["by_promoter"]) >= 1
+
+    # PROMOTOR: vista recortada, solo su fila y sin dinero de la fiesta.
+    prom = api.get(f"/venues/{scen['venue']}/events/{scen['event']}/report", "promoter")
+    assert prom.status_code == 200
+    pbody = prom.json()
+    assert len(pbody["by_promoter"]) == 1
+    assert pbody["by_promoter"][0]["promoter_id"] == api.world["promoter"]["id"]
+    assert pbody["by_promoter"][0]["issued"] == 1
+
+    # BOUNCER: fuera.
+    bounce = api.get(f"/venues/{scen['venue']}/events/{scen['event']}/report", "bouncer")
+    assert bounce.status_code == 403
 
 
 def test_redeem_with_deleted_event_is_404_not_500(api):

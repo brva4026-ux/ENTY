@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import { hasRole, navTabsFor, topRoleLabel } from "../lib/roles";
 import { haptics } from "../lib/haptics";
 import { Logo } from "./Brand";
 import NotificationBell from "./NotificationBell";
@@ -7,18 +8,42 @@ import NotificationBell from "./NotificationBell";
 /** Iconos de pestaña (trazo 1.8, 20px): mismo lenguaje visual en toda la app. */
 const TAB_ICONS = {
   admin: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px]">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[22px] w-[22px]"
+    >
       <path d="M3 9.5 12 3l9 6.5V21H3V9.5z" />
       <path d="M9 21v-6h6v6" />
     </svg>
   ),
   promotor: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px]">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[22px] w-[22px]"
+    >
       <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2.2a2.8 2.8 0 0 0 0 5.6V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.2a2.8 2.8 0 0 0 0-5.6V7z" />
     </svg>
   ),
   bouncer: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px]">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[22px] w-[22px]"
+    >
       <path d="M3 11v3a1 1 0 0 0 1 1h2l3.5 3.5a1 1 0 0 0 1.5-.8V6.3a1 1 0 0 0-1.5-.8L6 9H4a1 1 0 0 0-1 1z" />
       <path d="M16 9a5 5 0 0 1 0 6M18.5 6.5a8.5 8.5 0 0 1 0 11" />
     </svg>
@@ -29,21 +54,15 @@ export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const { pathname } = useLocation();
-  const roles = Object.values(user?.roles || {}).flat();
   const venueNames = (user?.venues || []).map((v) => v.name).join(", ");
-  // El rol más alto define cómo se presenta la persona en el header.
-  const roleLabel = roles.includes("admin")
-    ? "Administrador"
-    : roles.includes("promotor")
-      ? "Promotor"
-      : roles.includes("bouncer")
-        ? "Portero"
-        : "";
+  // Fuente única de roles (lib/roles.js): el rol más alto define cómo se
+  // presenta la persona en el header.
+  const roleLabel = topRoleLabel(user);
 
-  const tabs = [];
-  if (roles.includes("admin")) tabs.push({ to: "/admin", label: "Admin", icon: TAB_ICONS.admin });
-  if (roles.includes("promotor")) tabs.push({ to: "/promotor", label: "Promotor", icon: TAB_ICONS.promotor });
-  if (roles.includes("bouncer")) tabs.push({ to: "/bouncer", label: "Puerta", icon: TAB_ICONS.bouncer });
+  const tabs = navTabsFor(user).map((t) => ({
+    ...t,
+    icon: TAB_ICONS[t.to.slice(1)],
+  }));
 
   const initials = (user?.full_name || "?")
     .split(" ")
@@ -90,7 +109,9 @@ export default function Layout({ children }) {
           <div className="flex items-center gap-3 text-sm">
             <NotificationBell />
             <div className="hidden text-right sm:block">
-              <p className="text-[13px] font-medium leading-tight text-zinc-200">{user?.full_name}</p>
+              <p className="text-[13px] font-medium leading-tight text-zinc-200">
+                {user?.full_name}
+              </p>
               <p className="text-[11px] leading-tight text-zinc-500">
                 {roleLabel}
                 {venueNames && ` · ${venueNames}`}
@@ -119,7 +140,10 @@ export default function Layout({ children }) {
 
       {/* pb extra en móvil: la barra inferior es fija y no debe tapar contenido.
           Cada navegación re-monta contenido → .reveal coreografía la entrada. */}
-      <main id="contenido" className="mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8">
+      <main
+        id="contenido"
+        className="mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8"
+      >
         <div key={pathname} className="reveal">
           {children}
         </div>
@@ -146,11 +170,15 @@ export default function Layout({ children }) {
                     active ? "text-white" : "text-zinc-500 active:bg-zinc-900"
                   }`}
                 >
-                  <span className={`transition-transform duration-200 ${active ? "scale-110" : "scale-100"}`}>
+                  <span
+                    className={`transition-transform duration-200 ${active ? "scale-110" : "scale-100"}`}
+                  >
                     {t.icon}
                   </span>
                   {t.label}
-                  <span className={`h-0.5 w-5 rounded-full transition-all duration-300 ${active ? "bg-brand-400" : "bg-transparent"}`} />
+                  <span
+                    className={`h-0.5 w-5 rounded-full transition-all duration-300 ${active ? "bg-brand-400" : "bg-transparent"}`}
+                  />
                 </Link>
               );
             })}

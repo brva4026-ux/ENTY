@@ -8,6 +8,7 @@ import { initFrontendSentry, captureError } from "./lib/sentry";
 initFrontendSentry();
 import { AuthProvider, useAuth } from "./lib/auth";
 import { UIProvider } from "./lib/ui";
+import { hasRole, homeForRole } from "./lib/roles";
 import { OfflineBanner } from "./components/OfflineBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoginPage from "./pages/LoginPage";
@@ -32,7 +33,9 @@ const PromoterDashboard = lazyPage(() => import("./pages/PromoterDashboard"));
 const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
-const AcceptInvitationPage = lazyPage(() => import("./pages/AcceptInvitationPage"));
+const AcceptInvitationPage = lazyPage(
+  () => import("./pages/AcceptInvitationPage"),
+);
 const ResetPasswordPage = lazyPage(() => import("./pages/ResetPasswordPage"));
 import Layout from "./components/Layout";
 import { SplashScreen } from "./components/SplashScreen";
@@ -42,9 +45,9 @@ function RequireRole({ role, children }) {
   // Splash de marca mientras se restaura la sesión (nunca un flash de login).
   if (loading) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  // roles: {"<venue_id>": ["admin", ...]}; si tiene rol en alguna venue, pasa
-  const hasAny = Object.values(user.roles || {}).flat().includes(role);
-  if (!hasAny) return <Navigate to="/login" replace />;
+  // La fuente de verdad de la navegación es lib/roles.js; el backend re-
+  // verifica en DB cada request (ensure_roles) — esto es UX, no cerradura.
+  if (!hasRole(user, role)) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -62,57 +65,57 @@ function App() {
         <OfflineBanner />
         <BrowserRouter>
           <Suspense fallback={<SplashScreen />}>
-          <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          {/* Reset self-service: pública, el token del correo es la credencial
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              {/* Reset self-service: pública, el token del correo es la credencial
               de un solo uso; la página lo canjea por la nueva contraseña. */}
-          <Route path="/reset" element={<ResetPasswordPage />} />
-          <Route
-            path="/perfil"
-            element={
-              <RequireAuth>
-                <Layout>
-                  <ProfilePage />
-                </Layout>
-              </RequireAuth>
-            }
-          />
-          {/* Boleta del invitado: publica, sin login. El token llega en el
+              <Route path="/reset" element={<ResetPasswordPage />} />
+              <Route
+                path="/perfil"
+                element={
+                  <RequireAuth>
+                    <Layout>
+                      <ProfilePage />
+                    </Layout>
+                  </RequireAuth>
+                }
+              />
+              {/* Boleta del invitado: publica, sin login. El token llega en el
               fragmento (#), que el navegador no envia al servidor. */}
-          <Route path="/t" element={<PublicTicketPage />} />
-          <Route path="/invitacion" element={<AcceptInvitationPage />} />
-          <Route
-            path="/admin"
-            element={
-              <RequireRole role="admin">
-                <Layout>
-                  <AdminDashboard />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/promotor"
-            element={
-              <RequireRole role="promotor">
-                <Layout>
-                  <PromoterDashboard />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/bouncer"
-            element={
-              <RequireRole role="bouncer">
-                <BouncerScanner />
-              </RequireRole>
-            }
-          />
-          <Route path="/" element={<HomeRedirect />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="/t" element={<PublicTicketPage />} />
+              <Route path="/invitacion" element={<AcceptInvitationPage />} />
+              <Route
+                path="/admin"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <AdminDashboard />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/promotor"
+                element={
+                  <RequireRole role="promotor">
+                    <Layout>
+                      <PromoterDashboard />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/bouncer"
+                element={
+                  <RequireRole role="bouncer">
+                    <BouncerScanner />
+                  </RequireRole>
+                }
+              />
+              <Route path="/" element={<HomeRedirect />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </Suspense>
         </BrowserRouter>
       </UIProvider>
@@ -124,11 +127,7 @@ function HomeRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  const roles = Object.values(user.roles || {}).flat();
-  if (roles.includes("admin")) return <Navigate to="/admin" replace />;
-  if (roles.includes("promotor")) return <Navigate to="/promotor" replace />;
-  if (roles.includes("bouncer")) return <Navigate to="/bouncer" replace />;
-  return <Navigate to="/login" replace />;
+  return <Navigate to={homeForRole(user)} replace />;
 }
 
 createRoot(document.getElementById("root")).render(
@@ -136,5 +135,5 @@ createRoot(document.getElementById("root")).render(
     <ErrorBoundary>
       <App />
     </ErrorBoundary>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

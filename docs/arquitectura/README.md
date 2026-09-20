@@ -11,6 +11,7 @@ Documentación técnica del comité. Cada tema se ancla al código del repo.
 | [04-offline-first.md](04-offline-first.md) | Snapshot firmada, validación local, cola idempotente de sincronización, resolución de conflictos |
 | [06-infraestructura.md](06-infraestructura.md) | Infra barata de base, autoscaling de fin de semana, costo mensual estimado |
 | [07-plan-pruebas.md](07-plan-pruebas.md) | Niveles de pruebas anti-sobreventa + **resultados reales ejecutados en el repo** |
+| [08-rbac.md](08-rbac.md) | Matriz rol × acción, ámbito de datos por rol y roles futuros |
 
 ## Resultados de pruebas ejecutadas (con la infra real local)
 
