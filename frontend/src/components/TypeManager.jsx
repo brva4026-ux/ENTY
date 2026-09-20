@@ -1,0 +1,286 @@
+import { useState } from "react";
+import { apiFetch } from "../lib/api";
+import { useUI } from "../lib/ui";
+import EmptyState from "./EmptyState";
+
+export default function TypeManager({ venueId, eventId, types, onChange }) {
+  const ui = useUI();
+  const [name, setName] = useState("General");
+  const [price, setPrice] = useState("30000");
+  const [qty, setQty] = useState("50");
+  const [isCourtesy, setIsCourtesy] = useState(false);
+  const [err, setErr] = useState("");
+  const [info, setInfo] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState({
+    name: "",
+    price: "",
+    qty: "",
+    isCourtesy: false,
+  });
+  const [busyId, setBusyId] = useState(null);
+
+  const typeUrl = (t) => `/venues/${venueId}/events/${eventId}/types/${t.id}`;
+
+  function replaceType(updated) {
+    onChange((types || []).map((x) => (x.id === updated.id ? updated : x)));
+  }
+
+  async function createType(e) {
+    e.preventDefault();
+    try {
+      const t = await apiFetch(`/venues/${venueId}/events/${eventId}/types`, {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          price_cents: Number(price),
+          quantity: Number(qty),
+          is_courtesy: isCourtesy,
+        }),
+      });
+      onChange([...(types || []), t]);
+      setErr("");
+      ui.success(`Tipo "${t.name}" agregado`);
+    } catch (e2) {
+      setErr(e2.message);
+    }
+  }
+
+  function startEdit(t) {
+    setEditingId(t.id);
+    setErr("");
+    setInfo("");
+    setDraft({
+      name: t.name,
+      price: String(t.price_cents),
+      qty: String(t.quantity),
+      isCourtesy: t.is_courtesy,
+    });
+  }
+
+  async function saveEdit(t) {
+    setBusyId(t.id);
+    setErr("");
+    try {
+      const updated = await apiFetch(typeUrl(t), {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: draft.name.trim(),
+          price_cents: Number(draft.price),
+          quantity: Number(draft.qty),
+          is_courtesy: draft.isCourtesy,
+        }),
+      });
+      replaceType(updated);
+      setEditingId(null);
+      setInfo("Tipo actualizado.");
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function toggleTypeActive(t) {
+    setBusyId(t.id);
+    setErr("");
+    try {
+      const updated = await apiFetch(typeUrl(t), {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !t.is_active }),
+      });
+      replaceType(updated);
+      setInfo(updated.is_active ? "Tipo reactivado." : "Tipo archivado.");
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function removeType(t) {
+    const ok = await ui.confirm(`¿Eliminar el tipo "${t.name}"?`, {
+      message:
+        "Si ya tiene boletas emitidas se archivará para no perder el historial.",
+      danger: true,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    setBusyId(t.id);
+    setErr("");
+    try {
+      const res = await apiFetch(typeUrl(t), { method: "DELETE" });
+      if (res.archived) {
+        replaceType({ ...t, is_active: false });
+      } else {
+        onChange((types || []).filter((x) => x.id !== t.id));
+      }
+      setInfo(res.detail);
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <h3 className="display mb-3 text-base">Tipos de boleta</h3>
+      <ul className="mb-4 space-y-2">
+        {(types || []).map((t) => (
+          <li
+            key={t.id}
+            className={`rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-sm ${
+              t.is_active === false ? "opacity-60" : ""
+            }`}
+          >
+            {editingId === t.id ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <input
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  className="field col-span-full"
+                  placeholder="Nombre"
+                />
+                <input
+                  value={draft.price}
+                  onChange={(e) =>
+                    setDraft({ ...draft, price: e.target.value })
+                  }
+                  className="field"
+                  placeholder="Precio (centavos)"
+                  inputMode="numeric"
+                />
+                <input
+                  value={draft.qty}
+                  onChange={(e) => setDraft({ ...draft, qty: e.target.value })}
+                  className="field"
+                  placeholder="Cantidad"
+                  inputMode="numeric"
+                />
+                <label className="col-span-full flex items-center gap-2 text-xs text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={draft.isCourtesy}
+                    onChange={(e) =>
+                      setDraft({ ...draft, isCourtesy: e.target.checked })
+                    }
+                    className="accent-brand-500"
+                  />
+                  Cortesía (precio 0)
+                </label>
+                <div className="col-span-full flex gap-2">
+                  <button
+                    onClick={() => saveEdit(t)}
+                    disabled={busyId === t.id}
+                    className="btn-primary flex-1 !py-1.5 text-xs"
+                  >
+                    {busyId === t.id ? "Guardando…" : "Guardar"}
+                  </button>
+                  <button
+                    onClick={() => setEditingId(null)}
+                    className="btn-ghost text-xs"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="flex items-center gap-2 font-semibold text-zinc-200">
+                  {t.name}
+                  {t.is_courtesy && (
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-300 ring-1 ring-emerald-500/30">
+                      cortesía
+                    </span>
+                  )}
+                  {t.is_active === false && (
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-300 ring-1 ring-amber-500/30">
+                      archivado
+                    </span>
+                  )}
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="tnum text-zinc-400">
+                    {t.price_cents > 0
+                      ? `$${(t.price_cents / 100).toLocaleString("es-CO")}`
+                      : "gratis"}{" "}
+                    · cupo {t.quantity}
+                  </span>
+                  <button
+                    onClick={() => startEdit(t)}
+                    className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10"
+                  >
+                    Editar
+                  </button>
+                  {t.is_active === false ? (
+                    <button
+                      onClick={() => toggleTypeActive(t)}
+                      disabled={busyId === t.id}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/10"
+                    >
+                      Reactivar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => removeType(t)}
+                      disabled={busyId === t.id}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                    >
+                      Eliminar
+                    </button>
+                  )}
+                </span>
+              </div>
+            )}
+          </li>
+        ))}
+        {(types || []).length === 0 && (
+          <li className="col-span-full list-none">
+            <EmptyState icon="ticket" title="Sin tipos de boleta aún">
+              Agrega el primero abajo: define precio y cantidad para empezar a
+              vender.
+            </EmptyState>
+          </li>
+        )}
+      </ul>
+      <form
+        onSubmit={createType}
+        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+      >
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="field col-span-full"
+          placeholder="Nombre"
+        />
+        <input
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          className="field"
+          placeholder="Precio (centavos)"
+        />
+        <input
+          value={qty}
+          onChange={(e) => setQty(e.target.value)}
+          className="field"
+          placeholder="Cantidad"
+        />
+        <label className="col-span-full flex items-center gap-2 text-sm text-zinc-300">
+          <input
+            type="checkbox"
+            checked={isCourtesy}
+            onChange={(e) => setIsCourtesy(e.target.checked)}
+            className="accent-brand-500"
+          />
+          Cortesía (precio 0)
+        </label>
+        {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
+        {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
+        <button className="btn-ghost col-span-full font-bold">
+          Agregar tipo
+        </button>
+      </form>
+    </div>
+  );
+}
