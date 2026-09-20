@@ -12,14 +12,11 @@ import { OfflineBanner } from "./components/OfflineBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import ProfilePage from "./pages/ProfilePage";
-import AcceptInvitationPage from "./pages/AcceptInvitationPage";
-import AdminDashboard from "./pages/AdminDashboard";
-import PromoterDashboard from "./pages/PromoterDashboard";
-// El escáner carga html5-qrcode (~300 KB) y la boleta pública es una página
-// aparte: chunks separados que solo baja quien los usa. El resto de roles
-// nunca paga ese costo. Si un chunk falla al cargar (deploy nuevo + chunk
-// viejo en caché, red flaca), se reporta y ofrece recargar.
+// Code-splitting: TODAS las páginas de rol y flujos pesados son chunks
+// separados que solo baja quien los usa. El admin no paga el escáner, el
+// portero no paga el panel admin, y el invitado (el teléfono más humilde de
+// todos) baja solo su boleta. Si un chunk falla al cargar (deploy nuevo +
+// chunk viejo en caché, red flaca), se reporta y ofrece recargar.
 const lazyPage = (loader) => {
   const Component = lazy(loader);
   return (props) => (
@@ -30,8 +27,12 @@ const lazyPage = (loader) => {
     </Suspense>
   );
 };
+const AdminDashboard = lazyPage(() => import("./pages/AdminDashboard"));
+const PromoterDashboard = lazyPage(() => import("./pages/PromoterDashboard"));
 const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
+const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
+const AcceptInvitationPage = lazyPage(() => import("./pages/AcceptInvitationPage"));
 import Layout from "./components/Layout";
 import { SplashScreen } from "./components/SplashScreen";
 
