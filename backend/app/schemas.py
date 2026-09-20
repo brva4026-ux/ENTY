@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 from app.core.password_policy import PasswordStr, check_password_strength
+from app.core.urlguard import validate_public_http_url
 
 # Regex de email pragmática: acepta tlds de prueba (.test, .local) y hosts reales.
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
@@ -63,8 +64,16 @@ class EventCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
     # HttpUrl (no str): el flyer se pinta en un <img>, asi que solo aceptamos
-    # URLs http(s) reales y no cualquier cadena.
+    # URLs http(s) reales y no cualquier cadena. La guardia SSRF además
+    # rechaza hosts que resuelvan a IPs internas (defensa en profundidad: hoy
+    # la URL la descarga el navegador del usuario, mañana puede descargarla
+    # el server para componer la imagen).
     flyer_url: HttpUrl | None = None
+
+    @field_validator("flyer_url")
+    @classmethod
+    def _flyer_public(cls, v):
+        return validate_public_http_url(str(v)) if v else v
     # Lugar del evento (texto libre): viaja a la boleta del invitado y al
     # og:image de WhatsApp. Opcional: no todos los eventos tienen dirección.
     location: str | None = Field(default=None, max_length=200)
@@ -103,6 +112,12 @@ class EventUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
     flyer_url: HttpUrl | None = None
+
+    @field_validator("flyer_url")
+    @classmethod
+    def _flyer_public(cls, v):
+        return validate_public_http_url(str(v)) if v else v
+
     location: str | None = Field(default=None, max_length=200)
     starts_at: datetime | None = None
     ends_at: datetime | None = None
@@ -361,6 +376,17 @@ class ForgotPasswordRequest(BaseModel):
     email: str = Field(min_length=3, max_length=200)
 
 
+class ResetPasswordRequest(BaseModel):
+    """Canje del token del correo: self-service, sin sesión previa."""
+    token: str = Field(min_length=16, max_length=256)
+    new_password: PasswordStr
+
+    @field_validator("new_password")
+    @classmethod
+    def _strong_new(cls, v: str) -> str:
+        return check_password_strength(v)
+
+
 class ChangePasswordRequest(BaseModel):
     """Cambio de contraseña propia: exige la vigente."""
     current_password: str = Field(max_length=128)
@@ -391,6 +417,9 @@ class UpdateVenueRequest(BaseModel):
             u = self.logo_url.strip()
             if not (u.startswith("http://") or u.startswith("https://")):
                 raise ValueError("logo_url debe ser una URL http(s)")
+            # Guardia SSRF: hosts que resuelven a IPs internas se rechazan
+            # (defensa en profundidad para descargas server-side futuras).
+            validate_public_http_url(u)
             self.logo_url = u
         return self
 

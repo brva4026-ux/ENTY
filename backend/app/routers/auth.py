@@ -8,14 +8,21 @@ El login incluye:
   cubos independientes por email y por IP. Vive en Postgres porque en
   serverless la memoria de cada instancia lambda cuenta por su lado y muere
   en cada cold start: el estado compartido solo puede vivir en la DB.
+- Reset self-service (mig 017): forgot-password crea un token de un solo uso
+  (hash en DB, crudo solo en el correo) y reset-password lo canjea.
 """
+import hashlib
+from datetime import datetime, timezone
 from secrets import token_hex
 from typing import Annotated
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from starlette.concurrency import run_in_threadpool
 
+from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.mailer import Mailer
 from app.core.security import create_access_token, hash_password, verify_password
 from app.deps import ensure_roles, get_current_user
 from app.schemas import (
@@ -25,6 +32,7 @@ from app.schemas import (
     LoginRequest,
     MessageOut,
     RegisterRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
     UpdateVenueRequest,
@@ -281,14 +289,15 @@ async def forgot_password(
     request: Request,
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Responde SIEMPRE lo mismo (no revela qué emails existen).
+    """Punto de entrada del reset self-service.
 
-    Sin proveedor de email configurado, orienta al usuario: self-service de
-    venue (registro) o reset operado por un admin de su venue.
+    Responde SIEMPRE el mismo texto, exista o no el email (la enumeración de
+    cuentas se niega por diseño). Con email configurado: crea el token
+    (hash en DB, crudo solo en el correo) y lo envía. Sin email configurado
+    orienta al flujo operado por admin — mismo texto de respuesta.
 
-    Rate-limited con el lockout en DB (cubo por IP con email sentinel): el
-    mensaje no filtra información, pero sin límite era un vector de basura
-    y de enumeración en volumen (comparar latencias/textos entre IPs).
+    Rate-limited con el lockout en DB (cubo por IP con email sentinel):
+    pedir resets en volumen es basura y un vector de enumeración.
     """
     ip = _client_ip(request)
     if await _login_locked(db, "__forgot__", ip):
@@ -298,24 +307,113 @@ async def forgot_password(
         )
     await _register_failure(db, "__forgot__", ip)
 
+    email_norm = body.email.strip().lower()
     async with db.cursor() as cur:
         await cur.execute(
-            """SELECT u.is_active
-               FROM users u
-               JOIN venue_user_roles vr ON vr.user_id = u.id
-               WHERE lower(u.email)=lower(%s)
+            """SELECT id, full_name, is_active FROM users
+               WHERE lower(email) = %s LIMIT 1""",
+            (email_norm,),
+        )
+        user = await cur.fetchone()
+
+    # El texto NO depende de si el email existe (anti-enumeración).
+    generic = (
+        "Si el correo está registrado, te enviamos un enlace para "
+        "restablecer la contraseña. Revisa también tu carpeta de spam."
+    )
+
+    if user and user["is_active"]:
+        raw_token = token_hex(32)  # 256 bits, de un solo uso
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        async with db.cursor() as cur:
+            # Un pedido nuevo invalida los anteriores del usuario (lógicos:
+            # el canje solo acepta tokens sin usar y del hash más reciente).
+            await cur.execute(
+                """INSERT INTO password_reset_tokens
+                   (user_id, token_hash, expires_at, request_ip)
+                   VALUES (%s, %s, now() + interval '60 minutes', %s)""",
+                (user["id"], token_hash, ip),
+            )
+        settings = get_settings()
+        mailer = Mailer(
+            api_key=settings.resend_api_key,
+            from_email=settings.email_from_address,
+            from_name="TicketFlow",
+            app_url=settings.app_public_url,
+        )
+        if mailer.enabled:
+            await run_in_threadpool(
+                mailer.send_password_reset,
+                to=user["email"],
+                full_name=user["full_name"],
+                token=raw_token,
+            )
+
+    return MessageOut(detail=generic)
+
+
+@router.post("/reset-password", response_model=MessageOut)
+async def reset_password(
+    body: ResetPasswordRequest,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Consuma el token del correo y fija la nueva contraseña.
+
+    Canje de un solo uso con compare-and-swap (WHERE used_at IS NULL): dos
+    clicks simultáneos al mismo correo, solo uno gana. Al cambiar la
+    contraseña se limpia el cubo de lockout del email (quien recuperó el
+    acceso no se queda bloqueado por sus propios intentos fallidos).
+    """
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+    async with db.cursor() as cur:
+        await cur.execute(
+            """SELECT pr.id AS pr_id, pr.expires_at, pr.used_at,
+                      u.id AS user_id, u.email
+               FROM password_reset_tokens pr
+               JOIN users u ON u.id = pr.user_id
+               WHERE pr.token_hash = %s
+               ORDER BY pr.created_at DESC
                LIMIT 1""",
-            (body.email,),
+            (token_hash,),
         )
         row = await cur.fetchone()
-    hint = (
-        "Tu cuenta está desactivada: pide a un administrador de tu negocio "
-        "que la reactive."
-        if row and not row["is_active"]
-        else "Si el email existe, un administrador puede reestablecer tu "
-        "contraseña desde Equipo, o crea un negocio nuevo desde 'Crear cuenta'."
-    )
-    return MessageOut(detail=hint)
+        # Mismo mensaje para token inexistente, usado o vencido: no se
+        # revela cuál de los tres fue.
+        if not row or row["used_at"] is not None or row["expires_at"] < datetime.now(timezone.utc):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "El enlace no es válido o ya expiró. Pide uno nuevo.",
+            )
+
+        # Compare-and-swap: consumo atómico del token.
+        await cur.execute(
+            """UPDATE password_reset_tokens SET used_at = now()
+               WHERE id = %s AND used_at IS NULL""",
+            (row["pr_id"],),
+        )
+        if not cur.rowcount:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "El enlace no es válido o ya expiró. Pide uno nuevo.",
+            )
+
+        await cur.execute(
+            "UPDATE users SET password_hash = %s WHERE id = %s",
+            (hash_password(body.new_password), row["user_id"]),
+        )
+        await db.commit()
+
+    # Éxito: limpiar el lockout de ese email (cualquier IP).
+    try:
+        async with db.cursor() as cur:
+            await cur.execute(
+                "DELETE FROM login_attempts WHERE email_norm = %s",
+                (row["email"].lower(),),
+            )
+    except psycopg.Error:
+        pass
+
+    return MessageOut(detail="Contraseña actualizada. Ya puedes iniciar sesión.")
 
 
 # ---------------------------------------------------------------------------

@@ -33,6 +33,7 @@ const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
 const AcceptInvitationPage = lazyPage(() => import("./pages/AcceptInvitationPage"));
+const ResetPasswordPage = lazyPage(() => import("./pages/ResetPasswordPage"));
 import Layout from "./components/Layout";
 import { SplashScreen } from "./components/SplashScreen";
 
@@ -64,6 +65,9 @@ function App() {
           <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          {/* Reset self-service: pública, el token del correo es la credencial
+              de un solo uso; la página lo canjea por la nueva contraseña. */}
+          <Route path="/reset" element={<ResetPasswordPage />} />
           <Route
             path="/perfil"
             element={

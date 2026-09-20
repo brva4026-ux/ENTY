@@ -155,8 +155,8 @@ export default function LoginPage() {
             {forgotOpen && (
               <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
                 <p className="mb-2 text-xs leading-relaxed text-zinc-400">
-                  Escribe el correo con el que entras y te decimos cómo
-                  recuperar el acceso.
+                  Escribe tu correo arriba y te enviamos un enlace para
+                  crear una contraseña nueva.
                 </p>
                 <button
                   type="button"
@@ -164,7 +164,16 @@ export default function LoginPage() {
                   onClick={submitForgot}
                   className="btn-ghost w-full text-xs font-bold disabled:opacity-40"
                 >
-                  {forgotBusy ? "Consultando…" : "Cómo recupero mi acceso"}
+                  {forgotBusy ? (
+                    <>
+                      <svg className="btn-spinner" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" />
+                      </svg>
+                      Enviando…
+                    </>
+                  ) : (
+                    "Enviar enlace de recuperación"
+                  )}
                 </button>
                 {forgotMsg && (
                   <p className="mt-2 text-xs leading-relaxed text-emerald-300">

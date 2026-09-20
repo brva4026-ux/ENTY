@@ -111,9 +111,8 @@ def create_app() -> FastAPI:
 
     @app.get("/health", tags=["ops"])
     async def health():
-        # push_enabled: telemetría operativa — si VAPID no está configurado,
-        # la campana in-app funciona pero el push del celular no; este campo
-        # lo dice sin entrar al dashboard.
+        # push_enabled / email_enabled: telemetría operativa — qué canales de
+        # aviso están ENCENDIDOS de verdad (sus env vars configuradas).
         push_enabled = bool(
             settings.vapid_public_key_b64 and settings.vapid_private_key_b64
         )
@@ -121,6 +120,7 @@ def create_app() -> FastAPI:
             "status": "ok",
             "app": settings.app_name,
             "push_enabled": push_enabled,
+            "email_enabled": bool(settings.resend_api_key),
         }
 
     return app

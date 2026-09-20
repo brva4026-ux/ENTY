@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     vapid_public_key_b64: str = ""
     vapid_subject: str = "mailto:admin@ticketflow.app"
 
+    # Email transaccional (Resend): reset de contrasena self-service,
+    # invitaciones al equipo. Vacio = email deshabilitado (no-op).
+    resend_api_key: str = ""
+    email_from_address: str = "TicketFlow <onboarding@resend.dev>"
+    # URL publica de la app: construye los links de reset/invitacion.
+    app_public_url: str = "https://ticketflow-brva4026-uxs-projects.vercel.app"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
