@@ -13,6 +13,7 @@ del fetch) es un vector residual documentado: exigiría que el atacante
 controlara el DNS de su propio dominio de imágenes.
 """
 import ipaddress
+import re
 import socket
 from urllib.parse import urlparse
 
@@ -29,6 +30,22 @@ def _is_public_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     if not ip.is_global:
         return False
     return not any(ip in net for net in _BLOCKED_NETS)
+
+
+# Flyer subido desde el navegador: vive en la tabla `media` de esta misma DB
+# y se sirve por GET /media/{id} (misma pagina). No hay fetch de red posible:
+# el <img> pinta del propio origen, asi que la guardia SSRF no aplica.
+_MEDIA_PATH = re.compile(r"^/media/[0-9]{1,12}$")
+
+
+def validate_flyer_url(url: str) -> str:
+    """URL de flyer válida: ruta interna /media/{id} O http(s) público."""
+    if not url or not url.strip():
+        raise ValueError("La URL de la imagen no puede estar vacía.")
+    u = url.strip()
+    if _MEDIA_PATH.match(u):
+        return u
+    return validate_public_http_url(u)
 
 
 def validate_public_http_url(url: str) -> str:

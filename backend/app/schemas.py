@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 from app.core.password_policy import PasswordStr, check_password_strength
-from app.core.urlguard import validate_public_http_url
+from app.core.urlguard import validate_flyer_url, validate_public_http_url
 
 # Regex de email pragmática: acepta tlds de prueba (.test, .local) y hosts reales.
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
@@ -63,17 +63,16 @@ class VenueCreate(BaseModel):
 class EventCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
-    # HttpUrl (no str): el flyer se pinta en un <img>, asi que solo aceptamos
-    # URLs http(s) reales y no cualquier cadena. La guardia SSRF además
-    # rechaza hosts que resuelvan a IPs internas (defensa en profundidad: hoy
-    # la URL la descarga el navegador del usuario, mañana puede descargarla
-    # el server para componer la imagen).
-    flyer_url: HttpUrl | None = None
+    # El flyer puede ser un enlace http(s) público O una imagen subida que
+    # vive en /media/{id} (misma página, tabla `media`). str + guardia: HttpUrl
+    # rechazaría la ruta relativa y la guardia SSRF no aplica a ella (no hay
+    # fetch de red posible: el <img> pinta del propio origen).
+    flyer_url: str | None = Field(default=None, max_length=2000)
 
     @field_validator("flyer_url")
     @classmethod
     def _flyer_public(cls, v):
-        return validate_public_http_url(str(v)) if v else v
+        return validate_flyer_url(v) if v else v
     # Lugar del evento (texto libre): viaja a la boleta del invitado y al
     # og:image de WhatsApp. Opcional: no todos los eventos tienen dirección.
     location: str | None = Field(default=None, max_length=200)
@@ -111,12 +110,12 @@ class EventUpdate(BaseModel):
     """
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
-    flyer_url: HttpUrl | None = None
+    flyer_url: str | None = Field(default=None, max_length=2000)
 
     @field_validator("flyer_url")
     @classmethod
     def _flyer_public(cls, v):
-        return validate_public_http_url(str(v)) if v else v
+        return validate_flyer_url(v) if v else v
 
     location: str | None = Field(default=None, max_length=200)
     starts_at: datetime | None = None
@@ -415,11 +414,17 @@ class UpdateVenueRequest(BaseModel):
     def _logo_url_shape(self):
         if self.logo_url:
             u = self.logo_url.strip()
-            if not (u.startswith("http://") or u.startswith("https://")):
-                raise ValueError("logo_url debe ser una URL http(s)")
-            # Guardia SSRF: hosts que resuelven a IPs internas se rechazan
-            # (defensa en profundidad para descargas server-side futuras).
-            validate_public_http_url(u)
+            # Igual que el flyer: enlace http(s) público o imagen subida a
+            # /media/{id} (misma página, sin fetch de red posible).
+            if u.startswith("/media/"):
+                if not re.match(r"^/media/[0-9]{1,12}$", u):
+                    raise ValueError("logo_url interna inválida")
+            else:
+                if not (u.startswith("http://") or u.startswith("https://")):
+                    raise ValueError("logo_url debe ser una URL http(s)")
+                # Guardia SSRF: hosts que resuelven a IPs internas se rechazan
+                # (defensa en profundidad para descargas server-side futuras).
+                validate_public_http_url(u)
             self.logo_url = u
         return self
 

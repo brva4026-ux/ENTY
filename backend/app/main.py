@@ -21,6 +21,7 @@ from app.routers import (
     invitations,
     events,
     lifecycle,
+    media,
     notifications,
     public,
     public_tickets,
@@ -103,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(notifications.router)
     app.include_router(tickets.router)
     app.include_router(public_tickets.router)
+    app.include_router(media.router)
     app.include_router(report.router)
     app.include_router(team.router)
     app.include_router(payouts.router)

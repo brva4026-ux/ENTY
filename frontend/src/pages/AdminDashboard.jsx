@@ -33,6 +33,7 @@ import TypeManager from "../components/TypeManager";
 import AllocationManager from "../components/AllocationManager";
 import TicketList from "../components/TicketList";
 import EventCreateModal from "../components/EventCreateModal";
+import QrTesterModal from "../components/QrTesterModal";
 import BusinessOverview from "../components/BusinessOverview";
 
 function firstVenueId(user) {
@@ -126,6 +127,8 @@ export default function AdminDashboard() {
   // Modal de crear evento: cerrado por defecto — el admin trabaja en su
   // evento, no mira un formulario gigante todo el día.
   const [createOpen, setCreateOpen] = useState(false);
+  // Probador de QR: leer un QR y ver a quién pertenece SIN canjearlo.
+  const [qrTesterOpen, setQrTesterOpen] = useState(false);
   const [busyAction, setBusyAction] = useState("");
   // Edición del evento seleccionado: null = cerrado, objeto = formulario abierto.
   const [editingEvent, setEditingEvent] = useState(null);
@@ -512,6 +515,13 @@ export default function AdminDashboard() {
                       Invitar al equipo
                     </Link>
                     <button
+                      onClick={() => setQrTesterOpen(true)}
+                      className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold text-zinc-300 hover:text-brand-300"
+                      title="Leer un QR y ver a quién pertenece, sin canjearlo"
+                    >
+                      Probar QR
+                    </button>
+                    <button
                       onClick={() => setCreateOpen(true)}
                       className="btn-primary !px-3 !py-1.5 text-[11px]"
                     >
@@ -710,6 +720,11 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </section>
+            )}
+
+            {/* Probador de QR: leer sin canjear (solo lectura). */}
+            {qrTesterOpen && (
+              <QrTesterModal onClose={() => setQrTesterOpen(false)} />
             )}
 
             {/* Crear evento: modal (no un formulario de 10 campos en la página). */}

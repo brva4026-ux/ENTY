@@ -3,9 +3,40 @@ import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
 import EmptyState from "./EmptyState";
 
+/** Atajos de tipos: un toque llena el formulario con lo tipico del rubro.
+ * Cada uno explica para que sirve — sin adivinar nomenclaturas. */
+const PRESETS = [
+  {
+    name: "General",
+    price: "30000",
+    courtesy: false,
+    desc: "Entrada estandar de pie, la que más se vende.",
+  },
+  {
+    name: "VIP",
+    price: "80000",
+    courtesy: false,
+    desc: "Zona preferencial o beneficio extra (mesa, trago, baño VIP).",
+  },
+  {
+    name: "Early bird",
+    price: "20000",
+    courtesy: false,
+    desc: "Precio de preventa: premia a quien compra temprano.",
+  },
+  {
+    name: "Cortesía",
+    price: "0",
+    courtesy: true,
+    desc: "No se cobra: invitados, prensa, staff. Queda fuera del recaudo.",
+  },
+];
+
 export default function TypeManager({ venueId, eventId, types, onChange }) {
   const ui = useUI();
   const [name, setName] = useState("General");
+  // El usuario piensa en PESOS ("30.000"), la DB guarda centavos: convertir
+  // en el borde. Antes pedía centavos y nadie entendía qué escribir.
   const [price, setPrice] = useState("30000");
   const [qty, setQty] = useState("50");
   const [isCourtesy, setIsCourtesy] = useState(false);
@@ -33,7 +64,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
         method: "POST",
         body: JSON.stringify({
           name,
-          price_cents: Number(price),
+          price_cents: Math.round(Number(price) * 100),
           quantity: Number(qty),
           is_courtesy: isCourtesy,
         }),
@@ -52,7 +83,8 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
     setInfo("");
     setDraft({
       name: t.name,
-      price: String(t.price_cents),
+      // centavos -> pesos para editar como se piensa
+      price: String(t.price_cents / 100),
       qty: String(t.quantity),
       isCourtesy: t.is_courtesy,
     });
@@ -66,7 +98,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
         method: "PATCH",
         body: JSON.stringify({
           name: draft.name.trim(),
-          price_cents: Number(draft.price),
+          price_cents: Math.round(Number(draft.price) * 100),
           quantity: Number(draft.qty),
           is_courtesy: draft.isCourtesy,
         }),
@@ -148,7 +180,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
                     setDraft({ ...draft, price: e.target.value })
                   }
                   className="field"
-                  placeholder="Precio (centavos)"
+                  placeholder="Precio en pesos (ej. 30000)"
                   inputMode="numeric"
                 />
                 <input
@@ -244,6 +276,38 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
           </li>
         )}
       </ul>
+      {/* Atajos: un toque llena el formulario — luego se ajusta el precio. */}
+      <div className="mb-3">
+        <p className="mb-1.5 text-xs font-medium text-zinc-400">
+          Crear rápido con lo típico:
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {PRESETS.map((p) => (
+            <button
+              key={p.name}
+              type="button"
+              onClick={() => {
+                setName(p.name);
+                setPrice(p.price);
+                setIsCourtesy(p.courtesy);
+              }}
+              title={p.desc}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                name === p.name && isCourtesy === p.courtesy
+                  ? "border-brand-500 bg-brand-500/15 text-brand-300"
+                  : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+              }`}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+        {PRESETS.filter((p) => p.name === name).map((p) => (
+          <p key={p.name} className="mt-1.5 text-[11px] text-zinc-500">
+            {p.desc}
+          </p>
+        ))}
+      </div>
       <form
         onSubmit={createType}
         className="grid grid-cols-1 gap-2 sm:grid-cols-2"
@@ -252,20 +316,35 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="field col-span-full"
-          placeholder="Nombre"
+          placeholder="Nombre (General, VIP, Palco…)"
         />
-        <input
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          className="field"
-          placeholder="Precio (centavos)"
-        />
-        <input
-          value={qty}
-          onChange={(e) => setQty(e.target.value)}
-          className="field"
-          placeholder="Cantidad"
-        />
+        <label>
+          <input
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="field"
+            placeholder="Precio en pesos"
+            inputMode="numeric"
+            disabled={isCourtesy}
+          />
+          <span className="mt-1 block text-[11px] text-zinc-500">
+            {isCourtesy
+              ? "Cortesía: no se cobra, queda fuera del recaudo."
+              : "En pesos. Ej: 30000 = $30.000"}
+          </span>
+        </label>
+        <label>
+          <input
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            className="field"
+            placeholder="Cantidad"
+            inputMode="numeric"
+          />
+          <span className="mt-1 block text-[11px] text-zinc-500">
+            Máximo de boletas de este tipo que puedes vender.
+          </span>
+        </label>
         <label className="col-span-full flex items-center gap-2 text-sm text-zinc-300">
           <input
             type="checkbox"
@@ -273,7 +352,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
             onChange={(e) => setIsCourtesy(e.target.checked)}
             className="accent-brand-500"
           />
-          Cortesía (precio 0)
+          Es cortesía (no se cobra)
         </label>
         {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
         {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}

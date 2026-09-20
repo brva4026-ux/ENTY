@@ -55,7 +55,7 @@ def db():
     conn.execute(
         """
         DROP TABLE IF EXISTS notifications, staff_invitations, push_subscriptions, ticket_reissues,
-            ticket_contact_edits, login_attempts, password_reset_tokens,
+            ticket_contact_edits, login_attempts, password_reset_tokens, media,
             redemptions, promoter_payouts, tickets, promoter_allocations, ticket_types, events,
             venue_user_roles, venues, users CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;

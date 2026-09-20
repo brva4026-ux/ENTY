@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
 import EmptyState from "./EmptyState";
@@ -128,7 +129,17 @@ export default function AllocationManager({
 
   return (
     <div className="card p-5">
-      <h3 className="display mb-3 text-base">Cupos de promotor</h3>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="display text-base">Cupos de promotor</h3>
+        {/* El cuello de botella real: sin promotores creados no hay cupo que
+          asignar. El enlace evita el ida-y-vuelta a Invitaciones. */}
+        <Link
+          to="?tab=invitaciones"
+          className="text-xs font-semibold text-brand-300 transition hover:text-brand-200"
+        >
+          ¿No ves a tu promotor? Invítalo →
+        </Link>
+      </div>
       <ul className="mb-4 space-y-2">
         {(allocations || []).map((a) => {
           const t = (types || []).find((x) => x.id === a.ticket_type_id);
@@ -216,7 +227,8 @@ export default function AllocationManager({
           <li className="col-span-full list-none">
             <EmptyState icon="users" title="Sin cupos asignados">
               Asigna cuántas boletas puede emitir cada promotor: el
-              anti-sobreventa vive aquí.
+              anti-sobreventa vive aquí. Primero invita al promotor desde Tareas
+              de la venue → Invitaciones.
             </EmptyState>
           </li>
         )}

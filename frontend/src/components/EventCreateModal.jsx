@@ -44,6 +44,43 @@ export function defaultEventForm() {
   };
 }
 
+/** Ideas de descripción: un toque llena algo decente, editable después. */
+const DESCRIPTION_IDEAS = [
+  ["🎵 DJ set toda la noche", "DJ set toda la noche."],
+  ["🍹 Open bar 2 h", "Open bar las primeras 2 horas."],
+  ["🎉 Bienvenida con shots", "Bienvenida con shots para los primeros grupos."],
+  ["💃 Zona VIP con mesa", "Zona VIP con mesa y botella incluida."],
+];
+
+/**
+ * Reduce la imagen elegida en un canvas (máx 900px, JPEG 0.82) y devuelve
+ * un data-URL listo para POST /media. Sin librerías: canvas nativo.
+ */
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () =>
+        reject(new Error("El archivo no es una imagen válida."));
+      img.onload = () => {
+        const maxSide = 900;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas
+          .getContext("2d")
+          .drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 const STEPS = [
   { id: "basico", label: "El evento" },
   { id: "cuando", label: "Cuándo y puerta" },
@@ -98,9 +135,37 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   const [creating, setCreating] = useState(false);
   // URL de flyer que ya falló al cargar: evita pintar el ícono de imagen rota.
   const [badFlyer, setBadFlyer] = useState("");
+  // Subida de flyer: estado del archivo en vuelo.
+  const [uploading, setUploading] = useState(false);
+  // "Otra fecha": el calendario nativo solo aparece cuando se pide.
+  const [customDate, setCustomDate] = useState(false);
+  // Modo del flyer: "subir" (archivo) o "enlace" (URL). Empieza oculto:
+  // el flyer es opcional y no debe ocupar la pantalla si no se quiere.
+  const [flyerMode, setFlyerMode] = useState(null);
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const showFlyer = form.flyer_url && form.flyer_url !== badFlyer;
+
+  /** Sube el archivo reducido y guarda su URL /media/{id} en el form. */
+  async function uploadFlyer(file) {
+    if (!file) return;
+    setFormError("");
+    setUploading(true);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      const res = await apiFetch(`/venues/${venueId}/media`, {
+        method: "POST",
+        body: JSON.stringify({ data_url: dataUrl }),
+      });
+      set({ flyer_url: res.url });
+      setBadFlyer("");
+      ui.success("Flyer listo 📸");
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   /** Valida un paso; devuelve "" si está listo para avanzar. */
   function validate(s) {
@@ -291,7 +356,6 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   problemáticas: aparecerá tal cual en la boleta.
                 </Hint>
               </label>
-
               <label className="sm:col-span-full">
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
                   Lugar del evento
@@ -307,11 +371,10 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   La dirección que leerá el invitado en su boleta y el mensaje
                   de WhatsApp. Déjalo vacío solo si es siempre la misma del bar.
                 </Hint>
-              </label>
-
-              <label className="sm:col-span-full">
+              </label>{" "}
+              <div className="sm:col-span-full">
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
-                  Flyer (enlace de la imagen)
+                  Flyer del evento (opcional)
                 </span>
                 <div className="flex items-center gap-3">
                   {showFlyer ? (
@@ -326,20 +389,54 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                       <Icon name="camera" className="h-5 w-5" />
                     </span>
                   )}
-                  <input
-                    type="url"
-                    value={form.flyer_url}
-                    onChange={(e) => set({ flyer_url: e.target.value })}
-                    className="field"
-                    placeholder="https://…/flyer.jpg"
-                  />
+                  {flyerMode === null && !showFlyer && (
+                    <div className="flex flex-wrap gap-2">
+                      <label className="btn-ghost !px-3 !py-1.5 cursor-pointer text-[11px] font-bold">
+                        {uploading ? "Subiendo…" : "📷 Subir imagen"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={(e) => uploadFlyer(e.target.files?.[0])}
+                          disabled={uploading}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setFlyerMode("enlace")}
+                        className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold"
+                      >
+                        🔗 Pegar enlace
+                      </button>
+                    </div>
+                  )}
+                  {flyerMode === "enlace" && (
+                    <input
+                      type="url"
+                      value={form.flyer_url}
+                      onChange={(e) => set({ flyer_url: e.target.value })}
+                      className="field"
+                      placeholder="https://…/flyer.jpg"
+                    />
+                  )}
+                  {showFlyer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        set({ flyer_url: "" });
+                        setFlyerMode(null);
+                      }}
+                      className="text-[11px] font-semibold text-zinc-500 transition hover:text-red-400"
+                    >
+                      Quitar
+                    </button>
+                  )}
                 </div>
                 <Hint>
-                  Es "la imagen del evento" (opcional). Si no tienes el enlace a
-                  mano, déjalo vacío: puedes agregarlo luego con Editar.
+                  Sube la foto del flyer desde tu celular o pega un enlace. Si
+                  no tienes, déjalo vacío: puedes agregarlo después con Editar.
                 </Hint>
-              </label>
-
+              </div>
               <label className="sm:col-span-full">
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
                   Descripción (opcional)
@@ -350,8 +447,25 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   className="field"
                   rows={2}
                   maxLength={2000}
-                  placeholder="DJ set + open bar cortesías"
+                  placeholder="¿Qué hay esta noche? Toca una idea y edítala…"
                 />
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {DESCRIPTION_IDEAS.map(([chip, text]) => (
+                    <Chip
+                      key={chip}
+                      active={form.description.includes(text)}
+                      onClick={() =>
+                        set({
+                          description: form.description.trim()
+                            ? `${form.description.trim()} ${text}`
+                            : text,
+                        })
+                      }
+                    >
+                      {chip}
+                    </Chip>
+                  ))}
+                </div>
               </label>
             </div>
           )}
@@ -359,36 +473,62 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           {/* ====== Paso 2: cuándo y puerta ====== */}
           {step === 1 && (
             <div key="s1" className="animate-rise grid gap-3.5 sm:grid-cols-2">
-              <label className="sm:col-span-full">
+              <div className="sm:col-span-full">
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
-                  Apertura de puertas *
+                  ¿Cuándo abre? *
                 </span>
-                <input
-                  type="datetime-local"
-                  value={form.starts_at}
-                  onChange={(e) => set({ starts_at: e.target.value })}
-                  className="field"
-                  required
-                />
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {/* Atajos primero: un toque y listo. El calendario nativo es
+                  la vía de escape para la fecha rara, no la puerta de entrada. */}
+                <div className="flex flex-wrap gap-1.5">
                   <Chip
                     active={form.starts_at === nextWeekday(5, 20)}
                     onClick={() => set({ starts_at: nextWeekday(5, 20) })}
                   >
-                    Viernes 8 p. m.
+                    🗓 Viernes 8 p. m.
                   </Chip>
                   <Chip
                     active={form.starts_at === nextWeekday(6, 21)}
                     onClick={() => set({ starts_at: nextWeekday(6, 21) })}
                   >
-                    Sábado 9 p. m.
+                    🗓 Sábado 9 p. m.
                   </Chip>
                   <Chip
                     active={
                       form.starts_at ===
-                        toLocalInput(
-                          new Date(Date.now() + 7 * 86400000), // +7 días
-                        ) && new Date(form.starts_at).getHours() === 20
+                      toLocalInput(
+                        (() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + 1);
+                          d.setHours(21, 0, 0, 0);
+                          return d;
+                        })(),
+                      )
+                    }
+                    onClick={() =>
+                      set({
+                        starts_at: toLocalInput(
+                          (() => {
+                            const d = new Date();
+                            d.setDate(d.getDate() + 1);
+                            d.setHours(21, 0, 0, 0);
+                            return d;
+                          })(),
+                        ),
+                      })
+                    }
+                  >
+                    🗓 Mañana 9 p. m.
+                  </Chip>
+                  <Chip
+                    active={
+                      form.starts_at ===
+                      toLocalInput(
+                        (() => {
+                          const d = new Date(Date.now() + 7 * 86400000);
+                          d.setHours(20, 0, 0, 0);
+                          return d;
+                        })(),
+                      )
                     }
                     onClick={() =>
                       set({
@@ -402,55 +542,74 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                       })
                     }
                   >
-                    En una semana
+                    🗓 En una semana
                   </Chip>
                 </div>
-              </label>
+                {customDate ? (
+                  <input
+                    type="datetime-local"
+                    value={form.starts_at}
+                    onChange={(e) => set({ starts_at: e.target.value })}
+                    className="field mt-2"
+                    required
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCustomDate(true)}
+                    className="mt-2 text-[11px] font-semibold text-zinc-500 underline-offset-2 transition hover:text-zinc-300 hover:underline"
+                  >
+                    Otra fecha u hora…
+                  </button>
+                )}
+                <Hint>Día y hora en que abren las puertas del local.</Hint>
+              </div>
 
-              <label>
+              <div className="sm:col-span-full">
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
-                  Cierre (opcional)
+                  ¿Cuánto dura la fiesta? (opcional)
                 </span>
-                <input
-                  type="datetime-local"
-                  value={form.ends_at}
-                  onChange={(e) => set({ ends_at: e.target.value })}
-                  className="field"
-                />
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {form.starts_at && (
-                    <Chip
-                      active={
+                {/* Duración, no fecha-absoluta: nadie piensa "cierra 3:00 a.m.
+                  mientras crea el evento"; piensa "dura 6 horas". */}
+                <div className="flex flex-wrap gap-1.5">
+                  {form.starts_at &&
+                    [4, 5, 6, 7, 8].map((h) => {
+                      const isThis =
                         !!form.ends_at &&
-                        Math.round(
-                          (new Date(form.ends_at) - new Date(form.starts_at)) /
-                            3600000,
-                        ) === 6
-                      }
-                      onClick={() =>
-                        set({
-                          ends_at: toLocalInput(
-                            new Date(
-                              new Date(form.starts_at).getTime() + 6 * 3600000,
-                            ),
-                          ),
-                        })
-                      }
-                    >
-                      Apertura + 6 h
-                    </Chip>
-                  )}
+                        Math.abs(
+                          new Date(form.ends_at) - new Date(form.starts_at),
+                        ) ===
+                          h * 3600000;
+                      return (
+                        <Chip
+                          key={h}
+                          active={isThis}
+                          onClick={() =>
+                            set({
+                              ends_at: toLocalInput(
+                                new Date(
+                                  new Date(form.starts_at).getTime() +
+                                    h * 3600000,
+                                ),
+                              ),
+                            })
+                          }
+                        >
+                          {h} horas
+                        </Chip>
+                      );
+                    })}
                   {form.ends_at && (
                     <Chip active={false} onClick={() => set({ ends_at: "" })}>
-                      Quitar cierre
+                      Sin cierre
                     </Chip>
                   )}
                 </div>
                 <Hint>
-                  Si lo dejas vacío el evento no se cierra solo: lo cierras tú
-                  desde el backstage cuando acaba la noche.
+                  Si lo dejas sin cierre, el evento sigue "en puerta" hasta que
+                  tú lo cierres desde el backstage cuando acaba la noche.
                 </Hint>
-              </label>
+              </div>
 
               <label>
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
