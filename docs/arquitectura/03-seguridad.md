@@ -92,6 +92,25 @@ El celular del bouncer **es compartido** y está en la puerta. Decisiones:
 - Soft-delete / jornadas: se usará `closed_at` en eventos, nunca borrado físico
   de filas de dinero.
 
+## 3.4b Decisión: ¿QR firmados con HMAC? (mig 019, no aplicado)
+
+La recomendación estándar del rubro (Ticketmaster SafeTix) firma el QR con
+HMAC. Aquí NO se aplica por decisión de diseño, y es deliberada:
+
+- El token del invitado es **aleatorio de 192 bits**: no se puede fabricar
+  (fabricar un token válido = adivinar 2^192). El HMAC protege QRs
+  *derivados de datos* (asiento, evento); los nuestros no derivan de nada.
+- La DB guarda solo el SHA-256: filtrar la base no produce boletas
+  canjeables. Un HMAC estático en cambio exige rotación de secreto y los
+  QRs viejos siguen "viendo" válido el algoritmo aunque se anule la fila.
+- El un-solo-uso es el **compare-and-swap** de `redeem_ticket` en DB: dos
+  puertas escaneando simultáneo, una sola gana (testado).
+- Revocación: matar la fila del token mata el QR al instante; con HMAC hay
+  que mantener además una lista de revocación en cada validación.
+
+Lo que sí se endureció en la 019: sesiones revocables (`token_version`),
+auditoría de dinero/exports (`audit_log`) y rate limit de escaneos.
+
 ## 3.5 Checklist de seguridad operacional
 
 - [ ] HTTPS en frontend y API (TLS 1.2+).
