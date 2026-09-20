@@ -9,6 +9,7 @@ import {
   autoReacquireWakeLock,
 } from "../lib/wakeLock";
 import { useAuth } from "../lib/auth";
+import { forceDarkOnce } from "../lib/theme";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { LiveIndicator } from "../components/Brand";
 import { PushToggle } from "../components/PushToggle";
@@ -109,6 +110,14 @@ const EXIT_HOLD_MS = 1500;
 export default function BouncerScanner() {
   const { user, logout } = useAuth();
   const venueId = firstVenueId(user);
+
+  // La puerta SIEMPRE oscura: en un recinto a oscuras un flash de fondo
+  // blanco ciega al portero. forceDarkOnce pone el candado y devuelve el
+  // restaurador que se ejecuta al desmontar (sale el tema del usuario).
+  useEffect(() => {
+    const restore = forceDarkOnce();
+    return restore;
+  }, []);
 
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)
   const [selectedEvent, setSelectedEvent] = useState(null);

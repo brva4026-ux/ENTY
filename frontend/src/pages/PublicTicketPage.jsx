@@ -193,7 +193,7 @@ export default function PublicTicketPage() {
                     )}
                     {redeemed && (
                       <div className="absolute inset-0 grid place-items-center rounded-2xl bg-zinc-950/70">
-                        <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-zinc-950">
+                        <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-black">
                           Ya usada
                         </span>
                       </div>

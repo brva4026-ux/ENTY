@@ -6,6 +6,10 @@ import "./index.css";
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";
 initFrontendSentry();
+// Tema ANTES del primer render: cero flash (el html ya trae su script inline
+// anti-flash; esto re-aplica y deja el listener del sistema listo).
+import { initTheme } from "./lib/theme";
+initTheme();
 import { AuthProvider, useAuth } from "./lib/auth";
 import { UIProvider } from "./lib/ui";
 import { hasRole, homeForRole } from "./lib/roles";

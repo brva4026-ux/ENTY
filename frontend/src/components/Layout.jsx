@@ -4,6 +4,7 @@ import { hasRole, navTabsFor, topRoleLabel } from "../lib/roles";
 import { haptics } from "../lib/haptics";
 import { Logo } from "./Brand";
 import NotificationBell from "./NotificationBell";
+import ThemeToggle from "./ThemeToggle";
 
 /** Iconos de pestaña (trazo 1.8, 20px): mismo lenguaje visual en toda la app. */
 const TAB_ICONS = {
@@ -107,6 +108,7 @@ export default function Layout({ children }) {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
+            <ThemeToggle />
             <NotificationBell />
             <div className="hidden text-right sm:block">
               <p className="text-[13px] font-medium leading-tight text-zinc-200">
