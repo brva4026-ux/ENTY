@@ -148,6 +148,29 @@ export default function AdminDashboard() {
   // un vacío engañoso ("Aún no hay eventos") que no es verdad aún.
   const booting = events === null;
 
+  // Franja de eventos: búsqueda por nombre y filtro por estado. Es client-side
+  // a propósito: el catálogo ya vive en memoria y pedirlo al server por cada
+  // tecla sería desperdicio (y más lento que filtrar 50 objetos).
+  const [eventQuery, setEventQuery] = useState("");
+  const [eventBucket, setEventBucket] = useState("todos");
+  // Id del evento duplicándose ahora (spinner in situ en SU tarjeta).
+  const [dupingId, setDupingId] = useState(null);
+
+  const BUCKETS = [
+    ["todos", "Todos"],
+    ["live", "En puerta"],
+    ["published", "A la venta"],
+    ["draft", "Borradores"],
+    ["ended", "Terminados"],
+    ["cancelled", "Cancelados"],
+  ];
+  const q = eventQuery.trim().toLowerCase();
+  const visibleEvents = (events ?? []).filter(
+    (ev) =>
+      (eventBucket === "todos" || ev.status === eventBucket) &&
+      (!q || ev.name.toLowerCase().includes(q)),
+  );
+
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
     const data = await apiFetch(`/venues/${venueId}/events`);
@@ -205,6 +228,24 @@ export default function AdminDashboard() {
     params.set("event", String(id));
     if (tab && tab !== "resumen") params.set("tab", tab);
     setSearchParams(params); // push: back vuelve al evento/tab anterior
+  }
+
+  /** Duplica un evento (borrador con sus tipos y cupos) y abre el backstage. */
+  async function duplicateEvent(ev) {
+    setDupingId(ev.id);
+    try {
+      const copy = await apiFetch(
+        `/venues/${venueId}/events/${ev.id}/duplicate`,
+        { method: "POST" },
+      );
+      ui.success("Evento duplicado: ajusta la fecha y publica 📋");
+      await loadEvents();
+      flyToEvent(copy.id, "resumen");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDupingId(null);
+    }
   }
 
   /** Cambia de pestaña dentro del backstage del evento abierto. */
@@ -479,88 +520,191 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {events.length > 0 && (
+                  <div className="mt-3">
+                    <div className="relative">
+                      <Icon
+                        name="search"
+                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+                      />
+                      <input
+                        value={eventQuery}
+                        onChange={(e) => setEventQuery(e.target.value)}
+                        placeholder="Buscar evento por nombre…"
+                        aria-label="Buscar evento por nombre"
+                        className="field !py-2 !pl-9 text-sm"
+                      />
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {BUCKETS.map(([id, label]) => {
+                        const n =
+                          id === "todos"
+                            ? events.length
+                            : events.filter((ev) => ev.status === id).length;
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => setEventBucket(id)}
+                            aria-pressed={eventBucket === id}
+                            className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
+                              eventBucket === id
+                                ? "border-brand-500 bg-brand-500/15 text-brand-300"
+                                : "border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+                            }`}
+                          >
+                            {label}
+                            <span className="tnum ml-1 text-zinc-500">{n}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {events.length === 0 ? (
                   <EmptyState icon="door" title="Aún no hay eventos">
                     Toca "＋ Nuevo evento": nace en borrador y te lleva directo
                     a montarlo.
                   </EmptyState>
+                ) : visibleEvents.length === 0 ? (
+                  <p className="mt-4 text-sm text-zinc-500">
+                    Ningún evento coincide con la búsqueda.
+                  </p>
                 ) : (
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {sortEventsForStrip(events).map((ev) => {
+                    {sortEventsForStrip(visibleEvents).map((ev) => {
                       // Pulso del evento: boletas activas (issued+redeemed),
                       // del GET agregado. undefined = aún no llegó: chip oculto.
                       const tc =
                         ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
+                      const pct =
+                        tc !== undefined && tc !== null && ev.capacity > 0
+                          ? Math.round((tc / ev.capacity) * 100)
+                          : null;
                       const roles = [
                         ...new Set(users.flatMap((u) => u.roles || [])),
                       ];
                       return (
-                        <Link
+                        <div
                           key={ev.id}
-                          to={`/admin?event=${ev.id}`}
-                          onClick={() => haptics.tick()}
-                          className={`event-card card-interactive block rounded-xl border p-3.5 ${
+                          className={`event-card card-interactive relative block rounded-xl border p-3.5 ${
                             ev.status === "live" ? "is-live " : ""
                           } border-zinc-800/80`}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="min-w-0 truncate text-sm font-bold text-white">
-                              {ev.name}
-                            </p>
-                            <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${
-                                (EV_CHIP[ev.status] ?? EV_CHIP.draft).cls
-                              }`}
-                            >
-                              {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
-                            </span>
-                          </div>
-                          <p className="tnum mt-1 flex items-center gap-2 text-xs text-zinc-400">
-                            <span>
-                              {formatShortDate(ev.starts_at)} · aforo{" "}
-                              {ev.capacity}
-                            </span>
-                            {tc !== undefined && tc !== null && (
+                          {/* Link superpuesto: la TARJETA entera abre el
+                            backstage y deja libres las esquinas para acciones
+                            (duplicar) sin anidar botones dentro del <a>. */}
+                          <Link
+                            to={`/admin?event=${ev.id}`}
+                            onClick={() => haptics.tick()}
+                            className="absolute inset-0 rounded-xl"
+                            aria-label={`Abrir ${ev.name}`}
+                          />
+                          <div className="pointer-events-none">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="min-w-0 truncate text-sm font-bold text-white">
+                                {ev.name}
+                              </p>
                               <span
-                                className="ml-auto inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-bold text-zinc-300"
-                                data-tip="Boletas activas de este evento"
+                                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${
+                                  (EV_CHIP[ev.status] ?? EV_CHIP.draft).cls
+                                }`}
                               >
-                                <Icon name="ticket" className="h-3 w-3" />
-                                {tc}
+                                {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
                               </span>
-                            )}
-                          </p>
-                          <p className="mt-1.5 text-[11px] leading-snug text-zinc-500">
-                            {roles.length > 0 ? (
-                              roles.map((r) => (
+                            </div>
+                            <p className="tnum mt-1 flex items-center gap-2 text-xs text-zinc-400">
+                              <span>
+                                {formatShortDate(ev.starts_at)} · aforo{" "}
+                                {ev.capacity}
+                              </span>
+                              {tc !== undefined && tc !== null && (
                                 <span
-                                  key={r}
-                                  className="mr-1.5 inline-flex items-center gap-1"
+                                  className="pointer-events-auto ml-auto inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-bold text-zinc-300"
+                                  data-tip="Boletas activas de este evento"
                                 >
-                                  <span
-                                    className={`inline-block h-1.5 w-1.5 rounded-full ${
-                                      r === "bouncer"
-                                        ? "bg-emerald-400"
-                                        : r === "admin"
-                                          ? "bg-amber-400"
-                                          : "bg-brand-400"
-                                    }`}
-                                    aria-hidden
-                                  />
-                                  {r === "bouncer"
-                                    ? "Puerta"
-                                    : r === "admin"
-                                      ? "Admin"
-                                      : "Promotor"}
+                                  <Icon name="ticket" className="h-3 w-3" />
+                                  {tc}
                                 </span>
-                              ))
-                            ) : (
-                              <span className="text-zinc-600">
-                                sin equipo asignado
-                              </span>
+                              )}
+                            </p>
+                            {/* Semáforo de aforo: cuánto del cupo físico ya
+                            está comprometido, sin abrir el evento. */}
+                            {pct !== null && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                      pct >= 100
+                                        ? "bg-red-400"
+                                        : pct >= 80
+                                          ? "bg-amber-400"
+                                          : "bg-emerald-400"
+                                    }`}
+                                    style={{
+                                      width: `${Math.min(100, pct)}%`,
+                                    }}
+                                  />
+                                </div>
+                                <span className="tnum text-[10px] font-bold text-zinc-500">
+                                  {pct}%
+                                </span>
+                              </div>
                             )}
-                          </p>
-                        </Link>
+                            <p className="mt-1.5 pr-9 text-[11px] leading-snug text-zinc-500">
+                              {roles.length > 0 ? (
+                                roles.map((r) => (
+                                  <span
+                                    key={r}
+                                    className="mr-1.5 inline-flex items-center gap-1"
+                                  >
+                                    <span
+                                      className={`inline-block h-1.5 w-1.5 rounded-full ${
+                                        r === "bouncer"
+                                          ? "bg-emerald-400"
+                                          : r === "admin"
+                                            ? "bg-amber-400"
+                                            : "bg-brand-400"
+                                      }`}
+                                      aria-hidden
+                                    />
+                                    {r === "bouncer"
+                                      ? "Puerta"
+                                      : r === "admin"
+                                        ? "Admin"
+                                        : "Promotor"}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-zinc-600">
+                                  sin equipo asignado
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          {/* Acción de esquina: duplicar (la recurrencia
+                            semanal en un clic). Sobre el Link que cubre la
+                            tarjeta, por eso pointer-events-auto. */}
+                          <button
+                            onClick={() => duplicateEvent(ev)}
+                            disabled={dupingId !== null}
+                            aria-label={`Duplicar ${ev.name}`}
+                            data-tip="Duplicar evento (borrador con sus tipos y cupos)"
+                            className="pointer-events-auto absolute bottom-2.5 right-2.5 rounded-lg bg-zinc-900/90 p-1.5 text-zinc-400 ring-1 ring-zinc-800 transition hover:text-brand-300 hover:ring-brand-500/40 disabled:opacity-50"
+                          >
+                            {dupingId === ev.id ? (
+                              <svg
+                                className="btn-spinner"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                              >
+                                <circle cx="12" cy="12" r="9" />
+                              </svg>
+                            ) : (
+                              <Icon name="copy" className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

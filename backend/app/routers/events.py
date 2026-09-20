@@ -20,6 +20,10 @@ from app.schemas import (
     TicketTypeUpdate,
 )
 
+# La recurrencia semanal es el patron del negocio ("Viernes Electronico"):
+# el duplicado nace con apertura a +7 dias para que sea verdad por defecto.
+DUPLICATE_SHIFT_DAYS = 7
+
 router = APIRouter(prefix="/venues/{venue_id}", tags=["eventos"])
 
 # `issued` = boletas vivas contra el cupo (mismo criterio que emit_ticket:
@@ -226,6 +230,91 @@ async def create_event(
             ),
         )
         created = await cur.fetchone()
+        await db.commit()
+    return created
+
+
+@router.post(
+    "/events/{event_id}/duplicate", response_model=EventOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def duplicate_event(
+    venue_id: int,
+    event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Copia un evento como borrador: la recurrencia semanal en un clic.
+
+    Duplica datos del evento, tipos de boleta ACTIVOS y cupos ACTIVOS por
+    promotor (emparejados por nombre del tipo dentro de la misma query).
+    NO duplica boletas (serian entradas gratis sin fin) ni el estado: nace
+    draft y hay que publicarlo. La apertura queda a +7 dias (patron semanal
+    del negocio): se corrige en un toque al editar antes de publicar.
+
+    Todo el copiado vive en UN statement: o se copia completo o nada.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute(
+            f"SELECT {EVENT_COLUMNS} FROM events WHERE id=%s AND venue_id=%s",
+            (event_id, venue_id),
+        )
+        src = await cur.fetchone()
+        if not src:
+            raise HTTPException(404, "Evento no encontrado")
+
+        await cur.execute(
+            """
+            WITH new_ev AS (
+                INSERT INTO events (venue_id, name, description, flyer_url,
+                                    location, starts_at, ends_at,
+                                    event_timezone, capacity,
+                                    qr_unlock_minutes, status)
+                VALUES (%s, %s, %s, %s, %s,
+                        (SELECT starts_at FROM events WHERE id = %s)
+                          + (%s * interval '1 day'),
+                        NULL, %s, %s, %s, 'draft')
+                RETURNING id
+            ), new_types AS (
+                INSERT INTO ticket_types (event_id, name, price_cents,
+                                          currency, quantity, is_courtesy,
+                                          is_active)
+                SELECT new_ev.id, tt.name, tt.price_cents, tt.currency,
+                       tt.quantity, tt.is_courtesy, TRUE
+                FROM ticket_types tt, new_ev
+                WHERE tt.event_id = %s AND tt.is_active
+                RETURNING id, name
+            )
+            INSERT INTO promoter_allocations
+                   (event_id, ticket_type_id, promoter_id, capacity, is_active)
+            SELECT new_ev.id, nt.id, pa.promoter_id, pa.capacity, TRUE
+            FROM promoter_allocations pa
+            JOIN ticket_types tt ON tt.id = pa.ticket_type_id
+            JOIN new_types nt ON nt.name = tt.name
+            CROSS JOIN new_ev
+            WHERE pa.event_id = %s AND pa.is_active
+            RETURNING (SELECT id FROM new_ev)
+            """,
+            (
+                venue_id,
+                f"{src['name']} (copia)",
+                src["description"],
+                str(src["flyer_url"]) if src["flyer_url"] else None,
+                src["location"],
+                event_id,
+                DUPLICATE_SHIFT_DAYS,
+                src["event_timezone"],
+                src["capacity"],
+                src["qr_unlock_minutes"],
+                event_id,
+                event_id,
+            ),
+        )
+        row = await cur.fetchone()
+        if not row:
+            raise HTTPException(500, "No se pudo duplicar el evento")
+        created = await fetch_event(cur, row["id"], venue_id)
         await db.commit()
     return created
 
