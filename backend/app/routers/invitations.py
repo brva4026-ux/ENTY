@@ -291,6 +291,6 @@ async def accept_invitation(
     from app.routers.auth import _build_user_summary
 
     roles = {str(inv["venue_id"]): [inv["role"]]}
-    token = create_access_token(user_id, [inv["venue_id"]], roles)
+    token = create_access_token(user_id, [inv["venue_id"]], roles, 1)
     summary = await _build_user_summary(db, user_id)
     return TokenResponse(access_token=token, user=summary)

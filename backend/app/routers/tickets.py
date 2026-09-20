@@ -190,6 +190,24 @@ async def redeem(
 ):
     ensure_roles(user, venue_id, "super_admin", "admin", "bouncer")
 
+    # Rate limit de puerta (mig 019): cada redeem escribe en redemptions, así
+    # que el límite se calcula con lo que ya hay. 40 escaneos / 10 s por
+    # usuario (4/s) está muy por encima del ritmo humano de una fila y muy
+    # por debajo de una máquina probando tokens. El token de 192 bits ya hace
+    # inviable la fuerza bruta: esto solo frena spam y desbordes de log.
+    async with db.cursor() as cur:
+        await cur.execute(
+            """SELECT count(*)::int AS n FROM redemptions
+               WHERE scanned_by_user_id = %s
+                 AND scanned_at > now() - INTERVAL '10 seconds'""",
+            (user["id"],),
+        )
+        if (await cur.fetchone())["n"] >= 40:
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "Demasiados escaneos en poco tiempo. Espera unos segundos.",
+            )
+
     # `force` (mig 013): solo staff, nunca el escáner automático del bouncer.
     if body.force:
         ensure_roles(user, venue_id, "super_admin", "admin")

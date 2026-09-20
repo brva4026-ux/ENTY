@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
+from app.core.audit import write_audit
 from app.schemas import EventReport, ReportSummary, VenueOverview
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["reporte"])
@@ -407,6 +408,13 @@ async def venue_overview_csv(
         prev = await cur.fetchone()
         await cur.execute(_TOP_EVENTS_SQL, params)
         events = await cur.fetchall()
+        # Auditoria (mig 019): el resumen mensual es lo que se lleva el
+        # contador — queda registrado quien lo exporto.
+        await write_audit(
+            cur, venue_id, user["id"], "export", "overview_csv", None,
+            {"mes": month, "eventos": len(events)},
+        )
+        await db.commit()
 
     def money(cents) -> float:
         return round((cents or 0) / 100, 2)

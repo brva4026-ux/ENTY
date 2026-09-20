@@ -32,6 +32,9 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "014_push_outbox_and_location.sql",
     ROOT / "db" / "migrations" / "015_ticket_contact_audit.sql",
     ROOT / "db" / "migrations" / "016_login_lockout.sql",
+    ROOT / "db" / "migrations" / "017_password_reset.sql",
+    ROOT / "db" / "migrations" / "018_media.sql",
+    ROOT / "db" / "migrations" / "019_security_p0.sql",
 ]
 
 

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
+from app.core.audit import write_audit
 from app.schemas import (
     AllocationCreate,
     AllocationOut,
@@ -556,6 +557,19 @@ async def update_type(
             _edit_error(e)
 
         updated = await _fetch_type(cur, venue_id, event_id, type_id)
+        # Auditoria (mig 019): precio y cupo son dinero — queda quien, cuando
+        # y el antes/despues de lo que cambio realmente.
+        money_fields = ("price_cents", "quantity", "is_courtesy", "is_active")
+        diff = {
+            f: {"antes": current[f], "despues": updated[f]}
+            for f in money_fields
+            if current.get(f) != updated.get(f)
+        }
+        if diff:
+            await write_audit(
+                cur, venue_id, user["id"], "ticket_type_change",
+                "ticket_type", type_id, {"event_id": event_id, "cambios": diff},
+            )
         await db.commit()
     return updated
 
@@ -634,6 +648,18 @@ async def update_allocation(
             _edit_error(e)
 
         updated = await _fetch_allocation(cur, venue_id, event_id, allocation_id)
+        # Auditoria (mig 019): el cupo define cuantas boletas puede vender
+        # cada promotor — queda el antes/despues.
+        if current.get("capacity") != updated.get("capacity") or current.get("is_active") != updated.get("is_active"):
+            await write_audit(
+                cur, venue_id, user["id"], "allocation_change",
+                "allocation", allocation_id,
+                {
+                    "event_id": event_id,
+                    "capacity": {"antes": current.get("capacity"), "despues": updated.get("capacity")},
+                    "is_active": {"antes": current.get("is_active"), "despues": updated.get("is_active")},
+                },
+            )
         await db.commit()
     return updated
 

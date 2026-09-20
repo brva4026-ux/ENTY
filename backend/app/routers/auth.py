@@ -158,7 +158,7 @@ async def login(
 
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, email, full_name, password_hash, is_active, last_login_at FROM users WHERE lower(email)=lower(%s)",
+            "SELECT id, email, full_name, password_hash, is_active, last_login_at, token_version FROM users WHERE lower(email)=lower(%s)",
             (body.email,),
         )
         user = await cur.fetchone()
@@ -192,7 +192,7 @@ async def login(
     for r in rows:
         roles[str(r["venue_id"])].append(r["role"])
 
-    token = create_access_token(user["id"], venue_ids, roles)
+    token = create_access_token(user["id"], venue_ids, roles, user["token_version"])
     summary = await _build_user_summary(db, user["id"])
     return TokenResponse(access_token=token, user=summary)
 
@@ -275,7 +275,7 @@ async def register(
         await db.commit()
 
     roles = {str(venue_id): ["admin"]}
-    token = create_access_token(user_id, [venue_id], roles)
+    token = create_access_token(user_id, [venue_id], roles, 1)
     summary = await _build_user_summary(db, user_id)
     return TokenResponse(access_token=token, user=summary)
 
@@ -397,8 +397,10 @@ async def reset_password(
                 "El enlace no es válido o ya expiró. Pide uno nuevo.",
             )
 
+        # Bump de token_version (mig 019): cualquier JWT viejo del usuario
+        # queda muerto al instante — la recuperación no deja sesiones vivas.
         await cur.execute(
-            "UPDATE users SET password_hash = %s WHERE id = %s",
+            "UPDATE users SET password_hash = %s, token_version = token_version + 1 WHERE id = %s",
             (hash_password(body.new_password), row["user_id"]),
         )
         await db.commit()
@@ -517,8 +519,10 @@ async def change_password(
                 status.HTTP_400_BAD_REQUEST,
                 "La nueva contraseña debe ser distinta de la actual.",
             )
+        # Bump de token_version (mig 019): el resto de las sesiones abiertas
+        # (otro teléfono, un navegador público) muere al cambiar la clave.
         await cur.execute(
-            "UPDATE users SET password_hash=%s WHERE id=%s",
+            "UPDATE users SET password_hash=%s, token_version = token_version + 1 WHERE id=%s",
             (hash_password(body.new_password), user["id"]),
         )
         await db.commit()

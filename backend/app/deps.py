@@ -31,11 +31,24 @@ async def get_current_user(
     user_id = int(payload["sub"])
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, email, full_name, is_active FROM users WHERE id = %s", (user_id,)
+            "SELECT id, email, full_name, is_active, token_version FROM users WHERE id = %s",
+            (user_id,),
         )
         user = await cur.fetchone()
     if not user or not user["is_active"]:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario inactivo")
+
+    # Revocacion de sesiones (mig 019): si la version del token no coincide
+    # con la actual del usuario, alguien cambio su contraseña y este token
+    # quedo muerto. Los tokens emitidos ANTES de la 019 no traen el claim:
+    # se les permite terminar su expiracion natural (60 min) para no
+    # desloguear a todos en el deploy.
+    tver = payload.get("tver")
+    if tver is not None and int(tver) != int(user["token_version"]):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Sesion revocada: inicia sesion de nuevo",
+        )
 
     # Re-verificar roles en la DB en cada request: el JWT guarda las venues,
     # pero la fuente de verdad de permisos es venue_user_roles. Asi un rol

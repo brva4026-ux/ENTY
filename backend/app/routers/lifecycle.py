@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.pusher import notify_venue
 from app.deps import ensure_roles, get_current_user
+from app.core.audit import write_audit
 # fetch_event vive en events.py para que listar, crear y transicionar devuelvan
 # el mismo shape de evento (ver EVENT_COLUMNS).
 from app.routers.events import fetch_event
@@ -365,8 +366,10 @@ async def reset_venue_user_password(
 
     async with db.cursor() as cur:
         await _target_membership(cur, venue_id, user_id)
+        # Bump de token_version (mig 019): las sesiones del usuario reseteado
+        # mueren aquí — el admin que resetea no deja sesiones ajenas vivas.
         await cur.execute(
-            "UPDATE users SET password_hash=%s WHERE id=%s",
+            "UPDATE users SET password_hash=%s, token_version = token_version + 1 WHERE id=%s",
             (hash_password(body.new_password), user_id),
         )
         await db.commit()
@@ -837,6 +840,16 @@ async def list_tickets(
             tuple([*params, limit, offset] if not is_csv else params),
         )
         rows = await cur.fetchall()
+
+        # Auditoria de exportaciones (mig 019): la base de clientes (nombre,
+        # telefono, email) es el activo mas facil de filtrar — cada CSV que
+        # sale del sistema queda registrado con quien, cuando y cuanto.
+        if is_csv:
+            await write_audit(
+                cur, venue_id, user["id"], "export", "tickets_csv", event_id,
+                {"filas": len(rows), "filtros": {"status": status, "q": q, "type_id": type_id}},
+            )
+            await db.commit()
 
     if request.query_params.get("format") == "csv":
         # CSV del listado filtrado COMPLETO (sin paginar): mismo contrato de
