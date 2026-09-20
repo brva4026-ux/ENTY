@@ -143,7 +143,7 @@ async def event_report(
             )
             mine = await cur.fetchone()
             await cur.execute(
-                "SELECT coalesce(sum(capacity), 0)::int AS cap FROM allocations "
+                "SELECT coalesce(sum(capacity), 0)::int AS cap FROM promoter_allocations "
                 "WHERE event_id=%s AND promoter_id=%s",
                 (event_id, user["id"]),
             )
