@@ -105,6 +105,7 @@ function Kpi({ value, label, accent }) {
  * @param {function} onEdit       Abrir edición del evento
  * @param {boolean}  editable     El evento admite edición (draft/published)
  * @param {function} onDelete     Eliminar evento (draft/cancelled)
+ * @param {function} onExit       Volver a la lista (sale del modo evento)
  */
 export default function EventWorkbench({
   ev,
@@ -119,6 +120,7 @@ export default function EventWorkbench({
   onEdit,
   editable,
   onDelete,
+  onExit,
 }) {
   // Hooks SIEMPRE antes de cualquier return condicional (reglas de hooks:
   // un return temprano encima de useState crashea al re-render con ev=null).
@@ -132,12 +134,12 @@ export default function EventWorkbench({
   const issued = report?.issued ?? null;
   const redeemed = report?.redeemed ?? null;
   const revenue = report?.revenue_cents ?? null;
+  // Solo pestañas DE ESTE evento. Equipo/Liquidaciones/Invitaciones son de la
+  // venue (no cambian con el evento elegido): viven en la lista, no dentro del
+  // backstage — mezclarlas aquí es lo que hacia sentir "todo amontonado".
   const tabs = [
     { id: "resumen", label: "Resumen", icon: "chart" },
     { id: "boletas", label: "Boletas y cupos", icon: "ticket" },
-    { id: "equipo", label: "Equipo", icon: "users" },
-    { id: "liquidaciones", label: "Liquidaciones", icon: "money" },
-    { id: "invitaciones", label: "Invitaciones", icon: "door" },
   ];
 
   return (
@@ -199,6 +201,14 @@ export default function EventWorkbench({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={onExit}
+              data-tip="Volver a la lista de eventos"
+              className="btn-ghost !px-3 !py-1.5 text-xs font-bold"
+            >
+              <Icon name="logout" className="h-3.5 w-3.5" />
+              Salir del evento
+            </button>
             {editable && (
               <button
                 onClick={onEdit}
