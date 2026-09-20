@@ -35,6 +35,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "017_password_reset.sql",
     ROOT / "db" / "migrations" / "018_media.sql",
     ROOT / "db" / "migrations" / "019_security_p0.sql",
+    ROOT / "db" / "migrations" / "020_auto_close_events.sql",
 ]
 
 
@@ -351,6 +352,34 @@ class Api:
             "type": ttype["id"],
             "allocation": alloc,
         }
+
+    # ------------------------------------------------------------------
+    # Helpers de DB directa (cierre automatico, mig 020): ajustar columnas
+    # que la API no expone (ends_at pasado) y ejecutar SQL suelto.
+    # ------------------------------------------------------------------
+    @property
+    def dsn(self) -> str:
+        return os.environ.get(
+            "TEST_DATABASE_URL",
+            "postgresql://postgres:devpassword@127.0.0.1:5432/ticketflow",
+        )
+
+    def run_sql(self, sql: str):
+        """Ejecuta un SELECT escalar con una conexion propia y devuelve su valor."""
+        with psycopg.connect(self.dsn, autocommit=True, row_factory=dict_row) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                row = cur.fetchone()
+                return list(row.values())[0] if row else None
+
+    def event_status(self, venue_id: int, event_id: int) -> str:
+        """Status actual del evento leido directo de DB (fuera de la API)."""
+        with psycopg.connect(self.dsn, autocommit=True, row_factory=dict_row) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT status FROM events WHERE id = %s", (event_id,))
+                row = cur.fetchone()
+                assert row, f"evento {event_id} no existe"
+                return row["status"]
 
 
 @pytest.fixture()

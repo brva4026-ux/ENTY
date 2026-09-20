@@ -812,8 +812,9 @@ async def list_tickets(
         if not await cur.fetchone():
             raise HTTPException(404, "Evento no encontrado")
 
-        # Para CSV: sin límite de página (el export es completo); para JSON:
-        # paginado. El total con filtros alimenta el paginador en ambos casos.
+        # Para CSV: sin límite (el export es COMPLETO — un recorte silencioso
+        # seria un informe contable mentiroso); para JSON: paginado. El total
+        # con filtros alimenta el paginador en ambos casos.
         is_csv = request.query_params.get("format") == "csv"
         await cur.execute(
             f"SELECT count(*)::int AS n FROM tickets t WHERE t.event_id = %s{where}",
@@ -821,7 +822,7 @@ async def list_tickets(
         )
         total = (await cur.fetchone())["n"]
 
-        page = "LIMIT %s OFFSET %s" if not is_csv else "LIMIT 10000"
+        page = "LIMIT %s OFFSET %s" if not is_csv else ""
         await cur.execute(
             f"""
             SELECT t.id, t.customer_name, t.customer_phone, t.customer_email, t.status,

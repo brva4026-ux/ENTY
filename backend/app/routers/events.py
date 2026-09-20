@@ -191,6 +191,12 @@ async def list_events(
 ):
     _event_ctx(venue_id, user)
     async with db.cursor() as cur:
+        # Watchdog de cierre (mig 020): antes de listar, cierra los vencidos.
+        # Es la llamada barata que sustituye al cron (serverless no lo tiene):
+        # idempotente, con índice parcial, y si no hay vencidos no hace nada.
+        # Cualquier usuario autenticado de la venue la dispara al abrir su
+        # panel — y el live-refresh la re-dispara cada 20s.
+        await cur.execute("SELECT auto_close_expired_events()")
         await cur.execute(
             f"SELECT {EVENT_COLUMNS} FROM events "
             "WHERE venue_id=%s ORDER BY starts_at DESC",

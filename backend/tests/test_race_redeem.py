@@ -1,68 +1,79 @@
-"""Prueba de carrera: N escaneos concurrentes de la MISMA boleta.
+"""Prueba de carrera: N escaneos concurrentes de la MISMA boleta (CI).
 
-Invariante: exactamente 1 'GRANTED' y el resto 'ALREADY_REDEEMED'. Es la
-prueba real del compare-and-swap de redeem_ticket.
+Historia: este test vivio como script suelto con DSN hardcodeado y quedo
+excluido del pytest (`--ignore=tests/test_race_redeem.py` en el CI). Pero es
+LA prueba del compare-and-swap de `redeem_ticket` - el mecanismo anti-
+sobreventa - asi que ahora corre en el pipeline contra el Postgres efimero
+del job, con el mismo esquema y migraciones que los demas tests.
 
-Uso:
-    .venv/bin/python backend/tests/test_race_redeem.py
-Requiere psycopg + async (psycopg[pool]).
+Invariante: exactamente 1 'GRANTED' y el resto 'ALREADY_REDEEMED'. Dos
+puertas (o doce) escaneando el mismo QR a la vez: una sola gana.
 """
 import asyncio
+import os
 import secrets
 
 import psycopg
+from psycopg.rows import dict_row
+
+# DSN del CI (el mismo que usa el conftest para la session-scoped db)
+DSN = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql://postgres:devpassword@127.0.0.1:5432/ticketflow",
+)
+
+N_SCANS = 12
 
 
-async def main() -> None:
-    dsn = "postgresql://postgres:test@127.0.0.1:5433/tickets"
-    conn = await psycopg.AsyncConnection.connect(dsn, autocommit=True)
-    async with conn.cursor() as cur:
-        # escenario idempotente: 1 evento, 1 tipo, 1 boleta emitida
-        await cur.execute("DELETE FROM tickets WHERE customer_name='Carrera'")
-        await cur.execute("INSERT INTO users (email,password_hash,full_name) VALUES ('race@test.co','x','Race') ON CONFLICT (email) DO NOTHING")
-        await cur.execute("INSERT INTO venues (name,slug) VALUES ('Race Venue','race-venue') ON CONFLICT (slug) DO NOTHING")
-        await cur.execute(
-            "INSERT INTO events (venue_id,name,starts_at,capacity,status) "
-            "SELECT id,'Race Night',now()+'3d',100,'published' FROM venues WHERE slug='race-venue' "
-            "ON CONFLICT DO NOTHING"
-        )
-        await cur.execute(
-            "INSERT INTO ticket_types (event_id,name,price_cents,quantity,is_courtesy) "
-            "SELECT id,'General',10000,100,FALSE FROM events WHERE name='Race Night' "
-            "ON CONFLICT (event_id,name) DO NOTHING"
-        )
-        await cur.execute("SELECT e.id, tt.id, u.id FROM events e, ticket_types tt, users u WHERE e.name='Race Night' AND tt.name='General' AND u.email='race@test.co'")
-        row = await cur.fetchone()
-        ev_id, tt_id, user_id = row[0], row[1], row[2]
+def test_race_redeem_single_granted(api):
+    """12 conexiones concurrentes canjean el mismo token: 1 GRANTED."""
+    scen = api.scenario()
+    admin_id = api.world["admin"]["id"]
 
-        token = secrets.token_urlsafe(24)
-        await cur.execute(
-            "SELECT emit_ticket(%s, %s, NULL, %s, 'Carrera', %s, NULL, NULL)",
-            (ev_id, tt_id, user_id, token),
-        )
-        print(f"boleta emitida (event={ev_id} user={user_id})")
+    # Boleta activa YA (la ventana de activacion de la mig 013 exige que
+    # starts_at - qr_unlock ya paso): abrimos el evento 2 horas atras.
+    with psycopg.connect(DSN, autocommit=True, row_factory=dict_row) as setup:
+        with setup.cursor() as cur:
+            cur.execute(
+                "UPDATE events SET starts_at = now() - interval '2 hours' WHERE id = %s",
+                (scen["event"],),
+            )
+            token = secrets.token_urlsafe(24)
+            cur.execute(
+                "SELECT emit_ticket(%s, %s, NULL, %s, 'Carrera', %s, NULL, NULL)",
+                (scen["event"], scen["type"], admin_id, token),
+            )
+            ticket_id = cur.fetchone()["emit_ticket"]
+            assert ticket_id is not None
 
-    # --- N escaneos concurrentes ----------------------------------------
-    N = 12
+    # --- N escaneos concurrentes, cada uno en SU propia conexion ---------
+    # (la carrera real es entre transacciones distintas, no entre tareas
+    # que comparten conexion: ahi el servidor serializaria por si mismo).
+    async def run_race():
+        async def scan(i: int) -> tuple[int, str]:
+            conn = await psycopg.AsyncConnection.connect(DSN, autocommit=True)
+            try:
+                async with conn.cursor() as cur:
+                    await cur.execute(
+                        "SELECT redeem_ticket(%s, %s, %s)",
+                        (scen["event"], token, admin_id),
+                    )
+                    row = await cur.fetchone()
+                    return i, (row[0] if not isinstance(row, dict) else list(row.values())[0])
+            finally:
+                await conn.close()
 
-    async def scan(i: int) -> tuple[int, str]:
-        async with await psycopg.AsyncConnection.connect(dsn, autocommit=True) as c:
-            async with c.cursor() as cur:
-                await cur.execute("SELECT redeem_ticket(%s, %s, %s)", (ev_id, token, user_id))
-                row = await cur.fetchone()
-                return i, row[0]
+        return await asyncio.gather(*(scan(i) for i in range(N_SCANS)))
 
-    results = await asyncio.gather(*(scan(i) for i in range(N)))
+    results = asyncio.run(run_race())
 
     granted = [i for i, r in results if r == "GRANTED"]
     others = [r for i, r in results if r != "GRANTED"]
-    print(f"  GRANTED: {len(granted)} ({granted})")
-    print(f"  otros  : {len(others)} -> {set(others)}")
 
-    assert len(granted) == 1, f"FALLO: esperabamos 1 GRANTED, hubo {len(granted)}"
-    assert all(r == "ALREADY_REDEEMED" for r in others), f"FALLO: outcomes inesperados: {others}"
-    print("==> PRUEBA DE CARRERA PASÓ (1 GRANTED, el resto ALREADY_REDEEMED)")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    assert len(granted) == 1, (
+        f"ANTI-SOBREVENTA ROTA: esperabamos 1 GRANTED, hubo {len(granted)} "
+        f"({results})"
+    )
+    assert all(r == "ALREADY_REDEEMED" for r in others), (
+        f"Resultados inesperados en la carrera: {others}"
+    )
