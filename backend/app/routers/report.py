@@ -7,12 +7,14 @@ Dos vistas sobre los mismos datos:
 - `ReportSummary` (`/summary`): solo admin/super_admin. Agrega ingresos y
   la integridad de la puerta (que escaneos no cuadraron).
 """
+import csv
+import io
 from datetime import datetime
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
@@ -307,6 +309,30 @@ _PREV_SQL = """
 """
 
 
+def _resolve_month(month: str | None, tz: str) -> tuple[str, datetime]:
+    """Valida `?month=YYYY-MM` y devuelve (etiqueta, month_start con zona).
+
+    month_start lleva la ZONA del negocio adjunta: si viaja naive, Postgres
+    lo interpreta como UTC y la medianoche del dia 1 en Bogota retrocede al
+    ultimo dia del mes anterior (bug real: month=2026-10 agregaba
+    septiembre).
+    """
+    tzinfo = ZoneInfo(tz)
+    if month:
+        try:
+            year, mon = (int(x) for x in month.split("-"))
+            if not 1 <= mon <= 12:
+                raise ValueError
+        except ValueError:
+            raise HTTPException(400, "month debe ser YYYY-MM")
+        month_start = datetime(year, mon, 1)
+    else:
+        now = datetime.now(tzinfo)
+        month_start = datetime(now.year, now.month, 1)
+        month = f"{now.year:04d}-{now.month:02d}"
+    return month, month_start.replace(tzinfo=tzinfo)
+
+
 @router.get("/overview", response_model=VenueOverview)
 async def venue_overview(
     venue_id: int,
@@ -322,25 +348,7 @@ async def venue_overview(
     ensure_roles(user, venue_id, "super_admin", "admin")
 
     tz = "America/Bogota"  # zona del negocio; los eventos la traen igual
-    tzinfo = ZoneInfo(tz)
-    if month:
-        try:
-            year, mon = (int(x) for x in month.split("-"))
-            if not 1 <= mon <= 12:
-                raise ValueError
-        except ValueError:
-            raise HTTPException(400, "month debe ser YYYY-MM")
-        month_start = datetime(year, mon, 1)
-    else:
-        now = datetime.now(tzinfo)
-        month_start = datetime(now.year, now.month, 1)
-        month = f"{now.year:04d}-{now.month:02d}"
-    # month_start debe llevar la ZONA del negocio adjunta: si viaja naive,
-    # Postgres lo interpreta como UTC y la medianoche del dia 1 en Bogota
-    # retrocede al ultimo dia del mes anterior (month=2026-10 agregaba
-    # septiembre). Con tzinfo adjunta, el AT TIME ZONE del SQL ve la
-    # medianoche LOCAL exacta del dia 1.
-    month_start = month_start.replace(tzinfo=tzinfo)
+    month, month_start = _resolve_month(month, tz)
 
     params = {"venue": venue_id, "tz": tz, "month_start": month_start.isoformat()}
 
@@ -370,4 +378,72 @@ async def venue_overview(
         prev_events_count=prev["events_count"],
         top_promoters=top_promoters,
         top_events=top_events,
+    )
+
+
+@router.get("/overview.csv")
+async def venue_overview_csv(
+    venue_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    month: str | None = None,
+):
+    """Resumen mensual exportable: la hoja que el contador abre sin login.
+
+    Mismos criterios contables del JSON (boletas vivas facturan), dos secciones:
+    KPIs del mes + eventos con su aporte. La tendencia va en una columna
+    propia para que Excel/Sheets la pinte como número, no como texto.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+
+    tz = "America/Bogota"
+    month, month_start = _resolve_month(month, tz)
+    params = {"venue": venue_id, "tz": tz, "month_start": month_start.isoformat()}
+
+    async with db.cursor() as cur:
+        await cur.execute(_OVERVIEW_SQL, params)
+        agg = await cur.fetchone()
+        await cur.execute(_PREV_SQL, params)
+        prev = await cur.fetchone()
+        await cur.execute(_TOP_EVENTS_SQL, params)
+        events = await cur.fetchall()
+
+    def money(cents) -> float:
+        return round((cents or 0) / 100, 2)
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow([f"Resumen del negocio - {month}"])
+    w.writerow([])
+    w.writerow(["Metrica", "Valor"])
+    w.writerow(["Eventos del mes", agg["events_count"]])
+    w.writerow(["Boletas vendidas", agg["tickets_issued"]])
+    w.writerow(["Ingresaron", agg["tickets_redeemed"]])
+    w.writerow(["Cortesias", agg["courtesy_tickets"]])
+    w.writerow(["Recaudo (COP)", money(agg["revenue_cents"])])
+    paid = agg["tickets_issued"] - agg["courtesy_tickets"]
+    w.writerow(["Promedio por boleta paga (COP)", money(round(agg["revenue_cents"] / paid)) if paid else 0])
+    if (prev["revenue_cents"] or 0) > 0:
+        trend = round((agg["revenue_cents"] - prev["revenue_cents"]) / prev["revenue_cents"] * 100)
+        w.writerow(["Tendencia vs mes anterior (%)", trend])
+    w.writerow([])
+    w.writerow(["Eventos del mes"])
+    w.writerow(["Evento", "Fecha", "Estado", "Boletas", "Recaudo (COP)"])
+    for e in events:
+        w.writerow([
+            e["name"],
+            e["starts_at"].astimezone(ZoneInfo(tz)).strftime("%d/%m/%Y %H:%M"),
+            e["status"],
+            e["tickets"],
+            money(e["revenue_cents"]),
+        ])
+
+    content = "\ufeff" + buf.getvalue()  # BOM: Excel/Sheets lo abren bien
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="resumen-{month}.csv"',
+            "Cache-Control": "no-store",
+        },
     )

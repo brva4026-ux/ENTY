@@ -42,19 +42,67 @@ export function fetchTicketImage(rawToken) {
 
 export function listTickets(venueId, eventId, phone) {
   const q = phone ? `?phone=${encodeURIComponent(phone)}` : "";
-  return apiFetch(`/venues/${venueId}/events/${eventId}/tickets${q}`);
+  return apiFetch(`/venues/${venueId}/events/${eventId}/tickets${q}`).then(
+    (d) => d.items, // compat: los consumidores quieren el array
+  );
+}
+
+/**
+ * Listado paginado y filtrado de boletas. Devuelve { total, items }.
+ * filters: { status, type_id, q, limit, offset } (todos opcionales).
+ */
+export function listTicketsPaged(venueId, eventId, filters = {}) {
+  const qs = new URLSearchParams();
+  if (filters.status) qs.set("status", filters.status);
+  if (filters.type_id) qs.set("type_id", filters.type_id);
+  if (filters.q) qs.set("q", filters.q);
+  if (filters.limit) qs.set("limit", String(filters.limit));
+  if (filters.offset) qs.set("offset", String(filters.offset));
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return apiFetch(`/venues/${venueId}/events/${eventId}/tickets${suffix}`);
+}
+
+/** Export CSV del listado filtrado (descarga directa del navegador). */
+export function exportTicketsCsvUrl(venueId, eventId, filters = {}) {
+  const qs = new URLSearchParams({ format: "csv" });
+  if (filters.status) qs.set("status", filters.status);
+  if (filters.type_id) qs.set("type_id", filters.type_id);
+  if (filters.q) qs.set("q", filters.q);
+  // El token va en el header, no en la URL: descarga via fetch + blob.
+  return `/api/venues/${venueId}/events/${eventId}/tickets?${qs}`;
+}
+
+/** Descarga autenticada del CSV (fetch con Bearer + blob + click). */
+export async function downloadTicketsCsv(venueId, eventId, filters = {}) {
+  const token = localStorage.getItem("tf_token");
+  const res = await fetch(exportTicketsCsvUrl(venueId, eventId, filters), {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("No se pudo exportar el CSV");
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `boletas-evento-${eventId}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
 export function reissueTicket(venueId, eventId, ticketId, reason) {
-  return apiFetch(`/venues/${venueId}/events/${eventId}/tickets/${ticketId}/reissue`, {
-    method: "POST",
-    body: JSON.stringify({ reason: reason || null }),
-  });
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/tickets/${ticketId}/reissue`,
+    {
+      method: "POST",
+      body: JSON.stringify({ reason: reason || null }),
+    },
+  );
 }
 
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem("tf_token");
-  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   let res;
@@ -62,7 +110,11 @@ export async function apiFetch(path, options = {}) {
     res = await fetch(`${BASE}${path}`, { ...options, headers });
   } catch (networkErr) {
     // Sin respuesta (offline, DNS, abort): también es señal operativa.
-    captureApiError(networkErr, { method: options.method ?? "GET", path, status: 0 });
+    captureApiError(networkErr, {
+      method: options.method ?? "GET",
+      path,
+      status: 0,
+    });
     throw networkErr;
   }
 
@@ -103,7 +155,11 @@ export async function apiFetch(path, options = {}) {
     // Los 5xx (y los fallos sin respuesta) son el signal que el dueño de la
     // app quiere antes que los usuarios; los 4xx son negocio normal.
     if (res.status >= 500) {
-      captureApiError(err, { method: options.method ?? "GET", path, status: res.status });
+      captureApiError(err, {
+        method: options.method ?? "GET",
+        path,
+        status: res.status,
+      });
     }
     throw err;
   }

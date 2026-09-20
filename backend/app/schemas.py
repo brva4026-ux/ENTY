@@ -588,6 +588,16 @@ class TicketOut(BaseModel):
     from_allocation: bool = False
 
 
+class TicketListOut(BaseModel):
+    """Respuesta paginada del listado de boletas.
+
+    `total` (con filtros, sin paginar) permite a la UI pintar "128 boletas ·
+    página 2 de 3" sin una segunda llamada.
+    """
+    total: int
+    items: list[TicketOut]
+
+
 # --------------------------------------------------------------------------
 # Reporte en vivo
 # --------------------------------------------------------------------------

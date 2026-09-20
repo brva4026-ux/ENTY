@@ -6,6 +6,22 @@ import { STATUS_META } from "./EventWorkbench";
 import EmptyState from "./EmptyState";
 import Icon from "./Icon";
 
+/** Descarga autenticada del resumen mensual (CSV para el contador). */
+async function downloadOverviewCsv(venueId, month) {
+  const token = localStorage.getItem("tf_token");
+  const res = await fetch(
+    `/api/venues/${venueId}/overview.csv${month ? `?month=${month}` : ""}`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+  );
+  if (!res.ok) throw new Error("No se pudo exportar el CSV");
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `resumen-${month || "mes-actual"}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
 const MONTHS = [
   "enero",
   "febrero",
@@ -205,13 +221,26 @@ export default function BusinessOverview({ venueId, onOpenEvent }) {
           >
             →
           </button>
-        </div>
+        </div>{" "}
         {!isCurrent && month && (
           <button
             onClick={() => setMonth(null)}
             className="btn-ghost text-xs font-bold"
           >
             Volver al mes actual
+          </button>
+        )}
+        {month && (
+          <button
+            onClick={() =>
+              downloadOverviewCsv(venueId, month).catch((e) =>
+                setError(e.message),
+              )
+            }
+            className="btn-ghost text-xs font-bold"
+            data-tip="Hoja lista para el contador"
+          >
+            Descargar CSV
           </button>
         )}
       </div>

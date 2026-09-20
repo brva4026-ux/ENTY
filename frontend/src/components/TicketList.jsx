@@ -1,8 +1,15 @@
-import { useState } from "react";
-import { apiFetch, publicTicketPageUrl } from "../lib/api";
+import { useCallback, useEffect, useState } from "react";
+import {
+  apiFetch,
+  downloadTicketsCsv,
+  listTicketsPaged,
+  publicTicketPageUrl,
+} from "../lib/api";
 import { useUI } from "../lib/ui";
 import ContactEditsHistory from "./ContactEditsHistory";
 import EmptyState from "./EmptyState";
+
+const PAGE_SIZE = 50;
 
 const TICKET_STATUS = {
   issued: {
@@ -23,13 +30,7 @@ const TICKET_STATUS = {
   },
 };
 
-export default function TicketList({
-  venueId,
-  eventId,
-  tickets,
-  onChanged,
-  onError,
-}) {
+export default function TicketList({ venueId, eventId, onChanged, onError }) {
   const ui = useUI();
   const [voidingId, setVoidingId] = useState(null);
   const [reason, setReason] = useState("Error de digitación");
@@ -37,6 +38,55 @@ export default function TicketList({
   // Mig 015: corrección de contacto (nombre/teléfono) con auditoría.
   const [editingId, setEditingId] = useState(null);
   const [edit, setEdit] = useState({ name: "", phone: "", reason: "" });
+
+  // ===== Listado server-driven: filtros + paginación viven en el API =====
+  // (antes: 200 boletas en el DOM y Ctrl+F; ahora el server filtra y pagina,
+  //  y el total permite pintar "página 2 de 3").
+  const [items, setItems] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [status, setStatus] = useState("");
+  const [q, setQ] = useState("");
+  const [qInput, setQInput] = useState("");
+  const [page, setPage] = useState(0); // 0-indexed
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!eventId) return;
+    setLoading(true);
+    try {
+      const data = await listTicketsPaged(venueId, eventId, {
+        status: status || undefined,
+        q: q || undefined,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
+      });
+      setItems(data.items);
+      setTotal(data.total);
+    } catch (e) {
+      onError(e.message);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [venueId, eventId, status, q, page]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Cambiar filtro/reset de evento vuelve a la página 1.
+  useEffect(() => {
+    setPage(0);
+  }, [eventId, status]);
+
+  // El buscador busca al enviar (Enter), no en cada tecla: menos queries.
+  function submitSearch(e) {
+    e.preventDefault();
+    setQ(qInput.trim());
+    setPage(0);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   async function voidTicket(t) {
     const ok = await ui.confirm(`¿Anular la boleta #${t.id}?`, {
@@ -56,6 +106,7 @@ export default function TicketList({
       );
       setVoidingId(null);
       await onChanged();
+      await refreshList();
       ui.success(`Boleta #${t.id} anulada`);
     } catch (e) {
       onError(e.message);
@@ -86,6 +137,7 @@ export default function TicketList({
         },
       );
       await onChanged();
+      await refreshList();
       const url = publicTicketPageUrl(res.raw_token);
       try {
         await navigator.clipboard.writeText(url);
@@ -128,6 +180,7 @@ export default function TicketList({
       );
       setEditingId(null);
       await onChanged();
+      await refreshList();
       ui.success(`Contacto de la boleta #${t.id} actualizado`);
     } catch (e) {
       onError(e.message);
@@ -136,18 +189,9 @@ export default function TicketList({
     }
   }
 
-  const [query, setQuery] = useState("");
-  const filtered = (tickets || []).filter((t) => {
-    if (!query.trim()) return true;
-    const q = query.trim().toLowerCase();
-    return (
-      String(t.id) === q.replace("#", "") ||
-      t.customer_name?.toLowerCase().includes(q) ||
-      t.customer_phone?.includes(q) ||
-      t.type_name?.toLowerCase().includes(q) ||
-      t.sold_by_name?.toLowerCase().includes(q)
-    );
-  });
+  // El listado ya llega filtrado del server; el refresh post-acción
+  // re-consulta con los filtros vigentes.
+  const refreshList = onChanged;
 
   async function downloadCsv(kind) {
     try {
@@ -181,193 +225,240 @@ export default function TicketList({
             onClick={() => downloadCsv("guests.csv")}
             className="btn-ghost text-xs font-bold"
           >
-            Exportar invitados
+            Invitados
           </button>
           <button
             onClick={() => downloadCsv("revenue.csv")}
             className="btn-ghost text-xs font-bold"
           >
-            Exportar recaudo
+            Recaudo
           </button>
           <button
-            onClick={() => downloadCsv("noshow.csv")}
+            onClick={() => downloadTicketsCsv(venueId, eventId, { status, q })}
+            disabled={loading}
             className="btn-ghost text-xs font-bold"
+            data-tip="Exporta el listado filtrado completo"
           >
-            No-shows
+            Boletas (CSV)
           </button>
-          <span className="tnum text-xs text-zinc-500">
-            {(tickets || []).length} recientes
-          </span>
         </div>
       </div>
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="field mb-3"
-        placeholder="Buscar por nombre, teléfono, #boleta, tipo o promotor…"
-      />
-      <ul className="space-y-2">
-        {filtered.map((t) => {
-          const st = TICKET_STATUS[t.status] ?? TICKET_STATUS.issued;
-          const canVoid = t.status === "issued";
-          return (
-            <li
-              key={t.id}
-              className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2.5 text-sm"
+
+      {/* Filtros server-side: estado + búsqueda. Cambian de página y de
+          consulta: el server hace el trabajo, el DOM no carga 200 filas. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div
+          className="tabbar no-scrollbar"
+          role="tablist"
+          aria-label="Filtrar por estado"
+        >
+          {[
+            ["", "Todas"],
+            ["issued", "Activas"],
+            ["redeemed", "Redimidas"],
+            ["voided", "Anuladas"],
+            ["refunded", "Reembolsadas"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={status === id}
+              onClick={() => setStatus(id)}
+              className="tabbar-item !text-xs"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-zinc-200">
-                    <span className="tnum text-zinc-500">#{t.id}</span> ·{" "}
-                    {t.customer_name}
-                  </p>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    {t.type_name ?? "—"}
-                    {t.customer_phone ? ` · ${t.customer_phone}` : ""}
-                    {t.from_allocation
-                      ? " · cupo promotor"
-                      : " · venta directa"}
-                    {t.sold_by_name ? ` · por ${t.sold_by_name}` : ""}
-                    {t.price_cents_snapshot > 0
-                      ? ` · $${(t.price_cents_snapshot / 100).toLocaleString("es-CO")}`
-                      : " · cortesía"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${st.cls}`}
-                  >
-                    {st.label}
-                  </span>
-                  {canVoid && voidingId !== t.id && editingId !== t.id && (
-                    <>
-                      <button
-                        onClick={() => reissueTicket(t)}
-                        disabled={busy}
-                        className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
-                      >
-                        Reemitir
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingId(t.id);
-                          setEdit({
-                            name: t.customer_name ?? "",
-                            phone: t.customer_phone ?? "",
-                            reason: "",
-                          });
-                        }}
-                        className="rounded-lg px-2 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800"
-                      >
-                        Corregir
-                      </button>
-                      <button
-                        onClick={() => {
-                          setVoidingId(t.id);
-                          setReason("Error de digitación");
-                        }}
-                        className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
-                      >
-                        Anular
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-              {voidingId === t.id && (
-                <div className="mt-2 flex gap-2">
-                  <input
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    className="field !py-1.5 text-xs"
-                    placeholder="Motivo de anulación"
-                    minLength={3}
-                    required
-                  />
-                  <button
-                    onClick={() => voidTicket(t)}
-                    disabled={busy || reason.trim().length < 3}
-                    className="rounded-lg bg-red-500/90 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-500 disabled:opacity-50"
-                  >
-                    {busy ? "Anulando…" : "Confirmar"}
-                  </button>
-                  <button
-                    onClick={() => setVoidingId(null)}
-                    className="rounded-lg px-2 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              )}
-              {editingId === t.id && (
-                <div className="mt-2 space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
-                  <p className="text-xs font-semibold text-zinc-400">
-                    Corregir contacto · queda en auditoría (mig 015)
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <input
-                      value={edit.name}
-                      onChange={(e) =>
-                        setEdit({ ...edit, name: e.target.value })
-                      }
-                      className="field !py-1.5 text-xs sm:flex-1"
-                      placeholder="Nombre del asistente"
-                    />
-                    <input
-                      value={edit.phone}
-                      onChange={(e) =>
-                        setEdit({ ...edit, phone: e.target.value })
-                      }
-                      className="field !py-1.5 text-xs sm:flex-1"
-                      placeholder="Teléfono (WhatsApp)"
-                      inputMode="tel"
-                    />
+              {label}
+            </button>
+          ))}
+        </div>
+        <form
+          onSubmit={submitSearch}
+          className="flex min-w-52 flex-1 items-center gap-1.5"
+        >
+          <input
+            value={qInput}
+            onChange={(e) => setQInput(e.target.value)}
+            className="field !py-1.5 text-xs"
+            placeholder="Buscar por nombre del asistente… (Enter)"
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={() => {
+                setQInput("");
+                setQ("");
+              }}
+              className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+            >
+              Limpiar
+            </button>
+          )}
+        </form>
+      </div>
+
+      <p className="tnum mb-2 text-xs text-zinc-500">
+        {loading ? "Cargando…" : `${total} boletas`}
+        {!loading && total > 0 && ` · página ${page + 1} de ${totalPages}`}
+      </p>
+      <ul className="space-y-2">
+        {loading &&
+          [1, 2, 3].map((i) => <li key={i} className="skeleton h-16" />)}
+        {!loading &&
+          items.map((t) => {
+            const st = TICKET_STATUS[t.status] ?? TICKET_STATUS.issued;
+            const canVoid = t.status === "issued";
+            return (
+              <li
+                key={t.id}
+                className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2.5 text-sm"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-zinc-200">
+                      <span className="tnum text-zinc-500">#{t.id}</span> ·{" "}
+                      {t.customer_name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      {t.type_name ?? "—"}
+                      {t.customer_phone ? ` · ${t.customer_phone}` : ""}
+                      {t.from_allocation
+                        ? " · cupo promotor"
+                        : " · venta directa"}
+                      {t.sold_by_name ? ` · por ${t.sold_by_name}` : ""}
+                      {t.price_cents_snapshot > 0
+                        ? ` · $${(t.price_cents_snapshot / 100).toLocaleString("es-CO")}`
+                        : " · cortesía"}
+                    </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${st.cls}`}
+                    >
+                      {st.label}
+                    </span>
+                    {canVoid && voidingId !== t.id && editingId !== t.id && (
+                      <>
+                        <button
+                          onClick={() => reissueTicket(t)}
+                          disabled={busy}
+                          className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
+                        >
+                          Reemitir
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingId(t.id);
+                            setEdit({
+                              name: t.customer_name ?? "",
+                              phone: t.customer_phone ?? "",
+                              reason: "",
+                            });
+                          }}
+                          className="rounded-lg px-2 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800"
+                        >
+                          Corregir
+                        </button>
+                        <button
+                          onClick={() => {
+                            setVoidingId(t.id);
+                            setReason("Error de digitación");
+                          }}
+                          className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                        >
+                          Anular
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {voidingId === t.id && (
+                  <div className="mt-2 flex gap-2">
                     <input
-                      value={edit.reason}
-                      onChange={(e) =>
-                        setEdit({ ...edit, reason: e.target.value })
-                      }
-                      className="field !py-1.5 flex-1 text-xs"
-                      placeholder="Motivo (opcional): quedó mal escrito, cambió de número…"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      className="field !py-1.5 text-xs"
+                      placeholder="Motivo de anulación"
+                      minLength={3}
+                      required
                     />
                     <button
-                      onClick={() => saveContact(t)}
-                      disabled={
-                        busy || (!edit.name.trim() && !edit.phone.trim())
-                      }
-                      className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                      onClick={() => voidTicket(t)}
+                      disabled={busy || reason.trim().length < 3}
+                      className="rounded-lg bg-red-500/90 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-500 disabled:opacity-50"
                     >
-                      {busy ? "Guardando…" : "Guardar"}
+                      {busy ? "Anulando…" : "Confirmar"}
                     </button>
                     <button
-                      onClick={() => setEditingId(null)}
+                      onClick={() => setVoidingId(null)}
                       className="rounded-lg px-2 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
                     >
                       Cancelar
                     </button>
                   </div>
-                </div>
-              )}
-              {/* Auditoría de la mig 015: quién corrigió el contacto y cuándo.
+                )}
+                {editingId === t.id && (
+                  <div className="mt-2 space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                    <p className="text-xs font-semibold text-zinc-400">
+                      Corregir contacto · queda en auditoría (mig 015)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        value={edit.name}
+                        onChange={(e) =>
+                          setEdit({ ...edit, name: e.target.value })
+                        }
+                        className="field !py-1.5 text-xs sm:flex-1"
+                        placeholder="Nombre del asistente"
+                      />
+                      <input
+                        value={edit.phone}
+                        onChange={(e) =>
+                          setEdit({ ...edit, phone: e.target.value })
+                        }
+                        className="field !py-1.5 text-xs sm:flex-1"
+                        placeholder="Teléfono (WhatsApp)"
+                        inputMode="tel"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={edit.reason}
+                        onChange={(e) =>
+                          setEdit({ ...edit, reason: e.target.value })
+                        }
+                        className="field !py-1.5 flex-1 text-xs"
+                        placeholder="Motivo (opcional): quedó mal escrito, cambió de número…"
+                      />
+                      <button
+                        onClick={() => saveContact(t)}
+                        disabled={
+                          busy || (!edit.name.trim() && !edit.phone.trim())
+                        }
+                        className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                      >
+                        {busy ? "Guardando…" : "Guardar"}
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="rounded-lg px-2 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {/* Auditoría de la mig 015: quién corrigió el contacto y cuándo.
                   Cargada perezosa al expandir: con cientos de boletas no se
                   pueden N fetches por listado. */}
-              <ContactEditsHistory
-                venueId={venueId}
-                eventId={eventId}
-                ticket={t}
-                ticketIdField="id"
-              />
-            </li>
-          );
-        })}
-        {filtered.length === 0 && (tickets || []).length > 0 && (
-          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-3 text-sm text-zinc-500">
-            Ninguna boleta coincide con la búsqueda.
-          </li>
-        )}
-        {(tickets || []).length === 0 && (
+                <ContactEditsHistory
+                  venueId={venueId}
+                  eventId={eventId}
+                  ticket={t}
+                  ticketIdField="id"
+                />
+              </li>
+            );
+          })}
+        {!loading && items.length === 0 && total === 0 && (
           <li className="list-none">
             <EmptyState
               icon="ticket"
@@ -378,7 +469,35 @@ export default function TicketList({
             </EmptyState>
           </li>
         )}
+        {!loading && items.length === 0 && total > 0 && (
+          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-3 text-sm text-zinc-500">
+            Ninguna boleta coincide con el filtro.
+          </li>
+        )}
       </ul>
+
+      {/* Paginador: solo si hay más de una página */}
+      {!loading && totalPages > 1 && (
+        <div className="mt-3 flex items-center justify-between">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="btn-ghost !py-1.5 text-xs disabled:opacity-30"
+          >
+            ← Anterior
+          </button>
+          <span className="tnum text-xs text-zinc-500">
+            {page + 1} / {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="btn-ghost !py-1.5 text-xs disabled:opacity-30"
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { fetchPublicTicket, fetchTicketImage } from "../lib/api";
+import { eventDate } from "../lib/format";
 import Icon from "../components/Icon";
 
 /**
@@ -84,9 +85,13 @@ export default function PublicTicketPage() {
     setBusy(true);
     try {
       const blob = await (await fetch(imageUrl)).blob();
-      const file = new File([blob], `boleta-${ticket?.ticket_id ?? "ticketflow"}.jpg`, {
-        type: "image/jpeg",
-      });
+      const file = new File(
+        [blob],
+        `boleta-${ticket?.ticket_id ?? "ticketflow"}.jpg`,
+        {
+          type: "image/jpeg",
+        },
+      );
       // Web Share API (movil): manda la IMAGEN, no un texto.
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: "Mi boleta" });
@@ -125,15 +130,17 @@ export default function PublicTicketPage() {
             label: "En la entrada",
             state: ticket.status === "redeemed" ? "done" : "current",
           },
-          { label: ticket.status === "redeemed" ? "Usada" : "Escaneada", state: ticket.status === "redeemed" ? "done" : "" },
+          {
+            label: ticket.status === "redeemed" ? "Usada" : "Escaneada",
+            state: ticket.status === "redeemed" ? "done" : "",
+          },
         ]
       : null;
 
   return (
-    <div className="grain relative min-h-screen overflow-hidden bg-slate-950 px-4 py-8">
-      <div className="atmosphere" aria-hidden="true" />
+    <div className="relative min-h-screen bg-zinc-950 px-4 py-8">
       <div className="relative mx-auto w-full max-w-sm animate-rise">
-        <div className="card-lit card p-5">
+        <div className="card card-interactive p-5">
           <div className="mb-4 flex items-center gap-2">
             <span className="tile grid h-9 w-9">
               <Icon name="ticket" className="h-4 w-4 text-brand-400" />
@@ -148,49 +155,64 @@ export default function PublicTicketPage() {
 
           {error ? (
             <div className="rounded-xl bg-red-500/10 p-4 text-center ring-1 ring-red-500/30">
-              <Icon name="alert" className="mx-auto mb-2 h-6 w-6 text-red-400" />
+              <Icon
+                name="alert"
+                className="mx-auto mb-2 h-6 w-6 text-red-400"
+              />
               <p className="text-sm font-medium text-red-300">{error}</p>
             </div>
           ) : (
             <>
               {!qrActive ? (
-                <div className="rounded-2xl bg-slate-800/60 p-6 text-center ring-1 ring-slate-700/50">
+                <div className="rounded-2xl bg-zinc-900/60 p-6 text-center ring-1 ring-zinc-800">
                   <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-brand-500/15">
                     <Icon name="clock" className="h-7 w-7 text-brand-300" />
                   </span>
-                  <p className="text-sm font-bold text-white">Tu QR aún no se activa</p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-300">{qrMessage}</p>
-                  <p className="mt-3 text-[11px] text-slate-400">
-                    Guarda este enlace: es tu boleta y en la puerta va a funcionar.
+                  <p className="text-sm font-bold text-white">
+                    Tu QR aún no se activa
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-300">
+                    {qrMessage}
+                  </p>
+                  <p className="mt-3 text-[11px] text-zinc-400">
+                    Guarda este enlace: es tu boleta y en la puerta va a
+                    funcionar.
                   </p>
                 </div>
               ) : (
                 <>
                   <div className="relative mx-auto w-fit rounded-2xl bg-white p-3 shadow-2xl">
                     {qrDataUrl ? (
-                      <img src={qrDataUrl} alt="QR de tu boleta" className="h-56 w-56" />
+                      <img
+                        src={qrDataUrl}
+                        alt="QR de tu boleta"
+                        className="h-56 w-56"
+                      />
                     ) : (
                       <div className="skeleton h-56 w-56 !rounded-lg" />
                     )}
                     {redeemed && (
-                      <div className="absolute inset-0 grid place-items-center rounded-2xl bg-slate-950/70">
-                        <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-slate-900">
+                      <div className="absolute inset-0 grid place-items-center rounded-2xl bg-zinc-950/70">
+                        <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-zinc-950">
                           Ya usada
                         </span>
                       </div>
                     )}
                   </div>
 
-                  <p className="mt-3 text-center text-sm text-slate-400">
+                  <p className="mt-3 text-center text-sm text-zinc-400">
                     Muestra este QR en la entrada
                   </p>
                 </>
               )}
 
               {lifecycle && (
-                <div className="ticket-timeline mt-4 rounded-xl bg-slate-800/40 px-4 py-3 ring-1 ring-slate-700/40">
+                <div className="ticket-timeline mt-4 rounded-xl bg-zinc-900/40 px-4 py-3 ring-1 ring-zinc-800/80">
                   {lifecycle.map((step) => (
-                    <div key={step.label} className={`ticket-step ${step.state}`}>
+                    <div
+                      key={step.label}
+                      className={`ticket-step ${step.state}`}
+                    >
                       <span className="ticket-step-dot" aria-hidden="true" />
                       <span className="ticket-step-label">{step.label}</span>
                     </div>
@@ -198,23 +220,23 @@ export default function PublicTicketPage() {
                 </div>
               )}
 
-              <div className="mt-5 space-y-1 rounded-xl bg-slate-800/60 p-3 ring-1 ring-slate-700/50">
+              <div className="mt-5 space-y-1 rounded-xl bg-zinc-900/60 p-3 ring-1 ring-zinc-800">
                 <p className="text-base font-bold text-white">
                   {ticket?.customer_name ?? "—"}
                 </p>
-                <p className="text-xs text-slate-400">{ticket?.venue_name}</p>
-                <p className="flex items-center gap-1.5 text-xs text-slate-400">
+                <p className="text-xs text-zinc-400">{ticket?.venue_name}</p>
+                <p className="flex items-center gap-1.5 text-xs text-zinc-400">
                   <Icon name="clock" className="h-3.5 w-3.5" />
-                  {ticket?.starts_at}
+                  {eventDate(ticket?.starts_at)}
                 </p>
                 {ticket?.location && (
-                  <p className="flex items-start gap-1.5 text-xs text-slate-300">
+                  <p className="flex items-start gap-1.5 text-xs text-zinc-300">
                     <Icon name="door" className="mt-px h-3.5 w-3.5 shrink-0" />
                     {ticket.location}
                   </p>
                 )}
                 {ticket && (
-                  <p className="tnum text-xs text-slate-500">
+                  <p className="tnum text-xs text-zinc-500">
                     Boleta #{ticket.ticket_id}
                   </p>
                 )}
@@ -224,7 +246,11 @@ export default function PublicTicketPage() {
                 type="button"
                 onClick={shareOrDownload}
                 disabled={!imageUrl || busy || !qrActive}
-                title={!qrActive ? "El QR se activa cerca de la fecha del evento" : undefined}
+                title={
+                  !qrActive
+                    ? "El QR se activa cerca de la fecha del evento"
+                    : undefined
+                }
                 className="btn-primary mt-4 w-full disabled:opacity-50"
               >
                 <Icon name="whatsapp" className="h-4 w-4" />
@@ -238,7 +264,7 @@ export default function PublicTicketPage() {
           )}
         </div>
 
-        <p className="mt-4 text-center text-xs text-slate-600">
+        <p className="mt-4 text-center text-xs text-zinc-600">
           Guarda esta página: la necesitas en la entrada · TicketFlow
         </p>
       </div>

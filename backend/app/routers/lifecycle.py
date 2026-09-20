@@ -6,7 +6,7 @@ import csv
 import io
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from app.core.config import get_settings
 from app.core.db import get_db
@@ -22,6 +22,7 @@ from app.schemas import (
     MessageOut,
     PurgeUserRequest,
     ResetPassword,
+    TicketListOut,
     TicketOut,
     UpdateVenueUser,
     VenueUserOut,
@@ -724,21 +725,37 @@ async def create_venue_user(
 # ---------------------------------------------------------------------------
 # Listado de boletas del evento (para revisar, anular y reimprimir desde la UI)
 # ---------------------------------------------------------------------------
-@router.get("/events/{event_id}/tickets", response_model=list[TicketOut])
+@router.get("/events/{event_id}/tickets", response_model=TicketListOut)
 async def list_tickets(
     venue_id: int, event_id: int,
+    request: Request,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
     phone: str | None = None,
+    status: str | None = None,
+    type_id: int | None = None,
+    q: str | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
 ):
-    """Boletas del evento.
+    """Boletas del evento, paginadas y con filtros.
 
     El staff (super_admin/admin) ve todas; el promotor ve SOLO las suyas. Antes
     esto era admin-only y el promotor no podia ni listar lo que habia vendido,
     asi que si perdia el enlace de una boleta no tenia forma de recuperarla.
 
-    `?phone=` (dijitos, se comparan normalizados) acota a un asistente, que es
-    el caso real de "el invitado no recibio su QR".
+    Filtros (y combinables entre si):
+    - `?phone=` digitos, comparados normalizados por sufijo (el invitado no
+      recibio su QR).
+    - `?status=` issued|redeemed|voided|refunded — "las anuladas del evento".
+    - `?type_id=` fila/tipo del evento — "las VIP".
+    - `?q=` texto libre sobre el nombre del asistente.
+    - `?limit=&offset=` pagina de a 50 (max 200).
+
+    La respuesta trae `total` (con los filtros aplicados, sin paginar) para
+    que la UI pinte "128 boletas · pagina 2 de 3" y el paginador no adivine.
+    `?format=csv&all=1` devuelve el listado COMPLETO filtrado como CSV
+    (stream de texto, sin limite de paginas) — para el contador.
     """
     ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
     roles = user["roles"].get(venue_id, [])
@@ -766,12 +783,42 @@ async def list_tickets(
             )
             params.extend([len(digits), digits])
 
+    status_filter = ""
+    if status:
+        if status not in ("issued", "redeemed", "voided", "refunded"):
+            raise HTTPException(422, "Estado invalido")
+        status_filter = " AND t.status = %s"
+        params.append(status)
+
+    type_filter = ""
+    if type_id:
+        type_filter = " AND t.ticket_type_id = %s"
+        params.append(type_id)
+
+    q_filter = ""
+    if q and q.strip():
+        q_filter = " AND t.customer_name ILIKE %s"
+        params.append(f"%{q.strip()}%")
+
+    where = f"{owner_filter}{phone_filter}{status_filter}{type_filter}{q_filter}"
+
     async with db.cursor() as cur:
         await cur.execute(
             "SELECT 1 FROM events WHERE id=%s AND venue_id=%s", (event_id, venue_id)
         )
         if not await cur.fetchone():
             raise HTTPException(404, "Evento no encontrado")
+
+        # Para CSV: sin límite de página (el export es completo); para JSON:
+        # paginado. El total con filtros alimenta el paginador en ambos casos.
+        is_csv = request.query_params.get("format") == "csv"
+        await cur.execute(
+            f"SELECT count(*)::int AS n FROM tickets t WHERE t.event_id = %s{where}",
+            tuple(params),
+        )
+        total = (await cur.fetchone())["n"]
+
+        page = "LIMIT %s OFFSET %s" if not is_csv else "LIMIT 10000"
         await cur.execute(
             f"""
             SELECT t.id, t.customer_name, t.customer_phone, t.customer_email, t.status,
@@ -783,11 +830,28 @@ async def list_tickets(
             JOIN ticket_types tt ON tt.id = t.ticket_type_id
             LEFT JOIN users u ON u.id = t.sold_by_user_id
             LEFT JOIN promoter_allocations a ON a.id = t.allocation_id
-            WHERE t.event_id = %s{owner_filter}{phone_filter}
+            WHERE t.event_id = %s{where}
             ORDER BY t.id DESC
-            LIMIT 200
+            {page}
             """,
-            tuple(params),
+            tuple([*params, limit, offset] if not is_csv else params),
         )
         rows = await cur.fetchall()
-    return rows
+
+    if request.query_params.get("format") == "csv":
+        # CSV del listado filtrado COMPLETO (sin paginar): mismo contrato de
+        # permisos que el JSON — el promotor exporta solo las suyas.
+        header = ["id", "asistente", "telefono", "email", "estado", "fila",
+                  "vendida_por", "con_cupo", "precio", "emitida"]
+        rows_csv = [
+            [
+                r["id"], r["customer_name"], r["customer_phone"] or "",
+                r["customer_email"] or "", r["status"], r["type_name"] or "",
+                r["sold_by_name"] or "", "si" if r["from_allocation"] else "no",
+                (r["price_cents_snapshot"] or 0) / 100,
+                r["issued_at"].isoformat() if r["issued_at"] else "",
+            ]
+            for r in rows
+        ]
+        return _csv_response(f"boletas-evento-{event_id}.csv", header, rows_csv)
+    return {"total": total, "items": rows}

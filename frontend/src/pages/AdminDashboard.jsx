@@ -867,7 +867,6 @@ export default function AdminDashboard() {
               <TicketList
                 venueId={venueId}
                 eventId={selectedEvent}
-                tickets={tickets}
                 onChanged={refreshEventData}
                 onError={setError}
               />
