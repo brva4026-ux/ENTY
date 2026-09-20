@@ -10,6 +10,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
+import { missingList } from "../lib/passwordPolicy";
+import PasswordMeter from "./PasswordMeter";
 
 const fmtCOP = (cents) =>
   `$${(cents / 100).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
@@ -225,6 +227,12 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
 
   async function resetPassword() {
     setErr("");
+    // Misma política que el backend: el admin no descubre el 422 a ciegas.
+    const missing = missingList(newPass);
+    if (missing.length > 0) {
+      setErr(`Le falta a la contraseña: ${missing.join(", ")}.`);
+      return;
+    }
     setBusyAction("reset");
     try {
       await apiFetch(`/venues/${venueId}/users/${m.id}/reset-password`, {
@@ -447,22 +455,26 @@ function MemberRow({ m, venueId, onChanged, openId, setOpenId, resetId, setReset
           </div>
 
           {resetId === m.id && (
-            <div className="flex gap-1.5">
-              <input
-                value={newPass}
-                onChange={(e) => setNewPass(e.target.value)}
-                className="field py-1 text-xs"
-                type="password"
-                placeholder="Nueva contraseña (mín. 8)"
-                minLength={8}
-              />
-              <button
-                onClick={resetPassword}
-                disabled={newPass.length < 8}
-                className="btn-primary px-3 py-1 text-xs font-bold disabled:opacity-40"
-              >
-                Guardar
-              </button>
+            <div className="w-full">
+              <div className="flex gap-1.5">
+                <input
+                  value={newPass}
+                  onChange={(e) => setNewPass(e.target.value)}
+                  className="field py-1 text-xs"
+                  type="password"
+                  placeholder="Nueva contraseña (mín. 8)"
+                  minLength={8}
+                  maxLength={128}
+                />
+                <button
+                  onClick={resetPassword}
+                  disabled={newPass.length < 8}
+                  className="btn-primary px-3 py-1 text-xs font-bold disabled:opacity-40"
+                >
+                  Guardar
+                </button>
+              </div>
+              {newPass && <PasswordMeter value={newPass} />}
             </div>
           )}
         </div>
@@ -505,8 +517,13 @@ export default function TeamManager({ venueId, users, onChanged }) {
 
   async function createUser(e) {
     e.preventDefault();
-    setBusy(true);
     setErr("");
+    const missing = missingList(form.password);
+    if (missing.length > 0) {
+      setErr(`Le falta a la contraseña: ${missing.join(", ")}.`);
+      return;
+    }
+    setBusy(true);
     try {
       await apiFetch(`/venues/${venueId}/users`, {
         method: "POST",
@@ -740,8 +757,10 @@ export default function TeamManager({ venueId, users, onChanged }) {
               type="password"
               placeholder="Contraseña (mín. 8)"
               minLength={8}
+              maxLength={128}
               required
             />
+            {form.password && <PasswordMeter value={form.password} />}
             <button disabled={busy} className="btn-primary col-span-full">
               {busy ? "Creando…" : "Crear usuario"}
             </button>

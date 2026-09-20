@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useAuth } from "../lib/auth";
+import { missingList } from "../lib/passwordPolicy";
 import { Logo } from "../components/Brand";
+import PasswordMeter from "../components/PasswordMeter";
 
 const STRENGTH = [
   { max: 2, label: "Débil", color: "bg-red-500", width: "w-1/4" },
@@ -9,15 +11,6 @@ const STRENGTH = [
   { max: 4, label: "Buena", color: "bg-emerald-500", width: "w-3/4" },
   { max: 99, label: "Excelente", color: "bg-emerald-400", width: "w-full" },
 ];
-
-function passwordIssues(pw) {
-  const issues = [];
-  if (pw.length < 8) issues.push("mínimo 8 caracteres");
-  if (!/[A-ZÁÉÍÓÚÑ]/.test(pw)) issues.push("una mayúscula");
-  if (!/[a-záéíóúñ]/.test(pw)) issues.push("una minúscula");
-  if (!/[0-9]/.test(pw)) issues.push("un número");
-  return issues;
-}
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -32,10 +25,9 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const issues = useMemo(
-    () => passwordIssues(form.password),
-    [form.password]
-  );
+  // Misma política que el backend (lib compartida): el submit no pasa con
+  // requisitos pendientes y la checklist en vivo explica cuáles.
+  const issues = useMemo(() => missingList(form.password), [form.password]);
   const score = 4 - issues.length;
   const strength = STRENGTH.find((s) => score <= s.max) ?? STRENGTH[3];
 
@@ -157,11 +149,7 @@ export default function RegisterPage() {
                     {strength.label}
                   </span>
                 </div>
-                {issues.length > 0 && (
-                  <p className="mt-1.5 text-xs text-zinc-500">
-                    Le falta: {issues.join(", ")}.
-                  </p>
-                )}
+                <PasswordMeter value={form.password} />
               </div>
             )}
 

@@ -2,7 +2,9 @@ import re
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
+
+from app.core.password_policy import PasswordStr, check_password_strength
 
 # Regex de email pragmática: acepta tlds de prueba (.test, .local) y hosts reales.
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
@@ -13,7 +15,9 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
 # --------------------------------------------------------------------------
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
-    password: str
+    # max_length=128: sin cota, el cuerpo del login era un vector de DoS barato
+    # (bcrypt de un string de megabytes consume CPU real por request).
+    password: str = Field(max_length=128)
 
 
 class TokenResponse(BaseModel):
@@ -331,7 +335,13 @@ class UpdateVenueUser(BaseModel):
 
 
 class ResetPassword(BaseModel):
-    new_password: str = Field(min_length=8, max_length=128)
+    """Reset operado por el admin: misma política que el self-service."""
+    new_password: PasswordStr
+
+    @field_validator("new_password")
+    @classmethod
+    def _strong_new(cls, v: str) -> str:
+        return check_password_strength(v)
 
 
 class RegisterRequest(BaseModel):
@@ -339,7 +349,12 @@ class RegisterRequest(BaseModel):
     venue_name: str = Field(min_length=2, max_length=120)
     full_name: str = Field(min_length=2, max_length=120)
     email: str = Field(min_length=5, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
-    password: str = Field(min_length=8, max_length=128)
+    password: PasswordStr
+
+    @field_validator("password")
+    @classmethod
+    def _strong_reg(cls, v: str) -> str:
+        return check_password_strength(v)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -348,8 +363,13 @@ class ForgotPasswordRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     """Cambio de contraseña propia: exige la vigente."""
-    current_password: str
-    new_password: str = Field(min_length=8, max_length=128)
+    current_password: str = Field(max_length=128)
+    new_password: PasswordStr
+
+    @field_validator("new_password")
+    @classmethod
+    def _strong_change(cls, v: str) -> str:
+        return check_password_strength(v)
 
 
 class UpdateProfileRequest(BaseModel):

@@ -278,13 +278,26 @@ async def register(
 @router.post("/forgot-password", response_model=MessageOut)
 async def forgot_password(
     body: ForgotPasswordRequest,
+    request: Request,
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     """Responde SIEMPRE lo mismo (no revela qué emails existen).
 
     Sin proveedor de email configurado, orienta al usuario: self-service de
     venue (registro) o reset operado por un admin de su venue.
+
+    Rate-limited con el lockout en DB (cubo por IP con email sentinel): el
+    mensaje no filtra información, pero sin límite era un vector de basura
+    y de enumeración en volumen (comparar latencias/textos entre IPs).
     """
+    ip = _client_ip(request)
+    if await _login_locked(db, "__forgot__", ip):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Demasiadas consultas. Espera unos minutos e intenta de nuevo.",
+        )
+    await _register_failure(db, "__forgot__", ip)
+
     async with db.cursor() as cur:
         await cur.execute(
             """SELECT u.is_active

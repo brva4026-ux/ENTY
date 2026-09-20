@@ -79,6 +79,22 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Headers de seguridad en las respuestas de la API. La UI estática los
+    # recibe de vercel.json; la función serverless es un origen aparte y los
+    # necesita propios (un error HTML crudo no debe poder renderizarse en un
+    # iframe ajeno, ni sniffearse como otro tipo).
+    @app.middleware("http")
+    async def security_headers(request, call_next):
+        response = await call_next(request)
+        h = response.headers
+        h.setdefault("X-Content-Type-Options", "nosniff")
+        h.setdefault("X-Frame-Options", "DENY")
+        h.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        # La puerta usa cámara (escáner) y geolocalización (check-in); nada
+        # más necesita permisos potentes desde el origen de la API.
+        h.setdefault("Permissions-Policy", "camera=(self), geolocation=(self)")
+        return response
+
     app.include_router(invitations.router)
     app.include_router(auth.router)
     app.include_router(events.router)

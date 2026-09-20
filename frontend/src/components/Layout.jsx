@@ -54,6 +54,10 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen">
+      {/* A11y: primer Tab lo muestra y salta directo al contenido. */}
+      <a href="#contenido" className="skip-link">
+        Saltar al contenido
+      </a>
       {/* Header compacto: se reduce la marca y el nav se esconde en móvil
           (lo reemplaza la barra inferior, el patrón de apps nativas). */}
       <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur">
@@ -69,6 +73,7 @@ export default function Layout({ children }) {
                   <Link
                     key={t.to}
                     to={t.to}
+                    aria-current={active ? "page" : undefined}
                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
                       active
                         ? "bg-zinc-800 text-white"
@@ -114,7 +119,7 @@ export default function Layout({ children }) {
 
       {/* pb extra en móvil: la barra inferior es fija y no debe tapar contenido.
           Cada navegación re-monta contenido → .reveal coreografía la entrada. */}
-      <main className="mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8">
+      <main id="contenido" className="mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8">
         <div key={pathname} className="reveal">
           {children}
         </div>

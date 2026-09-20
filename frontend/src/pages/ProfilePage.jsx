@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { activeVenueId, setActiveVenueId } from "../lib/venue";
+import PasswordMeter from "../components/PasswordMeter";
 
 const roleLabel = (role) =>
   ({ admin: "Administrador", promotor: "Promotor", bouncer: "Portero" })[role] ?? role;
@@ -36,6 +37,7 @@ export default function ProfilePage() {
 
   // Cambio de contraseña
   const [curPass, setCurPass] = useState("");
+  const [showCur, setShowCur] = useState(false);
   const [newPass, setNewPass] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [passMsg, setPassMsg] = useState(null); // {ok, text}
@@ -61,6 +63,10 @@ export default function ProfilePage() {
   async function submitPassword(e) {
     e.preventDefault();
     setPassMsg(null);
+    if (newPass.length > 128) {
+      setPassMsg({ ok: false, text: "La nueva contraseña no puede superar 128 caracteres." });
+      return;
+    }
     if (newPass.length < 8) {
       setPassMsg({ ok: false, text: "La nueva contraseña debe tener al menos 8 caracteres." });
       return;
@@ -362,15 +368,26 @@ export default function ProfilePage() {
             <label htmlFor="cur-pass" className="mb-1 block text-xs font-medium text-zinc-400">
               Contraseña actual
             </label>
-            <input
-              id="cur-pass"
-              type="password"
-              value={curPass}
-              onChange={(e) => setCurPass(e.target.value)}
-              className="field"
-              autoComplete="current-password"
-              required
-            />
+            <div className="relative">
+              <input
+                id="cur-pass"
+                type={showCur ? "text" : "password"}
+                value={curPass}
+                onChange={(e) => setCurPass(e.target.value)}
+                className="field !pr-16"
+                autoComplete="current-password"
+                maxLength={128}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowCur((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
+                aria-label={showCur ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showCur ? "Ocultar" : "Ver"}
+              </button>
+            </div>
           </div>
 
           <div>
@@ -386,6 +403,7 @@ export default function ProfilePage() {
                 className="field !pr-16"
                 autoComplete="new-password"
                 minLength={8}
+                maxLength={128}
                 required
               />
               <button
@@ -397,6 +415,7 @@ export default function ProfilePage() {
                 {showNew ? "Ocultar" : "Ver"}
               </button>
             </div>
+            {newPass && <PasswordMeter value={newPass} idPrefix="new-pass" />}
           </div>
 
           {passMsg && (
