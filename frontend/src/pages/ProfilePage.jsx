@@ -4,9 +4,12 @@ import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import PasswordMeter from "../components/PasswordMeter";
+import ThemeChooser from "../components/ThemeChooser";
 
 const roleLabel = (role) =>
-  ({ admin: "Administrador", promotor: "Promotor", bouncer: "Portero" })[role] ?? role;
+  ({ admin: "Administrador", promotor: "Promotor", bouncer: "Portero" })[
+    role
+  ] ?? role;
 
 /** Página de perfil: identidad del usuario, cambio de contraseña y
  *  eliminación definitiva de la cuenta (zona de peligro). */
@@ -15,7 +18,9 @@ export default function ProfilePage() {
   const nav = useNavigate();
   // Negocio activo (multi-negocio): estado local para re-pintar el selector
   // al instante; los paneles leen el valor persistido en cada carga.
-  const [currentVenueId, setCurrentVenueId] = useState(() => activeVenueId(user));
+  const [currentVenueId, setCurrentVenueId] = useState(() =>
+    activeVenueId(user),
+  );
 
   // Edición de datos propios
   const [name, setName] = useState(user?.full_name || "");
@@ -24,12 +29,14 @@ export default function ProfilePage() {
 
   // Edición del negocio (primer venue donde tiene rol admin)
   const adminVenue = (user?.venues || []).find((v) =>
-    (user?.roles?.[String(v.id)] || []).includes("admin")
+    (user?.roles?.[String(v.id)] || []).includes("admin"),
   );
   const [venueName, setVenueName] = useState(adminVenue?.name || "");
   const [venueLogo, setVenueLogo] = useState(adminVenue?.logo_url || "");
   const [venueCommission, setVenueCommission] = useState(
-    adminVenue?.commission_pct != null ? String(adminVenue.commission_pct) : "0",
+    adminVenue?.commission_pct != null
+      ? String(adminVenue.commission_pct)
+      : "0",
   );
   const [logoError, setLogoError] = useState("");
   const [venueMsg, setVenueMsg] = useState(null);
@@ -58,24 +65,37 @@ export default function ProfilePage() {
       ? "promotor"
       : "bouncer";
   const initials = (user.full_name || "?")
-    .split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   async function submitPassword(e) {
     e.preventDefault();
     setPassMsg(null);
     if (newPass.length > 128) {
-      setPassMsg({ ok: false, text: "La nueva contraseña no puede superar 128 caracteres." });
+      setPassMsg({
+        ok: false,
+        text: "La nueva contraseña no puede superar 128 caracteres.",
+      });
       return;
     }
     if (newPass.length < 8) {
-      setPassMsg({ ok: false, text: "La nueva contraseña debe tener al menos 8 caracteres." });
+      setPassMsg({
+        ok: false,
+        text: "La nueva contraseña debe tener al menos 8 caracteres.",
+      });
       return;
     }
     setPassBusy(true);
     try {
       const res = await apiFetch("/auth/change-password", {
         method: "POST",
-        body: JSON.stringify({ current_password: curPass, new_password: newPass }),
+        body: JSON.stringify({
+          current_password: curPass,
+          new_password: newPass,
+        }),
       });
       setPassMsg({ ok: true, text: res.detail });
       setCurPass("");
@@ -91,7 +111,10 @@ export default function ProfilePage() {
     e.preventDefault();
     setNameMsg(null);
     if (name.trim().length < 2) {
-      setNameMsg({ ok: false, text: "El nombre debe tener al menos 2 caracteres." });
+      setNameMsg({
+        ok: false,
+        text: "El nombre debe tener al menos 2 caracteres.",
+      });
       return;
     }
     setNameBusy(true);
@@ -128,8 +151,13 @@ export default function ProfilePage() {
         ...user,
         venues: user.venues.map((v) =>
           v.id === updated.id
-            ? { ...v, name: updated.name, logo_url: updated.logo_url, commission_pct: updated.commission_pct }
-            : v
+            ? {
+                ...v,
+                name: updated.name,
+                logo_url: updated.logo_url,
+                commission_pct: updated.commission_pct,
+              }
+            : v,
         ),
       });
       setVenueMsg({ ok: true, text: "Datos del negocio actualizados." });
@@ -172,7 +200,8 @@ export default function ProfilePage() {
           <p className="truncate text-sm text-zinc-400">{user.email}</p>
           <p className="mt-1 text-xs text-zinc-500">
             {roleLabel(role)}
-            {user.venues?.length > 0 && ` · ${user.venues.map((v) => v.name).join(", ")}`}
+            {user.venues?.length > 0 &&
+              ` · ${user.venues.map((v) => v.name).join(", ")}`}
           </p>
         </div>
       </div>
@@ -203,9 +232,13 @@ export default function ProfilePage() {
                   }`}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold text-white">{v.name}</span>
+                    <span className="block truncate text-sm font-bold text-white">
+                      {v.name}
+                    </span>
                     <span className="block text-xs text-zinc-500">
-                      {(user.roles?.[String(v.id)] || []).map(roleLabel).join(", ")}
+                      {(user.roles?.[String(v.id)] || [])
+                        .map(roleLabel)
+                        .join(", ")}
                     </span>
                   </span>
                   {active && (
@@ -224,11 +257,15 @@ export default function ProfilePage() {
       <div className="card p-5">
         <h3 className="display mb-1 text-base">Tus datos</h3>
         <p className="mb-4 text-xs text-zinc-500">
-          Tu nombre es el que ven tu equipo y quedó registrado en las boletas que emitas.
+          Tu nombre es el que ven tu equipo y quedó registrado en las boletas
+          que emitas.
         </p>
         <form onSubmit={submitName} className="space-y-3">
           <div>
-            <label htmlFor="full-name" className="mb-1 block text-xs font-medium text-zinc-400">
+            <label
+              htmlFor="full-name"
+              className="mb-1 block text-xs font-medium text-zinc-400"
+            >
               Nombre completo
             </label>
             <input
@@ -253,7 +290,11 @@ export default function ProfilePage() {
               {nameMsg.text}
             </div>
           )}
-          <button type="submit" disabled={nameBusy || name.trim() === user.full_name} className="btn-primary disabled:opacity-40">
+          <button
+            type="submit"
+            disabled={nameBusy || name.trim() === user.full_name}
+            className="btn-primary disabled:opacity-40"
+          >
             {nameBusy ? "Guardando…" : "Guardar nombre"}
           </button>
         </form>
@@ -264,11 +305,15 @@ export default function ProfilePage() {
         <div className="card p-5">
           <h3 className="display mb-1 text-base">Tu negocio</h3>
           <p className="mb-4 text-xs text-zinc-500">
-            El nombre y el logo representan tu negocio ante tu equipo y tus clientes.
+            El nombre y el logo representan tu negocio ante tu equipo y tus
+            clientes.
           </p>
           <form onSubmit={submitVenue} className="space-y-3">
             <div>
-              <label htmlFor="venue-name" className="mb-1 block text-xs font-medium text-zinc-400">
+              <label
+                htmlFor="venue-name"
+                className="mb-1 block text-xs font-medium text-zinc-400"
+              >
                 Nombre del negocio
               </label>
               <input
@@ -282,7 +327,10 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label htmlFor="venue-logo" className="mb-1 block text-xs font-medium text-zinc-400">
+              <label
+                htmlFor="venue-logo"
+                className="mb-1 block text-xs font-medium text-zinc-400"
+              >
                 Logo (URL de imagen)
               </label>
               <div className="flex items-center gap-3">
@@ -311,7 +359,11 @@ export default function ProfilePage() {
                   maxLength={500}
                 />
               </div>
-              {logoError && <p className="mt-1 text-xs text-amber-400">{logoError} — revisa la URL.</p>}
+              {logoError && (
+                <p className="mt-1 text-xs text-amber-400">
+                  {logoError} — revisa la URL.
+                </p>
+              )}
             </div>
             {venueMsg && (
               <div
@@ -328,7 +380,10 @@ export default function ProfilePage() {
             {/* Comisión del promotor: base de las liquidaciones (se congela
                 por liquidación al cerrar el periodo). */}
             <div className="mt-4">
-              <label htmlFor="venue-commission" className="mb-1 block text-xs font-medium text-zinc-400">
+              <label
+                htmlFor="venue-commission"
+                className="mb-1 block text-xs font-medium text-zinc-400"
+              >
                 Comisión del promotor (%)
               </label>
               <input
@@ -347,7 +402,12 @@ export default function ProfilePage() {
             </div>
             <button
               type="submit"
-              disabled={venueBusy || (venueName.trim() === adminVenue.name && venueLogo === (adminVenue.logo_url || "") && venueCommission === String(adminVenue.commission_pct ?? 0))}
+              disabled={
+                venueBusy ||
+                (venueName.trim() === adminVenue.name &&
+                  venueLogo === (adminVenue.logo_url || "") &&
+                  venueCommission === String(adminVenue.commission_pct ?? 0))
+              }
               className="btn-primary disabled:opacity-40"
             >
               {venueBusy ? "Guardando…" : "Guardar negocio"}
@@ -365,7 +425,10 @@ export default function ProfilePage() {
 
         <form onSubmit={submitPassword} className="space-y-3">
           <div>
-            <label htmlFor="cur-pass" className="mb-1 block text-xs font-medium text-zinc-400">
+            <label
+              htmlFor="cur-pass"
+              className="mb-1 block text-xs font-medium text-zinc-400"
+            >
               Contraseña actual
             </label>
             <div className="relative">
@@ -383,7 +446,9 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => setShowCur((v) => !v)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
-                aria-label={showCur ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-label={
+                  showCur ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
               >
                 {showCur ? "Ocultar" : "Ver"}
               </button>
@@ -391,7 +456,10 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label htmlFor="new-pass" className="mb-1 block text-xs font-medium text-zinc-400">
+            <label
+              htmlFor="new-pass"
+              className="mb-1 block text-xs font-medium text-zinc-400"
+            >
               Nueva contraseña (mínimo 8 caracteres)
             </label>
             <div className="relative">
@@ -410,7 +478,9 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => setShowNew((v) => !v)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
-                aria-label={showNew ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-label={
+                  showNew ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
               >
                 {showNew ? "Ocultar" : "Ver"}
               </button>
@@ -437,6 +507,17 @@ export default function ProfilePage() {
         </form>
       </div>
 
+      {/* Apariencia: las tres opciones visibles (no un toggle escondido) */}
+      <div className="card p-5">
+        <h3 className="display mb-1 text-base">Apariencia</h3>
+        <p className="mb-4 text-xs leading-relaxed text-zinc-500">
+          El modo "Sistema" sigue la preferencia de tu dispositivo. La puerta
+          (escáner) siempre es oscura: un flash de blanco en un recinto a
+          oscuras ciega.
+        </p>
+        <ThemeChooser />
+      </div>
+
       {/* Zona de peligro */}
       <div className="card border-red-900/40 p-5">
         <h3 className="display mb-1 text-base text-red-300">Zona de peligro</h3>
@@ -454,9 +535,13 @@ export default function ProfilePage() {
             Eliminar mi cuenta…
           </button>
         ) : (
-          <form onSubmit={submitDelete} className="space-y-3 rounded-lg border border-red-900/40 bg-red-950/20 p-4">
+          <form
+            onSubmit={submitDelete}
+            className="space-y-3 rounded-lg border border-red-900/40 bg-red-950/20 p-4"
+          >
             <p className="text-sm text-red-200">
-              Escribe tu contraseña para confirmar. Esta acción no tiene deshacer.
+              Escribe tu contraseña para confirmar. Esta acción no tiene
+              deshacer.
             </p>
             <input
               type="password"
@@ -468,14 +553,21 @@ export default function ProfilePage() {
               required
             />
             {delErr && (
-              <div role="alert" className="rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
+              <div
+                role="alert"
+                className="rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300"
+              >
                 {delErr}
               </div>
             )}
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => { setDelOpen(false); setDelErr(""); setDelPass(""); }}
+                onClick={() => {
+                  setDelOpen(false);
+                  setDelErr("");
+                  setDelPass("");
+                }}
                 className="btn-ghost text-xs font-bold"
               >
                 Cancelar
