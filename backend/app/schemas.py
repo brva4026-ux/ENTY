@@ -621,6 +621,32 @@ class ReportSummary(BaseModel):
     by_promoter: list[dict]
 
 
+class VenueOverview(BaseModel):
+    """Vista agregada del negocio ENTRE eventos (la que faltaba).
+
+    Todo el criterio es idéntico al reporte por evento: boletas vivas
+    (issued + redeemed) facturan; anuladas/reembolsadas no. `month` es
+    'YYYY-MM' en la zona del venue (event_timezone del primer evento del mes
+    es demasiado; se usa la hora del servidor con la zona pedida).
+    """
+
+    month: str
+    # Mes seleccionado
+    events_count: int
+    tickets_issued: int
+    tickets_redeemed: int
+    revenue_cents: int
+    courtesy_tickets: int
+    avg_ticket_cents: int
+    # Tendencia: mismo agregado del mes anterior (la UI calcula el delta)
+    prev_revenue_cents: int
+    prev_tickets_issued: int
+    prev_events_count: int
+    # Rankings del mes
+    top_promoters: list[dict]   # [{name, tickets, revenue_cents}]
+    top_events: list[dict]      # [{id, name, starts_at, status, tickets, revenue_cents}]
+
+
 class MessageOut(BaseModel):
     detail: str
 

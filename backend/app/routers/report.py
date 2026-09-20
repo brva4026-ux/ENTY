@@ -7,14 +7,16 @@ Dos vistas sobre los mismos datos:
 - `ReportSummary` (`/summary`): solo admin/super_admin. Agrega ingresos y
   la integridad de la puerta (que escaneos no cuadraron).
 """
+from datetime import datetime
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
-from app.schemas import EventReport, ReportSummary
+from app.schemas import EventReport, ReportSummary, VenueOverview
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["reporte"])
 
@@ -227,4 +229,138 @@ async def event_summary(
         },
         by_type=by_type,
         by_promoter=by_promoter,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Vista agregada del negocio ENTRE eventos: "este mes vendi X, asistieron Y,
+# mi mejor promotor fue Z". Mismo criterio contable que el reporte por
+# evento: boletas vivas (issued + redeemed) facturan; anuladas/reembolsadas
+# no cuentan ni en dinero ni en rankings.
+# ---------------------------------------------------------------------------
+_OVERVIEW_SQL = """
+    WITH month_events AS (
+        SELECT id, name, capacity, status, starts_at
+        FROM events
+        WHERE venue_id = %(venue)s
+          AND date_trunc('month', starts_at AT TIME ZONE %(tz)s)
+                = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
+    )
+    SELECT
+        (SELECT count(*) FROM month_events)::int AS events_count,
+        count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS tickets_issued,
+        count(t.id) FILTER (WHERE t.status = 'redeemed')::int AS tickets_redeemed,
+        count(t.id) FILTER (WHERE t.status IN ('issued','redeemed')
+                             AND t.price_cents_snapshot = 0)::int AS courtesy_tickets,
+        coalesce(sum(t.price_cents_snapshot)
+                 FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint AS revenue_cents
+    FROM month_events e
+    LEFT JOIN tickets t ON t.event_id = e.id
+"""
+
+# Ranking de promotores del mes: por boletas vivas vendidas con SU cupo.
+_TOP_PROMOTERS_SQL = """
+    SELECT u.full_name AS name,
+           count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS tickets,
+           coalesce(sum(t.price_cents_snapshot)
+                    FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint AS revenue_cents
+    FROM tickets t
+    JOIN users u ON u.id = t.sold_by_user_id
+    JOIN events e ON e.id = t.event_id
+    WHERE e.venue_id = %(venue)s
+      AND t.allocation_id IS NOT NULL
+      AND date_trunc('month', e.starts_at AT TIME ZONE %(tz)s)
+            = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
+    GROUP BY u.id, u.full_name
+    ORDER BY tickets DESC, revenue_cents DESC
+    LIMIT 5
+"""
+
+# Top eventos del mes (para la mini-tabla con su aporte al mes).
+_TOP_EVENTS_SQL = """
+    SELECT e.id, e.name, e.starts_at, e.status,
+           count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS tickets,
+           coalesce(sum(t.price_cents_snapshot)
+                    FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint AS revenue_cents
+    FROM events e
+    LEFT JOIN tickets t ON t.event_id = e.id
+    WHERE e.venue_id = %(venue)s
+      AND date_trunc('month', e.starts_at AT TIME ZONE %(tz)s)
+            = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
+    GROUP BY e.id
+    ORDER BY revenue_cents DESC, tickets DESC
+    LIMIT 8
+"""
+
+# El mes anterior con LA MISMA métrica (tendencia real, no impresiones).
+_PREV_SQL = """
+    SELECT count(DISTINCT e.id)::int AS events_count,
+           count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS tickets_issued,
+           coalesce(sum(t.price_cents_snapshot)
+                    FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint AS revenue_cents
+    FROM events e
+    LEFT JOIN tickets t ON t.event_id = e.id
+    WHERE e.venue_id = %(venue)s
+      AND date_trunc('month', e.starts_at AT TIME ZONE %(tz)s)
+            = date_trunc('month', (%(month_start)s::timestamptz - INTERVAL '1 month')
+                         AT TIME ZONE %(tz)s)
+"""
+
+
+@router.get("/overview", response_model=VenueOverview)
+async def venue_overview(
+    venue_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    month: str | None = None,
+):
+    """KPIs del negocio entre eventos, con tendencia y rankings.
+
+    `?month=YYYY-MM` navega al histórico (default: el mes en curso). Solo
+    staff: es la caja del negocio entero, no de un evento.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+
+    tz = "America/Bogota"  # zona del negocio; los eventos la traen igual
+    if month:
+        try:
+            year, mon = (int(x) for x in month.split("-"))
+            if not 1 <= mon <= 12:
+                raise ValueError
+        except ValueError:
+            raise HTTPException(400, "month debe ser YYYY-MM")
+        month_start = datetime(year, mon, 1)
+    else:
+        now = datetime.now(ZoneInfo(tz))
+        month_start = datetime(now.year, now.month, 1)
+        month = f"{now.year:04d}-{now.month:02d}"
+
+    params = {"venue": venue_id, "tz": tz, "month_start": month_start.isoformat()}
+
+    async with db.cursor() as cur:
+        await cur.execute(_OVERVIEW_SQL, params)
+        agg = await cur.fetchone()
+        await cur.execute(_PREV_SQL, params)
+        prev = await cur.fetchone()
+        await cur.execute(_TOP_PROMOTERS_SQL, params)
+        top_promoters = await cur.fetchall()
+        await cur.execute(_TOP_EVENTS_SQL, params)
+        top_events = await cur.fetchall()
+
+    revenue = agg["revenue_cents"]
+    paid = agg["tickets_issued"] - agg["courtesy_tickets"]
+    return VenueOverview(
+        month=month,
+        events_count=agg["events_count"],
+        tickets_issued=agg["tickets_issued"],
+        tickets_redeemed=agg["tickets_redeemed"],
+        revenue_cents=revenue,
+        courtesy_tickets=agg["courtesy_tickets"],
+        # Promedio por boleta PAGA: las cortesías no deben diluir el promedio.
+        avg_ticket_cents=round(revenue / paid) if paid > 0 else 0,
+        prev_revenue_cents=prev["revenue_cents"],
+        prev_tickets_issued=prev["tickets_issued"],
+        prev_events_count=prev["events_count"],
+        top_promoters=top_promoters,
+        top_events=top_events,
     )

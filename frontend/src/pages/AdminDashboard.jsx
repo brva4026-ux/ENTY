@@ -33,6 +33,7 @@ import TypeManager from "../components/TypeManager";
 import AllocationManager from "../components/AllocationManager";
 import TicketList from "../components/TicketList";
 import EventCreateModal from "../components/EventCreateModal";
+import BusinessOverview from "../components/BusinessOverview";
 
 function firstVenueId(user) {
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
@@ -135,6 +136,7 @@ export default function AdminDashboard() {
   const section = [
     "resumen",
     "boletas",
+    "negocio",
     "equipo",
     "liquidaciones",
     "invitaciones",
@@ -878,10 +880,11 @@ export default function AdminDashboard() {
           pestañas necesitan su propia navegación: el workbench —con el strip
           de pestañas completo— no está montado. */}
         {!selectedEventData &&
-          ["equipo", "liquidaciones", "invitaciones"].includes(section) && (
+          ["negocio", "equipo", "liquidaciones", "invitaciones"].includes(section) && (
             <nav className="card flex flex-wrap items-center gap-2 p-4">
               <p className="display mr-2 text-base">Tareas de la venue</p>
               {[
+                ["negocio", "Negocio"],
                 ["equipo", "Equipo"],
                 ["liquidaciones", "Liquidaciones"],
                 ["invitaciones", "Invitaciones"],
@@ -904,6 +907,12 @@ export default function AdminDashboard() {
         {/* Se rendericen o no con evento abierto, estas secciones dependen solo
           de la venue: sin evento (venue nueva, enlace directo ?tab=…) siguen
           siendo alcanzables — no quedan rehenes del backstage. */}
+        {section === "negocio" && (
+          <BusinessOverview
+            venueId={venueId}
+            onOpenEvent={(id) => flyToEvent(id, "resumen")}
+          />
+        )}
         {section === "equipo" && (
           <TeamManager
             venueId={venueId}
