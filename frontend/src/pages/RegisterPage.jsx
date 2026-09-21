@@ -77,16 +77,13 @@ export default function RegisterPage() {
       />
 
       <div className="relative w-full max-w-md">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <Logo size="xl" />
-          <p className="mt-4 text-sm font-medium text-zinc-400">
-            Crea el panel de tu negocio en un minuto
-          </p>
+        {/* Misma entrada premium que el login: marca hero, sin lemas. */}
+        <div className="mb-9 flex flex-col items-center text-center">
+          <Logo size="hero" />
         </div>
 
         <div className="auth-card card-interactive reveal p-6 sm:p-7">
-          <h1 className="display mb-1 text-lg">Crea tu cuenta</h1>
-          <p className="eyebrow mb-5">Tu negocio, bajo tu control</p>
+          <h1 className="display mb-5 text-lg">Crea tu cuenta</h1>
 
           <form onSubmit={submit}>
             <label className="mb-1.5 block text-xs font-medium text-zinc-400">

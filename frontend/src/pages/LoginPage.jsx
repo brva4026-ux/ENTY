@@ -115,17 +115,13 @@ export default function LoginPage() {
       />
 
       <div className="relative w-full max-w-sm">
-        {/* Marca: isotipo con gradiente y halo, wordmark con brillo */}
-        <div className="mb-8 flex flex-col items-center text-center">
-          <Logo size="xl" />
-          <p className="mt-4 text-sm font-medium text-zinc-400">
-            La boletería de tu bar, en tu bolsillo
-          </p>
+        {/* Marca hero: sin eslogan ni claims de marketing. Solo el nombre. */}
+        <div className="mb-9 flex flex-col items-center text-center">
+          <Logo size="hero" />
         </div>
 
         <div className="auth-card card-interactive reveal p-6 sm:p-7">
-          <h1 className="display mb-1 text-lg">Ingresar</h1>
-          <p className="eyebrow mb-5">Acceso del personal</p>
+          <h1 className="display mb-5 text-lg">Ingresar</h1>
 
           <form onSubmit={submit}>
             <label
@@ -259,61 +255,6 @@ export default function LoginPage() {
             Crea tu negocio
           </button>
         </p>
-
-        {/* Confianza: tres pruebas concretas del producto, no marketing vacío */}
-        <div className="mt-7 flex items-center justify-center gap-2 text-[11px] font-medium text-zinc-500">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800/80 bg-zinc-900/50 px-2.5 py-1.5">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-3 w-3 text-emerald-400"
-              aria-hidden="true"
-            >
-              <path
-                d="m5 13 4 4L19 7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            QR de un solo uso
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800/80 bg-zinc-900/50 px-2.5 py-1.5">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-3 w-3 text-emerald-400"
-              aria-hidden="true"
-            >
-              <path
-                d="m5 13 4 4L19 7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Venta en puerta
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800/80 bg-zinc-900/50 px-2.5 py-1.5">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-3 w-3 text-emerald-400"
-              aria-hidden="true"
-            >
-              <path
-                d="m5 13 4 4L19 7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Pagos claros
-          </span>
-        </div>
       </div>
     </div>
   );

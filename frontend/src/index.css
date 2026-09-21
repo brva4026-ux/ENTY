@@ -163,24 +163,25 @@ body {
     0 10px 30px -12px rgba(0, 0, 0, 0.55);
 }
 
-/* Tarjeta de entrada (login/registro): la misma card premium elevada un
-   punto mas — vidrio mas translucido para dejar ver los halos de marca del
-   fondo, borde de luz arriba y sombra profunda. */
+/* Tarjeta de entrada (login/registro): vidrio translúcido que deja ver los
+   halos de marca del fondo + filo de luz superior (inset) + sombra profunda.
+   La sensación premium viene de la LUZ (borde que enciende la tarjeta), no
+   de más decoración. */
 .auth-card {
   border-radius: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.05),
+      rgba(255, 255, 255, 0.055),
       rgba(255, 255, 255, 0) 45%
     ),
     rgba(16, 16, 19, 0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    0 24px 60px -20px rgba(0, 0, 0, 0.65);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
+    0 30px 70px -22px rgba(0, 0, 0, 0.7);
 }
 
 /* Separadores internos consistentes */
@@ -188,14 +189,16 @@ body {
   border-top: 1px solid #1c1c1f;
 }
 
-/* Inputs: fondo hundido, borde real, foco con acento */
+/* Inputs: fondo hundido, borde real, foco con acento. En la entrada piden
+   más aire (padding y radio mayores): el formulario se siente de producto
+   de pago, no de panel interno. */
 .field {
   width: 100%;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   border: 1px solid #2a2a2e;
   background: #0c0c0e;
-  padding: 0.55rem 0.75rem;
-  font-size: 0.875rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.9375rem;
   color: #fafafa;
   outline: none;
   transition:
@@ -212,7 +215,7 @@ body {
   border-color: #a78bfa;
   box-shadow:
     0 0 0 3px rgba(124, 58, 237, 0.22),
-    0 0 18px -6px rgba(139, 92, 246, 0.45);
+    0 0 22px -5px rgba(139, 92, 246, 0.5);
 }
 
 /* Botón primario: degradado violeta → fucsia con glow (firma premium de
@@ -223,23 +226,29 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 48%, #a855f7 100%);
   color: #ffffff;
   border: 1px solid rgba(168, 85, 247, 0.55);
-  box-shadow: 0 4px 14px -4px rgba(124, 58, 237, 0.5);
-  padding: 0.55rem 1rem;
-  font-size: 0.875rem;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+    0 4px 16px -4px rgba(124, 58, 237, 0.55);
+  padding: 0.7rem 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
   transition:
     background 0.12s,
     border-color 0.12s,
+    box-shadow 0.12s,
     transform 0.1s ease;
 }
 .btn-primary:hover {
   background: linear-gradient(135deg, #8b5cf6 0%, #9d6bfa 48%, #b668f9 100%);
   border-color: rgba(196, 181, 253, 0.7);
-  box-shadow: 0 6px 22px -6px rgba(139, 92, 246, 0.65);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.25),
+    0 6px 24px -6px rgba(139, 92, 246, 0.7);
 }
 .btn-primary:active {
   filter: brightness(0.96);

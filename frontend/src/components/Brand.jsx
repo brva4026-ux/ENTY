@@ -5,26 +5,41 @@ import { timeAgo } from "../lib/useLiveRefresh";
 
 export function Logo({ size = "md", animated = true }) {
   const box =
-    size === "xl" ? "h-14 w-14" : size === "lg" ? "h-12 w-12" : "h-8 w-8";
+    size === "hero"
+      ? "h-16 w-16"
+      : size === "xl"
+        ? "h-14 w-14"
+        : size === "lg"
+          ? "h-12 w-12"
+          : "h-8 w-8";
   const text =
-    size === "xl"
-      ? "text-[2.6rem]"
-      : size === "lg"
-        ? "text-[1.9rem]"
-        : "text-[15px]";
-  const radius = size === "md" ? "rounded-[0.55rem]" : "rounded-[0.9rem]";
+    size === "hero"
+      ? "text-[3rem]"
+      : size === "xl"
+        ? "text-[2.6rem]"
+        : size === "lg"
+          ? "text-[1.9rem]"
+          : "text-[15px]";
+  const radius =
+    size === "md"
+      ? "rounded-[0.55rem]"
+      : size === "hero"
+        ? "rounded-[1.1rem]"
+        : "rounded-[0.9rem]";
   return (
     <span className="inline-flex items-center gap-3">
-      {/* Isotipo: ticket minimalista sobre tile con gradiente de marca y halo.
-          El halo difuso da profundidad sin sombra dura; el brillo del
-          wordmark barre de vez en cuando (una pasada cada ~6s). */}
+      {/* Isotipo: ticket minimalista sobre tile con gradiente de marca. El
+          halo difuso solo suma en tamaños pequeños (tiles de menú); en hero
+          el glow alrededor competiría con la tarjeta, así que ahí se omite. */}
       <span
         className={`${box} relative ${animated ? "logo-pop" : ""} grid place-items-center`}
       >
-        <span
-          className={`absolute inset-0 ${radius} bg-brand-500/40 blur-lg`}
-          aria-hidden="true"
-        />
+        {size !== "hero" && (
+          <span
+            className={`absolute inset-0 ${radius} bg-brand-500/40 blur-lg`}
+            aria-hidden="true"
+          />
+        )}
         <span
           className={`relative grid h-full w-full place-items-center ${radius} bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700 shadow-lg shadow-brand-950/50`}
         >
@@ -38,7 +53,11 @@ export function Logo({ size = "md", animated = true }) {
           </svg>
         </span>
       </span>
-      <span className={`${text} display brand-shine tracking-tight`}>
+      <span
+        className={`${text} display brand-shine ${
+          size === "hero" ? "tracking-[-0.035em]" : "tracking-tight"
+        }`}
+      >
         TicketFlow
       </span>
     </span>
