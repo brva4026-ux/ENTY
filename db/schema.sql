@@ -1,132 +1,351 @@
--- =============================================================================
--- Sistema de Boleteria y Control de Aforo - Esquema MVP (PostgreSQL 14+)
--- -----------------------------------------------------------------------------
--- Principios de diseno:
---   1. Anti-sobreventa: al emitir una boleta se hace SELECT ... FOR UPDATE
---      sobre el cupo del promotor (o el evento), de modo que dos emisiones
---      concurrentes no puedan superar el aforo. Todo dentro de una transaccion.
---   2. Anti-reuso: el cambio de estado de una boleta (issued -> redeemed) se hace
---      con compare-and-swap atomico (WHERE status = 'issued'). Dos escaneos
---      simultaneos del mismo QR: solo uno gana.
---   3. Tokens con hash SHA-256: nunca se guarda el codigo QR en texto plano en la
---      base de datos. Si hay filtracion, la data no es reutilizable.
---   4. Multi-tenant desde el dia uno: todo cuelga de venues hace que abrir el
---      segundo bar sea configuracion, no refactor.
---
--- Convenciones:
---   * ids: bigint generados por secuencias (suficiente para este dominio).
---   * timestamps: timestamptz (guardamos UTC; la zona horaria se resuelve en
---     el cliente o en el evento con event_timezone).
---   * soft-delete: activo/borrado por booleano o deleted_at; nunca DROP de
---     dinero en produccion.
--- =============================================================================
-
 BEGIN;
 
--- ---------------------------------------------------------------------------
--- Extension: hash de tokens
--- ---------------------------------------------------------------------------
-CREATE EXTENSION IF NOT EXISTS pgcrypto; -- gen_random_uuid, digest
+-- ============================================================================
+-- TicketFlow — ESQUEMA COMPLETO (v2, consolidado)
+-- ============================================================================
+-- Fuente UNICA de verdad: este archivo + las migraciones de db/migrations/ en
+-- orden (002..020) reproducen EXACTAMENTE la misma base. Aplicar ambos es
+-- seguro en cualquier estado:
+--   * instalacion nueva: schema.sql crea todo; las migraciones quedan en
+--     no-ops (todas son idempotentes: IF NOT EXISTS / OR REPLACE).
+--   * instalacion existente: schema.sql es idempotente; las migraciones
+--     siguen funcionando como siempre.
+--
+-- Como se consolido (sep-2026): se aplico schema.sql + las 20 migraciones
+-- sobre una Postgres 16 limpia y el resultado se reverifico con pg_dump
+-- --schema-only. El test backend/tests/test_schema_drift.py compara este
+-- archivo contra el dump del Postgres local y falla si la base y el archivo
+-- se separan (nada entra a produccion sin pasar por aca).
+--
+-- Contenido: 19 tablas (con audit_log de la mig 019), enums user_role /
+-- ticket_status, extension pgcrypto, 24 funciones de negocio y sus triggers.
+-- La logica transaccional (emit_ticket / redeem_ticket / reissue_ticket /
+-- set_event_status / void_ticket / lockout / notificaciones) vive AQUI, en
+-- la DB; los routers solo traducen parametros y errores SQL a HTTP.
+--
+-- Reglas del esquema:
+--   * Multi-tenant desde el dia uno: todo cuelga de venues.
+--   * El aforo es intocable por concurrencia: emit_ticket y redeem_ticket
+--     usan compare-and-swap dentro de una transaccion.
+--   * Todo intento de escaneo (exitoso o no) queda en redemptions.
+--   * De la boleta solo se guarda el SHA-256 del token (tickets.token_hash).
+-- ============================================================================
 
--- ---------------------------------------------------------------------------
--- 1. USUARIOS Y ROLES
--- ---------------------------------------------------------------------------
+--
+-- PostgreSQL database dump
+--
 
-CREATE TABLE users (
-    id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    email            text NOT NULL UNIQUE,
-    phone            text,
-    password_hash    text NOT NULL,
-    full_name        text NOT NULL,
-    is_active        boolean NOT NULL DEFAULT TRUE,
-    created_at       timestamptz NOT NULL DEFAULT now(),
-    updated_at       timestamptz NOT NULL DEFAULT now(),
-    -- Último acceso exitoso: alimenta la actividad del módulo Equipo (mig 009).
-    last_login_at    timestamptz
+-- Dumped from database version 16.9
+-- Dumped by pg_dump version 16.9
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+-- NOTA: pg_dump emite set_config('search_path', '', false) (vacío POR
+-- SESION). Todo este archivo está calificado con public., así que se crea
+-- bien, pero dejaría rota la sesión para la SIGUIENTE SQL no-calificada
+-- (migraciones, smoke test). Se restaura el search_path estándar aquí.
+SELECT pg_catalog.set_config('search_path', 'public', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
+
+--
+-- Name: ticket_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.ticket_status AS ENUM (
+    'issued',
+    'voided',
+    'refunded',
+    'redeemed'
 );
 
--- Rol global (sin tabla extra):
---   'super_admin' -> plataforma completa (todas las venues)
---   'admin'       -> administrador de la venue (probablemente dueno/manager)
---   'promotor'    -> panel de venta por cupo asignado
---   'bouncer'     -> escaneo/validacion en puerta
-CREATE TYPE user_role AS ENUM ('super_admin', 'admin', 'promotor', 'bouncer');
 
-CREATE TABLE venue_user_roles (
-    venue_id   bigint NOT NULL,      -- FK se agrega tras crear venues
-    user_id    bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role       user_role NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (venue_id, user_id, role)
+--
+-- Name: user_role; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.user_role AS ENUM (
+    'super_admin',
+    'admin',
+    'promotor',
+    'bouncer'
 );
 
 
--- ---------------------------------------------------------------------------
--- 2. VENUE (multi-tenant): la discoteca/bar al que se factura
--- ---------------------------------------------------------------------------
+--
+-- Name: auto_close_expired_events(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-CREATE TABLE venues (
-    id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name          text NOT NULL,
-    slug          text NOT NULL UNIQUE,       -- para subdominio/URL amigable
-    legal_name    text,                       -- razon social (facturacion)
-    tax_id        text,                       -- NIT
-    country       text NOT NULL DEFAULT 'CO',
-    currency      text NOT NULL DEFAULT 'COP',
-    logo_url      text,
-    primary_color text,
-    -- Comision del promotor en pct (0-100): base de las liquidaciones (mig 010).
-    commission_pct numeric(5,2) NOT NULL DEFAULT 0,
-    is_active     boolean NOT NULL DEFAULT TRUE,
-    created_at    timestamptz NOT NULL DEFAULT now()
-);
+CREATE FUNCTION public.auto_close_expired_events() RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_closed integer;
+BEGIN
+    -- live -> ended (la noche termino, nadie pulso "Terminar")
+    WITH closed AS (
+        UPDATE events
+           SET status = 'ended', updated_at = now()
+         WHERE status = 'live'
+           AND ends_at IS NOT NULL
+           AND ends_at < now()
+        RETURNING 1
+    )
+    SELECT count(*) INTO v_closed FROM closed;
 
-CREATE TABLE staff_invitations (
-    id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    venue_id         bigint NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
-    role             text   NOT NULL CHECK (role IN ('promotor', 'bouncer', 'admin')),
-    full_name        text   NOT NULL,
-    email            text   NOT NULL,
-    token_hash       text   NOT NULL UNIQUE,  -- solo hash: la DB filtrada no produce enlaces
-    expires_at       timestamptz NOT NULL,
-    accepted_at      timestamptz,
-    accepted_user_id bigint REFERENCES users(id),
-    created_by       bigint NOT NULL REFERENCES users(id),
-    created_at       timestamptz NOT NULL DEFAULT now(),
-    revoked_at       timestamptz
-);
+    -- published -> ended (venta vencida que nadie cerro; no pasa por live:
+    -- nunca abrio puerta, cierra directo al historial). Se ACUMULA: un
+    -- SELECT INTO simple sobrescribiria el conteo del bloque anterior y el
+    -- total devuelto mentiria (solo contaria published).
+    WITH closed AS (
+        UPDATE events
+           SET status = 'ended', updated_at = now()
+         WHERE status = 'published'
+           AND ends_at IS NOT NULL
+           AND ends_at < now()
+        RETURNING 1
+    )
+    SELECT v_closed + count(*) INTO v_closed FROM closed;
 
-CREATE INDEX IF NOT EXISTS idx_invitations_venue_open
-    ON staff_invitations (venue_id)
-    WHERE accepted_at IS NULL AND revoked_at IS NULL;
+    RETURN v_closed;
+END;
+$$;
 
-ALTER TABLE venue_user_roles
-    ADD CONSTRAINT venue_user_roles_venue_fk
-    FOREIGN KEY (venue_id) REFERENCES venues(id) ON DELETE CASCADE;
 
--- ---------------------------------------------------------------------------
--- 3. EVENTO
--- ---------------------------------------------------------------------------
+--
+-- Name: clear_login_failures(text, text); Type: FUNCTION; Schema: public; Owner: -
+--
 
-CREATE TABLE events (
-    id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    venue_id       bigint NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
-    name           text NOT NULL,
-    description    text,
-    flyer_url      text,                       -- bucket S3 / R2 / local
-    starts_at      timestamptz NOT NULL,       -- cuando abre puertas
-    ends_at        timestamptz,
-    event_timezone text NOT NULL DEFAULT 'America/Bogota',
-    capacity       integer NOT NULL CHECK (capacity > 0),          -- aforo total fisico
-    status         text NOT NULL DEFAULT 'draft'
-                   CHECK (status IN ('draft', 'published', 'live', 'ended', 'cancelled')),
-    created_at     timestamptz NOT NULL DEFAULT now(),
-    updated_at     timestamptz NOT NULL DEFAULT now()
-);
+CREATE FUNCTION public.clear_login_failures(p_email text, p_ip text) RETURNS void
+    LANGUAGE sql
+    AS $$
+    DELETE FROM login_attempts
+     WHERE email_norm = lower(p_email) AND ip = p_ip;
+$$;
 
--- Aforo del evento nunca baja de las boletas no canceladas
-CREATE OR REPLACE FUNCTION events_check_capacity()
-RETURNS trigger LANGUAGE plpgsql AS $$
+
+--
+-- Name: correct_ticket_contact(bigint, text, text, bigint, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.correct_ticket_contact(p_ticket_id bigint, p_new_name text, p_new_phone text, p_by_user_id bigint, p_reason text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    v_ticket tickets%ROWTYPE;
+    v_event_status text;
+    v_old_name  text;
+    v_old_phone text;
+BEGIN
+    IF p_new_name IS NULL AND p_new_phone IS NULL THEN
+        RAISE EXCEPTION 'nothing_to_update';
+    END IF;
+
+    SELECT * INTO v_ticket FROM tickets WHERE id = p_ticket_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'ticket_not_found'; END IF;
+
+    SELECT status INTO v_event_status FROM events WHERE id = v_ticket.event_id;
+    IF v_event_status = 'ended' OR v_event_status = 'cancelled' THEN
+        RAISE EXCEPTION 'event_closed';
+    END IF;
+
+    -- Solo boletas vigentes: una usada ya ocurrió; una anulada/reembolsada es
+    -- historia (y "corregir" una anulada podría reactivarla de facto).
+    IF v_ticket.status <> 'issued' THEN
+        RAISE EXCEPTION 'cannot_edit_ticket_status';
+    END IF;
+
+    v_old_name  := v_ticket.customer_name;
+    v_old_phone := v_ticket.customer_phone;
+
+    IF p_new_name IS NOT NULL THEN
+        IF length(btrim(p_new_name)) = 0 THEN
+            RAISE EXCEPTION 'invalid_name';
+        END IF;
+        UPDATE tickets SET customer_name = btrim(p_new_name) WHERE id = p_ticket_id;
+    END IF;
+
+    IF p_new_phone IS NOT NULL THEN
+        IF length(btrim(p_new_phone)) = 0
+           OR btrim(p_new_phone) !~ '^[0-9+ ()-]{7,20}$' THEN
+            RAISE EXCEPTION 'invalid_phone';
+        END IF;
+        UPDATE tickets SET customer_phone = btrim(p_new_phone) WHERE id = p_ticket_id;
+    END IF;
+
+    INSERT INTO ticket_contact_edits (
+        ticket_id, edited_by_user_id, old_name, new_name, old_phone, new_phone, reason
+    ) VALUES (
+        p_ticket_id, p_by_user_id, v_old_name,
+        CASE WHEN p_new_name IS NULL THEN v_old_name ELSE btrim(p_new_name) END,
+        v_old_phone,
+        CASE WHEN p_new_phone IS NULL THEN v_old_phone ELSE btrim(p_new_phone) END,
+        p_reason
+    );
+END;
+$_$;
+
+
+--
+-- Name: delete_promoter_allocation(bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.delete_promoter_allocation(p_allocation_id bigint) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_id      bigint;
+    v_tickets bigint;
+BEGIN
+    SELECT id INTO v_id FROM promoter_allocations WHERE id = p_allocation_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'allocation_not_found'; END IF;
+
+    SELECT count(*) INTO v_tickets FROM tickets WHERE allocation_id = p_allocation_id;
+
+    IF v_tickets = 0 THEN
+        -- tickets.allocation_id es ON DELETE SET NULL: sin boletas, el borrado
+        -- no pierde nada.
+        DELETE FROM promoter_allocations WHERE id = p_allocation_id;
+        RETURN FALSE;
+    END IF;
+
+    -- Con historial: se archiva para no perder de quién era cada boleta
+    -- (lo usa el reporte por promotor).
+    UPDATE promoter_allocations SET is_active = FALSE WHERE id = p_allocation_id;
+    RETURN TRUE;
+END;
+$$;
+
+
+--
+-- Name: delete_ticket_type(bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.delete_ticket_type(p_type_id bigint) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_id      bigint;
+    v_tickets bigint;
+BEGIN
+    SELECT id INTO v_id FROM ticket_types WHERE id = p_type_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'ticket_type_not_found'; END IF;
+
+    SELECT count(*) INTO v_tickets FROM tickets WHERE ticket_type_id = p_type_id;
+
+    IF v_tickets = 0 THEN
+        -- Sin boletas: se puede borrar de verdad. Las asignaciones de promotor
+        -- de este tipo caen en cascada, y no pueden tener boletas (una boleta
+        -- de este tipo la referenciaría a él también).
+        DELETE FROM ticket_types WHERE id = p_type_id;
+        RETURN FALSE;
+    END IF;
+
+    UPDATE ticket_types SET is_active = FALSE WHERE id = p_type_id;
+    RETURN TRUE;
+END;
+$$;
+
+
+--
+-- Name: emit_ticket(bigint, bigint, bigint, bigint, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.emit_ticket(p_event_id bigint, p_ticket_type_id bigint, p_allocation_id bigint, p_sold_by_user_id bigint, p_customer_name text, p_raw_token text, p_customer_phone text DEFAULT NULL::text, p_customer_email text DEFAULT NULL::text) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_type           ticket_types%ROWTYPE;
+    v_alloc          promoter_allocations%ROWTYPE;
+    v_used_in_alloc  bigint;
+    v_used_total     bigint;
+    v_types_total    bigint;
+    v_event_capacity bigint;
+    v_status_allowed text;
+    v_token_hash     text;
+    v_ticket_id      bigint;
+BEGIN
+    SELECT * INTO v_type FROM ticket_types WHERE id = p_ticket_type_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'ticket_type_not_found'; END IF;
+
+    IF v_type.price_cents > 0 AND p_allocation_id IS NOT NULL THEN
+        RAISE EXCEPTION 'paid_ticket_tied_to_promoter_allocation: usar venta directa para boletas de pago';
+    END IF;
+
+    -- 1) Bloquear el evento: serializa emisiones concurrentes y valida estado.
+    SELECT capacity, status INTO v_event_capacity, v_status_allowed
+      FROM events WHERE id = p_event_id FOR UPDATE;
+    IF v_status_allowed NOT IN ('published', 'live') THEN
+        RAISE EXCEPTION 'event_not_open_for_sales';
+    END IF;
+
+    -- 2) Cupo del promotor (si aplica): bloquear fila y validar capacidad.
+    IF p_allocation_id IS NOT NULL THEN
+        SELECT * INTO v_alloc FROM promoter_allocations WHERE id = p_allocation_id FOR UPDATE;
+        IF NOT FOUND THEN RAISE EXCEPTION 'allocation_not_found'; END IF;
+        SELECT count(*) INTO v_used_in_alloc
+          FROM tickets
+         WHERE allocation_id = p_allocation_id
+           AND status NOT IN ('voided', 'refunded');
+        IF v_used_in_alloc >= v_alloc.capacity THEN
+            RAISE EXCEPTION 'promoter_quota_exceeded';
+        END IF;
+    END IF;
+
+    -- 3) Un solo conteo de boletas activas del evento (anti-sobreventa global).
+    SELECT count(*) INTO v_used_total
+      FROM tickets
+     WHERE event_id = p_event_id
+       AND status NOT IN ('voided', 'refunded');
+
+    -- 3a) Inventario por tipos: la suma de quantities es el total vendible.
+    SELECT COALESCE(SUM(quantity), 0) INTO v_types_total
+      FROM ticket_types WHERE event_id = p_event_id;
+    IF v_used_total >= v_types_total THEN
+        RAISE EXCEPTION 'ticket_type_sold_out';
+    END IF;
+
+    -- 3b) Aforo físico del evento.
+    IF v_used_total >= v_event_capacity THEN
+        RAISE EXCEPTION 'event_at_capacity';
+    END IF;
+
+    v_token_hash := encode(digest(p_raw_token, 'sha256'), 'hex');
+
+    INSERT INTO tickets (
+        event_id, ticket_type_id, allocation_id, sold_by_user_id,
+        customer_name, customer_phone, customer_email, token_hash,
+        price_cents_snapshot
+    ) VALUES (
+        p_event_id, p_ticket_type_id, p_allocation_id, p_sold_by_user_id,
+        p_customer_name, p_customer_phone, p_customer_email, v_token_hash,
+        v_type.price_cents
+    ) RETURNING id INTO v_ticket_id;
+
+    RETURN v_ticket_id;
+END;
+$$;
+
+
+--
+-- Name: events_check_capacity(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.events_check_capacity() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
 DECLARE
     active_issued bigint;
 BEGIN
@@ -145,233 +364,254 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER trg_events_check_capacity
-    BEFORE UPDATE OF capacity ON events
-    FOR EACH ROW EXECUTE FUNCTION events_check_capacity();
 
--- ---------------------------------------------------------------------------
--- 4. TIPOS DE BOLETA (general, VIP, cortesia, etc.)
--- ---------------------------------------------------------------------------
+--
+-- Name: events_check_transition(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-CREATE TABLE ticket_types (
-    id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    event_id       bigint NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    name           text NOT NULL,              -- 'General', 'VIP', 'Cortesia'
-    price_cents    bigint NOT NULL DEFAULT 0 CHECK (price_cents >= 0),  -- 0 = cortesia
-    currency       text NOT NULL DEFAULT 'COP',
-    quantity       integer NOT NULL CHECK (quantity > 0),  -- cupo de este tipo
-    is_courtesy    boolean NOT NULL DEFAULT FALSE,
-    is_active      boolean NOT NULL DEFAULT TRUE,
-    created_at     timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (event_id, name)
-);
-
--- ---------------------------------------------------------------------------
--- 5. CUPO DEL PROMOTOR (la "canasta" que el admin asigna)
--- ---------------------------------------------------------------------------
-
-CREATE TABLE promoter_allocations (
-    id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    event_id        bigint NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    ticket_type_id  bigint NOT NULL REFERENCES ticket_types(id) ON DELETE CASCADE,
-    promoter_id     bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    capacity        integer NOT NULL CHECK (capacity >= 0),
-    is_active       boolean NOT NULL DEFAULT TRUE,
-    created_at      timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (event_id, ticket_type_id, promoter_id)
-);
-
--- ---------------------------------------------------------------------------
--- 6. BOLETA (el activo central)
--- ---------------------------------------------------------------------------
-
-CREATE TYPE ticket_status AS ENUM ('issued', 'voided', 'refunded', 'redeemed');
-
-CREATE TABLE tickets (
-    id                bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    event_id          bigint NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    ticket_type_id    bigint NOT NULL REFERENCES ticket_types(id) ON DELETE RESTRICT,
-    allocation_id     bigint REFERENCES promoter_allocations(id) ON DELETE SET NULL, -- NULL = venta directa
-    sold_by_user_id   bigint REFERENCES users(id) ON DELETE SET NULL,
-    customer_name     text NOT NULL,
-    customer_phone    text,
-    customer_email    text,
-    token_hash        text NOT NULL UNIQUE,     -- sha256 del codigo QR crudo
-    status            ticket_status NOT NULL DEFAULT 'issued',
-    issued_at         timestamptz NOT NULL DEFAULT now(),
-    voided_at         timestamptz,
-    redeemed_at       timestamptz,
-    redeemed_by_user_id bigint REFERENCES users(id) ON DELETE SET NULL,
-    price_cents_snapshot bigint NOT NULL,     -- precio al momento de emitir
-    created_at        timestamptz NOT NULL DEFAULT now(),
-    updated_at        timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_tickets_event_status     ON tickets (event_id, status);
-CREATE INDEX idx_tickets_allocation       ON tickets (allocation_id);
-CREATE INDEX idx_tickets_phone            ON tickets (customer_phone) WHERE customer_phone IS NOT NULL;
-CREATE INDEX idx_tickets_token_hash       ON tickets (token_hash);
-
--- ---------------------------------------------------------------------------
--- 7. REDENCIONES (cada escaneo deja huella, no solo el cambio de estado)
--- ---------------------------------------------------------------------------
-
-CREATE TABLE redemptions (
-    id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    ticket_id     bigint NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
-    event_id      bigint NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    scanned_by_user_id bigint REFERENCES users(id) ON DELETE SET NULL,
-    outcome       text NOT NULL,  -- granted | already_redeemed | not_found | invalid_event
-    scanned_at    timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_redemptions_ticket ON redemptions (ticket_id, scanned_at);
-CREATE INDEX idx_redemptions_event  ON redemptions (event_id, scanned_at);
-
--- ---------------------------------------------------------------------------
--- Suscripciones Web Push (migración 007): "avísame cuando abran puertas".
--- 1 fila por (usuario, dispositivo); endpoint es único por navegador.
--- ---------------------------------------------------------------------------
-
-CREATE TABLE push_subscriptions (
-    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id     bigint REFERENCES users(id) ON DELETE SET NULL,
-    venue_id    bigint NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
-    endpoint    text   NOT NULL UNIQUE,
-    p256dh      text   NOT NULL,
-    auth        text   NOT NULL,
-    user_agent  text,
-    created_at  timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_push_subs_venue ON push_subscriptions (venue_id);
-CREATE INDEX idx_push_subs_user  ON push_subscriptions (user_id);
-
--- =============================================================================
--- FUNCIONES TRANSACCIONALES (TODA la logica critica vive aqui, en la DB)
--- =============================================================================
-
--- ---------------------------------------------------------------------------
--- emit_ticket: crea una boleta respetando cupos y aforo ANTICIPADO.
---   - Bloquea la fila del cupo (row lock) para evitar sobreventa concurrente.
---   - Bloquea la fila del evento (aforo global por tipo cancelador).
---   - Verifica que el evento no haya cerrado puertas.
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION emit_ticket(
-    p_event_id         bigint,
-    p_ticket_type_id   bigint,
-    p_allocation_id    bigint,        -- NULL para venta directa
-    p_sold_by_user_id  bigint,
-    p_customer_name    text,
-    p_raw_token        text,
-    p_customer_phone   text DEFAULT NULL,
-    p_customer_email   text DEFAULT NULL
-)
-RETURNS bigint
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_type          ticket_types%ROWTYPE;
-    v_alloc         promoter_allocations%ROWTYPE;
-    v_used_in_alloc bigint;
-    v_used_in_event bigint;
-    v_alloc_capacity bigint;
-    v_event_capacity bigint;
-    v_status_allowed text;
-    v_token_hash text;
-    v_ticket_id bigint;
+CREATE FUNCTION public.events_check_transition() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-    SELECT * INTO v_type FROM ticket_types WHERE id = p_ticket_type_id FOR UPDATE;
-    IF NOT FOUND THEN RAISE EXCEPTION 'ticket_type_not_found'; END IF;
-
-    -- Snapshot de precio para inmutabilidad financiera.
-    IF v_type.price_cents > 0 AND p_allocation_id IS NOT NULL THEN
-        RAISE EXCEPTION 'paid_ticket_tied_to_promoter_allocation: usar venta directa para boletas de pago';
+    IF NEW.status = OLD.status THEN
+        RETURN NEW;  -- sin cambio real de estado: no es una transición
     END IF;
 
-    -- 1) Bloquear el evento: serializa emisiones concurrentes y valida aforo global.
-    SELECT capacity, status INTO v_event_capacity, v_status_allowed
-      FROM events WHERE id = p_event_id FOR UPDATE;
-    IF v_status_allowed IN ('draft') THEN
-        RAISE EXCEPTION 'event_not_open_for_sales';
+    IF NOT (
+        (OLD.status = 'draft'     AND NEW.status IN ('published', 'cancelled')) OR
+        (OLD.status = 'published' AND NEW.status IN ('live', 'cancelled')) OR
+        (OLD.status = 'live'      AND NEW.status = 'ended')
+    ) THEN
+        RAISE EXCEPTION 'invalid_transition (% -> %)', OLD.status, NEW.status;
     END IF;
 
-    SELECT count(*) INTO v_used_in_event
-      FROM tickets
-     WHERE event_id = p_event_id
-       AND ticket_type_id = p_ticket_type_id
-       AND status NOT IN ('voided', 'refunded');
-    IF v_used_in_event >= v_type.quantity THEN
-        RAISE EXCEPTION 'ticket_type_sold_out';
-    END IF;
-
-    -- 2) Si hay cupo de promotor: bloquear la fila y validar su capacidad.
-    IF p_allocation_id IS NOT NULL THEN
-        SELECT * INTO v_alloc FROM promoter_allocations WHERE id = p_allocation_id FOR UPDATE;
-        IF NOT FOUND THEN RAISE EXCEPTION 'allocation_not_found'; END IF;
-        SELECT count(*) INTO v_used_in_alloc
-          FROM tickets
-         WHERE allocation_id = p_allocation_id
-           AND status NOT IN ('voided', 'refunded');
-        IF v_used_in_alloc >= v_alloc.capacity THEN
-            RAISE EXCEPTION 'promoter_quota_exceeded';
-        END IF;
-    END IF;
-
-    -- 3) Aforo global del evento (puerta): no puede exceder capacity.
-    SELECT count(*) INTO v_used_in_event
-      FROM tickets
-     WHERE event_id = p_event_id
-       AND status NOT IN ('voided', 'refunded');
-    IF v_used_in_event >= v_event_capacity THEN
-        RAISE EXCEPTION 'event_at_capacity';
-    END IF;
-
-    -- v_token_hash: el token crudo ya es un secreto de alta entropia generado por
-    -- el backend (p.ej. crypto.randomBytes(20).toString('base64url')); por eso
-    -- basta el sha256 sin salt. Si la DB se filtra, los hashes no permiten
-    -- reusar boletas ajenas ni adivinar tokens validos.
-    v_token_hash := encode(digest(p_raw_token, 'sha256'), 'hex');
-
-    INSERT INTO tickets (
-        event_id, ticket_type_id, allocation_id, sold_by_user_id,
-        customer_name, customer_phone, customer_email, token_hash,
-        price_cents_snapshot
-    ) VALUES (
-        p_event_id, p_ticket_type_id, p_allocation_id, p_sold_by_user_id,
-        p_customer_name, p_customer_phone, p_customer_email, v_token_hash,
-        v_type.price_cents
-    ) RETURNING id INTO v_ticket_id;
-
-    RETURN v_ticket_id;
+    RETURN NEW;
 END;
 $$;
 
--- ---------------------------------------------------------------------------
--- redeem_ticket: valida y redime una boleta. Compare-and-swap atomico:
---   UPDATE ... SET status='redeemed' WHERE status='issued' -> solo 1 gana.
---   Devuelve un criterio legible para el bouncer.
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION redeem_ticket(
-    p_event_id      bigint,
-    p_raw_token     text,
-    p_scanned_by_user_id bigint,
-    p_expected_ticket_type_id bigint DEFAULT NULL  -- filtro de fila en puerta (mig 008)
-)
-RETURNS text
-LANGUAGE plpgsql
-AS $$
+
+--
+-- Name: login_locked(text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.login_locked(p_email text, p_ip text, p_max_failures integer DEFAULT 8, p_window_minutes integer DEFAULT 15) RETURNS boolean
+    LANGUAGE sql
+    AS $$
+    SELECT (
+        SELECT count(*)
+          FROM login_attempts
+         WHERE email_norm = lower(p_email)
+           AND at > now() - make_interval(mins => p_window_minutes)
+    ) >= p_max_failures
+    OR (
+        SELECT count(*)
+          FROM login_attempts
+         WHERE ip = p_ip
+           AND at > now() - make_interval(mins => p_window_minutes)
+    ) >= p_max_failures;
+$$;
+
+
+--
+-- Name: notify_invitation_accepted(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_invitation_accepted() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+BEGIN
+    IF NEW.accepted_user_id IS NOT NULL
+       AND NEW.accepted_user_id IS DISTINCT FROM OLD.accepted_user_id THEN
+        PERFORM notify_venue_admins(
+            NEW.venue_id, 'invitation_accepted',
+            'Invitación aceptada',
+            -- coalesce obligatorio: un NULL aqui violaria el NOT NULL de
+            -- notifications.body y reviertiria el canje entero (el trigger
+            -- corre en la misma transacción que el endpoint).
+            coalesce(
+                (SELECT full_name FROM users WHERE id = NEW.accepted_user_id),
+                'Alguien'
+            ) || ' entró al equipo como ' || NEW.role || '.',
+            '/admin?tab=equipo',
+            NEW.accepted_user_id
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: notify_payout_lifecycle(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_payout_lifecycle() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+    v_venue_name text;
+BEGIN
+    SELECT name INTO v_venue_name FROM venues WHERE id = NEW.venue_id;
+
+    IF TG_OP = 'INSERT' THEN
+        PERFORM notify_user(
+            NEW.promoter_id, NEW.venue_id, 'payout_created',
+            'Nueva liquidación',
+            coalesce(v_venue_name, 'La venue') || ': periodo del ' ||
+            to_char(NEW.period_start, 'DD/MM') || ' al ' ||
+            to_char(NEW.period_end, 'DD/MM') || ' por ' ||
+            (NEW.commission_cents / 100)::text || '. Revísala.',
+            '/promotor?tab=liquidaciones'
+        );
+    ELSIF NEW.status IS DISTINCT FROM OLD.status THEN
+        IF NEW.status = 'disputed' THEN
+            PERFORM notify_venue_admins(
+                NEW.venue_id, 'payout_disputed',
+                'Liquidación disputada',
+                coalesce((SELECT full_name FROM users WHERE id = NEW.promoter_id), 'Un promotor') ||
+                ' no está de acuerdo con el cierre del ' ||
+                to_char(NEW.period_start, 'DD/MM') || ': "' ||
+                coalesce(NEW.disputed_reason, 'sin detalle') || '".',
+                '/admin?tab=liquidaciones'
+            );
+        ELSIF NEW.status = 'paid' THEN
+            PERFORM notify_user(
+                NEW.promoter_id, NEW.venue_id, 'payout_reviewed',
+                'Liquidación pagada',
+                'Tu pago del periodo al ' || to_char(NEW.period_end, 'DD/MM') ||
+                ' quedó registrado' ||
+                CASE WHEN NEW.paid_cents IS NOT NULL
+                     THEN ' por ' || (NEW.paid_cents / 100)::text ELSE '' END || '.',
+                '/promotor?tab=liquidaciones'
+            );
+        ELSIF NEW.status = 'rejected' THEN
+            PERFORM notify_user(
+                NEW.promoter_id, NEW.venue_id, 'payout_reviewed',
+                'Liquidación rechazada',
+                'El admin no pagó el periodo al ' ||
+                to_char(NEW.period_end, 'DD/MM') || ': ' ||
+                coalesce(NEW.review_note, 'revisa el detalle con tu admin.'),
+                '/promotor?tab=liquidaciones'
+            );
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: notify_ticket_reissued(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_ticket_reissued() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+    v_venue_id   bigint;
+    v_customer   text;
+BEGIN
+    SELECT e.venue_id, t.customer_name INTO v_venue_id, v_customer
+    FROM tickets t JOIN events e ON e.id = t.event_id
+    WHERE t.id = NEW.ticket_id;
+
+    IF v_venue_id IS NOT NULL THEN
+        PERFORM notify_venue_admins(
+            v_venue_id, 'ticket_reissued',
+            'Boleta reemitida',
+            'Se rotó el QR de la boleta de ' ||
+            coalesce(v_customer, 'un invitado') ||
+            CASE WHEN NEW.reason IS NOT NULL AND NEW.reason <> ''
+                 THEN ' (' || NEW.reason || ')' ELSE '' END || '.',
+            '/admin'
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: notify_user(bigint, bigint, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_user(p_user_id bigint, p_venue_id bigint, p_kind text, p_title text, p_body text, p_link text DEFAULT NULL::text) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+    WITH n AS (
+        INSERT INTO notifications(user_id, venue_id, kind, title, body, link)
+        VALUES (p_user_id, p_venue_id, p_kind, p_title, p_body, p_link)
+        RETURNING id
+    )
+    INSERT INTO push_outbox(notification_id)
+    SELECT id FROM n;
+$$;
+
+
+--
+-- Name: notify_venue_admins(bigint, text, text, text, text, bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_venue_admins(p_venue_id bigint, p_kind text, p_title text, p_body text, p_link text DEFAULT NULL::text, p_exclude bigint DEFAULT NULL::bigint) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+    -- Todos los admins de la venue (y super_admin, rol global), menos el
+    -- actor si p_exclude lo pide. Cada notificación genera SU carta de push.
+    WITH admins AS (
+        SELECT r.user_id
+        FROM venue_user_roles r
+        JOIN users u ON u.id = r.user_id AND u.is_active
+        WHERE r.venue_id = p_venue_id
+          AND (r.role = 'admin' OR r.role = 'super_admin')
+          AND (p_exclude IS NULL OR r.user_id <> p_exclude)
+    ),
+    n AS (
+        INSERT INTO notifications(user_id, venue_id, kind, title, body, link)
+        SELECT user_id, p_venue_id, p_kind, p_title, p_body, p_link FROM admins
+        RETURNING id
+    )
+    INSERT INTO push_outbox(notification_id)
+    SELECT id FROM n;
+$$;
+
+
+--
+-- Name: prune_login_attempts(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.prune_login_attempts(p_window_minutes integer DEFAULT 60) RETURNS void
+    LANGUAGE sql
+    AS $$
+    DELETE FROM login_attempts
+     WHERE at < now() - make_interval(mins => p_window_minutes);
+$$;
+
+
+--
+-- Name: redeem_ticket(bigint, text, bigint, bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.redeem_ticket(p_event_id bigint, p_raw_token text, p_scanned_by_user_id bigint, p_expected_ticket_type_id bigint DEFAULT NULL::bigint) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
 DECLARE
     v_ticket tickets%ROWTYPE;
     v_token_hash text;
     v_event_status text;
+    v_event_starts_at timestamptz;
+    v_event_unlock integer;
 BEGIN
     IF p_raw_token IS NULL OR length(p_raw_token) < 8 THEN
         RAISE EXCEPTION 'invalid_token_format';
     END IF;
 
-    -- Guardia: el evento del escaneo debe existir (migracion 006). Sin esto,
-    -- el INSERT del log rompe la FK y el escaner recibe un 500 opaco.
+    -- Guardia: el evento del escaneo debe existir (migración 006). Sin esto,
+    -- el INSERT del log rompe la FK y el escáner recibe un 500 opaco.
     IF NOT EXISTS (SELECT 1 FROM events WHERE id = p_event_id) THEN
         RAISE EXCEPTION 'event_not_found';
     END IF;
@@ -392,15 +632,25 @@ BEGIN
         RETURN 'INVALID_EVENT';
     END IF;
 
-    SELECT status INTO v_event_status FROM events WHERE id = p_event_id;
+    SELECT status, starts_at, qr_unlock_minutes
+      INTO v_event_status, v_event_starts_at, v_event_unlock
+      FROM events WHERE id = p_event_id;
     IF v_event_status <> 'live' AND v_event_status <> 'published' THEN
         INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
         VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'event_not_live');
         RETURN 'EVENT_NOT_LIVE';
     END IF;
 
-    -- Filtro de fila (mig 008): con tipo esperado, una boleta válida de otro
-    -- tipo NO entra y NO se consume (auditado como 'wrong_type').
+    -- Ventana de activación (mig 013): el QR "existe" desde
+    -- starts_at - unlock minutos. Antes, rechazo sin consumir.
+    IF v_event_starts_at - (v_event_unlock * INTERVAL '1 minute') > now() THEN
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'not_active');
+        RETURN 'NOT_ACTIVE';
+    END IF;
+
+    -- Filtro de fila: con tipo esperado, una boleta válida de otro tipo NO
+    -- entra y NO se consume (podrá entrar por la fila correcta después).
     IF p_expected_ticket_type_id IS NOT NULL
        AND v_ticket.ticket_type_id <> p_expected_ticket_type_id THEN
         INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
@@ -437,31 +687,1639 @@ BEGIN
 END;
 $$;
 
-COMMIT;
--- ---------------------------------------------------------------------------
--- 10. LIQUIDACIONES DE PROMOTORES (mig 010, patron payment_issues de unicall)
--- ---------------------------------------------------------------------------
-CREATE TABLE promoter_payouts (
-    id                 bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    venue_id           bigint NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
-    promoter_id        bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    period_start       date NOT NULL,
-    period_end         date NOT NULL,
-    tickets_count      integer NOT NULL DEFAULT 0,
-    revenue_cents      bigint NOT NULL DEFAULT 0,
-    commission_pct     numeric(5,2) NOT NULL DEFAULT 0,
-    commission_cents   bigint NOT NULL DEFAULT 0,
-    status             text NOT NULL DEFAULT 'pending',
-    paid_cents         bigint,
-    paid_at            timestamptz,
-    disputed_reason    text,
-    reviewed_by        bigint REFERENCES users(id) ON DELETE SET NULL,
-    reviewed_at        timestamptz,
-    review_note        text,
-    created_at         timestamptz NOT NULL DEFAULT now(),
-    CHECK (period_end >= period_start),
-    CHECK (status IN ('pending','disputed','paid','rejected'))
+
+--
+-- Name: register_login_failure(text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.register_login_failure(p_email text, p_ip text) RETURNS void
+    LANGUAGE sql
+    AS $$
+    INSERT INTO login_attempts (email_norm, ip)
+    VALUES (lower(p_email), p_ip);
+$$;
+
+
+--
+-- Name: reissue_ticket(bigint, text, bigint, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.reissue_ticket(p_ticket_id bigint, p_new_raw_token text, p_by_user_id bigint, p_reason text DEFAULT NULL::text) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_ticket     tickets%ROWTYPE;
+    v_event_status text;
+    v_new_hash   text;
+BEGIN
+    IF p_new_raw_token IS NULL OR length(p_new_raw_token) < 8 THEN
+        RAISE EXCEPTION 'invalid_token_format';
+    END IF;
+
+    SELECT * INTO v_ticket FROM tickets WHERE id = p_ticket_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'ticket_not_found'; END IF;
+
+    SELECT status INTO v_event_status FROM events WHERE id = v_ticket.event_id;
+    IF v_event_status = 'ended' OR v_event_status = 'cancelled' THEN
+        RAISE EXCEPTION 'event_closed';
+    END IF;
+
+    -- Una boleta ya usada no se reemite: la entrada ya ocurrió y un token nuevo
+    -- sería una segunda entrada gratis.
+    IF v_ticket.status = 'redeemed' THEN
+        RAISE EXCEPTION 'cannot_reissue_redeemed';
+    END IF;
+    -- Anulada/reembolsada: dejaría de estar anulada si se le diera token vivo.
+    IF v_ticket.status <> 'issued' THEN
+        RAISE EXCEPTION 'cannot_reissue_ticket';
+    END IF;
+
+    v_new_hash := encode(digest(p_new_raw_token, 'sha256'), 'hex');
+
+    -- Compare-and-swap: dos reemisiones concurrentes no pueden quedar ambas
+    -- "vigentes"; la segunda falla y el llamador reintenta.
+    UPDATE tickets
+       SET token_hash = v_new_hash, updated_at = now()
+     WHERE id = p_ticket_id AND status = 'issued';
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'cannot_reissue_ticket';
+    END IF;
+
+    INSERT INTO ticket_reissues (
+        ticket_id, reissued_by_user_id, old_token_hash, new_token_hash, reason
+    ) VALUES (
+        p_ticket_id, p_by_user_id, v_ticket.token_hash, v_new_hash, p_reason
+    );
+
+    RETURN v_ticket.event_id;
+END;
+$$;
+
+
+--
+-- Name: set_event_status(bigint, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_event_status(p_event_id bigint, p_from text, p_to text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_count integer;
+    v_issued bigint;
+    v_types_total bigint;
+BEGIN
+    SELECT count(*) INTO v_count
+      FROM events
+     WHERE id = p_event_id
+       AND status = p_from;
+
+    IF v_count = 0 THEN
+        RAISE EXCEPTION 'invalid_transition';
+    END IF;
+
+    -- Al abrir puertas (published -> live): la suma de quantities de los tipos
+    -- debe cubrir las boletas ya emitidas. Si el admin redujo tipos por
+    -- debajo de lo vendido, la puerta no abre con sobreventa.
+    IF p_from = 'published' AND p_to = 'live' THEN
+        SELECT count(*) INTO v_issued
+          FROM tickets
+         WHERE event_id = p_event_id
+           AND status NOT IN ('voided', 'refunded');
+
+        SELECT COALESCE(SUM(quantity), 0) INTO v_types_total
+          FROM ticket_types
+         WHERE event_id = p_event_id;
+
+        IF v_issued > v_types_total THEN
+            RAISE EXCEPTION 'capacity_below_issued (issued=%, types_total=%)',
+                v_issued, v_types_total;
+        END IF;
+    END IF;
+
+    UPDATE events
+       SET status = p_to, updated_at = now()
+     WHERE id = p_event_id AND status = p_from;
+END;
+$$;
+
+
+--
+-- Name: tickets_check_active_refs(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.tickets_check_active_refs() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_type_active  boolean;
+    v_alloc_active boolean;
+BEGIN
+    SELECT is_active INTO v_type_active FROM ticket_types WHERE id = NEW.ticket_type_id;
+    IF v_type_active IS NOT TRUE THEN
+        RAISE EXCEPTION 'ticket_type_inactive';
+    END IF;
+
+    IF NEW.allocation_id IS NOT NULL THEN
+        SELECT is_active INTO v_alloc_active
+          FROM promoter_allocations WHERE id = NEW.allocation_id;
+        IF v_alloc_active IS NOT TRUE THEN
+            RAISE EXCEPTION 'allocation_inactive';
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_event(bigint, text, text, text, timestamp with time zone, timestamp with time zone, text, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_event(p_event_id bigint, p_name text, p_description text, p_flyer_url text, p_starts_at timestamp with time zone, p_ends_at timestamp with time zone, p_event_timezone text, p_capacity integer) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_id            bigint;
+    v_status        text;
+    v_active_issued bigint;
+BEGIN
+    SELECT id, status INTO v_id, v_status
+      FROM events WHERE id = p_event_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'event_not_found'; END IF;
+
+    IF p_name IS NULL OR btrim(p_name) = '' THEN
+        RAISE EXCEPTION 'invalid_name';
+    END IF;
+    IF p_capacity IS NULL OR p_capacity <= 0 THEN
+        RAISE EXCEPTION 'invalid_capacity';
+    END IF;
+
+    -- La ventana se re-valida en la DB también al editar.
+    IF p_ends_at IS NOT NULL AND p_ends_at <= p_starts_at THEN
+        RAISE EXCEPTION 'invalid_window';
+    END IF;
+
+    -- No mover fechas al pasado si el evento aún no empezó. (Un evento live/ended
+    -- puede mantener su starts_at original; el caller no envía cambios de fecha
+    -- para esos estados, pero la regla es de DB y vale para cualquier camino.)
+    IF v_status IN ('draft', 'published') AND p_starts_at < now() THEN
+        RAISE EXCEPTION 'starts_at_in_past';
+    END IF;
+
+    -- Aforo nunca por debajo de las boletas activas (no anuladas/reembolsadas).
+    -- Mismo criterio que emit_ticket() usa para rechazar sobreventa.
+    SELECT count(*) INTO v_active_issued
+      FROM tickets
+     WHERE event_id = p_event_id
+       AND status NOT IN ('voided', 'refunded');
+    IF p_capacity < v_active_issued THEN
+        RAISE EXCEPTION 'capacity_cannot_be_below_issued (capacity=%, issued=%)',
+            p_capacity, v_active_issued;
+    END IF;
+
+    UPDATE events
+       SET name           = p_name,
+           description    = p_description,
+           flyer_url      = p_flyer_url,
+           starts_at      = p_starts_at,
+           ends_at        = p_ends_at,
+           event_timezone = p_event_timezone,
+           capacity       = p_capacity,
+           updated_at     = now()
+     WHERE id = p_event_id;
+END;
+$$;
+
+
+--
+-- Name: update_promoter_allocation(bigint, integer, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_promoter_allocation(p_allocation_id bigint, p_capacity integer, p_is_active boolean) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_id   bigint;
+    v_used bigint;
+BEGIN
+    SELECT id INTO v_id FROM promoter_allocations WHERE id = p_allocation_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'allocation_not_found'; END IF;
+
+    IF p_capacity IS NULL OR p_capacity < 0 THEN
+        RAISE EXCEPTION 'invalid_capacity';
+    END IF;
+
+    SELECT count(*) INTO v_used
+      FROM tickets
+     WHERE allocation_id = p_allocation_id
+       AND status NOT IN ('voided', 'refunded');
+
+    IF p_capacity < v_used THEN
+        RAISE EXCEPTION 'capacity_below_used (capacity=%, used=%)', p_capacity, v_used;
+    END IF;
+
+    UPDATE promoter_allocations
+       SET capacity  = p_capacity,
+           is_active = p_is_active
+     WHERE id = p_allocation_id;
+END;
+$$;
+
+
+--
+-- Name: update_ticket_type(bigint, text, bigint, integer, boolean, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_ticket_type(p_type_id bigint, p_name text, p_price_cents bigint, p_quantity integer, p_is_courtesy boolean, p_is_active boolean) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_id     bigint;
+    v_issued bigint;
+BEGIN
+    SELECT id INTO v_id FROM ticket_types WHERE id = p_type_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'ticket_type_not_found'; END IF;
+
+    IF p_quantity IS NULL OR p_quantity <= 0 THEN
+        RAISE EXCEPTION 'invalid_quantity';
+    END IF;
+
+    SELECT count(*) INTO v_issued
+      FROM tickets
+     WHERE ticket_type_id = p_type_id
+       AND status NOT IN ('voided', 'refunded');
+
+    IF p_quantity < v_issued THEN
+        RAISE EXCEPTION 'quantity_below_issued (quantity=%, issued=%)', p_quantity, v_issued;
+    END IF;
+
+    UPDATE ticket_types
+       SET name        = p_name,
+           price_cents = p_price_cents,
+           quantity    = p_quantity,
+           is_courtesy = p_is_courtesy,
+           is_active   = p_is_active
+     WHERE id = p_type_id;
+END;
+$$;
+
+
+--
+-- Name: void_ticket(bigint, text, bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.void_ticket(p_ticket_id bigint, p_reason text, p_by_user_id bigint) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_ticket tickets%ROWTYPE;
+    v_status text;
+BEGIN
+    SELECT * INTO v_ticket FROM tickets WHERE id = p_ticket_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'ticket_not_found'; END IF;
+
+    -- Solo el evento dueño hace falta para validar venue en el endpoint.
+    SELECT status INTO v_status FROM events WHERE id = v_ticket.event_id;
+    IF v_status = 'ended' OR v_status = 'cancelled' THEN
+        RAISE EXCEPTION 'event_closed';
+    END IF;
+
+    IF v_ticket.status = 'redeemed' THEN
+        RAISE EXCEPTION 'cannot_void_redeemed';
+    END IF;
+    IF v_ticket.status = 'voided' THEN
+        RETURN v_ticket.event_id;   -- idempotente
+    END IF;
+
+    UPDATE tickets
+       SET status = 'voided', voided_at = now(), updated_at = now()
+     WHERE id = p_ticket_id AND status IN ('issued', 'refunded');
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'cannot_void_ticket';
+    END IF;
+
+    RETURN v_ticket.event_id;
+END;
+$$;
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: audit_log; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audit_log (
+    id bigint NOT NULL,
+    venue_id bigint NOT NULL,
+    actor_id bigint,
+    kind text NOT NULL,
+    entity text NOT NULL,
+    entity_id bigint,
+    details jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
-CREATE UNIQUE INDEX idx_payouts_unique_period ON promoter_payouts (venue_id, promoter_id, period_start);
-CREATE INDEX idx_payouts_venue_status ON promoter_payouts (venue_id, status, created_at DESC);
-CREATE INDEX idx_payouts_promoter ON promoter_payouts (promoter_id, venue_id, created_at DESC);
+
+
+--
+-- Name: audit_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.audit_log ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.audit_log_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.events (
+    id bigint NOT NULL,
+    venue_id bigint NOT NULL,
+    name text NOT NULL,
+    description text,
+    flyer_url text,
+    starts_at timestamp with time zone NOT NULL,
+    ends_at timestamp with time zone,
+    event_timezone text DEFAULT 'America/Bogota'::text NOT NULL,
+    capacity integer NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    qr_unlock_minutes integer DEFAULT 60 NOT NULL,
+    location text,
+    CONSTRAINT events_capacity_check CHECK ((capacity > 0)),
+    CONSTRAINT events_qr_unlock_minutes_check CHECK ((qr_unlock_minutes >= 0)),
+    CONSTRAINT events_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'live'::text, 'ended'::text, 'cancelled'::text])))
+);
+
+
+--
+-- Name: events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: login_attempts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.login_attempts (
+    id bigint NOT NULL,
+    email_norm text NOT NULL,
+    ip text DEFAULT 'unknown'::text NOT NULL,
+    at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: login_attempts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.login_attempts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.login_attempts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: media; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.media (
+    id bigint NOT NULL,
+    venue_id bigint NOT NULL,
+    mime text NOT NULL,
+    bytes bytea NOT NULL,
+    size_bytes integer NOT NULL,
+    created_by bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT media_mime_check CHECK ((mime = ANY (ARRAY['image/jpeg'::text, 'image/png'::text, 'image/webp'::text]))),
+    CONSTRAINT media_size_bytes_check CHECK (((size_bytes > 0) AND (size_bytes <= 600000)))
+);
+
+
+--
+-- Name: media_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.media ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.media_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: notifications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notifications (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    venue_id bigint NOT NULL,
+    kind text NOT NULL,
+    title text NOT NULL,
+    body text NOT NULL,
+    link text,
+    read_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text])))
+);
+
+
+--
+-- Name: notifications_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.notifications ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.notifications_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.password_reset_tokens (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    token_hash text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    used_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    request_ip text
+);
+
+
+--
+-- Name: password_reset_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.password_reset_tokens ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.password_reset_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: promoter_allocations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.promoter_allocations (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    ticket_type_id bigint NOT NULL,
+    promoter_id bigint NOT NULL,
+    capacity integer NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT promoter_allocations_capacity_check CHECK ((capacity >= 0))
+);
+
+
+--
+-- Name: promoter_allocations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.promoter_allocations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.promoter_allocations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: promoter_payouts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.promoter_payouts (
+    id bigint NOT NULL,
+    venue_id bigint NOT NULL,
+    promoter_id bigint NOT NULL,
+    period_start date NOT NULL,
+    period_end date NOT NULL,
+    tickets_count integer DEFAULT 0 NOT NULL,
+    revenue_cents bigint DEFAULT 0 NOT NULL,
+    commission_pct numeric(5,2) DEFAULT 0 NOT NULL,
+    commission_cents bigint DEFAULT 0 NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    paid_cents bigint,
+    paid_at timestamp with time zone,
+    disputed_reason text,
+    reviewed_by bigint,
+    reviewed_at timestamp with time zone,
+    review_note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT promoter_payouts_check CHECK ((period_end >= period_start)),
+    CONSTRAINT promoter_payouts_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'disputed'::text, 'paid'::text, 'rejected'::text])))
+);
+
+
+--
+-- Name: promoter_payouts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.promoter_payouts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.promoter_payouts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: push_outbox; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.push_outbox (
+    id bigint NOT NULL,
+    notification_id bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    processed_at timestamp with time zone
+);
+
+
+--
+-- Name: push_outbox_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.push_outbox ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.push_outbox_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: push_subscriptions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.push_subscriptions (
+    id bigint NOT NULL,
+    user_id bigint,
+    venue_id bigint NOT NULL,
+    endpoint text NOT NULL,
+    p256dh text NOT NULL,
+    auth text NOT NULL,
+    user_agent text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: push_subscriptions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.push_subscriptions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.push_subscriptions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: redemptions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.redemptions (
+    id bigint NOT NULL,
+    ticket_id bigint,
+    event_id bigint NOT NULL,
+    scanned_by_user_id bigint,
+    outcome text NOT NULL,
+    scanned_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: redemptions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.redemptions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.redemptions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: staff_invitations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.staff_invitations (
+    id bigint NOT NULL,
+    venue_id bigint NOT NULL,
+    role text NOT NULL,
+    full_name text NOT NULL,
+    email text NOT NULL,
+    token_hash text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    accepted_at timestamp with time zone,
+    accepted_user_id bigint,
+    created_by bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    revoked_at timestamp with time zone,
+    CONSTRAINT staff_invitations_role_check CHECK ((role = ANY (ARRAY['promotor'::text, 'bouncer'::text, 'admin'::text])))
+);
+
+
+--
+-- Name: staff_invitations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.staff_invitations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.staff_invitations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: ticket_contact_edits; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ticket_contact_edits (
+    id bigint NOT NULL,
+    ticket_id bigint NOT NULL,
+    edited_by_user_id bigint,
+    old_name text,
+    new_name text,
+    old_phone text,
+    new_phone text,
+    reason text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ticket_contact_edits_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ticket_contact_edits ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.ticket_contact_edits_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: ticket_reissues; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ticket_reissues (
+    id bigint NOT NULL,
+    ticket_id bigint NOT NULL,
+    reissued_by_user_id bigint,
+    old_token_hash text NOT NULL,
+    new_token_hash text NOT NULL,
+    reason text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ticket_reissues_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ticket_reissues ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.ticket_reissues_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: ticket_types; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ticket_types (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    name text NOT NULL,
+    price_cents bigint DEFAULT 0 NOT NULL,
+    currency text DEFAULT 'COP'::text NOT NULL,
+    quantity integer NOT NULL,
+    is_courtesy boolean DEFAULT false NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ticket_types_price_cents_check CHECK ((price_cents >= 0)),
+    CONSTRAINT ticket_types_quantity_check CHECK ((quantity > 0))
+);
+
+
+--
+-- Name: ticket_types_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ticket_types ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.ticket_types_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: tickets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tickets (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    ticket_type_id bigint NOT NULL,
+    allocation_id bigint,
+    sold_by_user_id bigint,
+    customer_name text NOT NULL,
+    customer_phone text,
+    customer_email text,
+    token_hash text NOT NULL,
+    status public.ticket_status DEFAULT 'issued'::public.ticket_status NOT NULL,
+    issued_at timestamp with time zone DEFAULT now() NOT NULL,
+    voided_at timestamp with time zone,
+    redeemed_at timestamp with time zone,
+    redeemed_by_user_id bigint,
+    price_cents_snapshot bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: tickets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tickets ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.tickets_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.users (
+    id bigint NOT NULL,
+    email text NOT NULL,
+    phone text,
+    password_hash text NOT NULL,
+    full_name text NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_login_at timestamp with time zone,
+    token_version integer DEFAULT 1 NOT NULL
+);
+
+
+--
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.users_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: venue_user_roles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.venue_user_roles (
+    venue_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    role public.user_role NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: venues; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.venues (
+    id bigint NOT NULL,
+    name text NOT NULL,
+    slug text NOT NULL,
+    legal_name text,
+    tax_id text,
+    country text DEFAULT 'CO'::text NOT NULL,
+    currency text DEFAULT 'COP'::text NOT NULL,
+    logo_url text,
+    primary_color text,
+    commission_pct numeric(5,2) DEFAULT 0 NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: venues_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.venues ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.venues_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_log
+    ADD CONSTRAINT audit_log_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: events events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: login_attempts login_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.login_attempts
+    ADD CONSTRAINT login_attempts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: media media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.media
+    ADD CONSTRAINT media_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.password_reset_tokens
+    ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: password_reset_tokens password_reset_tokens_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.password_reset_tokens
+    ADD CONSTRAINT password_reset_tokens_token_hash_key UNIQUE (token_hash);
+
+
+--
+-- Name: promoter_allocations promoter_allocations_event_id_ticket_type_id_promoter_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_allocations
+    ADD CONSTRAINT promoter_allocations_event_id_ticket_type_id_promoter_id_key UNIQUE (event_id, ticket_type_id, promoter_id);
+
+
+--
+-- Name: promoter_allocations promoter_allocations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_allocations
+    ADD CONSTRAINT promoter_allocations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: promoter_payouts promoter_payouts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_payouts
+    ADD CONSTRAINT promoter_payouts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: push_outbox push_outbox_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_outbox
+    ADD CONSTRAINT push_outbox_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: push_subscriptions push_subscriptions_endpoint_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_endpoint_key UNIQUE (endpoint);
+
+
+--
+-- Name: push_subscriptions push_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: redemptions redemptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.redemptions
+    ADD CONSTRAINT redemptions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: staff_invitations staff_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_invitations
+    ADD CONSTRAINT staff_invitations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: staff_invitations staff_invitations_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_invitations
+    ADD CONSTRAINT staff_invitations_token_hash_key UNIQUE (token_hash);
+
+
+--
+-- Name: ticket_contact_edits ticket_contact_edits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_contact_edits
+    ADD CONSTRAINT ticket_contact_edits_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ticket_reissues ticket_reissues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_reissues
+    ADD CONSTRAINT ticket_reissues_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ticket_types ticket_types_event_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_types
+    ADD CONSTRAINT ticket_types_event_id_name_key UNIQUE (event_id, name);
+
+
+--
+-- Name: ticket_types ticket_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_types
+    ADD CONSTRAINT ticket_types_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tickets tickets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tickets tickets_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_token_hash_key UNIQUE (token_hash);
+
+
+--
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_email_key UNIQUE (email);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: venue_user_roles venue_user_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.venue_user_roles
+    ADD CONSTRAINT venue_user_roles_pkey PRIMARY KEY (venue_id, user_id, role);
+
+
+--
+-- Name: venues venues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.venues
+    ADD CONSTRAINT venues_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: venues venues_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.venues
+    ADD CONSTRAINT venues_slug_key UNIQUE (slug);
+
+
+--
+-- Name: audit_log_actor_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX audit_log_actor_idx ON public.audit_log USING btree (actor_id, created_at DESC);
+
+
+--
+-- Name: audit_log_venue_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX audit_log_venue_idx ON public.audit_log USING btree (venue_id, created_at DESC);
+
+
+--
+-- Name: idx_events_ends_unended; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_events_ends_unended ON public.events USING btree (ends_at) WHERE (status = ANY (ARRAY['live'::text, 'published'::text]));
+
+
+--
+-- Name: idx_invitations_venue_open; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_invitations_venue_open ON public.staff_invitations USING btree (venue_id) WHERE ((accepted_at IS NULL) AND (revoked_at IS NULL));
+
+
+--
+-- Name: idx_login_attempts_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_login_attempts_email ON public.login_attempts USING btree (email_norm, at);
+
+
+--
+-- Name: idx_login_attempts_ip; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_login_attempts_ip ON public.login_attempts USING btree (ip, at);
+
+
+--
+-- Name: idx_notifications_user_unread; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_notifications_user_unread ON public.notifications USING btree (user_id, created_at DESC) WHERE (read_at IS NULL);
+
+
+--
+-- Name: idx_notifications_venue; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_notifications_venue ON public.notifications USING btree (venue_id, user_id);
+
+
+--
+-- Name: idx_password_reset_token_hash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_password_reset_token_hash ON public.password_reset_tokens USING btree (token_hash);
+
+
+--
+-- Name: idx_password_reset_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_password_reset_user ON public.password_reset_tokens USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: idx_payouts_promoter; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_payouts_promoter ON public.promoter_payouts USING btree (promoter_id, venue_id, created_at DESC);
+
+
+--
+-- Name: idx_payouts_unique_period; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_payouts_unique_period ON public.promoter_payouts USING btree (venue_id, promoter_id, period_start);
+
+
+--
+-- Name: idx_payouts_venue_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_payouts_venue_status ON public.promoter_payouts USING btree (venue_id, status, created_at DESC);
+
+
+--
+-- Name: idx_push_outbox_pending; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_push_outbox_pending ON public.push_outbox USING btree (id) WHERE (processed_at IS NULL);
+
+
+--
+-- Name: idx_push_subs_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_push_subs_user ON public.push_subscriptions USING btree (user_id);
+
+
+--
+-- Name: idx_push_subs_venue; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_push_subs_venue ON public.push_subscriptions USING btree (venue_id);
+
+
+--
+-- Name: idx_redemptions_event; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_redemptions_event ON public.redemptions USING btree (event_id, scanned_at);
+
+
+--
+-- Name: idx_redemptions_scanner; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_redemptions_scanner ON public.redemptions USING btree (scanned_by_user_id, scanned_at DESC);
+
+
+--
+-- Name: idx_redemptions_ticket; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_redemptions_ticket ON public.redemptions USING btree (ticket_id, scanned_at);
+
+
+--
+-- Name: idx_ticket_contact_edits_ticket; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ticket_contact_edits_ticket ON public.ticket_contact_edits USING btree (ticket_id, created_at);
+
+
+--
+-- Name: idx_ticket_reissues_ticket; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ticket_reissues_ticket ON public.ticket_reissues USING btree (ticket_id, created_at);
+
+
+--
+-- Name: idx_tickets_allocation; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tickets_allocation ON public.tickets USING btree (allocation_id);
+
+
+--
+-- Name: idx_tickets_event_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tickets_event_status ON public.tickets USING btree (event_id, status);
+
+
+--
+-- Name: idx_tickets_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tickets_phone ON public.tickets USING btree (customer_phone) WHERE (customer_phone IS NOT NULL);
+
+
+--
+-- Name: idx_tickets_token_hash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tickets_token_hash ON public.tickets USING btree (token_hash);
+
+
+--
+-- Name: idx_users_last_login; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_users_last_login ON public.users USING btree (last_login_at);
+
+
+--
+-- Name: events trg_events_check_capacity; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_events_check_capacity BEFORE UPDATE OF capacity ON public.events FOR EACH ROW EXECUTE FUNCTION public.events_check_capacity();
+
+
+--
+-- Name: events trg_events_check_transition; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_events_check_transition BEFORE UPDATE OF status ON public.events FOR EACH ROW EXECUTE FUNCTION public.events_check_transition();
+
+
+--
+-- Name: staff_invitations trg_invitation_accepted_notify; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_invitation_accepted_notify AFTER UPDATE OF accepted_user_id ON public.staff_invitations FOR EACH ROW EXECUTE FUNCTION public.notify_invitation_accepted();
+
+
+--
+-- Name: promoter_payouts trg_payout_lifecycle_notify; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_payout_lifecycle_notify AFTER INSERT OR UPDATE OF status ON public.promoter_payouts FOR EACH ROW EXECUTE FUNCTION public.notify_payout_lifecycle();
+
+
+--
+-- Name: ticket_reissues trg_ticket_reissued_notify; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_ticket_reissued_notify AFTER INSERT ON public.ticket_reissues FOR EACH ROW EXECUTE FUNCTION public.notify_ticket_reissued();
+
+
+--
+-- Name: tickets trg_tickets_check_active_refs; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_tickets_check_active_refs BEFORE INSERT ON public.tickets FOR EACH ROW EXECUTE FUNCTION public.tickets_check_active_refs();
+
+
+--
+-- Name: audit_log audit_log_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_log
+    ADD CONSTRAINT audit_log_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: audit_log audit_log_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_log
+    ADD CONSTRAINT audit_log_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+
+--
+-- Name: events events_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+
+--
+-- Name: media media_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.media
+    ADD CONSTRAINT media_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: media media_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.media
+    ADD CONSTRAINT media_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+
+--
+-- Name: password_reset_tokens password_reset_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.password_reset_tokens
+    ADD CONSTRAINT password_reset_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: promoter_allocations promoter_allocations_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_allocations
+    ADD CONSTRAINT promoter_allocations_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: promoter_allocations promoter_allocations_promoter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_allocations
+    ADD CONSTRAINT promoter_allocations_promoter_id_fkey FOREIGN KEY (promoter_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: promoter_allocations promoter_allocations_ticket_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_allocations
+    ADD CONSTRAINT promoter_allocations_ticket_type_id_fkey FOREIGN KEY (ticket_type_id) REFERENCES public.ticket_types(id) ON DELETE CASCADE;
+
+
+--
+-- Name: promoter_payouts promoter_payouts_promoter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_payouts
+    ADD CONSTRAINT promoter_payouts_promoter_id_fkey FOREIGN KEY (promoter_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: promoter_payouts promoter_payouts_reviewed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_payouts
+    ADD CONSTRAINT promoter_payouts_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: promoter_payouts promoter_payouts_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_payouts
+    ADD CONSTRAINT promoter_payouts_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+
+--
+-- Name: push_outbox push_outbox_notification_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_outbox
+    ADD CONSTRAINT push_outbox_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.notifications(id) ON DELETE CASCADE;
+
+
+--
+-- Name: push_subscriptions push_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: push_subscriptions push_subscriptions_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+
+--
+-- Name: redemptions redemptions_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.redemptions
+    ADD CONSTRAINT redemptions_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: redemptions redemptions_scanned_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.redemptions
+    ADD CONSTRAINT redemptions_scanned_by_user_id_fkey FOREIGN KEY (scanned_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: redemptions redemptions_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.redemptions
+    ADD CONSTRAINT redemptions_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: staff_invitations staff_invitations_accepted_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_invitations
+    ADD CONSTRAINT staff_invitations_accepted_user_id_fkey FOREIGN KEY (accepted_user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: staff_invitations staff_invitations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_invitations
+    ADD CONSTRAINT staff_invitations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: staff_invitations staff_invitations_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_invitations
+    ADD CONSTRAINT staff_invitations_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ticket_contact_edits ticket_contact_edits_edited_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_contact_edits
+    ADD CONSTRAINT ticket_contact_edits_edited_by_user_id_fkey FOREIGN KEY (edited_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: ticket_contact_edits ticket_contact_edits_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_contact_edits
+    ADD CONSTRAINT ticket_contact_edits_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ticket_reissues ticket_reissues_reissued_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_reissues
+    ADD CONSTRAINT ticket_reissues_reissued_by_user_id_fkey FOREIGN KEY (reissued_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: ticket_reissues ticket_reissues_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_reissues
+    ADD CONSTRAINT ticket_reissues_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ticket_types ticket_types_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_types
+    ADD CONSTRAINT ticket_types_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tickets tickets_allocation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_allocation_id_fkey FOREIGN KEY (allocation_id) REFERENCES public.promoter_allocations(id) ON DELETE SET NULL;
+
+
+--
+-- Name: tickets tickets_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tickets tickets_redeemed_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_redeemed_by_user_id_fkey FOREIGN KEY (redeemed_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: tickets tickets_sold_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_sold_by_user_id_fkey FOREIGN KEY (sold_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: tickets tickets_ticket_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_ticket_type_id_fkey FOREIGN KEY (ticket_type_id) REFERENCES public.ticket_types(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: venue_user_roles venue_user_roles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.venue_user_roles
+    ADD CONSTRAINT venue_user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: venue_user_roles venue_user_roles_venue_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.venue_user_roles
+    ADD CONSTRAINT venue_user_roles_venue_fk FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+
+COMMIT;

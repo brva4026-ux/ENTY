@@ -58,8 +58,8 @@ def db():
     # Esquema limpio en cada sesión de tests (orden inverso de dependencias)
     conn.execute(
         """
-        DROP TABLE IF EXISTS notifications, staff_invitations, push_subscriptions, ticket_reissues,
-            ticket_contact_edits, login_attempts, password_reset_tokens, media,
+        DROP TABLE IF EXISTS notifications, push_outbox, staff_invitations, push_subscriptions, ticket_reissues,
+            ticket_contact_edits, login_attempts, password_reset_tokens, media, audit_log,
             redemptions, promoter_payouts, tickets, promoter_allocations, ticket_types, events,
             venue_user_roles, venues, users CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;
@@ -74,9 +74,38 @@ def db():
             update_ticket_type, update_promoter_allocation,
             delete_ticket_type, delete_promoter_allocation,
             tickets_check_active_refs, update_event,
-            events_check_transition CASCADE;
+            events_check_transition,
+            -- Lockout (016) y cierre automatico (020): desde que schema.sql
+            -- es el esquema completo consolidado, estas funciones se crean
+            -- con CREATE FUNCTION plano y hay que soltarlas explicitamente.
+            login_locked, register_login_failure, clear_login_failures,
+            prune_login_attempts, auto_close_expired_events
+            CASCADE;
         """
     )
+    # Red de seguridad: si queda CUALQUIER funcion huérfana en public (un
+    # schema.sql a medias, una migración abortada), el esquema consolidado
+    # chocaria con DuplicateObject y el lote entero se revertiria sin tablas.
+    # Se sueltan todas y schema.sql las recrea completas.
+    orphans = conn.execute(
+        """
+        SELECT 'DROP FUNCTION IF EXISTS ' || string_agg(
+                   quote_ident(p.proname) || '('
+                   || pg_get_function_identity_arguments(p.oid) || ')', ', ')
+                   AS ddl
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public'
+          -- Las funciones miembro de una extension (pgcrypto: digest) no se
+          -- sueltan con DROP FUNCTION: moririan con DependentObjectsStillExist.
+          AND NOT EXISTS (
+              SELECT 1 FROM pg_depend d
+               WHERE d.objid = p.oid AND d.deptype = 'e'
+          )
+        """
+    ).fetchone()
+    if orphans and orphans["ddl"]:
+        conn.execute(orphans["ddl"])
     for f in SQL_FILES:
         if not f.exists():
             raise RuntimeError(f"Falta el archivo SQL: {f}")

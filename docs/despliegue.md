@@ -48,8 +48,17 @@ API SQL de Supabase con `scripts/run-sql.js`.
 
 ## Paso 1 — Esquema base (`db/schema.sql`)
 
-Crea las 8 tablas, el enum `user_role`/`ticket_status`, la extensión
-`pgcrypto` y las funciones transaccionales `emit_ticket`/`redeem_ticket`.
+**Desde sep-2026 el `schema.sql` es el ESQUEMA COMPLETO consolidado** (19
+tablas, enums, extension pgcrypto y las 24 funciones de negocio con sus
+triggers). Lo genera `pg_dump --schema-only` sobre una base a la que se le
+aplicaron schema+migraciones; el test `backend/tests/test_schema_drift.py`
+falla si alguien agrega una migración sin consolidarla. Aplicarlo es
+idempotente y suficiente: las migraciones de `db/migrations/` quedan como
+no-ops encima (todas son IF NOT EXISTS / OR REPLACE).
+
+Crea las 19 tablas, el enum `user_role`/`ticket_status`, la extensión
+`pgcrypto` y las funciones transaccionales `emit_ticket`/`redeem_ticket`
+(entre otras 22).
 
 ```bash
 export SUPABASE_ACCESS_TOKEN="sbp_..."

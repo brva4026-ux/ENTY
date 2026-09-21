@@ -1,0 +1,16 @@
+# Fin de linea estandar para todo el repo (evita el "drift cosmico" en Windows:
+# un SQL con CRLF, al re-aplicarse via psql, guarda cuerpos de funcion con
+# saltos dobles y pg_dump lo muestra como diferencia).
+* text=auto
+*.sql text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.zip binary

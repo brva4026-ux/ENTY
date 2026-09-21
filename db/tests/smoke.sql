@@ -31,8 +31,12 @@ INSERT INTO venue_user_roles (venue_id, user_id, role)
 SELECT v.id, u.id, 'admin' FROM venues v, users u WHERE v.slug='bar-esquina' AND u.email='admin@bar.test'
 ON CONFLICT DO NOTHING;
 
+-- starts_at a +5 min: la ventana de activacion del QR (mig 013, default
+-- qr_unlock_minutes=60) abre ANTES del evento, asi que redeem_ticket responde
+-- GRANTED. Con +7 dias (como estaba) el QR aun no activa y el smoke moria en
+-- el paso 3 con NOT_ACTIVE.
 INSERT INTO events (venue_id, name, starts_at, capacity, status)
-SELECT id, 'Noche Electrónica', now() + interval '7 days', 100, 'published' FROM venues WHERE slug='bar-esquina'
+SELECT id, 'Noche Electrónica', now() + interval '5 minutes', 100, 'published' FROM venues WHERE slug='bar-esquina'
 ON CONFLICT DO NOTHING;
 
 -- Tipos: General (pago) y Cortesía (cupo: 5 de Promo1 + 3 de Promo2 = 8).

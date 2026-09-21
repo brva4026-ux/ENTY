@@ -153,10 +153,10 @@ WhatsApp vivía dentro del panel del promotor. Se extrajo a
 
 | # | Pendiente | Por qué importa |
 |---|-----------|-----------------|
-| 1 | `schema.sql` con el `INSERT` roto de `not_found` | Instalaciones nuevas heredan un bug ya corregido en migración |
+| 1 | `schema.sql` con el `INSERT` roto de `not_found` | ~~Instalaciones nuevas heredan un bug ya corregido en migración~~ **CORREGIDO (sep-2026):** el esquema se consolido completo; el `not_found` con `ticket_id` NULL ya vive en `schema.sql` y el test `test_schema_drift.py` impide que vuelva a divergir |
 | 2 | ~~No hay UI para emitir boletas de pago desde el admin~~ **CORREGIDO** | La venta directa solo existía por API; ahora hay formulario en `/admin` |
-| 3 | No hay endpoint de `redemptions` con detalle | Se ve el conteo, no el registro escaneo por escaneo |
-| 4 | Sin rango de fechas ni exportación | El reporte es "ahora", no cierre de caja |
+| 3 | ~~No hay endpoint de `redemptions` con detalle~~ **CORREGIDO (sep-2026)** | `GET .../redemptions` (JSON paginado, filtros outcome/q/fechas) y `GET .../redemptions.csv` (export completo, auditado) — el registro escaneo por escaneo ya existe |
+| 4 | Sin rango de fechas ni exportación | ~~El reporte es "ahora", no cierre de caja~~ parcial: el cierre de la PUERTA ya exporta con rango de fechas; falta el mismo rango para la caja (`/summary`) |
 | 5 | Sin alerta en vivo al detectar duplicados | Hoy se descubre al mirar el panel |
 
 El punto 1 es el de mayor riesgo y el más barato de cerrar.

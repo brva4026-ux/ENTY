@@ -25,9 +25,19 @@ el puerto es configurable con `API_PORT`.
 ## Tests
 
 ```bash
-cd backend && .venv/bin/python -m pytest tests/ -q     # 52 tests
+cd backend && .venv/bin/python -m pytest tests/ -q     # ~283 tests
 cd frontend && npm run build                            # verificacion de build
 ```
+
+Los tests que tocan la DB necesitan `TEST_DATABASE_URL` (o Postgres local en
+el default `postgres:devpassword@127.0.0.1:5432/ticketflow`); sin DB se
+saltan silenciosamente (un "verde" local puede ser solo la parte sin DB —
+en CI el service container de Postgres los corre todos).
+
+`tests/test_schema_drift.py` es el guardián del esquema: si agregás una
+migración con objetos nuevos, consolidala también en `db/schema.sql`
+(aplicá schema+migraciones sobre una base limpia, `pg_dump --schema-only`
+y reemplazá el archivo) o el test falla.
 
 ## Convenciones
 
@@ -64,7 +74,9 @@ Usuarios con contraseña `demo1234`:
 Ojo: los ids son `GENERATED ALWAYS AS IDENTITY`, así que **cambian en cada
 seed**. No los fijes en scripts; consúltalos. Además, correr `pytest` **borra
 estos datos** (el `conftest` hace `DROP TABLE`), así que después de testear hay
-que re-sembrar:
+que re-sembrar. La DB local de desarrollo se levanta con el Postgres portable
+(`.local/pgsql/`, ver `docs/despliegue.md`) y los tests pueden apuntar a una
+base desechable del mismo servidor con `TEST_DATABASE_URL`.
 
 ```bash
 cd backend && .venv/bin/python -c "
