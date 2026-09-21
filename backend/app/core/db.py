@@ -38,7 +38,9 @@ _CONNECT_KWARGS = {
 pool: AsyncConnectionPool | None = None
 
 
-async def init_pool(database_url: str, *, min_size: int = 2, max_size: int = 10) -> None:
+async def init_pool(
+    database_url: str, *, min_size: int = 2, max_size: int = 10
+) -> None:
     global pool
     if pool is not None and not pool.closed:
         return
@@ -52,6 +54,10 @@ async def init_pool(database_url: str, *, min_size: int = 2, max_size: int = 10)
         database_url,
         min_size=min_size,
         max_size=max_size,
+        # Fail-fast: sin este valor, un backend sordo (DB colgada, red a
+        # medias) deja cada request esperando el PoolTimeout de 30 s. Con
+        # 8 s el usuario recibe un error accionable y el pool sigue vivo.
+        timeout=8,
         # open(wait=False): no bloquea el arranque y NO cierra el pool si la
         # DB no responde todavia; las conexiones se establecen en background y
         # cada request reintenta. Evita el modo "pool cacheado y cerrado".

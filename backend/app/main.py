@@ -1,6 +1,7 @@
 """TicketFlow API — FastAPI application factory."""
 import asyncio
 import sys
+import time
 from contextlib import asynccontextmanager
 
 if sys.platform == "win32":
@@ -11,9 +12,12 @@ if sys.platform == "win32":
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+import psycopg
 
 from app.core.config import get_settings
-from app.core.db import close_pool, init_pool
+from app.core.db import _CONNECT_KWARGS, close_pool, init_pool
 from app.core.observability import capture_exception, init_sentry
 from app.core.push_worker import push_outbox_worker
 from app.routers import (
@@ -27,6 +31,7 @@ from app.routers import (
     public_tickets,
     push,
     payouts,
+    redemptions,
     report,
     seed,
     team,
@@ -65,6 +70,9 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    # Cache del latido de /health, por instancia de la app (creada en
+    # create_app para que tests con apps separadas no compartan estado).
+    _health: dict = {"at": 0.0, "ok": None, "latency_ms": None}
     app = FastAPI(
         title=settings.app_name,
         version="0.1.0",
@@ -106,6 +114,7 @@ def create_app() -> FastAPI:
     app.include_router(public_tickets.router)
     app.include_router(media.router)
     app.include_router(report.router)
+    app.include_router(redemptions.router)
     app.include_router(team.router)
     app.include_router(payouts.router)
     app.include_router(public.router)
@@ -113,17 +122,61 @@ def create_app() -> FastAPI:
 
     @app.get("/health", tags=["ops"])
     async def health():
-        # push_enabled / email_enabled: telemetría operativa — qué canales de
-        # aviso están ENCENDIDOS de verdad (sus env vars configuradas).
+        """Latido operacional: la app esta viva Y la DB responde.
+
+        Antes este endpoint respondia ok sin tocar la base: un sistema con la
+        DB caida se monitoreaba verde. Ahora el chequeo es real y una DB
+        muerta responde 503 con el detalle, para que la alerta llegue antes
+        que el primer usuario. El ping usa la ruta efimera (la misma de
+        serverless) con timeout propio: un healthcheck no se cuelga 30 s.
+
+        El resultado se cachea 5 s por instancia: una salva de probes no debe
+        abrir una connection storm contra el pooler (el endpoint es publico).
+        """
+        # push_enabled / email_enabled: telemetria operativa — que canales de
+        # aviso estan ENCENDIDOS de verdad (sus env vars configuradas).
         push_enabled = bool(
             settings.vapid_public_key_b64 and settings.vapid_private_key_b64
         )
-        return {
-            "status": "ok",
+        body = {
             "app": settings.app_name,
             "push_enabled": push_enabled,
             "email_enabled": bool(settings.resend_api_key),
         }
+
+        now = time.perf_counter()
+        cached = now - _health["at"] < 5.0 and _health["ok"] is not None
+        if cached:
+            db_ok, db_ms = _health["ok"], _health["latency_ms"]
+        else:
+            t0 = time.perf_counter()
+            try:
+                conn = await psycopg.AsyncConnection.connect(
+                    settings.database_url,
+                    **{**_CONNECT_KWARGS, "connect_timeout": 3},
+                )
+                try:
+                    async with conn.cursor() as cur:
+                        await cur.execute("SELECT 1")
+                        await cur.fetchone()
+                finally:
+                    await conn.close()
+            except Exception:
+                # No se reporta a Sentry en cada probe: el 503 es la senal y
+                # un monitor caido ya genera su propia alerta.
+                db_ok = False
+            else:
+                db_ok = True
+            db_ms = round((time.perf_counter() - t0) * 1000)
+            _health.update(at=now, ok=db_ok, latency_ms=db_ms)
+
+        body["db"] = "ok" if db_ok else "down"
+        body["db_latency_ms"] = db_ms
+        if not db_ok:
+            body["status"] = "degraded"
+            return JSONResponse(status_code=503, content=body)
+        body["status"] = "ok"
+        return body
 
     return app
 
