@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { fetchPublicTicket, fetchTicketImage } from "../lib/api";
+import { fetchPublicTicket, fetchTicketImage, returnTicket } from "../lib/api";
 import { eventDate } from "../lib/format";
 import Icon from "../components/Icon";
 
@@ -32,6 +32,10 @@ export default function PublicTicketPage() {
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Devolucion (mig 021): confirmacion en dos pasos — es irreversible.
+  const [confirming, setConfirming] = useState(false);
+  const [returning, setReturning] = useState(false);
+  const [returnError, setReturnError] = useState("");
 
   useEffect(() => {
     if (!token) {
@@ -109,6 +113,27 @@ export default function PublicTicketPage() {
   }
 
   const redeemed = ticket?.status === "redeemed";
+  // Estados terminales: la boleta no muestra QR por ningun lado. La copa
+  // cambia si fue DEVUELTA por el invitado (was_returned) o anulada por staff.
+  const terminal =
+    ticket?.status === "voided" || ticket?.status === "refunded";
+  const returned = ticket?.was_returned === true;
+
+  async function doReturn() {
+    setReturning(true);
+    setReturnError("");
+    try {
+      await returnTicket(ticket.ticket_id, token);
+      // Re-consultar: el backend decide el estado real (voided + was_returned).
+      const t = await fetchPublicTicket(token);
+      setTicket(t);
+      setConfirming(false);
+    } catch (e) {
+      setReturnError(e.message || "No se pudo devolver la boleta");
+    } finally {
+      setReturning(false);
+    }
+  }
   // Activación del QR (mig 013, patrón DICE): el backend decide si el QR
   // es visible y, si no, manda el mensaje con la hora de activación. El QR
   // local se genera solo con la boleta activa: fuera de ventana el invitado
@@ -163,7 +188,22 @@ export default function PublicTicketPage() {
             </div>
           ) : (
             <>
-              {!qrActive ? (
+              {terminal ? (
+                <div className="rounded-xl bg-red-500/10 p-4 text-center ring-1 ring-red-500/30">
+                  <Icon
+                    name={returned ? "undo" : "alert"}
+                    className="mx-auto mb-2 h-6 w-6 text-red-400"
+                  />
+                  <p className="text-sm font-bold text-red-300">
+                    {returned ? "Boleta devuelta" : "Boleta anulada"}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-300">
+                    {returned
+                      ? "Devuiste esta boleta y su QR quedó sin efecto. Si cambias de opinión, pide una nueva al promotor."
+                      : "Esta boleta fue anulada por el organizador y no permite el ingreso."}
+                  </p>
+                </div>
+              ) : !qrActive ? (
                 <div className="rounded-2xl bg-zinc-900/60 p-6 text-center ring-1 ring-zinc-800">
                   <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-brand-500/15">
                     <Icon name="clock" className="h-7 w-7 text-brand-300" />
@@ -242,24 +282,76 @@ export default function PublicTicketPage() {
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={shareOrDownload}
-                disabled={!imageUrl || busy || !qrActive}
-                title={
-                  !qrActive
-                    ? "El QR se activa cerca de la fecha del evento"
-                    : undefined
-                }
-                className="btn-primary mt-4 w-full disabled:opacity-50"
-              >
-                <Icon name="whatsapp" className="h-4 w-4" />
-                {busy
-                  ? "Abriendo…"
-                  : qrActive
-                    ? "Compartir o guardar imagen"
-                    : "Imagen disponible cuando se active el QR"}
-              </button>
+              {!terminal && (
+                <button
+                  type="button"
+                  onClick={shareOrDownload}
+                  disabled={!imageUrl || busy || !qrActive}
+                  title={
+                    !qrActive
+                      ? "El QR se activa cerca de la fecha del evento"
+                      : undefined
+                  }
+                  className="btn-primary mt-4 w-full disabled:opacity-50"
+                >
+                  <Icon name="whatsapp" className="h-4 w-4" />
+                  {busy
+                    ? "Abriendo…"
+                    : qrActive
+                      ? "Compartir o guardar imagen"
+                      : "Imagen disponible cuando se active el QR"}
+                </button>
+              )}
+
+              {ticket?.can_return && !confirming && (
+                <button
+                  type="button"
+                  onClick={() => setConfirming(true)}
+                  className="btn-danger-text mt-2 w-full justify-center"
+                >
+                  <Icon name="undo" className="h-4 w-4" />
+                  No puedo ir — devolver boleta
+                </button>
+              )}
+
+              {confirming && (
+                <div className="mt-2 rounded-xl bg-red-500/10 p-4 ring-1 ring-red-500/30">
+                  <p className="text-sm font-bold text-red-300">
+                    ¿Seguro que no puedes ir?
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-300">
+                    Esto es irreversible: tu QR muere y el lugar vuelve al
+                    organizador
+                    {ticket?.return_until
+                      ? ` · Ventana abierta hasta ${ticket.return_until}`
+                      : ""}
+                    .
+                  </p>
+                  {returnError && (
+                    <p className="mt-2 text-xs font-medium text-red-300">
+                      {returnError}
+                    </p>
+                  )}
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={doReturn}
+                      disabled={returning}
+                      className="btn-danger flex-1 justify-center disabled:opacity-50"
+                    >
+                      {returning ? "Devolviendo…" : "Sí, devolver mi boleta"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirming(false)}
+                      disabled={returning}
+                      className="btn-ghost flex-1 justify-center"
+                    >
+                      Volver
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

@@ -36,6 +36,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "018_media.sql",
     ROOT / "db" / "migrations" / "019_security_p0.sql",
     ROOT / "db" / "migrations" / "020_auto_close_events.sql",
+    ROOT / "db" / "migrations" / "021_ticket_return.sql",
 ]
 
 
@@ -59,7 +60,7 @@ def db():
     conn.execute(
         """
         DROP TABLE IF EXISTS notifications, push_outbox, staff_invitations, push_subscriptions, ticket_reissues,
-            ticket_contact_edits, login_attempts, password_reset_tokens, media, audit_log,
+            ticket_returns, ticket_contact_edits, login_attempts, password_reset_tokens, media, audit_log,
             redemptions, promoter_payouts, tickets, promoter_allocations, ticket_types, events,
             venue_user_roles, venues, users CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;
@@ -71,6 +72,7 @@ def db():
             reissue_ticket, set_event_status, notify_user, notify_venue_admins,
             notify_payout_lifecycle, notify_invitation_accepted,
             notify_ticket_reissued, correct_ticket_contact, events_check_capacity,
+            return_ticket,
             update_ticket_type, update_promoter_allocation,
             delete_ticket_type, delete_promoter_allocation,
             tickets_check_active_refs, update_event,
@@ -405,11 +407,19 @@ class Api:
         )
 
     def run_sql(self, sql: str):
-        """Ejecuta un SELECT escalar con una conexion propia y devuelve su valor."""
+        """Ejecuta SQL suelto y devuelve el valor escalar de la primera fila.
+
+        Tolera sentencias SIN resultado (UPDATE/INSERT sin RETURNING): antes
+        un fetchone() sobre un UPDATE lanzaba ProgrammingError y mandaba a
+        cero a media suite.
+        """
         with psycopg.connect(self.dsn, autocommit=True, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute(sql)
-                row = cur.fetchone()
+                try:
+                    row = cur.fetchone()
+                except psycopg.ProgrammingError:
+                    return None
                 return list(row.values())[0] if row else None
 
     def event_status(self, venue_id: int, event_id: int) -> str:

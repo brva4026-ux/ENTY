@@ -9,6 +9,17 @@ from app.core.config import get_settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def digest_token(raw: str) -> str:
+    """SHA-256 hex del token crudo de boleta: lo unico que guarda la DB.
+
+    Espejo EXACTO del SQL (encode(digest(x, 'sha256'), 'hex')): si algun dia
+    difiere, las comparaciones de credenciales dejan de cuadrar.
+    """
+    import hashlib
+
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
 def hash_password(plain: str) -> str:
     return pwd_context.hash(plain)
 

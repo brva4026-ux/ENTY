@@ -87,6 +87,18 @@ export async function downloadTicketsCsv(venueId, eventId, filters = {}) {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
+/**
+ * El invitado devuelve su boleta ("No puedo ir", mig 021). Endpoint PUBLICO:
+ * el token crudo es la credencial. Devuelve la boleta a la plataforma, mata
+ * el QR y libera el cupo del promotor. Irreversible.
+ */
+export function returnTicket(ticketId, rawToken) {
+  return apiFetch("/tickets/return", {
+    method: "POST",
+    body: JSON.stringify({ ticket_id: ticketId, raw_token: rawToken }),
+  });
+}
+
 export function reissueTicket(venueId, eventId, ticketId, reason) {
   return apiFetch(
     `/venues/${venueId}/events/${eventId}/tickets/${ticketId}/reissue`,

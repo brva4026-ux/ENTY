@@ -480,6 +480,18 @@ class TicketLookupRequest(BaseModel):
     raw_token: str = Field(min_length=8, max_length=200)
 
 
+class TicketReturnRequest(BaseModel):
+    """Devolucion del invitado (E1): token crudo + id de la boleta.
+
+    El id va JUNTO al token para que la DB verifique que ese token sigue
+    siendo la credencial vigente de esa boleta (hash esperado): cierra la
+    carrera con reissue sin exponer nada nuevo.
+    """
+
+    ticket_id: int
+    raw_token: str = Field(min_length=8, max_length=200)
+
+
 class PublicTicketOut(BaseModel):
     """Datos minimos para pintar la boleta del invitado. Sin PII de contacto."""
 
@@ -495,6 +507,21 @@ class PublicTicketOut(BaseModel):
     # ventana; `qr_message` explica cuándo se activa si aún no es hora.
     qr_active: bool = True
     qr_message: str | None = None
+    # Devolución (E1, "No puedo ir"): el botón se ofrece solo mientras la
+    # ventana está abierta (antes del unlock del QR); `return_until` es la
+    # fecha límite formateada para que el invitado vea hasta CUÁNDO puede.
+    can_return: bool = False
+    return_until: str | None = None
+    # La boleta anulada puede ser una DEVOLUCIÓN del invitado (copa distinta
+    # en la página) o una anulación de staff: ticket_returns lo distingue.
+    was_returned: bool = False
+
+
+class TicketReturnOut(BaseModel):
+    """Resultado de una devolucion (E1): la boleta queda anulada y auditada."""
+
+    ticket_id: int
+    status: str = "returned"
 
 
 class RedeemOut(BaseModel):

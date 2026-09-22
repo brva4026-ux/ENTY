@@ -26,6 +26,7 @@ from app.schemas import (
     TicketRedeemRequest,
     TicketReissueRequest,
     TicketReissueResponse,
+    TicketReturnOut,
 )
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["tickets"])
@@ -72,6 +73,19 @@ def _handle(venue_id: int, e: psycopg.errors.Error) -> None:
         )
     if "event_closed" in primary:
         raise HTTPException(409, "El evento ya cerro: no se puede reemitir")
+    # Migracion 021: devolucion del invitado ("No puedo ir").
+    if "return_window_closed" in primary:
+        raise HTTPException(
+            409, "La ventana de devolucion cerro: el QR ya esta activo"
+        )
+    if "token_stale" in primary:
+        raise HTTPException(
+            409, "Este enlace ya no es la credencial vigente de la boleta"
+        )
+    if "cannot_return_ticket" in primary:
+        raise HTTPException(
+            409, "La boleta no se puede devolver (no esta vigente o ya fue usada)"
+        )
     # Mig 015: corrección de contacto del asistente.
     if "cannot_edit_ticket_status" in primary:
         raise HTTPException(
@@ -523,3 +537,60 @@ async def list_ticket_contact_edits(
         rows = await cur.fetchall()
 
     return rows
+
+
+@router.post(
+    "/events/{event_id}/tickets/{ticket_id}/return",
+    response_model=TicketReturnOut,
+)
+async def return_ticket_staff(
+    venue_id: int,
+    event_id: int,
+    ticket_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Devolucion de una boleta por parte del staff (mig 021).
+
+    Caso real: el invitado escribe "no puedo ir" por WhatsApp en vez de usar
+    el boton de su enlace. El promotor (dueno de la boleta) o el admin lo
+    registra aqui para liberar el cupo YA, con la misma auditoria y la misma
+    ventana limite que la devolucion del invitado.
+
+    Es la contraparte autenticada de POST /tickets/return (publico): misma
+    funcion SQL, sin hash esperado — la credencial aqui es el rol.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.status, t.sold_by_user_id
+              FROM tickets t
+              JOIN events e ON e.id = t.event_id
+             WHERE t.id = %s AND t.event_id = %s AND e.venue_id = %s
+            """,
+            (ticket_id, event_id, venue_id),
+        )
+        row = await cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Boleta no encontrada")
+
+        # Espejo de reissue/contact: un promotor solo devuelve SUS boletas.
+        roles = user["roles"].get(venue_id, [])
+        is_staff = any(r in ("super_admin", "admin") for r in roles)
+        if not is_staff and row["sold_by_user_id"] != user["id"]:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "Solo puedes devolver tus propias boletas"
+            )
+
+        try:
+            await cur.execute(
+                "SELECT return_ticket(%s, NULL, %s)",
+                (ticket_id, user["id"]),
+            )
+            await db.commit()
+        except psycopg.errors.Error as e:
+            _handle(venue_id, e)
+
+    return TicketReturnOut(ticket_id=ticket_id, status="returned")

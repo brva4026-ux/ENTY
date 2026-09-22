@@ -52,7 +52,7 @@ def _emit(api, ev: dict) -> dict:
         api.world["venue_a"],
         ev["id"],
         ticket_type_id=t["id"],
-        allocation_id=alloc,
+        allocation_id=alloc["id"],
     )
 
 

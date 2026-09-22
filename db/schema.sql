@@ -758,6 +758,98 @@ $$;
 
 
 --
+-- Name: return_ticket(bigint, text, bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.return_ticket(p_ticket_id bigint, p_expected_token_hash text DEFAULT NULL::text, p_by_user_id bigint DEFAULT NULL::bigint) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_ticket      tickets%ROWTYPE;
+    v_event       events%ROWTYPE;
+    v_return_hash text;
+BEGIN
+    SELECT * INTO v_ticket FROM tickets WHERE id = p_ticket_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'ticket_not_found';
+    END IF;
+
+    -- Carrera con reissue: el invitado actua con el token de SU enlace; si
+    -- la boleta ya roto token (reenvio), su credencial esta muerta y no
+    -- puede matar la boleta nueva. El staff pasa NULL: manda su rol.
+    IF p_expected_token_hash IS NOT NULL
+       AND v_ticket.token_hash <> p_expected_token_hash THEN
+        RAISE EXCEPTION 'token_stale';
+    END IF;
+
+    SELECT * INTO v_event FROM events WHERE id = v_ticket.event_id;
+    IF v_event.status IN ('ended', 'cancelled') THEN
+        RAISE EXCEPTION 'event_closed';
+    END IF;
+
+    IF v_ticket.status = 'voided' THEN
+        -- Ya anulada: si fue DEVUELTA (hay auditoria) es idempotente; si fue
+        -- anulada por staff, no hay nada que devolver y se lo decimos.
+        IF EXISTS (SELECT 1 FROM ticket_returns WHERE ticket_id = v_ticket.id) THEN
+            RETURN v_ticket.event_id;
+        END IF;
+        RAISE EXCEPTION 'cannot_return_ticket';
+    END IF;
+
+    -- Solo una boleta vigente se devuelve: una usada ya entro (el lugar se
+    -- lo quedo alguien) y una reembolsada ya no cuenta en aforo.
+    IF v_ticket.status <> 'issued' THEN
+        RAISE EXCEPTION 'cannot_return_ticket';
+    END IF;
+
+    -- Ventana limite (E1-2): devolver es para ANTES de que el QR se active.
+    -- Ventana CERRADA (unlock <= now) => rechazo: a esa altura el cupo ya es
+    -- compromiso de puerta (cobija lista).
+    IF (v_event.starts_at - (v_event.qr_unlock_minutes * INTERVAL '1 minute')) <= now() THEN
+        RAISE EXCEPTION 'return_window_closed';
+    END IF;
+
+    -- Compare-and-swap: dos devoluciones concurrentes no pueden ambas
+    -- anular; la segunda no encuentra la fila 'issued' y muere.
+    UPDATE tickets
+       SET status = 'voided',
+           voided_at = now(),
+           updated_at = now()
+     WHERE id = v_ticket.id AND status = 'issued';
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'cannot_return_ticket';
+    END IF;
+
+    -- Auditar con la credencial que hizo la devolucion: el hash del token
+    -- vigente (invitado) o la marca de quien actuo (staff).
+    v_return_hash := coalesce(
+        p_expected_token_hash,
+        'staff::' || coalesce(p_by_user_id::text, 'system')
+    );
+    INSERT INTO ticket_returns (ticket_id, event_id, returned_token_hash, returned_by_user_id)
+    VALUES (v_ticket.id, v_ticket.event_id, v_return_hash, p_by_user_id)
+    ON CONFLICT (ticket_id, returned_token_hash) DO NOTHING;
+
+    -- Avisar al promotor/admin que la emitio: su cupo se libero y puede
+    -- reasignarlo. Sin notificacion el promotor se entera cuando el invitado
+    -- le escribe, y la cara del promotor es el producto.
+    IF v_ticket.sold_by_user_id IS NOT NULL THEN
+        PERFORM notify_user(
+            v_ticket.sold_by_user_id, v_event.venue_id, 'ticket_returned',
+            'Boleta devuelta',
+            coalesce(v_ticket.customer_name, 'Un invitado') ||
+            ' devolvio su boleta. Tu cupo se libero: puedes usarlo con alguien mas.',
+            '/panel'
+        );
+    END IF;
+
+    RETURN v_ticket.event_id;
+END;
+$$;
+
+
+--
 -- Name: set_event_status(bigint, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1150,7 +1242,7 @@ CREATE TABLE public.notifications (
     link text,
     read_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text])))
+    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text])))
 );
 
 
@@ -1439,6 +1531,34 @@ CREATE TABLE public.ticket_reissues (
 
 ALTER TABLE public.ticket_reissues ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.ticket_reissues_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: ticket_returns; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ticket_returns (
+    id bigint NOT NULL,
+    ticket_id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    returned_token_hash text NOT NULL,
+    returned_by_user_id bigint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ticket_returns_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ticket_returns ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.ticket_returns_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1742,6 +1862,22 @@ ALTER TABLE ONLY public.ticket_reissues
 
 
 --
+-- Name: ticket_returns ticket_returns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_returns
+    ADD CONSTRAINT ticket_returns_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ticket_returns ticket_returns_ticket_id_returned_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_returns
+    ADD CONSTRAINT ticket_returns_ticket_id_returned_token_hash_key UNIQUE (ticket_id, returned_token_hash);
+
+
+--
 -- Name: ticket_types ticket_types_event_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1958,6 +2094,13 @@ CREATE INDEX idx_ticket_contact_edits_ticket ON public.ticket_contact_edits USIN
 --
 
 CREATE INDEX idx_ticket_reissues_ticket ON public.ticket_reissues USING btree (ticket_id, created_at);
+
+
+--
+-- Name: idx_ticket_returns_event; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ticket_returns_event ON public.ticket_returns USING btree (event_id, created_at);
 
 
 --
@@ -2251,6 +2394,30 @@ ALTER TABLE ONLY public.ticket_reissues
 
 ALTER TABLE ONLY public.ticket_reissues
     ADD CONSTRAINT ticket_reissues_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ticket_returns ticket_returns_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_returns
+    ADD CONSTRAINT ticket_returns_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ticket_returns ticket_returns_returned_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_returns
+    ADD CONSTRAINT ticket_returns_returned_by_user_id_fkey FOREIGN KEY (returned_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: ticket_returns ticket_returns_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_returns
+    ADD CONSTRAINT ticket_returns_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
 
 
 --
