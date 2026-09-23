@@ -37,6 +37,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "019_security_p0.sql",
     ROOT / "db" / "migrations" / "020_auto_close_events.sql",
     ROOT / "db" / "migrations" / "021_ticket_return.sql",
+    ROOT / "db" / "migrations" / "022_event_waitlist.sql",
 ]
 
 
@@ -60,7 +61,7 @@ def db():
     conn.execute(
         """
         DROP TABLE IF EXISTS notifications, push_outbox, staff_invitations, push_subscriptions, ticket_reissues,
-            ticket_returns, ticket_contact_edits, login_attempts, password_reset_tokens, media, audit_log,
+            ticket_returns, event_waitlist, ticket_contact_edits, login_attempts, password_reset_tokens, media, audit_log,
             redemptions, promoter_payouts, tickets, promoter_allocations, ticket_types, events,
             venue_user_roles, venues, users CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;
@@ -72,7 +73,8 @@ def db():
             reissue_ticket, set_event_status, notify_user, notify_venue_admins,
             notify_payout_lifecycle, notify_invitation_accepted,
             notify_ticket_reissued, correct_ticket_contact, events_check_capacity,
-            return_ticket,
+            return_ticket, offer_next_waitlist_spot, expire_waitlist_offers,
+            join_waitlist, leave_waitlist, claim_waitlist,
             update_ticket_type, update_promoter_allocation,
             delete_ticket_type, delete_promoter_allocation,
             tickets_check_active_refs, update_event,

@@ -99,6 +99,43 @@ export function returnTicket(ticketId, rawToken) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Lista de espera (mig 022, E2). Publico, sin cuentas: el token crudo del
+// join es la credencial del fan y viaja en el cuerpo (nunca en la URL).
+// ---------------------------------------------------------------------------
+
+/** El fan entra a la fila de un evento agotado. */
+export function waitlistJoin(eventId, name, phone) {
+  return apiFetch(`/waitlist/${eventId}/join`, {
+    method: "POST",
+    body: JSON.stringify({ name, phone }),
+  });
+}
+
+/** Estado del fan en la fila (posicion u oferta con countdown). */
+export function waitlistStatus(token) {
+  return apiFetch("/waitlist/status", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
+/** Reclama la oferta: devuelve una boleta NUEVA con su token de una sola vez. */
+export function waitlistClaim(token) {
+  return apiFetch("/waitlist/claim", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
+/** El fan se va de la fila por voluntad propia. */
+export function waitlistLeave(token) {
+  return apiFetch("/waitlist/leave", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
 export function reissueTicket(venueId, eventId, ticketId, reason) {
   return apiFetch(
     `/venues/${venueId}/events/${eventId}/tickets/${ticketId}/reissue`,

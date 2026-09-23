@@ -37,6 +37,7 @@ const PromoterDashboard = lazyPage(() => import("./pages/PromoterDashboard"));
 const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
+const WaitlistPage = lazyPage(() => import("./pages/WaitlistPage"));
 const AcceptInvitationPage = lazyPage(
   () => import("./pages/AcceptInvitationPage"),
 );
@@ -88,6 +89,9 @@ function App() {
               {/* Boleta del invitado: publica, sin login. El token llega en el
               fragmento (#), que el navegador no envia al servidor. */}
               <Route path="/t" element={<PublicTicketPage />} />
+              {/* Lista de espera (E2): publica, sin cuentas. La credencial del
+              fan tambien viaja en el fragmento y se guarda en localStorage. */}
+              <Route path="/waitlist" element={<WaitlistPage />} />
               <Route path="/invitacion" element={<AcceptInvitationPage />} />
               <Route
                 path="/admin"

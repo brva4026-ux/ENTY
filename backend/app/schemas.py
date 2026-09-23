@@ -524,6 +524,52 @@ class TicketReturnOut(BaseModel):
     status: str = "returned"
 
 
+class WaitlistJoinRequest(BaseModel):
+    """El fan entra a la fila de un evento agotado (E2). Sin cuentas: el
+    telefono es la identidad (UNIQUE por evento) y el token crudo que
+    devuelve el join es su credencial para reclamar o salir."""
+
+    name: str = Field(min_length=2, max_length=120)
+    phone: str = Field(min_length=5, max_length=30)
+
+
+class WaitlistJoinOut(BaseModel):
+    """Respuesta del join: el token crudo viaja UNA sola vez (hash en DB)."""
+
+    token: str
+    position: int
+    status: str = "waiting"
+
+
+class WaitlistStatusOut(BaseModel):
+    """Estado de la fila para la pagina del fan (sin PII de contacto)."""
+
+    status: str
+    position: int | None = None
+    event_name: str
+    venue_name: str
+    starts_at: str
+    # Ventana de reclamo cuando status == 'offered': hasta cuando puede
+    # reclamar y cuantos segundos le quedan (para el countdown de la UI).
+    offer_expires_at: str | None = None
+    offer_seconds_left: int | None = None
+
+
+class WaitlistTokenRequest(BaseModel):
+    """Credencial del fan en la fila: el token crudo del join, en el cuerpo
+    (nunca en la URL) igual que el token de la boleta."""
+
+    token: str = Field(min_length=8, max_length=200)
+
+
+class WaitlistClaimOut(BaseModel):
+    """Reclamo exitoso: boleta NUEVA con su token crudo de una sola vez."""
+
+    ticket_id: int
+    raw_token: str
+    status: str = "claimed"
+
+
 class RedeemOut(BaseModel):
     code: str = ""  # GRANTED | ALREADY_REDEEMED | NOT_FOUND | INVALID_EVENT | EVENT_NOT_LIVE | NOT_VALID | WRONG_TYPE
     ticket_id: int | None = None

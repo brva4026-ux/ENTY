@@ -689,6 +689,124 @@ $$;
 
 
 --
+-- Name: expire_waitlist_offers(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.expire_waitlist_offers() RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_expired integer := 0;
+    v_row     record;
+BEGIN
+    FOR v_row IN
+        SELECT w.id, w.event_id, w.offered_ticket_type_id, w.offered_allocation_id
+          FROM event_waitlist w
+          JOIN events e ON e.id = w.event_id
+         WHERE w.status = 'offered'
+           AND w.offered_at + (e.waitlist_offer_minutes * INTERVAL '1 minute') < now()
+         FOR UPDATE OF w SKIP LOCKED
+    LOOP
+        UPDATE event_waitlist SET status = 'expired' WHERE id = v_row.id;
+        PERFORM offer_next_waitlist_spot(
+            v_row.event_id, v_row.offered_ticket_type_id, v_row.offered_allocation_id
+        );
+        v_expired := v_expired + 1;
+    END LOOP;
+    RETURN v_expired;
+END;
+$$;
+
+
+--
+-- Name: join_waitlist(bigint, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.join_waitlist(p_event_id bigint, p_name text, p_phone text, p_raw_token text) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_event    events%ROWTYPE;
+    v_active   bigint;
+    v_total    bigint;
+    v_existing event_waitlist%ROWTYPE;
+BEGIN
+    IF p_raw_token IS NULL OR length(p_raw_token) < 8 THEN
+        RAISE EXCEPTION 'invalid_token_format';
+    END IF;
+    IF p_name IS NULL OR btrim(p_name) = '' THEN
+        RAISE EXCEPTION 'invalid_name';
+    END IF;
+    IF p_phone IS NULL OR btrim(p_phone) = '' THEN
+        RAISE EXCEPTION 'invalid_phone';
+    END IF;
+
+    SELECT * INTO v_event FROM events WHERE id = p_event_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'event_not_found';
+    END IF;
+    IF v_event.status NOT IN ('published', 'live') THEN
+        RAISE EXCEPTION 'event_not_open';
+    END IF;
+
+    -- Gate DICE: la lista existe cuando NO hay boletas. Con lugar libre el
+    -- publico compra directo, no hace fila.
+    SELECT count(*) INTO v_active FROM tickets
+     WHERE event_id = p_event_id AND status NOT IN ('voided', 'refunded');
+    SELECT COALESCE(SUM(quantity), 0) INTO v_total FROM ticket_types WHERE event_id = p_event_id;
+    IF v_active < LEAST(v_total, v_event.capacity::bigint) THEN
+        RAISE EXCEPTION 'waitlist_not_needed';
+    END IF;
+
+    SELECT * INTO v_existing FROM event_waitlist
+     WHERE event_id = p_event_id AND phone = btrim(p_phone);
+    IF FOUND THEN
+        UPDATE event_waitlist SET name = btrim(p_name) WHERE id = v_existing.id;
+        RETURN (SELECT count(*) FROM event_waitlist w
+                 WHERE w.event_id = p_event_id AND w.status = 'waiting'
+                   AND (w.created_at, w.id) < (v_existing.created_at, v_existing.id)) + 1;
+    END IF;
+
+    INSERT INTO event_waitlist (event_id, name, phone, token_hash)
+    VALUES (p_event_id, btrim(p_name), btrim(p_phone),
+            encode(digest(p_raw_token, 'sha256'), 'hex'));
+
+    -- Ultimo en llegar: mi posicion es el total de la fila viva.
+    RETURN (SELECT count(*) FROM event_waitlist w
+             WHERE w.event_id = p_event_id AND w.status = 'waiting');
+END;
+$$;
+
+
+--
+-- Name: leave_waitlist(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.leave_waitlist(p_expected_token_hash text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_row event_waitlist%ROWTYPE;
+BEGIN
+    SELECT * INTO v_row FROM event_waitlist
+     WHERE token_hash = p_expected_token_hash
+     FOR UPDATE;
+    IF NOT FOUND OR v_row.status NOT IN ('waiting', 'offered') THEN
+        RAISE EXCEPTION 'waitlist_entry_not_found';
+    END IF;
+
+    UPDATE event_waitlist SET status = 'left' WHERE id = v_row.id;
+
+    IF v_row.status = 'offered' THEN
+        PERFORM offer_next_waitlist_spot(
+            v_row.event_id, v_row.offered_ticket_type_id, v_row.offered_allocation_id
+        );
+    END IF;
+END;
+$$;
+
+
+--
 -- Name: register_login_failure(text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -697,6 +815,140 @@ CREATE FUNCTION public.register_login_failure(p_email text, p_ip text) RETURNS v
     AS $$
     INSERT INTO login_attempts (email_norm, ip)
     VALUES (lower(p_email), p_ip);
+$$;
+
+
+--
+-- Name: claim_waitlist(text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.claim_waitlist(p_claim_token_hash text, p_new_raw_token text) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_row       event_waitlist%ROWTYPE;
+    v_event     events%ROWTYPE;
+    v_alloc_ok  boolean := false;
+    v_ticket_id bigint;
+    v_gone      boolean := false;
+BEGIN
+    IF p_new_raw_token IS NULL OR length(p_new_raw_token) < 8 THEN
+        RAISE EXCEPTION 'invalid_token_format';
+    END IF;
+
+    SELECT * INTO v_row FROM event_waitlist
+     WHERE token_hash = p_claim_token_hash
+     FOR UPDATE;
+    IF NOT FOUND OR v_row.status <> 'offered' THEN
+        RAISE EXCEPTION 'waitlist_offer_expired';
+    END IF;
+
+    SELECT * INTO v_event FROM events WHERE id = v_row.event_id;
+    IF v_event.status NOT IN ('published', 'live') THEN
+        RAISE EXCEPTION 'event_not_open_for_sales';
+    END IF;
+
+    -- Ventana: si la oferta ya vencio, expirarla y ofrecer al siguiente.
+    IF v_row.offered_at IS NULL
+       OR v_row.offered_at + (v_event.waitlist_offer_minutes * INTERVAL '1 minute') < now() THEN
+        UPDATE event_waitlist SET status = 'expired' WHERE id = v_row.id;
+        PERFORM offer_next_waitlist_spot(
+            v_row.event_id, v_row.offered_ticket_type_id, v_row.offered_allocation_id
+        );
+        RAISE EXCEPTION 'waitlist_offer_expired';
+    END IF;
+
+    IF v_row.offered_ticket_type_id IS NULL THEN
+        v_gone := true;
+    ELSE
+        IF v_row.offered_allocation_id IS NOT NULL THEN
+            SELECT is_active INTO v_alloc_ok
+              FROM promoter_allocations WHERE id = v_row.offered_allocation_id;
+        END IF;
+
+        -- Emitir la boleta NUEVA. Primero contra el cupo liberado; si el
+        -- cupo ya no existe o no tiene lugar (alguien emitio mientras
+        -- tanto), venta directa del mismo tipo; si tampoco hay, el lugar
+        -- se fue: expira y se re-ofrece al siguiente.
+        BEGIN
+            IF v_alloc_ok THEN
+                v_ticket_id := emit_ticket(v_row.event_id, v_row.offered_ticket_type_id,
+                                           v_row.offered_allocation_id, NULL,
+                                           v_row.name, p_new_raw_token,
+                                           v_row.phone, NULL);
+            ELSE
+                v_ticket_id := emit_ticket(v_row.event_id, v_row.offered_ticket_type_id,
+                                           NULL, NULL,
+                                           v_row.name, p_new_raw_token,
+                                           v_row.phone, NULL);
+            END IF;
+        EXCEPTION WHEN OTHERS THEN
+            IF SQLERRM LIKE '%quota%' OR SQLERRM LIKE '%sold_out%'
+               OR SQLERRM LIKE '%capacity%' OR SQLERRM LIKE '%inactive%' THEN
+                v_gone := true;
+            ELSE
+                RAISE;
+            END IF;
+        END;
+    END IF;
+
+    IF v_gone THEN
+        UPDATE event_waitlist SET status = 'expired' WHERE id = v_row.id;
+        PERFORM offer_next_waitlist_spot(
+            v_row.event_id, v_row.offered_ticket_type_id, v_row.offered_allocation_id
+        );
+        RAISE EXCEPTION 'waitlist_spot_gone';
+    END IF;
+
+    UPDATE event_waitlist
+       SET status = 'claimed',
+           claimed_ticket_id = v_ticket_id,
+           claimed_at = now()
+     WHERE id = v_row.id;
+
+    RETURN v_ticket_id;
+END;
+$$;
+
+
+--
+-- Name: offer_next_waitlist_spot(bigint, bigint, bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.offer_next_waitlist_spot(p_event_id bigint, p_ticket_type_id bigint, p_allocation_id bigint) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_offered bigint;
+    v_venue   bigint;
+BEGIN
+    UPDATE event_waitlist
+       SET status = 'offered',
+           offered_at = now(),
+           offered_ticket_type_id = p_ticket_type_id,
+           offered_allocation_id = p_allocation_id
+     WHERE id = (
+        SELECT id FROM event_waitlist
+         WHERE event_id = p_event_id AND status = 'waiting'
+         ORDER BY created_at, id
+         LIMIT 1 FOR UPDATE SKIP LOCKED
+     )
+    RETURNING id INTO v_offered;
+
+    IF v_offered IS NULL THEN
+        RETURN 0;
+    END IF;
+
+    -- Avisar a los admins: el lugar libero circula de nuevo. El fan no tiene
+    -- cuenta (sin push posible): su canal es su pagina de estado, que hace
+    -- polling y muestra la ventana de reclamo.
+    SELECT venue_id INTO v_venue FROM events WHERE id = p_event_id;
+    PERFORM notify_venue_admins(v_venue, 'waitlist_offered',
+        'Lugar ofrecido a la lista',
+        'Se libero un lugar y se ofrecio al primero de la fila.',
+        '/admin');
+    RETURN 1;
+END;
 $$;
 
 
@@ -843,6 +1095,12 @@ BEGIN
             '/panel'
         );
     END IF;
+
+    -- Lista de espera (E2): el lugar libre se ofrece al primero de la fila,
+    -- con el tipo y el cupo de la boleta devuelta como el lugar heredable.
+    PERFORM offer_next_waitlist_spot(
+        v_event.id, v_ticket.ticket_type_id, v_ticket.allocation_id
+    );
 
     RETURN v_ticket.event_id;
 END;
@@ -1150,9 +1408,11 @@ CREATE TABLE public.events (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     qr_unlock_minutes integer DEFAULT 60 NOT NULL,
+    waitlist_offer_minutes integer DEFAULT 10 NOT NULL,
     location text,
     CONSTRAINT events_capacity_check CHECK ((capacity > 0)),
     CONSTRAINT events_qr_unlock_minutes_check CHECK ((qr_unlock_minutes >= 0)),
+    CONSTRAINT events_waitlist_offer_minutes_check CHECK ((waitlist_offer_minutes >= 1)),
     CONSTRAINT events_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'live'::text, 'ended'::text, 'cancelled'::text])))
 );
 
@@ -1163,6 +1423,40 @@ CREATE TABLE public.events (
 
 ALTER TABLE public.events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: event_waitlist; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_waitlist (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    name text NOT NULL,
+    phone text NOT NULL,
+    token_hash text NOT NULL,
+    status text DEFAULT 'waiting'::text NOT NULL,
+    offered_at timestamp with time zone,
+    offered_ticket_type_id bigint,
+    offered_allocation_id bigint,
+    claimed_ticket_id bigint,
+    claimed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: event_waitlist_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.event_waitlist ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.event_waitlist_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1242,7 +1536,7 @@ CREATE TABLE public.notifications (
     link text,
     read_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text])))
+    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text])))
 );
 
 
@@ -1734,6 +2028,38 @@ ALTER TABLE ONLY public.events
 
 
 --
+-- Name: event_waitlist event_waitlist_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waitlist
+    ADD CONSTRAINT event_waitlist_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event_waitlist event_waitlist_event_id_phone_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waitlist
+    ADD CONSTRAINT event_waitlist_event_id_phone_key UNIQUE (event_id, phone);
+
+
+--
+-- Name: event_waitlist event_waitlist_status_check; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waitlist
+    ADD CONSTRAINT event_waitlist_status_check CHECK ((status = ANY (ARRAY['waiting'::text, 'offered'::text, 'claimed'::text, 'expired'::text, 'left'::text])));
+
+
+--
+-- Name: event_waitlist event_waitlist_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waitlist
+    ADD CONSTRAINT event_waitlist_token_hash_key UNIQUE (token_hash);
+
+
+--
 -- Name: login_attempts login_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1968,6 +2294,13 @@ CREATE INDEX audit_log_venue_idx ON public.audit_log USING btree (venue_id, crea
 --
 
 CREATE INDEX idx_events_ends_unended ON public.events USING btree (ends_at) WHERE (status = ANY (ARRAY['live'::text, 'published'::text]));
+
+
+--
+-- Name: idx_event_waitlist_queue; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_waitlist_queue ON public.event_waitlist USING btree (event_id, status, created_at);
 
 
 --
@@ -2418,6 +2751,38 @@ ALTER TABLE ONLY public.ticket_returns
 
 ALTER TABLE ONLY public.ticket_returns
     ADD CONSTRAINT ticket_returns_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: event_waitlist event_waitlist_claimed_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waitlist
+    ADD CONSTRAINT event_waitlist_claimed_ticket_id_fkey FOREIGN KEY (claimed_ticket_id) REFERENCES public.tickets(id) ON DELETE SET NULL;
+
+
+--
+-- Name: event_waitlist event_waitlist_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waitlist
+    ADD CONSTRAINT event_waitlist_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: event_waitlist event_waitlist_offered_allocation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waitlist
+    ADD CONSTRAINT event_waitlist_offered_allocation_id_fkey FOREIGN KEY (offered_allocation_id) REFERENCES public.promoter_allocations(id) ON DELETE SET NULL;
+
+
+--
+-- Name: event_waitlist event_waitlist_offered_ticket_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waitlist
+    ADD CONSTRAINT event_waitlist_offered_ticket_type_id_fkey FOREIGN KEY (offered_ticket_type_id) REFERENCES public.ticket_types(id) ON DELETE SET NULL;
 
 
 --
