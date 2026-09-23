@@ -117,7 +117,9 @@ def test_invalid_phone_and_empty_body_rejected(api):
     s, ticket = _scenario_with_ticket(api)
     url = f"{api.event_url(s['venue'], s['event'])}/tickets/{ticket['ticket_id']}/contact"
 
-    res = api.patch(url, "admin", {"customer_phone": "abc"})
+    # "abcde" pasa el min_length=5 del esquema y RECHAZA en la DB (400):
+    # "abc" moria antes, con 422 de Pydantic.
+    res = api.patch(url, "admin", {"customer_phone": "abcde"})
     assert res.status_code == 400
 
     # Sin nombre ni teléfono no hay nada que hacer.
@@ -150,11 +152,13 @@ def test_reissue_permissions_mirror_contact(api):
     url = f"{api.event_url(s['venue'], s['event'])}/tickets/{ticket['ticket_id']}/reissue"
 
     # Otro promotor no; el staff sí; el bouncer no.
-    res = api.post(url, "promoter2", None)
+    # Cuerpo {} (la razon es opcional): con json=None no viaja body y la
+    # peticion moria en 422 antes de llegar a los permisos.
+    res = api.post(url, "promoter2", {})
     assert res.status_code == 403
     res = api.post(url, "admin", {"reason": "desde administración"})
     assert res.status_code == 200
-    res = api.post(url, "bouncer", None)
+    res = api.post(url, "bouncer", {})
     assert res.status_code in (401, 403)
 
 
@@ -165,5 +169,5 @@ def test_reissue_redeemed_blocked(api, db):
         (ticket["ticket_id"],),
     )
     url = f"{api.event_url(s['venue'], s['event'])}/tickets/{ticket['ticket_id']}/reissue"
-    res = api.post(url, "admin", None)
+    res = api.post(url, "admin", {})
     assert res.status_code == 409  # sería una segunda entrada gratis

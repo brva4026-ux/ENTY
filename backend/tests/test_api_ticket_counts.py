@@ -15,6 +15,7 @@ def test_counts_active_tickets_per_event(api, world):
     ev_empty = api.create_event("admin", venue, name="Vacio")
 
     t = api.add_type("admin", venue, ev_busy["id"])
+    api.publish("admin", venue, ev_busy["id"])  # emitir exige published|live
     a = api.set_allocation(
         "admin",
         venue,
@@ -43,6 +44,7 @@ def test_voided_tickets_stop_counting(api, world):
     venue = world["venue_a"]
     ev = api.create_event("admin", venue, name="Con anulada")
     t = api.add_type("admin", venue, ev["id"])
+    api.publish("admin", venue, ev["id"])  # emitir exige published|live
     a = api.set_allocation(
         "admin",
         venue,
@@ -56,7 +58,7 @@ def test_voided_tickets_stop_counting(api, world):
     )
 
     res = api.post(
-        f"/venues/{venue}/events/{ev['id']}/tickets/{ticket['id']}/void",
+        f"/venues/{venue}/events/{ev['id']}/tickets/{ticket['ticket_id']}/void",
         "admin",
         {"reason": "Error de digitacion"},
     )

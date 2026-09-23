@@ -130,8 +130,9 @@ def test_promoter_total_only_counts_own(api):
             {"ticket_type_id": cortesia["id"], "customer_name": "De Promo", "allocation_id": alloc[0]["id"]},
         )
 
-    mine = api.client.get(
-        f"/venues/{venue}/events/{ev}/tickets", headers=api.headers("promoter")
+    ev_id = ev["id"]
+    res = api.client.get(
+        f"/venues/{venue}/events/{ev_id}/tickets", headers=api.headers("promoter")
     ).json()
-    assert mine["total"] == len(mine["items"])  # coherente
-    assert all(i["customer_name"] != "Directa Uno" for i in mine["items"])
+    assert res["total"] == len(res["items"])  # coherente
+    assert all(i["customer_name"] != "Directa Uno" for i in res["items"])

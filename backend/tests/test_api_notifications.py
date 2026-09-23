@@ -183,7 +183,7 @@ def test_reissue_notifies_admins(api):
     _notifications_for(api, "admin")  # limpia el baseline
 
     res = api.post(
-        f"/venues/{venue}/events/{event}/tickets/{ticket['id']}/reissue",
+        f"/venues/{venue}/events/{event}/tickets/{ticket['ticket_id']}/reissue",
         "promoter",
         {"reason": "El invitado perdio el WhatsApp"},
     )

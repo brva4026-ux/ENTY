@@ -26,11 +26,16 @@ def _closed_window_event(api, venue: int, *, hours: int = 72) -> dict:
 
 
 def _open_window_event(api, venue: int) -> dict:
-    """Evento publicado cuya ventana de activación ya está ABIERTA (+29h, 60 min)."""
+    """Evento publicado cuya ventana de activación ya está ABIERTA.
+
+    Default unlock=60 min: arrancando en +30 min, la ventana abre en
+    ahora+30-60 = hace 30 min. Con +29h (el default del fixture) la ventana
+    todavía NO abría y estos tests probaban lo contrario de su nombre.
+    """
     ev = api.create_event(
         "admin",
         venue,
-        starts_at=(datetime.now(timezone.utc) + timedelta(hours=29)).isoformat(),
+        starts_at=(datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat(),
     )
     t = api.add_type("admin", venue, ev["id"], quantity=20)
     api.publish("admin", venue, ev["id"])
@@ -170,9 +175,14 @@ def test_staff_can_force_entry_outside_window(api, dbcur):
     ticket = _emit(api, ev)
     api.post(f"/venues/{venue}/events/{ev['id']}/live", "admin")
 
-    # El bouncer NO puede forzar.
-    out = _scan(api, ev, ticket["raw_token"], force=True)
-    assert out["code"] == "NOT_ACTIVE"
+    # El bouncer NO puede forzar: force es decision de staff (403), el
+    # escaner automatico nunca deja pasar fuera de ventana.
+    res_bouncer = api.post(
+        f"/venues/{venue}/events/{ev['id']}/redeem",
+        "bouncer",
+        {"raw_token": ticket["raw_token"], "force": True},
+    )
+    assert res_bouncer.status_code == 403
 
     # El admin sí: canje real, auditado como granted_forced.
     res = api.post(

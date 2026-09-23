@@ -248,8 +248,15 @@ async def redeem(
                     """,
                     (event_id,),
                 )
-                forced = (await cur.fetchone())["ok"]
-                if forced:  # NOT_ACTIVE es exactamente 'no'; si ya activó, no forzar
+                # Esta rama SOLO corre si redeem_ticket dijo NOT_ACTIVE
+                # (ventana CERRADA). La consulta pregunta si la ventana ya
+                # abrio: si abrio (ok=True) ya no corresponde forzar - el
+                # canje debe volver a pasar por la logica normal. Antes la
+                # condicion estaba invertida (pedia ok=True para forzar):
+                # era imposible y el "forzar ingreso" de mig 013 nunca
+                # funciono (codigo muerto).
+                forced = not (await cur.fetchone())["ok"]
+                if forced:
                     await cur.execute(
                         """
                         UPDATE tickets

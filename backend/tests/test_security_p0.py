@@ -45,7 +45,7 @@ def test_password_change_revokes_old_sessions(api):
         "/auth/login",
         json={
             "email": api.world[who]["email"],
-            "password": "nueva-clave-456",
+            "password": "Nueva-Clave-456",
         },
     )
     assert login.status_code == 200
@@ -111,8 +111,11 @@ def test_price_change_without_diff_is_not_audited(dbcur, api):
         "admin",
         {"name": "Solo renombro"},
     )
+    # Filtrado por kind (como su hermano de arriba): entity_id comparte
+    # espacio de ids con boletas/eventos/cupos, asi que en la suite completa
+    # una auditoria de OTRA entidad con el mismo id daba falso positivo.
     dbcur.execute(
-        "SELECT count(*)::int AS n FROM audit_log WHERE entity_id = %s",
+        "SELECT count(*)::int AS n FROM audit_log WHERE entity_id = %s AND kind = 'ticket_type_change'",
         (scen["type"],),
     )
     assert dbcur.fetchone()["n"] == 0
@@ -213,7 +216,7 @@ def test_redeem_rate_limited_after_burst(dbcur, api):
     dbcur.execute(
         """INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
            SELECT %s, %s, %s, 'not_found' FROM generate_series(1, 40)""",
-        (t["id"], scen["event"], bouncer_id),
+        (t["ticket_id"], scen["event"], bouncer_id),
     )
 
     res = api.post(
@@ -238,7 +241,7 @@ def test_redeem_below_limit_passes_rate_check(dbcur, api):
     dbcur.execute(
         """INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
            SELECT %s, %s, %s, 'not_found' FROM generate_series(1, 3)""",
-        (t["id"], scen["event"], bouncer_id),
+        (t["ticket_id"], scen["event"], bouncer_id),
     )
 
     # Token invalido pero el 429 NO aparece: el limite no fue el problema.

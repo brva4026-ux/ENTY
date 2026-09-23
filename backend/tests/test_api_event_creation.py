@@ -71,6 +71,9 @@ def test_optional_fields_default_to_null(api, world):
 
 def test_event_is_listed_with_its_full_data(api, world):
     venue = world["venue_a"]
+    media = api.post(f"/venues/{venue}/media", "admin", {"data_url": _PNG_1PX})
+    assert media.status_code == 201, media.text
+    flyer = media.json()["url"]
     created = api.create_event(
         "admin",
         venue,

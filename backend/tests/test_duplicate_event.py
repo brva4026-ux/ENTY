@@ -152,7 +152,9 @@ def test_duplicate_carries_no_tickets(api, world):
     tickets = api.get(
         api.event_url(world["venue_a"], dup["id"]) + "/tickets", "admin"
     ).json()
-    assert tickets == []
+    # El listado paginado es {total, items} (mig 015/019): vacio = cero items.
+    assert tickets["total"] == 0
+    assert tickets["items"] == []
 
 
 def test_duplicate_permissions(api, world):
