@@ -85,24 +85,6 @@ const NEXT_ACTIONS = {
  * por prioridad operativa: vivos arriba, pasados al final. Ambos viven en
  * EventWorkbench — un solo vocabulario de estados en toda la app. */
 
-const TICKET_STATUS = {
-  issued: {
-    label: "Activa",
-    cls: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40",
-  },
-  redeemed: {
-    label: "Redimida",
-    cls: "bg-sky-500/15 text-sky-300 ring-sky-500/40",
-  },
-  voided: {
-    label: "Anulada",
-    cls: "bg-red-500/15 text-red-300 ring-red-500/40",
-  },
-  refunded: {
-    label: "Reembolsada",
-    cls: "bg-amber-500/15 text-amber-300 ring-amber-500/40",
-  },
-};
 export default function AdminDashboard() {
   const { user } = useAuth();
   const ui = useUI();
@@ -138,6 +120,7 @@ export default function AdminDashboard() {
   // whitelist para no renderizar una pestaña inventada por el usuario.
   const section = [
     "resumen",
+    "entradas",
     "boletas",
     "negocio",
     "equipo",
@@ -198,10 +181,9 @@ export default function AdminDashboard() {
     const wanted = urlEvent ? Number(urlEvent) : null;
     const exists = wanted !== null && events.some((e) => e.id === wanted);
     if (exists) {
-      if (wanted !== selectedEvent) setSelectedEvent(wanted);
-      // Enlace viejo con pestaña de venue dentro de un evento
-      // (?event=5&tab=equipo): esas pestañas no existen en el backstage —
-      // se normaliza al evento sin tab (aterriza en Resumen).
+      if (wanted !== selectedEvent) setSelectedEvent(wanted);                  // Enlace viejo con pestaña de venue dentro de un evento
+                  // (?event=5&tab=equipo): esas pestañas no existen en el backstage —
+                  // se normaliza al evento sin tab (aterriza en Resumen).
       if (
         urlTab &&
         ["negocio", "equipo", "liquidaciones", "invitaciones"].includes(urlTab)
@@ -508,12 +490,8 @@ export default function AdminDashboard() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="display text-base">Todos los eventos</p>
                   <div className="flex items-center gap-2">
-                    <Link
-                      to="?tab=invitaciones"
-                      className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold text-amber-300 hover:text-amber-200"
-                    >
-                      Invitar al equipo
-                    </Link>
+                    {/* Jerarquía real: solo "Nuevo evento" es primaria. Las
+                      secundarias van antes, más tenues (QR/Invitar). */}
                     <button
                       onClick={() => setQrTesterOpen(true)}
                       className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold text-zinc-300 hover:text-brand-300"
@@ -521,6 +499,12 @@ export default function AdminDashboard() {
                     >
                       Probar QR
                     </button>
+                    <Link
+                      to="?tab=invitaciones"
+                      className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold text-amber-300 hover:text-amber-200"
+                    >
+                      Invitar al equipo
+                    </Link>
                     <button
                       onClick={() => setCreateOpen(true)}
                       className="btn-primary !px-3 !py-1.5 text-[11px]"
@@ -722,6 +706,25 @@ export default function AdminDashboard() {
               </section>
             )}
 
+            {/* Acción primaria al alcance del pulgar (solo móvil, modo lista):
+              con una lista larga, "Nuevo evento" en el header queda aizar
+              tras hacer scroll. La FAB flotante lo mantiene a un toque,
+              encima de la barra de pestañas. */}
+            {!selectedEventData && section === "resumen" && !createOpen && (
+              <button
+                onClick={() => {
+                  haptics.tick();
+                  setCreateOpen(true);
+                }}
+                aria-label="Nuevo evento"
+                data-tip="Nuevo evento"
+                className="fixed right-4 z-20 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-900/40 transition active:scale-95 md:hidden"
+                style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
+              >
+                <Icon name="plus" className="h-6 w-6" />
+              </button>
+            )}
+
             {/* Probador de QR: leer sin canjear (solo lectura). */}
             {qrTesterOpen && (
               <QrTesterModal onClose={() => setQrTesterOpen(false)} />
@@ -736,7 +739,7 @@ export default function AdminDashboard() {
                   setCreateOpen(false);
                   // El evento recién creado ABRE su backstage: nace aparte y
                   // el admin aterriza directo en la pestaña de montaje.
-                  loadEvents().then(() => flyToEvent(ev.id, "boletas"));
+                  loadEvents().then(() => flyToEvent(ev.id, "entradas"));
                 }}
               />
             )}
@@ -1004,7 +1007,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {(section === "resumen" || section === "boletas") && (
+            {(section === "entradas" || section === "boletas") && (
               <div className="grid gap-5 lg:grid-cols-2">
                 <TypeManager
                   venueId={venueId}
@@ -1023,7 +1026,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {section === "boletas" && (
+            {(section === "entradas" || section === "boletas") && (
               <TicketList
                 venueId={venueId}
                 eventId={selectedEvent}
@@ -1033,34 +1036,40 @@ export default function AdminDashboard() {
             )}
           </>
         )}
-        {/* ====== Tareas de la venue: viven FUERA del evento ====== */}
-        {/* Siempre visibles en modo lista: Negocio, Equipo, Liquidaciones e
+        {/* ====== Del negocio: viven FUERA del evento ====== */}
+        {/* Siempre visibles en modo lista: Reportes, Equipo, Liquidaciones e
           Invitaciones no cambian con el evento elegido — son del negocio, no
           de la noche. Dentro de un evento abierto NO existen: ahí solo hay
-          pestañas de ese evento (Resumen, Boletas y cupos). */}
+          pestañas de ese evento. */}
         {!selectedEventData && (
-          <nav className="card flex flex-wrap items-center gap-2 p-4">
-            <p className="display mr-2 text-base">Tareas de la venue</p>
-            {[
-              ["negocio", "Negocio", "chart"],
-              ["equipo", "Equipo", "users"],
-              ["liquidaciones", "Liquidaciones", "money"],
-              ["invitaciones", "Invitaciones", "door"],
-            ].map(([id, label, icon]) => (
-              <button
-                key={id}
-                onClick={() => setSearchParams({ tab: id })}
-                aria-current={section === id ? "page" : undefined}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  section === id
-                    ? "bg-zinc-800 text-white"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-                }`}
-              >
-                <Icon name={icon} className="h-3.5 w-3.5" />
-                {label}
-              </button>
-            ))}
+          <nav className="card p-4" aria-label="Secciones del negocio">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="display mr-2 text-base">Del negocio</p>
+              {[
+                ["negocio", "Reportes", "chart"],
+                ["equipo", "Equipo", "users"],
+                ["liquidaciones", "Liquidaciones", "money"],
+                ["invitaciones", "Invitaciones", "door"],
+              ].map(([id, label, icon]) => (
+                <button
+                  key={id}
+                  onClick={() => setSearchParams({ tab: id })}
+                  aria-current={section === id ? "page" : undefined}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    section === id
+                      ? "bg-zinc-800 text-white"
+                      : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+                  }`}
+                >
+                  <Icon name={icon} className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">
+              Todo lo que no depende de una noche puntual: números del bar,
+              equipo y pagos.
+            </p>
           </nav>
         )}
         {/* Secciones de venue: se renderizan cuando su pestaña está activa y

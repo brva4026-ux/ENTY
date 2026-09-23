@@ -139,7 +139,8 @@ export default function EventWorkbench({
   // backstage — mezclarlas aquí es lo que hacia sentir "todo amontonado".
   const tabs = [
     { id: "resumen", label: "Resumen", icon: "chart" },
-    { id: "boletas", label: "Boletas y cupos", icon: "ticket" },
+    { id: "entradas", label: "Entradas y cupos", icon: "door" },
+    { id: "boletas", label: "Boletas", icon: "ticket" },
   ];
 
   return (
@@ -206,8 +207,10 @@ export default function EventWorkbench({
               data-tip="Volver a la lista de eventos"
               className="btn-ghost !px-3 !py-1.5 text-xs font-bold"
             >
-              <Icon name="logout" className="h-3.5 w-3.5" />
-              Salir del evento
+              {/* "back" (flecha de regreso), NO "logout": este botón solo
+                navega; el icono de salida sugería cerrar sesión. */}
+              <Icon name="back" className="h-3.5 w-3.5" />
+              Volver a la lista
             </button>
             {editable && (
               <button

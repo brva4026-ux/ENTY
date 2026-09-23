@@ -497,7 +497,7 @@ export default function BouncerScanner() {
               onClick={logout}
               className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
             >
-              Salir
+              Cerrar sesión
             </button>
           </div>
         )}

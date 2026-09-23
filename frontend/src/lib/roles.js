@@ -65,12 +65,17 @@ export function homeForRole(user) {
   return "/login";
 }
 
-/** Pestañas de navegación que le corresponden (orden fijo, de gestión a puerta). */
+/** Pestañas de navegación principal (orden fijo, de gestión a puerta).
+ *
+ * Nombres de DESTINO ("qué hay ahí"), no de rol: "Admin"/"Promotor" le
+ * dicen a la persona quién ES, no qué encontrará al tocar. El que tiene dos
+ * roles ve dos destinos y entiende ambos sin conocer la org del bar.
+ */
 export function navTabsFor(user) {
   const tabs = [];
-  if (hasRole(user, "admin")) tabs.push({ to: "/admin", label: "Admin" });
+  if (hasRole(user, "admin")) tabs.push({ to: "/admin", label: "Eventos" });
   if (hasRole(user, "promotor"))
-    tabs.push({ to: "/promotor", label: "Promotor" });
-  if (hasRole(user, "bouncer")) tabs.push({ to: "/bouncer", label: "Puerta" });
+    tabs.push({ to: "/promotor", label: "Vender" });
+  if (hasRole(user, "bouncer")) tabs.push({ to: "/bouncer", label: "Escanear" });
   return tabs;
 }

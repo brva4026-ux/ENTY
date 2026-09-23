@@ -134,7 +134,9 @@ export default function Layout({ children }) {
               }}
               className="btn-ghost !px-2.5 !py-1.5 text-xs"
             >
-              Salir
+              {/* Mismo verbo que el escáner: "salir" era ambiguo (¿salir de
+                dónde?). Cerrar sesión no se confunde con navegar. */}
+              Cerrar sesión
             </button>
           </div>
         </div>

@@ -431,7 +431,7 @@ export default function PromoterDashboard() {
               {[
                 ["vender", "Vender", "ticket"],
                 ["boletas", "Mis boletas", "search"],
-                ["liquidaciones", "Mis liquidaciones", "money"],
+                ["liquidaciones", "Liquidaciones", "money"],
               ].map(([id, label, icon]) => (
                 <button
                   key={id}
