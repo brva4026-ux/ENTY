@@ -1,9 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useAuth } from "../lib/auth";
+// El registro siempre crea un admin de venue: el mismo criterio de redirect
+// que el login (lib/roles.js), sin re-hacerlo a mano.
+import { homeForRole } from "../lib/roles";
 import { missingList } from "../lib/passwordPolicy";
 import { Logo } from "../components/Brand";
 import PasswordMeter from "../components/PasswordMeter";
+import { AuthBackdrop, LockIcon, MailIcon } from "../components/AuthBackdrop";
 
 const STRENGTH = [
   { max: 2, label: "Débil", color: "bg-red-500", width: "w-1/4" },
@@ -44,8 +48,10 @@ export default function RegisterPage() {
     setError("");
     setBusy(true);
     try {
-      await register(form);
-      nav("/admin");
+      const user = await register(form);
+      // La cuenta nueva es admin de su venue: el mismo criterio de redirect
+      // que el login (lib/roles.js) decide a dónde aterriza.
+      nav(homeForRole(user), { replace: true });
     } catch (err) {
       const raw = (err?.message || "").toLowerCase();
       if (err?.status === 409 || raw.includes("ya tiene una cuenta")) {
@@ -66,15 +72,8 @@ export default function RegisterPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      {/* Mismos halos de marca que el login: una sola experiencia de entrada */}
-      <div
-        className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-brand-600/25 blur-3xl"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-sky-500/15 blur-3xl"
-        aria-hidden="true"
-      />
+      {/* Misma escenografía que el login: una sola experiencia de entrada */}
+      <AuthBackdrop />
 
       <div className="relative w-full max-w-md">
         {/* Misma entrada premium que el login: marca hero, sin lemas. */}
@@ -113,26 +112,30 @@ export default function RegisterPage() {
             <label className="mb-1.5 block text-xs font-medium text-zinc-400">
               Correo
             </label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => set("email", e.target.value)}
-              placeholder="tu@negocio.com"
-              className="field mb-4"
-              autoComplete="email"
-              required
-            />
+            <div className="auth-field relative mb-4">
+              <MailIcon className="auth-field-icon" />
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => set("email", e.target.value)}
+                placeholder="tu@negocio.com"
+                className="field auth-field-has-icon"
+                autoComplete="email"
+                required
+              />
+            </div>
 
             <label className="mb-1.5 block text-xs font-medium text-zinc-400">
               Contraseña
             </label>
-            <div className="relative mb-2">
+            <div className="auth-field relative mb-2">
+              <LockIcon className="auth-field-icon" />
               <input
                 type={showPass ? "text" : "password"}
                 value={form.password}
                 onChange={(e) => set("password", e.target.value)}
                 placeholder="Mínimo 8 caracteres"
-                className="field mb-0 !pr-12"
+                className="field mb-0 !pr-12 auth-field-has-icon"
                 autoComplete="new-password"
                 required
               />

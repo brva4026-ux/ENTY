@@ -35,6 +35,7 @@ import TicketList from "../components/TicketList";
 import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
 import BusinessOverview from "../components/BusinessOverview";
+import PaymentsPanel from "../components/PaymentsPanel";
 
 function firstVenueId(user) {
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
@@ -122,6 +123,7 @@ export default function AdminDashboard() {
     "resumen",
     "entradas",
     "boletas",
+    "cobros",
     "negocio",
     "equipo",
     "liquidaciones",
@@ -1047,6 +1049,7 @@ export default function AdminDashboard() {
               <p className="display mr-2 text-base">Del negocio</p>
               {[
                 ["negocio", "Reportes", "chart"],
+                ["cobros", "Cobros", "ticket"],
                 ["equipo", "Equipo", "users"],
                 ["liquidaciones", "Liquidaciones", "money"],
                 ["invitaciones", "Invitaciones", "door"],
@@ -1075,6 +1078,9 @@ export default function AdminDashboard() {
         {/* Secciones de venue: se renderizan cuando su pestaña está activa y
           NO hay evento abierto (en modo evento la pestaña activa es del
           evento; estas secciones son alcanzables desde la lista). */}
+        {!selectedEventData && section === "cobros" && (
+          <PaymentsPanel venueId={venueId} events={events ?? []} />
+        )}
         {!selectedEventData && section === "negocio" && (
           <BusinessOverview
             venueId={venueId}

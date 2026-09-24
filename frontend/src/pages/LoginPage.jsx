@@ -1,8 +1,10 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
+import { homeForRole } from "../lib/roles";
 import { Logo } from "../components/Brand";
+import { AuthBackdrop, LockIcon, MailIcon } from "../components/AuthBackdrop";
 
 /** Traduce errores técnicos del backend a mensajes que una persona entiende
  *  y sabe qué hacer después. */
@@ -52,6 +54,11 @@ function EyeIcon({ open }) {
 export default function LoginPage() {
   const { login } = useAuth();
   const nav = useNavigate();
+  // Guard que redirige a /login deja de dónde venía: si el usuario quería
+  // entrar a /perfil y no tenía sesión, aterrizó aquí. Al entrar, lo
+  // devolvemos a su destino original en vez de su dashboard por defecto.
+  const location = useLocation();
+  const from = location.state?.from;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -69,11 +76,16 @@ export default function LoginPage() {
     setBusy(true);
     try {
       const user = await login(email, password);
-      const roles = Object.values(user.roles || {}).flat();
-      if (roles.includes("admin")) nav("/admin");
-      else if (roles.includes("promotor")) nav("/promotor");
-      else if (roles.includes("bouncer")) nav("/bouncer");
-      else setError("Tu usuario no tiene un rol asignado");
+      // Un solo criterio de redirect (lib/roles.js): re-hacerlo aquí
+      // desincroniza y dejó afuera a super_admin (sus roles no incluyen
+      // el string "admin"). homeForRole devuelve "/login" solo si no hay
+      // ningún rol conocido.
+      const home = homeForRole(user);
+      if (home === "/login") {
+        setError("Tu usuario no tiene un rol asignado");
+      } else {
+        nav(from || home, { replace: true });
+      }
     } catch (err) {
       setError(loginErrorMessage(err));
     } finally {
@@ -102,17 +114,9 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      {/* Ambiente de marca: dos halos de gradiente anclados a las esquinas.
-          Es la firma visual de la app (aurora violeta), ampliada aquí porque
-          la entrada es la vitrina — en el resto del producto es sutil. */}
-      <div
-        className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-brand-600/25 blur-3xl"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-sky-500/15 blur-3xl"
-        aria-hidden="true"
-      />
+      {/* Escenografía completa de la entrada: aurora viva, orbes, rejilla,
+          grano y foco de luz detrás de la tarjeta. La vitrina del producto. */}
+      <AuthBackdrop />
 
       <div className="relative w-full max-w-sm">
         {/* Marca hero: sin eslogan ni claims de marketing. Solo el nombre. */}
@@ -130,17 +134,20 @@ export default function LoginPage() {
             >
               Correo
             </label>
-            <input
-              id="login-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@negocio.com"
-              className="field mb-4"
-              autoComplete="email"
-              autoFocus
-              required
-            />
+            <div className="auth-field relative mb-4">
+              <MailIcon className="auth-field-icon" />
+              <input
+                id="login-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu@negocio.com"
+                className="field auth-field-has-icon"
+                autoComplete="email"
+                autoFocus
+                required
+              />
+            </div>
 
             <label
               htmlFor="login-password"
@@ -148,14 +155,15 @@ export default function LoginPage() {
             >
               Contraseña
             </label>
-            <div className="relative mb-2">
+            <div className="auth-field relative mb-2">
+              <LockIcon className="auth-field-icon" />
               <input
                 id="login-password"
                 type={showPass ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Tu contraseña"
-                className="field mb-0 !pr-12"
+                className="field mb-0 !pr-12 auth-field-has-icon"
                 autoComplete="current-password"
                 required
               />

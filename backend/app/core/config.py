@@ -62,6 +62,26 @@ class Settings(BaseSettings):
     # URL publica de la app: construye los links de reset/invitacion.
     app_public_url: str = "https://ticketflow-brva4026-uxs-projects.vercel.app"
 
+    # Pagos online (Wompi, mig 023): cobros por link de pago single-use.
+    # Vacio = pagos deshabilitados: la API responde 503 al crear cobros (el
+    # webhook tambien rechaza: sin secreto no hay firma que validar).
+    wompi_private_key: str = ""
+    wompi_events_secret: str = ""
+    # test -> sandbox.wompi.co (claves prv_test_); prod -> production.wompi.co.
+    wompi_env: str = "test"
+
+    @property
+    def wompi_base_url(self) -> str:
+        return (
+            "https://production.wompi.co/v1"
+            if self.wompi_env == "prod"
+            else "https://sandbox.wompi.co/v1"
+        )
+
+    @property
+    def wompi_enabled(self) -> bool:
+        return bool(self.wompi_private_key and self.wompi_events_secret)
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

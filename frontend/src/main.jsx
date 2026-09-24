@@ -1,6 +1,12 @@
 import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import "./index.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
@@ -47,9 +53,13 @@ import { SplashScreen } from "./components/SplashScreen";
 
 function RequireRole({ role, children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   // Splash de marca mientras se restaura la sesión (nunca un flash de login).
   if (loading) return <SplashScreen />;
-  if (!user) return <Navigate to="/login" replace />;
+  // "from" viaja en location.state: el login lo lee y aterriza donde el
+  // usuario iba, no en su dashboard por defecto.
+  if (!user)
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   // La fuente de verdad de la navegación es lib/roles.js; el backend re-
   // verifica en DB cada request (ensure_roles) — esto es UX, no cerradura.
   if (!hasRole(user, role)) return <Navigate to="/" replace />;
@@ -58,8 +68,10 @@ function RequireRole({ role, children }) {
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <SplashScreen />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user)
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   return children;
 }
 

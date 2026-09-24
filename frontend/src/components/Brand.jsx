@@ -1,65 +1,118 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
 
 /** Marca TicketFlow: logotipo, indicadores vivos y cifras animadas. */
 
 export function Logo({ size = "md", animated = true }) {
-  const box =
-    size === "hero"
-      ? "h-16 w-16"
-      : size === "xl"
-        ? "h-14 w-14"
-        : size === "lg"
-          ? "h-12 w-12"
-          : "h-8 w-8";
+  const hero = size === "hero";
+  const gid = useId().replace(/:/g, "");
+  const box = hero
+    ? "h-16 w-16"
+    : size === "xl"
+      ? "h-14 w-14"
+      : size === "lg"
+        ? "h-12 w-12"
+        : "h-8 w-8";
   const text =
-    size === "hero"
-      ? "text-[3rem]"
-      : size === "xl"
-        ? "text-[2.6rem]"
-        : size === "lg"
-          ? "text-[1.9rem]"
-          : "text-[15px]";
+    size === "xl"
+      ? "text-[2.6rem]"
+      : size === "lg"
+        ? "text-[1.9rem]"
+        : "text-[15px]";
   const radius =
     size === "md"
       ? "rounded-[0.55rem]"
-      : size === "hero"
+      : hero
         ? "rounded-[1.1rem]"
         : "rounded-[0.9rem]";
   return (
     <span className="inline-flex items-center gap-3">
-      {/* Isotipo: ticket minimalista sobre tile con gradiente de marca. El
-          halo difuso solo suma en tamaños pequeños (tiles de menú); en hero
-          el glow alrededor competiría con la tarjeta, así que ahí se omite. */}
+      {/* Isotipo: boleta troquelada sobre tile con gradiente de marca, luz
+          especular y filo interior de precisión. El halo difuso solo suma en
+          tamaños pequeños (tiles de menú); en hero el glow competiría con la
+          tarjeta, así que ahí se omite. */}
       <span
         className={`${box} relative ${animated ? "logo-pop" : ""} grid place-items-center`}
       >
-        {size !== "hero" && (
+        {!hero && (
           <span
             className={`absolute inset-0 ${radius} bg-brand-500/40 blur-lg`}
             aria-hidden="true"
           />
         )}
         <span
-          className={`relative grid h-full w-full place-items-center ${radius} bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700 shadow-lg shadow-brand-950/50`}
+          className={`relative grid h-full w-full place-items-center overflow-hidden ${radius} shadow-lg shadow-brand-950/50`}
+          style={{
+            background:
+              "linear-gradient(135deg, #a78bfa 0%, #7c3aed 55%, #4c1d95 100%)",
+          }}
         >
+          {/* Reflejo especular: la luz entra desde arriba-izquierda */}
+          <span
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-0 ${radius}`}
+            style={{
+              background:
+                "linear-gradient(160deg, rgba(255,255,255,0.38), rgba(255,255,255,0.08) 36%, transparent 62%)",
+            }}
+          />
+          {/* Filo interior de precisión: define el tile sobre fondos claros */}
+          <span
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-0 ${radius}`}
+            style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)" }}
+          />
           <svg
             viewBox="0 0 24 24"
-            className="h-[56%] w-[56%] text-white drop-shadow-sm"
-            fill="currentColor"
+            className="relative h-[58%] w-[58%]"
+            fill="none"
             aria-hidden="true"
           >
-            <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2.2a2.8 2.8 0 0 0 0 5.6V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.2a2.8 2.8 0 0 0 0-5.6V7z" />
+            <defs>
+              <linearGradient
+                id={gid}
+                x1="4"
+                y1="4"
+                x2="20"
+                y2="20"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0" stopColor="#ffffff" />
+                <stop offset="1" stopColor="#f3e8ff" />
+              </linearGradient>
+            </defs>
+            {/* Boleta con muescas laterales (troquel) */}
+            <path
+              d="M3.5 7A2.5 2.5 0 0 1 6 4.5h12A2.5 2.5 0 0 1 20.5 7v2.1a2.9 2.9 0 0 0 0 5.8V17a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17v-2.1a2.9 2.9 0 0 0 0-5.8V7Z"
+              fill={`url(#${gid})`}
+            />
+            {/* Talón perforado + destello: la firma "flow" */}
+            <circle cx="16.6" cy="8.2" r="0.85" fill="#4c1d95" opacity="0.5" />
+            <circle cx="16.6" cy="12" r="0.85" fill="#4c1d95" opacity="0.5" />
+            <circle cx="16.6" cy="15.8" r="0.85" fill="#4c1d95" opacity="0.5" />
+            <path
+              d="m14.4 7.6.55 1.65 1.65.55-1.65.55-.55 1.65-.55-1.65-1.65-.55 1.65-.55.55-1.65Z"
+              fill="#4c1d95"
+              opacity="0.65"
+            />
           </svg>
         </span>
       </span>
-      <span
-        className={`${text} display brand-shine ${
-          size === "hero" ? "tracking-[-0.035em]" : "tracking-tight"
-        }`}
-      >
-        TicketFlow
-      </span>
+      {hero ? (
+        /* Wordmark hero: lockup en píldora translúcida con blur — legible
+           sobre la escenografía y con peso de marca. "Flow" lleva el
+           degradado violeta→fucsia, firma de la entrada. */
+        <span className="brand-chip animate-fade">
+          <span className="display text-[2.5rem] font-extrabold leading-none tracking-[-0.035em]">
+            <span className="brand-shine">Ticket</span>
+            <span className="brand-flow">Flow</span>
+          </span>
+        </span>
+      ) : (
+        <span className={`${text} display brand-shine tracking-tight`}>
+          TicketFlow
+        </span>
+      )}
     </span>
   );
 }

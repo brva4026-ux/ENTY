@@ -37,6 +37,7 @@ from app.routers import (
     team,
     tickets,
     waitlist,
+    payments,
 )
 
 
@@ -120,6 +121,7 @@ def create_app() -> FastAPI:
     app.include_router(payouts.router)
     app.include_router(public.router)
     app.include_router(waitlist.router)
+    app.include_router(payments.router)
     app.include_router(seed.router)
 
     @app.get("/health", tags=["ops"])

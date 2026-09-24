@@ -524,6 +524,57 @@ class TicketReturnOut(BaseModel):
     status: str = "returned"
 
 
+class PaymentCreateRequest(BaseModel):
+    """El admin cobra una boleta de pago online (E3, Wompi).
+
+    El monto lo define el admin en el momento del cobro (precio negociado,
+    descuento a ojo): la boleta se emite con price_cents_snapshot = este
+    monto. El comprador ya existe en el flujo del bar: nombre + telefono,
+    email opcional.
+    """
+
+    ticket_type_id: int
+    amount_in_cents: int = Field(gt=0, le=500_000_000)  # tope de sanidad
+    customer_name: str = Field(min_length=1, max_length=200)
+    customer_phone: str = Field(min_length=5, max_length=30)
+    customer_email: str | None = Field(default=None, max_length=200)
+
+
+class PaymentCreateOut(BaseModel):
+    """Cobro creado: la URL de Wompi se manda al cliente por WhatsApp.
+
+    `reference` es la llave interna del ciclo (webhook -> cobro -> boleta).
+    """
+
+    payment_id: int
+    reference: str
+    payment_url: str
+    amount_in_cents: int
+    status: str = "pending"
+
+
+class PaymentOut(BaseModel):
+    """Cobro para el listado del dashboard (con la boleta emitida, si la hay)."""
+
+    id: int
+    reference: str
+    status: str
+    amount_in_cents: int
+    customer_name: str
+    customer_phone: str
+    customer_email: str | None = None
+    payment_url: str | None = None
+    ticket_id: int | None = None
+    transaction_id: str | None = None
+    approved_at: datetime | None = None
+    created_at: datetime
+
+
+class PaymentsListOut(BaseModel):
+    total: int
+    items: list[PaymentOut]
+
+
 class WaitlistJoinRequest(BaseModel):
     """El fan entra a la fila de un evento agotado (E2). Sin cuentas: el
     telefono es la identidad (UNIQUE por evento) y el token crudo que
