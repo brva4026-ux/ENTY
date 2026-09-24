@@ -139,7 +139,8 @@ export default function EventWorkbench({
   // backstage — mezclarlas aquí es lo que hacia sentir "todo amontonado".
   const tabs = [
     { id: "resumen", label: "Resumen", icon: "chart" },
-    { id: "entradas", label: "Entradas y cupos", icon: "door" },
+    { id: "entradas", label: "Entradas", icon: "door" },
+    { id: "cupos", label: "Cupos", icon: "users" },
     { id: "boletas", label: "Boletas", icon: "ticket" },
   ];
 

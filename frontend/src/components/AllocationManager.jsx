@@ -23,8 +23,11 @@ export default function AllocationManager({
   const [draftCapacity, setDraftCapacity] = useState("5");
   const [busyId, setBusyId] = useState(null);
 
-  const promoters = (users || []).filter(
-    (u) => u.roles?.includes("promotor") || u.roles?.includes("admin"),
+  // SOLO promotores en el select: un admin no vende con su cupo, y mezclar
+  // roles hacía el control confuso (tres "Admin/Promo" parecidos). Si un
+  // día un admin también vende, se le asigna el rol promotor.
+  const promoters = (users || []).filter((u) =>
+    u.roles?.includes("promotor"),
   );
 
   const allocationUrl = (a) =>

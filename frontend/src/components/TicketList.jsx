@@ -8,6 +8,7 @@ import {
 import { useUI } from "../lib/ui";
 import ContactEditsHistory from "./ContactEditsHistory";
 import EmptyState from "./EmptyState";
+import TicketQrModal from "./TicketQrModal";
 
 const PAGE_SIZE = 50;
 
@@ -38,6 +39,8 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
   // Mig 015: corrección de contacto (nombre/teléfono) con auditoría.
   const [editingId, setEditingId] = useState(null);
   const [edit, setEdit] = useState({ name: "", phone: "", reason: "" });
+  // Boleta cuyo QR se está mostrando (token ya rotado por reissue).
+  const [qrTicket, setQrTicket] = useState(null);
 
   // ===== Listado server-driven: filtros + paginación viven en el API =====
   // (antes: 200 boletas en el DOM y Ctrl+F; ahora el server filtra y pagina,
@@ -193,6 +196,37 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
   // re-consulta con los filtros vigentes.
   const refreshList = onChanged;
 
+  /** Ver el QR de una boleta: como la DB solo guarda el hash del token
+      (el crudo se entrega una vez), verlo exige ROTARLO. El enlace anterior
+      muere: lo confirmamos antes. El QR nuevo es único y queda asociado al
+      asistente mientras el evento siga abierto. */
+  async function showQr(t) {
+    const ok = await ui.confirm(`¿Mostrar el QR de la boleta #${t.id}?`, {
+      message: `Se genera un QR NUEVO para ${t.customer_name} y el enlace anterior deja de funcionar. Úsalo si perdió el mensaje de WhatsApp.`,
+      confirmLabel: "Generar QR nuevo",
+    });
+    if (!ok) return;
+    setBusy(true);
+    try {
+      const res = await apiFetch(
+        `/venues/${venueId}/events/${eventId}/tickets/${t.id}/reissue`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "Consulta de QR desde el dashboard",
+          }),
+        },
+      );
+      await onChanged();
+      await refreshList();
+      setQrTicket({ ...t, raw_token: res.raw_token });
+    } catch (e) {
+      onError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function downloadCsv(kind) {
     try {
       const res = await fetch(
@@ -338,6 +372,13 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                     {canVoid && voidingId !== t.id && editingId !== t.id && (
                       <>
                         <button
+                          onClick={() => showQr(t)}
+                          disabled={busy}
+                          className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
+                        >
+                          Ver QR
+                        </button>
+                        <button
                           onClick={() => reissueTicket(t)}
                           disabled={busy}
                           className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
@@ -396,9 +437,9 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                   </div>
                 )}
                 {editingId === t.id && (
-                  <div className="mt-2 space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                  <div className="mt-2 list-row space-y-2 p-3">
                     <p className="text-xs font-semibold text-zinc-400">
-                      Corregir contacto · queda en auditoría (mig 015)
+                      Corregir contacto · queda en auditoría
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <input
@@ -433,9 +474,9 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                         disabled={
                           busy || (!edit.name.trim() && !edit.phone.trim())
                         }
-                        className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                        className="btn-primary !px-3 !py-1.5 text-xs"
                       >
-                        {busy ? "Guardando…" : "Guardar"}
+                        {busy ? "Guardando" : "Guardar"}
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
@@ -470,11 +511,16 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
           </li>
         )}
         {!loading && items.length === 0 && total > 0 && (
-          <li className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-3 text-sm text-zinc-500">
+          <li className="list-row px-3 py-3 text-sm text-zinc-500">
             Ninguna boleta coincide con el filtro.
           </li>
         )}
       </ul>
+
+      {/* QR de la boleta: único por token, visible mientras el evento viva. */}
+      {qrTicket && (
+        <TicketQrModal ticket={qrTicket} onClose={() => setQrTicket(null)} />
+      )}
 
       {/* Paginador: solo si hay más de una página */}
       {!loading && totalPages > 1 && (

@@ -122,6 +122,7 @@ export default function AdminDashboard() {
   const section = [
     "resumen",
     "entradas",
+    "cupos",
     "boletas",
     "cobros",
     "negocio",
@@ -1009,26 +1010,30 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {(section === "entradas" || section === "boletas") && (
-              <div className="grid gap-5 lg:grid-cols-2">
-                <TypeManager
-                  venueId={venueId}
-                  eventId={selectedEvent}
-                  types={types}
-                  onChange={setTypes}
-                />
-                <AllocationManager
-                  venueId={venueId}
-                  eventId={selectedEvent}
-                  allocations={allocations}
-                  types={types}
-                  users={users}
-                  onChange={setAllocations}
-                />
-              </div>
+            {/* Pestañas separadas: cada pantalla una tarea, todo con control
+                total. "Entradas" monta el producto; "Cupos" delega la venta;
+                "Boletas" audita lo vendido y entrega los QR. */}
+            {section === "entradas" && (
+              <TypeManager
+                venueId={venueId}
+                eventId={selectedEvent}
+                types={types}
+                onChange={setTypes}
+              />
             )}
 
-            {(section === "entradas" || section === "boletas") && (
+            {section === "cupos" && (
+              <AllocationManager
+                venueId={venueId}
+                eventId={selectedEvent}
+                allocations={allocations}
+                types={types}
+                users={users}
+                onChange={setAllocations}
+              />
+            )}
+
+            {(section === "boletas" || section === "entradas" || section === "cupos") && (
               <TicketList
                 venueId={venueId}
                 eventId={selectedEvent}
