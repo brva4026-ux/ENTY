@@ -22,6 +22,7 @@ export default function AllocationManager({
   const [editingId, setEditingId] = useState(null);
   const [draftCapacity, setDraftCapacity] = useState("5");
   const [busyId, setBusyId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   // SOLO promotores en el select: un admin no vende con su cupo, y mezclar
   // roles hacía el control confuso (tres "Admin/Promo" parecidos). Si un
@@ -41,6 +42,7 @@ export default function AllocationManager({
 
   async function createAllocation(e) {
     e.preventDefault();
+    setSaving(true);
     try {
       const a = await apiFetch(
         `/venues/${venueId}/events/${eventId}/allocations`,
@@ -57,6 +59,8 @@ export default function AllocationManager({
       setErr("");
     } catch (e2) {
       setErr(e2.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -170,7 +174,8 @@ export default function AllocationManager({
                   </span>
                   <button
                     onClick={() => startEdit(a)}
-                    className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10"
+                    className="btn-mini"
+                    data-variant="brand"
                   >
                     Editar
                   </button>
@@ -178,7 +183,8 @@ export default function AllocationManager({
                     <button
                       onClick={() => toggleAllocationActive(a)}
                       disabled={busyId === a.id}
-                      className="rounded-lg px-2 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/10"
+                      className="btn-mini"
+                      data-variant="success"
                     >
                       Reactivar
                     </button>
@@ -186,7 +192,8 @@ export default function AllocationManager({
                     <button
                       onClick={() => removeAllocation(a)}
                       disabled={busyId === a.id}
-                      className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                      className="btn-mini"
+                      data-variant="danger"
                     >
                       Eliminar
                     </button>
@@ -278,7 +285,17 @@ export default function AllocationManager({
           inputMode="numeric"
           required
         />
-        <button className="btn-primary">Asignar</button>
+        <button
+          className={`btn-primary ${saving ? "is-busy" : ""}`}
+          disabled={saving}
+        >
+          {saving && (
+            <svg className="btn-spinner" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+          )}
+          {saving ? "Asignando…" : "Asignar"}
+        </button>
         {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
         {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
       </form>

@@ -258,12 +258,14 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
           <button
             onClick={() => downloadCsv("guests.csv")}
             className="btn-ghost text-xs font-bold"
+            data-tip="Descarga la lista de asistentes"
           >
             Invitados
           </button>
           <button
             onClick={() => downloadCsv("revenue.csv")}
             className="btn-ghost text-xs font-bold"
+            data-tip="Descarga el detalle de recaudo"
           >
             Recaudo
           </button>
@@ -321,7 +323,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                 setQInput("");
                 setQ("");
               }}
-              className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+              className="btn-mini shrink-0"
             >
               Limpiar
             </button>
@@ -374,14 +376,16 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                         <button
                           onClick={() => showQr(t)}
                           disabled={busy}
-                          className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
+                          className="btn-mini"
+                          data-variant="brand"
                         >
                           Ver QR
                         </button>
                         <button
                           onClick={() => reissueTicket(t)}
                           disabled={busy}
-                          className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
+                          className="btn-mini"
+                          data-variant="brand"
                         >
                           Reemitir
                         </button>
@@ -394,7 +398,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                               reason: "",
                             });
                           }}
-                          className="rounded-lg px-2 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800"
+                          className="btn-mini"
                         >
                           Corregir
                         </button>
@@ -403,7 +407,8 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                             setVoidingId(t.id);
                             setReason("Error de digitación");
                           }}
-                          className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                          className="btn-mini"
+                          data-variant="danger"
                         >
                           Anular
                         </button>
@@ -424,13 +429,22 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                     <button
                       onClick={() => voidTicket(t)}
                       disabled={busy || reason.trim().length < 3}
-                      className="rounded-lg bg-red-500/90 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-500 disabled:opacity-50"
+                      className={`btn-danger !py-1.5 text-xs ${busy ? "is-busy" : ""}`}
                     >
+                      {busy && (
+                        <svg
+                          className="btn-spinner"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="12" r="9" />
+                        </svg>
+                      )}
                       {busy ? "Anulando…" : "Confirmar"}
                     </button>
                     <button
                       onClick={() => setVoidingId(null)}
-                      className="rounded-lg px-2 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+                      className="btn-mini"
                     >
                       Cancelar
                     </button>
@@ -474,13 +488,22 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                         disabled={
                           busy || (!edit.name.trim() && !edit.phone.trim())
                         }
-                        className="btn-primary !px-3 !py-1.5 text-xs"
+                        className={`btn-primary !px-3 !py-1.5 text-xs ${busy ? "is-busy" : ""}`}
                       >
-                        {busy ? "Guardando" : "Guardar"}
+                        {busy && (
+                          <svg
+                            className="btn-spinner"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <circle cx="12" cy="12" r="9" />
+                          </svg>
+                        )}
+                        {busy ? "Guardando…" : "Guardar"}
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
-                        className="rounded-lg px-2 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+                        className="btn-mini"
                       >
                         Cancelar
                       </button>

@@ -59,7 +59,7 @@ export default function TicketQrModal({ ticket, onClose }) {
       onClick={onClose}
     >
       <div
-        className="card w-full max-w-sm p-5 text-center"
+        className="card animate-scale-in w-full max-w-sm p-5 text-center"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -89,7 +89,24 @@ export default function TicketQrModal({ ticket, onClose }) {
         </p>
 
         <div className="mt-4 flex justify-center gap-2">
-          <button onClick={copyUrl} className="btn-ghost text-xs font-bold">
+          <button
+            onClick={copyUrl}
+            className={`btn-ghost text-xs font-bold ${copied ? "btn-success" : ""}`}
+          >
+            {copied ? (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3.5 w-3.5"
+                aria-hidden="true"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            ) : null}
             {copied ? "Enlace copiado" : "Copiar enlace"}
           </button>
           <a

@@ -87,18 +87,15 @@ const STEPS = [
   { id: "aforo", label: "Aforo" },
 ];
 
-/** Chip de opción rápida (atajos de fecha, QR, aforo). */
+/** Chip de opción rápida (atajos de fecha, QR, aforo): pill seleccionable
+ * del sistema (.opt-chip), con hundimiento fisico y estado activo de marca. */
 function Chip({ active, onClick, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-        active
-          ? "border-brand-500 bg-brand-500/15 text-brand-300"
-          : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-      }`}
+      className="opt-chip"
     >
       {children}
     </button>
@@ -291,7 +288,8 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
+            className="btn-mini"
+            data-variant="brand"
           >
             Cerrar ✕
           </button>
@@ -763,7 +761,11 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </button>
               )}
               {step < STEPS.length - 1 ? (
-                <button type="button" onClick={next} className="btn-primary">
+                <button
+                  type="button"
+                  onClick={next}
+                  className="btn-primary"
+                >
                   Continuar
                 </button>
               ) : (

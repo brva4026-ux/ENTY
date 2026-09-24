@@ -519,7 +519,7 @@ function MemberRow({
               key={a.key}
               onClick={a.onClick}
               disabled={busyAction === a.key}
-              title={a.label}
+              data-tip={a.label}
               aria-label={a.label}
               className={`rounded-md p-1.5 transition-colors disabled:opacity-40 ${a.cls}`}
             >

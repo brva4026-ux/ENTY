@@ -628,7 +628,7 @@ export default function InvitationsManager({ venueId }) {
                       <div className="flex shrink-0 items-center gap-0.5">
                         <button
                           onClick={() => revoke(inv)}
-                          title={`Revocar la invitación de ${inv.full_name}`}
+                          data-tip={`Revocar la invitación de ${inv.full_name}`}
                           aria-label={`Revocar la invitación de ${inv.full_name}`}
                           className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-amber-500/10 hover:text-amber-300"
                         >

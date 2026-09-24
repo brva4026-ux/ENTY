@@ -50,6 +50,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
     isCourtesy: false,
   });
   const [busyId, setBusyId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const typeUrl = (t) => `/venues/${venueId}/events/${eventId}/types/${t.id}`;
 
@@ -59,6 +60,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
 
   async function createType(e) {
     e.preventDefault();
+    setSaving(true);
     try {
       const t = await apiFetch(`/venues/${venueId}/events/${eventId}/types`, {
         method: "POST",
@@ -74,6 +76,8 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
       ui.success(`Tipo "${t.name}" agregado`);
     } catch (e2) {
       setErr(e2.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -241,7 +245,8 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
                   </span>
                   <button
                     onClick={() => startEdit(t)}
-                    className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10"
+                    className="btn-mini"
+                    data-variant="brand"
                   >
                     Editar
                   </button>
@@ -249,7 +254,8 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
                     <button
                       onClick={() => toggleTypeActive(t)}
                       disabled={busyId === t.id}
-                      className="rounded-lg px-2 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/10"
+                      className="btn-mini"
+                      data-variant="success"
                     >
                       Reactivar
                     </button>
@@ -257,7 +263,8 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
                     <button
                       onClick={() => removeType(t)}
                       disabled={busyId === t.id}
-                      className="rounded-lg px-2 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                      className="btn-mini"
+                      data-variant="danger"
                     >
                       Eliminar
                     </button>
@@ -280,23 +287,20 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
         <p className="mb-1.5 text-xs font-medium text-zinc-400">Crear rápido:</p>
         <div className="flex flex-wrap gap-1.5">
           {PRESETS.map((p) => (
-            <button
-              key={p.name}
-              type="button"
-              onClick={() => {
-                setName(p.name);
-                setPrice(p.price);
-                setIsCourtesy(p.courtesy);
-              }}
-              title={p.desc}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                name === p.name && isCourtesy === p.courtesy
-                  ? "border-brand-500 bg-brand-500/15 text-brand-300"
-                  : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-              }`}
-            >
-              {p.name}
-            </button>
+          <button
+            key={p.name}
+            type="button"
+            onClick={() => {
+              setName(p.name);
+              setPrice(p.price);
+              setIsCourtesy(p.courtesy);
+            }}
+            aria-pressed={name === p.name && isCourtesy === p.courtesy}
+            data-tip={p.desc}
+            className="opt-chip"
+          >
+            {p.name}
+          </button>
           ))}
         </div>
         {PRESETS.filter((p) => p.name === name).map((p) => (
@@ -360,8 +364,18 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
         </label>
         {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
         {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
-        <button className="btn-primary sm:col-start-4 sm:row-start-1 sm:self-start">
-          Agregar
+        <button
+          className={`btn-primary sm:col-start-4 sm:row-start-1 sm:self-start ${
+            saving ? "is-busy" : ""
+          }`}
+          disabled={saving}
+        >
+          {saving && (
+            <svg className="btn-spinner" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+          )}
+          {saving ? "Agregando…" : "Agregar"}
         </button>
       </form>
     </div>

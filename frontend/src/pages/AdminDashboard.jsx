@@ -498,7 +498,7 @@ export default function AdminDashboard() {
                     <button
                       onClick={() => setQrTesterOpen(true)}
                       className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold text-zinc-300 hover:text-brand-300"
-                      title="Leer un QR y ver a quién pertenece, sin canjearlo"
+                      data-tip="Leer un QR y ver a quién pertenece, sin canjearlo"
                     >
                       Probar QR
                     </button>

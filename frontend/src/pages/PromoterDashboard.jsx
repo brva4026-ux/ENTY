@@ -698,8 +698,18 @@ export default function PromoterDashboard() {
                                   reissuingId === t.ticket_id ||
                                   editingId === t.ticket_id
                                 }
-                                className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10 disabled:opacity-50"
+                                className="btn-mini"
+                                data-variant="brand"
                               >
+                                {reissuingId === t.ticket_id && (
+                                  <svg
+                                    className="btn-spinner"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                  >
+                                    <circle cx="12" cy="12" r="9" />
+                                  </svg>
+                                )}
                                 {reissuingId === t.ticket_id
                                   ? "Reemitindo…"
                                   : "Reemitir"}
@@ -718,7 +728,7 @@ export default function PromoterDashboard() {
                                   });
                                 }}
                                 disabled={reissuingId === t.ticket_id}
-                                className="rounded-lg px-2 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-50"
+                                className="btn-mini"
                               >
                                 Corregir
                               </button>
@@ -764,13 +774,13 @@ export default function PromoterDashboard() {
                                 disabled={
                                   !edit.name.trim() && !edit.phone.trim()
                                 }
-                                className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                                className="btn-primary !px-3 !py-1.5 text-xs"
                               >
                                 Guardar
                               </button>
                               <button
                                 onClick={() => setEditingId(null)}
-                                className="rounded-lg px-2 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+                                className="btn-mini"
                               >
                                 Cancelar
                               </button>
