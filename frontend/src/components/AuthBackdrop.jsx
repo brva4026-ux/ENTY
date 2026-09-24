@@ -1,18 +1,11 @@
 /**
- * Escenografía de la entrada (login/registro).
+ * Escenografía de la entrada (login/registro) — v3 Tesla/Apple: showroom
+ * plano. La pantalla es el producto: canvas único, cero gradientes
+ * decorativos, cero sombras de UI. La única "fotografía" es una luz muy
+ * sutil desde arriba, como la lámpara de un showroom. Con
+ * prefers-reduced-motion no hay nada que apagar: nada se mueve.
  *
- * La entrada es la vitrina del producto: aquí el fondo sí tiene capas, a
- * diferencia del resto de la app donde la aurora es un lavado sutil.
- * Capas, de atrás hacia adelante:
- *   1. aurora  — gradientes radiales violeta/fucsia/cian que respiran lento
- *   2. orbes   — tres manchas de luz flotando en direcciones opuestas
- *   3. rejilla — puntos que enmarcan el centro (donde vive la tarjeta)
- *   4. grano   — textura SVG que mata el look "plano de plantilla"
- *   5. foco    — luz detrás de la tarjeta, pulsando muy sutil
- *
- * Todo es decorativo: aria-hidden, pointer-events-none y animaciones solo
- * de transform/opacity (compositables). Con prefers-reduced-motion queda
- * un fondo estático bonito, sin movimiento.
+ * Capas: una sola (la luz del showroom). La calma ES el lujo.
  */
 
 export function MailIcon({ className = "" }) {
@@ -56,12 +49,6 @@ export function AuthBackdrop() {
   return (
     <div className="auth-backdrop" aria-hidden="true">
       <div className="ab-aurora" />
-      <div className="ab-orb ab-orb-1" />
-      <div className="ab-orb ab-orb-2" />
-      <div className="ab-orb ab-orb-3" />
-      <div className="ab-grid" />
-      <div className="ab-spot" />
-      <div className="ab-grain" />
     </div>
   );
 }

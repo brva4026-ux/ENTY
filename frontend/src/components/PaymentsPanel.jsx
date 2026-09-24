@@ -330,7 +330,7 @@ export default function PaymentsPanel({ venueId, events = [] }) {
                     <circle cx="12" cy="12" r="9" />
                   </svg>
                 )}
-                {busy ? "Creando cobro…" : "Crear enlace de pago"}
+                {busy ? "Creando cobro" : "Crear enlace de pago"}
               </button>
             </div>
           </form>

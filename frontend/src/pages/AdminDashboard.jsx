@@ -941,7 +941,7 @@ export default function AdminDashboard() {
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <button className="btn-primary" disabled={savingEdit}>
-                    {savingEdit ? "Guardando…" : "Guardar cambios"}
+                    {savingEdit ? "Guardando" : "Guardar cambios"}
                   </button>
                   <button
                     type="button"

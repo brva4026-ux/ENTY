@@ -1,11 +1,10 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
 
 /** Marca TicketFlow: logotipo, indicadores vivos y cifras animadas. */
 
 export function Logo({ size = "md", animated = true }) {
   const hero = size === "hero";
-  const gid = useId().replace(/:/g, "");
   const box = hero
     ? "h-16 w-16"
     : size === "xl"
@@ -27,83 +26,43 @@ export function Logo({ size = "md", animated = true }) {
         : "rounded-[0.9rem]";
   return (
     <span className="inline-flex items-center gap-3">
-      {/* Isotipo: boleta troquelada sobre tile con gradiente de marca, luz
-          especular y filo interior de precisión. El halo difuso solo suma en
-          tamaños pequeños (tiles de menú); en hero el glow competiría con la
-          tarjeta, así que ahí se omite. */}
+      {/* Isotipo (v3): tile plano del azul acento — cero gradiente, cero
+          glow, cero sombra. El troquel de la boleta basta como firma. */}
       <span
         className={`${box} relative ${animated ? "logo-pop" : ""} grid place-items-center`}
       >
-        {!hero && (
-          <span
-            className={`absolute inset-0 ${radius} bg-brand-500/40 blur-lg`}
-            aria-hidden="true"
-          />
-        )}
         <span
-          className={`relative grid h-full w-full place-items-center overflow-hidden ${radius} shadow-lg shadow-brand-950/50`}
-          style={{
-            background:
-              "linear-gradient(135deg, #a78bfa 0%, #7c3aed 55%, #4c1d95 100%)",
-          }}
+          className={`relative grid h-full w-full place-items-center overflow-hidden ${radius}`}
+          style={{ background: "#3e6ae1" }}
         >
-          {/* Reflejo especular: la luz entra desde arriba-izquierda */}
-          <span
-            aria-hidden="true"
-            className={`pointer-events-none absolute inset-0 ${radius}`}
-            style={{
-              background:
-                "linear-gradient(160deg, rgba(255,255,255,0.38), rgba(255,255,255,0.08) 36%, transparent 62%)",
-            }}
-          />
-          {/* Filo interior de precisión: define el tile sobre fondos claros */}
-          <span
-            aria-hidden="true"
-            className={`pointer-events-none absolute inset-0 ${radius}`}
-            style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)" }}
-          />
           <svg
             viewBox="0 0 24 24"
             className="relative h-[58%] w-[58%]"
             fill="none"
             aria-hidden="true"
           >
-            <defs>
-              <linearGradient
-                id={gid}
-                x1="4"
-                y1="4"
-                x2="20"
-                y2="20"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop offset="0" stopColor="#ffffff" />
-                <stop offset="1" stopColor="#f3e8ff" />
-              </linearGradient>
-            </defs>
-            {/* Boleta con muescas laterales (troquel) */}
-            <path
-              d="M3.5 7A2.5 2.5 0 0 1 6 4.5h12A2.5 2.5 0 0 1 20.5 7v2.1a2.9 2.9 0 0 0 0 5.8V17a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17v-2.1a2.9 2.9 0 0 0 0-5.8V7Z"
-              fill={`url(#${gid})`}
-            />
-            {/* Talón perforado + destello: la firma "flow" */}
-            <circle cx="16.6" cy="8.2" r="0.85" fill="#4c1d95" opacity="0.5" />
-            <circle cx="16.6" cy="12" r="0.85" fill="#4c1d95" opacity="0.5" />
-            <circle cx="16.6" cy="15.8" r="0.85" fill="#4c1d95" opacity="0.5" />
-            <path
-              d="m14.4 7.6.55 1.65 1.65.55-1.65.55-.55 1.65-.55-1.65-1.65-.55 1.65-.55.55-1.65Z"
-              fill="#4c1d95"
-              opacity="0.65"
-            />
+          {/* Boleta con muescas laterales (troquel): blanca plana */}
+          <path
+            d="M3.5 7A2.5 2.5 0 0 1 6 4.5h12A2.5 2.5 0 0 1 20.5 7v2.1a2.9 2.9 0 0 0 0 5.8V17a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17v-2.1a2.9 2.9 0 0 0 0-5.8V7Z"
+            fill="#ffffff"
+          />
+          {/* Talón perforado + destello: la firma "flow" en azul profundo */}
+          <circle cx="16.6" cy="8.2" r="0.85" fill="#3e6ae1" opacity="0.55" />
+          <circle cx="16.6" cy="12" r="0.85" fill="#3e6ae1" opacity="0.55" />
+          <circle cx="16.6" cy="15.8" r="0.85" fill="#3e6ae1" opacity="0.55" />
+          <path
+            d="m14.4 7.6.55 1.65 1.65.55-1.65.55-.55 1.65-.55-1.65-1.65-.55 1.65-.55.55-1.65Z"
+            fill="#3e6ae1"
+            opacity="0.7"
+          />
           </svg>
         </span>
       </span>
       {hero ? (
-        /* Wordmark hero: lockup en píldora translúcida con blur — legible
-           sobre la escenografía y con peso de marca. "Flow" lleva el
-           degradado violeta→fucsia, firma de la entrada. */
+        /* Wordmark hero (v3): tipografía pura, sin píldora ni degradados.
+           "Flow" en el azul acento — el único color interactivo del sistema. */
         <span className="brand-chip animate-fade">
-          <span className="display text-[2.5rem] font-extrabold leading-none tracking-[-0.035em]">
+          <span className="display text-[2.5rem] font-semibold leading-none tracking-[-0.03em]">
             <span className="brand-shine">Ticket</span>
             <span className="brand-flow">Flow</span>
           </span>

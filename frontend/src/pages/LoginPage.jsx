@@ -212,7 +212,7 @@ export default function LoginPage() {
                       >
                         <circle cx="12" cy="12" r="9" />
                       </svg>
-                      Enviando…
+                      Enviando
                     </>
                   ) : (
                     "Enviar enlace de recuperación"
@@ -249,7 +249,7 @@ export default function LoginPage() {
                   <circle cx="12" cy="12" r="9" />
                 </svg>
               )}
-              {busy ? "Entrando…" : "Entrar"}
+              {busy ? "Entrando" : "Entrar"}
             </button>
           </form>
         </div>

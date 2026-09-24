@@ -21,7 +21,7 @@ export default function OccupancyRing({ pct = 0, used = 0, total = 0, live = fal
         ? "#fbbf24"
         : live
           ? "#34d399"
-          : "#a78bfa";
+          : "#3e6ae1";
 
   return (
     <div className="relative grid place-items-center" style={{ width: SIZE, height: SIZE }}>

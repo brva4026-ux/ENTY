@@ -8,15 +8,16 @@
   --font-sans:
     "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     sans-serif;
-  /* Un solo acento disciplinado: violeta 600. Nada de arcoíris. */
-  --color-brand-200: #ddd6fe;
-  --color-brand-300: #c4b5fd;
-  --color-brand-400: #a78bfa;
-  --color-brand-500: #8b5cf6;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-accent-400: #a78bfa;
-  --color-accent-500: #8b5cf6;
+  /* Un solo acento disciplinado: azul eléctrico (Tesla #3e6ae1).
+     Nada de arcoíris: todo "clicable" comparte este único color. */
+  --color-brand-200: #d6def8;
+  --color-brand-300: #b0c0f2;
+  --color-brand-400: #7d99ec;
+  --color-brand-500: #3e6ae1;
+  --color-brand-600: #3460d6;
+  --color-brand-700: #2a4fb8;
+  --color-accent-400: #7d99ec;
+  --color-accent-500: #3e6ae1;
 }
 
 html,
@@ -36,24 +37,10 @@ html[data-theme="light"] {
 
 body {
   font-family: var(--font-sans);
-  /* Base oscura con aurora premium (estética distri-stream traducida a dark):
-     dos lavados radiales violeta/azul muy sutiles en la parte superior. La
-     jerarquía sigue viniendo de tipografía y profundidad — el brillo es
-     ambiente, no decoración. Estático (sin animación) y sin fixed-attachment
-     para no pagar repaint en scroll móvil. */
-  background:
-    radial-gradient(
-      60rem 32rem at 50% -12rem,
-      rgba(124, 58, 237, 0.18),
-      transparent 62%
-    ),
-    radial-gradient(
-      46rem 26rem at 88% -8rem,
-      rgba(59, 130, 246, 0.09),
-      transparent 60%
-    ),
-    #09090b;
-  background-repeat: no-repeat;
+  /* Canvas plano (Tesla/Apple): un solo tono, sin lavados ni gradientes.
+     La jerarquía viene de tipografía, aire y el cambio de superficie —
+     nunca de brillo decorativo. */
+  background: #09090b;
   color: #e4e4e7;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -61,7 +48,7 @@ body {
 }
 
 ::selection {
-  background: rgba(124, 58, 237, 0.4);
+  background: rgba(62, 106, 225, 0.4);
   color: #fff;
 }
 
@@ -132,15 +119,17 @@ body {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #a78bfa;
+  color: #7d99ec;
 }
 
 /* Titulares: apretados, pesados, con tamaño óptico de la variable Inter
    (opsz sube el contraste de trazos en tamaños grandes: el titular se ve
    "impreso", no "renderizado"). */
 .display {
-  letter-spacing: -0.025em;
-  font-weight: 700;
+  /* Apple tight: weight 600 (no 700) y tracking negativo — titulares
+     seguros pero silenciosos. */
+  letter-spacing: -0.03em;
+  font-weight: 600;
   color: #fafafa;
   font-variation-settings: "opsz" 32;
 }
@@ -163,25 +152,13 @@ body {
     0 10px 30px -12px rgba(0, 0, 0, 0.55);
 }
 
-/* Tarjeta de entrada (login/registro): vidrio translúcido que deja ver los
-   halos de marca del fondo + filo de luz superior (inset) + sombra profunda.
-   La sensación premium viene de la LUZ (borde que enciende la tarjeta), no
-   de más decoración. */
+/* Tarjeta de entrada (login/registro): superficie plana con hairline.
+   La elevación es el CAMBIO DE COLOR de la superficie (canvas #09090b →
+   tarjeta #101013), no una sombra. Radio 12px: precisión técnica (Tesla). */
 .auth-card {
-  border-radius: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.055),
-      rgba(255, 255, 255, 0) 45%
-    ),
-    rgba(16, 16, 19, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
-    0 30px 70px -22px rgba(0, 0, 0, 0.7);
+  border-radius: 0.75rem;
+  border: 1px solid #27272a;
+  background: #101013;
 }
 
 /* Separadores internos consistentes */
@@ -194,7 +171,7 @@ body {
    de pago, no de panel interno. */
 .field {
   width: 100%;
-  border-radius: 0.625rem;
+  border-radius: 0.25rem;
   border: 1px solid #2a2a2e;
   background: #0c0c0e;
   padding: 0.7rem 0.85rem;
@@ -202,8 +179,8 @@ body {
   color: #fafafa;
   outline: none;
   transition:
-    border-color 0.12s,
-    box-shadow 0.12s;
+    border-color 0.33s cubic-bezier(0.5, 0, 0, 0.75),
+    box-shadow 0.25s;
 }
 .field::placeholder {
   color: #52525b;
@@ -212,47 +189,43 @@ body {
   border-color: #3f3f46;
 }
 .field:focus {
-  border-color: #a78bfa;
-  box-shadow:
-    0 0 0 3px rgba(124, 58, 237, 0.22),
-    0 0 22px -5px rgba(139, 92, 246, 0.5);
+  /* Apple: el foco es un anillo limpio del acento, sin glow difuso. */
+  border-color: #3e6ae1;
+  box-shadow: 0 0 0 3px rgba(62, 106, 225, 0.22);
 }
 
-/* Botón primario: degradado violeta → fucsia con glow (firma premium de
-   distri-stream: "Nuevo usuario", "Gestionar →"). El CTA es el punto de
-   color de la pantalla; el glow se intensifica al hover para invitar. */
+/* Botón primario (Tesla CTA): azul eléctrico plano, radio 4px, el ÚNICO
+   color interactivo del sistema. Borde de 3px transparente reservado para
+   el foco (patrón Tesla); la interacción es de COLOR, sin escala. */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 0.625rem;
-  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 48%, #a855f7 100%);
+  border-radius: 0.25rem;
+  background: #3e6ae1;
   color: #ffffff;
-  border: 1px solid rgba(168, 85, 247, 0.55);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
-    0 4px 16px -4px rgba(124, 58, 237, 0.55);
-  padding: 0.7rem 1rem;
+  border: 3px solid transparent;
+  box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
+  padding: 0.55rem 1rem;
   font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: 500;
+  letter-spacing: 0;
   transition:
-    background 0.12s,
-    border-color 0.12s,
-    box-shadow 0.12s,
-    transform 0.1s ease;
+    border-color 0.33s cubic-bezier(0.5, 0, 0, 0.75),
+    background-color 0.33s cubic-bezier(0.5, 0, 0, 0.75),
+    color 0.33s cubic-bezier(0.5, 0, 0, 0.75),
+    box-shadow 0.25s;
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, #8b5cf6 0%, #9d6bfa 48%, #b668f9 100%);
-  border-color: rgba(196, 181, 253, 0.7);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.25),
-    0 6px 24px -6px rgba(139, 92, 246, 0.7);
+  background: #3460d6;
+}
+.btn-primary:focus-visible {
+  border-color: #ffffff;
+  box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
 }
 .btn-primary:active {
-  filter: brightness(0.96);
-  transform: scale(0.98);
+  background: #2f57c4;
 }
 .btn-primary:disabled {
   opacity: 0.45;
@@ -279,8 +252,8 @@ body {
     transform 0.1s ease;
 }
 .btn-ghost:hover {
-  background: rgba(139, 92, 246, 0.08);
-  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(62, 106, 225, 0.08);
+  border-color: rgba(62, 106, 225, 0.45);
   color: #fafafa;
 }
 .btn-ghost:active {
@@ -469,7 +442,7 @@ body {
     0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: #c4b5fd;
+  color: #b0c0f2;
 }
 
 /* Badges de estado: punto + texto, fondo tenue del propio color */
@@ -501,8 +474,8 @@ body {
 .meter-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #6d28d9, #8b5cf6 70%, #a78bfa);
-  box-shadow: 0 0 10px -2px rgba(139, 92, 246, 0.7);
+  background: linear-gradient(90deg, #2a4fb8, #3e6ae1 70%, #7d99ec);
+  box-shadow: 0 0 10px -2px rgba(62, 106, 225, 0.7);
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -525,7 +498,7 @@ body {
      usada) con línea y puntos, como el timeline de reportes del original.
    =========================================================================== */
 .text-gradient {
-  background: linear-gradient(120deg, #fafafa 0%, #c4b5fd 55%, #8b5cf6 100%);
+  background: linear-gradient(120deg, #fafafa 0%, #b0c0f2 55%, #3e6ae1 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -545,15 +518,15 @@ body {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: #c4b5fd;
+  color: #b0c0f2;
   background: linear-gradient(
     135deg,
-    rgba(124, 58, 237, 0.24),
-    rgba(139, 92, 246, 0.07)
+    rgba(62, 106, 225, 0.24),
+    rgba(62, 106, 225, 0.07)
   );
   box-shadow:
-    inset 0 0 0 1px rgba(167, 139, 250, 0.35),
-    0 0 26px -10px rgba(139, 92, 246, 0.55);
+    inset 0 0 0 1px rgba(125, 153, 236, 0.35),
+    0 0 26px -10px rgba(62, 106, 225, 0.55);
 }
 .empty-state-title {
   font-size: 0.9375rem;
@@ -584,7 +557,7 @@ body {
   border-radius: 2px;
   background: linear-gradient(
     180deg,
-    rgba(167, 139, 250, 0.55),
+    rgba(125, 153, 236, 0.55),
     rgba(63, 63, 70, 0.5)
   );
 }
@@ -606,10 +579,10 @@ body {
   box-shadow: inset 0 0 0 2px #3f3f46;
 }
 .ticket-step.done .ticket-step-dot {
-  background: #8b5cf6;
+  background: #3e6ae1;
   box-shadow:
-    inset 0 0 0 2px rgba(196, 181, 253, 0.9),
-    0 0 10px -2px rgba(139, 92, 246, 0.8);
+    inset 0 0 0 2px rgba(176, 192, 242, 0.9),
+    0 0 10px -2px rgba(62, 106, 225, 0.8);
 }
 .ticket-step.current .ticket-step-dot {
   background: #34d399;
@@ -735,28 +708,11 @@ body {
   display: inline-flex;
 }
 
-/* Brand shine: barrido de luz periodico sobre el wordmark. Es la firma
-   "premium" de los productos de marca (Apple/Vercel): el texto no parpadea,
-   lo atraviesa una luz de vez en cuando. Gradiente animado via background-
-   position (compositable, sin repaint de texto). */
+/* Wordmark: tinta sólida (Tesla — el tipo se defiende solo, sin luces).
+   La clase queda porque la usa el logo pequeño del header. */
 .brand-shine {
-  background: linear-gradient(110deg, #fafafa 42%, #c4b5fd 50%, #fafafa 58%);
-  background-size: 250% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  animation: brand-shine 6s ease-in-out infinite;
-}
-@keyframes brand-shine {
-  0%,
-  55%,
-  100% {
-    background-position: 120% 0;
-  }
-  25% {
-    background-position: -20% 0;
-  }
+  color: #fafafa;
+  -webkit-text-fill-color: currentColor;
 }
 
 /* Escalonado: los hijos de .reveal entran en cascada (50ms por nivel) */
@@ -877,7 +833,7 @@ body {
 }
 .ptr-spinner {
   animation: ptr-spin 0.8s linear infinite;
-  color: #a78bfa;
+  color: #7d99ec;
 }
 
 /* Indicador En vivo: punto pulsante + anillo que se expande (radar) */
@@ -1073,15 +1029,15 @@ body {
   background:
     radial-gradient(
       120% 90% at 50% 0%,
-      rgba(139, 92, 246, 0.28),
+      rgba(62, 106, 225, 0.28),
       transparent 62%
     ),
     linear-gradient(180deg, #18181b, #101013);
-  border: 1px dashed rgba(167, 139, 250, 0.45);
+  border: 1px dashed rgba(125, 153, 236, 0.45);
   position: relative;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 10px 30px -16px rgba(124, 58, 237, 0.5);
+    0 10px 30px -16px rgba(62, 106, 225, 0.5);
 }
 .ticket-ghost::after {
   content: "";
@@ -1102,8 +1058,8 @@ body {
 }
 .event-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(167, 139, 250, 0.45);
-  box-shadow: 0 12px 32px -14px rgba(124, 58, 237, 0.45);
+  border-color: rgba(125, 153, 236, 0.45);
+  box-shadow: 0 12px 32px -14px rgba(62, 106, 225, 0.45);
 }
 .event-card.is-live {
   border-color: rgba(52, 211, 153, 0.4);
@@ -1175,11 +1131,11 @@ html[data-theme="light"] {
   --color-sky-200: #075985;
   --color-sky-300: #0369a1;
   --color-sky-400: #0284c7;
-  --color-violet-300: #6d28d9;
+  --color-violet-300: #2a4fb8;
 
   /* --- texto de marca: brand-300 lavado → brand-700 de la escala propia --- */
-  --color-brand-300: #6d28d9;
-  --color-brand-400: #7c3aed;
+  --color-brand-300: #2a4fb8;
+  --color-brand-400: #3460d6;
 
   color-scheme: light;
 }
@@ -1189,22 +1145,12 @@ html[data-theme="light"] {
    Mismos selectores, nuevos valores: el design system no cambia de forma.
    ---------------------------------------------------------------------- */
 html[data-theme="light"] body {
-  background:
-    radial-gradient(
-      60rem 32rem at 50% -12rem,
-      rgba(124, 58, 237, 0.07),
-      transparent 62%
-    ),
-    radial-gradient(
-      46rem 26rem at 88% -8rem,
-      rgba(59, 130, 246, 0.05),
-      transparent 60%
-    ),
-    #f4f4f5;
+  /* Canvas claro plano (Tesla): un solo tono, sin lavados. */
+  background: #f4f4f5;
   color: #18181b;
 }
 html[data-theme="light"] ::selection {
-  background: rgba(124, 58, 237, 0.18);
+  background: rgba(62, 106, 225, 0.18);
   color: #18181b;
 }
 html[data-theme="light"] .skip-link {
@@ -1213,7 +1159,7 @@ html[data-theme="light"] .skip-link {
   border-color: #d4d4d8;
 }
 html[data-theme="light"] .eyebrow {
-  color: #6d28d9;
+  color: #2a4fb8;
 }
 html[data-theme="light"] .display,
 html[data-theme="light"] .text-gradient {
@@ -1225,33 +1171,22 @@ html[data-theme="light"] .text-gradient {
 /* Tarjeta: papel blanco, borde real, sombra suave (profundidad por luz,
    no por oscuridad). El degradado interior pasa a zinc-100. */
 html[data-theme="light"] .card {
+  /* Tesla: sin sombras ni degradados — la separación la da el hairline. */
   border-color: #e4e4e7;
-  background: linear-gradient(180deg, #ffffff, #ffffff 42%), #ffffff;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
-    0 10px 30px -18px rgba(24, 24, 27, 0.18);
+  background: #ffffff;
 }
 html[data-theme="light"] .auth-card {
-  border-color: #e4e4e7;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(124, 58, 237, 0.03),
-      rgba(124, 58, 237, 0) 45%
-    ),
-    rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow:
-    inset 0 1px 0 0 #ffffff,
-    0 24px 60px -24px rgba(24, 24, 27, 0.22);
+  border-color: #d0d1d2;
+  background: #ffffff;
 }
-/* El brillo del wordmark usa tintas fijas: en claro, tinta oscura + acento */
+/* El wordmark en claro: tinta carbono sólida, sin brillo animado */
 html[data-theme="light"] .brand-shine {
-  background: linear-gradient(110deg, #18181b 42%, #7c3aed 50%, #18181b 58%);
-  background-size: 250% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+  color: #171a20;
+  animation: none;
 }
 html[data-theme="light"] .card-interactive:hover {
   border-color: #d4d4d8;
@@ -1277,10 +1212,10 @@ html[data-theme="light"] .field:hover {
   border-color: #a1a1aa;
 }
 html[data-theme="light"] .field:focus {
-  border-color: #7c3aed;
+  border-color: #3460d6;
   box-shadow:
-    0 0 0 3px rgba(124, 58, 237, 0.14),
-    0 0 18px -6px rgba(139, 92, 246, 0.3);
+    0 0 0 3px rgba(62, 106, 225, 0.14),
+    0 0 18px -6px rgba(62, 106, 225, 0.3);
 }
 
 /* Botones: primario intacto (violeta sobre blanco ya es premium); ghost y
@@ -1290,8 +1225,8 @@ html[data-theme="light"] .btn-ghost {
   color: #3f3f46;
 }
 html[data-theme="light"] .btn-ghost:hover {
-  background: rgba(124, 58, 237, 0.06);
-  border-color: rgba(124, 58, 237, 0.4);
+  background: rgba(62, 106, 225, 0.06);
+  border-color: rgba(62, 106, 225, 0.4);
   color: #18181b;
 }
 html[data-theme="light"] .btn-danger-text {
@@ -1349,13 +1284,13 @@ html[data-theme="light"] .skeleton {
 
 /* Empty state: el halo violeta se atenúa pero conserva la firma */
 html[data-theme="light"] .empty-state-icon {
-  color: #6d28d9;
+  color: #2a4fb8;
   background: linear-gradient(
     135deg,
-    rgba(124, 58, 237, 0.12),
-    rgba(139, 92, 246, 0.04)
+    rgba(62, 106, 225, 0.12),
+    rgba(62, 106, 225, 0.04)
   );
-  box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(62, 106, 225, 0.25);
 }
 html[data-theme="light"] .empty-state-title,
 html[data-theme="light"] .empty-state-text {
@@ -1369,7 +1304,7 @@ html[data-theme="light"] .empty-state-title {
 html[data-theme="light"] .ticket-timeline::before {
   background: linear-gradient(
     180deg,
-    rgba(124, 58, 237, 0.45),
+    rgba(62, 106, 225, 0.45),
     rgba(212, 212, 216, 0.9)
   );
 }
@@ -1395,71 +1330,46 @@ html[data-theme="light"] .ticket-ghost {
   background:
     radial-gradient(
       120% 90% at 50% 0%,
-      rgba(139, 92, 246, 0.1),
+      rgba(62, 106, 225, 0.1),
       transparent 62%
     ),
     linear-gradient(180deg, #ffffff, #fafafa);
-  border-color: rgba(124, 58, 237, 0.35);
+  border-color: rgba(62, 106, 225, 0.35);
 }
 html[data-theme="light"] .ticket-ghost::after {
   border-color: rgba(9, 9, 11, 0.12);
 }
 html[data-theme="light"] .event-card:hover {
-  border-color: rgba(124, 58, 237, 0.45);
-  box-shadow: 0 12px 32px -14px rgba(124, 58, 237, 0.3);
+  border-color: rgba(62, 106, 225, 0.45);
+  box-shadow: 0 12px 32px -14px rgba(62, 106, 225, 0.3);
 }
 html[data-theme="light"] .event-card.is-live {
   border-color: rgba(5, 150, 105, 0.45);
 }
 
-/* Entrada v2 en claro: la escenografía baja la saturación y sube la luz —
-   papel con acentos violeta, nunca una inversión del dark. */
+/* Entrada en claro: showroom blanco. Sin orbes ni texturas — solo la
+   luz sutil del showroom en azul acento, apenas perceptible. */
 html[data-theme="light"] .ab-aurora {
-  background:
-    radial-gradient(38rem 26rem at 18% 12%, rgba(124, 58, 237, 0.16), transparent 62%),
-    radial-gradient(34rem 24rem at 84% 18%, rgba(217, 70, 239, 0.1), transparent 60%),
-    radial-gradient(40rem 30rem at 50% 108%, rgba(56, 189, 248, 0.1), transparent 64%),
-    radial-gradient(30rem 22rem at 8% 86%, rgba(139, 92, 246, 0.1), transparent 62%);
-}
-html[data-theme="light"] .ab-orb-1 {
-  background: radial-gradient(circle at 35% 35%, rgba(167, 139, 250, 0.2), transparent 65%);
-}
-html[data-theme="light"] .ab-orb-2 {
-  background: radial-gradient(circle at 60% 40%, rgba(14, 165, 233, 0.12), transparent 65%);
-}
-html[data-theme="light"] .ab-orb-3 {
-  background: radial-gradient(circle at 50% 50%, rgba(217, 70, 239, 0.1), transparent 66%);
-}
-html[data-theme="light"] .ab-grid {
-  background-image: radial-gradient(rgba(24, 24, 27, 0.16) 1px, transparent 1.4px);
-}
-html[data-theme="light"] .ab-spot {
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.03) 45%, transparent 68%);
-}
-html[data-theme="light"] .ab-grain {
-  opacity: 0.025;
+  background: radial-gradient(
+    60rem 32rem at 50% -14rem,
+    rgba(62, 106, 225, 0.05),
+    transparent 62%
+  );
 }
 html[data-theme="light"] .brand-chip {
-  border-color: #e4e4e7;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.55) 55%),
-    rgba(255, 255, 255, 0.7);
-  box-shadow:
-    inset 0 1px 0 0 #ffffff,
-    0 12px 34px -16px rgba(24, 24, 27, 0.25);
+  border: none;
+  background: none;
+  box-shadow: none;
 }
 html[data-theme="light"] .brand-flow {
-  background: linear-gradient(92deg, #7c3aed 0%, #c026d3 90%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+  color: #3e6ae1;
+  -webkit-text-fill-color: #3e6ae1;
 }
 html[data-theme="light"] .auth-field-icon {
   color: #a1a1aa;
 }
 html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
-  color: #7c3aed;
+  color: #3e6ae1;
 }
 
 /* Puerta (escáner): SIEMPRE oscura. El flash de un fondo blanco en un
@@ -1468,28 +1378,14 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   color-scheme: dark;
 }
 [data-theme-lock="dark"] body {
-  background:
-    radial-gradient(
-      60rem 32rem at 50% -12rem,
-      rgba(124, 58, 237, 0.18),
-      transparent 62%
-    ),
-    radial-gradient(
-      46rem 26rem at 88% -8rem,
-      rgba(59, 130, 246, 0.09),
-      transparent 60%
-    ),
-    #09090b !important;
+  background: #09090b !important;
   color: #e4e4e7 !important;
 }
 
 /* ===========================================================================
-   ENTRADA PREMIUM (v2): escenografía cinematográfica + lockup de marca.
-   La entrada es la vitrina del producto: fondo en capas (aurora que respira,
-   orbes flotantes, rejilla de puntos, foco de luz y grano) y wordmark en
-   píldora translúcida. Todo vive en .auth-backdrop: aria-hidden en el JSX,
-   pointer-events-none y animaciones SOLO de transform/opacity
-   (compositables, sin layout ni paint por frame).
+   ENTRADA (v3, Tesla/Apple): showroom plano. La pantalla es el producto:
+   canvas único, CERO gradientes decorativos, CERO sombras de UI. La marca
+   flota tipográfica, sin píldora. aria-hidden en el JSX, nada interactivo.
    =========================================================================== */
 .auth-backdrop {
   position: absolute;
@@ -1498,133 +1394,56 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   overflow: hidden;
 }
 
-/* 1. Aurora: gradientes radiales violeta→fucsia→cian que respiran lento.
-      Es la firma de la marca (la aurora del resto de la app) ampliada aquí
-      porque la entrada es la vitrina. */
+/* 1. Showroom: la única luz permitida es un lavado MUY sutil desde arriba,
+      como la luz de un showroom. Es el análogo plano de la "fotografía
+      de producto": atmósfera, no decoración. */
 .ab-aurora {
   position: absolute;
-  inset: -20%;
-  background:
-    radial-gradient(38rem 26rem at 18% 12%, rgba(124, 58, 237, 0.5), transparent 62%),
-    radial-gradient(34rem 24rem at 84% 18%, rgba(217, 70, 239, 0.24), transparent 60%),
-    radial-gradient(40rem 30rem at 50% 108%, rgba(56, 189, 248, 0.16), transparent 64%),
-    radial-gradient(30rem 22rem at 8% 86%, rgba(139, 92, 246, 0.2), transparent 62%);
-  animation: ab-breathe 14s ease-in-out infinite;
-}
-
-/* 2. Orbes: manchas de luz que cruzan la pantalla en direcciones opuestas.
-      blur(90px) las vuelve luces, no círculos. */
-.ab-orb {
-  position: absolute;
-  border-radius: 999px;
-  filter: blur(90px);
-  will-change: transform;
-}
-.ab-orb-1 {
-  width: 30rem;
-  height: 30rem;
-  top: -8rem;
-  left: -6rem;
-  background: radial-gradient(circle at 35% 35%, rgba(167, 139, 250, 0.34), transparent 65%);
-  animation: ab-drift-a 26s ease-in-out infinite alternate;
-}
-.ab-orb-2 {
-  width: 26rem;
-  height: 26rem;
-  bottom: -6rem;
-  right: -4rem;
-  background: radial-gradient(circle at 60% 40%, rgba(34, 211, 238, 0.16), transparent 65%);
-  animation: ab-drift-b 31s ease-in-out infinite alternate;
-}
-.ab-orb-3 {
-  width: 17rem;
-  height: 17rem;
-  top: 34%;
-  right: 12%;
-  background: radial-gradient(circle at 50% 50%, rgba(217, 70, 239, 0.15), transparent 66%);
-  animation: ab-drift-c 23s ease-in-out infinite alternate;
-}
-
-/* 3. Rejilla de puntos: solo cerca del centro, enmarcando la tarjeta.
-      Enmascarada con radial para que nazca y muera suave. */
-.ab-grid {
-  position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1.4px);
-  background-size: 28px 28px;
-  -webkit-mask-image: radial-gradient(46rem 36rem at 50% 44%, black, transparent 68%);
-  mask-image: radial-gradient(46rem 36rem at 50% 44%, black, transparent 68%);
+  background: radial-gradient(
+    60rem 32rem at 50% -14rem,
+    rgba(62, 106, 225, 0.08),
+    transparent 62%
+  );
 }
 
-/* 4. Foco de luz detrás de la tarjeta: la luz de "product shot". Pulsa tan
-      sutil que se siente vivo, no parpadeante. */
-.ab-spot {
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  width: 34rem;
-  height: 34rem;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.06) 45%, transparent 68%);
-  animation: ab-spot 7s ease-in-out infinite;
-}
-
-/* 5. Grano: textura SVG al 3%. Mata el look "plano de plantilla" y unifica
-      las capas de luz como una sola fotografía. */
+/* 2-5. Orbes, rejilla, foco y grano: eliminados. Un showroom no tiene
+      manchas de luz ni texturas — la calma ES el lujo. Los selectores
+      quedan vacíos para no romper el JSX (que ya no los renderiza). */
+.ab-orb,
+.ab-orb-1,
+.ab-orb-2,
+.ab-orb-3,
+.ab-grid,
+.ab-spot,
 .ab-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  display: none;
 }
 
 @keyframes ab-breathe {
-  0%, 100% { opacity: 0.85; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
-}
-@keyframes ab-drift-a {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(4.5rem, 3rem, 0) scale(1.08); }
-}
-@keyframes ab-drift-b {
-  from { transform: translate3d(0, 0, 0) scale(1.05); }
-  to { transform: translate3d(-3.5rem, -4rem, 0) scale(1); }
-}
-@keyframes ab-drift-c {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-4rem, 3.5rem, 0); }
-}
-@keyframes ab-spot {
-  0%, 100% { opacity: 0.75; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
-/* Wordmark hero: píldora translúcida con blur y filo de luz — la misma
-   materia que la tarjeta, para que la marca y la escenografía sean una
-   sola pieza y no dos elementos pegados. */
+/* Wordmark hero: SOLO tipografía flotante (Tesla): sin píldora, sin blur,
+   sin glow. El lujo es la calma. */
 .brand-chip {
   display: inline-flex;
   align-items: baseline;
-  padding: 0.7rem 1.5rem 0.8rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 55%),
-    rgba(16, 16, 19, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
-    0 12px 34px -14px rgba(0, 0, 0, 0.6);
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
 }
-/* "Flow": degradado violeta→fucsia fijo, el contrapunto de color del
-   lockup. "Ticket" conserva el brillo de marca (brand-shine). */
+/* "Flow": tinta sólida del acento — un solo color de marca, sin degradado. */
 .brand-flow {
-  background: linear-gradient(92deg, #a78bfa 0%, #e879f9 90%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+  color: #3e6ae1;
+  -webkit-text-fill-color: #3e6ae1;
 }
 
 /* Iconos de campo (correo/candado): el formulario habla el mismo idioma
@@ -1645,19 +1464,13 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   padding-left: 2.6rem !important;
 }
 .auth-field:focus-within .auth-field-icon {
-  color: #a78bfa;
+  color: #3e6ae1;
 }
-/* Móvil: bajar el costo de los blurs (GPU) y quitar el orbe menor, que
-   compite con la tarjeta en pantallas chicas. */
+/* Móvil: sin orbes ni blurs que abaratar el showroom; la píldora ya no
+   existe, no hay padding que ajustar. */
 @media (max-width: 640px) {
   .ab-orb {
-    filter: blur(70px);
-  }
-  .ab-orb-3 {
-    display: none;
-  }
-  .brand-chip {
-    padding: 0.55rem 1.15rem 0.65rem;
+    filter: none;
   }
 }
 
