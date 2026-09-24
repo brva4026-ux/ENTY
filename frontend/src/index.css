@@ -488,6 +488,45 @@ body {
   background: #141417;
 }
 
+/* Fila de listado (tipos, cupos, boletas): superficie que sigue el tema.
+   Antes usaba utilidades de dark hardcodeadas y en tema claro el texto
+   desaparecía. La clase encapsula superficie + tinta por tema. */
+.list-row {
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+}
+.list-row .text-zinc-200 {
+  color: #e4e4e7;
+}
+html[data-theme="light"] .list-row {
+  border-color: #e4e4e7;
+  background: #fafafa;
+}
+html[data-theme="light"] .list-row .text-zinc-200 {
+  color: #18181b;
+}
+html[data-theme="light"] .list-row .text-zinc-400 {
+  color: #52525b;
+}
+
+/* Header en claro: el nombre del usuario y el hover del nav son utilidades
+   de dark en el JSX — aquí se temizan (patrón del repo). */
+html[data-theme="light"] header p.text-zinc-200 {
+  color: #3f3f46;
+}
+html[data-theme="light"] header nav a {
+  color: #52525b;
+}
+html[data-theme="light"] header nav a:hover {
+  background: #f4f4f5;
+  color: #18181b;
+}
+html[data-theme="light"] header nav a[aria-current="page"] {
+  background: #e4e4e7;
+  color: #18181b;
+}
+
 /* ===========================================================================
    FIRMA VISUAL (segunda ola, de distri-stream)
    - .text-gradient: titular con degradado blanco → violeta (la firma más

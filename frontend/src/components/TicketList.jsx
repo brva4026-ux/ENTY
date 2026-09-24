@@ -309,7 +309,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
             return (
               <li
                 key={t.id}
-                className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2.5 text-sm"
+                className="list-row px-3 py-2.5 text-sm"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
 import EmptyState from "./EmptyState";
+import { QuotaMeter } from "./Brand";
 
 export default function AllocationManager({
   venueId,
@@ -137,7 +138,7 @@ export default function AllocationManager({
           to="?tab=invitaciones"
           className="text-xs font-semibold text-brand-300 transition hover:text-brand-200"
         >
-          ¿No ves a tu promotor? Invítalo →
+          Invitar promotor →
         </Link>
       </div>
       <ul className="mb-4 space-y-2">
@@ -147,7 +148,7 @@ export default function AllocationManager({
           return (
             <li
               key={a.id}
-              className={`rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 ${
+              className={`list-row px-3 py-2 ${
                 a.is_active === false ? "opacity-60" : ""
               }`}
             >
@@ -203,7 +204,7 @@ export default function AllocationManager({
                     disabled={busyId === a.id}
                     className="btn-primary !py-1.5 text-xs"
                   >
-                    {busyId === a.id ? "Guardando…" : "Guardar"}
+                    {busyId === a.id ? "Guardando" : "Guardar"}
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
@@ -226,21 +227,22 @@ export default function AllocationManager({
         {(allocations || []).length === 0 && (
           <li className="col-span-full list-none">
             <EmptyState icon="users" title="Sin cupos asignados">
-              Asigna cuántas boletas puede emitir cada promotor: el
-              anti-sobreventa vive aquí. Primero invita al promotor desde Tareas
-              de la venue → Invitaciones.
+              Define abajo cuántas boletas puede vender cada promotor.
             </EmptyState>
           </li>
         )}
       </ul>
+      {/* Orden mental del admin: QUIÉN vende → QUÉ vende → CUÁNTAS. Una sola
+          fila, sin párrafos: los placeholders son la etiqueta. */}
       <form
         onSubmit={createAllocation}
-        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+        className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_5.5rem_auto] sm:items-center"
       >
         <select
           value={promoterId}
           onChange={(e) => setPromoterId(e.target.value)}
           className="field"
+          aria-label="Promotor"
           required
         >
           <option value="">Promotor…</option>
@@ -250,37 +252,32 @@ export default function AllocationManager({
             </option>
           ))}
         </select>
+        <select
+          value={typeId}
+          onChange={(e) => setTypeId(e.target.value)}
+          className="field"
+          aria-label="Tipo de boleta"
+          required
+        >
+          <option value="">Tipo de boleta…</option>
+          {(types || []).map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
         <input
           value={capacity}
           onChange={(e) => setCapacity(e.target.value)}
           className="field"
-          placeholder="Capacidad"
+          placeholder="Cupo"
+          aria-label="Cupo (boletas que puede vender)"
+          inputMode="numeric"
           required
         />
-        <div className="col-span-full flex gap-2">
-          <select
-            value={typeId}
-            onChange={(e) => setTypeId(e.target.value)}
-            className="field flex-1"
-            required
-          >
-            <option value="">Tipo…</option>
-            {(types || []).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <button className="btn-ghost font-bold">Asignar</button>
-        </div>
+        <button className="btn-primary">Asignar</button>
         {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
         {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
-        {promoters.length === 0 && (
-          <p className="col-span-full text-xs text-amber-400">
-            No hay usuarios en esta venue todavía — créalos con POST /seed o
-            agregándolos a la DB.
-          </p>
-        )}
       </form>
     </div>
   );

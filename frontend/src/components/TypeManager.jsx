@@ -162,7 +162,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
         {(types || []).map((t) => (
           <li
             key={t.id}
-            className={`rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-2 text-sm ${
+            className={`list-row px-3 py-2 text-sm ${
               t.is_active === false ? "opacity-60" : ""
             }`}
           >
@@ -207,7 +207,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
                     disabled={busyId === t.id}
                     className="btn-primary flex-1 !py-1.5 text-xs"
                   >
-                    {busyId === t.id ? "Guardando…" : "Guardar"}
+                    {busyId === t.id ? "Guardando" : "Guardar"}
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
@@ -270,17 +270,14 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
         {(types || []).length === 0 && (
           <li className="col-span-full list-none">
             <EmptyState icon="ticket" title="Sin tipos de boleta aún">
-              Agrega el primero abajo: define precio y cantidad para empezar a
-              vender.
+              Agrega el primero abajo y ya puedes vender.
             </EmptyState>
           </li>
         )}
       </ul>
       {/* Atajos: un toque llena el formulario — luego se ajusta el precio. */}
       <div className="mb-3">
-        <p className="mb-1.5 text-xs font-medium text-zinc-400">
-          Crear rápido con lo típico:
-        </p>
+        <p className="mb-1.5 text-xs font-medium text-zinc-400">Crear rápido:</p>
         <div className="flex flex-wrap gap-1.5">
           {PRESETS.map((p) => (
             <button
@@ -308,56 +305,63 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
           </p>
         ))}
       </div>
+      {/* Los placeholders son la etiqueta: cero párrafos explicativos. La
+          ayuda de ejemplo vive DENTRO del input (prefijo), no debajo. */}
       <form
         onSubmit={createType}
-        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+        className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_5.5rem_auto] sm:items-start"
       >
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="field col-span-full"
-          placeholder="Nombre (General, VIP, Palco…)"
+          className="field sm:col-start-1 sm:row-start-1"
+          placeholder="Nombre (General, VIP…)"
+          aria-label="Nombre del tipo"
+          required
         />
-        <label>
-          <input
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="field"
-            placeholder="Precio en pesos"
-            inputMode="numeric"
-            disabled={isCourtesy}
-          />
-          <span className="mt-1 block text-[11px] text-zinc-500">
-            {isCourtesy
-              ? "Cortesía: no se cobra, queda fuera del recaudo."
-              : "En pesos. Ej: 30000 = $30.000"}
-          </span>
+        <label className="sm:col-start-1 sm:row-start-2">
+          <span className="sr-only">Precio</span>
+          <div className="relative">
+            <span
+              className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm ${
+                isCourtesy ? "text-zinc-600" : "text-zinc-500"
+              }`}
+            >
+              $
+            </span>
+            <input
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="field !pl-7"
+              placeholder="Precio"
+              aria-label="Precio en pesos"
+              inputMode="numeric"
+              disabled={isCourtesy}
+            />
+          </div>
         </label>
-        <label>
-          <input
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            className="field"
-            placeholder="Cantidad"
-            inputMode="numeric"
-          />
-          <span className="mt-1 block text-[11px] text-zinc-500">
-            Máximo de boletas de este tipo que puedes vender.
-          </span>
-        </label>
-        <label className="col-span-full flex items-center gap-2 text-sm text-zinc-300">
+        <input
+          value={qty}
+          onChange={(e) => setQty(e.target.value)}
+          className="field sm:col-start-2 sm:row-start-1"
+          placeholder="Cupo"
+          aria-label="Cupo (cuántas se pueden vender)"
+          inputMode="numeric"
+          required
+        />
+        <label className="flex items-center gap-2 text-sm text-zinc-300 sm:col-start-2 sm:row-start-2">
           <input
             type="checkbox"
             checked={isCourtesy}
             onChange={(e) => setIsCourtesy(e.target.checked)}
             className="accent-brand-500"
           />
-          Es cortesía (no se cobra)
+          Cortesía
         </label>
         {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
         {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
-        <button className="btn-ghost col-span-full font-bold">
-          Agregar tipo
+        <button className="btn-primary sm:col-start-4 sm:row-start-1 sm:self-start">
+          Agregar
         </button>
       </form>
     </div>
