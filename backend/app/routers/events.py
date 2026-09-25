@@ -159,11 +159,13 @@ async def list_event_ticket_counts(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Boletas activas por evento de la venue, en UNA consulta.
+    """Pulso agregado por evento de la venue, en UNA consulta.
 
-    Alimenta la franja "Todos los eventos" del admin: ver el pulso de cada
-    evento sin abrirlo, sin N requests (un GET por franja, no por evento).
-    "Activas" = issued + redeemed (las vivas), igual que el reporte de puerta.
+    Alimenta la franja "Todos los eventos" del admin: cada tarjeta es un
+    mini-reporte (boletas vivas · dentro · recaudo) sin abrir el evento y sin
+    N requests (un GET por franja, no por evento). "Vivas" = issued + redeemed
+    (igual que el reporte de puerta); "dentro" = redeemed; el recaudo suma el
+    precio de TODAS las vivas (lo que la noche cierra, no lo ya cobrado).
     Ruta literal ANTES de /events/{event_id} para que no se la coma el router.
     """
     ensure_roles(user, venue_id, "super_admin", "admin")
@@ -171,7 +173,13 @@ async def list_event_ticket_counts(
     async with db.cursor() as cur:
         await cur.execute(
             """
-            SELECT e.id, count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS active
+            SELECT e.id,
+                   count(t.id) FILTER
+                     (WHERE t.status IN ('issued','redeemed'))::int AS active,
+                   count(t.id) FILTER (WHERE t.status = 'redeemed')::int AS redeemed,
+                   coalesce(sum(t.price_cents_snapshot)
+                            FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint
+                       AS revenue_cents
             FROM events e
             LEFT JOIN tickets t ON t.event_id = e.id
             WHERE e.venue_id = %s
@@ -180,7 +188,14 @@ async def list_event_ticket_counts(
             (venue_id,),
         )
         rows = await cur.fetchall()
-    return {str(r["id"]): r["active"] for r in rows}
+    return {
+        str(r["id"]): {
+            "active": r["active"],
+            "redeemed": r["redeemed"],
+            "revenue_cents": int(r["revenue_cents"]),
+        }
+        for r in rows
+    }
 
 
 @router.get("/events", response_model=list[EventOut])

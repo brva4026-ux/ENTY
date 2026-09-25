@@ -18,6 +18,8 @@ import {
 } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
 import { activeVenueId } from "../lib/venue";
+import { money } from "../lib/format";
+import CountUpNumber from "../components/CountUpNumber";
 
 import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
@@ -66,6 +68,49 @@ function formatShortDate(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/** Minuto del día 0-1439 -> etiqueta "8 p.m." (para la píldora de apertura). */
+function minuteLabel(mins) {
+  const h24 = Math.floor(mins / 60);
+  const m = mins % 60;
+  const suf = h24 >= 12 ? "p.m." : "a.m.";
+  const h = h24 % 12 === 0 ? 12 : h24 % 12;
+  return m ? `${h}:${String(m).padStart(2, "0")} ${suf}` : `${h} ${suf}`;
+}
+
+/** Diferencia de dias de CALENDARIO (no de 24h): un evento de hoy a las
+    11 p.m. dista 0.9 dias de la medianoche y un round() lo mandaria a
+    "mañana". Comparar año/mes/dia evita ese classico. */
+function calendarDiffDays(a, b) {
+  const ua = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  const ub = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.round((ua - ub) / 86400000);
+}
+
+/** Píldora de apertura del evento: "Hoy 8 p.m." / "Vie 8 p.m." / pasado. */
+function openingPill(startsAt) {
+  if (!startsAt) return null;
+  const d = new Date(startsAt);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  const mins = d.getHours() * 60 + d.getMinutes();
+  const time = minuteLabel(mins);
+  const diffDays = calendarDiffDays(d, now);
+  if (diffDays === 0)
+    return { main: `Hoy ${time}`, tone: "today" };
+  if (diffDays === 1) return { main: `Mañana ${time}`, tone: "soon" };
+  if (diffDays < 0)
+    return {
+      main: d.toLocaleDateString("es-CO", { day: "numeric", month: "short" }),
+      tone: "past",
+    };
+  return {
+    main: `${d.toLocaleDateString("es-CO", {
+      weekday: "short",
+    })} ${time}`,
+    tone: diffDays <= 3 ? "soon" : "far",
+  };
 }
 
 const NEXT_ACTIONS = {
@@ -570,22 +615,23 @@ export default function AdminDashboard() {
                 ) : (
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {sortEventsForStrip(visibleEvents).map((ev) => {
-                      // Pulso del evento: boletas activas (issued+redeemed),
-                      // del GET agregado. undefined = aún no llegó: chip oculto.
-                      const tc =
+                      // Mini-reporte del evento (vivas · dentro · recaudo) del
+                      // GET agregado. undefined = aún no llegó: la tarjeta degrada
+                      // a la versión sin cifras sin parpadear.
+                      const stat =
                         ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
+                      const sold = stat?.active ?? null;
                       const pct =
-                        tc !== undefined && tc !== null && ev.capacity > 0
-                          ? Math.round((tc / ev.capacity) * 100)
+                        sold !== null && ev.capacity > 0
+                          ? Math.round((sold / ev.capacity) * 100)
                           : null;
-                      const roles = [
-                        ...new Set(users.flatMap((u) => u.roles || [])),
-                      ];
+                      const pill = openingPill(ev.starts_at);
+                      const live = ev.status === "live";
                       return (
                         <div
                           key={ev.id}
-                          className={`event-card card-interactive relative block rounded-xl border p-3.5 ${
-                            ev.status === "live" ? "is-live " : ""
+                          className={`event-card card-interactive relative block rounded-xl border ${
+                            live ? "is-live " : ""
                           } border-zinc-800/80`}
                         >
                           {/* Link superpuesto: la TARJETA entera abre el
@@ -597,38 +643,72 @@ export default function AdminDashboard() {
                             className="absolute inset-0 rounded-xl"
                             aria-label={`Abrir ${ev.name}`}
                           />
-                          <div className="pointer-events-none">
+                          <div className="pointer-events-none p-3.5">
                             <div className="flex items-start justify-between gap-2">
                               <p className="min-w-0 truncate text-sm font-bold text-white">
                                 {ev.name}
                               </p>
-                              <span
-                                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${
-                                  (EV_CHIP[ev.status] ?? EV_CHIP.draft).cls
-                                }`}
-                              >
-                                {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
-                              </span>
-                            </div>
-                            <p className="tnum mt-1 flex items-center gap-2 text-xs text-zinc-400">
-                              <span>
-                                {formatShortDate(ev.starts_at)} · aforo{" "}
-                                {ev.capacity}
-                              </span>
-                              {tc !== undefined && tc !== null && (
+                              <div className="flex shrink-0 items-center gap-1.5">
+                                {pill && (
+                                  <span
+                                    className={`ec-when hidden rounded-full px-2 py-0.5 text-[10px] font-bold sm:inline ${
+                                      pill.tone === "today"
+                                        ? "ec-when-today"
+                                        : pill.tone === "soon"
+                                          ? "ec-when-soon"
+                                          : ""
+                                    }`}
+                                  >
+                                    {pill.main}
+                                  </span>
+                                )}
                                 <span
-                                  className="pointer-events-auto ml-auto inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-bold text-zinc-300"
-                                  data-tip="Boletas activas de este evento"
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${
+                                    (EV_CHIP[ev.status] ?? EV_CHIP.draft).cls
+                                  }`}
                                 >
-                                  <Icon name="ticket" className="h-3 w-3" />
-                                  {tc}
+                                  {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
                                 </span>
+                              </div>
+                            </div>
+
+                            {/* Las cifras de la noche a un vistazo: cada celda
+                              responde una pregunta operativa sin abrir el evento. */}
+                            <div className="ec-stats mt-2.5">
+                              {sold !== null ? (
+                                <>
+                                  <div className="ec-stat">
+                                    <span className="tnum text-lg font-bold leading-none text-white">
+                                      <CountUpNumber value={sold} />
+                                    </span>
+                                    <span className="ec-stat-label">
+                                      Boletas
+                                    </span>
+                                  </div>
+                                  <div className="ec-stat">
+                                    <span className="tnum text-lg font-bold leading-none text-sky-300">
+                                      <CountUpNumber value={stat.redeemed} />
+                                    </span>
+                                    <span className="ec-stat-label">Dentro</span>
+                                  </div>
+                                  <div className="ec-stat">
+                                    <span className="tnum text-lg font-bold leading-none text-emerald-300">
+                                      {money(stat.revenue_cents)}
+                                    </span>
+                                    <span className="ec-stat-label">
+                                      Recaudo
+                                    </span>
+                                  </div>
+                                </>
+                              ) : (
+                                <span className="col-span-3 h-6 skeleton w-full max-w-40" />
                               )}
-                            </p>
+                            </div>
+
                             {/* Semáforo de aforo: cuánto del cupo físico ya
                             está comprometido, sin abrir el evento. */}
                             {pct !== null && (
-                              <div className="mt-2 flex items-center gap-2">
+                              <div className="mt-2.5 flex items-center gap-2">
                                 <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
                                   <div
                                     className={`h-full rounded-full transition-all duration-500 ${
@@ -636,7 +716,9 @@ export default function AdminDashboard() {
                                         ? "bg-red-400"
                                         : pct >= 80
                                           ? "bg-amber-400"
-                                          : "bg-emerald-400"
+                                          : live
+                                            ? "bg-emerald-400"
+                                            : "bg-brand-400"
                                     }`}
                                     style={{
                                       width: `${Math.min(100, pct)}%`,
@@ -644,39 +726,14 @@ export default function AdminDashboard() {
                                   />
                                 </div>
                                 <span className="tnum text-[10px] font-bold text-zinc-500">
-                                  {pct}%
+                                  {pct}% de {ev.capacity}
                                 </span>
                               </div>
                             )}
-                            <p className="mt-1.5 pr-9 text-[11px] leading-snug text-zinc-500">
-                              {roles.length > 0 ? (
-                                roles.map((r) => (
-                                  <span
-                                    key={r}
-                                    className="mr-1.5 inline-flex items-center gap-1"
-                                  >
-                                    <span
-                                      className={`inline-block h-1.5 w-1.5 rounded-full ${
-                                        r === "bouncer"
-                                          ? "bg-emerald-400"
-                                          : r === "admin"
-                                            ? "bg-amber-400"
-                                            : "bg-brand-400"
-                                      }`}
-                                      aria-hidden
-                                    />
-                                    {r === "bouncer"
-                                      ? "Puerta"
-                                      : r === "admin"
-                                        ? "Admin"
-                                        : "Promotor"}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-zinc-600">
-                                  sin equipo asignado
-                                </span>
-                              )}
+
+                            <p className="mt-2 pr-9 text-[11px] leading-snug text-zinc-500">
+                              {formatShortDate(ev.starts_at)} · aforo{" "}
+                              {ev.capacity}
                             </p>
                           </div>
                           {/* Acción de esquina: duplicar (la recurrencia

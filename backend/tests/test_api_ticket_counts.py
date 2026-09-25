@@ -1,9 +1,8 @@
-"""Contadores agregados de boletas activas por evento.
+"""Pulso agregado por evento para la franja "Todos los eventos".
 
-La franja "Todos los eventos" del admin muestra el pulso de cada evento sin
-abrirlo: un solo GET devuelve {event_id: activas}. "Activas" = issued +
-redeemed (las vivas), igual que el reporte de puerta; las anuladas dejan de
-contar. Solo el admin de la venue puede leerlo.
+Un solo GET devuelve por evento: boletas vivas (issued+redeemed), cuantas
+entraron (redeemed) y el recaudo de las vivas. Las anuladas dejan de contar.
+Solo el admin de la venue puede leerlo.
 """
 import pytest
 
@@ -35,9 +34,52 @@ def test_counts_active_tickets_per_event(api, world):
     assert res.status_code == 200, res.text
     counts = res.json()
     # La clave es el id del evento (string, como viene de JSON).
-    assert counts[str(ev_busy["id"])] == 2
+    assert counts[str(ev_busy["id"])]["active"] == 2
     # Un evento sin boletas TAMBIEN aparece (LEFT JOIN), con cero.
-    assert counts[str(ev_empty["id"])] == 0
+    assert counts[str(ev_empty["id"])]["active"] == 0
+    assert counts[str(ev_empty["id"])]["revenue_cents"] == 0
+
+
+def test_counts_shape_redeemed_and_revenue(api, world):
+    """La respuesta es el mini-reporte de la tarjeta: vivas · dentro · recaudo.
+
+    Mantener el shape aqui es barato: si alguien "simplifica" el endpoint de
+    vuelta a un conteo plano, la franja pierde sus cifras sin que ningun test
+    de frontend lo avise.
+    """
+    venue = world["venue_a"]
+    ev = api.create_event("admin", venue, name="Mini reporte")
+    t_paid = api.add_type(
+        "admin",
+        venue,
+        ev["id"],
+        name="General",
+        price_cents=30000,
+        is_courtesy=False,
+    )
+    api.publish("admin", venue, ev["id"])
+    # Venta directa: una boleta de PAGO no puede usar cupo de promotor
+    # (regla de negocio), asi que las dos se emiten sin allocation.
+    api.emit(
+        "admin", venue, ev["id"], ticket_type_id=t_paid["id"], allocation_id=None
+    )
+    ticket = api.emit(
+        "admin", venue, ev["id"], ticket_type_id=t_paid["id"], allocation_id=None
+    )
+    # Una boleta entra por puerta: redeemed=1. El canje es funcion de DB
+    # (raw_token crudo), asi que el test marca el estado directo, como el
+    # resto de la suite ajusta columnas que la API no expone.
+    api.run_sql(
+        f"UPDATE tickets SET status = 'redeemed', redeemed_at = now() "
+        f"WHERE id = {ticket['ticket_id']}"
+    )
+
+    counts = api.get(f"/venues/{venue}/events/ticket-counts", "admin").json()
+    c = counts[str(ev["id"])]
+    assert c["active"] == 2  # la redimida sigue viva
+    assert c["redeemed"] == 1
+    # Recaudo = precio de TODAS las vivas (la redimida incluida): 2 x $300.
+    assert c["revenue_cents"] == 60000
 
 
 def test_voided_tickets_stop_counting(api, world):
@@ -65,7 +107,7 @@ def test_voided_tickets_stop_counting(api, world):
     assert res.status_code == 200, res.text
 
     counts = api.get(f"/venues/{venue}/events/ticket-counts", "admin").json()
-    assert counts[str(ev["id"])] == 0
+    assert counts[str(ev["id"])]["active"] == 0
 
 
 def test_promoter_cannot_read_counts(api, world):

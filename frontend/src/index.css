@@ -1353,6 +1353,66 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   box-shadow: 0 12px 32px -14px rgba(16, 185, 129, 0.45);
 }
 
+/* Mini-reporte dentro de la tarjeta: tres cifras que responden las tres
+   preguntas de la noche (cuántas vendí, cuántas entraron, cuánto recaudé)
+   sin abrir el evento. Separadores verticales finos, no cajas: la cifra
+   manda, el ruido sobra. */
+.ec-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+}
+.ec-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.07);
+  padding-left: 0.55rem;
+  min-width: 0;
+}
+.ec-stat-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+html[data-theme="light"] .ec-stat {
+  border-left-color: #e4e4e7;
+}
+html[data-theme="light"] .ec-stat-label {
+  color: #71717a;
+}
+
+/* Píldora de apertura ("Hoy 8 p.m."): cuándo arranca sin leer la fecha.
+   Hoy = acento de marca; esta semana = tinta clara; lejana/pasada = neutra. */
+.ec-when {
+  border: 1px solid #3f3f46;
+  color: #a1a1aa;
+}
+.ec-when-today {
+  border-color: rgba(62, 106, 225, 0.55);
+  background: rgba(62, 106, 225, 0.15);
+  color: #b0c0f2;
+}
+.ec-when-soon {
+  border-color: rgba(125, 153, 236, 0.35);
+  color: #d6def8;
+}
+html[data-theme="light"] .ec-when {
+  border-color: #d4d4d8;
+  color: #52525b;
+}
+html[data-theme="light"] .ec-when-today {
+  border-color: rgba(62, 106, 225, 0.5);
+  background: rgba(62, 106, 225, 0.1);
+  color: #2a4fb8;
+}
+html[data-theme="light"] .ec-when-soon {
+  border-color: rgba(62, 106, 225, 0.3);
+  color: #2a4fb8;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .event-card,
   .event-card:hover {
