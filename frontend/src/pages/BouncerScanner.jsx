@@ -10,6 +10,7 @@ import {
 } from "../lib/wakeLock";
 import { useAuth } from "../lib/auth";
 import { forceDarkOnce } from "../lib/theme";
+import { haptics } from "../lib/haptics";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { LiveIndicator } from "../components/Brand";
 import { PushToggle } from "../components/PushToggle";
@@ -122,6 +123,11 @@ export default function BouncerScanner() {
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [scanning, setScanning] = useState(false);
+  // La cámara está EN preparar (permiso + hardware): el botón dice lo que pasa
+  // y no parece un cuelgue en móviles lentos, donde puede tardar segundos.
+  const [starting, setStarting] = useState(false);
+  // Petición de canje en vuelo: la retícula cambia a "validando" (anillo).
+  const [validating, setValidating] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [manualCode, setManualCode] = useState("");
@@ -144,6 +150,10 @@ export default function BouncerScanner() {
   const [holdPct, setHoldPct] = useState(0);
   const holdTimerRef = useRef(null);
   const holdTickRef = useRef(null);
+  // Un solo tick háptico por umbral del desbloqueo (50% y 100%): la mano
+  // siente el progreso sin mirar la barra.
+  const holdBuzz50Ref = useRef(false);
+  const holdBuzz100Ref = useRef(false);
   const scannerRef = useRef(null);
   const html5Ref = useRef(null);
   const lastScannedRef = useRef("");
@@ -226,6 +236,7 @@ export default function BouncerScanner() {
       setError("Selecciona un evento primero");
       return;
     }
+    setStarting(true);
     // El gesto de activar la cámara habilita también el audio (iOS lo exige)
     // y mantiene la pantalla encendida durante el servicio.
     requestWakeLock();
@@ -240,8 +251,11 @@ export default function BouncerScanner() {
         () => {},
       );
       setScanning(true);
+      haptics.tick(); // la cámara respondió: confirmación sutil en la mano
     } catch (err) {
       setError("No se pudo iniciar la cámara: " + (err?.message || err));
+    } finally {
+      setStarting(false);
     }
   }
 
@@ -268,6 +282,9 @@ export default function BouncerScanner() {
     // la entrada manual siempre se envía porque fue un submit explícito
     if (!manual && rawToken === lastScannedRef.current) return;
     lastScannedRef.current = rawToken;
+    // Validando: la retícula detiene el barrido y late con el anillo de marca.
+    // Sin esto, el tiempo entre lectura y respuesta se ve congelado.
+    setValidating(true);
     try {
       const data = await apiFetch(
         `/venues/${venueId}/events/${selectedEvent}/redeem`,
@@ -296,15 +313,18 @@ export default function BouncerScanner() {
       );
       // Tres canales al mismo tiempo: vista (pantalla), tacto (vibración)
       // y oído (firma sonora por resultado — en un roncino no se siente la
-      // vibración y no siempre se puede mirar la pantalla).
-      if (navigator.vibrate) {
-        navigator.vibrate(
-          data.redeemed
-            ? [80]
-            : data.code === "NOT_ACTIVE"
-              ? [40, 60, 40]
-              : [60, 60, 60],
-        );
+      // vibración y no siempre se puede mirar la pantalla). Cada familia
+      // tiene su firma táctil, la misma gramática de los sonidos.
+      if (data.redeemed) {
+        haptics.door.granted();
+      } else if (data.code === "NOT_ACTIVE") {
+        haptics.door.wait(); // no es rechazo: es "espera, tu boleta sirve"
+      } else if (
+        ["WRONG_TYPE", "INVALID_EVENT", "EVENT_NOT_LIVE"].includes(data.code)
+      ) {
+        haptics.door.attention(); // ámbar: corregir, no castigar
+      } else {
+        haptics.door.denied();
       }
       try {
         playForCode(data.code ?? (data.redeemed ? "GRANTED" : "NOT_VALID"));
@@ -346,7 +366,10 @@ export default function BouncerScanner() {
         } catch {
           /* ignore */
         }
+        haptics.door.offline();
       }
+    } finally {
+      setValidating(false);
     }
   }
 
@@ -388,20 +411,33 @@ export default function BouncerScanner() {
   function startHold() {
     const t0 = Date.now();
     setHoldPct(0);
+    holdBuzz50Ref.current = false;
+    holdBuzz100Ref.current = false;
     holdTickRef.current = setInterval(() => {
-      setHoldPct(Math.min(100, ((Date.now() - t0) / EXIT_HOLD_MS) * 100));
+      const pct = Math.min(100, ((Date.now() - t0) / EXIT_HOLD_MS) * 100);
+      setHoldPct(pct);
+      // Ticks al 50% y al 100%: el progreso del desbloqueo se SIENTE.
+      if (pct >= 100 && !holdBuzz100Ref.current) {
+        holdBuzz100Ref.current = true;
+        haptics.tick();
+      } else if (pct >= 50 && !holdBuzz50Ref.current) {
+        holdBuzz50Ref.current = true;
+        haptics.tick();
+      }
     }, 50);
     holdTimerRef.current = setTimeout(() => {
       clearInterval(holdTickRef.current);
       setKiosk(false);
       setHoldPct(0);
-      if (navigator.vibrate) navigator.vibrate(60);
+      haptics.success(); // desbloqueado: confirmación de acción completada
     }, EXIT_HOLD_MS);
   }
   function cancelHold() {
     clearTimeout(holdTimerRef.current);
     clearInterval(holdTickRef.current);
     setHoldPct(0);
+    holdBuzz50Ref.current = false;
+    holdBuzz100Ref.current = false;
   }
   // La puerta no puede esperar a que un escaneo falle para enterarse: el
   // banner de red aparece en vivo con el estado real de conexión.
@@ -549,16 +585,41 @@ export default function BouncerScanner() {
         </button>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center p-4">
+          {/* Retícula de escaneo: esquinas de encuadre + barrido en vivo.
+              Al validar, el barrido se detiene y late el anillo de marca:
+              la pantalla comunica "estoy pensando", no "me colgué". */}
           <div
-            id="qr-reader-region"
-            className="w-full max-w-sm overflow-hidden rounded-2xl ring-1 ring-zinc-800"
-          />
+            className={`scan-frame ${validating ? "is-busy" : ""} w-full max-w-sm`}
+          >
+            <div
+              id="qr-reader-region"
+              className="w-full overflow-hidden rounded-2xl ring-1 ring-zinc-800"
+            />
+            {scanning && (
+              <>
+                <span className="scan-corner" aria-hidden="true" />
+                <span className="scan-sweep" aria-hidden="true" />
+              </>
+            )}
+          </div>
           {!scanning && (
             <button
               onClick={startScanner}
-              className="btn-primary mt-4 w-full max-w-sm !py-4 !text-lg"
+              disabled={starting}
+              className={`btn-primary mt-4 w-full max-w-sm !py-4 !text-lg ${
+                starting ? "is-busy" : ""
+              }`}
             >
-              Activar cámara
+              {starting && (
+                <svg
+                  className="btn-spinner"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+              )}
+              {starting ? "Abriendo cámara…" : "Activar cámara"}
             </button>
           )}
           {scanning && (
@@ -615,7 +676,10 @@ export default function BouncerScanner() {
             <div className="no-scrollbar mt-3 w-full max-w-sm overflow-x-auto">
               <div className="flex w-max items-center gap-1.5">
                 <button
-                  onClick={() => setRowFilter("")}
+                  onClick={() => {
+                    setRowFilter("");
+                    haptics.tick();
+                  }}
                   aria-pressed={rowFilter === ""}
                   className={`chip min-h-[44px] rounded-full px-4 text-xs font-semibold ${
                     rowFilter === ""
@@ -628,7 +692,10 @@ export default function BouncerScanner() {
                 {types.map((t) => (
                   <button
                     key={t.id}
-                    onClick={() => setRowFilter(t.id)}
+                    onClick={() => {
+                      setRowFilter(t.id);
+                      haptics.tick();
+                    }}
                     aria-pressed={rowFilter === t.id}
                     className={`chip min-h-[44px] rounded-full px-4 text-xs font-semibold ${
                       rowFilter === t.id

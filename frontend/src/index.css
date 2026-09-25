@@ -1362,6 +1362,135 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 /* ===========================================================================
+   PUERTA (escáner): retícula con esquinas de encuadre y barrido.
+   El video crudo de html5-qrcode se ve "de demo"; el marco le dice al
+   portero DÓNDE apuntar y el barrido confirma que está VIVO (y no colgado).
+   Todo se apaga con prefers-reduced-motion.
+   =========================================================================== */
+.scan-frame {
+  position: relative;
+}
+.scan-frame::before,
+.scan-frame::after,
+.scan-frame .scan-corner::before,
+.scan-frame .scan-corner::after {
+  content: "";
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-color: #7d99ec;
+  border-style: solid;
+  z-index: 20;
+  pointer-events: none;
+}
+.scan-frame::before {
+  top: 10px;
+  left: 10px;
+  border-width: 3px 0 0 3px;
+  border-top-left-radius: 10px;
+}
+.scan-frame::after {
+  top: 10px;
+  right: 10px;
+  border-width: 3px 3px 0 0;
+  border-top-right-radius: 10px;
+}
+.scan-corner {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.scan-frame .scan-corner::before {
+  bottom: 10px;
+  left: 10px;
+  border-width: 0 0 3px 3px;
+  border-bottom-left-radius: 10px;
+}
+.scan-frame .scan-corner::after {
+  bottom: 10px;
+  right: 10px;
+  border-width: 0 3px 3px 0;
+  border-bottom-right-radius: 10px;
+}
+/* Línea que barre el encuadre de arriba a abajo: la señal clásica de
+   "escáner activo". Se pausa mientras se valida (el pulso toma el turno). */
+.scan-sweep {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(125, 153, 236, 0.95),
+    transparent
+  );
+  box-shadow: 0 0 12px 2px rgba(62, 106, 225, 0.45);
+  z-index: 20;
+  pointer-events: none;
+  animation: scan-sweep 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes scan-sweep {
+  0%,
+  100% {
+    top: 14%;
+    opacity: 0.9;
+  }
+  50% {
+    top: 86%;
+    opacity: 0.55;
+  }
+}
+.scan-frame.is-busy .scan-sweep {
+  animation-play-state: paused;
+  opacity: 0.25;
+}
+/* Mientras valida, el anillo de marca reemplaza a las esquinas: un solo
+   mensaje en pantalla ("estoy pensando"), no dos señales peleándose. */
+.scan-frame.is-busy .scan-corner,
+.scan-frame.is-busy::before {
+  display: none;
+}
+/* Validando: anillo de marca latiendo sobre el encuadre — la petición
+   está en vuelo y la pantalla no está congelada. */
+.scan-frame.is-busy::after {
+  border-width: 0;
+  width: auto;
+  height: auto;
+  inset: 6px;
+  border-radius: 1rem;
+  border-style: solid;
+  border-color: rgba(62, 106, 225, 0.65);
+  border-width: 2px;
+  animation: scan-pulse 1.1s ease-in-out infinite;
+}
+@keyframes scan-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(62, 106, 225, 0.35),
+      inset 0 0 0 0 rgba(62, 106, 225, 0);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(62, 106, 225, 0.12),
+      inset 0 0 12px -4px rgba(62, 106, 225, 0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-sweep {
+    animation: none;
+    top: 50%;
+    opacity: 0.4;
+  }
+  .scan-frame.is-busy::after {
+    animation: none;
+  }
+}
+
+/* ===========================================================================
    PULIDO MÓVIL
    - Inputs a 16px en móvil: iOS Safari hace zoom automático si el input
      enfocado está por debajo (y el zoom rompe el layout al volver).

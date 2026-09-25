@@ -22,4 +22,22 @@ export const haptics = {
   success: () => fire([15, 40, 25]),
   /** Rechazo / error: doble pulso grave. */
   warn: () => fire([60, 60, 60]),
+  /**
+   * Patrones de PUERTA: el resultado se siente en la mano aunque el portero
+   * no mire la pantalla (en un roncino la vibración sola no alcanza, pero
+   * confirma al instante mientras el sonido llega por el otro canal).
+   * Cada familia tiene su firma, la misma gramática de los sonidos de puerta.
+   */
+  door: {
+    /** ENTRA: pulso corto-fuerte + golpe largo — "paso autorizado". */
+    granted: () => fire([30, 40, 90]),
+    /** NO ENTRA (roja): triple golpe grave insistente. */
+    denied: () => fire([80, 50, 80, 50, 80]),
+    /** ÁMBAR (fila equivocada, otro evento, error): doble pulso neutro. */
+    attention: () => fire([40, 70, 40]),
+    /** AÚN NO ACTIVA: dos toques suaves — "espera, no es un rechazo". */
+    wait: () => fire([20, 40, 20]),
+    /** SIN RED: tres pulsos largos — "no puedes trabajar así". */
+    offline: () => fire([100, 80, 100, 80, 100]),
+  },
 };
