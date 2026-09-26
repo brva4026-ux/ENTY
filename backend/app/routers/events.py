@@ -223,7 +223,7 @@ async def list_events(
             await cur.execute("SELECT auto_close_expired_events()")
         except psycopg.Error as e:
             await db.rollback()
-            capture_exception(e, {"kind": "watchdog_auto_close", "venue_id": venue_id})
+            capture_exception(e, context={"kind": "watchdog_auto_close", "venue_id": venue_id})
         await cur.execute(
             f"SELECT {EVENT_COLUMNS} FROM events "
             "WHERE venue_id=%s ORDER BY starts_at DESC",
@@ -243,7 +243,11 @@ async def list_events(
             except Exception as e:
                 capture_exception(
                     e,
-                    {"kind": "event_row_invalid", "venue_id": venue_id, "row_id": row.get("id")},
+                    context={
+                        "kind": "event_row_invalid",
+                        "venue_id": venue_id,
+                        "row_id": row.get("id") if isinstance(row, dict) else None,
+                    },
                 )
         return out
 

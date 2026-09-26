@@ -85,3 +85,29 @@ def test_watchdog_en_listado(api, api_client):
     events = api.get(f"/venues/{scen['venue']}/events", "admin").json()
     target = next(e for e in events if e["id"] == scen["event"])
     assert target["status"] == "ended"
+
+
+def test_published_vencido_no_tumba_el_listado(api):
+    """REGRESION del 500 de produccion (sep 2026).
+
+    La watchdog intentaba published -> ended y el trigger events_check_transition
+    (mig 005) lo rechazaba con invalid_transition: con UN solo evento publicado
+    con ends_at vencido en la DB, TODO GET /events moria 500. Lo correcto:
+    un published vencido (venta que cerro sin abrir puertas) va a CANCELLED,
+    transicion que el trigger si acepta, y el listado sigue funcionando.
+    """
+    scen = api.scenario()
+    # El evento del scenario queda PUBLISHED (sin abrir puertas) y se vence.
+    with psycopg.connect(
+        api.dsn, autocommit=True, row_factory=dict_row
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE events SET ends_at = now() - interval '1 hour' WHERE id = %s",
+                (scen["event"],),
+            )
+    # Antes del fix: este GET lanzaba invalid_transition y respondia 500.
+    res = api.get(f"/venues/{scen['venue']}/events", "admin")
+    assert res.status_code == 200, res.text
+    target = next(e for e in res.json() if e["id"] == scen["event"])
+    assert target["status"] == "cancelled"

@@ -37,13 +37,15 @@ BEGIN
     )
     SELECT count(*) INTO v_closed FROM closed;
 
-    -- published -> ended (venta vencida que nadie cerro; no pasa por live:
-    -- nunca abrio puerta, cierra directo al historial). Se ACUMULA: un
-    -- SELECT INTO simple sobrescribiria el conteo del bloque anterior y el
-    -- total devuelto mentiria (solo contaria published).
+    -- published vencido -> cancelled (venta que vencio sin abrir puertas).
+    -- OJO: NO es 'ended'. El trigger events_check_transition (mig 005) solo
+    -- acepta published -> live | cancelled; un UPDATE a 'ended' lanzaba
+    -- invalid_transition y el GET /events entero moria en la watchdog con
+    -- un 500 la primera vez que existia un published vencido en datos reales
+    -- (en CI nunca ocurría: los tests pasan por live antes de vencer).
     WITH closed AS (
         UPDATE events
-           SET status = 'ended', updated_at = now()
+           SET status = 'cancelled', updated_at = now()
          WHERE status = 'published'
            AND ends_at IS NOT NULL
            AND ends_at < now()
