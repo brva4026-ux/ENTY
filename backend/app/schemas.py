@@ -630,6 +630,56 @@ class RedeemOut(BaseModel):
     detail: str | None = None
 
 
+class DoorSnapshotEntry(BaseModel):
+    """Fila del snapshot de puerta (modo offline del escáner).
+
+    SOLO lleva el hash del token: el crudo nunca sale de la DB ni siquiera
+    en forma derivada, y un hash no sirve para emitir ni reemitir.
+    """
+
+    h: str  # SHA-256 hex del token crudo (tickets.token_hash)
+    s: str  # status: issued | redeemed | voided | refunded
+    t: int | None = None  # ticket_type_id (para el filtro de fila)
+    n: str | None = None  # nombre del asistente (para el log de puerta)
+
+
+class DoorSnapshotOut(BaseModel):
+    """Snapshot completo de las boletas VIVAS de un evento.
+
+    Lo descarga el escáner al abrir la puerta; mientras no haya red, valida
+    localmente contra esta lista (comparando SHA-256 del token escaneado).
+    Las redenciones hechas offline se sincronizan después contra la DB,
+    que sigue siendo el árbitro final.
+    """
+
+    event_id: int
+    generated_at: datetime
+    count: int
+    live_event: bool  # status del evento == live (la puerta está abierta)
+    entries: list[DoorSnapshotEntry]
+
+
+class DoorSyncItem(BaseModel):
+    """Una redención hecha offline, enviada cuando vuelve la red."""
+
+    raw_token: str = Field(min_length=8)
+    scanned_at: datetime | None = None  # cuándo se validó en la puerta
+    ticket_type_id: int | None = None
+
+
+class DoorSyncOut(BaseModel):
+    """Resultado de reconciliar la cola offline de un bouncer.
+
+    La DB re-evalúa CADA token con redeem_ticket: el snapshot puede estar
+    viejo (boleta anulada después de descargarlo) y la DB manda.
+    """
+
+    processed: int
+    granted: int
+    already_redeemed: int
+    rejected: int  # not_found / not_valid / wrong_type / invalid_event
+
+
 # --------------------------------------------------------------------------
 # Ciclo de vida / anulación / usuarios de la venue
 # --------------------------------------------------------------------------

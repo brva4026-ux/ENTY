@@ -14,6 +14,7 @@ import { StatSkeletonRow } from "../components/Skeleton";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
 import { STATUS_META, sortEventsForStrip } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
+import { ticketWaMessage, waLink } from "../lib/whatsapp";
 
 function firstVenueId(user) {
   return activeVenueId(user);
@@ -279,23 +280,19 @@ export default function PromoterDashboard() {
       ? publicTicketPageUrl(lastTicket.raw_token)
       : null;
 
-  // wa.me exige el número solo con dígitos, código de país incluido. Si viene
-  // incompleto abrimos el selector de contactos en vez de un chat equivocado.
-  const waDigits = String(lastTicket?.customerPhone ?? "").replace(/\D/g, "");
-
-  const waMessage = lastTicket
-    ? [
-        "🎟️ Tu boleta está lista",
-        `Evento: ${eventName}`,
-        `Nombre: ${lastTicket.customerName ?? ""}`,
-        `Boleta #${lastTicket.ticket_id}`,
-        "",
-        `Ábrela y guárdala aquí (el QR para entrar): ${ticketUrl}`,
-      ].join("\n")
-    : "";
-
-  const waLink = lastTicket
-    ? `https://wa.me/${waDigits.length >= 8 ? waDigits : ""}?text=${encodeURIComponent(waMessage)}`
+  // Entrega por WhatsApp (helper compartido). Si el teléfono viene incompleto
+  // abrimos el selector de contactos en vez de un chat equivocado: waLink
+  // devuelve null y el anchor no se pinta.
+  const waHref = lastTicket
+    ? waLink(
+        lastTicket.customerPhone,
+        ticketWaMessage({
+          customerName: lastTicket.customerName,
+          eventName,
+          ticketId: lastTicket.ticket_id,
+          url: ticketUrl,
+        }),
+      )
     : null;
 
   async function copyTicketUrl() {
@@ -586,9 +583,9 @@ export default function PromoterDashboard() {
                         />
                       </a>
 
-                      {waLink && (
+                      {waHref && (
                         <a
-                          href={waLink}
+                          href={waHref}
                           target="_blank"
                           rel="noreferrer"
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-white transition hover:bg-emerald-500"

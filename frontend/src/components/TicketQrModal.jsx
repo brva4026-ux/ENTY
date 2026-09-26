@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { publicTicketPageUrl } from "../lib/api";
+import { ticketWaMessage, waLink } from "../lib/whatsapp";
+import Icon from "./Icon";
 
 /**
  * QR de una boleta vista desde el admin.
@@ -42,6 +44,21 @@ export default function TicketQrModal({ ticket, onClose }) {
   }
 
   const url = ticket?.raw_token ? publicTicketPageUrl(ticket.raw_token) : "";
+
+  // Entrega por WhatsApp: el mismo mensaje que manda el promotor tras emitir.
+  // Si el telefono no sirve para wa.me (corto/sin pais), el anchor no se pinta
+  // y queda solo copiar/abrir — nunca un chat con número truncado.
+  const waHref = ticket
+    ? waLink(
+        ticket.customer_phone,
+        ticketWaMessage({
+          customerName: ticket.customer_name,
+          eventName: ticket.event_name,
+          ticketId: ticket.id,
+          url,
+        }),
+      )
+    : null;
 
   async function copyUrl() {
     try {
@@ -89,6 +106,17 @@ export default function TicketQrModal({ ticket, onClose }) {
         </p>
 
         <div className="mt-4 flex justify-center gap-2">
+          {waHref && (
+            <a
+              href={waHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-emerald-300 ring-1 ring-emerald-500/40 transition hover:bg-emerald-500/10"
+            >
+              <Icon name="whatsapp" className="h-4 w-4" />
+              Enviar por WhatsApp
+            </a>
+          )}
           <button
             onClick={copyUrl}
             className={`btn-ghost text-xs font-bold ${copied ? "btn-success" : ""}`}

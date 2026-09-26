@@ -10,6 +10,25 @@ export default defineConfig({
   css: {
     postcss: {},
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // manualChunks: el escáner (html5-qrcode, ~230KB) y el generador de QR
+        // (qrcode) NO van en el chunk vendor del camino crítico. Son pesados y
+        // solo los usan BouncerScanner y TicketQrModal/PromoterDashboard: los
+        // imports dinámicos ya los separan por ruta, pero sin este map el
+        // renderer de Vite los fusiona en el chunk común "esm" y el login
+        // termina descargando la librería de QR sin necesitarla.
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("html5-qrcode")) return "scanner";
+            if (id.includes("qrcode")) return "qr";
+          }
+          return undefined;
+        },
+      },
+    },
+  },
   server: {
     host: "0.0.0.0",
     port: 12000,

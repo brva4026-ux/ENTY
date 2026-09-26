@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { money } from "../lib/format";
 import { haptics } from "../lib/haptics";
+import { paymentWaMessage, waLink } from "../lib/whatsapp";
 import Icon from "./Icon";
 
 /**
@@ -138,12 +139,19 @@ export default function PaymentsPanel({ venueId, events = [] }) {
     }
   }
 
-  // wa.me exige el número solo con dígitos, código de país incluido.
-  const waDigits = (created?.customer_phone || "").replace(/\D/g, "");
-  const waMessage = created
-    ? `Hola ${created.customer_name}! Te comparto el enlace para pagar tu boleta de ${created.event_name ?? "el evento"} (${money(created.amount_in_cents)}). Cuando pagues te mando tu QR: ${created.payment_url}`
-    : "";
-  const waLink = `https://wa.me/${waDigits.length >= 8 ? waDigits : ""}?text=${encodeURIComponent(waMessage)}`;
+  // Enlace de entrega del cobro recién creado (helper compartido; si el
+  // teléfono no da para wa.me, el botón no se pinta en lugar de abrir un
+  // chat con número truncado).
+  const waHref = created
+    ? waLink(
+        created.customer_phone,
+        paymentWaMessage({
+          customerName: created.customer_name,
+          amountLabel: money(created.amount_in_cents),
+          url: created.payment_url,
+        }),
+      )
+    : null;
 
   if (events.length === 0) {
     return (
@@ -188,15 +196,17 @@ export default function PaymentsPanel({ venueId, events = [] }) {
                 <span className="font-semibold text-emerald-300">Pagado</span>.
               </p>
               <div className="flex flex-wrap items-center gap-2">
-                <a
-                  href={waLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-primary !px-3 !py-1.5 text-xs"
-                >
-                  <Icon name="whatsapp" className="h-4 w-4" />
-                  Enviar por WhatsApp
-                </a>
+                {waHref && (
+                  <a
+                    href={waHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-primary !px-3 !py-1.5 text-xs"
+                  >
+                    <Icon name="whatsapp" className="h-4 w-4" />
+                    Enviar por WhatsApp
+                  </a>
+                )}
                 <button
                   onClick={copyUrl}
                   className="btn-ghost !px-3 !py-1.5 text-xs font-bold"
@@ -380,15 +390,29 @@ export default function PaymentsPanel({ venueId, events = [] }) {
                         {st.label}
                       </span>
                       {p.status === "pending" && p.payment_url && (
-                        <a
-                          href={`https://wa.me/${(p.customer_phone || "").replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${p.customer_name}! Te comparto el enlace para pagar tu boleta (${money(p.amount_in_cents)}): ${p.payment_url}`)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-emerald-300 transition hover:bg-emerald-500/10"
-                        >
-                          <Icon name="whatsapp" className="h-3.5 w-3.5" />
-                          Reenviar
-                        </a>
+                        (() => {
+                          const href = waLink(
+                            p.customer_phone,
+                            paymentWaMessage({
+                              customerName: p.customer_name,
+                              amountLabel: money(p.amount_in_cents),
+                              url: p.payment_url,
+                            }),
+                          );
+                          return (
+                            href && (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-emerald-300 transition hover:bg-emerald-500/10"
+                              >
+                                <Icon name="whatsapp" className="h-3.5 w-3.5" />
+                                Reenviar
+                              </a>
+                            )
+                          );
+                        })()
                       )}
                     </li>
                   );

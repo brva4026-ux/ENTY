@@ -9,9 +9,18 @@ import {
   autoReacquireWakeLock,
 } from "../lib/wakeLock";
 import { useAuth } from "../lib/auth";
+import { useUI } from "../lib/ui";
 import { forceDarkOnce } from "../lib/theme";
 import { haptics } from "../lib/haptics";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
+import {
+  downloadSnapshot,
+  getSnapshot,
+  pendingCount,
+  queueRedemption,
+  syncQueue,
+  validateOffline,
+} from "../lib/doorCache";
 import { LiveIndicator } from "../components/Brand";
 import { PushToggle } from "../components/PushToggle";
 
@@ -81,6 +90,20 @@ const RESULT_STYLES = {
     icon: "⏳",
     sub: "",
   },
+  // Modo offline: la boleta está en el snapshot descargado. Entra AQUÍ, y la
+  // DB dará la palabra final cuando el escaneo se sincronice.
+  GRANTED_OFFLINE: {
+    bg: "bg-emerald-600",
+    text: "ENTRA (OFFLINE)",
+    icon: "✓",
+    sub: "Validada con el caché de puerta · se sincroniza al volver la red",
+  },
+  SNAPSHOT_MISSING: {
+    bg: "bg-amber-600",
+    text: "SIN CACHÉ",
+    icon: "!",
+    sub: "No hay descarga de puerta para este evento",
+  },
 };
 
 // ms que dura el resultado en pantalla antes de volver a escanear
@@ -98,6 +121,8 @@ const SCAN_LOG_LABEL = {
   NETWORK_ERROR: "SIN RED",
   SCAN_ERROR: "ERROR",
   NOT_ACTIVE: "AÚN NO ACTIVA",
+  GRANTED_OFFLINE: "ENTRA (OFFLINE)",
+  SNAPSHOT_MISSING: "SIN CACHÉ",
 };
 // Anti-spam de reintentos de NOT_ACTIVE: el servidor no cobra por cada
 // escaneo, pero martillar no cambia la hora del evento.
@@ -110,6 +135,7 @@ const EXIT_HOLD_MS = 1500;
 
 export default function BouncerScanner() {
   const { user, logout } = useAuth();
+  const ui = useUI();
   const venueId = firstVenueId(user);
 
   // La puerta SIEMPRE oscura: en un recinto a oscuras un flash de fondo
@@ -282,6 +308,57 @@ export default function BouncerScanner() {
     // la entrada manual siempre se envía porque fue un submit explícito
     if (!manual && rawToken === lastScannedRef.current) return;
     lastScannedRef.current = rawToken;
+
+    // ===== RUTA OFFLINE =====
+    // Sin red PERO con snapshot descargado: se valida contra el caché y la
+    // redención se ENCOLA. La DB arbitrará al sincronizar; por eso el verde
+    // dice "OFFLINE" en el texto y el log distingue GRANTED_OFFLINE.
+    if (!navigator.onLine) {
+      setValidating(true);
+      try {
+        const local = await validateOffline(rawToken, selectedEvent, rowFilter || null);
+        if (local.code === "GRANTED_OFFLINE") {
+          await queueRedemption(rawToken, {
+            typeId: rowFilter || null,
+          });
+          await refreshPending();
+        }
+        setResult(local);
+        setScanLog((prev) =>
+          [
+            {
+              at: new Date().toISOString(),
+              code: local.code,
+              name: local.customer_name ?? null,
+              detail:
+                local.code === "GRANTED_OFFLINE"
+                  ? "pendiente de sync"
+                  : null,
+            },
+            ...prev,
+          ].slice(0, 20),
+        );
+        if (local.code === "GRANTED_OFFLINE") {
+          haptics.door.granted();
+          try {
+            playForCode("GRANTED");
+          } catch {
+            /* ignore */
+          }
+        } else {
+          haptics.door.attention();
+        }
+      } catch {
+        setResult({ code: "SNAPSHOT_MISSING" });
+        haptics.door.attention();
+      } finally {
+        setValidating(false);
+        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = setTimeout(resetScan, RESULT_RESET_MS);
+      }
+      return;
+    }
+    // ===== RUTA ONLINE (server-autoritativo, sin cambios) =====
     // Validando: la retícula detiene el barrido y late con el anillo de marca.
     // Sin esto, el tiempo entre lectura y respuesta se ve congelado.
     setValidating(true);
@@ -439,6 +516,78 @@ export default function BouncerScanner() {
     holdBuzz50Ref.current = false;
     holdBuzz100Ref.current = false;
   }
+  // ===== Modo offline de puerta =====
+  // Snapshot descargado para el evento elegido (null = no hay). Con él, la
+  // puerta valida sin red comparando SHA-256; sin él, sin red no hay magia
+  // posible (server-autoritativo) y el banner lo dice.
+  const [snapInfo, setSnapInfo] = useState(null); // {count, generated_at}
+  // Cuántos escaneos offline esperan sincronización (badge del banner).
+  const [pendingSync, setPendingSync] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+
+  const refreshPending = useCallback(async () => {
+    try {
+      setPendingSync(await pendingCount());
+    } catch {
+      setPendingSync(0);
+    }
+  }, []);
+
+  // Info del snapshot al (cambiar de) evento; NO lo descarga solo: la
+  // descarga es un botón (consume datos personales y ancho de banda).
+  useEffect(() => {
+    let alive = true;
+    if (!selectedEvent) {
+      setSnapInfo(null);
+      return;
+    }
+    getSnapshot(selectedEvent)
+      .then((s) => alive && setSnapInfo(s ? { count: s.count, generated_at: s.generated_at } : null))
+      .catch(() => alive && setSnapInfo(null));
+    refreshPending();
+    return () => {
+      alive = false;
+    };
+  }, [selectedEvent, refreshPending]);
+
+  /** Descarga manual del snapshot: la puerta prepara su modo sin red. */
+  async function prepareOffline() {
+    if (!selectedEvent) return;
+    setError("");
+    try {
+      const snap = await downloadSnapshot(venueId, selectedEvent);
+      setSnapInfo({ count: snap.count, generated_at: snap.generated_at });
+      haptics.tick();
+    } catch (e) {
+      setError("No se pudo descargar el caché de puerta: " + e.message);
+    }
+  }
+
+  /** Sincroniza la cola offline; la DB re-evalúa cada token. */
+  async function doSync() {
+    if (syncing || pendingSync === 0) return;
+    setSyncing(true);
+    try {
+      const out = await syncQueue(venueId, selectedEvent);
+      await refreshPending();
+      ui.toast(
+        `Sincronizado: ${out.granted} entraron, ${out.already_redeemed} ya estaban, ${out.rejected} rechazadas`,
+      );
+    } catch {
+      /* la red aún no: la cola espera; el banner sigue avisando */
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  // Al volver la conexión: sincroniza solo (y reintenta el badge).
+  useEffect(() => {
+    if (!offline && pendingSync > 0 && selectedEvent) {
+      doSync();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offline]);
+
   // La puerta no puede esperar a que un escaneo falle para enterarse: el
   // banner de red aparece en vivo con el estado real de conexión.
   const [offline, setOffline] = useState(!navigator.onLine);
@@ -455,18 +604,17 @@ export default function BouncerScanner() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-zinc-950 pb-[env(safe-area-inset-bottom)]">
-      {/* Sin red, el bouncer lo sabe ANTES de escanear: el canje es server-
-          autoritativo (los tokens crudos solo existen en el teléfono del
-          invitado), así que sin conexión no hay validación posible — y no se
-          inventa una cola que admitiría después QRs que hoy no se pueden
-          verificar (screenshot de una boleta anulada entraría igual). */}
+      {/* Sin red: si hay snapshot, la puerta SIGUE trabajando (valida contra
+          el caché y encola); si no hay, aquí no hay magia posible — el banner
+          lo dice sin inventar una validez que no se puede verificar. */}
       {offline && (
         <div
           role="alert"
           className="bg-amber-950/80 px-4 py-2 text-center text-xs font-semibold text-amber-200"
         >
-          ⚠️ Sin conexión: el escáner valida contra el server. Reconectá el dato
-          para poder canjear.
+          {snapInfo
+            ? `⚠️ Sin conexión: validando con el caché (${snapInfo.count} boletas). Los ingresos se sincronizan al reconectar.${pendingSync > 0 ? ` Pendientes: ${pendingSync}.` : ""}`
+            : "⚠️ Sin conexión y sin caché de puerta: descarga el caché con red para poder canjear offline."}
         </div>
       )}
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
@@ -778,6 +926,63 @@ export default function BouncerScanner() {
               </p>
             </div>
           )}
+
+          {/* Caché de puerta (modo offline): descarga manual y estado. La
+              descarga es un acto explícito del bouncer (baja nombres+hashes
+              del evento): nunca automática en segundo plano. */}
+          <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-zinc-300">
+                Caché de puerta (sin red)
+              </p>
+              {snapInfo ? (
+                <button
+                  onClick={prepareOffline}
+                  disabled={starting}
+                  className="btn-mini"
+                  data-variant="brand"
+                >
+                  Actualizar
+                </button>
+              ) : (
+                <button
+                  onClick={prepareOffline}
+                  disabled={starting || !selectedEvent}
+                  className="btn-mini"
+                  data-variant="brand"
+                >
+                  Descargar
+                </button>
+              )}
+            </div>
+            {snapInfo ? (
+              <p className="tnum mt-1 text-[11px] text-zinc-500">
+                {snapInfo.count} boletas vivas · descargado{" "}
+                {new Date(snapInfo.generated_at).toLocaleTimeString("es-CO", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {offline && " · validando sin red"}
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] text-zinc-500">
+                Baja los hashes de las boletas vigentes para validar en la fila
+                aunque el dato se caiga. Nada de tokens: solo huellas SHA-256.
+              </p>
+            )}
+            {pendingSync > 0 && (
+              <button
+                onClick={doSync}
+                disabled={syncing}
+                className="btn-mini mt-1.5"
+                data-variant="success"
+              >
+                {syncing
+                  ? "Sincronizando…"
+                  : `Sincronizar ${pendingSync} escaneo${pendingSync === 1 ? "" : "s"}`}
+              </button>
+            )}
+          </div>
 
           {/* Aviso push cuando el admin abra puertas (published -> live) */}
           <div className="w-full max-w-sm">

@@ -158,6 +158,63 @@ function RevenueBars({ events, onOpen }) {
 }
 
 /**
+ * Ranking de promotores con barra proporcional: el orden lo da la cifra,
+ * la MAGNITUD la da la barra — un ranking solo-numeros obliga a hacer
+ * aritmética mental para saber que el #1 duplicó al #2. Mismo idioma visual
+ * de RevenueBars (brand-500, transición con stagger) sin SVG nuevo.
+ */
+function PromoterBars({ promoters }) {
+  const max = Math.max(...promoters.map((p) => p.revenue_cents), 1);
+  return (
+    <ol
+      role="img"
+      aria-label="Recaudo por promotor del mes"
+      className="space-y-2.5"
+    >
+      {promoters.map((p, i) => {
+        const w = Math.max(4, Math.round((p.revenue_cents / max) * 100));
+        return (
+          <li key={p.name} className="text-sm">
+            <div className="flex items-center gap-2.5">
+              <span
+                className={`tnum flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  i === 0
+                    ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40"
+                    : "bg-zinc-800 text-zinc-400"
+                }`}
+              >
+                {i + 1}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-medium text-zinc-200">
+                {p.name}
+              </span>
+              <span className="tnum shrink-0 text-xs text-zinc-400">
+                {p.tickets} boletas
+              </span>
+              <span className="tnum w-24 shrink-0 text-right text-xs font-semibold text-emerald-300">
+                {money(p.revenue_cents)}
+              </span>
+            </div>
+            {/* La barra debajo del nombre: llena el ancho de la fila sin
+                competir con las cifras (que quedan alineadas en columna). */}
+            <div className="ml-8.5 mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-brand-700/70 to-brand-500 transition-all duration-500"
+                style={{
+                  width: `${w}%`,
+                  transitionDelay: `${i * 60}ms`,
+                }}
+              />
+            </div>
+          </li>
+       );
+      })
+      }
+    </ol>
+  );
+}
+
+/**
  * Vista del NEGOCIO entre eventos: la que faltaba. Todo por mes natural
  * (zona del venue), criterio contable idéntico al reporte por evento:
  * boletas vivas facturan; anuladas/reembolsadas no.
@@ -328,33 +385,7 @@ export default function BusinessOverview({ venueId, onOpenEvent }) {
                       del admin no entran al ranking).
                     </p>
                   ) : (
-                    <ol className="space-y-2">
-                      {data.top_promoters.map((p, i) => (
-                        <li
-                          key={p.name}
-                          className="flex items-center gap-3 text-sm"
-                        >
-                          <span
-                            className={`tnum flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                              i === 0
-                                ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40"
-                                : "bg-zinc-800 text-zinc-400"
-                            }`}
-                          >
-                            {i + 1}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate font-medium text-zinc-200">
-                            {p.name}
-                          </span>
-                          <span className="tnum text-xs text-zinc-400">
-                            {p.tickets} boletas
-                          </span>
-                          <span className="tnum w-24 text-right text-xs font-semibold text-emerald-300">
-                            {money(p.revenue_cents)}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
+                    <PromoterBars promoters={data.top_promoters} />
                   )}
                 </div>
 

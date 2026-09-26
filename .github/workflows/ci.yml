@@ -56,3 +56,78 @@ jobs:
         run: |
           cd backend
           python -m pytest tests/ -v
+
+  e2e:
+    # El flujo que da el dinero, en un navegador de verdad: login del staff,
+    # escáner montado y portada del admin con datos reales de Postgres.
+    runs-on: ubuntu-latest
+    needs: [frontend, backend]
+    if: always() && needs.frontend.result == 'success' && needs.backend.result == 'success'
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: devpassword
+          POSTGRES_DB: ticketflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:devpassword@127.0.0.1:5432/ticketflow
+      JWT_SECRET: test-secret
+      IS_DEMO: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend
+        run: |
+          cd backend
+          pip install --no-cache-dir "." || pip install --no-cache-dir -e "."
+      - name: Build frontend (el backend sirve dist como en prod)
+        run: |
+          cd frontend
+          npm ci --no-fund --no-audit
+          npm run build
+      - name: Seed demo
+        run: |
+          cd backend
+          python - <<'PY'
+          import asyncio, os, psycopg
+          from psycopg.rows import dict_row
+          from app.routers.seed import seed_demo_data
+          async def m():
+              c = await psycopg.AsyncConnection.connect(
+                  os.environ['TEST_DATABASE_URL'], autocommit=True, row_factory=dict_row)
+              print(await seed_demo_data(c))
+              await c.close()
+          asyncio.run(m())
+      - name: Run E2E (puerta + portada admin)
+        run: |
+          cd backend
+          nohup python run.py &
+          cd ../frontend
+          # El preview proxya /api al 8001 (vite.config.js): mismo camino que
+          # el dev, con el bundle real de producción servido por Vite.
+          nohup npx vite preview --port 12000 &
+          npx playwright install --with-deps chromium
+          npx playwright test
+        env:
+          E2E_BASE_URL: http://127.0.0.1:12000
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend/test-results/
+          retention-days: 7

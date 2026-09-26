@@ -37,6 +37,7 @@ import TicketList from "../components/TicketList";
 import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
 import BusinessOverview from "../components/BusinessOverview";
+import BusinessDock from "../components/BusinessDock";
 import PaymentsPanel from "../components/PaymentsPanel";
 import VenueHeader from "../components/VenueHeader";
 
@@ -286,36 +287,6 @@ export default function AdminDashboard() {
   function setSection(tab) {
     flyToEvent(selectedEvent, tab);
   }
-
-  // Contadores del dock "Del negocio": una foto por seccion para que cada
-  // acceso diga QUE hay ahi antes de entrar (principio de info a la vista).
-  // Fire-and-forget: si un endpoint falla, el contador queda oculto (0/undefined)
-  // y el dock sigue funcionando; nunca bloquea la navegacion.
-  const [bizCounts, setBizCounts] = useState({});
-  useEffect(() => {
-    if (!venueId) return;
-    const safe = (key, url, pick) =>
-      apiFetch(url)
-        .then((data) =>
-          setBizCounts((c) => ({ ...c, [key]: pick(data) })),
-        )
-        .catch(() => {});
-    // Liquidaciones que NO estan cerradas: accion pendiente del admin.
-    safe("payouts", `/venues/${venueId}/payouts`, (rows) =>
-      (rows || []).filter((p) => p.status === "pending" || p.status === "disputed")
-        .length,
-    );
-    // Invitaciones vigentes: sin aceptar, sin revocar y no vencidas
-    // (la misma definicion de validez que usa el backend al aceptar).
-    safe("invites", `/auth/venues/${venueId}/invitations`, (rows) =>
-      (rows || []).filter(
-        (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) > new Date(),
-      ).length,
-    );
-    safe("team", `/venues/${venueId}/users?include_inactive=true`, (rows) =>
-      (rows || []).filter((u) => u.is_active !== false).length,
-    );
-  }, [venueId]);
 
   // Usuarios de la venue: para asignar cupos con nombres reales
   const reloadUsers = useCallback(() => {
@@ -1141,65 +1112,11 @@ export default function AdminDashboard() {
           de la noche. Dentro de un evento abierto NO existen: ahí solo hay
           pestañas de ese evento. */}
         {!selectedEventData && (
-          <nav className="bizdock card" aria-label="Secciones del negocio">
-            <div className="bizdock-head">
-              <div>
-                <p className="eyebrow">Gestión de la venue</p>
-                <h2 className="display text-lg">Del negocio</h2>
-              </div>
-              <p className="hidden text-xs text-zinc-500 sm:block">
-                Lo que no depende de una noche puntual: números del bar,
-                equipo y pagos.
-              </p>
-            </div>
-            <div className="bizdock-grid" role="tablist">
-              {[
-                ["negocio", "Reportes", "La foto del mes: ventas, puerta y equipo", "chart"],
-                ["cobros", "Cobros", "Enlaces de pago y quién ya pagó", "ticket"],
-                ["equipo", "Equipo", "Quién vende, quién abre la puerta", "users", bizCounts.team],
-                [
-                  "liquidaciones",
-                  "Liquidaciones",
-                  "Comisiones de promotores por periodo",
-                  "money",
-                  bizCounts.payouts,
-                ],
-                [
-                  "invitaciones",
-                  "Invitaciones",
-                  "Suma gente a tu equipo con un enlace",
-                  "door",
-                  bizCounts.invites,
-                ],
-              ].map(([id, label, desc, icon, count]) => {
-                const active = section === id;
-                return (
-                  <button
-                    key={id}
-                    role="tab"
-                    aria-selected={active}
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => {
-                      haptics.tick();
-                      setSearchParams({ tab: id });
-                    }}
-                    className={`bizdock-item${active ? " is-active" : ""}`}
-                  >
-                    <span className="bizdock-icon">
-                      <Icon name={icon} className="h-5 w-5" />
-                    </span>
-                    <span className="bizdock-text">
-                      <span className="bizdock-label">{label}</span>
-                      <span className="bizdock-desc">{desc}</span>
-                    </span>
-                    {count > 0 && (
-                      <span className="bizdock-count tnum">{count}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
+          <BusinessDock
+            venueId={venueId}
+            section={section}
+            onNavigate={(id) => setSearchParams({ tab: id })}
+          />
         )}
         {/* Secciones de venue: se renderizan cuando su pestaña está activa y
           NO hay evento abierto (en modo evento la pestaña activa es del

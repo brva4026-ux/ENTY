@@ -5,7 +5,7 @@ expresamos los parametros y generamos el token crudo de alta entropia que va
 en el QR (en la DB se guarda unicamente su SHA-256).
 """
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
@@ -15,6 +15,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
 from app.schemas import (
+    DoorSnapshotEntry,
+    DoorSnapshotOut,
+    DoorSyncItem,
+    DoorSyncOut,
     RedeemOut,
     TicketContactEditRequest,
     TicketContactEditOut,
@@ -30,6 +34,17 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["tickets"])
+
+
+# ---------------------------------------------------------------------------
+# Modo offline de puerta (snapshot + sync)
+#
+# El canje normal es server-autoritativo y sigue siéndolo. Esto existe para
+# el caso real de un roncino sin señal: el escáner descarga los HASHES de
+# las boletas vivas ANTES de que se caiga la red, valida localmente y envía
+# las redenciones cuando vuelve la conexión. La DB re-evalúa cada token con
+# redeem_ticket al sincronizar, así que el árbitro final sigue siendo la DB.
+# ---------------------------------------------------------------------------
 
 
 def _handle(venue_id: int, e: psycopg.errors.Error) -> None:
@@ -601,3 +616,120 @@ async def return_ticket_staff(
             _handle(venue_id, e)
 
     return TicketReturnOut(ticket_id=ticket_id, status="returned")
+
+
+# ---------------------------------------------------------------------------
+# Snapshot de puerta: hashes de las boletas vivas del evento
+# ---------------------------------------------------------------------------
+
+
+@router.get("/events/{event_id}/door-snapshot", response_model=DoorSnapshotOut)
+async def door_snapshot(
+    venue_id: int,
+    event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Lista de validación para la puerta SIN red.
+
+    Solo boletas vivas (`issued`; las `redeemed` no: contra el snapshot no se
+    puede distinguir "ya entró" de "entró en otro teléfono" y esa decisión
+    la toma el sync). Solo staff de puerta. Es un export de datos personales
+    (nombre por boleta): mismo tratamiento de auditoría que invitados.csv.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "bouncer")
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            """SELECT id, name, status FROM events
+               WHERE id=%s AND venue_id=%s""",
+            (event_id, venue_id),
+        )
+        ev = await cur.fetchone()
+        if not ev:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Evento no encontrado")
+
+        await cur.execute(
+            """
+            SELECT encode(t.token_hash, 'hex') AS h, t.status::text AS s,
+                   t.ticket_type_id AS t, t.customer_name AS n
+            FROM tickets t
+            WHERE t.event_id = %s AND t.status = 'issued'
+            ORDER BY t.id
+            """,
+            (event_id,),
+        )
+        rows = await cur.fetchall()
+
+    entries = [
+        DoorSnapshotEntry(h=r["h"], s=r["s"], t=r["t"], n=r["n"]) for r in rows
+    ]
+    return DoorSnapshotOut(
+        event_id=event_id,
+        generated_at=datetime.now(timezone.utc),
+        count=len(entries),
+        live_event=(ev["status"] == "live"),
+        entries=entries,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Sync de la cola offline: la DB re-evalúa cada token
+# ---------------------------------------------------------------------------
+
+
+@router.post("/events/{event_id}/door-sync", response_model=DoorSyncOut)
+async def door_sync(
+    venue_id: int,
+    event_id: int,
+    body: list[DoorSyncItem],
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Reconcilia las redenciones que el bouncer hizo sin red.
+
+    Cada token pasa por `redeem_ticket` COMO SI FUERA AHORA: si la boleta fue
+    anulada o ya canjeada mientras el teléfono estaba offline, la DB lo dice
+    y el resultado refleja la verdad final (granted / already_redeemed /
+    rejected). `scanned_at` es informativo; el canje real queda con su now().
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "bouncer")
+    # La misma válvula anti-spam del redeem en línea: una cola offline nunca
+    # debería traer más de lo que una fila humana generó, pero el límite
+    # protege el log de redemptions de un cliente desbocado.
+    if len(body) > 200:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            "Demasiados escaneos en una sola sincronización (máx 200)",
+        )
+
+    granted = already = rejected = 0
+    async with db.cursor() as cur:
+        for item in body:
+            try:
+                await cur.execute(
+                    "SELECT redeem_ticket(%s, %s, %s, %s)",
+                    (event_id, item.raw_token, user["id"], item.ticket_type_id),
+                )
+                row = await cur.fetchone()
+                code = row["redeem_ticket"] if isinstance(row, dict) else row[0]
+            except psycopg.errors.Error:
+                # Un token problemático no tira la cola entera: se cuenta como
+                # rechazado y se sigue con el resto.
+                await db.rollback()
+                rejected += 1
+                continue
+            if code == "GRANTED":
+                granted += 1
+            elif code == "ALREADY_REDEEMED":
+                already += 1
+            else:
+                rejected += 1
+
+    await db.commit()
+    return DoorSyncOut(
+        processed=len(body),
+        granted=granted,
+        already_redeemed=already,
+        rejected=rejected,
+    )
