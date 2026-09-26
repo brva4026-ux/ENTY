@@ -38,6 +38,7 @@ import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
 import BusinessOverview from "../components/BusinessOverview";
 import PaymentsPanel from "../components/PaymentsPanel";
+import VenueHeader from "../components/VenueHeader";
 
 function firstVenueId(user) {
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
@@ -286,6 +287,36 @@ export default function AdminDashboard() {
     flyToEvent(selectedEvent, tab);
   }
 
+  // Contadores del dock "Del negocio": una foto por seccion para que cada
+  // acceso diga QUE hay ahi antes de entrar (principio de info a la vista).
+  // Fire-and-forget: si un endpoint falla, el contador queda oculto (0/undefined)
+  // y el dock sigue funcionando; nunca bloquea la navegacion.
+  const [bizCounts, setBizCounts] = useState({});
+  useEffect(() => {
+    if (!venueId) return;
+    const safe = (key, url, pick) =>
+      apiFetch(url)
+        .then((data) =>
+          setBizCounts((c) => ({ ...c, [key]: pick(data) })),
+        )
+        .catch(() => {});
+    // Liquidaciones que NO estan cerradas: accion pendiente del admin.
+    safe("payouts", `/venues/${venueId}/payouts`, (rows) =>
+      (rows || []).filter((p) => p.status === "pending" || p.status === "disputed")
+        .length,
+    );
+    // Invitaciones vigentes: sin aceptar, sin revocar y no vencidas
+    // (la misma definicion de validez que usa el backend al aceptar).
+    safe("invites", `/auth/venues/${venueId}/invitations`, (rows) =>
+      (rows || []).filter(
+        (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) > new Date(),
+      ).length,
+    );
+    safe("team", `/venues/${venueId}/users?include_inactive=true`, (rows) =>
+      (rows || []).filter((u) => u.is_active !== false).length,
+    );
+  }, [venueId]);
+
   // Usuarios de la venue: para asignar cupos con nombres reales
   const reloadUsers = useCallback(() => {
     if (!venueId) return Promise.resolve();
@@ -531,6 +562,10 @@ export default function AdminDashboard() {
             ================================================================= */}
         {!selectedEventData && (
           <>
+            {/* Cabecera de la venue: identidad + la cifra del mes. Vive en
+              modo lista (también bajo las pestañas del negocio); dentro de
+              un evento abierto manda la cabecera del evento. */}
+            <VenueHeader venueId={venueId} user={user} />
             {booting ? (
               <SelectSkeleton className="max-w-xs" />
             ) : (
@@ -1106,35 +1141,64 @@ export default function AdminDashboard() {
           de la noche. Dentro de un evento abierto NO existen: ahí solo hay
           pestañas de ese evento. */}
         {!selectedEventData && (
-          <nav className="card p-4" aria-label="Secciones del negocio">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="display mr-2 text-base">Del negocio</p>
-              {[
-                ["negocio", "Reportes", "chart"],
-                ["cobros", "Cobros", "ticket"],
-                ["equipo", "Equipo", "users"],
-                ["liquidaciones", "Liquidaciones", "money"],
-                ["invitaciones", "Invitaciones", "door"],
-              ].map(([id, label, icon]) => (
-                <button
-                  key={id}
-                  onClick={() => setSearchParams({ tab: id })}
-                  aria-current={section === id ? "page" : undefined}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                    section === id
-                      ? "bg-zinc-800 text-white"
-                      : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-                  }`}
-                >
-                  <Icon name={icon} className="h-3.5 w-3.5" />
-                  {label}
-                </button>
-              ))}
+          <nav className="bizdock card" aria-label="Secciones del negocio">
+            <div className="bizdock-head">
+              <div>
+                <p className="eyebrow">Gestión de la venue</p>
+                <h2 className="display text-lg">Del negocio</h2>
+              </div>
+              <p className="hidden text-xs text-zinc-500 sm:block">
+                Lo que no depende de una noche puntual: números del bar,
+                equipo y pagos.
+              </p>
             </div>
-            <p className="mt-2 text-xs text-zinc-500">
-              Todo lo que no depende de una noche puntual: números del bar,
-              equipo y pagos.
-            </p>
+            <div className="bizdock-grid" role="tablist">
+              {[
+                ["negocio", "Reportes", "La foto del mes: ventas, puerta y equipo", "chart"],
+                ["cobros", "Cobros", "Enlaces de pago y quién ya pagó", "ticket"],
+                ["equipo", "Equipo", "Quién vende, quién abre la puerta", "users", bizCounts.team],
+                [
+                  "liquidaciones",
+                  "Liquidaciones",
+                  "Comisiones de promotores por periodo",
+                  "money",
+                  bizCounts.payouts,
+                ],
+                [
+                  "invitaciones",
+                  "Invitaciones",
+                  "Suma gente a tu equipo con un enlace",
+                  "door",
+                  bizCounts.invites,
+                ],
+              ].map(([id, label, desc, icon, count]) => {
+                const active = section === id;
+                return (
+                  <button
+                    key={id}
+                    role="tab"
+                    aria-selected={active}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => {
+                      haptics.tick();
+                      setSearchParams({ tab: id });
+                    }}
+                    className={`bizdock-item${active ? " is-active" : ""}`}
+                  >
+                    <span className="bizdock-icon">
+                      <Icon name={icon} className="h-5 w-5" />
+                    </span>
+                    <span className="bizdock-text">
+                      <span className="bizdock-label">{label}</span>
+                      <span className="bizdock-desc">{desc}</span>
+                    </span>
+                    {count > 0 && (
+                      <span className="bizdock-count tnum">{count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </nav>
         )}
         {/* Secciones de venue: se renderizan cuando su pestaña está activa y
