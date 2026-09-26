@@ -1689,11 +1689,245 @@ html[data-theme="light"] .ec-when-soon {
   color: #2a4fb8;
 }
 
+/* ----------------------------------------------------------------------
+   EVX — franja de eventos rediseñada. El diagnóstico de la anterior:
+   CERO jerarquía (tres cifras del mismo peso compitiendo, dos píldoras
+   por tarjeta, un botón flotante y una barra en cada esquina) y filtros
+   tipo chip que sumaban seis cajas con borde en pantalla. Aquí manda la
+   regla profesional: UNA cifra manda (el dinero), el estado es un punto
+   de color (no una caja), y el ruido solo aparece al hover.
+   ---------------------------------------------------------------------- */
+.events-strip {
+  padding: 1.15rem 1.25rem 1.25rem;
+}
+.evx-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.evx-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+  padding-bottom: 0.8rem;
+  /* Hairline bajo la toolbar: separa el "control" del "contenido" sin
+     una caja envolvente más. */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.evx-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #71717a;
+  transition: color 0.15s, background 0.15s;
+}
+.evx-tab:hover {
+  color: #d4d4d8;
+}
+.evx-tab.is-active {
+  color: #fafafa;
+  background: rgba(255, 255, 255, 0.06);
+}
+.evx-tab-count {
+  font-size: 0.6875rem;
+  color: #52525b;
+  font-weight: 600;
+}
+.evx-tab.is-active .evx-tab-count {
+  color: #b0c0f2;
+}
+.evx-grid {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+@media (min-width: 640px) {
+  .evx-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.evx-card {
+  padding: 0;
+}
+.evx-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fafafa;
+}
+.evx-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  white-space: nowrap;
+}
+/* El estado es UN punto de color + palabra: la información de la categoría
+   sin una caja con borde por tarjeta (eran 8 cajas por pantalla). El color
+   del punto lo fija el JSX inline (mapa por estado). */
+.evx-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: #52525b;
+  flex-shrink: 0;
+}
+
+.evx-nums {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  margin-top: 0.7rem;
+}
+.evx-revenue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #34d399;
+}
+/* Evento terminado/cancelado: el dinero pierde el protagonismo del color
+   (ya no hay nada que esperar de esa noche) pero no la cifra. */
+.is-ended .evx-revenue {
+  color: #a1a1aa;
+}
+.evx-minor {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #71717a;
+}
+.evx-meter {
+  height: 3px;
+  margin-top: 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.evx-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(125, 153, 236, 0.55); /* brand-400 al 55%: presencia, no grito */
+  transition: width 0.5s var(--ease-out-expo);
+}
+.is-live .evx-meter-fill { background: #34d399; }
+.evx-meter-fill.is-warn { background: #fbbf24; }
+.evx-meter-fill.is-full { background: #f87171; }
+.is-ended .evx-meter-fill { background: #52525b; }
+.evx-meta {
+  margin-top: 0.45rem;
+  font-size: 0.6875rem;
+  color: #71717a;
+}
+/* Duplicar: aparece SOLO en hover/focus (desktop). En la vista quieta la
+   grilla no tiene cuadrados flotantes; en táctil queda accesible porque el
+   :focus-within y el tap lo muestran. */
+.evx-dup {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  color: #a1a1aa;
+  background: rgba(9, 9, 11, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+}
+.evx-card:hover .evx-dup,
+.evx-card:focus-within .evx-dup {
+  opacity: 1;
+}
+.evx-dup:hover {
+  color: #b0c0f2;
+  border-color: rgba(62, 106, 225, 0.45);
+}
+.evx-dup:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Claro: mismas formas, tinta invertida. */
+html[data-theme="light"] .evx-toolbar {
+  border-bottom-color: #e4e4e7;
+}
+html[data-theme="light"] .evx-tab {
+  color: #71717a;
+}
+html[data-theme="light"] .evx-tab:hover {
+  color: #18181b;
+}
+html[data-theme="light"] .evx-tab.is-active {
+  color: #09090b;
+  background: rgba(9, 9, 11, 0.05);
+}
+html[data-theme="light"] .evx-tab-count {
+  color: #a1a1aa;
+}
+html[data-theme="light"] .evx-tab.is-active .evx-tab-count {
+  color: #2a4fb8;
+}
+html[data-theme="light"] .evx-name {
+  color: #09090b;
+}
+html[data-theme="light"] .evx-state {
+  color: #52525b;
+}
+html[data-theme="light"] .evx-revenue {
+  color: #047857;
+}
+html[data-theme="light"] .is-ended .evx-revenue {
+  color: #71717a;
+}
+html[data-theme="light"] .evx-minor {
+  color: #71717a;
+}
+html[data-theme="light"] .evx-meter {
+  background: rgba(9, 9, 11, 0.07);
+}
+html[data-theme="light"] .evx-meter-fill {
+  background: rgba(62, 106, 225, 0.5);
+}
+html[data-theme="light"] .is-live .evx-meter-fill { background: #059669; }
+html[data-theme="light"] .evx-meter-fill.is-warn { background: #d97706; }
+html[data-theme="light"] .evx-meter-fill.is-full { background: #dc2626; }
+html[data-theme="light"] .is-ended .evx-meter-fill { background: #d4d4d8; }
+html[data-theme="light"] .evx-meta {
+  color: #71717a;
+}
+html[data-theme="light"] .evx-dup {
+  color: #52525b;
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #e4e4e7;
+}
+html[data-theme="light"] .evx-dup:hover {
+  color: #2a4fb8;
+  border-color: rgba(62, 106, 225, 0.45);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .event-card,
   .event-card:hover {
     transition: none;
     transform: none;
+  }
+  .evx-meter-fill {
+    transition: none;
+  }
+  .evx-dup {
+    transition: none;
+    /* Sin animación posible, el acceso requiere que el botón exista: en
+       reduced-motion el hover-opacity no es transición sino estado, se mantiene. */
   }
 }
 

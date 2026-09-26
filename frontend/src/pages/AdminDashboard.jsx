@@ -540,37 +540,29 @@ export default function AdminDashboard() {
             {booting ? (
               <SelectSkeleton className="max-w-xs" />
             ) : (
-              <section className="card p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="display text-base">Todos los eventos</p>
-                  <div className="flex items-center gap-2">
-                    {/* Jerarquía real: solo "Nuevo evento" es primaria. Las
-                      secundarias van antes, más tenues (QR/Invitar). */}
-                    <button
-                      onClick={() => setQrTesterOpen(true)}
-                      className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold text-zinc-300 hover:text-brand-300"
-                      data-tip="Leer un QR y ver a quién pertenece, sin canjearlo"
-                    >
-                      Probar QR
-                    </button>
-                    <Link
-                      to="?tab=invitaciones"
-                      className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold text-amber-300 hover:text-amber-200"
-                    >
-                      Invitar al equipo
-                    </Link>
-                    <button
-                      onClick={() => setCreateOpen(true)}
-                      className="btn-primary !px-3 !py-1.5 text-[11px]"
-                    >
-                      ＋ Nuevo evento
-                    </button>
+              <section className="events-strip">
+                {/* Header de sección en UNA línea: título a la izquierda, la
+                  acción principal a la derecha. "Probar QR" e "Invitar" NO
+                  compiten aquí: son tareas del dock Del negocio y de la
+                  cabecera, y su botón permanente en cada pantalla era ruido
+                  que degradaba la jerarquía de "Nuevo evento". */}
+                <div className="evx-head">
+                  <div>
+                    <p className="eyebrow">Operación</p>
+                    <h2 className="display text-lg">Eventos</h2>
                   </div>
+                  <button
+                    onClick={() => setCreateOpen(true)}
+                    className="btn-primary !px-3.5 !py-2 text-xs"
+                  >
+                    <Icon name="plus" className="h-3.5 w-3.5" />
+                    Nuevo evento
+                  </button>
                 </div>
 
                 {events.length > 0 && (
-                  <div className="mt-3">
-                    <div className="relative">
+                  <div className="evx-toolbar">
+                    <div className="relative min-w-0 flex-1 sm:max-w-xs">
                       <Icon
                         name="search"
                         className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
@@ -578,30 +570,36 @@ export default function AdminDashboard() {
                       <input
                         value={eventQuery}
                         onChange={(e) => setEventQuery(e.target.value)}
-                        placeholder="Buscar evento por nombre…"
+                        placeholder="Buscar evento…"
                         aria-label="Buscar evento por nombre"
                         className="field !py-2 !pl-9 text-sm"
                       />
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
+                    {/* Filtros como tabs de texto (no píldoras con borde):
+                      el estado activo se dice con tinta, no con otra caja. */}
+                    <div
+                      className="no-scrollbar flex items-center gap-1 overflow-x-auto"
+                      role="tablist"
+                      aria-label="Filtrar eventos por estado"
+                    >
                       {BUCKETS.map(([id, label]) => {
                         const n =
                           id === "todos"
                             ? events.length
                             : events.filter((ev) => ev.status === id).length;
+                        const active = eventBucket === id;
                         return (
                           <button
                             key={id}
+                            role="tab"
+                            aria-selected={active}
                             onClick={() => setEventBucket(id)}
-                            aria-pressed={eventBucket === id}
-                            className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
-                              eventBucket === id
-                                ? "border-brand-500 bg-brand-500/15 text-brand-300"
-                                : "border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
-                            }`}
+                            className={`evx-tab ${active ? "is-active" : ""}`}
                           >
                             {label}
-                            <span className="tnum ml-1 text-zinc-500">{n}</span>
+                            <span className="tnum evx-tab-count">
+                              {n > 0 ? n : ""}
+                            </span>
                           </button>
                         );
                       })}
@@ -619,7 +617,7 @@ export default function AdminDashboard() {
                     Ningún evento coincide con la búsqueda.
                   </p>
                 ) : (
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <div className="evx-grid">
                     {sortEventsForStrip(visibleEvents).map((ev) => {
                       // Mini-reporte del evento (vivas · dentro · recaudo) del
                       // GET agregado. undefined = aún no llegó: la tarjeta degrada
@@ -633,12 +631,13 @@ export default function AdminDashboard() {
                           : null;
                       const pill = openingPill(ev.starts_at);
                       const live = ev.status === "live";
+                      const ended = ["ended", "cancelled"].includes(ev.status);
                       return (
                         <div
                           key={ev.id}
-                          className={`event-card card-interactive relative block rounded-xl border ${
-                            live ? "is-live " : ""
-                          } border-zinc-800/80`}
+                          className={`event-card evx-card ${live ? "is-live" : ""} ${
+                            ended ? "is-ended" : ""
+                          }`}
                         >
                           {/* Link superpuesto: la TARJETA entera abre el
                             backstage y deja libres las esquinas para acciones
@@ -649,108 +648,86 @@ export default function AdminDashboard() {
                             className="absolute inset-0 rounded-xl"
                             aria-label={`Abrir ${ev.name}`}
                           />
-                          <div className="pointer-events-none p-3.5">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="min-w-0 truncate text-sm font-bold text-white">
-                                {ev.name}
-                              </p>
-                              <div className="flex shrink-0 items-center gap-1.5">
-                                {pill && (
-                                  <span
-                                    className={`ec-when hidden rounded-full px-2 py-0.5 text-[10px] font-bold sm:inline ${
-                                      pill.tone === "today"
-                                        ? "ec-when-today"
-                                        : pill.tone === "soon"
-                                          ? "ec-when-soon"
-                                          : ""
-                                    }`}
-                                  >
-                                    {pill.main}
-                                  </span>
-                                )}
+                          <div className="pointer-events-none p-4">
+                            {/* Fila 1: identidad. Nombre manda; el estado es
+                              un punto de color + palabra (no una caja más). */}
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="evx-name truncate">{ev.name}</p>
+                              <span className="evx-state">
+                                {/* El color del punto se resuelve AQUI (no con
+                                  clases dinámicas del chip): un solo lugar que
+                                  dice qué tono representa cada estado. */}
                                 <span
-                                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${
-                                    (EV_CHIP[ev.status] ?? EV_CHIP.draft).cls
-                                  }`}
-                                >
-                                  {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
-                                </span>
-                              </div>
+                                  className="evx-dot"
+                                  aria-hidden="true"
+                                  style={{
+                                    background:
+                                      ev.status === "live"
+                                        ? "#34d399"
+                                        : ev.status === "published"
+                                          ? "#7d99ec"
+                                          : ev.status === "draft"
+                                            ? "#71717a"
+                                            : ev.status === "cancelled"
+                                              ? "#f87171"
+                                              : "#a1a1aa", // ended
+                                  }}
+                                />
+                                {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
+                              </span>
                             </div>
 
-                            {/* Las cifras de la noche a un vistazo: cada celda
-                              responde una pregunta operativa sin abrir el evento. */}
-                            <div className="ec-stats mt-2.5">
+                            {/* Fila 2: la UNA cifra que importa (recaudo) en
+                              tamaño real y las dos operativas en tinta media.
+                              Antes las tres competían en el mismo peso y nada
+                              destacaba; aquí el ojo entra por el dinero. */}
+                            <div className="evx-nums">
                               {sold !== null ? (
                                 <>
-                                  <div className="ec-stat">
-                                    <span className="tnum text-lg font-bold leading-none text-white">
-                                      <CountUpNumber value={sold} />
-                                    </span>
-                                    <span className="ec-stat-label">
-                                      Boletas
-                                    </span>
-                                  </div>
-                                  <div className="ec-stat">
-                                    <span className="tnum text-lg font-bold leading-none text-sky-300">
-                                      <CountUpNumber value={stat.redeemed} />
-                                    </span>
-                                    <span className="ec-stat-label">Dentro</span>
-                                  </div>
-                                  <div className="ec-stat">
-                                    <span className="tnum text-lg font-bold leading-none text-emerald-300">
-                                      {money(stat.revenue_cents)}
-                                    </span>
-                                    <span className="ec-stat-label">
-                                      Recaudo
-                                    </span>
-                                  </div>
+                                  <span className="evx-revenue tnum">
+                                    {money(stat.revenue_cents)}
+                                  </span>
+                                  <span className="evx-minor tnum">
+                                    {stat.redeemed}/{sold} dentro
+                                  </span>
                                 </>
                               ) : (
-                                <span className="col-span-3 h-6 skeleton w-full max-w-40" />
+                                <span className="skeleton h-5 w-36" />
                               )}
                             </div>
 
-                            {/* Semáforo de aforo: cuánto del cupo físico ya
-                            está comprometido, sin abrir el evento. */}
+                            {/* Fila 3: aforo como barra fina + meta en la
+                              misma línea del fondo. La barra es proporción,
+                              no decoración: color solo si hay alerta real. */}
                             {pct !== null && (
-                              <div className="mt-2.5 flex items-center gap-2">
-                                <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
-                                  <div
-                                    className={`h-full rounded-full transition-all duration-500 ${
-                                      pct >= 100
-                                        ? "bg-red-400"
-                                        : pct >= 80
-                                          ? "bg-amber-400"
-                                          : live
-                                            ? "bg-emerald-400"
-                                            : "bg-brand-400"
-                                    }`}
-                                    style={{
-                                      width: `${Math.min(100, pct)}%`,
-                                    }}
-                                  />
-                                </div>
-                                <span className="tnum text-[10px] font-bold text-zinc-500">
-                                  {pct}% de {ev.capacity}
-                                </span>
+                              <div className="evx-meter" aria-hidden="true">
+                                <div
+                                  className={`evx-meter-fill ${
+                                    pct >= 100
+                                      ? "is-full"
+                                      : pct >= 80
+                                        ? "is-warn"
+                                        : ""
+                                  }`}
+                                  style={{ width: `${Math.min(100, pct)}%` }}
+                                />
                               </div>
                             )}
-
-                            <p className="mt-2 pr-9 text-[11px] leading-snug text-zinc-500">
-                              {formatShortDate(ev.starts_at)} · aforo{" "}
-                              {ev.capacity}
+                            <p className="evx-meta">
+                              {pill ? `${pill.main} · ` : ""}
+                              aforo {ev.capacity}
                             </p>
                           </div>
                           {/* Acción de esquina: duplicar (la recurrencia
-                            semanal en un clic). Sobre el Link que cubre la
-                            tarjeta, por eso pointer-events-auto. */}
+                            semanal en un clic). Solo visible al hover/focus
+                            en desktop: en la vista quieta era un cuadrado
+                            flotante por tarjeta que ensuciaba la grilla. */}
                           <button
                             onClick={() => duplicateEvent(ev)}
                             disabled={dupingId !== null}
                             aria-label={`Duplicar ${ev.name}`}
                             data-tip="Duplicar evento (borrador con sus tipos y cupos)"
-                            className="pointer-events-auto absolute bottom-2.5 right-2.5 rounded-lg bg-zinc-900/90 p-1.5 text-zinc-400 ring-1 ring-zinc-800 transition hover:text-brand-300 hover:ring-brand-500/40 disabled:opacity-50"
+                            className="evx-dup pointer-events-auto"
                           >
                             {dupingId === ev.id ? (
                               <svg
