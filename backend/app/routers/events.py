@@ -229,7 +229,23 @@ async def list_events(
             "WHERE venue_id=%s ORDER BY starts_at DESC",
             (venue_id,),
         )
-        return await cur.fetchall()
+        rows = await cur.fetchall()
+
+        # Validacion fila por fila: UNA fila con datos imposibles (un evento
+        # de prueba con starts_at/capacity NULL, creada a mano o por un test
+        # contra esta DB) no puede tumbar el LISTADO COMPLETO con un 500 de
+        # pydantic. La fila invalida se omite, se reporta, y el panel sigue
+        # mostrando los demas eventos.
+        out: list[EventOut] = []
+        for row in rows:
+            try:
+                out.append(EventOut.model_validate(row))
+            except Exception as e:
+                capture_exception(
+                    e,
+                    {"kind": "event_row_invalid", "venue_id": venue_id, "row_id": row.get("id")},
+                )
+        return out
 
 
 @router.post("/events", response_model=EventOut, status_code=status.HTTP_201_CREATED)
