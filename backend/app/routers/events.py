@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
 from app.core.audit import write_audit
+from app.core.observability import capture_exception
 from app.schemas import (
     AllocationCreate,
     AllocationOut,
@@ -211,7 +212,18 @@ async def list_events(
         # idempotente, con índice parcial, y si no hay vencidos no hace nada.
         # Cualquier usuario autenticado de la venue la dispara al abrir su
         # panel — y el live-refresh la re-dispara cada 20s.
-        await cur.execute("SELECT auto_close_expired_events()")
+        #
+        # NUNCA debe tumbar el listado: si la función no existe todavía (DB
+        # recreada sin la migración) o falla por cualquier motivo, el ERROR
+        # ABORTA LA TRANSACCIÓN y también mataría el SELECT de abajo — el
+        # panel entero quedaba en 500 por una optimización. Se aísla: fallo
+        # de la watchdog => rollback y se lista igual (los vencidos se
+        # cerrarán en el siguiente intento, cuando la función exista).
+        try:
+            await cur.execute("SELECT auto_close_expired_events()")
+        except psycopg.Error as e:
+            await db.rollback()
+            capture_exception(e, {"kind": "watchdog_auto_close", "venue_id": venue_id})
         await cur.execute(
             f"SELECT {EVENT_COLUMNS} FROM events "
             "WHERE venue_id=%s ORDER BY starts_at DESC",
