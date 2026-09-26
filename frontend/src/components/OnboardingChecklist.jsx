@@ -11,7 +11,7 @@ const DISMISS_KEY = "tf_onboarding_done";
 
 const CONFETTI = ["🎉", "🎟️", "✨", "🎊", "🥳"];
 
-export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPublished }) {
+export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPublished, onStart }) {
   const [dismissed, setDismissed] = useState(
     () => localStorage.getItem(DISMISS_KEY) === "1"
   );
@@ -66,6 +66,13 @@ export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPubl
             {allDone ? "¡Todo listo para vender! 🎉" : "Pon tu negocio a vender"}
           </h3>
         </div>
+        {/* CTA del primer paso: la guía no solo informa, EJECUTA. Sin esto el
+          admin primerizo lee "crea tu primer evento" y sale a buscar el botón. */}
+        {!allDone && onStart && (
+          <button onClick={onStart} className="btn-primary !px-3 !py-1.5 text-xs">
+            {hasEvent ? "Continuar" : "Crear evento"}
+          </button>
+        )}
         <div className="flex items-center gap-2">
           <span className="tnum rounded-full bg-zinc-800 px-2 py-0.5 text-[11px] font-semibold text-zinc-300">
             {doneCount}/{steps.length}

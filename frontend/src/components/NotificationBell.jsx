@@ -27,6 +27,7 @@ const KIND_TILE = {
   payout_disputed: { icon: "flag", tile: "bg-amber-500/15 text-amber-400" },
   invitation_accepted: { icon: "users", tile: "bg-sky-500/15 text-sky-400" },
   ticket_reissued: { icon: "qr", tile: "bg-violet-500/15 text-violet-300" },
+  event_autoclosed: { icon: "clock", tile: "bg-amber-500/15 text-amber-400" },
 };
 
 const KIND_LABEL = {
@@ -35,6 +36,7 @@ const KIND_LABEL = {
   payout_disputed: "Disputa",
   invitation_accepted: "Equipo",
   ticket_reissued: "Boleta",
+  event_autoclosed: "Evento",
 };
 
 export default function NotificationBell() {

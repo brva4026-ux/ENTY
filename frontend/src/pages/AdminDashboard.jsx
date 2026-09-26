@@ -189,6 +189,15 @@ export default function AdminDashboard() {
   // tecla sería desperdicio (y más lento que filtrar 50 objetos).
   const [eventQuery, setEventQuery] = useState("");
   const [eventBucket, setEventBucket] = useState("todos");
+  // Densidad de la franja: tarjetas (default) o lista compacta. Con 20+
+  // eventos la grilla exige scroll infinito; la tabla responde de un vistazo.
+  // Persistida: la preferencia de densidad es del usuario, no de la sesión.
+  const [compactView, setCompactView] = useState(
+    () => localStorage.getItem("tf_ev_compact") === "1",
+  );
+  useEffect(() => {
+    localStorage.setItem("tf_ev_compact", compactView ? "1" : "0");
+  }, [compactView]);
   // Id del evento duplicándose ahora (spinner in situ en SU tarjeta).
   const [dupingId, setDupingId] = useState(null);
 
@@ -387,6 +396,41 @@ export default function AdminDashboard() {
     }
   }
 
+  /** Transición de ciclo de vida DESDE LA FRANJA: la tarjeta se convierte en
+      panel de control. Publicar (draft) y Abrir puertas (published) son las
+      dos que desbloquean dinero y puerta; cancelar/finalizar quedan en el
+      backstage porque piden contexto (cifras, boletas). */
+  async function quickTransition(ev, action) {
+    const labels = { publish: "¿Publicar el evento?", live: "¿Abrir puertas?" };
+    const done = {
+      publish: "Evento publicado: ya puede vender 🎟️",
+      live: "Puertas abiertas: la puerta fue avisada 🚪",
+    };
+    const ok = await ui.confirm(labels[action], {
+      message:
+        action === "publish"
+          ? "El evento pasa a la venta: los promotores pueden emitir boletas."
+          : "La puerta empieza a aceptar escaneos.",
+      confirmLabel: action === "publish" ? "Publicar" : "Abrir puertas",
+    });
+    if (!ok) return;
+    setBusyAction(`${action}-${ev.id}`);
+    setError("");
+    try {
+      const updated = await apiFetch(
+        `/venues/${venueId}/events/${ev.id}/${action}`,
+        { method: "POST" },
+      );
+      setEvents((evs) => evs.map((e) => (e.id === updated.id ? updated : e)));
+      haptics.success();
+      ui.success(done[action]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyAction("");
+    }
+  }
+
   function startEditEvent() {
     const ev = selectedEventData;
     setEditError("");
@@ -519,6 +563,7 @@ export default function AdminDashboard() {
             hasTypes={types.length > 0}
             hasAllocations={allocations.length > 0}
             isPublished={false}
+            onStart={() => setCreateOpen(true)}
           />
         )}{" "}
         {error && (
@@ -533,13 +578,87 @@ export default function AdminDashboard() {
             ================================================================= */}
         {!selectedEventData && (
           <>
-            {/* Cabecera de la venue: identidad + la cifra del mes. Vive en
-              modo lista (también bajo las pestañas del negocio); dentro de
-              un evento abierto manda la cabecera del evento. */}
-            <VenueHeader venueId={venueId} user={user} />
+            {/* PORTADA UNIFICADA: identidad + cifra del mes + eventos viven en
+              el MISMO card. Antes eran dos boxes apiladas que competían por
+              ser "la cabecera"; aquí hay una sola portada con una sola línea
+              de lectura: quién eres → cuánto va el mes → tus noches. */}
+            <VenueHeader venueId={venueId} user={user} embedded>
+              {booting ? null : events.length > 0 && (
+                <div className="evx-toolbar">
+                  <div className="relative min-w-0 flex-1 sm:max-w-xs">
+                    <Icon
+                      name="search"
+                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+                    />
+                    <input
+                      value={eventQuery}
+                      onChange={(e) => setEventQuery(e.target.value)}
+                      placeholder="Buscar evento…"
+                      aria-label="Buscar evento por nombre"
+                      className="field !py-2 !pl-9 text-sm"
+                    />
+                  </div>
+                  {/* Filtros como tabs de texto (no píldoras con borde):
+                    el estado activo se dice con tinta, no con otra caja. */}
+                  <div
+                    className="no-scrollbar flex items-center gap-1 overflow-x-auto"
+                    role="tablist"
+                    aria-label="Filtrar eventos por estado"
+                  >
+                    {BUCKETS.map(([id, label]) => {
+                      const n =
+                        id === "todos"
+                          ? events.length
+                          : events.filter((ev) => ev.status === id).length;
+                      const active = eventBucket === id;
+                      return (
+                        <button
+                          key={id}
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => setEventBucket(id)}
+                          className={`evx-tab ${active ? "is-active" : ""}`}
+                        >
+                          {label}
+                          <span className="tnum evx-tab-count">
+                            {n > 0 ? n : ""}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Densidad: tarjetas para pocas noches, tabla de una línea
+                    cuando la lista crece (20+ eventos no caben en grilla). */}
+                  <button
+                    onClick={() => {
+                      haptics.tick();
+                      setCompactView((v) => !v);
+                    }}
+                    aria-pressed={compactView}
+                    aria-label={
+                      compactView
+                        ? "Cambiar a vista de tarjetas"
+                        : "Cambiar a vista compacta"
+                    }
+                    data-tip={
+                      compactView
+                        ? "Ver como tarjetas"
+                        : "Ver como lista compacta"
+                    }
+                    className="btn-mini shrink-0"
+                    data-variant="brand"
+                  >
+                    <Icon
+                      name={compactView ? "calendar" : "list"}
+                      className="h-3.5 w-3.5"
+                    />
+                  </button>
+                </div>
+              )}
+            </VenueHeader>
             {booting ? (
               <SelectSkeleton className="max-w-xs" />
-            ) : (
+            ) : events.length > 0 && (
               <section className="events-strip">
                 {/* Header de sección en UNA línea: título a la izquierda, la
                   acción principal a la derecha. "Probar QR" e "Invitar" NO
@@ -560,62 +679,64 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
-                {events.length > 0 && (
-                  <div className="evx-toolbar">
-                    <div className="relative min-w-0 flex-1 sm:max-w-xs">
-                      <Icon
-                        name="search"
-                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
-                      />
-                      <input
-                        value={eventQuery}
-                        onChange={(e) => setEventQuery(e.target.value)}
-                        placeholder="Buscar evento…"
-                        aria-label="Buscar evento por nombre"
-                        className="field !py-2 !pl-9 text-sm"
-                      />
-                    </div>
-                    {/* Filtros como tabs de texto (no píldoras con borde):
-                      el estado activo se dice con tinta, no con otra caja. */}
-                    <div
-                      className="no-scrollbar flex items-center gap-1 overflow-x-auto"
-                      role="tablist"
-                      aria-label="Filtrar eventos por estado"
-                    >
-                      {BUCKETS.map(([id, label]) => {
-                        const n =
-                          id === "todos"
-                            ? events.length
-                            : events.filter((ev) => ev.status === id).length;
-                        const active = eventBucket === id;
-                        return (
-                          <button
-                            key={id}
-                            role="tab"
-                            aria-selected={active}
-                            onClick={() => setEventBucket(id)}
-                            className={`evx-tab ${active ? "is-active" : ""}`}
-                          >
-                            {label}
-                            <span className="tnum evx-tab-count">
-                              {n > 0 ? n : ""}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {events.length === 0 ? (
-                  <EmptyState icon="door" title="Aún no hay eventos">
-                    Toca "＋ Nuevo evento": nace en borrador y te lleva directo
-                    a montarlo.
-                  </EmptyState>
-                ) : visibleEvents.length === 0 ? (
+                {visibleEvents.length === 0 ? (
                   <p className="mt-4 text-sm text-zinc-500">
                     Ningún evento coincide con la búsqueda.
                   </p>
+                ) : compactView ? (
+                  /* VISTA COMPACTA: una línea por evento. Con 20+ noches la
+                    grilla de tarjetas exige scroll infinito; la tabla responde
+                    "cuál es la próxima y cómo va" de un vistazo. */
+                  <ul className="evx-list">
+                    {sortEventsForStrip(visibleEvents).map((ev) => {
+                      const stat =
+                        ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
+                      const pill = openingPill(ev.starts_at);
+                      const live = ev.status === "live";
+                      return (
+                        <li key={ev.id} className="evx-row">
+                          <Link
+                            to={`/admin?event=${ev.id}`}
+                            onClick={() => haptics.tick()}
+                            className="absolute inset-0"
+                            aria-label={`Abrir ${ev.name}`}
+                          />
+                          <span className="evx-dot-wrap">
+                            <span
+                              className="evx-dot"
+                              aria-hidden="true"
+                              style={{
+                                background:
+                                  ev.status === "live"
+                                    ? "#34d399"
+                                    : ev.status === "published"
+                                      ? "#7d99ec"
+                                      : ev.status === "draft"
+                                        ? "#71717a"
+                                        : ev.status === "cancelled"
+                                          ? "#f87171"
+                                          : "#a1a1aa",
+                              }}
+                            />
+                          </span>
+                          <span className="evx-row-name truncate">{ev.name}</span>
+                          {pill && (
+                            <span className="evx-row-when">{pill.main}</span>
+                          )}
+                          <span className="evx-row-nums tnum">
+                            {stat
+                              ? `${money(stat.revenue_cents)} · ${stat.redeemed}/${stat.active}`
+                              : "…"}
+                          </span>
+                          <span
+                            className={`evx-row-state ${live ? "is-live" : ""}`}
+                          >
+                            {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 ) : (
                   <div className="evx-grid">
                     {sortEventsForStrip(visibleEvents).map((ev) => {
@@ -718,29 +839,57 @@ export default function AdminDashboard() {
                               aforo {ev.capacity}
                             </p>
                           </div>
-                          {/* Acción de esquina: duplicar (la recurrencia
-                            semanal en un clic). Solo visible al hover/focus
-                            en desktop: en la vista quieta era un cuadrado
-                            flotante por tarjeta que ensuciaba la grilla. */}
-                          <button
-                            onClick={() => duplicateEvent(ev)}
-                            disabled={dupingId !== null}
-                            aria-label={`Duplicar ${ev.name}`}
-                            data-tip="Duplicar evento (borrador con sus tipos y cupos)"
-                            className="evx-dup pointer-events-auto"
-                          >
-                            {dupingId === ev.id ? (
-                              <svg
-                                className="btn-spinner"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
+                          {/* Acciones de esquina al hover/focus (desktop):
+                            la tarjeta es panel de control, no solo enlace.
+                            Publicar/Abrir puertas desbloquean dinero y puerta;
+                            duplicar apura la recurrencia semanal. */}
+                          <div className="evx-actions pointer-events-auto">
+                            {(ev.status === "draft" ||
+                              ev.status === "published") && (
+                              <button
+                                onClick={() =>
+                                  quickTransition(
+                                    ev,
+                                    ev.status === "draft" ? "publish" : "live",
+                                  )
+                                }
+                                disabled={busyAction !== ""}
+                                className="btn-mini"
+                                data-variant="success"
                               >
-                                <circle cx="12" cy="12" r="9" />
-                              </svg>
-                            ) : (
-                              <Icon name="copy" className="h-3.5 w-3.5" />
+                                {busyAction === `publish-${ev.id}` ||
+                                busyAction === `live-${ev.id}` ? (
+                                  <svg
+                                    className="btn-spinner"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                  >
+                                    <circle cx="12" cy="12" r="9" />
+                                  </svg>
+                                ) : null}
+                                {ev.status === "draft" ? "Publicar" : "Abrir puertas"}
+                              </button>
                             )}
-                          </button>
+                            <button
+                              onClick={() => duplicateEvent(ev)}
+                              disabled={dupingId !== null}
+                              aria-label={`Duplicar ${ev.name}`}
+                              data-tip="Duplicar evento (borrador con sus tipos y cupos)"
+                              className="btn-mini"
+                            >
+                              {dupingId === ev.id ? (
+                                <svg
+                                  className="btn-spinner"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                >
+                                  <circle cx="12" cy="12" r="9" />
+                                </svg>
+                              ) : (
+                                <Icon name="copy" className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       );
                     })}

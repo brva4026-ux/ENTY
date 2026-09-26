@@ -1577,6 +1577,13 @@ html[data-theme="light"] .vh-delta.is-down {
   }
 }
 
+/* Portada embebida: cuando la toolbar de eventos vive DENTRO del header de
+   la venue (portada unificada), ocupa todo el ancho bajo las dos columnas. */
+.vh-embedded {
+  width: 100%;
+  margin-top: 0.2rem;
+}
+
 /* ===========================================================================
    CAPA PREMIUM (pasada 3): micro-detalles que se sienten, no que decoran
    =========================================================================== */
@@ -1826,35 +1833,86 @@ html[data-theme="light"] .ec-when-soon {
   font-size: 0.6875rem;
   color: #71717a;
 }
-/* Duplicar: aparece SOLO en hover/focus (desktop). En la vista quieta la
-   grilla no tiene cuadrados flotantes; en táctil queda accesible porque el
-   :focus-within y el tap lo muestran. */
-.evx-dup {
+/* Acciones de esquina al hover/focus: panel de control, no decoración. */
+.evx-actions {
   position: absolute;
   right: 0.6rem;
   bottom: 0.6rem;
-  display: grid;
-  place-items: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  border-radius: 0.5rem;
-  color: #a1a1aa;
-  background: rgba(9, 9, 11, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   opacity: 0;
-  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+  transition: opacity 0.15s;
 }
-.evx-card:hover .evx-dup,
-.evx-card:focus-within .evx-dup {
+.evx-card:hover .evx-actions,
+.evx-card:focus-within .evx-actions {
   opacity: 1;
 }
-.evx-dup:hover {
-  color: #b0c0f2;
-  border-color: rgba(62, 106, 225, 0.45);
+
+/* LISTA COMPACTA: una línea por evento. Con 20+ noches la grilla de
+   tarjetas exige scroll infinito; aquí "cuál es la próxima y cómo va" cabe
+   en una pantalla. Grid de columnas fijas alineadas: punto · nombre ·
+   cuándo · cifras · estado. */
+.evx-list {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
 }
-.evx-dup:disabled {
-  opacity: 0.4;
-  pointer-events: none;
+.evx-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.4rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  transition: background 0.12s;
+}
+.evx-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.evx-row + .evx-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.evx-row-name {
+  font-weight: 600;
+  color: #e4e4e7;
+  min-width: 0;
+}
+.evx-row-when {
+  font-size: 0.6875rem;
+  color: #71717a;
+  white-space: nowrap;
+}
+.evx-row-nums {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  white-space: nowrap;
+}
+.evx-row-state {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #71717a;
+  white-space: nowrap;
+}
+.evx-row-state.is-live {
+  color: #34d399;
+}
+html[data-theme="light"] .evx-row:hover {
+  background: rgba(9, 9, 11, 0.03);
+}
+html[data-theme="light"] .evx-row + .evx-row {
+  border-top-color: #ececee;
+}
+html[data-theme="light"] .evx-row-name {
+  color: #18181b;
+}
+html[data-theme="light"] .evx-row-nums {
+  color: #52525b;
+}
+html[data-theme="light"] .evx-row-state.is-live {
+  color: #047857;
 }
 
 /* Claro: mismas formas, tinta invertida. */
@@ -1905,14 +1963,12 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: #d4d4d8; }
 html[data-theme="light"] .evx-meta {
   color: #71717a;
 }
-html[data-theme="light"] .evx-dup {
-  color: #52525b;
-  background: rgba(255, 255, 255, 0.9);
-  border-color: #e4e4e7;
+html[data-theme="light"] .evx-actions {
+  opacity: 0;
 }
-html[data-theme="light"] .evx-dup:hover {
-  color: #2a4fb8;
-  border-color: rgba(62, 106, 225, 0.45);
+html[data-theme="light"] .evx-card:hover .evx-actions,
+html[data-theme="light"] .evx-card:focus-within .evx-actions {
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1924,10 +1980,8 @@ html[data-theme="light"] .evx-dup:hover {
   .evx-meter-fill {
     transition: none;
   }
-  .evx-dup {
+  .evx-actions {
     transition: none;
-    /* Sin animación posible, el acceso requiere que el botón exista: en
-       reduced-motion el hover-opacity no es transición sino estado, se mantiene. */
   }
 }
 

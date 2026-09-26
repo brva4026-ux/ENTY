@@ -21,7 +21,7 @@ function labelMonth(ym) {
   return `${mes} ${y}`;
 }
 
-export default function VenueHeader({ venueId, user }) {
+export default function VenueHeader({ venueId, user, embedded = false, children = null }) {
   const [ov, setOv] = useState(null); // null = cargando (skeleton, no ceros)
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function VenueHeader({ venueId, user }) {
   const up = (delta ?? 0) >= 0;
 
   return (
-    <header className="venue-header card">
+    <header className={`venue-header card${embedded ? " is-embedded" : ""}`}>
       {/* Identidad: logo (o iniciales si no tiene) + nombre + etiqueta mes */}
       <div className="vh-identidad">
         {venue?.logo_url ? (
@@ -106,6 +106,11 @@ export default function VenueHeader({ venueId, user }) {
           </p>
         </div>
       </div>
+      {/* Contenido embebido (la toolbar de eventos: búsqueda + filtros +
+        densidad). Solo tiene sentido en la portada del modo lista. */}
+      {children && (
+        <div className="vh-embedded">{children}</div>
+      )}
     </header>
   );
 }

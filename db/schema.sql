@@ -201,6 +201,7 @@ CREATE FUNCTION public.auto_close_expired_events() RETURNS integer
     AS $$
 DECLARE
     v_closed integer;
+    c record;
 BEGIN
     -- live -> ended (la noche termino, nadie pulso "Terminar")
     WITH closed AS (
@@ -215,17 +216,25 @@ BEGIN
 
     -- published vencido -> cancelled (venta que vencio sin abrir puertas).
     -- NO es 'ended': el trigger events_check_transition (mig 005) solo
-    -- acepta published -> live | cancelled. Se ACUMULA el conteo: un
-    -- SELECT INTO simple sobrescribiria el bloque anterior.
-    WITH closed AS (
+    -- acepta published -> live | cancelled. El FOR captura cada fila cerrada
+    -- para acumular el conteo Y avisar al admin (notify_venue_admins).
+    FOR c IN
         UPDATE events
            SET status = 'cancelled', updated_at = now()
          WHERE status = 'published'
            AND ends_at IS NOT NULL
            AND ends_at < now()
-        RETURNING 1
-    )
-    SELECT v_closed + count(*) INTO v_closed FROM closed;
+        RETURNING id, venue_id, name
+    LOOP
+        v_closed := v_closed + 1;
+        PERFORM notify_venue_admins(
+            c.venue_id,
+            'event_autoclosed',
+            'Evento cerrado automáticamente',
+            c.name || ' tenía la venta vencida y nadie lo cerró: pasó a cancelado.',
+            '/admin?event=' || c.id
+        );
+    END LOOP;
 
     RETURN v_closed;
 END;

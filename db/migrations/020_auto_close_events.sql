@@ -25,6 +25,7 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     v_closed integer;
+    c record;
 BEGIN
     -- live -> ended (la noche termino, nadie pulso "Terminar")
     WITH closed AS (
@@ -43,15 +44,28 @@ BEGIN
     -- invalid_transition y el GET /events entero moria en la watchdog con
     -- un 500 la primera vez que existia un published vencido en datos reales
     -- (en CI nunca ocurría: los tests pasan por live antes de vencer).
-    WITH closed AS (
+    --
+    -- El FOR captura cada fila cerrada: acumula el conteo Y deja el aviso
+    -- (in-app + push via notify_venue_admins). El admin NO descubre un
+    -- cancelado mirando la franja; un solo UPDATE hace el cierre, así que
+    -- no hay doble-pasada que devuelva 0 filas al notificar.
+    FOR c IN
         UPDATE events
            SET status = 'cancelled', updated_at = now()
          WHERE status = 'published'
            AND ends_at IS NOT NULL
            AND ends_at < now()
-        RETURNING 1
-    )
-    SELECT v_closed + count(*) INTO v_closed FROM closed;
+        RETURNING id, venue_id, name
+    LOOP
+        v_closed := v_closed + 1;
+        PERFORM notify_venue_admins(
+            c.venue_id,
+            'event_autoclosed',
+            'Evento cerrado automáticamente',
+            c.name || ' tenía la venta vencida y nadie lo cerró: pasó a cancelado.',
+            '/admin?event=' || c.id
+        );
+    END LOOP;
 
     RETURN v_closed;
 END;
