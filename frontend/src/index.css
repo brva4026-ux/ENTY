@@ -1771,6 +1771,16 @@ html[data-theme="light"] .ec-when-soon {
 }
 .evx-card {
   padding: 0;
+  /* position: relative OBLIGATORIO: el <Link absolute inset-0> que hace
+     clickeable la tarjeta se ancla a SU tarjeta. Sin esto, todos los
+     enlaces del grid comparten una sola caja gigante sobre la sección y
+     los clics caen en el evento equivocado (o no navegan). */
+  position: relative;
+  /* Misma superficie sutil de los ítems del dock Del negocio: la tarjeta
+     se lee como tarjeta sin competir con el card de la portada. */
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
 }
 .evx-name {
   font-size: 0.9375rem;
@@ -2111,6 +2121,10 @@ html[data-theme="light"] .evx-tab-count {
 }
 html[data-theme="light"] .evx-tab.is-active .evx-tab-count {
   color: #2a4fb8;
+}
+html[data-theme="light"] .evx-card {
+  background: #f4f4f5;
+  border-color: #ececee;
 }
 html[data-theme="light"] .evx-name {
   color: #09090b;
