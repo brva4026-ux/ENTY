@@ -580,16 +580,11 @@ export default function BouncerScanner() {
     }
   }
 
-  // Al volver la conexión: sincroniza solo (y reintenta el badge).
-  useEffect(() => {
-    if (!offline && pendingSync > 0 && selectedEvent) {
-      doSync();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offline]);
-
   // La puerta no puede esperar a que un escaneo falle para enterarse: el
   // banner de red aparece en vivo con el estado real de conexión.
+  // OJO: `offline` se declara ANTES del efecto que lo usa en sus deps —
+  // leerlo en [offline] con el useState abajo era un TDZ que tumbaba toda
+  // la pantalla de puerta al montar ("Cannot access '$' before init").
   const [offline, setOffline] = useState(!navigator.onLine);
   useEffect(() => {
     const on = () => setOffline(false);
@@ -601,6 +596,14 @@ export default function BouncerScanner() {
       window.removeEventListener("offline", off);
     };
   }, []);
+
+  // Al volver la conexión: sincroniza solo (y reintenta el badge).
+  useEffect(() => {
+    if (!offline && pendingSync > 0 && selectedEvent) {
+      doSync();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offline]);
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-zinc-950 pb-[env(safe-area-inset-bottom)]">
