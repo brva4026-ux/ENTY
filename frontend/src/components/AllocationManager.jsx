@@ -138,7 +138,10 @@ export default function AllocationManager({
   return (
     <div className="card p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="display text-base">Cupos de promotor</h3>
+        <div>
+          <p className="eyebrow">Distribución</p>
+          <h3 className="display mt-0.5 text-base">Cupos de promotor</h3>
+        </div>
         {/* El cuello de botella real: sin promotores creados no hay cupo que
           asignar. El enlace evita el ida-y-vuelta a Invitaciones. */}
         <Link

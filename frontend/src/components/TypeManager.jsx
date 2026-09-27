@@ -161,7 +161,8 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
 
   return (
     <div className="card p-5">
-      <h3 className="display mb-3 text-base">Tipos de boleta</h3>
+      <p className="eyebrow">Producto</p>
+      <h3 className="display mb-3 mt-0.5 text-base">Tipos de boleta</h3>
       <ul className="mb-4 space-y-2">
         {(types || []).map((t) => (
           <li

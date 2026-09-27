@@ -253,7 +253,10 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
   return (
     <div className="card p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="display text-base">Boletas emitidas</h3>
+        <div>
+          <p className="eyebrow">Auditorio</p>
+          <h3 className="display mt-0.5 text-base">Boletas emitidas</h3>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => downloadCsv("guests.csv")}

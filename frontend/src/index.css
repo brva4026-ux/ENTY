@@ -1752,7 +1752,7 @@ html[data-theme="light"] .ec-when-soon {
 }
 .evx-grid {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.75rem;
   margin-top: 0.85rem;
 }
 @media (min-width: 640px) {
@@ -1788,32 +1788,134 @@ html[data-theme="light"] .ec-when-soon {
   background: #52525b;
   flex-shrink: 0;
 }
-
-.evx-nums {
-  display: flex;
-  align-items: baseline;
-  gap: 0.9rem;
-  margin-top: 0.7rem;
+/* En puerta: el punto RESPIRA (pulso discreto) — vida sin ruido. */
+.evx-dot.is-live {
+  animation: evx-pulse 2s ease-in-out infinite;
 }
-.evx-revenue {
-  font-size: 1.25rem;
+@keyframes evx-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0);
+  }
+}
+
+/* Identidad: flyer 48x48 (o iniciales) ancla la tarjeta; nombre y fecha a
+   su derecha. La imagen del evento es lo primero que reconoce el ojo —
+   y si no hay flyer, las iniciales cumplen el mismo ancla sin un hueco. */
+.evx-idrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+.evx-thumb {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: 0.65rem;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0c0c0e;
+}
+.evx-thumb-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.02em;
+  color: #b0c0f2;
+  background: linear-gradient(
+    135deg,
+    rgba(62, 106, 225, 0.22),
+    rgba(62, 106, 225, 0.07)
+  );
+  border-color: rgba(125, 153, 236, 0.25);
+}
+.evx-thumb-fallback.is-ended {
+  color: #a1a1aa;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+/* Píldora de apertura reutilizada (ec-when): la fecha deja de ser un
+   texto gris enterrado abajo y se vuelve el segundo dato que se lee. */
+.evx-when {
+  gap: 0.3rem;
+  border-radius: 0.375rem;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+/* Stats: tres columnas, CADA cifra con su rótulo — "0/1 dentro" flotando
+   sin contexto era ilegible. El recaudo manda y gana verde SOLO si hay
+   dinero: un "$ 0" en verde prometía lo que no hay. */
+.evx-stats {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+.evx-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.07);
+  padding-left: 0.55rem;
+  min-width: 0;
+}
+.evx-stat-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #71717a;
+  white-space: nowrap;
+}
+.evx-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #e4e4e7;
+  white-space: nowrap;
+}
+.evx-stat-value.has-money {
   color: #34d399;
 }
 /* Evento terminado/cancelado: el dinero pierde el protagonismo del color
    (ya no hay nada que esperar de esa noche) pero no la cifra. */
-.is-ended .evx-revenue {
+.is-ended .evx-stat-value.has-money {
   color: #a1a1aa;
 }
-.evx-minor {
+.evx-stat-denom {
   font-size: 0.75rem;
   font-weight: 500;
   color: #71717a;
 }
+/* En puerta con gente entrando: el contador de ingresos se enciende. */
+.evx-stat-value.is-counting {
+  color: #34d399;
+}
+
+/* Aforo: barra + % vendido al lado — la proporción se lee sin comparar
+   cifras. La barra es proporción, no decoración. */
+.evx-meterrow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+.evx-pct {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  min-width: 2.2rem;
+  text-align: right;
+}
 .evx-meter {
-  height: 3px;
-  margin-top: 0.7rem;
+  height: 4px;
+  flex: 1;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   overflow: hidden;
@@ -1828,10 +1930,41 @@ html[data-theme="light"] .ec-when-soon {
 .evx-meter-fill.is-warn { background: #fbbf24; }
 .evx-meter-fill.is-full { background: #f87171; }
 .is-ended .evx-meter-fill { background: #52525b; }
-.evx-meta {
-  margin-top: 0.45rem;
-  font-size: 0.6875rem;
+html[data-theme="light"] .evx-thumb {
+  border-color: #e4e4e7;
+  background: #f4f4f5;
+}
+html[data-theme="light"] .evx-thumb-fallback {
+  color: #2a4fb8;
+  background: linear-gradient(
+    135deg,
+    rgba(62, 106, 225, 0.14),
+    rgba(62, 106, 225, 0.05)
+  );
+  border-color: rgba(62, 106, 225, 0.25);
+}
+html[data-theme="light"] .evx-thumb-fallback.is-ended {
   color: #71717a;
+  background: rgba(9, 9, 11, 0.04);
+  border-color: #e4e4e7;
+}
+html[data-theme="light"] .evx-stat {
+  border-left-color: #e4e4e7;
+}
+html[data-theme="light"] .evx-stat-value {
+  color: #18181b;
+}
+html[data-theme="light"] .evx-stat-value.has-money {
+  color: #047857;
+}
+html[data-theme="light"] .is-ended .evx-stat-value.has-money {
+  color: #71717a;
+}
+html[data-theme="light"] .evx-stat-value.is-counting {
+  color: #047857;
+}
+html[data-theme="light"] .evx-pct {
+  color: #52525b;
 }
 /* Acciones de esquina al hover/focus: panel de control, no decoración. */
 .evx-actions {
@@ -1915,6 +2048,44 @@ html[data-theme="light"] .evx-row-state.is-live {
   color: #047857;
 }
 
+/* ----------------------------------------------------------------------
+   WB — pulso del backstage. Mismo idioma de la portada: el RECAUDO manda
+   (grande, verde) y las KPIs operativas viven en tinta media a su lado.
+   Antes eran 4 KPIs del mismo peso: nada destacaba y el backstage se leía
+   como otra aplicación.
+   ---------------------------------------------------------------------- */
+.wb-pulse {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.wb-kpi-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+.wb-revenue {
+  margin-top: 0.15rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #34d399;
+}
+html[data-theme="light"] .wb-revenue {
+  color: #047857;
+}
+.wb-kpis {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
 /* Claro: mismas formas, tinta invertida. */
 html[data-theme="light"] .evx-toolbar {
   border-bottom-color: #e4e4e7;
@@ -1941,15 +2112,6 @@ html[data-theme="light"] .evx-name {
 html[data-theme="light"] .evx-state {
   color: #52525b;
 }
-html[data-theme="light"] .evx-revenue {
-  color: #047857;
-}
-html[data-theme="light"] .is-ended .evx-revenue {
-  color: #71717a;
-}
-html[data-theme="light"] .evx-minor {
-  color: #71717a;
-}
 html[data-theme="light"] .evx-meter {
   background: rgba(9, 9, 11, 0.07);
 }
@@ -1960,9 +2122,6 @@ html[data-theme="light"] .is-live .evx-meter-fill { background: #059669; }
 html[data-theme="light"] .evx-meter-fill.is-warn { background: #d97706; }
 html[data-theme="light"] .evx-meter-fill.is-full { background: #dc2626; }
 html[data-theme="light"] .is-ended .evx-meter-fill { background: #d4d4d8; }
-html[data-theme="light"] .evx-meta {
-  color: #71717a;
-}
 html[data-theme="light"] .evx-actions {
   opacity: 0;
 }
@@ -1979,6 +2138,9 @@ html[data-theme="light"] .evx-card:focus-within .evx-actions {
   }
   .evx-meter-fill {
     transition: none;
+  }
+  .evx-dot.is-live {
+    animation: none;
   }
   .evx-actions {
     transition: none;

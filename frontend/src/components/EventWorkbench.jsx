@@ -144,60 +144,66 @@ export default function EventWorkbench({
     { id: "boletas", label: "Boletas", icon: "ticket" },
   ];
 
+  // Color del punto de estado: EL MISMO mapa de la franja de eventos. Un solo
+  // vocabulario de color: que la tarjeta diga "A la venta" en azul y la
+  // cabecera del backstage lo repita en otro tono es exactamente la falta de
+  // continuidad que hace sentir la parte interna de otro sistema.
+  const dotColor =
+    ev.status === "live"
+      ? "#34d399"
+      : ev.status === "published"
+        ? "#7d99ec"
+        : ev.status === "draft"
+          ? "#71717a"
+          : ev.status === "cancelled"
+            ? "#f87171"
+            : "#a1a1aa"; // ended
+
   return (
     <div className="space-y-4">
-      {/* ====== Cabecera del evento: identidad + pulso + acciones ====== */}
-      <section className="card relative overflow-hidden p-5">
-        {/* Acento por estado: la franja cuenta el estado antes de leer nada */}
-        <span
-          className={`absolute inset-y-0 left-0 w-1 ${
-            ev.status === "live"
-              ? "bg-emerald-400"
-              : ev.status === "published"
-                ? "bg-brand-500"
-                : ev.status === "cancelled"
-                  ? "bg-red-500"
-                  : "bg-zinc-700"
-          }`}
-          aria-hidden
-        />
-        <div className="flex flex-wrap items-start justify-between gap-3 pl-2">
+      {/* ====== Cabecera del evento: la MISMA gramática de la portada ======
+        eyebrow + display + punto de estado (no degradado ni píldora con
+        ring): entrar al backstage debe sentirse BAJAR un nivel de la misma
+        jerarquía, no cambiar de aplicación. */}
+      <section className="card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           {showFlyer && (
             <img
               src={ev.flyer_url}
               alt=""
               onError={() => setBadFlyer(ev.flyer_url)}
-              className="h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700 sm:h-24 sm:w-24"
+              className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700 sm:h-20 sm:w-20"
             />
           )}
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="display text-gradient truncate text-xl font-extrabold sm:text-2xl">
+            <p className="eyebrow">Backstage del evento</p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2.5">
+              <h1 className="display truncate text-lg sm:text-xl">
                 {ev.name}
-              </h2>
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${status.cls}`}
-              >
+              </h1>
+              <span className="evx-state">
+                <span
+                  className="evx-dot"
+                  aria-hidden="true"
+                  style={{ background: dotColor }}
+                />
                 {status.label}
               </span>
             </div>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-400">
-              <Icon name="calendar" className="h-3.5 w-3.5" />
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500">
               {formatEventDate(ev.starts_at)}
               {ev.ends_at ? ` → ${formatEventDate(ev.ends_at)}` : ""}
-              <span className="text-zinc-600">·</span>
+              <span className="text-zinc-700">·</span>
               <span className="tnum">aforo {ev.capacity}</span>
               {ev.location && (
                 <>
-                  <span className="text-zinc-600">·</span>
+                  <span className="text-zinc-700">·</span>
                   <span className="truncate">{ev.location}</span>
                 </>
               )}
-              <span className="text-zinc-600">·</span>
-              <span className="tnum">QR +{ev.qr_unlock_minutes ?? 60} min</span>
             </p>
             {ev.description && (
-              <p className="mt-2 line-clamp-2 whitespace-pre-line text-sm text-zinc-300">
+              <p className="mt-2 line-clamp-2 whitespace-pre-line text-sm text-zinc-400">
                 {ev.description}
               </p>
             )}
@@ -211,7 +217,7 @@ export default function EventWorkbench({
               {/* "back" (flecha de regreso), NO "logout": este botón solo
                 navega; el icono de salida sugería cerrar sesión. */}
               <Icon name="back" className="h-3.5 w-3.5" />
-              Volver a la lista
+              Volver
             </button>
             {editable && (
               <button
@@ -232,32 +238,36 @@ export default function EventWorkbench({
           </div>
         </div>
 
-        {/* Pulso del evento: cifras vivas a un vistazo */}
-        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 pl-2">
-          <Kpi value={issued ?? "—"} label="Emitidas" />
-          <Kpi
-            value={redeemed ?? "—"}
-            label="Ingresaron"
-            accent="text-sky-300"
-          />
-          <Kpi
-            value={
-              revenue !== null
-                ? `$${(revenue / 100).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`
-                : "—"
-            }
-            label="Recaudo"
-            accent="text-emerald-300"
-          />
-          <Kpi value={ev.capacity} label="Aforo" />
-          <div className="ml-auto flex items-center gap-3">
+        {/* Pulso del evento con la jerarquía de la portada: el RECAUDO manda
+          (grande, verde), las tres operativas en tinta media. Antes los 4
+          KPIs del mismo peso hacían que nada destacara. */}
+        <div className="wb-pulse mt-4">
+          <div className="wb-kpi-main">
+            <p className="wb-kpi-label">Recaudo</p>
+            <p className="wb-revenue tnum">
+              {revenue !== null ? (
+                <CountUpNumber
+                  value={revenue / 100}
+                  format={(v) =>
+                    `$${Math.round(v).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`
+                  }
+                />
+              ) : (
+                "—"
+              )}
+            </p>
+          </div>
+          <div className="wb-kpis">
+            <Kpi value={issued ?? "—"} label="Emitidas" />
+            <Kpi value={redeemed ?? "—"} label="Ingresaron" />
+            <Kpi value={ev.capacity} label="Aforo" />
             <LiveIndicator live={isLive} lastUpdated={lastUpdated} />
           </div>
         </div>
 
         {/* Ciclo de vida: las acciones SIEMPRE visibles dentro del backstage */}
         {actions.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-800/80 pt-4 pl-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-800/80 pt-4">
             <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-zinc-500">
               Siguiente paso
             </span>
@@ -290,15 +300,20 @@ export default function EventWorkbench({
         )}
       </section>
 
-      {/* ====== Pestañas internas del evento (también en la URL) ====== */}
-      <nav className="tabbar no-scrollbar -mx-4 max-w-full px-4" role="tablist">
+      {/* ====== Pestañas internas: mismos evx-tab de la portada. La tabbar
+        hundida con gradientes era EL elemento que más rompía la continuidad. */}
+      <nav
+        className="no-scrollbar -mx-4 flex max-w-full items-center gap-1 overflow-x-auto px-4"
+        role="tablist"
+        aria-label="Secciones del evento"
+      >
         {tabs.map((t) => (
           <button
             key={t.id}
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => onTab(t.id)}
-            className="tabbar-item shrink-0"
+            className={`evx-tab ${tab === t.id ? "is-active" : ""}`}
           >
             <Icon name={t.icon} className="h-4 w-4" />
             {t.label}

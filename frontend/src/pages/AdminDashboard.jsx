@@ -133,6 +133,16 @@ const NEXT_ACTIONS = {
  * por prioridad operativa: vivos arriba, pasados al final. Ambos viven en
  * EventWorkbench — un solo vocabulario de estados en toda la app. */
 
+/** Color del punto/estado por ciclo de vida. Un solo mapa para la franja y
+ * el backstage: el mismo estado siempre representa con el mismo tono. */
+export const STATUS_DOT_COLOR = {
+  live: "#34d399",
+  published: "#7d99ec",
+  draft: "#71717a",
+  ended: "#a1a1aa",
+  cancelled: "#f87171",
+};
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const ui = useUI();
@@ -200,6 +210,9 @@ export default function AdminDashboard() {
   }, [compactView]);
   // Id del evento duplicándose ahora (spinner in situ en SU tarjeta).
   const [dupingId, setDupingId] = useState(null);
+  // Flyers que ya fallaron al cargar ({url: true}): la tarjeta muestra sus
+  // iniciales en lugar de un img roto. Estado unificado para toda la franja.
+  const [badFlyers, setBadFlyers] = useState({});
 
   const BUCKETS = [
     ["todos", "Todos"],
@@ -444,7 +457,6 @@ export default function AdminDashboard() {
       capacity: String(ev.capacity),
       qr_unlock_minutes: String(ev.qr_unlock_minutes ?? 60),
     });
-    setBadFlyer("");
   }
 
   async function saveEventEdit(e) {
@@ -740,7 +752,7 @@ export default function AdminDashboard() {
                 ) : (
                   <div className="evx-grid">
                     {sortEventsForStrip(visibleEvents).map((ev) => {
-                      // Mini-reporte del evento (vivas · dentro · recaudo) del
+                      // Mini-reporte del evento (vendidas · dentro · recaudo) del
                       // GET agregado. undefined = aún no llegó: la tarjeta degrada
                       // a la versión sin cifras sin parpadear.
                       const stat =
@@ -748,11 +760,24 @@ export default function AdminDashboard() {
                       const sold = stat?.active ?? null;
                       const pct =
                         sold !== null && ev.capacity > 0
-                          ? Math.round((sold / ev.capacity) * 100)
+                          ? Math.min(
+                              100,
+                              Math.round((sold / ev.capacity) * 100),
+                            )
                           : null;
                       const pill = openingPill(ev.starts_at);
                       const live = ev.status === "live";
                       const ended = ["ended", "cancelled"].includes(ev.status);
+                      const hasFlyer =
+                        ev.flyer_url && !badFlyers[ev.flyer_url];
+                      // Iniciales del evento (fallback sin flyer): primera
+                      // palabra completa + inicial de la segunda, max 2.
+                      const initials = (ev.name || "?")
+                        .split(/\s+/)
+                        .slice(0, 2)
+                        .map((w) => w[0])
+                        .join("")
+                        .toUpperCase();
                       return (
                         <div
                           key={ev.id}
@@ -770,74 +795,134 @@ export default function AdminDashboard() {
                             aria-label={`Abrir ${ev.name}`}
                           />
                           <div className="pointer-events-none p-4">
-                            {/* Fila 1: identidad. Nombre manda; el estado es
-                              un punto de color + palabra (no una caja más). */}
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="evx-name truncate">{ev.name}</p>
-                              <span className="evx-state">
-                                {/* El color del punto se resuelve AQUI (no con
-                                  clases dinámicas del chip): un solo lugar que
-                                  dice qué tono representa cada estado. */}
-                                <span
-                                  className="evx-dot"
-                                  aria-hidden="true"
-                                  style={{
-                                    background:
-                                      ev.status === "live"
-                                        ? "#34d399"
-                                        : ev.status === "published"
-                                          ? "#7d99ec"
-                                          : ev.status === "draft"
-                                            ? "#71717a"
-                                            : ev.status === "cancelled"
-                                              ? "#f87171"
-                                              : "#a1a1aa", // ended
-                                  }}
+                            {/* Fila 1: identidad. Flyer (o iniciales) + nombre
+                              y estado; la fecha en su propia línea es lo
+                              operativo: "cuándo es" pesa más que el aforo. */}
+                            <div className="evx-idrow">
+                              {hasFlyer ? (
+                                <img
+                                  src={ev.flyer_url}
+                                  alt=""
+                                  onError={() =>
+                                    setBadFlyers((m) => ({
+                                      ...m,
+                                      [ev.flyer_url]: true,
+                                    }))
+                                  }
+                                  className="evx-thumb"
                                 />
-                                {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
-                              </span>
+                              ) : (
+                                <span
+                                  className={`evx-thumb evx-thumb-fallback ${
+                                    ended ? "is-ended" : ""
+                                  }`}
+                                  aria-hidden="true"
+                                >
+                                  {initials}
+                                </span>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="evx-name truncate">{ev.name}</p>
+                                  <span className="evx-state">
+                                    <span
+                                      className={`evx-dot ${live ? "is-live" : ""}`}
+                                      aria-hidden="true"
+                                      style={{
+                                        background: STATUS_DOT_COLOR[ev.status],
+                                      }}
+                                    />
+                                    {(EV_CHIP[ev.status] ?? EV_CHIP.draft)
+                                      .label}
+                                  </span>
+                                </div>
+                                {pill && (
+                                  <p
+                                    className={`evx-when ec-when ec-when-${pill.tone} mt-1 inline-flex`}
+                                  >
+                                    <Icon
+                                      name="calendar"
+                                      className="h-3 w-3"
+                                    />
+                                    {pill.main}
+                                  </p>
+                                )}
+                              </div>
                             </div>
 
-                            {/* Fila 2: la UNA cifra que importa (recaudo) en
-                              tamaño real y las dos operativas en tinta media.
-                              Antes las tres competían en el mismo peso y nada
-                              destacaba; aquí el ojo entra por el dinero. */}
-                            <div className="evx-nums">
-                              {sold !== null ? (
-                                <>
-                                  <span className="evx-revenue tnum">
+                            {/* Fila 2: las TRES cifras que responden las tres
+                              preguntas de la noche, CADA UNA ROTULADA (antes
+                              "0/1 dentro" flotaba sin contexto y "$ 0" en
+                              verde prometia dinero que no hay). El recaudo
+                              manda en tamanio; vendidas y entraron en tinta
+                              media. */}
+                            {sold !== null ? (
+                              <div className="evx-stats">
+                                <div className="evx-stat">
+                                  <span className="evx-stat-label">
+                                    Recaudo
+                                  </span>
+                                  <span
+                                    className={`evx-stat-value tnum ${
+                                      stat.revenue_cents > 0 ? "has-money" : ""
+                                    }`}
+                                  >
                                     {money(stat.revenue_cents)}
                                   </span>
-                                  <span className="evx-minor tnum">
-                                    {stat.redeemed}/{sold} dentro
+                                </div>
+                                <div className="evx-stat">
+                                  <span className="evx-stat-label">Vendidas</span>
+                                  <span className="evx-stat-value tnum">
+                                    {sold}
+                                    <span className="evx-stat-denom">
+                                      /{ev.capacity}
+                                    </span>
                                   </span>
-                                </>
-                              ) : (
-                                <span className="skeleton h-5 w-36" />
-                              )}
-                            </div>
-
-                            {/* Fila 3: aforo como barra fina + meta en la
-                              misma línea del fondo. La barra es proporción,
-                              no decoración: color solo si hay alerta real. */}
-                            {pct !== null && (
-                              <div className="evx-meter" aria-hidden="true">
-                                <div
-                                  className={`evx-meter-fill ${
-                                    pct >= 100
-                                      ? "is-full"
-                                      : pct >= 80
-                                        ? "is-warn"
+                                </div>
+                                <div className="evx-stat">
+                                  <span className="evx-stat-label">Entraron</span>
+                                  <span
+                                    className={`evx-stat-value tnum ${
+                                      live && stat.redeemed > 0
+                                        ? "is-counting"
                                         : ""
-                                  }`}
-                                  style={{ width: `${Math.min(100, pct)}%` }}
-                                />
+                                    }`}
+                                  >
+                                    {stat.redeemed}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="evx-stats">
+                                {[0, 1, 2].map((i) => (
+                                  <div key={i} className="evx-stat">
+                                    <span className="skeleton h-2.5 w-14" />
+                                    <span className="skeleton mt-1 block h-4 w-16" />
+                                  </div>
+                                ))}
                               </div>
                             )}
-                            <p className="evx-meta">
-                              {pill ? `${pill.main} · ` : ""}
-                              aforo {ev.capacity}
-                            </p>
+
+                            {/* Fila 3: aforo como barra fina + % vendido.
+                              La barra es proporcion, no decoracion: color solo
+                              si hay alerta real (80% ambar, 100% rojo). */}
+                            {pct !== null && (
+                              <div className="evx-meterrow">
+                                <div className="evx-meter" aria-hidden="true">
+                                  <div
+                                    className={`evx-meter-fill ${
+                                      pct >= 100
+                                        ? "is-full"
+                                        : pct >= 80
+                                          ? "is-warn"
+                                          : ""
+                                    }`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className="evx-pct tnum">{pct}%</span>
+                              </div>
+                            )}
                           </div>
                           {/* Acciones de esquina al hover/focus (desktop):
                             la tarjeta es panel de control, no solo enlace.
@@ -1141,11 +1226,16 @@ export default function AdminDashboard() {
                     Cancelar
                   </button>
                   {editingEvent.flyer_url &&
-                    editingEvent.flyer_url !== badFlyer && (
+                    !badFlyers[editingEvent.flyer_url] && (
                       <img
                         src={editingEvent.flyer_url}
                         alt="Previsualización del flyer"
-                        onError={() => setBadFlyer(editingEvent.flyer_url)}
+                        onError={() =>
+                          setBadFlyers((m) => ({
+                            ...m,
+                            [editingEvent.flyer_url]: true,
+                          }))
+                        }
                         className="h-12 w-12 rounded-lg object-cover ring-1 ring-zinc-700"
                       />
                     )}
@@ -1164,7 +1254,8 @@ export default function AdminDashboard() {
                 {/* Tips operativos: el qué-hacer-now del evento, sin duplicar
                   el ciclo de vida (que vive siempre visible en el header). */}
                 <div className="card p-4">
-                  <p className="display mb-2 text-base">Cómo va la puerta</p>
+                  <p className="eyebrow">Puerta</p>
+                  <p className="display mb-2 mt-0.5 text-base">Cómo va la puerta</p>
                   <ul className="space-y-2 text-sm text-zinc-300">
                     <li className="flex items-center justify-between gap-2">
                       <span>Boletas pendientes de entrar</span>
