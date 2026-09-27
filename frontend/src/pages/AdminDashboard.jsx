@@ -99,8 +99,7 @@ function openingPill(startsAt) {
   const mins = d.getHours() * 60 + d.getMinutes();
   const time = minuteLabel(mins);
   const diffDays = calendarDiffDays(d, now);
-  if (diffDays === 0)
-    return { main: `Hoy ${time}`, tone: "today" };
+  if (diffDays === 0) return { main: `Hoy ${time}`, tone: "today" };
   if (diffDays === 1) return { main: `Mañana ${time}`, tone: "soon" };
   if (diffDays < 0)
     return {
@@ -253,9 +252,9 @@ export default function AdminDashboard() {
     const wanted = urlEvent ? Number(urlEvent) : null;
     const exists = wanted !== null && events.some((e) => e.id === wanted);
     if (exists) {
-      if (wanted !== selectedEvent) setSelectedEvent(wanted);                  // Enlace viejo con pestaña de venue dentro de un evento
-                  // (?event=5&tab=equipo): esas pestañas no existen en el backstage —
-                  // se normaliza al evento sin tab (aterriza en Resumen).
+      if (wanted !== selectedEvent) setSelectedEvent(wanted); // Enlace viejo con pestaña de venue dentro de un evento
+      // (?event=5&tab=equipo): esas pestañas no existen en el backstage —
+      // se normaliza al evento sin tab (aterriza en Resumen).
       if (
         urlTab &&
         ["negocio", "equipo", "liquidaciones", "invitaciones"].includes(urlTab)
@@ -594,394 +593,427 @@ export default function AdminDashboard() {
               el MISMO card. Antes eran dos boxes apiladas que competían por
               ser "la cabecera"; aquí hay una sola portada con una sola línea
               de lectura: quién eres → cuánto va el mes → tus noches. */}
-            <VenueHeader venueId={venueId} user={user} embedded>
-              {booting ? null : events.length > 0 && (
-                <div className="evx-toolbar">
-                  <div className="relative min-w-0 flex-1 sm:max-w-xs">
-                    <Icon
-                      name="search"
-                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
-                    />
-                    <input
-                      value={eventQuery}
-                      onChange={(e) => setEventQuery(e.target.value)}
-                      placeholder="Buscar evento…"
-                      aria-label="Buscar evento por nombre"
-                      className="field !py-2 !pl-9 text-sm"
-                    />
-                  </div>
-                  {/* Filtros como tabs de texto (no píldoras con borde):
-                    el estado activo se dice con tinta, no con otra caja. */}
-                  <div
-                    className="no-scrollbar flex items-center gap-1 overflow-x-auto"
-                    role="tablist"
-                    aria-label="Filtrar eventos por estado"
-                  >
-                    {BUCKETS.map(([id, label]) => {
-                      const n =
-                        id === "todos"
-                          ? events.length
-                          : events.filter((ev) => ev.status === id).length;
-                      const active = eventBucket === id;
-                      return (
+            <VenueHeader venueId={venueId} user={user}>
+              {/* PORTADA UNIFICADA: la franja de eventos vive DENTRO del card
+                de la venue — un solo contexto como Del negocio, secciones
+                separadas por hairline. Sin evento abierto no hay segundo
+                bloque que compita por ser "la cabecera". */}
+              {booting
+                ? null
+                : events.length > 0 && (
+                    <>
+                      {/* Cabecera de sección DENTRO de la portada: mismo
+                        idioma del dock Del negocio (eyebrow + display + la
+                        acción principal a la derecha, ENCIMA de la barra de
+                        búsqueda). */}
+                      <div className="evx-head">
+                        <div>
+                          <p className="eyebrow">Operación</p>
+                          <h2 className="display text-lg">Eventos</h2>
+                        </div>
                         <button
-                          key={id}
-                          role="tab"
-                          aria-selected={active}
-                          onClick={() => setEventBucket(id)}
-                          className={`evx-tab ${active ? "is-active" : ""}`}
+                          onClick={() => setCreateOpen(true)}
+                          className="btn-primary !px-3.5 !py-2 text-xs"
                         >
-                          {label}
-                          <span className="tnum evx-tab-count">
-                            {n > 0 ? n : ""}
-                          </span>
+                          <Icon name="plus" className="h-3.5 w-3.5" />
+                          Nuevo evento
                         </button>
-                      );
-                    })}
-                  </div>
-                  {/* Densidad: tarjetas para pocas noches, tabla de una línea
+                      </div>
+                      <div className="evx-toolbar">
+                        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+                          <Icon
+                            name="search"
+                            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+                          />
+                          <input
+                            value={eventQuery}
+                            onChange={(e) => setEventQuery(e.target.value)}
+                            placeholder="Buscar evento…"
+                            aria-label="Buscar evento por nombre"
+                            className="field !py-2 !pl-9 text-sm"
+                          />
+                        </div>
+                        {/* Filtros como tabs de texto (no píldoras con borde):
+                    el estado activo se dice con tinta, no con otra caja. */}
+                        <div
+                          className="no-scrollbar flex items-center gap-1 overflow-x-auto"
+                          role="tablist"
+                          aria-label="Filtrar eventos por estado"
+                        >
+                          {BUCKETS.map(([id, label]) => {
+                            const n =
+                              id === "todos"
+                                ? events.length
+                                : events.filter((ev) => ev.status === id)
+                                    .length;
+                            const active = eventBucket === id;
+                            return (
+                              <button
+                                key={id}
+                                role="tab"
+                                aria-selected={active}
+                                onClick={() => setEventBucket(id)}
+                                className={`evx-tab ${active ? "is-active" : ""}`}
+                              >
+                                {label}
+                                <span className="tnum evx-tab-count">
+                                  {n > 0 ? n : ""}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* Densidad: tarjetas para pocas noches, tabla de una línea
                     cuando la lista crece (20+ eventos no caben en grilla). */}
-                  <button
-                    onClick={() => {
-                      haptics.tick();
-                      setCompactView((v) => !v);
-                    }}
-                    aria-pressed={compactView}
-                    aria-label={
-                      compactView
-                        ? "Cambiar a vista de tarjetas"
-                        : "Cambiar a vista compacta"
-                    }
-                    data-tip={
-                      compactView
-                        ? "Ver como tarjetas"
-                        : "Ver como lista compacta"
-                    }
-                    className="btn-mini shrink-0"
-                    data-variant="brand"
-                  >
-                    <Icon
-                      name={compactView ? "calendar" : "list"}
-                      className="h-3.5 w-3.5"
-                    />
-                  </button>
-                </div>
-              )}
-            </VenueHeader>
-            {booting ? (
-              <SelectSkeleton className="max-w-xs" />
-            ) : events.length > 0 && (
-              <section className="events-strip">
-                {/* Header de sección en UNA línea: título a la izquierda, la
-                  acción principal a la derecha. "Probar QR" e "Invitar" NO
-                  compiten aquí: son tareas del dock Del negocio y de la
-                  cabecera, y su botón permanente en cada pantalla era ruido
-                  que degradaba la jerarquía de "Nuevo evento". */}
-                <div className="evx-head">
-                  <div>
-                    <p className="eyebrow">Operación</p>
-                    <h2 className="display text-lg">Eventos</h2>
-                  </div>
-                  <button
-                    onClick={() => setCreateOpen(true)}
-                    className="btn-primary !px-3.5 !py-2 text-xs"
-                  >
-                    <Icon name="plus" className="h-3.5 w-3.5" />
-                    Nuevo evento
-                  </button>
-                </div>
-
-                {visibleEvents.length === 0 ? (
-                  <p className="mt-4 text-sm text-zinc-500">
-                    Ningún evento coincide con la búsqueda.
-                  </p>
-                ) : compactView ? (
-                  /* VISTA COMPACTA: una línea por evento. Con 20+ noches la
+                        <button
+                          onClick={() => {
+                            haptics.tick();
+                            setCompactView((v) => !v);
+                          }}
+                          aria-pressed={compactView}
+                          aria-label={
+                            compactView
+                              ? "Cambiar a vista de tarjetas"
+                              : "Cambiar a vista compacta"
+                          }
+                          data-tip={
+                            compactView
+                              ? "Ver como tarjetas"
+                              : "Ver como lista compacta"
+                          }
+                          className="btn-mini shrink-0"
+                          data-variant="brand"
+                        >
+                          <Icon
+                            name={compactView ? "calendar" : "list"}
+                            className="h-3.5 w-3.5"
+                          />
+                        </button>
+                      </div>
+                    </>
+                  )}
+              {booting ? (
+                <SelectSkeleton className="max-w-xs" />
+              ) : (
+                events.length > 0 && (
+                  <section className="events-strip">
+                    {visibleEvents.length === 0 ? (
+                      <p className="mt-4 text-sm text-zinc-500">
+                        Ningún evento coincide con la búsqueda.
+                      </p>
+                    ) : compactView ? (
+                      /* VISTA COMPACTA: una línea por evento. Con 20+ noches la
                     grilla de tarjetas exige scroll infinito; la tabla responde
                     "cuál es la próxima y cómo va" de un vistazo. */
-                  <ul className="evx-list">
-                    {sortEventsForStrip(visibleEvents).map((ev) => {
-                      const stat =
-                        ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
-                      const pill = openingPill(ev.starts_at);
-                      const live = ev.status === "live";
-                      return (
-                        <li key={ev.id} className="evx-row">
-                          <Link
-                            to={`/admin?event=${ev.id}`}
-                            onClick={() => haptics.tick()}
-                            className="absolute inset-0"
-                            aria-label={`Abrir ${ev.name}`}
-                          />
-                          <span className="evx-dot-wrap">
-                            <span
-                              className="evx-dot"
-                              aria-hidden="true"
-                              style={{
-                                background:
-                                  ev.status === "live"
-                                    ? "#34d399"
-                                    : ev.status === "published"
-                                      ? "#7d99ec"
-                                      : ev.status === "draft"
-                                        ? "#71717a"
-                                        : ev.status === "cancelled"
-                                          ? "#f87171"
-                                          : "#a1a1aa",
-                              }}
-                            />
-                          </span>
-                          <span className="evx-row-name truncate">{ev.name}</span>
-                          {pill && (
-                            <span className="evx-row-when">{pill.main}</span>
-                          )}
-                          <span className="evx-row-nums tnum">
-                            {stat
-                              ? `${money(stat.revenue_cents)} · ${stat.redeemed}/${stat.active}`
-                              : "…"}
-                          </span>
-                          <span
-                            className={`evx-row-state ${live ? "is-live" : ""}`}
-                          >
-                            {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <div className="evx-grid">
-                    {sortEventsForStrip(visibleEvents).map((ev) => {
-                      // Mini-reporte del evento (vendidas · dentro · recaudo) del
-                      // GET agregado. undefined = aún no llegó: la tarjeta degrada
-                      // a la versión sin cifras sin parpadear.
-                      const stat =
-                        ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
-                      const sold = stat?.active ?? null;
-                      const pct =
-                        sold !== null && ev.capacity > 0
-                          ? Math.min(
-                              100,
-                              Math.round((sold / ev.capacity) * 100),
-                            )
-                          : null;
-                      const pill = openingPill(ev.starts_at);
-                      const live = ev.status === "live";
-                      const ended = ["ended", "cancelled"].includes(ev.status);
-                      const hasFlyer =
-                        ev.flyer_url && !badFlyers[ev.flyer_url];
-                      // Iniciales del evento (fallback sin flyer): primera
-                      // palabra completa + inicial de la segunda, max 2.
-                      const initials = (ev.name || "?")
-                        .split(/\s+/)
-                        .slice(0, 2)
-                        .map((w) => w[0])
-                        .join("")
-                        .toUpperCase();
-                      return (
-                        <div
-                          key={ev.id}
-                          className={`event-card evx-card ${live ? "is-live" : ""} ${
-                            ended ? "is-ended" : ""
-                          }`}
-                        >
-                          {/* Link superpuesto: la TARJETA entera abre el
-                            backstage y deja libres las esquinas para acciones
-                            (duplicar) sin anidar botones dentro del <a>. */}
-                          <Link
-                            to={`/admin?event=${ev.id}`}
-                            onClick={() => haptics.tick()}
-                            className="absolute inset-0 rounded-xl"
-                            aria-label={`Abrir ${ev.name}`}
-                          />
-                          <div className="pointer-events-none p-4">
-                            {/* Fila 1: identidad. Flyer (o iniciales) + nombre
-                              y estado; la fecha en su propia línea es lo
-                              operativo: "cuándo es" pesa más que el aforo. */}
-                            <div className="evx-idrow">
-                              {hasFlyer ? (
-                                <img
-                                  src={ev.flyer_url}
-                                  alt=""
-                                  onError={() =>
-                                    setBadFlyers((m) => ({
-                                      ...m,
-                                      [ev.flyer_url]: true,
-                                    }))
-                                  }
-                                  className="evx-thumb"
-                                />
-                              ) : (
+                      <ul className="evx-list">
+                        {sortEventsForStrip(visibleEvents).map((ev) => {
+                          const stat =
+                            ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
+                          const pill = openingPill(ev.starts_at);
+                          const live = ev.status === "live";
+                          return (
+                            <li key={ev.id} className="evx-row">
+                              <Link
+                                to={`/admin?event=${ev.id}`}
+                                onClick={() => haptics.tick()}
+                                className="absolute inset-0"
+                                aria-label={`Abrir ${ev.name}`}
+                              />
+                              <span className="evx-dot-wrap">
                                 <span
-                                  className={`evx-thumb evx-thumb-fallback ${
-                                    ended ? "is-ended" : ""
-                                  }`}
+                                  className="evx-dot"
                                   aria-hidden="true"
-                                >
-                                  {initials}
+                                  style={{
+                                    background:
+                                      ev.status === "live"
+                                        ? "#34d399"
+                                        : ev.status === "published"
+                                          ? "#7d99ec"
+                                          : ev.status === "draft"
+                                            ? "#71717a"
+                                            : ev.status === "cancelled"
+                                              ? "#f87171"
+                                              : "#a1a1aa",
+                                  }}
+                                />
+                              </span>
+                              <span className="evx-row-name truncate">
+                                {ev.name}
+                              </span>
+                              {pill && (
+                                <span className="evx-row-when">
+                                  {pill.main}
                                 </span>
                               )}
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between gap-2">
-                                  <p className="evx-name truncate">{ev.name}</p>
-                                  <span className="evx-state">
+                              <span className="evx-row-nums tnum">
+                                {stat
+                                  ? `${money(stat.revenue_cents)} · ${stat.redeemed}/${stat.active}`
+                                  : "…"}
+                              </span>
+                              <span
+                                className={`evx-row-state ${live ? "is-live" : ""}`}
+                              >
+                                {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <div className="evx-grid">
+                        {sortEventsForStrip(visibleEvents).map((ev) => {
+                          // Mini-reporte del evento (vendidas · dentro · recaudo) del
+                          // GET agregado. undefined = aún no llegó: la tarjeta degrada
+                          // a la versión sin cifras sin parpadear.
+                          const stat =
+                            ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
+                          const sold = stat?.active ?? null;
+                          const pct =
+                            sold !== null && ev.capacity > 0
+                              ? Math.min(
+                                  100,
+                                  Math.round((sold / ev.capacity) * 100),
+                                )
+                              : null;
+                          const pill = openingPill(ev.starts_at);
+                          const live = ev.status === "live";
+                          const ended = ["ended", "cancelled"].includes(
+                            ev.status,
+                          );
+                          const hasFlyer =
+                            ev.flyer_url && !badFlyers[ev.flyer_url];
+                          // Iniciales del evento (fallback sin flyer): primera
+                          // palabra completa + inicial de la segunda, max 2.
+                          const initials = (ev.name || "?")
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .map((w) => w[0])
+                            .join("")
+                            .toUpperCase();
+                          return (
+                            <div
+                              key={ev.id}
+                              className={`event-card evx-card ${live ? "is-live" : ""} ${
+                                ended ? "is-ended" : ""
+                              }`}
+                            >
+                              {/* Link superpuesto: la TARJETA entera abre el
+                            backstage y deja libres las esquinas para acciones
+                            (duplicar) sin anidar botones dentro del <a>. */}
+                              <Link
+                                to={`/admin?event=${ev.id}`}
+                                onClick={() => haptics.tick()}
+                                className="absolute inset-0 rounded-xl"
+                                aria-label={`Abrir ${ev.name}`}
+                              />
+                              <div className="pointer-events-none p-4">
+                                {/* Fila 1: identidad. Flyer (o iniciales) + nombre
+                              y estado; la fecha en su propia línea es lo
+                              operativo: "cuándo es" pesa más que el aforo. */}
+                                <div className="evx-idrow">
+                                  {hasFlyer ? (
+                                    <img
+                                      src={ev.flyer_url}
+                                      alt=""
+                                      onError={() =>
+                                        setBadFlyers((m) => ({
+                                          ...m,
+                                          [ev.flyer_url]: true,
+                                        }))
+                                      }
+                                      className="evx-thumb"
+                                    />
+                                  ) : (
                                     <span
-                                      className={`evx-dot ${live ? "is-live" : ""}`}
+                                      className={`evx-thumb evx-thumb-fallback ${
+                                        ended ? "is-ended" : ""
+                                      }`}
                                       aria-hidden="true"
-                                      style={{
-                                        background: STATUS_DOT_COLOR[ev.status],
-                                      }}
-                                    />
-                                    {(EV_CHIP[ev.status] ?? EV_CHIP.draft)
-                                      .label}
-                                  </span>
+                                    >
+                                      {initials}
+                                    </span>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <p className="evx-name truncate">
+                                        {ev.name}
+                                      </p>
+                                      <span className="evx-state">
+                                        <span
+                                          className={`evx-dot ${live ? "is-live" : ""}`}
+                                          aria-hidden="true"
+                                          style={{
+                                            background:
+                                              STATUS_DOT_COLOR[ev.status],
+                                          }}
+                                        />
+                                        {
+                                          (EV_CHIP[ev.status] ?? EV_CHIP.draft)
+                                            .label
+                                        }
+                                      </span>
+                                    </div>
+                                    {pill && (
+                                      <p
+                                        className={`evx-when ec-when ec-when-${pill.tone} mt-1 inline-flex`}
+                                      >
+                                        <Icon
+                                          name="calendar"
+                                          className="h-3 w-3"
+                                        />
+                                        {pill.main}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
-                                {pill && (
-                                  <p
-                                    className={`evx-when ec-when ec-when-${pill.tone} mt-1 inline-flex`}
-                                  >
-                                    <Icon
-                                      name="calendar"
-                                      className="h-3 w-3"
-                                    />
-                                    {pill.main}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
 
-                            {/* Fila 2: las TRES cifras que responden las tres
+                                {/* Fila 2: las TRES cifras que responden las tres
                               preguntas de la noche, CADA UNA ROTULADA (antes
                               "0/1 dentro" flotaba sin contexto y "$ 0" en
                               verde prometia dinero que no hay). El recaudo
                               manda en tamanio; vendidas y entraron en tinta
                               media. */}
-                            {sold !== null ? (
-                              <div className="evx-stats">
-                                <div className="evx-stat">
-                                  <span className="evx-stat-label">
-                                    Recaudo
-                                  </span>
-                                  <span
-                                    className={`evx-stat-value tnum ${
-                                      stat.revenue_cents > 0 ? "has-money" : ""
-                                    }`}
-                                  >
-                                    {money(stat.revenue_cents)}
-                                  </span>
-                                </div>
-                                <div className="evx-stat">
-                                  <span className="evx-stat-label">Vendidas</span>
-                                  <span className="evx-stat-value tnum">
-                                    {sold}
-                                    <span className="evx-stat-denom">
-                                      /{ev.capacity}
-                                    </span>
-                                  </span>
-                                </div>
-                                <div className="evx-stat">
-                                  <span className="evx-stat-label">Entraron</span>
-                                  <span
-                                    className={`evx-stat-value tnum ${
-                                      live && stat.redeemed > 0
-                                        ? "is-counting"
-                                        : ""
-                                    }`}
-                                  >
-                                    {stat.redeemed}
-                                  </span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="evx-stats">
-                                {[0, 1, 2].map((i) => (
-                                  <div key={i} className="evx-stat">
-                                    <span className="skeleton h-2.5 w-14" />
-                                    <span className="skeleton mt-1 block h-4 w-16" />
+                                {sold !== null ? (
+                                  <div className="evx-stats">
+                                    <div className="evx-stat">
+                                      <span className="evx-stat-label">
+                                        Recaudo
+                                      </span>
+                                      <span
+                                        className={`evx-stat-value tnum ${
+                                          stat.revenue_cents > 0
+                                            ? "has-money"
+                                            : ""
+                                        }`}
+                                      >
+                                        {money(stat.revenue_cents)}
+                                      </span>
+                                    </div>
+                                    <div className="evx-stat">
+                                      <span className="evx-stat-label">
+                                        Vendidas
+                                      </span>
+                                      <span className="evx-stat-value tnum">
+                                        {sold}
+                                        <span className="evx-stat-denom">
+                                          /{ev.capacity}
+                                        </span>
+                                      </span>
+                                    </div>
+                                    <div className="evx-stat">
+                                      <span className="evx-stat-label">
+                                        Entraron
+                                      </span>
+                                      <span
+                                        className={`evx-stat-value tnum ${
+                                          live && stat.redeemed > 0
+                                            ? "is-counting"
+                                            : ""
+                                        }`}
+                                      >
+                                        {stat.redeemed}
+                                      </span>
+                                    </div>
                                   </div>
-                                ))}
-                              </div>
-                            )}
+                                ) : (
+                                  <div className="evx-stats">
+                                    {[0, 1, 2].map((i) => (
+                                      <div key={i} className="evx-stat">
+                                        <span className="skeleton h-2.5 w-14" />
+                                        <span className="skeleton mt-1 block h-4 w-16" />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
 
-                            {/* Fila 3: aforo como barra fina + % vendido.
+                                {/* Fila 3: aforo como barra fina + % vendido.
                               La barra es proporcion, no decoracion: color solo
                               si hay alerta real (80% ambar, 100% rojo). */}
-                            {pct !== null && (
-                              <div className="evx-meterrow">
-                                <div className="evx-meter" aria-hidden="true">
-                                  <div
-                                    className={`evx-meter-fill ${
-                                      pct >= 100
-                                        ? "is-full"
-                                        : pct >= 80
-                                          ? "is-warn"
-                                          : ""
-                                    }`}
-                                    style={{ width: `${pct}%` }}
-                                  />
-                                </div>
-                                <span className="evx-pct tnum">{pct}%</span>
+                                {pct !== null && (
+                                  <div className="evx-meterrow">
+                                    <div
+                                      className="evx-meter"
+                                      aria-hidden="true"
+                                    >
+                                      <div
+                                        className={`evx-meter-fill ${
+                                          pct >= 100
+                                            ? "is-full"
+                                            : pct >= 80
+                                              ? "is-warn"
+                                              : ""
+                                        }`}
+                                        style={{ width: `${pct}%` }}
+                                      />
+                                    </div>
+                                    <span className="evx-pct tnum">{pct}%</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          {/* Acciones de esquina al hover/focus (desktop):
+                              {/* Acciones de esquina al hover/focus (desktop):
                             la tarjeta es panel de control, no solo enlace.
                             Publicar/Abrir puertas desbloquean dinero y puerta;
                             duplicar apura la recurrencia semanal. */}
-                          <div className="evx-actions pointer-events-auto">
-                            {(ev.status === "draft" ||
-                              ev.status === "published") && (
-                              <button
-                                onClick={() =>
-                                  quickTransition(
-                                    ev,
-                                    ev.status === "draft" ? "publish" : "live",
-                                  )
-                                }
-                                disabled={busyAction !== ""}
-                                className="btn-mini"
-                                data-variant="success"
-                              >
-                                {busyAction === `publish-${ev.id}` ||
-                                busyAction === `live-${ev.id}` ? (
-                                  <svg
-                                    className="btn-spinner"
-                                    viewBox="0 0 24 24"
-                                    aria-hidden="true"
+                              <div className="evx-actions pointer-events-auto">
+                                {(ev.status === "draft" ||
+                                  ev.status === "published") && (
+                                  <button
+                                    onClick={() =>
+                                      quickTransition(
+                                        ev,
+                                        ev.status === "draft"
+                                          ? "publish"
+                                          : "live",
+                                      )
+                                    }
+                                    disabled={busyAction !== ""}
+                                    className="btn-mini"
+                                    data-variant="success"
                                   >
-                                    <circle cx="12" cy="12" r="9" />
-                                  </svg>
-                                ) : null}
-                                {ev.status === "draft" ? "Publicar" : "Abrir puertas"}
-                              </button>
-                            )}
-                            <button
-                              onClick={() => duplicateEvent(ev)}
-                              disabled={dupingId !== null}
-                              aria-label={`Duplicar ${ev.name}`}
-                              data-tip="Duplicar evento (borrador con sus tipos y cupos)"
-                              className="btn-mini"
-                            >
-                              {dupingId === ev.id ? (
-                                <svg
-                                  className="btn-spinner"
-                                  viewBox="0 0 24 24"
-                                  aria-hidden="true"
+                                    {busyAction === `publish-${ev.id}` ||
+                                    busyAction === `live-${ev.id}` ? (
+                                      <svg
+                                        className="btn-spinner"
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                      >
+                                        <circle cx="12" cy="12" r="9" />
+                                      </svg>
+                                    ) : null}
+                                    {ev.status === "draft"
+                                      ? "Publicar"
+                                      : "Abrir puertas"}
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => duplicateEvent(ev)}
+                                  disabled={dupingId !== null}
+                                  aria-label={`Duplicar ${ev.name}`}
+                                  data-tip="Duplicar evento (borrador con sus tipos y cupos)"
+                                  className="btn-mini"
                                 >
-                                  <circle cx="12" cy="12" r="9" />
-                                </svg>
-                              ) : (
-                                <Icon name="copy" className="h-3.5 w-3.5" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            )}
+                                  {dupingId === ev.id ? (
+                                    <svg
+                                      className="btn-spinner"
+                                      viewBox="0 0 24 24"
+                                      aria-hidden="true"
+                                    >
+                                      <circle cx="12" cy="12" r="9" />
+                                    </svg>
+                                  ) : (
+                                    <Icon name="copy" className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                )
+              )}
+            </VenueHeader>
 
             {/* Acción primaria al alcance del pulgar (solo móvil, modo lista):
               con una lista larga, "Nuevo evento" en el header queda aizar
@@ -1255,7 +1287,9 @@ export default function AdminDashboard() {
                   el ciclo de vida (que vive siempre visible en el header). */}
                 <div className="card p-4">
                   <p className="eyebrow">Puerta</p>
-                  <p className="display mb-2 mt-0.5 text-base">Cómo va la puerta</p>
+                  <p className="display mb-2 mt-0.5 text-base">
+                    Cómo va la puerta
+                  </p>
                   <ul className="space-y-2 text-sm text-zinc-300">
                     <li className="flex items-center justify-between gap-2">
                       <span>Boletas pendientes de entrar</span>
@@ -1313,7 +1347,9 @@ export default function AdminDashboard() {
               />
             )}
 
-            {(section === "boletas" || section === "entradas" || section === "cupos") && (
+            {(section === "boletas" ||
+              section === "entradas" ||
+              section === "cupos") && (
               <TicketList
                 venueId={venueId}
                 eventId={selectedEvent}

@@ -1451,16 +1451,14 @@ html[data-theme="light"] .bizdock-desc {
 }
 
 /* ----------------------------------------------------------------------
-   VENUE-HEADER: cabecera de la venue. Identidad (logo + nombre) a la
-   izquierda, la cifra del negocio a la derecha. En móvil apila: primero
-   quién eres, luego cuánto vendiste. Mismo idioma del sistema: hairline
-   separador (no caja dentro de caja) y acento unico brand-500.
+   VENUE-HEADER: cabecera de la venue. Es la PORTADA UNIFICADA: fila de
+   identidad (logo + nombre | cifra del mes) arriba y, separada por
+   hairline, la sección de eventos dentro del MISMO card — la misma
+   gramática del dock Del negocio: un card = un contexto, secciones por
+   hairline, sin cajas anidadas.
    ---------------------------------------------------------------------- */
 .venue-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
+  display: block;
   padding: 1.1rem 1.25rem;
   /* Luz cenital propia del sistema (como .card) pero un punto más presente:
      la cabecera es la "portada" del panel. */
@@ -1471,6 +1469,13 @@ html[data-theme="light"] .bizdock-desc {
       rgba(255, 255, 255, 0) 46%
     ),
     #101013;
+}
+/* Fila superior: identidad | KPI. Baja a columna en móvil. */
+.vh-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
 }
 .vh-identidad {
   display: flex;
@@ -1560,7 +1565,7 @@ html[data-theme="light"] .vh-delta.is-down {
 }
 
 @media (max-width: 640px) {
-  .venue-header {
+  .vh-top {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.9rem;
@@ -1577,11 +1582,17 @@ html[data-theme="light"] .vh-delta.is-down {
   }
 }
 
-/* Portada embebida: cuando la toolbar de eventos vive DENTRO del header de
-   la venue (portada unificada), ocupa todo el ancho bajo las dos columnas. */
+/* Portada embebida: la sección de eventos (toolbar + franja) vive DENTRO
+   del card de la venue. El hairline superior es el MISMO separador de
+   .evx-toolbar: la portada es un solo contexto, como Del negocio. */
 .vh-embedded {
   width: 100%;
-  margin-top: 0.2rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+html[data-theme="light"] .vh-embedded {
+  border-top-color: #e4e4e7;
 }
 
 /* ===========================================================================
@@ -1697,31 +1708,29 @@ html[data-theme="light"] .ec-when-soon {
 }
 
 /* ----------------------------------------------------------------------
-   EVX — franja de eventos rediseñada. El diagnóstico de la anterior:
-   CERO jerarquía (tres cifras del mismo peso compitiendo, dos píldoras
-   por tarjeta, un botón flotante y una barra en cada esquina) y filtros
-   tipo chip que sumaban seis cajas con borde en pantalla. Aquí manda la
-   regla profesional: UNA cifra manda (el dinero), el estado es un punto
+   EVX — franja de eventos. Vive DENTRO de la portada (vh-embedded): la
+   toolbar ya no repite hairline (el de la portada la separa) y los
+   paddings son los de una SECCIÓN, no los de un card propio.
+   Regla profesional: UNA cifra manda (el dinero), el estado es un punto
    de color (no una caja), y el ruido solo aparece al hover.
    ---------------------------------------------------------------------- */
 .events-strip {
-  padding: 1.15rem 1.25rem 1.25rem;
+  padding: 0.35rem 0 0.2rem;
 }
 .evx-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
+  margin-bottom: 0.55rem;
 }
 .evx-toolbar {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 0.9rem;
-  padding-bottom: 0.8rem;
-  /* Hairline bajo la toolbar: separa el "control" del "contenido" sin
-     una caja envolvente más. */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.75rem;
+  /* DENTRO de la portada el hairline lo pone .vh-embedded: aquí no se
+     repite (doble línea = caja falsa). */
 }
 .evx-tab {
   display: inline-flex;
@@ -2087,9 +2096,6 @@ html[data-theme="light"] .wb-revenue {
 }
 
 /* Claro: mismas formas, tinta invertida. */
-html[data-theme="light"] .evx-toolbar {
-  border-bottom-color: #e4e4e7;
-}
 html[data-theme="light"] .evx-tab {
   color: #71717a;
 }

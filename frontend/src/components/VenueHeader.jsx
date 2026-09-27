@@ -21,7 +21,7 @@ function labelMonth(ym) {
   return `${mes} ${y}`;
 }
 
-export default function VenueHeader({ venueId, user, embedded = false, children = null }) {
+export default function VenueHeader({ venueId, user, children = null }) {
   const [ov, setOv] = useState(null); // null = cargando (skeleton, no ceros)
 
   useEffect(() => {
@@ -41,76 +41,88 @@ export default function VenueHeader({ venueId, user, embedded = false, children 
   const delta =
     ov && ov.prev_revenue_cents > 0
       ? Math.round(
-          ((ov.revenue_cents - ov.prev_revenue_cents) / ov.prev_revenue_cents) * 100,
+          ((ov.revenue_cents - ov.prev_revenue_cents) / ov.prev_revenue_cents) *
+            100,
         )
       : null;
   const up = (delta ?? 0) >= 0;
 
   return (
-    <header className={`venue-header card${embedded ? " is-embedded" : ""}`}>
-      {/* Identidad: logo (o iniciales si no tiene) + nombre + etiqueta mes */}
-      <div className="vh-identidad">
-        {venue?.logo_url ? (
-          <img
-            src={venue.logo_url}
-            alt={`Logo de ${venue.name}`}
-            className="vh-logo"
-          />
-        ) : (
-          <span className="vh-logo vh-logo-fallback" aria-hidden="true">
-            {(venue?.name || "?").trim().charAt(0).toUpperCase()}
-            {(venue?.name || "").trim().split(/\s+/)[1]?.charAt(0).toUpperCase() ?? ""}
-          </span>
-        )}
-        <div className="min-w-0">
-          <p className="eyebrow">Panel de la venue</p>
-          <h1 className="display truncate text-lg leading-tight sm:text-xl">
-            {venue?.name ?? "Tu negocio"}
-          </h1>
-        </div>
-      </div>
-
-      {/* KPI headline: la cifra que un dueño mira primero, con tendencia */}
-      <div className="vh-kpi">
-        <div className="min-w-0">
-          <p className="vh-kpi-label">
-            Recaudado {ov?.month ? `· ${labelMonth(ov.month)}` : ""}
-          </p>
-          {ov ? (
-            <p className="vh-kpi-amount tnum">
-              <CountUpNumber
-                value={ov.revenue_cents / 100}
-                format={(v) => money(v * 100)}
-              />
-            </p>
+    <header className="venue-header card">
+      {/* Fila superior: identidad (logo + nombre) a la izquierda, la cifra
+        del negocio a la derecha. La portada completa sigue debajo: toolbar
+        y franja de eventos viven DENTRO de este card (misma gramatica del
+        dock Del negocio: un card = un contexto, secciones por hairline). */}
+      <div className="vh-top">
+        {/* Identidad: logo (o iniciales si no tiene) + nombre + etiqueta mes */}
+        <div className="vh-identidad">
+          {venue?.logo_url ? (
+            <img
+              src={venue.logo_url}
+              alt={`Logo de ${venue.name}`}
+              className="vh-logo"
+            />
           ) : (
-            <Skeleton className="h-9 w-40" />
-          )}
-          <p className="vh-kpi-meta">
-            {delta !== null ? (
-              <span
-                className={`vh-delta ${up ? "is-up" : "is-down"}`}
-                title="Comparado con el mes anterior"
-              >
-                <Icon name="arrowUp" className={`h-3 w-3 ${up ? "" : "rotate-180"}`} />
-                {Math.abs(delta)}%
-              </span>
-            ) : (
-              <span>—</span>
-            )}
-            <span>
-              {ov
-                ? `${ov.events_count} evento${ov.events_count === 1 ? "" : "s"} · ${ov.tickets_issued} boletas`
-                : "cargando…"}
+            <span className="vh-logo vh-logo-fallback" aria-hidden="true">
+              {(venue?.name || "?").trim().charAt(0).toUpperCase()}
+              {(venue?.name || "")
+                .trim()
+                .split(/\s+/)[1]
+                ?.charAt(0)
+                .toUpperCase() ?? ""}
             </span>
-          </p>
+          )}
+          <div className="min-w-0">
+            <p className="eyebrow">Panel de la venue</p>
+            <h1 className="display truncate text-lg leading-tight sm:text-xl">
+              {venue?.name ?? "Tu negocio"}
+            </h1>
+          </div>
+        </div>
+
+        {/* KPI headline: la cifra que un dueño mira primero, con tendencia */}
+        <div className="vh-kpi">
+          <div className="min-w-0">
+            <p className="vh-kpi-label">
+              Recaudado {ov?.month ? `· ${labelMonth(ov.month)}` : ""}
+            </p>
+            {ov ? (
+              <p className="vh-kpi-amount tnum">
+                <CountUpNumber
+                  value={ov.revenue_cents / 100}
+                  format={(v) => money(v * 100)}
+                />
+              </p>
+            ) : (
+              <Skeleton className="h-9 w-40" />
+            )}
+            <p className="vh-kpi-meta">
+              {delta !== null ? (
+                <span
+                  className={`vh-delta ${up ? "is-up" : "is-down"}`}
+                  title="Comparado con el mes anterior"
+                >
+                  <Icon
+                    name="arrowUp"
+                    className={`h-3 w-3 ${up ? "" : "rotate-180"}`}
+                  />
+                  {Math.abs(delta)}%
+                </span>
+              ) : (
+                <span>—</span>
+              )}
+              <span>
+                {ov
+                  ? `${ov.events_count} evento${ov.events_count === 1 ? "" : "s"} · ${ov.tickets_issued} boletas`
+                  : "cargando…"}
+              </span>
+            </p>
+          </div>
         </div>
       </div>
-      {/* Contenido embebido (la toolbar de eventos: búsqueda + filtros +
-        densidad). Solo tiene sentido en la portada del modo lista. */}
-      {children && (
-        <div className="vh-embedded">{children}</div>
-      )}
+      {/* Contenido embebido (toolbar de eventos + franja): separado de la
+        fila de identidad por el hairline del sistema, como en Del negocio. */}
+      {children && <div className="vh-embedded">{children}</div>}
     </header>
   );
 }
