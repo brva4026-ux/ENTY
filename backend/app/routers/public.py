@@ -6,6 +6,7 @@ SHA-256. Quien tiene el link, tiene la boleta — que es exactamente lo que se
 busca al entregarla. Por eso el nombre del asistente va impreso en la imagen y
 el bouncer lo compara en la puerta (ver docs/arquitectura/03-seguridad.md).
 """
+from html import escape
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
@@ -28,8 +29,23 @@ _RATE_WINDOW = 60.0
 _rate_bucket: dict[str, list[float]] = {}
 
 
+def _rate_key(request: Request) -> str:
+    # Detras de Vercel (y de cualquier proxy) request.client.host es la edge,
+    # no la persona: sin los headers de reenvio, TODOS los invitados compartian
+    # un solo cubo de 120/min y la pagina de boleta devolvia 429 a todo el
+    # mundo con unas decenas de usuarios concurrentes. Misma fuente que en
+    # auth/public_tickets: x-real-ip del edge, luego el primer salto de
+    # x-forwarded-for, y el peer de socket como ultimo recurso (dev directo).
+    fwd = request.headers.get("x-forwarded-for", "")
+    return (
+        request.headers.get("x-real-ip")
+        or (fwd.split(",")[0].strip() if fwd else "")
+        or (request.client.host if request.client else "unknown")
+    )
+
+
 async def _rate_limit(request: Request) -> None:
-    ip = request.client.host if request.client else "unknown"
+    ip = _rate_key(request)
     now = time.monotonic()
     bucket = [t for t in _rate_bucket.get(ip, []) if now - t < _RATE_WINDOW]
     if len(bucket) >= _RATE_LIMIT:
@@ -187,32 +203,39 @@ async def public_ticket_page(
     if row["status"] in ("voided", "refunded"):
         # El QR ya no sirve; la página lo dice claro en vez de mostrar imagen.
         body = f"""
-        <div class='box'><p class='bad'>{status_text}</p>
+        <div class='box'><p class='bad'>{escape(status_text)}</p>
         <p>Esta boleta fue anulada por el organizador y no permite el ingreso.</p></div>"""
     elif not qr_active:
         # Mig 013: el enlace sigue sirviendo (quien lo recibió no queda
         # fuera), pero el QR no se dibuja fuera de la ventana. La imagen no
         # se referencia: tampoco se compone por fuera de la ventana.
         body = f"""
-        <div class='box'><p class='ok'>{status_text}</p>
-        <p class='hint'>{qr_msg}</p>
+        <div class='box'><p class='ok'>{escape(status_text)}</p>
+        <p class='hint'>{escape(qr_msg or "")}</p>
         <p class='hint'>Vuelve a este enlace cuando se active tu QR.</p></div>"""
     else:
-        where_html = f"<p class='where'>{row['location']}</p>" if row["location"] else ""
+        where_html = (
+            f"<p class='where'>{escape(row['location'])}</p>"
+            if row["location"]
+            else ""
+        )
         body = f"""
-        <div class='box'><img src='{image_url}' alt='Boleta con QR' class='ticket'/>
-        <p class='ok'>{status_text}</p>{where_html}
+        <div class='box'><img src='{escape(image_url)}' alt='Boleta con QR' class='ticket'/>
+        <p class='ok'>{escape(status_text)}</p>{where_html}
         <p class='hint'>Presenta este QR en la puerta junto con tu documento.</p></div>"""
 
     title = f"Boleta #{row['ticket_number']} · {row['event_name']}"
+    # escape() en TODA interpolacion que llega de la DB (nombre del evento,
+    # lugar, cliente): sin el, un evento llamado "<script>" o un lugar con
+    # comilla ejecuta HTML en el telefono del invitado (stored XSS publico).
     html = f"""<!doctype html>
 <html lang='es'><head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 <meta name='robots' content='noindex, nofollow'>
-<meta property='og:title' content='{title}'>
-<meta property='og:description' content='{row["customer_name"]} · {status_text}{where_line}'>
-<meta property='og:image' content='{image_url}'>
-<title>{title}</title>
+<meta property='og:title' content='{escape(title)}'>
+<meta property='og:description' content='{escape(row["customer_name"])} · {escape(status_text)}{escape(where_line)}'>
+<meta property='og:image' content='{escape(image_url)}'>
+<title>{escape(title)}</title>
 <style>
   body {{ margin:0; min-height:100vh; display:grid; place-items:center;
          background:#09090b; color:#e4e4e7; font-family:system-ui,sans-serif; }}

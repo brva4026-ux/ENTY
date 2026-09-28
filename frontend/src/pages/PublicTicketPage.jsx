@@ -57,7 +57,10 @@ export default function PublicTicketPage() {
     QRCode.toDataURL(token, {
       width: 640,
       margin: 1,
-      errorCorrectionLevel: "M",
+      // Mismo nivel que la imagen del servidor (ticket_image): la boleta se
+      // muestra con brillo bajo o llega por WhatsApp; con correccion H (30%)
+      // el escaneo en la puerta falla mucho menos que con M.
+      errorCorrectionLevel: "H",
       color: { dark: "#0f172a", light: "#ffffff" },
     })
       .then((url) => {

@@ -32,7 +32,10 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
 
 
 def _qr_image(data: str) -> Image.Image:
-    qr = qrcode.QRCode(border=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
+    # Nivel H (30% de correccion de error): la boleta se muestra desde un
+    # telefono con brillo bajo o pasa por WhatsApp (recompresion); con M
+    # (15%) los escaneos fallaban mucho mas en la puerta.
+    qr = qrcode.QRCode(border=1, error_correction=qrcode.constants.ERROR_CORRECT_H)
     qr.add_data(data)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white").convert("RGB")

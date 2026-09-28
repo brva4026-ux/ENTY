@@ -62,22 +62,22 @@ export function listTicketsPaged(venueId, eventId, filters = {}) {
   return apiFetch(`/venues/${venueId}/events/${eventId}/tickets${suffix}`);
 }
 
-/** Export CSV del listado filtrado (descarga directa del navegador). */
-export function exportTicketsCsvUrl(venueId, eventId, filters = {}) {
+/**
+ * Descarga autenticada del CSV del listado filtrado (fetch + Bearer + blob +
+ * click). La URL se arma aqui: el token viaja en el header, nunca en la URL.
+ */
+export async function downloadTicketsCsv(venueId, eventId, filters = {}) {
   const qs = new URLSearchParams({ format: "csv" });
   if (filters.status) qs.set("status", filters.status);
   if (filters.type_id) qs.set("type_id", filters.type_id);
   if (filters.q) qs.set("q", filters.q);
-  // El token va en el header, no en la URL: descarga via fetch + blob.
-  return `/api/venues/${venueId}/events/${eventId}/tickets?${qs}`;
-}
-
-/** Descarga autenticada del CSV (fetch con Bearer + blob + click). */
-export async function downloadTicketsCsv(venueId, eventId, filters = {}) {
   const token = localStorage.getItem("tf_token");
-  const res = await fetch(exportTicketsCsvUrl(venueId, eventId, filters), {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await fetch(
+    `/api/venues/${venueId}/events/${eventId}/tickets?${qs}`,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    },
+  );
   if (!res.ok) throw new Error("No se pudo exportar el CSV");
   const blob = await res.blob();
   const a = document.createElement("a");

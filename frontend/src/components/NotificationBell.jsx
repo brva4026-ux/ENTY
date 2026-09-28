@@ -121,7 +121,11 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl shadow-black/40">
+        <div
+          role="dialog"
+          aria-label="Notificaciones"
+          className="absolute right-0 z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl shadow-black/40"
+        >
           <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
             <p className="text-sm font-semibold text-zinc-200">Notificaciones</p>
             {unread > 0 && (

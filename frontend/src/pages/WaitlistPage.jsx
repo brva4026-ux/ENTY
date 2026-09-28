@@ -22,12 +22,17 @@ const STORE_KEY = "tf_waitlist_token";
 
 function readToken() {
   const raw = window.location.hash.replace(/^#/, "").trim();
-  if (!raw) return localStorage.getItem(STORE_KEY);
-  try {
-    return decodeURIComponent(raw);
-  } catch {
-    return raw;
+  if (raw) {
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
   }
+  // Sin fragmento, el localStorage puede guardar la credencial de OTRO evento:
+  // mostrar "posicion 4" del evento equivocado es peor que pedir los datos
+  // de nuevo. El enlace del mensaje (#) siempre manda.
+  return null;
 }
 
 export default function WaitlistPage() {
@@ -197,7 +202,16 @@ export default function WaitlistPage() {
                 </label>
                 <input
                   value={eventId}
-                  onChange={(e) => setEventId(e.target.value)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setEventId(raw);
+                    // Auto-detectar el id desde un enlace pegado
+                    // (<origin>/waitlist#<id>): evita el error clasico de
+                    // que la persona pegue el enlace completo y el join
+                    // falle con "Evento no encontrado".
+                    const m = raw.match(/waitlist#(\d+)/);
+                    if (m) setEventId(m[1]);
+                  }}
                   required
                   inputMode="numeric"
                   className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-white ring-1 ring-zinc-800 focus:ring-brand-500"

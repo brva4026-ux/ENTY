@@ -148,7 +148,7 @@ def test_image_qr_decodes_to_token(client, dbcur):
     # (qrcode es determinista). El JPEG es con perdida, de ahi la tolerancia:
     # medido, el mismo token difiere <=15 y un token distinto llega a 255.
     img = Image.open(io.BytesIO(r.content)).convert("RGB")
-    ref = qrcode.QRCode(border=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
+    ref = qrcode.QRCode(border=1, error_correction=qrcode.constants.ERROR_CORRECT_H)
     ref.add_data(token)
     ref.make(fit=True)
     ref_img = ref.make_image(fill_color="black", back_color="white").convert("RGB")
