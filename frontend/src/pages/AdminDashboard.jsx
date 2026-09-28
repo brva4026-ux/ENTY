@@ -836,10 +836,26 @@ export default function AdminDashboard() {
                                     </span>
                                   )}
                                   <div className="min-w-0 flex-1">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <p className="evx-name truncate">
-                                        {ev.name}
+                                    <p className="evx-name truncate">
+                                      {ev.name}
+                                    </p>
+                                    {pill && (
+                                      <p
+                                        className={`evx-when ec-when ec-when-${pill.tone} mt-1 inline-flex`}
+                                      >
+                                        <Icon
+                                          name="calendar"
+                                          className="h-3 w-3"
+                                        />
+                                        {pill.main}
                                       </p>
+                                    )}
+                                    {/* Estado + señal de apertura en su propia
+                                      fila: el estado deja de pelear con los
+                                      botones por la esquina y "Abrir →" dice
+                                      SIEMPRE que la tarjeta se abre (sin
+                                      depender del cursor ni del hover). */}
+                                    <div className="evx-meta-row">
                                       <span className="evx-state">
                                         <span
                                           className={`evx-dot ${live ? "is-live" : ""}`}
@@ -854,18 +870,15 @@ export default function AdminDashboard() {
                                             .label
                                         }
                                       </span>
-                                    </div>
-                                    {pill && (
-                                      <p
-                                        className={`evx-when ec-when ec-when-${pill.tone} mt-1 inline-flex`}
-                                      >
+                                      <span className="evx-open-label">
+                                        Abrir
                                         <Icon
-                                          name="calendar"
+                                          name="arrowRight"
                                           className="h-3 w-3"
+                                          aria-hidden="true"
                                         />
-                                        {pill.main}
-                                      </p>
-                                    )}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
 
@@ -948,7 +961,14 @@ export default function AdminDashboard() {
                                         style={{ width: `${pct}%` }}
                                       />
                                     </div>
-                                    <span className="evx-pct tnum">{pct}%</span>
+                                    {/* La proporción NOMBRADA: un "1%" suelto
+                                      obliga a adivinar (¿1% de qué?). */}
+                                    <span
+                                      className="evx-pct tnum"
+                                      data-tip="Porcentaje vendido del aforo"
+                                    >
+                                      {pct}% vendido
+                                    </span>
                                   </div>
                                 )}
                               </div>
@@ -971,6 +991,11 @@ export default function AdminDashboard() {
                                     disabled={busyAction !== ""}
                                     className="btn-mini"
                                     data-variant="success"
+                                    data-tip={
+                                      ev.status === "draft"
+                                        ? "Publicar evento (pasa a la venta)"
+                                        : "Abrir puertas (la puerta empieza a escanear)"
+                                    }
                                   >
                                     {busyAction === `publish-${ev.id}` ||
                                     busyAction === `live-${ev.id}` ? (
@@ -981,12 +1006,17 @@ export default function AdminDashboard() {
                                       >
                                         <circle cx="12" cy="12" r="9" />
                                       </svg>
-                                    ) : null}
+                                    ) : (
+                                      <Icon name="bolt" className="h-3.5 w-3.5" />
+                                    )}
                                     {ev.status === "draft"
                                       ? "Publicar"
                                       : "Abrir puertas"}
                                   </button>
                                 )}
+                                {/* Duplicar está disponible en TODOS los
+                                    estados: de una noche en curso o pasada
+                                    nace el borrador de la siguiente. */}
                                 <button
                                   onClick={() => duplicateEvent(ev)}
                                   disabled={dupingId !== null}

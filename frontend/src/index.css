@@ -1776,6 +1776,9 @@ html[data-theme="light"] .ec-when-soon {
 }
 .evx-card {
   padding: 0;
+  /* La tarjeta ENTERA es un enlace (el <Link absolute inset-0> de abajo):
+     el cursor de mano lo dice aunque el usuario no descubra el hover. */
+  cursor: pointer;
   /* position: relative OBLIGATORIO: el <Link absolute inset-0> que hace
      clickeable la tarjeta se ancla a SU tarjeta. Sin esto, todos los
      enlaces del grid comparten una sola caja gigante sobre la sección y
@@ -1934,8 +1937,8 @@ html[data-theme="light"] .ec-when-soon {
   font-size: 0.6875rem;
   font-weight: 600;
   color: #a1a1aa;
-  min-width: 2.2rem;
   text-align: right;
+  white-space: nowrap;
 }
 .evx-meter {
   height: 4px;
@@ -1990,20 +1993,52 @@ html[data-theme="light"] .evx-stat-value.is-counting {
 html[data-theme="light"] .evx-pct {
   color: #52525b;
 }
-/* Acciones de esquina al hover/focus: panel de control, no decoración. */
+/* Acciones de esquina SIEMPRE visibles (iconos con tooltip): ocultarlas
+   detras del hover las hacía invisibles — en táctil el hover NO existe y
+   un botón que solo aparece al pasar el mouse es una función que nadie
+   encuentra. Publicar/Abrir puertas/Duplicar son control, no decoración. */
 .evx-actions {
   position: absolute;
-  right: 0.6rem;
-  bottom: 0.6rem;
+  top: 0.65rem;
+  right: 0.65rem;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  opacity: 0;
-  transition: opacity 0.15s;
+  gap: 0.15rem;
 }
-.evx-card:hover .evx-actions,
-.evx-card:focus-within .evx-actions {
-  opacity: 1;
+/* En móvil la esquina NO alcanza: las acciones absolutas tapaban el nombre
+   del evento. Abajo pasan a fila propia, alineadas a la derecha. */
+@media (max-width: 639px) {
+  .evx-actions {
+    position: static;
+    justify-content: flex-end;
+    padding: 0 0.75rem 0.75rem;
+  }
+}
+
+/* Fila de metadatos del evento: cuándo empieza + estado + la señal de que
+   la tarjeta se abre. El estado vive aquí (no compitiendo con las acciones
+   por la esquina) y "Abrir →" permanece visible: es la indicación de que
+   la tarjeta ES un enlace, sin depender del cursor ni del hover. */
+.evx-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+  margin-top: 0.5rem;
+}
+.evx-open-label {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #b0c0f2;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+html[data-theme="light"] .evx-open-label {
+  color: #2a4fb8;
 }
 
 /* LISTA COMPACTA: una línea por evento. Con 20+ noches la grilla de
@@ -2147,13 +2182,8 @@ html[data-theme="light"] .is-live .evx-meter-fill { background: #059669; }
 html[data-theme="light"] .evx-meter-fill.is-warn { background: #d97706; }
 html[data-theme="light"] .evx-meter-fill.is-full { background: #dc2626; }
 html[data-theme="light"] .is-ended .evx-meter-fill { background: #d4d4d8; }
-html[data-theme="light"] .evx-actions {
-  opacity: 0;
-}
-html[data-theme="light"] .evx-card:hover .evx-actions,
-html[data-theme="light"] .evx-card:focus-within .evx-actions {
-  opacity: 1;
-}
+/* evx-actions: SIEMPRE visible en ambos temas (antes el claro las
+   re-ocultaba tras el hover: en táctil eran imposibles de encontrar). */
 
 @media (prefers-reduced-motion: reduce) {
   .event-card,

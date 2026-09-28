@@ -37,6 +37,7 @@ const PATHS = {
   qr: "M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 3h2m2 0h1m-5 3h3m2-3v3",
   flag: "M5 21V4m0 1h11.5l-2 4 2 4H5",
   arrowUp: "M12 19V5M6 11l6-6 6 6",
+  arrowRight: "M5 12h14M13 5l7 7-7 7",
   sparkle: "M12 3.5 13.9 9l5.6 2-5.6 2-1.9 5.5L10.1 13 4.5 11l5.6-2L12 3.5Z",
   bell: "M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",
   list: "M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01",
