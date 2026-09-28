@@ -122,6 +122,12 @@ def _canon(dump: str) -> str:
     lines = [ln.rstrip() for ln in dump.replace("\r", "").split("\n")]
     out: list[str] = []
     for ln in lines:
+        # \restrict / \unrestrict: meta-comandos de psql que pg_dump nuevo
+        # (17.x) estampa al inicio/fin del dump con un token ALEATORIO por
+        # corrida. No son SQL y dos dumps legitimos del mismo esquema nunca
+        # coinciden en el token: se excluyen de la comparacion.
+        if ln.startswith("\\restrict ") or ln.startswith("\\unrestrict "):
+            continue
         if ln or (out and out[-1]):
             out.append(ln)
     return "\n".join(out).strip()
