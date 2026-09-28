@@ -39,6 +39,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "021_ticket_return.sql",
     ROOT / "db" / "migrations" / "022_event_waitlist.sql",
     ROOT / "db" / "migrations" / "023_ticket_payments.sql",
+    ROOT / "db" / "migrations" / "024_notify_autoclose_kind.sql",
 ]
 
 

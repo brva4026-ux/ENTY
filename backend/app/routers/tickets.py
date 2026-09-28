@@ -651,7 +651,7 @@ async def door_snapshot(
 
         await cur.execute(
             """
-            SELECT encode(t.token_hash, 'hex') AS h, t.status::text AS s,
+            SELECT t.token_hash AS h, t.status::text AS s,
                    t.ticket_type_id AS t, t.customer_name AS n
             FROM tickets t
             WHERE t.event_id = %s AND t.status = 'issued'

@@ -48,16 +48,17 @@ SET standard_conforming_strings = on;
 -- bien, pero dejaría rota la sesión para la SIGUIENTE SQL no-calificada
 -- (migraciones, smoke test). Se restaura el search_path estándar aquí.
 SELECT pg_catalog.set_config('search_path', 'public', false);
+
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
 --
 -- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
 --
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
-
 
 --
 -- Name: ticket_status; Type: TYPE; Schema: public; Owner: -
@@ -70,7 +71,6 @@ CREATE TYPE public.ticket_status AS ENUM (
     'redeemed'
 );
 
-
 --
 -- Name: user_role; Type: TYPE; Schema: public; Owner: -
 --
@@ -81,7 +81,6 @@ CREATE TYPE public.user_role AS ENUM (
     'promotor',
     'bouncer'
 );
-
 
 --
 -- Name: approve_ticket_payment(text, text, text, bigint, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -191,7 +190,6 @@ BEGIN
 END
 $$;
 
-
 --
 -- Name: auto_close_expired_events(); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -215,9 +213,16 @@ BEGIN
     SELECT count(*) INTO v_closed FROM closed;
 
     -- published vencido -> cancelled (venta que vencio sin abrir puertas).
-    -- NO es 'ended': el trigger events_check_transition (mig 005) solo
-    -- acepta published -> live | cancelled. El FOR captura cada fila cerrada
-    -- para acumular el conteo Y avisar al admin (notify_venue_admins).
+    -- OJO: NO es 'ended'. El trigger events_check_transition (mig 005) solo
+    -- acepta published -> live | cancelled; un UPDATE a 'ended' lanzaba
+    -- invalid_transition y el GET /events entero moria en la watchdog con
+    -- un 500 la primera vez que existia un published vencido en datos reales
+    -- (en CI nunca ocurría: los tests pasan por live antes de vencer).
+    --
+    -- El FOR captura cada fila cerrada: acumula el conteo Y deja el aviso
+    -- (in-app + push via notify_venue_admins). El admin NO descubre un
+    -- cancelado mirando la franja; un solo UPDATE hace el cierre, así que
+    -- no hay doble-pasada que devuelva 0 filas al notificar.
     FOR c IN
         UPDATE events
            SET status = 'cancelled', updated_at = now()
@@ -239,7 +244,6 @@ BEGIN
     RETURN v_closed;
 END;
 $$;
-
 
 --
 -- Name: claim_waitlist(text, text); Type: FUNCTION; Schema: public; Owner: -
@@ -333,7 +337,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: clear_login_failures(text, text); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -344,7 +347,6 @@ CREATE FUNCTION public.clear_login_failures(p_email text, p_ip text) RETURNS voi
     DELETE FROM login_attempts
      WHERE email_norm = lower(p_email) AND ip = p_ip;
 $$;
-
 
 --
 -- Name: correct_ticket_contact(bigint, text, text, bigint, text); Type: FUNCTION; Schema: public; Owner: -
@@ -407,7 +409,6 @@ BEGIN
 END;
 $_$;
 
-
 --
 -- Name: delete_promoter_allocation(bigint); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -438,7 +439,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: delete_ticket_type(bigint); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -467,7 +467,6 @@ BEGIN
     RETURN TRUE;
 END;
 $$;
-
 
 --
 -- Name: emit_ticket(bigint, bigint, bigint, bigint, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
@@ -548,7 +547,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: events_check_capacity(); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -574,7 +572,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: events_check_transition(); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -598,7 +595,6 @@ BEGIN
     RETURN NEW;
 END;
 $$;
-
 
 --
 -- Name: expire_waitlist_offers(); Type: FUNCTION; Schema: public; Owner: -
@@ -628,7 +624,6 @@ BEGIN
     RETURN v_expired;
 END;
 $$;
-
 
 --
 -- Name: join_waitlist(bigint, text, text, text); Type: FUNCTION; Schema: public; Owner: -
@@ -689,7 +684,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: leave_waitlist(text); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -717,7 +711,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: login_locked(text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -738,7 +731,6 @@ CREATE FUNCTION public.login_locked(p_email text, p_ip text, p_max_failures inte
            AND at > now() - make_interval(mins => p_window_minutes)
     ) >= p_max_failures;
 $$;
-
 
 --
 -- Name: notify_invitation_accepted(); Type: FUNCTION; Schema: public; Owner: -
@@ -768,7 +760,6 @@ BEGIN
     RETURN NEW;
 END;
 $$;
-
 
 --
 -- Name: notify_payout_lifecycle(); Type: FUNCTION; Schema: public; Owner: -
@@ -829,7 +820,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: notify_ticket_reissued(); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -861,7 +851,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: notify_user(bigint, bigint, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -878,7 +867,6 @@ CREATE FUNCTION public.notify_user(p_user_id bigint, p_venue_id bigint, p_kind t
     INSERT INTO push_outbox(notification_id)
     SELECT id FROM n;
 $$;
-
 
 --
 -- Name: notify_venue_admins(bigint, text, text, text, text, bigint); Type: FUNCTION; Schema: public; Owner: -
@@ -906,7 +894,6 @@ CREATE FUNCTION public.notify_venue_admins(p_venue_id bigint, p_kind text, p_tit
     INSERT INTO push_outbox(notification_id)
     SELECT id FROM n;
 $$;
-
 
 --
 -- Name: offer_next_waitlist_spot(bigint, bigint, bigint); Type: FUNCTION; Schema: public; Owner: -
@@ -948,7 +935,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: prune_login_attempts(integer); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -959,7 +945,6 @@ CREATE FUNCTION public.prune_login_attempts(p_window_minutes integer DEFAULT 60)
     DELETE FROM login_attempts
      WHERE at < now() - make_interval(mins => p_window_minutes);
 $$;
-
 
 --
 -- Name: redeem_ticket(bigint, text, bigint, bigint); Type: FUNCTION; Schema: public; Owner: -
@@ -1056,7 +1041,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: register_login_failure(text, text); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -1067,7 +1051,6 @@ CREATE FUNCTION public.register_login_failure(p_email text, p_ip text) RETURNS v
     INSERT INTO login_attempts (email_norm, ip)
     VALUES (lower(p_email), p_ip);
 $$;
-
 
 --
 -- Name: reissue_ticket(bigint, text, bigint, text); Type: FUNCTION; Schema: public; Owner: -
@@ -1124,7 +1107,6 @@ BEGIN
     RETURN v_ticket.event_id;
 END;
 $$;
-
 
 --
 -- Name: return_ticket(bigint, text, bigint); Type: FUNCTION; Schema: public; Owner: -
@@ -1223,7 +1205,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: set_event_status(bigint, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -1270,7 +1251,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: tickets_check_active_refs(); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -1298,7 +1278,6 @@ BEGIN
     RETURN NEW;
 END;
 $$;
-
 
 --
 -- Name: update_event(bigint, text, text, text, timestamp with time zone, timestamp with time zone, text, integer); Type: FUNCTION; Schema: public; Owner: -
@@ -1359,7 +1338,6 @@ BEGIN
 END;
 $$;
 
-
 --
 -- Name: update_promoter_allocation(bigint, integer, boolean); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -1393,7 +1371,6 @@ BEGIN
      WHERE id = p_allocation_id;
 END;
 $$;
-
 
 --
 -- Name: update_ticket_type(bigint, text, bigint, integer, boolean, boolean); Type: FUNCTION; Schema: public; Owner: -
@@ -1431,7 +1408,6 @@ BEGIN
      WHERE id = p_type_id;
 END;
 $$;
-
 
 --
 -- Name: void_ticket(bigint, text, bigint); Type: FUNCTION; Schema: public; Owner: -
@@ -1472,7 +1448,6 @@ BEGIN
 END;
 $$;
 
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -1492,7 +1467,6 @@ CREATE TABLE public.audit_log (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
 --
 -- Name: audit_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1505,7 +1479,6 @@ ALTER TABLE public.audit_log ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: event_waitlist; Type: TABLE; Schema: public; Owner: -
@@ -1527,7 +1500,6 @@ CREATE TABLE public.event_waitlist (
     CONSTRAINT event_waitlist_status_check CHECK ((status = ANY (ARRAY['waiting'::text, 'offered'::text, 'claimed'::text, 'expired'::text, 'left'::text])))
 );
 
-
 --
 -- Name: event_waitlist_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1540,7 +1512,6 @@ ALTER TABLE public.event_waitlist ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: events; Type: TABLE; Schema: public; Owner: -
@@ -1568,7 +1539,6 @@ CREATE TABLE public.events (
     CONSTRAINT events_waitlist_offer_minutes_check CHECK ((waitlist_offer_minutes >= 1))
 );
 
-
 --
 -- Name: events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1582,7 +1552,6 @@ ALTER TABLE public.events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     CACHE 1
 );
 
-
 --
 -- Name: login_attempts; Type: TABLE; Schema: public; Owner: -
 --
@@ -1593,7 +1562,6 @@ CREATE TABLE public.login_attempts (
     ip text DEFAULT 'unknown'::text NOT NULL,
     at timestamp with time zone DEFAULT now() NOT NULL
 );
-
 
 --
 -- Name: login_attempts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
@@ -1607,7 +1575,6 @@ ALTER TABLE public.login_attempts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: media; Type: TABLE; Schema: public; Owner: -
@@ -1625,7 +1592,6 @@ CREATE TABLE public.media (
     CONSTRAINT media_size_bytes_check CHECK (((size_bytes > 0) AND (size_bytes <= 600000)))
 );
 
-
 --
 -- Name: media_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1638,7 +1604,6 @@ ALTER TABLE public.media ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: notifications; Type: TABLE; Schema: public; Owner: -
@@ -1654,9 +1619,8 @@ CREATE TABLE public.notifications (
     link text,
     read_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text])))
+    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text, 'event_autoclosed'::text])))
 );
-
 
 --
 -- Name: notifications_id_seq; Type: SEQUENCE; Schema: public; Owner: -
@@ -1670,7 +1634,6 @@ ALTER TABLE public.notifications ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTIT
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: -
@@ -1686,7 +1649,6 @@ CREATE TABLE public.password_reset_tokens (
     request_ip text
 );
 
-
 --
 -- Name: password_reset_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1699,7 +1661,6 @@ ALTER TABLE public.password_reset_tokens ALTER COLUMN id ADD GENERATED ALWAYS AS
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: promoter_allocations; Type: TABLE; Schema: public; Owner: -
@@ -1716,7 +1677,6 @@ CREATE TABLE public.promoter_allocations (
     CONSTRAINT promoter_allocations_capacity_check CHECK ((capacity >= 0))
 );
 
-
 --
 -- Name: promoter_allocations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1729,7 +1689,6 @@ ALTER TABLE public.promoter_allocations ALTER COLUMN id ADD GENERATED ALWAYS AS 
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: promoter_payouts; Type: TABLE; Schema: public; Owner: -
@@ -1757,7 +1716,6 @@ CREATE TABLE public.promoter_payouts (
     CONSTRAINT promoter_payouts_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'disputed'::text, 'paid'::text, 'rejected'::text])))
 );
 
-
 --
 -- Name: promoter_payouts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1771,7 +1729,6 @@ ALTER TABLE public.promoter_payouts ALTER COLUMN id ADD GENERATED ALWAYS AS IDEN
     CACHE 1
 );
 
-
 --
 -- Name: push_outbox; Type: TABLE; Schema: public; Owner: -
 --
@@ -1782,7 +1739,6 @@ CREATE TABLE public.push_outbox (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     processed_at timestamp with time zone
 );
-
 
 --
 -- Name: push_outbox_id_seq; Type: SEQUENCE; Schema: public; Owner: -
@@ -1796,7 +1752,6 @@ ALTER TABLE public.push_outbox ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY 
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: push_subscriptions; Type: TABLE; Schema: public; Owner: -
@@ -1813,7 +1768,6 @@ CREATE TABLE public.push_subscriptions (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
 --
 -- Name: push_subscriptions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1826,7 +1780,6 @@ ALTER TABLE public.push_subscriptions ALTER COLUMN id ADD GENERATED ALWAYS AS ID
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: redemptions; Type: TABLE; Schema: public; Owner: -
@@ -1841,7 +1794,6 @@ CREATE TABLE public.redemptions (
     scanned_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
 --
 -- Name: redemptions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1854,7 +1806,6 @@ ALTER TABLE public.redemptions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY 
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: staff_invitations; Type: TABLE; Schema: public; Owner: -
@@ -1876,7 +1827,6 @@ CREATE TABLE public.staff_invitations (
     CONSTRAINT staff_invitations_role_check CHECK ((role = ANY (ARRAY['promotor'::text, 'bouncer'::text, 'admin'::text])))
 );
 
-
 --
 -- Name: staff_invitations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1889,7 +1839,6 @@ ALTER TABLE public.staff_invitations ALTER COLUMN id ADD GENERATED ALWAYS AS IDE
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: ticket_contact_edits; Type: TABLE; Schema: public; Owner: -
@@ -1907,7 +1856,6 @@ CREATE TABLE public.ticket_contact_edits (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
 --
 -- Name: ticket_contact_edits_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1920,7 +1868,6 @@ ALTER TABLE public.ticket_contact_edits ALTER COLUMN id ADD GENERATED ALWAYS AS 
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: ticket_payments; Type: TABLE; Schema: public; Owner: -
@@ -1950,7 +1897,6 @@ CREATE TABLE public.ticket_payments (
     CONSTRAINT ticket_payments_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'declined'::text, 'voided'::text, 'expired'::text])))
 );
 
-
 --
 -- Name: ticket_payments_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1963,7 +1909,6 @@ ALTER TABLE public.ticket_payments ALTER COLUMN id ADD GENERATED ALWAYS AS IDENT
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: ticket_reissues; Type: TABLE; Schema: public; Owner: -
@@ -1979,7 +1924,6 @@ CREATE TABLE public.ticket_reissues (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
 --
 -- Name: ticket_reissues_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -1992,7 +1936,6 @@ ALTER TABLE public.ticket_reissues ALTER COLUMN id ADD GENERATED ALWAYS AS IDENT
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: ticket_returns; Type: TABLE; Schema: public; Owner: -
@@ -2007,7 +1950,6 @@ CREATE TABLE public.ticket_returns (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
 --
 -- Name: ticket_returns_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -2020,7 +1962,6 @@ ALTER TABLE public.ticket_returns ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: ticket_types; Type: TABLE; Schema: public; Owner: -
@@ -2040,7 +1981,6 @@ CREATE TABLE public.ticket_types (
     CONSTRAINT ticket_types_quantity_check CHECK ((quantity > 0))
 );
 
-
 --
 -- Name: ticket_types_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -2053,7 +1993,6 @@ ALTER TABLE public.ticket_types ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: tickets; Type: TABLE; Schema: public; Owner: -
@@ -2079,7 +2018,6 @@ CREATE TABLE public.tickets (
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
 --
 -- Name: tickets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -2092,7 +2030,6 @@ ALTER TABLE public.tickets ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MAXVALUE
     CACHE 1
 );
-
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: -
@@ -2111,7 +2048,6 @@ CREATE TABLE public.users (
     token_version integer DEFAULT 1 NOT NULL
 );
 
-
 --
 -- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -2125,7 +2061,6 @@ ALTER TABLE public.users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     CACHE 1
 );
 
-
 --
 -- Name: venue_user_roles; Type: TABLE; Schema: public; Owner: -
 --
@@ -2136,7 +2071,6 @@ CREATE TABLE public.venue_user_roles (
     role public.user_role NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
-
 
 --
 -- Name: venues; Type: TABLE; Schema: public; Owner: -
@@ -2157,7 +2091,6 @@ CREATE TABLE public.venues (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
 --
 -- Name: venues_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
@@ -2171,14 +2104,12 @@ ALTER TABLE public.venues ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     CACHE 1
 );
 
-
 --
 -- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.audit_log
     ADD CONSTRAINT audit_log_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: event_waitlist event_waitlist_event_id_phone_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2187,14 +2118,12 @@ ALTER TABLE ONLY public.audit_log
 ALTER TABLE ONLY public.event_waitlist
     ADD CONSTRAINT event_waitlist_event_id_phone_key UNIQUE (event_id, phone);
 
-
 --
 -- Name: event_waitlist event_waitlist_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.event_waitlist
     ADD CONSTRAINT event_waitlist_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: event_waitlist event_waitlist_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2203,14 +2132,12 @@ ALTER TABLE ONLY public.event_waitlist
 ALTER TABLE ONLY public.event_waitlist
     ADD CONSTRAINT event_waitlist_token_hash_key UNIQUE (token_hash);
 
-
 --
 -- Name: events events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.events
     ADD CONSTRAINT events_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: login_attempts login_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2219,14 +2146,12 @@ ALTER TABLE ONLY public.events
 ALTER TABLE ONLY public.login_attempts
     ADD CONSTRAINT login_attempts_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: media media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.media
     ADD CONSTRAINT media_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2235,14 +2160,12 @@ ALTER TABLE ONLY public.media
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.password_reset_tokens
     ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: password_reset_tokens password_reset_tokens_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2251,14 +2174,12 @@ ALTER TABLE ONLY public.password_reset_tokens
 ALTER TABLE ONLY public.password_reset_tokens
     ADD CONSTRAINT password_reset_tokens_token_hash_key UNIQUE (token_hash);
 
-
 --
 -- Name: promoter_allocations promoter_allocations_event_id_ticket_type_id_promoter_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.promoter_allocations
     ADD CONSTRAINT promoter_allocations_event_id_ticket_type_id_promoter_id_key UNIQUE (event_id, ticket_type_id, promoter_id);
-
 
 --
 -- Name: promoter_allocations promoter_allocations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2267,14 +2188,12 @@ ALTER TABLE ONLY public.promoter_allocations
 ALTER TABLE ONLY public.promoter_allocations
     ADD CONSTRAINT promoter_allocations_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: promoter_payouts promoter_payouts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.promoter_payouts
     ADD CONSTRAINT promoter_payouts_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: push_outbox push_outbox_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2283,14 +2202,12 @@ ALTER TABLE ONLY public.promoter_payouts
 ALTER TABLE ONLY public.push_outbox
     ADD CONSTRAINT push_outbox_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: push_subscriptions push_subscriptions_endpoint_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.push_subscriptions
     ADD CONSTRAINT push_subscriptions_endpoint_key UNIQUE (endpoint);
-
 
 --
 -- Name: push_subscriptions push_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2299,14 +2216,12 @@ ALTER TABLE ONLY public.push_subscriptions
 ALTER TABLE ONLY public.push_subscriptions
     ADD CONSTRAINT push_subscriptions_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: redemptions redemptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.redemptions
     ADD CONSTRAINT redemptions_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: staff_invitations staff_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2315,14 +2230,12 @@ ALTER TABLE ONLY public.redemptions
 ALTER TABLE ONLY public.staff_invitations
     ADD CONSTRAINT staff_invitations_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: staff_invitations staff_invitations_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.staff_invitations
     ADD CONSTRAINT staff_invitations_token_hash_key UNIQUE (token_hash);
-
 
 --
 -- Name: ticket_contact_edits ticket_contact_edits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2331,14 +2244,12 @@ ALTER TABLE ONLY public.staff_invitations
 ALTER TABLE ONLY public.ticket_contact_edits
     ADD CONSTRAINT ticket_contact_edits_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: ticket_payments ticket_payments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_payments
     ADD CONSTRAINT ticket_payments_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: ticket_payments ticket_payments_reference_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2347,14 +2258,12 @@ ALTER TABLE ONLY public.ticket_payments
 ALTER TABLE ONLY public.ticket_payments
     ADD CONSTRAINT ticket_payments_reference_key UNIQUE (reference);
 
-
 --
 -- Name: ticket_payments ticket_payments_ticket_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_payments
     ADD CONSTRAINT ticket_payments_ticket_id_key UNIQUE (ticket_id);
-
 
 --
 -- Name: ticket_reissues ticket_reissues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2363,14 +2272,12 @@ ALTER TABLE ONLY public.ticket_payments
 ALTER TABLE ONLY public.ticket_reissues
     ADD CONSTRAINT ticket_reissues_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: ticket_returns ticket_returns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_returns
     ADD CONSTRAINT ticket_returns_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: ticket_returns ticket_returns_ticket_id_returned_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2379,14 +2286,12 @@ ALTER TABLE ONLY public.ticket_returns
 ALTER TABLE ONLY public.ticket_returns
     ADD CONSTRAINT ticket_returns_ticket_id_returned_token_hash_key UNIQUE (ticket_id, returned_token_hash);
 
-
 --
 -- Name: ticket_types ticket_types_event_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_types
     ADD CONSTRAINT ticket_types_event_id_name_key UNIQUE (event_id, name);
-
 
 --
 -- Name: ticket_types ticket_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2395,14 +2300,12 @@ ALTER TABLE ONLY public.ticket_types
 ALTER TABLE ONLY public.ticket_types
     ADD CONSTRAINT ticket_types_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: tickets tickets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT tickets_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: tickets tickets_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2411,14 +2314,12 @@ ALTER TABLE ONLY public.tickets
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT tickets_token_hash_key UNIQUE (token_hash);
 
-
 --
 -- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_email_key UNIQUE (email);
-
 
 --
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2427,14 +2328,12 @@ ALTER TABLE ONLY public.users
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: venue_user_roles venue_user_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.venue_user_roles
     ADD CONSTRAINT venue_user_roles_pkey PRIMARY KEY (venue_id, user_id, role);
-
 
 --
 -- Name: venues venues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2443,7 +2342,6 @@ ALTER TABLE ONLY public.venue_user_roles
 ALTER TABLE ONLY public.venues
     ADD CONSTRAINT venues_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: venues venues_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -2451,13 +2349,11 @@ ALTER TABLE ONLY public.venues
 ALTER TABLE ONLY public.venues
     ADD CONSTRAINT venues_slug_key UNIQUE (slug);
 
-
 --
 -- Name: audit_log_actor_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX audit_log_actor_idx ON public.audit_log USING btree (actor_id, created_at DESC);
-
 
 --
 -- Name: audit_log_venue_idx; Type: INDEX; Schema: public; Owner: -
@@ -2465,13 +2361,11 @@ CREATE INDEX audit_log_actor_idx ON public.audit_log USING btree (actor_id, crea
 
 CREATE INDEX audit_log_venue_idx ON public.audit_log USING btree (venue_id, created_at DESC);
 
-
 --
 -- Name: idx_event_waitlist_queue; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_event_waitlist_queue ON public.event_waitlist USING btree (event_id, status, created_at);
-
 
 --
 -- Name: idx_events_ends_unended; Type: INDEX; Schema: public; Owner: -
@@ -2479,13 +2373,11 @@ CREATE INDEX idx_event_waitlist_queue ON public.event_waitlist USING btree (even
 
 CREATE INDEX idx_events_ends_unended ON public.events USING btree (ends_at) WHERE (status = ANY (ARRAY['live'::text, 'published'::text]));
 
-
 --
 -- Name: idx_invitations_venue_open; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_invitations_venue_open ON public.staff_invitations USING btree (venue_id) WHERE ((accepted_at IS NULL) AND (revoked_at IS NULL));
-
 
 --
 -- Name: idx_login_attempts_email; Type: INDEX; Schema: public; Owner: -
@@ -2493,13 +2385,11 @@ CREATE INDEX idx_invitations_venue_open ON public.staff_invitations USING btree 
 
 CREATE INDEX idx_login_attempts_email ON public.login_attempts USING btree (email_norm, at);
 
-
 --
 -- Name: idx_login_attempts_ip; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_login_attempts_ip ON public.login_attempts USING btree (ip, at);
-
 
 --
 -- Name: idx_notifications_user_unread; Type: INDEX; Schema: public; Owner: -
@@ -2507,13 +2397,11 @@ CREATE INDEX idx_login_attempts_ip ON public.login_attempts USING btree (ip, at)
 
 CREATE INDEX idx_notifications_user_unread ON public.notifications USING btree (user_id, created_at DESC) WHERE (read_at IS NULL);
 
-
 --
 -- Name: idx_notifications_venue; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_notifications_venue ON public.notifications USING btree (venue_id, user_id);
-
 
 --
 -- Name: idx_password_reset_token_hash; Type: INDEX; Schema: public; Owner: -
@@ -2521,13 +2409,11 @@ CREATE INDEX idx_notifications_venue ON public.notifications USING btree (venue_
 
 CREATE UNIQUE INDEX idx_password_reset_token_hash ON public.password_reset_tokens USING btree (token_hash);
 
-
 --
 -- Name: idx_password_reset_user; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_password_reset_user ON public.password_reset_tokens USING btree (user_id, created_at DESC);
-
 
 --
 -- Name: idx_payouts_promoter; Type: INDEX; Schema: public; Owner: -
@@ -2535,13 +2421,11 @@ CREATE INDEX idx_password_reset_user ON public.password_reset_tokens USING btree
 
 CREATE INDEX idx_payouts_promoter ON public.promoter_payouts USING btree (promoter_id, venue_id, created_at DESC);
 
-
 --
 -- Name: idx_payouts_unique_period; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX idx_payouts_unique_period ON public.promoter_payouts USING btree (venue_id, promoter_id, period_start);
-
 
 --
 -- Name: idx_payouts_venue_status; Type: INDEX; Schema: public; Owner: -
@@ -2549,13 +2433,11 @@ CREATE UNIQUE INDEX idx_payouts_unique_period ON public.promoter_payouts USING b
 
 CREATE INDEX idx_payouts_venue_status ON public.promoter_payouts USING btree (venue_id, status, created_at DESC);
 
-
 --
 -- Name: idx_push_outbox_pending; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_push_outbox_pending ON public.push_outbox USING btree (id) WHERE (processed_at IS NULL);
-
 
 --
 -- Name: idx_push_subs_user; Type: INDEX; Schema: public; Owner: -
@@ -2563,13 +2445,11 @@ CREATE INDEX idx_push_outbox_pending ON public.push_outbox USING btree (id) WHER
 
 CREATE INDEX idx_push_subs_user ON public.push_subscriptions USING btree (user_id);
 
-
 --
 -- Name: idx_push_subs_venue; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_push_subs_venue ON public.push_subscriptions USING btree (venue_id);
-
 
 --
 -- Name: idx_redemptions_event; Type: INDEX; Schema: public; Owner: -
@@ -2577,13 +2457,11 @@ CREATE INDEX idx_push_subs_venue ON public.push_subscriptions USING btree (venue
 
 CREATE INDEX idx_redemptions_event ON public.redemptions USING btree (event_id, scanned_at);
 
-
 --
 -- Name: idx_redemptions_scanner; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_redemptions_scanner ON public.redemptions USING btree (scanned_by_user_id, scanned_at DESC);
-
 
 --
 -- Name: idx_redemptions_ticket; Type: INDEX; Schema: public; Owner: -
@@ -2591,13 +2469,11 @@ CREATE INDEX idx_redemptions_scanner ON public.redemptions USING btree (scanned_
 
 CREATE INDEX idx_redemptions_ticket ON public.redemptions USING btree (ticket_id, scanned_at);
 
-
 --
 -- Name: idx_ticket_contact_edits_ticket; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_ticket_contact_edits_ticket ON public.ticket_contact_edits USING btree (ticket_id, created_at);
-
 
 --
 -- Name: idx_ticket_payments_event; Type: INDEX; Schema: public; Owner: -
@@ -2605,13 +2481,11 @@ CREATE INDEX idx_ticket_contact_edits_ticket ON public.ticket_contact_edits USIN
 
 CREATE INDEX idx_ticket_payments_event ON public.ticket_payments USING btree (event_id);
 
-
 --
 -- Name: idx_ticket_payments_provider_ref; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX idx_ticket_payments_provider_ref ON public.ticket_payments USING btree (provider, provider_ref) WHERE (provider_ref IS NOT NULL);
-
 
 --
 -- Name: idx_ticket_payments_tx; Type: INDEX; Schema: public; Owner: -
@@ -2619,13 +2493,11 @@ CREATE UNIQUE INDEX idx_ticket_payments_provider_ref ON public.ticket_payments U
 
 CREATE UNIQUE INDEX idx_ticket_payments_tx ON public.ticket_payments USING btree (provider, transaction_id) WHERE (transaction_id IS NOT NULL);
 
-
 --
 -- Name: idx_ticket_reissues_ticket; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_ticket_reissues_ticket ON public.ticket_reissues USING btree (ticket_id, created_at);
-
 
 --
 -- Name: idx_ticket_returns_event; Type: INDEX; Schema: public; Owner: -
@@ -2633,13 +2505,11 @@ CREATE INDEX idx_ticket_reissues_ticket ON public.ticket_reissues USING btree (t
 
 CREATE INDEX idx_ticket_returns_event ON public.ticket_returns USING btree (event_id, created_at);
 
-
 --
 -- Name: idx_tickets_allocation; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_tickets_allocation ON public.tickets USING btree (allocation_id);
-
 
 --
 -- Name: idx_tickets_event_status; Type: INDEX; Schema: public; Owner: -
@@ -2647,13 +2517,11 @@ CREATE INDEX idx_tickets_allocation ON public.tickets USING btree (allocation_id
 
 CREATE INDEX idx_tickets_event_status ON public.tickets USING btree (event_id, status);
 
-
 --
 -- Name: idx_tickets_phone; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_tickets_phone ON public.tickets USING btree (customer_phone) WHERE (customer_phone IS NOT NULL);
-
 
 --
 -- Name: idx_tickets_token_hash; Type: INDEX; Schema: public; Owner: -
@@ -2661,13 +2529,11 @@ CREATE INDEX idx_tickets_phone ON public.tickets USING btree (customer_phone) WH
 
 CREATE INDEX idx_tickets_token_hash ON public.tickets USING btree (token_hash);
 
-
 --
 -- Name: idx_users_last_login; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_users_last_login ON public.users USING btree (last_login_at);
-
 
 --
 -- Name: events trg_events_check_capacity; Type: TRIGGER; Schema: public; Owner: -
@@ -2675,13 +2541,11 @@ CREATE INDEX idx_users_last_login ON public.users USING btree (last_login_at);
 
 CREATE TRIGGER trg_events_check_capacity BEFORE UPDATE OF capacity ON public.events FOR EACH ROW EXECUTE FUNCTION public.events_check_capacity();
 
-
 --
 -- Name: events trg_events_check_transition; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trg_events_check_transition BEFORE UPDATE OF status ON public.events FOR EACH ROW EXECUTE FUNCTION public.events_check_transition();
-
 
 --
 -- Name: staff_invitations trg_invitation_accepted_notify; Type: TRIGGER; Schema: public; Owner: -
@@ -2689,13 +2553,11 @@ CREATE TRIGGER trg_events_check_transition BEFORE UPDATE OF status ON public.eve
 
 CREATE TRIGGER trg_invitation_accepted_notify AFTER UPDATE OF accepted_user_id ON public.staff_invitations FOR EACH ROW EXECUTE FUNCTION public.notify_invitation_accepted();
 
-
 --
 -- Name: promoter_payouts trg_payout_lifecycle_notify; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trg_payout_lifecycle_notify AFTER INSERT OR UPDATE OF status ON public.promoter_payouts FOR EACH ROW EXECUTE FUNCTION public.notify_payout_lifecycle();
-
 
 --
 -- Name: ticket_reissues trg_ticket_reissued_notify; Type: TRIGGER; Schema: public; Owner: -
@@ -2703,13 +2565,11 @@ CREATE TRIGGER trg_payout_lifecycle_notify AFTER INSERT OR UPDATE OF status ON p
 
 CREATE TRIGGER trg_ticket_reissued_notify AFTER INSERT ON public.ticket_reissues FOR EACH ROW EXECUTE FUNCTION public.notify_ticket_reissued();
 
-
 --
 -- Name: tickets trg_tickets_check_active_refs; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trg_tickets_check_active_refs BEFORE INSERT ON public.tickets FOR EACH ROW EXECUTE FUNCTION public.tickets_check_active_refs();
-
 
 --
 -- Name: audit_log audit_log_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2718,14 +2578,12 @@ CREATE TRIGGER trg_tickets_check_active_refs BEFORE INSERT ON public.tickets FOR
 ALTER TABLE ONLY public.audit_log
     ADD CONSTRAINT audit_log_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
-
 --
 -- Name: audit_log audit_log_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.audit_log
     ADD CONSTRAINT audit_log_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
-
 
 --
 -- Name: event_waitlist event_waitlist_claimed_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2734,14 +2592,12 @@ ALTER TABLE ONLY public.audit_log
 ALTER TABLE ONLY public.event_waitlist
     ADD CONSTRAINT event_waitlist_claimed_ticket_id_fkey FOREIGN KEY (claimed_ticket_id) REFERENCES public.tickets(id) ON DELETE SET NULL;
 
-
 --
 -- Name: event_waitlist event_waitlist_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.event_waitlist
     ADD CONSTRAINT event_waitlist_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
-
 
 --
 -- Name: event_waitlist event_waitlist_offered_allocation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2750,14 +2606,12 @@ ALTER TABLE ONLY public.event_waitlist
 ALTER TABLE ONLY public.event_waitlist
     ADD CONSTRAINT event_waitlist_offered_allocation_id_fkey FOREIGN KEY (offered_allocation_id) REFERENCES public.promoter_allocations(id) ON DELETE SET NULL;
 
-
 --
 -- Name: event_waitlist event_waitlist_offered_ticket_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.event_waitlist
     ADD CONSTRAINT event_waitlist_offered_ticket_type_id_fkey FOREIGN KEY (offered_ticket_type_id) REFERENCES public.ticket_types(id) ON DELETE SET NULL;
-
 
 --
 -- Name: events events_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2766,14 +2620,12 @@ ALTER TABLE ONLY public.event_waitlist
 ALTER TABLE ONLY public.events
     ADD CONSTRAINT events_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
 
-
 --
 -- Name: media media_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.media
     ADD CONSTRAINT media_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
-
 
 --
 -- Name: media media_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2782,14 +2634,12 @@ ALTER TABLE ONLY public.media
 ALTER TABLE ONLY public.media
     ADD CONSTRAINT media_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
 
-
 --
 -- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
 
 --
 -- Name: notifications notifications_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2798,14 +2648,12 @@ ALTER TABLE ONLY public.notifications
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
 
-
 --
 -- Name: password_reset_tokens password_reset_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.password_reset_tokens
     ADD CONSTRAINT password_reset_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
 
 --
 -- Name: promoter_allocations promoter_allocations_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2814,14 +2662,12 @@ ALTER TABLE ONLY public.password_reset_tokens
 ALTER TABLE ONLY public.promoter_allocations
     ADD CONSTRAINT promoter_allocations_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
 
-
 --
 -- Name: promoter_allocations promoter_allocations_promoter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.promoter_allocations
     ADD CONSTRAINT promoter_allocations_promoter_id_fkey FOREIGN KEY (promoter_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
 
 --
 -- Name: promoter_allocations promoter_allocations_ticket_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2830,14 +2676,12 @@ ALTER TABLE ONLY public.promoter_allocations
 ALTER TABLE ONLY public.promoter_allocations
     ADD CONSTRAINT promoter_allocations_ticket_type_id_fkey FOREIGN KEY (ticket_type_id) REFERENCES public.ticket_types(id) ON DELETE CASCADE;
 
-
 --
 -- Name: promoter_payouts promoter_payouts_promoter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.promoter_payouts
     ADD CONSTRAINT promoter_payouts_promoter_id_fkey FOREIGN KEY (promoter_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
 
 --
 -- Name: promoter_payouts promoter_payouts_reviewed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2846,14 +2690,12 @@ ALTER TABLE ONLY public.promoter_payouts
 ALTER TABLE ONLY public.promoter_payouts
     ADD CONSTRAINT promoter_payouts_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
-
 --
 -- Name: promoter_payouts promoter_payouts_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.promoter_payouts
     ADD CONSTRAINT promoter_payouts_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
-
 
 --
 -- Name: push_outbox push_outbox_notification_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2862,14 +2704,12 @@ ALTER TABLE ONLY public.promoter_payouts
 ALTER TABLE ONLY public.push_outbox
     ADD CONSTRAINT push_outbox_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.notifications(id) ON DELETE CASCADE;
 
-
 --
 -- Name: push_subscriptions push_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.push_subscriptions
     ADD CONSTRAINT push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
 
 --
 -- Name: push_subscriptions push_subscriptions_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2878,14 +2718,12 @@ ALTER TABLE ONLY public.push_subscriptions
 ALTER TABLE ONLY public.push_subscriptions
     ADD CONSTRAINT push_subscriptions_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
 
-
 --
 -- Name: redemptions redemptions_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.redemptions
     ADD CONSTRAINT redemptions_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
-
 
 --
 -- Name: redemptions redemptions_scanned_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2894,14 +2732,12 @@ ALTER TABLE ONLY public.redemptions
 ALTER TABLE ONLY public.redemptions
     ADD CONSTRAINT redemptions_scanned_by_user_id_fkey FOREIGN KEY (scanned_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
-
 --
 -- Name: redemptions redemptions_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.redemptions
     ADD CONSTRAINT redemptions_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
-
 
 --
 -- Name: staff_invitations staff_invitations_accepted_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2910,14 +2746,12 @@ ALTER TABLE ONLY public.redemptions
 ALTER TABLE ONLY public.staff_invitations
     ADD CONSTRAINT staff_invitations_accepted_user_id_fkey FOREIGN KEY (accepted_user_id) REFERENCES public.users(id);
 
-
 --
 -- Name: staff_invitations staff_invitations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.staff_invitations
     ADD CONSTRAINT staff_invitations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
-
 
 --
 -- Name: staff_invitations staff_invitations_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2926,14 +2760,12 @@ ALTER TABLE ONLY public.staff_invitations
 ALTER TABLE ONLY public.staff_invitations
     ADD CONSTRAINT staff_invitations_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
 
-
 --
 -- Name: ticket_contact_edits ticket_contact_edits_edited_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_contact_edits
     ADD CONSTRAINT ticket_contact_edits_edited_by_user_id_fkey FOREIGN KEY (edited_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
 
 --
 -- Name: ticket_contact_edits ticket_contact_edits_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2942,14 +2774,12 @@ ALTER TABLE ONLY public.ticket_contact_edits
 ALTER TABLE ONLY public.ticket_contact_edits
     ADD CONSTRAINT ticket_contact_edits_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
 
-
 --
 -- Name: ticket_payments ticket_payments_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_payments
     ADD CONSTRAINT ticket_payments_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(id);
-
 
 --
 -- Name: ticket_payments ticket_payments_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2958,14 +2788,12 @@ ALTER TABLE ONLY public.ticket_payments
 ALTER TABLE ONLY public.ticket_payments
     ADD CONSTRAINT ticket_payments_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id);
 
-
 --
 -- Name: ticket_payments ticket_payments_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_payments
     ADD CONSTRAINT ticket_payments_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id);
-
 
 --
 -- Name: ticket_payments ticket_payments_ticket_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2974,14 +2802,12 @@ ALTER TABLE ONLY public.ticket_payments
 ALTER TABLE ONLY public.ticket_payments
     ADD CONSTRAINT ticket_payments_ticket_type_id_fkey FOREIGN KEY (ticket_type_id) REFERENCES public.ticket_types(id);
 
-
 --
 -- Name: ticket_payments ticket_payments_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_payments
     ADD CONSTRAINT ticket_payments_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id);
-
 
 --
 -- Name: ticket_reissues ticket_reissues_reissued_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2990,14 +2816,12 @@ ALTER TABLE ONLY public.ticket_payments
 ALTER TABLE ONLY public.ticket_reissues
     ADD CONSTRAINT ticket_reissues_reissued_by_user_id_fkey FOREIGN KEY (reissued_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
-
 --
 -- Name: ticket_reissues ticket_reissues_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_reissues
     ADD CONSTRAINT ticket_reissues_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
-
 
 --
 -- Name: ticket_returns ticket_returns_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -3006,14 +2830,12 @@ ALTER TABLE ONLY public.ticket_reissues
 ALTER TABLE ONLY public.ticket_returns
     ADD CONSTRAINT ticket_returns_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
 
-
 --
 -- Name: ticket_returns ticket_returns_returned_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_returns
     ADD CONSTRAINT ticket_returns_returned_by_user_id_fkey FOREIGN KEY (returned_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
 
 --
 -- Name: ticket_returns ticket_returns_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -3022,14 +2844,12 @@ ALTER TABLE ONLY public.ticket_returns
 ALTER TABLE ONLY public.ticket_returns
     ADD CONSTRAINT ticket_returns_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
 
-
 --
 -- Name: ticket_types ticket_types_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ticket_types
     ADD CONSTRAINT ticket_types_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
-
 
 --
 -- Name: tickets tickets_allocation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -3038,14 +2858,12 @@ ALTER TABLE ONLY public.ticket_types
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT tickets_allocation_id_fkey FOREIGN KEY (allocation_id) REFERENCES public.promoter_allocations(id) ON DELETE SET NULL;
 
-
 --
 -- Name: tickets tickets_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT tickets_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
-
 
 --
 -- Name: tickets tickets_redeemed_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -3054,14 +2872,12 @@ ALTER TABLE ONLY public.tickets
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT tickets_redeemed_by_user_id_fkey FOREIGN KEY (redeemed_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
-
 --
 -- Name: tickets tickets_sold_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT tickets_sold_by_user_id_fkey FOREIGN KEY (sold_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
 
 --
 -- Name: tickets tickets_ticket_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -3070,14 +2886,12 @@ ALTER TABLE ONLY public.tickets
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT tickets_ticket_type_id_fkey FOREIGN KEY (ticket_type_id) REFERENCES public.ticket_types(id) ON DELETE RESTRICT;
 
-
 --
 -- Name: venue_user_roles venue_user_roles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.venue_user_roles
     ADD CONSTRAINT venue_user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
 
 --
 -- Name: venue_user_roles venue_user_roles_venue_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -3086,11 +2900,8 @@ ALTER TABLE ONLY public.venue_user_roles
 ALTER TABLE ONLY public.venue_user_roles
     ADD CONSTRAINT venue_user_roles_venue_fk FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
 
-
 --
 -- PostgreSQL database dump complete
 --
-
-
 
 COMMIT;

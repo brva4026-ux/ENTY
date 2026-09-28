@@ -6,6 +6,7 @@ El contrato de seguridad que estos tests fijan:
 3. El sync re-evalúa cada token contra la DB (redeem_ticket): una boleta
    anulada después de descargar el snapshot NO entra por haber estado en él.
 """
+import psycopg
 import pytest
 
 pytestmark = pytest.mark.skipif(False, reason="")
@@ -28,6 +29,18 @@ def door_event(api, world):
         "admin",
         {"reason": "Error de digitación"},
     )
+    # Ventana del QR (mig 013): abre 60 min antes de starts_at y el evento del
+    # fixture es +29h, así que los QRs aún NO están activos y el sync rechaza
+    # con not_active (regresión descubierta al correr la suite completa: estos
+    # tests se escribieron antes de la mig 013 y CI no los corría con DB).
+    # Aquí se ejercita la semántica offline (granted/already/rejected), no la
+    # ventana: empieza ya abierta, igual que hace test_redemptions_api.
+    with psycopg.connect(api.dsn, autocommit=True) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE events SET starts_at = now() - interval '1 hour' WHERE id = %s",
+                (ev["id"],),
+            )
     return {"ev": ev, "t1": t1, "t2": t2, "t3": t3}
 
 
