@@ -7,7 +7,7 @@
 --
 -- Diseno: la misma DB que impone el ciclo de vida (mig 002) aporta la
 -- operacion de cierre, IDEMPOTENTE y re-ejecutable: auto_close_expired_events()
--- hace las transiciones validas live->ended y published->ended SOLO cuando
+-- hace las transiciones validas live->ended y published->cancelled SOLO cuando
 -- ends_at ya paso. Quien la llame (watchdog en lecturas, cron futuro)
 -- puede repetirla sin miedo: si no hay vencidos, no hace nada.
 --
