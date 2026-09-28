@@ -16,7 +16,7 @@ initFrontendSentry();
 // anti-flash; esto re-aplica y deja el listener del sistema listo).
 import { initTheme } from "./lib/theme";
 initTheme();
-import { AuthProvider, useAuth } from "./lib/auth";
+import { AuthProvider, useAuth, consumeLoggedOut } from "./lib/auth";
 import { UIProvider } from "./lib/ui";
 import { hasRole, homeForRole } from "./lib/roles";
 import { OfflineBanner } from "./components/OfflineBanner";
@@ -57,9 +57,18 @@ function RequireRole({ role, children }) {
   // Splash de marca mientras se restaura la sesión (nunca un flash de login).
   if (loading) return <SplashScreen />;
   // "from" viaja en location.state: el login lo lee y aterriza donde el
-  // usuario iba, no en su dashboard por defecto.
+  // usuario iba, no en su dashboard por defecto. EXCEPCIÓN: un logout
+  // intencional (bandera de lib/auth) redirige sin state — si el guard
+  // re-renderiza con user=null antes de que la URL cambie, sembraría
+  // from=ruta-actual y el siguiente login no aterrizaría en el panel del rol.
   if (!user)
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: consumeLoggedOut() ? undefined : location.pathname }}
+      />
+    );
   // La fuente de verdad de la navegación es lib/roles.js; el backend re-
   // verifica en DB cada request (ensure_roles) — esto es UX, no cerradura.
   if (!hasRole(user, role)) return <Navigate to="/" replace />;
@@ -71,7 +80,13 @@ function RequireAuth({ children }) {
   const location = useLocation();
   if (loading) return <SplashScreen />;
   if (!user)
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: consumeLoggedOut() ? undefined : location.pathname }}
+      />
+    );
   return children;
 }
 

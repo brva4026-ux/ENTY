@@ -45,6 +45,13 @@ export function AuthProvider({ children }) {
   function logout() {
     localStorage.removeItem("tf_token");
     setUser(null);
+    // Marcar la salida INTENCIONAL: el guard de rutas ve user=null con la URL
+    // vieja un instante (el update de location va en transicion) y siembra
+    // from=ruta-actual en /login — el siguiente login aterrizaba en /perfil
+    // (o donde fuera) en vez del panel del rol. Con la bandera, el guard
+    // redirige a /login SIN state; la recuperación de sesión expirada y los
+    // deep-links sí conservan su from (la bandera solo cubre este logout).
+    _loggedOut = true;
   }
 
   return (
@@ -52,6 +59,14 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+/** Bandera de logout intencional (la consume el guard de main.jsx). */
+let _loggedOut = false;
+export function consumeLoggedOut() {
+  const v = _loggedOut;
+  _loggedOut = false;
+  return v;
 }
 
 export function useAuth() {
