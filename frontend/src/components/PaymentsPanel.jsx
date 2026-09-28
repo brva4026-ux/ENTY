@@ -184,6 +184,18 @@ export default function PaymentsPanel({ venueId, events = [] }) {
         </label>
       </div>
 
+      {/* Sin evento elegido aún: en vez de un vacío mudo, guiar a la acción
+          (la misma gramática de EmptyState en el resto de la app). */}
+      {!eventId && (
+        <div className="card p-6 text-center">
+          <p className="display text-base">Elige un evento para ver sus cobros</p>
+          <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-zinc-400">
+            Arriba está el listado de eventos; al elegir uno ves los cobros que
+            ya tiene y puedes crear el enlace de pago del siguiente.
+          </p>
+        </div>
+      )}
+
       {eventId && (
         <>
           {/* Resultado del cobro recién creado: la acción es mandar el enlace. */}

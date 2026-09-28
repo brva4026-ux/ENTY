@@ -155,6 +155,9 @@ export default function AdminDashboard() {
   const [allocations, setAllocations] = useState([]);
   const [report, setReport] = useState(null);
   const [users, setUsers] = useState([]);
+  // tickets: el listado real vive en TicketList (server-driven, paginado).
+  // El fetch que llenaba este estado quedó muerto: nadie lo lee. Solo setTickets
+  // se usa para limpiar al cambiar de evento — por eso este useState se queda.
   const [tickets, setTickets] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   // Fuente de verdad de la URL: el evento abierto y su pestaña viven en
@@ -331,9 +334,9 @@ export default function AdminDashboard() {
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`)
       .then(setReport)
       .catch((e) => setError(e.message));
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/tickets`)
-      .then(setTickets)
-      .catch(() => setTickets([]));
+    // El listado de boletas NO se pide aquí: TicketList trae el suyo paginado
+    // y filtrado. Pedir el completo era una request muerta (nadie lee el
+    // estado `tickets`) que además traía TODAS las boletas del evento.
   }, [selectedEvent, venueId]);
 
   // Memoizado: es dependencia de reloadAll (PTR) y de useLiveRefresh; sin
@@ -343,9 +346,6 @@ export default function AdminDashboard() {
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`)
       .then(setReport)
       .catch(() => {});
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/tickets`)
-      .then(setTickets)
-      .catch(() => {});
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`)
       .then(setAllocations)
       .catch(() => {});
@@ -353,6 +353,8 @@ export default function AdminDashboard() {
     apiFetch(`/venues/${venueId}/events/ticket-counts`)
       .then(setTicketCounts)
       .catch(() => {});
+    // Nota: el listado de boletas no va aquí — TicketList se refresca sola
+    // (su load es el refresh local de la tabla).
   }, [selectedEvent, venueId]);
 
   // Recarga completa para pull-to-refresh: eventos, equipo y datos del evento

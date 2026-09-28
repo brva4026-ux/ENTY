@@ -1476,6 +1476,11 @@ html[data-theme="light"] .bizdock-desc {
   align-items: center;
   justify-content: space-between;
   gap: 1.25rem;
+  /* Nombre largo ("La Esquina del Bar Pueblo Nuevo"): sin wrap, la identidad
+     aplasta al KPI o la fila crece en altura y la toolbar embebida queda
+     apretada junto al KPI (captura del usuario: eyebrow en 4 lineas). Con
+     wrap, la fila crece ORDENADA y nada se desborda. */
+  flex-wrap: wrap;
 }
 .vh-identidad {
   display: flex;

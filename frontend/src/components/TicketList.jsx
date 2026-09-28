@@ -108,8 +108,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
         },
       );
       setVoidingId(null);
-      await onChanged();
-      await refreshList();
+      await Promise.allSettled([onChanged(), refreshList()]);
       ui.success(`Boleta #${t.id} anulada`);
     } catch (e) {
       onError(e.message);
@@ -122,6 +121,10 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
       nuevo. En el admin la entrega práctica es el portapapeles: el enlace
       copiado se pega en el chat del invitado. Si el portapapeles falla (http,
       permisos), el enlace queda visible en un diálogo para copiarlo a mano. */
+  // NOTA: refreshList ES onChanged (AdminDashboard.refreshEventData). Cada
+  // acción llama onChanged UNA vez y encadena refreshList() para actualizar
+  // esta tabla: el refresh del padre (reporte/aforo/franja) y el de la lista
+  // van en paralelo, no secuencial.
   async function reissueTicket(t) {
     const ok = await ui.confirm(`¿Reemitir la boleta #${t.id}?`, {
       message: `Se genera un enlace NUEVO para ${t.customer_name}. El enlace anterior deja de funcionar de inmediato.`,
@@ -139,8 +142,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
           }),
         },
       );
-      await onChanged();
-      await refreshList();
+      await Promise.allSettled([onChanged(), refreshList()]);
       const url = publicTicketPageUrl(res.raw_token);
       try {
         await navigator.clipboard.writeText(url);
@@ -182,8 +184,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
         },
       );
       setEditingId(null);
-      await onChanged();
-      await refreshList();
+      await Promise.allSettled([onChanged(), refreshList()]);
       ui.success(`Contacto de la boleta #${t.id} actualizado`);
     } catch (e) {
       onError(e.message);
@@ -194,7 +195,10 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
 
   // El listado ya llega filtrado del server; el refresh post-acción
   // re-consulta con los filtros vigentes.
-  const refreshList = onChanged;
+  // El refresh LOCAL de la tabla es load() (mismos filtros/página). Antes
+  // apuntaba a onChanged (el refresh del PADRE): cada acción pedía el reporte
+  // dos veces y la propia tabla quedaba SIN refrescar (fila vieja en pantalla).
+  const refreshList = load;
 
   /** Ver el QR de una boleta: como la DB solo guarda el hash del token
       (el crudo se entrega una vez), verlo exige ROTARLO. El enlace anterior
@@ -217,8 +221,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
           }),
         },
       );
-      await onChanged();
-      await refreshList();
+      await Promise.allSettled([onChanged(), refreshList()]);
       setQrTicket({ ...t, raw_token: res.raw_token });
     } catch (e) {
       onError(e.message);

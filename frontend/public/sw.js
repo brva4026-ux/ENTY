@@ -5,8 +5,15 @@
  * correcto: sin red no se puede canjear contra la DB).
  *
  * Estrategia: precache del app shell (HTML + bundles + manifest + iconos).
- * Navegaciones y assets /assets/* se sirven cache-first; la API NUNCA se
+ * Navegaciones van NETWORK-FIRST (con el cache como respaldo offline) y los
+ * assets /assets/* cache-first (hash estable por build); la API NUNCA se
  * cachea (datos de boletas siempre frescos).
+ *
+ * Por que network-first en navegaciones: con cache-first, tras cada deploy el
+ * usuario veia UNA carga mas de la app vieja (el HTML cacheado se servia antes
+ * de que el SW nuevo se activara y purgara caches). Con network-first el HTML
+ * es fresco siempre que haya red; sin red cae al cache y la puerta sigue
+ * abriendo el escaner con el shell precacheado.
  */
 // El BUILD_ID lo estampa replace-sw-version.js en dist/sw.js en cada build:
 // al cambiar el contenido del archivo, el navegador instala el SW nuevo y
@@ -96,21 +103,25 @@ self.addEventListener("fetch", (event) => {
   // 1. La API jamás se cachea: aforo y boletas deben ser datos vivos.
   if (url.pathname.startsWith("/api/")) return;
 
-  // 2. Navegaciones (recargar el escáner sin red): cache-first con fallback
-  //    a red, y si no hay ni cache ni red, el shell "/".
+  // 2. Navegaciones: RED primero (HTML fresco en cada deploy), cache como
+  //    respaldo sin red; si no hay ni red ni cache, el shell "/" precacheado.
   if (req.mode === "navigate") {
     event.respondWith(
-      caches.match(req).then(
-        (hit) =>
-          hit ||
-          fetch(req)
-            .then((res) => {
-              const copy = res.clone();
-              caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy));
-              return res;
-            })
-            .catch(() => caches.match("/"))
-      )
+      fetch(req)
+        .then((res) => {
+          // Guardar en runtime para el proximo apagon (no bloquea la respuesta).
+          const copy = res.clone();
+          caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy));
+          return res;
+        })
+        .catch(async () =>
+          (await caches.match(req)) ||
+          (await caches.match("/")) ||
+          new Response("Sin conexión", {
+            status: 503,
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          })
+        )
     );
     return;
   }

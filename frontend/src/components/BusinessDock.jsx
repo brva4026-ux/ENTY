@@ -12,14 +12,30 @@ import { apiFetch } from "../lib/api";
 import { haptics } from "../lib/haptics";
 import Icon from "./Icon";
 
+// Contadores del dock en caché de módulo: el dock se desmonta/monta con cada
+// cambio de tab o al abrir/cerrar un evento, y sin caché repetía /payouts,
+// /invitations y /users en cada vuelta (admin ya pide /users una vez más en
+// su carga). Con caché, la segunda vuelta pinta el último valor AL INSTANTE y
+// refresca en segundo plano (stale-while-revalidate): el badge es orientativo,
+// siempre se re-valida contra el server al montar.
+const _countsCache = new Map(); // venueId -> counts
+
 export default function BusinessDock({ venueId, section, onNavigate }) {
-  const [counts, setCounts] = useState({});
+  const [counts, setCounts] = useState(() => _countsCache.get(venueId) ?? {});
 
   useEffect(() => {
     if (!venueId) return;
+    // Cambio de venue: partir de la caché de ESA venue (no mezclar contadores).
+    setCounts(_countsCache.get(venueId) ?? {});
     const safe = (key, url, pick) =>
       apiFetch(url)
-        .then((data) => setCounts((c) => ({ ...c, [key]: pick(data) })))
+        .then((data) =>
+          setCounts((c) => {
+            const next = { ...c, [key]: pick(data) };
+            _countsCache.set(venueId, next);
+            return next;
+          }),
+        )
         .catch(() => {});
     // Liquidaciones que NO están cerradas: acción pendiente del admin.
     safe("payouts", `/venues/${venueId}/payouts`, (rows) =>

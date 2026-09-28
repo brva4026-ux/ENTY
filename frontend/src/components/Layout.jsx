@@ -130,7 +130,12 @@ export default function Layout({ children }) {
             <button
               onClick={() => {
                 logout();
-                nav("/login");
+                // replace: /login queda SIN location.state.from; si se apila
+                // con push, el guard RequireAuth de la ruta en la que estabas
+                // corria despues y sembraba from=/perfil (o la ruta actual) —
+                // el siguiente login aterrizaba en el perfil en vez del panel
+                // de tu rol.
+                nav("/login", { replace: true });
               }}
               className="btn-ghost !px-2.5 !py-1.5 text-xs"
             >
