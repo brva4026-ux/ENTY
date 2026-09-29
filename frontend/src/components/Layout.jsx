@@ -162,7 +162,7 @@ export default function Layout({ children }) {
           que aparece con pop, haptic al tocar — patrón iOS/Android. */}
       {tabs.length > 0 && (
         <nav
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-800 bg-zinc-950/95 backdrop-blur md:hidden"
+          className="bottomnav fixed inset-x-0 bottom-0 z-30 md:hidden"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           aria-label="Navegación principal"
         >
@@ -175,9 +175,7 @@ export default function Layout({ children }) {
                   to={t.to}
                   aria-current={active ? "page" : undefined}
                   onClick={() => haptics.tick()}
-                  className={`flex flex-1 flex-col items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
-                    active ? "text-white" : "text-zinc-500 active:bg-zinc-900"
-                  }`}
+                  className={`bottomnav-item ${active ? "is-active" : ""}`}
                 >
                   <span
                     className={`transition-transform duration-200 ${active ? "scale-110" : "scale-100"}`}

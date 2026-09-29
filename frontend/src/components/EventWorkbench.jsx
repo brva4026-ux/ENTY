@@ -165,14 +165,14 @@ export default function EventWorkbench({
         eyebrow + display + punto de estado (no degradado ni píldora con
         ring): entrar al backstage debe sentirse BAJAR un nivel de la misma
         jerarquía, no cambiar de aplicación. */}
-      <section className="card p-5">
+      <section className="card card-hero p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           {showFlyer && (
             <img
               src={ev.flyer_url}
               alt=""
               onError={() => setBadFlyer(ev.flyer_url)}
-              className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700 sm:h-20 sm:w-20"
+              className="wb-flyer h-16 w-16 shrink-0 sm:h-20 sm:w-20"
             />
           )}
           <div className="min-w-0 flex-1">

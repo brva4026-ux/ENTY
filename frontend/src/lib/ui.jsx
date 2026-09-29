@@ -58,7 +58,8 @@ export function ToastHost({ toasts, dismiss }) {
         <div
           key={t.id}
           role="status"
-          className={`toast-in pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-xl border px-4 py-3 text-sm shadow-xl shadow-black/40 backdrop-blur ${TOAST_STYLES[t.kind]?.cls ?? TOAST_STYLES.info.cls}`}
+          data-kind={t.kind}
+          className={`toast-in pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-xl border px-4 py-3 text-sm ${TOAST_STYLES[t.kind]?.cls ?? TOAST_STYLES.info.cls}`}
         >
           <Icon path={TOAST_STYLES[t.kind]?.icon ?? ICONS.info} className="mt-0.5 h-4 w-4 shrink-0" />
           <p className="min-w-0 flex-1 break-words leading-snug">{t.message}</p>
@@ -122,9 +123,9 @@ function Dialog({ spec, resolve, onClose }) {
       role="dialog"
       aria-modal="true"
     >
-      <div className={`dialog-panel w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl shadow-black/60 ${closing ? "dialog-out" : "dialog-in"}`}>
+      <div className={`dialog-panel w-full max-w-sm p-5 ${closing ? "dialog-out" : "dialog-in"}`}>
         <div className="flex items-start gap-3">
-          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${spec.danger ? "bg-red-950/70 text-red-400" : "bg-brand-500/15 text-brand-300"}`}>
+          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${spec.danger ? "bg-red-950/70 text-red-400 ring-1 ring-red-500/30" : "bg-brand-500/15 text-brand-300 ring-1 ring-brand-500/30"}`}>
             <Icon path={icon} className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">

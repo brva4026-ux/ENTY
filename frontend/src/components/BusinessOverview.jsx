@@ -96,7 +96,10 @@ function KpiCard({ label, value, accent, children, format }) {
       <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
         {label}
       </p>
-      <p className={`tnum mt-1 text-2xl font-bold ${accent ?? "text-white"}`}>
+      <p
+        className={`tnum mt-1.5 text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] ${accent ?? "text-white"}`}
+        style={{ fontVariationSettings: '"opsz" 32' }}
+      >
         {isNumber ? (
           <CountUpNumber
             value={value}
@@ -121,7 +124,7 @@ function RevenueBars({ events, onOpen }) {
     <div
       role="img"
       aria-label="Recaudo por evento del mes"
-      className="flex h-28 items-end gap-2"
+      className="flex h-28 items-stretch gap-2"
     >
       {events.map((e, i) => {
         const h = Math.max(6, Math.round((e.revenue_cents / max) * 100));
@@ -132,16 +135,23 @@ function RevenueBars({ events, onOpen }) {
             type="button"
             onClick={() => onOpen?.(e.id)}
             data-tip={`${e.name}: ${money(e.revenue_cents)}`}
-            className="group flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
+            className="group flex min-w-0 flex-1 flex-col items-center gap-1"
           >
-            <span
-              className={`w-full max-w-10 rounded-t-md transition-all duration-500 group-hover:brightness-125 ${
-                e.status === "live"
-                  ? "bg-gradient-to-t from-emerald-600/70 to-emerald-400"
-                  : "bg-gradient-to-t from-brand-700/60 to-brand-500"
-              }`}
-              style={{ height: `${h}%`, transitionDelay: `${i * 60}ms` }}
-            />
+            {/* El wrapper flex-1 da altura DEFINIDA: el height % de la barra
+              necesita un padre con altura real (un % sobre altura auto colapsa
+              a 0 y el gráfico se veia vacio). */}
+            <span className="flex min-h-0 w-full flex-1 items-end justify-center">
+              <span
+                className={`revbar w-full max-w-10 rounded-t-md transition-all duration-500 group-hover:brightness-125 ${
+                  e.status === "live" ? "is-live" : ""
+                } ${
+                  e.status === "live"
+                    ? "bg-gradient-to-t from-emerald-600/70 to-emerald-400"
+                    : "bg-gradient-to-t from-brand-700/60 to-brand-500"
+                }`}
+                style={{ height: `${h}%`, transitionDelay: `${i * 60}ms` }}
+              />
+            </span>
             <span className="w-full truncate text-[9px] text-zinc-500 group-hover:text-zinc-300">
               {e.name}
             </span>
@@ -197,7 +207,7 @@ function PromoterBars({ promoters }) {
             </div>
             {/* La barra debajo del nombre: llena el ancho de la fila sin
                 competir con las cifras (que quedan alineadas en columna). */}
-            <div className="ml-8.5 mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+            <div className="revbar ml-8.5 mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-brand-700/70 to-brand-500 transition-all duration-500"
                 style={{
