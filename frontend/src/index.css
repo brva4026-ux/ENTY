@@ -1459,10 +1459,19 @@ html[data-theme="light"] .bizdock-desc {
    ---------------------------------------------------------------------- */
 .venue-header {
   display: block;
-  padding: 1.1rem 1.25rem;
+  /* El KPI usa este valor para anclar su viga al borde superior del card:
+     cambiar el padding acá mantiene la viga pegada. */
+  --vh-pad-y: 1.1rem;
+  padding: var(--vh-pad-y) 1.25rem;
   /* Luz cenital propia del sistema (como .card) pero un punto más presente:
-     la cabecera es la "portada" del panel. */
+     la cabecera es la "portada" del panel. Un lavado de marca en la esquina
+     superior derecha (detrás del KPI) le da atmósfera sin pintar nada. */
   background:
+    radial-gradient(
+      34rem 14rem at 88% -6rem,
+      rgba(62, 106, 225, 0.09),
+      transparent 62%
+    ),
     linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.05),
@@ -1509,20 +1518,39 @@ html[data-theme="light"] .bizdock-desc {
 .vh-kpi {
   min-width: 0;
   text-align: right;
+  position: relative;
+  padding-right: 1rem;
+  /* Firma de origen: la cifra nace de una línea de marca que baja del
+     borde superior. Estructura, no decoración: es la viga del KPI. */
+}
+.vh-kpi::before {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--vh-pad-y, 1.1rem));
+  right: 0;
+  width: 1px;
+  height: calc(100% + var(--vh-pad-y, 1.1rem));
+  background: linear-gradient(
+    180deg,
+    rgba(62, 106, 225, 0.7),
+    rgba(62, 106, 225, 0.06) 82%,
+    transparent
+  );
 }
 .vh-kpi-label {
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #71717a;
 }
 .vh-kpi-amount {
-  font-size: clamp(1.6rem, 4vw, 2.1rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-size: clamp(2rem, 4.5vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
   color: #fafafa;
-  line-height: 1.15;
+  line-height: 1.05;
+  font-variation-settings: "opsz" 32;
 }
 .vh-kpi-meta {
   display: flex;
@@ -1531,22 +1559,42 @@ html[data-theme="light"] .bizdock-desc {
   gap: 0.6rem;
   font-size: 0.75rem;
   color: #71717a;
+  margin-top: 0.3rem;
 }
 .vh-delta {
   display: inline-flex;
   align-items: center;
   gap: 0.15rem;
   font-weight: 700;
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem 0.05rem 0.35rem;
 }
 .vh-delta.is-up {
   color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
 }
 .vh-delta.is-down {
   color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
 }
 
 html[data-theme="light"] .venue-header {
-  background: #ffffff;
+  /* Showroom blanco: el lavado de marca es apenas perceptible. */
+  background:
+    radial-gradient(
+      34rem 14rem at 88% -6rem,
+      rgba(62, 106, 225, 0.05),
+      transparent 62%
+    ),
+    #ffffff;
+}
+html[data-theme="light"] .vh-kpi::before {
+  background: linear-gradient(
+    180deg,
+    rgba(62, 106, 225, 0.55),
+    rgba(62, 106, 225, 0.05) 82%,
+    transparent
+  );
 }
 html[data-theme="light"] .vh-logo {
   border-color: #e4e4e7;
@@ -1564,9 +1612,11 @@ html[data-theme="light"] .vh-kpi-meta {
 }
 html[data-theme="light"] .vh-delta.is-up {
   color: #047857;
+  background: rgba(5, 150, 105, 0.08);
 }
 html[data-theme="light"] .vh-delta.is-down {
   color: #b91c1c;
+  background: rgba(185, 28, 28, 0.07);
 }
 
 @media (max-width: 640px) {
@@ -1579,8 +1629,13 @@ html[data-theme="light"] .vh-delta.is-down {
     text-align: left;
     width: 100%;
     padding-top: 0.85rem;
+    padding-right: 0;
     /* El separador vertical se vuelve horizontal (hairline del sistema). */
     border-top: 1px solid rgba(255, 255, 255, 0.07);
+    /* En columna la viga vertical no tiene sentido: hairline horizontal. */
+  }
+  .vh-kpi::before {
+    display: none;
   }
   html[data-theme="light"] .vh-kpi {
     border-top-color: #e4e4e7;
@@ -1721,6 +1776,7 @@ html[data-theme="light"] .ec-when-soon {
    ---------------------------------------------------------------------- */
 .events-strip {
   padding: 0.35rem 0 0.2rem;
+  counter-reset: evx;
 }
 .evx-head {
   display: flex;
@@ -1764,10 +1820,35 @@ html[data-theme="light"] .ec-when-soon {
 .evx-tab.is-active .evx-tab-count {
   color: #b0c0f2;
 }
+/* Tab activo: la pestaña se SUBRAYA (línea del acento), no se encierra en
+   caja: es la gramática de tabs de texto de nivel producto. */
+.evx-tab {
+  position: relative;
+  border-radius: 0.4rem 0.4rem 0 0;
+}
+.evx-tab::after {
+  content: "";
+  position: absolute;
+  left: 0.4rem;
+  right: 0.4rem;
+  bottom: -0.45rem; /* cubre el padding-bottom de .evx-toolbar */
+  height: 2px;
+  border-radius: 2px;
+  background: #3e6ae1;
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s var(--ease-out-expo);
+}
+.evx-tab.is-active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
 .evx-grid {
   display: grid;
-  gap: 0.75rem;
-  margin-top: 0.85rem;
+  gap: 0.85rem;
+  margin-top: 1rem;
 }
 @media (min-width: 640px) {
   .evx-grid {
@@ -1784,17 +1865,84 @@ html[data-theme="light"] .ec-when-soon {
      enlaces del grid comparten una sola caja gigante sobre la sección y
      los clics caen en el evento equivocado (o no navegan). */
   position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    transform 0.18s var(--ease-out-expo),
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
   /* Misma superficie sutil de los ítems del dock Del negocio: la tarjeta
      se lee como tarjeta sin competir con el card de la portada. */
   border-radius: 0.9rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0) 42%),
+    rgba(255, 255, 255, 0.02);
+}
+/* Barra superior: la única línea de color por tarjeta la dice el ESTADO
+   (verde = en puerta, brand = a la venta; cancelado/finalizado usan su
+   color de punto via --evx-bar). El ciclo de vida se lee sin leer palabra. */
+.evx-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--evx-bar, transparent);
+  z-index: 1;
+}
+.evx-card.is-live::before {
+  background: linear-gradient(90deg, #34d399, rgba(52, 211, 153, 0.25));
+}
+.evx-card.is-published::before {
+  background: linear-gradient(90deg, #7d99ec, rgba(125, 153, 236, 0.25));
+}
+/* Halo de marca que emerge al hover (profundidad, no decoración): la
+   tarjeta "se enciende" — la que vas a abrir responde. */
+.evx-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    90% 70% at 50% -10%,
+    rgba(62, 106, 225, 0.13),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.evx-card:hover::after {
+  opacity: 1;
+}
+.evx-card.is-live::after {
+  background: radial-gradient(
+    90% 70% at 50% -10%,
+    rgba(16, 185, 129, 0.14),
+    transparent 62%
+  );
+}
+.evx-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(125, 153, 236, 0.4);
+  box-shadow:
+    0 14px 34px -16px rgba(0, 0, 0, 0.6),
+    0 10px 32px -14px rgba(62, 106, 225, 0.35);
+}
+.evx-card.is-live:hover {
+  border-color: rgba(52, 211, 153, 0.5);
+  box-shadow:
+    0 14px 34px -16px rgba(0, 0, 0, 0.6),
+    0 10px 32px -14px rgba(16, 185, 129, 0.35);
 }
 .evx-name {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
   color: #fafafa;
+  font-variation-settings: "opsz" 24;
 }
 .evx-state {
   display: inline-flex;
@@ -1838,10 +1986,10 @@ html[data-theme="light"] .ec-when-soon {
   gap: 0.7rem;
 }
 .evx-thumb {
-  width: 3rem;
-  height: 3rem;
+  width: 3.5rem;
+  height: 3.5rem;
   flex-shrink: 0;
-  border-radius: 0.65rem;
+  border-radius: 0.7rem;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: #0c0c0e;
@@ -1849,21 +1997,24 @@ html[data-theme="light"] .ec-when-soon {
 .evx-thumb-fallback {
   display: grid;
   place-items: center;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #b0c0f2;
+  color: #d6def8;
   background: linear-gradient(
-    135deg,
-    rgba(62, 106, 225, 0.22),
-    rgba(62, 106, 225, 0.07)
+    140deg,
+    rgba(62, 106, 225, 0.38),
+    rgba(62, 106, 225, 0.1) 60%,
+    rgba(9, 9, 11, 0.4)
   );
-  border-color: rgba(125, 153, 236, 0.25);
+  border-color: rgba(125, 153, 236, 0.3);
+  text-shadow: 0 1px 2px rgba(9, 9, 11, 0.4);
 }
 .evx-thumb-fallback.is-ended {
-  color: #a1a1aa;
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
+  color: #d4d4d8;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  border-color: rgba(255, 255, 255, 0.1);
+  text-shadow: none;
 }
 /* Píldora de apertura reutilizada (ec-when): la fecha deja de ser un
    texto gris enterrado abajo y se vuelve el segundo dato que se lee. */
@@ -1882,15 +2033,19 @@ html[data-theme="light"] .ec-when-soon {
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
   gap: 0.5rem;
-  margin-top: 0.85rem;
+  margin-top: 0.95rem;
 }
 .evx-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.2rem;
   border-left: 2px solid rgba(255, 255, 255, 0.07);
   padding-left: 0.55rem;
   min-width: 0;
+  transition: border-color 0.2s ease;
+}
+.evx-card:hover .evx-stat:first-child {
+  border-left-color: rgba(52, 211, 153, 0.55);
 }
 .evx-stat-label {
   font-size: 0.625rem;
@@ -1901,11 +2056,12 @@ html[data-theme="light"] .ec-when-soon {
   white-space: nowrap;
 }
 .evx-stat-value {
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: #e4e4e7;
+  font-size: 1.2rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: #fafafa;
   white-space: nowrap;
+  font-variation-settings: "opsz" 24;
 }
 .evx-stat-value.has-money {
   color: #34d399;
@@ -1924,6 +2080,18 @@ html[data-theme="light"] .ec-when-soon {
 .evx-stat-value.is-counting {
   color: #34d399;
 }
+/* Punto que late junto al contador de entraron (en puerta): señal de vida
+   discreta, sin animar el número entero. */
+.evx-stat-dot {
+  display: inline-block;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: #34d399;
+  margin-right: 0.3rem;
+  vertical-align: 0.12em;
+  animation: evx-pulse 2s ease-in-out infinite;
+}
 
 /* Aforo: barra + % vendido al lado — la proporción se lee sin comparar
    cifras. La barra es proporción, no decoración. */
@@ -1941,7 +2109,7 @@ html[data-theme="light"] .ec-when-soon {
   white-space: nowrap;
 }
 .evx-meter {
-  height: 4px;
+  height: 5px;
   flex: 1;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
@@ -1950,7 +2118,10 @@ html[data-theme="light"] .ec-when-soon {
 .evx-meter-fill {
   height: 100%;
   border-radius: 999px;
-  background: rgba(125, 153, 236, 0.55); /* brand-400 al 55%: presencia, no grito */
+  /* Venda de marca con núcleo brillante: proporción VIVA, no un rectángulo
+     plano. La luz viaja hacia la punta del llenado. */
+  background: linear-gradient(90deg, rgba(62, 106, 225, 0.45), #7d99ec);
+  box-shadow: 0 0 8px -1px rgba(62, 106, 225, 0.55);
   transition: width 0.5s var(--ease-out-expo);
 }
 .is-live .evx-meter-fill { background: #34d399; }
@@ -1963,23 +2134,28 @@ html[data-theme="light"] .evx-thumb {
 }
 html[data-theme="light"] .evx-thumb-fallback {
   color: #2a4fb8;
+  text-shadow: none;
   background: linear-gradient(
-    135deg,
-    rgba(62, 106, 225, 0.14),
-    rgba(62, 106, 225, 0.05)
+    140deg,
+    rgba(62, 106, 225, 0.2),
+    rgba(62, 106, 225, 0.06) 60%,
+    rgba(255, 255, 255, 0.5)
   );
   border-color: rgba(62, 106, 225, 0.25);
 }
 html[data-theme="light"] .evx-thumb-fallback.is-ended {
   color: #71717a;
-  background: rgba(9, 9, 11, 0.04);
+  background: linear-gradient(140deg, rgba(9, 9, 11, 0.07), rgba(9, 9, 11, 0.02));
   border-color: #e4e4e7;
 }
 html[data-theme="light"] .evx-stat {
   border-left-color: #e4e4e7;
 }
 html[data-theme="light"] .evx-stat-value {
-  color: #18181b;
+  color: #09090b;
+}
+html[data-theme="light"] .evx-card:hover .evx-stat:first-child {
+  border-left-color: rgba(5, 150, 105, 0.6);
 }
 html[data-theme="light"] .evx-stat-value.has-money {
   color: #047857;
@@ -2056,13 +2232,37 @@ html[data-theme="light"] .evx-open-label {
   grid-template-columns: auto 1fr auto auto auto;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.6rem 0.4rem;
-  border-radius: 0.5rem;
+  padding: 0.65rem 0.55rem;
+  border-radius: 0.55rem;
   font-size: 0.8125rem;
-  transition: background 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+  /* Rail de estado: la fila pinta su ciclo de vida como la tarjeta (verde
+     vivo = en puerta). El listado se lee como pulso, no como tabla. */
+  border-left: 2px solid transparent;
+}
+.evx-row::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 18%;
+  bottom: 18%;
+  width: 2px;
+  border-radius: 2px;
+  background: transparent;
+}
+.evx-row:has(.evx-row-state.is-live)::before {
+  background: #34d399;
+}
+.evx-row:has(.evx-row-state.is-live) {
+  border-left-color: rgba(52, 211, 153, 0.25);
 }
 .evx-row:hover {
   background: rgba(255, 255, 255, 0.04);
+}
+.evx-row:has(.evx-row-state.is-live):hover {
+  background: rgba(52, 211, 153, 0.05);
 }
 .evx-row + .evx-row {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -2084,7 +2284,8 @@ html[data-theme="light"] .evx-open-label {
 }
 .evx-row-state {
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: #71717a;
   white-space: nowrap;
 }
@@ -2093,6 +2294,9 @@ html[data-theme="light"] .evx-open-label {
 }
 html[data-theme="light"] .evx-row:hover {
   background: rgba(9, 9, 11, 0.03);
+}
+html[data-theme="light"] .evx-row:has(.evx-row-state.is-live):hover {
+  background: rgba(5, 150, 105, 0.04);
 }
 html[data-theme="light"] .evx-row + .evx-row {
   border-top-color: #ececee;
@@ -2162,9 +2366,35 @@ html[data-theme="light"] .evx-tab-count {
 html[data-theme="light"] .evx-tab.is-active .evx-tab-count {
   color: #2a4fb8;
 }
-html[data-theme="light"] .evx-card {
+html[data-theme="light"] html[data-theme="light"] .evx-card {
   background: #f4f4f5;
   border-color: #ececee;
+}
+html[data-theme="light"] .evx-card::after {
+  background: radial-gradient(
+    90% 70% at 50% -10%,
+    rgba(62, 106, 225, 0.08),
+    transparent 62%
+  );
+}
+html[data-theme="light"] .evx-card.is-live::after {
+  background: radial-gradient(
+    90% 70% at 50% -10%,
+    rgba(5, 150, 105, 0.09),
+    transparent 62%
+  );
+}
+html[data-theme="light"] .evx-card:hover {
+  border-color: rgba(62, 106, 225, 0.4);
+  box-shadow:
+    0 14px 34px -18px rgba(24, 24, 27, 0.28),
+    0 10px 32px -14px rgba(62, 106, 225, 0.22);
+}
+html[data-theme="light"] .evx-card.is-live:hover {
+  border-color: rgba(5, 150, 105, 0.5);
+  box-shadow:
+    0 14px 34px -18px rgba(24, 24, 27, 0.28),
+    0 10px 32px -14px rgba(5, 150, 105, 0.22);
 }
 html[data-theme="light"] .evx-name {
   color: #09090b;
@@ -2176,7 +2406,8 @@ html[data-theme="light"] .evx-meter {
   background: rgba(9, 9, 11, 0.07);
 }
 html[data-theme="light"] .evx-meter-fill {
-  background: rgba(62, 106, 225, 0.5);
+  background: linear-gradient(90deg, rgba(62, 106, 225, 0.4), #3460d6);
+  box-shadow: none;
 }
 html[data-theme="light"] .is-live .evx-meter-fill { background: #059669; }
 html[data-theme="light"] .evx-meter-fill.is-warn { background: #d97706; }
@@ -2197,7 +2428,21 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: #d4d4d8; }
   .evx-dot.is-live {
     animation: none;
   }
+  .evx-stat-dot {
+    animation: none;
+  }
   .evx-actions {
+    transition: none;
+  }
+  .evx-card,
+  .evx-card:hover {
+    transition: none;
+    transform: none;
+  }
+  .evx-card::after {
+    display: none;
+  }
+  .evx-tab::after {
     transition: none;
   }
 }

@@ -54,7 +54,8 @@ export default function VenueHeader({ venueId, user, children = null }) {
         y franja de eventos viven DENTRO de este card (misma gramatica del
         dock Del negocio: un card = un contexto, secciones por hairline). */}
       <div className="vh-top">
-        {/* Identidad: logo (o iniciales si no tiene) + nombre + etiqueta mes */}
+        {/* Identidad: logo (o iniciales si no tiene) + nombre + eyebrow. El
+          tile de identidad 56px es el ancla visual de la portada. */}
         <div className="vh-identidad">
           {venue?.logo_url ? (
             <img
@@ -74,7 +75,7 @@ export default function VenueHeader({ venueId, user, children = null }) {
           )}
           <div className="min-w-0">
             <p className="eyebrow">Panel de la venue</p>
-            <h1 className="display truncate text-lg leading-tight sm:text-xl">
+            <h1 className="display text-xl leading-tight sm:text-2xl">
               {venue?.name ?? "Tu negocio"}
             </h1>
           </div>
@@ -94,7 +95,7 @@ export default function VenueHeader({ venueId, user, children = null }) {
                 />
               </p>
             ) : (
-              <Skeleton className="h-9 w-40" />
+              <Skeleton className="h-12 w-44" />
             )}
             <p className="vh-kpi-meta">
               {delta !== null ? (

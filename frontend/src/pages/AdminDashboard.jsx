@@ -609,9 +609,16 @@ export default function AdminDashboard() {
                         acción principal a la derecha, ENCIMA de la barra de
                         búsqueda). */}
                       <div className="evx-head">
-                        <div>
+                        <div className="min-w-0">
                           <p className="eyebrow">Operación</p>
-                          <h2 className="display text-lg">Eventos</h2>
+                          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                            <h2 className="display text-xl sm:text-2xl">
+                              Eventos
+                            </h2>
+                            <p className="text-xs text-zinc-500">
+                              {events.length} noche{events.length === 1 ? "" : "s"} en el calendario
+                            </p>
+                          </div>
                         </div>
                         <button
                           onClick={() => setCreateOpen(true)}
@@ -632,7 +639,7 @@ export default function AdminDashboard() {
                             onChange={(e) => setEventQuery(e.target.value)}
                             placeholder="Buscar evento…"
                             aria-label="Buscar evento por nombre"
-                            className="field !py-2 !pl-9 text-sm"
+                            className="field !py-2.5 !pl-10 text-sm"
                           />
                         </div>
                         {/* Filtros como tabs de texto (no píldoras con borde):
@@ -796,8 +803,15 @@ export default function AdminDashboard() {
                             <div
                               key={ev.id}
                               className={`event-card evx-card ${live ? "is-live" : ""} ${
-                                ended ? "is-ended" : ""
-                              }`}
+                                ev.status === "published" ? "is-published" : ""
+                              } ${ended ? "is-ended" : ""}`}
+                              style={
+                                !live && !ended
+                                  ? undefined
+                                  : {
+                                      "--evx-bar": STATUS_DOT_COLOR[ev.status],
+                                    }
+                              }
                             >
                               {/* Link superpuesto: la TARJETA entera abre el
                             backstage y deja libres las esquinas para acciones
@@ -926,6 +940,16 @@ export default function AdminDashboard() {
                                             : ""
                                         }`}
                                       >
+                                        {/* En puerta el número late: el punto
+                                          esmeralda latiendo junto a la cifra
+                                          dice "está pasando ahora" sin animar
+                                          el número (menos ruido, más pulso). */}
+                                        {live && stat.redeemed > 0 && (
+                                          <span
+                                            className="evx-stat-dot"
+                                            aria-hidden="true"
+                                          />
+                                        )}
                                         {stat.redeemed}
                                       </span>
                                     </div>
@@ -967,7 +991,7 @@ export default function AdminDashboard() {
                                       className="evx-pct tnum"
                                       data-tip="Porcentaje vendido del aforo"
                                     >
-                                      {pct}% vendido
+                                      {pct}%
                                     </span>
                                   </div>
                                 )}
