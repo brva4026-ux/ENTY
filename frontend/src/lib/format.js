@@ -36,7 +36,12 @@ export function clockTime(iso) {
 /** Fecha del evento: "vie 20 sep · 9:00 p.m." */
 export function eventDate(iso) {
   if (!iso) return "";
+  // El endpoint público (/tickets/preview) manda la fecha YA FORMATEADA
+  // ("29/09/2026 21:00"): new Date() sobre ese formato da Invalid Date y la
+  // boleta del invitado mostraba el texto literal. Si no parsea como ISO,
+  // se asume que ya viene listo para mostrar.
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
   const date = d.toLocaleDateString("es-CO", {
     weekday: "short",
     day: "numeric",

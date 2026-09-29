@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { fetchPublicTicket, fetchTicketImage, returnTicket } from "../lib/api";
 import { eventDate } from "../lib/format";
+import { forceDarkOnce } from "../lib/theme";
 import Icon from "../components/Icon";
 
 /**
@@ -32,6 +33,10 @@ export default function PublicTicketPage() {
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // La boleta pública SIEMPRE es oscura (es la credencial de la noche: se
+  // muestra en la puerta a oscuras, igual que el escáner). Sin el candado,
+  // un invitado con tema claro ve texto blanco sobre blanco.
+  useEffect(() => forceDarkOnce(), []);
   // Devolucion (mig 021): confirmacion en dos pasos — es irreversible.
   const [confirming, setConfirming] = useState(false);
   const [returning, setReturning] = useState(false);
@@ -166,7 +171,7 @@ export default function PublicTicketPage() {
       : null;
 
   return (
-    <div className="relative min-h-screen bg-zinc-950 px-4 py-8">
+    <div className="relative min-h-screen px-4 py-8" style={{ background: "radial-gradient(46rem 30rem at 50% -10rem, rgba(62, 106, 225, 0.12), transparent 62%), #09090b" }}>
       <div className="relative mx-auto w-full max-w-sm animate-rise">
         <div className="card card-interactive p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -175,7 +180,7 @@ export default function PublicTicketPage() {
             </span>
             <div className="min-w-0">
               <p className="eyebrow">Tu boleta</p>
-              <p className="truncate text-sm font-bold text-white">
+              <p className="truncate text-base font-bold text-white">
                 {ticket?.event_name ?? "Cargando…"}
               </p>
             </div>
@@ -224,7 +229,7 @@ export default function PublicTicketPage() {
                 </div>
               ) : (
                 <>
-                  <div className="relative mx-auto w-fit rounded-2xl bg-white p-3 shadow-2xl">
+                  <div className="ticket-qr-frame relative mx-auto w-fit">
                     {qrDataUrl ? (
                       <img
                         src={qrDataUrl}

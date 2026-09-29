@@ -336,7 +336,10 @@ export default function PromoterDashboard() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <p className="eyebrow">TicketFlow</p>
-            <h2 className="display text-gradient text-2xl">
+            <h2
+              className="display text-2xl tracking-[-0.03em]"
+              style={{ fontVariationSettings: '"opsz" 32' }}
+            >
               Panel del promotor
             </h2>
             <p className="mt-1 text-sm text-zinc-400">
@@ -369,7 +372,7 @@ export default function PromoterDashboard() {
           <>
             {/* Contexto del evento: siempre visible arriba, fuera del formulario.
               Selector premium: el estado en español con su color en CADA opción. */}
-            <div className="card p-4">
+            <div className="card card-hero p-4">
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={selectedEvent}
@@ -628,7 +631,7 @@ export default function PromoterDashboard() {
                         </div>
                       </div>
 
-                      <details className="rounded-lg bg-zinc-900/60 p-3 ring-1 ring-zinc-800">
+                      <details className="list-row rounded-lg p-3">
                         <summary className="cursor-pointer text-xs font-medium text-zinc-500">
                           Código de respaldo (validar sin cámara)
                         </summary>

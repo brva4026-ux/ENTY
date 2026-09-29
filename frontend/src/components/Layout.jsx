@@ -80,7 +80,7 @@ export default function Layout({ children }) {
       </a>
       {/* Header compacto: se reduce la marca y el nav se esconde en móvil
           (lo reemplaza la barra inferior, el patrón de apps nativas). */}
-      <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur">
+      <header className="topbar sticky top-0 z-20">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-6">
             <Link to="/" aria-label="Inicio">
@@ -94,11 +94,7 @@ export default function Layout({ children }) {
                     key={t.to}
                     to={t.to}
                     aria-current={active ? "page" : undefined}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                      active
-                        ? "bg-zinc-800 text-white"
-                        : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-                    }`}
+                    className={`topnav-item ${active ? "is-active" : ""}`}
                   >
                     {t.label}
                   </Link>
@@ -123,7 +119,7 @@ export default function Layout({ children }) {
               to="/perfil"
               data-tip="Tu perfil"
               aria-label="Tu perfil"
-              className="grid h-7 w-7 place-items-center rounded-full bg-zinc-800 text-[11px] font-semibold text-zinc-300 ring-1 ring-zinc-700 transition hover:ring-brand-500"
+              className="topbar-avatar"
             >
               {initials}
             </Link>

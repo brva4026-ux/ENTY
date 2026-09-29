@@ -276,7 +276,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="dialog-panel my-auto w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl shadow-black/60">
+      <div className="dialog-panel my-auto w-full max-w-2xl p-5">
         {/* ====== Cabecera + pasos ====== */}
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>

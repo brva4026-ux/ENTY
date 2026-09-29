@@ -41,7 +41,7 @@ export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPubl
   if (dismissed) return null;
 
   return (
-    <div className="card relative overflow-hidden p-5 animate-scale-in">
+    <div className="card onboard-hero relative overflow-hidden p-5 animate-scale-in">
       {allDone && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           {CONFETTI.map((emoji, i) => (
@@ -90,6 +90,12 @@ export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPubl
             </svg>
           </button>
         </div>
+      </div>
+
+      {/* Progreso real (no solo el contador): la barra crece con cada paso
+        completado — ver el avance mueve más que leerlo. */}
+      <div className="onboard-progress mt-3" role="progressbar" aria-valuenow={doneCount} aria-valuemin={0} aria-valuemax={steps.length}>
+        <div className="onboard-progress-fill" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
       </div>
 
       <ol className="mt-3 space-y-2.5">

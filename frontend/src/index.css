@@ -173,7 +173,10 @@ body {
   width: 100%;
   border-radius: 0.25rem;
   border: 1px solid #2a2a2e;
-  background: #0c0c0e;
+  /* El color va en background-COLOR (no en el shorthand): el shorthand
+     background: resetea background-repeat a initial y el chevron del
+     select.field se repetia en cinta (el bug de los "vvvvvvv"). */
+  background-color: #0c0c0e;
   padding: 0.7rem 0.85rem;
   font-size: 0.9375rem;
   color: #fafafa;
@@ -2472,6 +2475,168 @@ html[data-theme="light"] .dialog-panel {
 }
 
 /* ----------------------------------------------------------------------
+   TOPBAR: vidrio con luz propia. El nav activo lleva subrayado de marca
+   (mismo gesto de los evx-tab de la portada) y el avatar respira al hover.
+   ---------------------------------------------------------------------- */
+.topbar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(12, 12, 14, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+html[data-theme="light"] .topbar {
+  border-bottom-color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.85);
+}
+.topnav-item {
+  position: relative;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.topnav-item:hover {
+  color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.05);
+}
+.topnav-item.is-active {
+  color: #fafafa;
+  font-weight: 600;
+}
+/* Subrayado de marca: la pestaña activa del topnav habla el MISMO idioma
+   que las tabs de la portada (línea del acento, no caja). */
+.topnav-item::after {
+  content: "";
+  position: absolute;
+  left: 0.8rem;
+  right: 0.8rem;
+  bottom: -0.55rem; /* cubre el border-bottom del header */
+  height: 2px;
+  border-radius: 2px;
+  background: #3e6ae1;
+  transform: scaleX(0);
+  transition: transform 0.22s var(--ease-out-expo);
+}
+.topnav-item.is-active::after {
+  transform: scaleX(1);
+}
+html[data-theme="light"] .topnav-item {
+  color: #71717a;
+}
+html[data-theme="light"] .topnav-item:hover {
+  color: #18181b;
+  background: rgba(9, 9, 11, 0.04);
+}
+html[data-theme="light"] .topnav-item.is-active {
+  color: #09090b;
+}
+.topbar-avatar {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #d4d4d8;
+  background: linear-gradient(140deg, rgba(62, 106, 225, 0.3), rgba(62, 106, 225, 0.1));
+  box-shadow:
+    inset 0 0 0 1px rgba(125, 153, 236, 0.35),
+    0 2px 8px -3px rgba(62, 106, 225, 0.45);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.topbar-avatar:hover {
+  transform: scale(1.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(125, 153, 236, 0.6),
+    0 4px 14px -4px rgba(62, 106, 225, 0.6);
+}
+html[data-theme="light"] .topbar-avatar {
+  color: #2a4fb8;
+  background: linear-gradient(140deg, rgba(62, 106, 225, 0.16), rgba(62, 106, 225, 0.06));
+  box-shadow: inset 0 0 0 1px rgba(62, 106, 225, 0.35);
+}
+
+/* ----------------------------------------------------------------------
+   BOLETA PUBLICA (invitado): la pagina mas vista por alguien que NO trabaja
+   en la app — merece la misma Firma. QR con marco de credencial.
+   ---------------------------------------------------------------------- */
+.ticket-qr-frame {
+  position: relative;
+  border-radius: 1.1rem;
+  padding: 0.8rem;
+  background:
+    linear-gradient(160deg, #ffffff, #f4f4f5 70%),
+    #ffffff;
+  box-shadow:
+    inset 0 0 0 1px rgba(9, 9, 11, 0.08),
+    0 20px 50px -18px rgba(0, 0, 0, 0.65),
+    0 0 40px -12px rgba(62, 106, 225, 0.35);
+}
+.ticket-qr-frame::before,
+.ticket-qr-frame::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-color: #3e6ae1;
+  border-style: solid;
+  opacity: 0.85;
+}
+.ticket-qr-frame::before {
+  top: -6px;
+  left: -6px;
+  border-width: 3px 0 0 3px;
+  border-top-left-radius: 12px;
+}
+.ticket-qr-frame::after {
+  bottom: -6px;
+  right: -6px;
+  border-width: 0 3px 3px 0;
+  border-bottom-right-radius: 12px;
+}
+
+/* ----------------------------------------------------------------------
+   ONBOARDING: card de bienvenida con lavado de marca y progreso real.
+   ---------------------------------------------------------------------- */
+.onboard-hero {
+  background:
+    radial-gradient(
+      26rem 12rem at 8% -6rem,
+      rgba(62, 106, 225, 0.14),
+      transparent 62%
+    ),
+    #101013;
+}
+html[data-theme="light"] .onboard-hero {
+  background:
+    radial-gradient(
+      26rem 12rem at 8% -6rem,
+      rgba(62, 106, 225, 0.07),
+      transparent 62%
+    ),
+    #ffffff;
+}
+.onboard-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+html[data-theme="light"] .onboard-progress {
+  background: #e4e4e7;
+}
+.onboard-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(62, 106, 225, 0.5), #7d99ec);
+  box-shadow: 0 0 8px -1px rgba(62, 106, 225, 0.55);
+  transition: width 0.45s var(--ease-out-expo);
+}
+
+/* ----------------------------------------------------------------------
    LISTAS: filas que responden al hover (lift sutil + hairline de marca).
    ---------------------------------------------------------------------- */
 .list-row {
@@ -2927,8 +3092,15 @@ html[data-theme="light"] .row:hover {
 /* Inputs: superficie blanca, borde visible, foco con halo violeta */
 html[data-theme="light"] .field {
   border-color: #d4d4d8;
-  background: #ffffff;
+  /* background-color (no shorthand): ver .field — el shorthand pisaba el
+     no-repeat del chevron del select y lo repetia en cinta en tema claro. */
+  background-color: #ffffff;
   color: #09090b;
+}
+/* Refuerzo especifico: el chevron del select NO se repite en ningun tema
+   (la regla clara de .field ganaba por especificidad y lo rompia). */
+html[data-theme="light"] select.field {
+  background-repeat: no-repeat;
 }
 html[data-theme="light"] .field::placeholder {
   color: #a1a1aa;
