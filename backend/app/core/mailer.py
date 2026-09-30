@@ -72,7 +72,7 @@ class Mailer:
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px">
   <h2 style="margin:0 0 8px;font-size:20px">Recupera tu acceso</h2>
   <p style="margin:0 0 16px;color:#555;font-size:14px">
-    Hola {name}, recibimos una solicitud para restablecer tu contraseña en TicketFlow.
+    Hola {name}, recibimos una solicitud para restablecer tu contraseña en Tickelot.
   </p>
   <p style="margin:0 0 24px">
     <a href="{link}"
@@ -89,7 +89,7 @@ class Mailer:
 </div>"""
         return self._send(
             to=to,
-            subject="Recupera tu contraseña · TicketFlow",
+            subject="Recupera tu contraseña · Tickelot",
             html=html,
         )
 
@@ -99,7 +99,7 @@ class Mailer:
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px">
   <h2 style="margin:0 0 8px;font-size:20px">Te invitaron a {venue_name}</h2>
   <p style="margin:0 0 16px;color:#555;font-size:14px">
-    Hola {full_name}, te invitaron a colaborar en <strong>{venue_name}</strong> con TicketFlow,
+    Hola {full_name}, te invitaron a colaborar en <strong>{venue_name}</strong> con Tickelot,
     el sistema de boletería y control de puerta.
   </p>
   <p style="margin:0 0 24px">
@@ -112,4 +112,4 @@ class Mailer:
     Si no esperabas este correo, simplemente ignóralo.
   </p>
 </div>"""
-        return self._send(to=to, subject=f"Te invitaron a {venue_name} · TicketFlow", html=html)
+        return self._send(to=to, subject=f"Te invitaron a {venue_name} · Tickelot", html=html)

@@ -212,7 +212,7 @@ de la cuenta.
 
 ```bash
 curl -s https://ticketflow-brva4026-uxs-projects.vercel.app/api/health
-#  -> {"status":"ok","app":"TicketFlow API"}
+#  -> {"status":"ok","app":"Tickelot API"}
 
 curl -s -X POST https://ticketflow-brva4026-uxs-projects.vercel.app/api/auth/login \
   -H 'Content-Type: application/json' \

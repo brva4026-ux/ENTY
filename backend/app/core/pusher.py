@@ -1,6 +1,6 @@
 """Web Push (VAPID) sin servicios externos — RFC 8291 (aes128gcm) + RFC 8292.
 
-Casos de uso en TicketFlow:
+Casos de uso en Tickelot:
 - El portero activa "avisarme" en el escáner -> el backend guarda la
   suscripción (migración 007, tabla push_subscriptions).
 - Cuando el admin abre puertas (published -> live) se notifica a todos los

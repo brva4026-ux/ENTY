@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
 
-/** Marca TicketFlow: logotipo, indicadores vivos y cifras animadas. */
+/** Marca Tickelot: logotipo, indicadores vivos y cifras animadas. */
 
 export function Logo({ size = "md", animated = true }) {
   const hero = size === "hero";
@@ -63,13 +63,13 @@ export function Logo({ size = "md", animated = true }) {
            "Flow" en el azul acento — el único color interactivo del sistema. */
         <span className="brand-chip animate-fade">
           <span className="display text-[2.5rem] font-semibold leading-none tracking-[-0.03em]">
-            <span className="brand-shine">Ticket</span>
-            <span className="brand-flow">Flow</span>
+            <span className="brand-shine">Tick</span>
+            <span className="brand-flow">elot</span>
           </span>
         </span>
       ) : (
         <span className={`${text} display brand-shine tracking-tight`}>
-          TicketFlow
+          Tickelot
         </span>
       )}
     </span>

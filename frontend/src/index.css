@@ -3391,3 +3391,396 @@ body {
     align-items: center;
   }
 }
+/* ===========================================================================
+   TKT - BOLETA DEL INVITADO (ticket de festival)
+   La credencial se ve como una BOLETA real: campo de indigo de fondo, ticket
+   ambar con perforacion troquelada, QR sobre panel blanco (legible de verdad)
+   y serif tipo cartel para el nombre del evento. La pagina entera SIEMPRE es
+   oscura (forceDarkOnce): es la credencial de la noche.
+   =========================================================================== */
+.tkt-stage {
+  min-height: 100vh;
+  padding: 2rem 1rem 3rem;
+  background:
+    radial-gradient(46rem 30rem at 50% -10rem, rgba(62, 106, 225, 0.16), transparent 62%),
+    #09090b;
+}
+.tkt-wrap {
+  max-width: 26rem;
+  margin: 0 auto;
+  animation: rise 0.55s var(--ease-out-expo) both;
+}
+
+/* --- El ticket ---------------------------------------------------------- */
+.tkt {
+  position: relative;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  isolation: isolate;
+  color: #221a06;
+  /* Cartuchera de festival: ambar con luz cenital y tinte indigo abajo */
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.22), transparent 55%),
+    radial-gradient(140% 60% at 50% 115%, rgba(42, 47, 143, 0.28), transparent 60%),
+    linear-gradient(180deg, #f2b23c, #e89a26);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 24px 50px -22px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+/* Onda decorativa inferior (la "carpa" del cartel) */
+.tkt::before {
+  content: "";
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -2.2rem;
+  height: 4.5rem;
+  background: radial-gradient(60% 100% at 50% 100%, rgba(42, 47, 143, 0.3), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+/* Cabecera del ticket: fecha y venue, tipografia de cartel */
+.tkt-head {
+  position: relative;
+  z-index: 1;
+  padding: 1.05rem 1.25rem 0.35rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.tkt-date {
+  font-weight: 800;
+  font-size: 0.8125rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4a2f05;
+}
+.tkt-venue {
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(74, 47, 5, 0.75);
+}
+.tkt-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(42, 47, 143, 0.14);
+  color: #2a2f8f;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+/* Nombre del evento: la estrella del cartel. Serif con trazo grueso y
+   relieve tipo sticker sobre el ambar. */
+.tkt-title {
+  position: relative;
+  z-index: 1;
+  margin: 0.5rem 1.25rem 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 800;
+  font-size: clamp(1.7rem, 8vw, 2.3rem);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: #2a2f8f;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35),
+    0 2px 12px rgba(255, 255, 255, 0.18);
+  overflow-wrap: anywhere;
+}
+.tkt-sub {
+  position: relative;
+  z-index: 1;
+  margin: 0.4rem 1.25rem 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #4a2f05;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.tkt-sub::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(74, 47, 5, 0.25);
+}
+
+/* --- Perforacion troquelada --------------------------------------------- */
+.tkt-tear {
+  position: relative;
+  z-index: 1;
+  margin: 1rem 0 0;
+  height: 0;
+}
+/* Muescas laterales (discos del fondo oscuro) + linea punteada */
+.tkt-tear::before {
+  content: "";
+  position: absolute;
+  top: -0.55rem;
+  left: -0.55rem;
+  right: -0.55rem;
+  height: 1.1rem;
+  background:
+    radial-gradient(circle 0.55rem at 0 50%, #09090b 98%, transparent),
+    radial-gradient(circle 0.55rem at 100% 50%, #09090b 98%, transparent);
+}
+.tkt-tear::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0.7rem;
+  right: 0.7rem;
+  border-top: 2px dashed rgba(74, 47, 5, 0.4);
+}
+/* Cuerpo bajo la perforacion: ambar un poco mas profundo */
+.tkt-body {
+  position: relative;
+  z-index: 1;
+  padding: 1.1rem 1.25rem 1.25rem;
+  background: linear-gradient(180deg, rgba(42, 47, 143, 0.06), rgba(42, 47, 143, 0.12));
+}
+
+/* --- Zona del QR: panel blanco sobre el ambar --------------------------- */
+.tkt-qr-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+.tkt-qr {
+  position: relative;
+  padding: 0.7rem;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow:
+    0 10px 24px -14px rgba(34, 26, 6, 0.65),
+    0 0 0 1px rgba(42, 47, 143, 0.12);
+}
+/* Esquinas de encuadre (credencial escaneable) */
+.tkt-qr::before,
+.tkt-qr::after {
+  content: "";
+  position: absolute;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2.5px solid #2a2f8f;
+  pointer-events: none;
+}
+.tkt-qr::before {
+  top: -0.45rem;
+  left: -0.45rem;
+  border-right: 0;
+  border-bottom: 0;
+  border-top-left-radius: 0.7rem;
+}
+.tkt-qr::after {
+  bottom: -0.45rem;
+  right: -0.45rem;
+  border-left: 0;
+  border-top: 0;
+  border-bottom-right-radius: 0.7rem;
+}
+.tkt-qr img,
+.tkt-qr .skeleton {
+  display: block;
+  width: 12.5rem;
+  height: 12.5rem;
+  border-radius: 0.6rem;
+}
+/* Sello "ADMIT ONE" bajo el QR */
+.tkt-admit {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  border: 1.5px dashed rgba(42, 47, 143, 0.45);
+  color: #2a2f8f;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* --- Datos del asistente (fila tipo talon ROW/SEAT/GATE) ---------------- */
+.tkt-grid {
+  margin-top: 1.1rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1.5px solid rgba(42, 47, 143, 0.35);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.4);
+}
+.tkt-cell {
+  padding: 0.55rem 0.5rem;
+  text-align: center;
+}
+.tkt-cell + .tkt-cell {
+  border-left: 1.5px dashed rgba(42, 47, 143, 0.3);
+}
+.tkt-cell-label {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(74, 47, 5, 0.7);
+}
+.tkt-cell-value {
+  margin-top: 0.15rem;
+  font-weight: 800;
+  font-size: 0.8125rem;
+  color: #221a06;
+  overflow-wrap: anywhere;
+}
+/* Celda de nombre a lo ancho (debajo de la fila de 3) */
+.tkt-name-row {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(42, 47, 143, 0.1);
+  border: 1.5px solid rgba(42, 47, 143, 0.25);
+}
+.tkt-name-row .tkt-cell-label {
+  flex-shrink: 0;
+}
+.tkt-name-row .tkt-cell-value {
+  text-align: right;
+  font-size: 0.9375rem;
+}
+
+/* --- Estados no-canjeables: panel de aviso sobre el ambar --------------- */
+.tkt-note {
+  border-radius: 0.9rem;
+  padding: 1.1rem 1rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.5px dashed rgba(42, 47, 143, 0.4);
+  color: #221a06;
+}
+.tkt-note .tkt-note-icon {
+  margin: 0 auto 0.6rem;
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(42, 47, 143, 0.12);
+  color: #2a2f8f;
+}
+.tkt-note strong {
+  display: block;
+  font-size: 0.9375rem;
+  color: #221a06;
+}
+.tkt-note p {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: rgba(34, 26, 6, 0.75);
+}
+
+/* --- Acciones: botones sobre el ambar ----------------------------------- */
+.tkt-actions {
+  position: relative;
+  z-index: 1;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.tkt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.7rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+.tkt-btn:active {
+  transform: translateY(1px);
+}
+.tkt-btn:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+/* Primario: indigo solido (el acento del cartel) */
+.tkt-btn-primary {
+  background: #2a2f8f;
+  color: #ffffff;
+  box-shadow: 0 8px 20px -10px rgba(42, 47, 143, 0.8);
+}
+.tkt-btn-primary:hover {
+  filter: brightness(1.12);
+}
+/* Secundario: blanco translucido con tinta indigo */
+.tkt-btn-quiet {
+  background: rgba(255, 255, 255, 0.45);
+  color: #2a2f8f;
+  border-color: rgba(42, 47, 143, 0.3);
+}
+.tkt-btn-quiet:hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+/* Peligro dentro del ticket: rojo legible sobre ambar */
+.tkt-btn-danger {
+  background: #b91c1c;
+  color: #ffffff;
+}
+.tkt-btn-danger:hover {
+  filter: brightness(1.1);
+}
+
+/* --- Pie de la pagina (fuera del ticket) --------------------------------- */
+.tkt-footer {
+  margin-top: 1.1rem;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #71717a;
+}
+/* Firma Tickelot centrada bajo el ticket */
+.tkt-brandline {
+  margin: 1.1rem auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: fit-content;
+  color: #a1a1aa;
+}
+.tkt-brandline img {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 0.3rem;
+}
+.tkt-brandline span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tkt-wrap {
+    animation: none;
+  }
+}

@@ -1,4 +1,4 @@
-"""TicketFlow API — FastAPI application factory."""
+"""Tickelot API — FastAPI application factory."""
 import asyncio
 import sys
 import time

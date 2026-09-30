@@ -1,7 +1,7 @@
 """Liquidaciones de promotores (mig 010).
 
 Transplante del modelo payment_issues de unicall-blue adaptado al negocio
-de TicketFlow: el promotor trabaja a comisión sobre lo que emite, el admin
+de Tickelot: el promotor trabaja a comisión sobre lo que emite, el admin
 cierra liquidaciones por periodo y el promotor puede disputarlas.
 
 Reglas de oro:

@@ -1,6 +1,6 @@
 {
-  "name": "TicketFlow — Boletería y Aforo",
-  "short_name": "TicketFlow",
+  "name": "Tickelot — Boletería y Aforo",
+  "short_name": "Tickelot",
   "description": "Boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso.",
   "start_url": "/",
   "scope": "/",

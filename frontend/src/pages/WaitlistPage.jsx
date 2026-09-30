@@ -232,7 +232,7 @@ export default function WaitlistPage() {
           </div>
 
           <p className="mt-4 text-center text-xs text-zinc-600">
-            Sin cuentas ni pagos por adelantado · TicketFlow
+            Sin cuentas ni pagos por adelantado · Tickelot
           </p>
         </div>
       </div>
@@ -390,7 +390,7 @@ export default function WaitlistPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-zinc-600">
-          Tu lugar es personal: se valida por tu celular · TicketFlow
+          Tu lugar es personal: se valida por tu celular · Tickelot
         </p>
       </div>
     </div>

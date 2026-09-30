@@ -171,202 +171,202 @@ export default function PublicTicketPage() {
       : null;
 
   return (
-    <div className="relative min-h-screen px-4 py-8" style={{ background: "radial-gradient(46rem 30rem at 50% -10rem, rgba(62, 106, 225, 0.12), transparent 62%), #09090b" }}>
-      <div className="relative mx-auto w-full max-w-sm animate-rise">
-        <div className="card card-interactive p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <span className="tile grid h-9 w-9">
-              <Icon name="ticket" className="h-4 w-4 text-brand-400" />
-            </span>
+    <div className="tkt-stage">
+      <div className="tkt-wrap">
+        {/* El ticket: credencial ambar troquelada, como las de festival */}
+        <div className="tkt">
+          <div className="tkt-head">
             <div className="min-w-0">
-              <p className="eyebrow">Tu boleta</p>
-              <p className="truncate text-base font-bold text-white">
-                {ticket?.event_name ?? "Cargando…"}
-              </p>
+              <p className="tkt-date">{eventDate(ticket?.starts_at) || "—"}</p>
+              <p className="tkt-venue truncate">{ticket?.venue_name ?? ""}</p>
             </div>
+            <span className="tkt-brand">Tickelot</span>
           </div>
 
-          {error ? (
-            <div className="rounded-xl bg-red-500/10 p-4 text-center ring-1 ring-red-500/30">
-              <Icon
-                name="alert"
-                className="mx-auto mb-2 h-6 w-6 text-red-400"
-              />
-              <p className="text-sm font-medium text-red-300">{error}</p>
-            </div>
-          ) : (
-            <>
-              {terminal ? (
-                <div className="rounded-xl bg-red-500/10 p-4 text-center ring-1 ring-red-500/30">
-                  <Icon
-                    name={returned ? "undo" : "alert"}
-                    className="mx-auto mb-2 h-6 w-6 text-red-400"
-                  />
-                  <p className="text-sm font-bold text-red-300">
-                    {returned ? "Boleta devuelta" : "Boleta anulada"}
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-zinc-300">
-                    {returned
-                      ? "Devuiste esta boleta y su QR quedó sin efecto. Si cambias de opinión, pide una nueva al promotor."
-                      : "Esta boleta fue anulada por el organizador y no permite el ingreso."}
-                  </p>
-                </div>
-              ) : !qrActive ? (
-                <div className="rounded-2xl bg-zinc-900/60 p-6 text-center ring-1 ring-zinc-800">
-                  <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-brand-500/15">
-                    <Icon name="clock" className="h-7 w-7 text-brand-300" />
-                  </span>
-                  <p className="text-sm font-bold text-white">
-                    Tu QR aún no se activa
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-zinc-300">
-                    {qrMessage}
-                  </p>
-                  <p className="mt-3 text-[11px] text-zinc-400">
-                    Guarda este enlace: es tu boleta y en la puerta va a
-                    funcionar.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="ticket-qr-frame relative mx-auto w-fit">
+          <h1 className="tkt-title">{ticket?.event_name ?? "Tu boleta"}</h1>
+          <p className="tkt-sub">Boleta de invitado</p>
+
+          <div className="tkt-tear" aria-hidden="true" />
+
+          <div className="tkt-body">
+            {error ? (
+              <div className="tkt-note">
+                <span className="tkt-note-icon">
+                  <Icon name="alert" className="h-6 w-6" />
+                </span>
+                <strong>No pudimos abrir tu boleta</strong>
+                <p>{error}</p>
+              </div>
+            ) : terminal ? (
+              <div className="tkt-note">
+                <span className="tkt-note-icon">
+                  <Icon name={returned ? "undo" : "alert"} className="h-6 w-6" />
+                </span>
+                <strong>{returned ? "Boleta devuelta" : "Boleta anulada"}</strong>
+                <p>
+                  {returned
+                    ? "Devuiste esta boleta y su QR quedó sin efecto. Si cambias de opinión, pide una nueva al promotor."
+                    : "Esta boleta fue anulada por el organizador y no permite el ingreso."}
+                </p>
+              </div>
+            ) : !qrActive ? (
+              <div className="tkt-note">
+                <span className="tkt-note-icon">
+                  <Icon name="clock" className="h-6 w-6" />
+                </span>
+                <strong>Tu QR aún no se activa</strong>
+                <p>{qrMessage}</p>
+                <p className="mt-2 text-[11px] font-semibold opacity-70">
+                  Guarda este enlace: es tu boleta y en la puerta va a funcionar.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="tkt-qr-zone">
+                  <div className="tkt-qr">
                     {qrDataUrl ? (
-                      <img
-                        src={qrDataUrl}
-                        alt="QR de tu boleta"
-                        className="h-56 w-56"
-                      />
+                      <img src={qrDataUrl} alt="QR de tu boleta" />
                     ) : (
-                      <div className="skeleton h-56 w-56 !rounded-lg" />
+                      <div className="skeleton" />
                     )}
                     {redeemed && (
-                      <div className="absolute inset-0 grid place-items-center rounded-2xl bg-zinc-950/70">
+                      <div className="absolute inset-0 grid place-items-center rounded-[1rem] bg-zinc-950/70">
                         <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-black">
                           Ya usada
                         </span>
                       </div>
                     )}
                   </div>
-
-                  <p className="mt-3 text-center text-sm text-zinc-400">
-                    Muestra este QR en la entrada
-                  </p>
-                </>
-              )}
-
-              {lifecycle && (
-                <div className="ticket-timeline mt-4 rounded-xl bg-zinc-900/40 px-4 py-3 ring-1 ring-zinc-800/80">
-                  {lifecycle.map((step) => (
-                    <div
-                      key={step.label}
-                      className={`ticket-step ${step.state}`}
-                    >
-                      <span className="ticket-step-dot" aria-hidden="true" />
-                      <span className="ticket-step-label">{step.label}</span>
-                    </div>
-                  ))}
+                  <span className="tkt-admit">Admit one</span>
                 </div>
-              )}
 
-              <div className="mt-5 space-y-1 rounded-xl bg-zinc-900/60 p-3 ring-1 ring-zinc-800">
-                <p className="text-base font-bold text-white">
-                  {ticket?.customer_name ?? "—"}
-                </p>
-                <p className="text-xs text-zinc-400">{ticket?.venue_name}</p>
-                <p className="flex items-center gap-1.5 text-xs text-zinc-400">
-                  <Icon name="clock" className="h-3.5 w-3.5" />
-                  {eventDate(ticket?.starts_at)}
-                </p>
+                <div className="tkt-grid">
+                  <div className="tkt-cell">
+                    <p className="tkt-cell-label">Boleta</p>
+                    <p className="tkt-cell-value tnum">
+                      #{ticket?.ticket_id ?? "—"}
+                    </p>
+                  </div>
+                  <div className="tkt-cell">
+                    <p className="tkt-cell-label">Fecha</p>
+                    <p className="tkt-cell-value">
+                      {eventDate(ticket?.starts_at) || "—"}
+                    </p>
+                  </div>
+                  <div className="tkt-cell">
+                    <p className="tkt-cell-label">Estado</p>
+                    <p className="tkt-cell-value">
+                      {redeemed ? "Usada" : "Lista"}
+                    </p>
+                  </div>
+                </div>
+                <div className="tkt-name-row">
+                  <p className="tkt-cell-label">Invitado</p>
+                  <p className="tkt-cell-value">{ticket?.customer_name ?? "—"}</p>
+                </div>
                 {ticket?.location && (
-                  <p className="flex items-start gap-1.5 text-xs text-zinc-300">
+                  <p
+                    className="mt-2.5 flex items-start justify-center gap-1.5 text-center text-xs font-semibold"
+                    style={{ color: "rgba(74, 47, 5, 0.8)" }}
+                  >
                     <Icon name="door" className="mt-px h-3.5 w-3.5 shrink-0" />
                     {ticket.location}
                   </p>
                 )}
-                {ticket && (
-                  <p className="tnum text-xs text-zinc-500">
-                    Boleta #{ticket.ticket_id}
-                  </p>
+              </>
+            )}
+
+            {!error && !terminal && (
+              <div className="tkt-actions">
+                {!confirming ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={shareOrDownload}
+                      disabled={!imageUrl || busy || !qrActive}
+                      title={
+                        !qrActive
+                          ? "El QR se activa cerca de la fecha del evento"
+                          : undefined
+                      }
+                      className="tkt-btn tkt-btn-primary"
+                    >
+                      <Icon name="whatsapp" className="h-4 w-4" />
+                      {busy
+                        ? "Abriendo…"
+                        : qrActive
+                          ? "Compartir o guardar imagen"
+                          : "Imagen cuando se active el QR"}
+                    </button>
+                    {ticket?.can_return && (
+                      <button
+                        type="button"
+                        onClick={() => setConfirming(true)}
+                        className="tkt-btn tkt-btn-quiet"
+                      >
+                        <Icon name="undo" className="h-4 w-4" />
+                        No puedo ir — devolver boleta
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="tkt-note w-full !text-left">
+                    <strong>¿Seguro que no puedes ir?</strong>
+                    <p>
+                      Esto es irreversible: tu QR muere y el lugar vuelve al
+                      organizador
+                      {ticket?.return_until
+                        ? ` · Ventana abierta hasta ${ticket.return_until}`
+                        : ""}
+                      .
+                    </p>
+                    {returnError && (
+                      <p className="mt-1.5 text-xs font-bold text-red-700">
+                        {returnError}
+                      </p>
+                    )}
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={doReturn}
+                        disabled={returning}
+                        className="tkt-btn tkt-btn-danger flex-1"
+                      >
+                        {returning ? "Devolviendo…" : "Sí, devolver"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirming(false)}
+                        disabled={returning}
+                        className="tkt-btn tkt-btn-quiet flex-1"
+                      >
+                        Volver
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
-
-              {!terminal && (
-                <button
-                  type="button"
-                  onClick={shareOrDownload}
-                  disabled={!imageUrl || busy || !qrActive}
-                  title={
-                    !qrActive
-                      ? "El QR se activa cerca de la fecha del evento"
-                      : undefined
-                  }
-                  className="btn-primary mt-4 w-full disabled:opacity-50"
-                >
-                  <Icon name="whatsapp" className="h-4 w-4" />
-                  {busy
-                    ? "Abriendo…"
-                    : qrActive
-                      ? "Compartir o guardar imagen"
-                      : "Imagen disponible cuando se active el QR"}
-                </button>
-              )}
-
-              {ticket?.can_return && !confirming && (
-                <button
-                  type="button"
-                  onClick={() => setConfirming(true)}
-                  className="btn-danger-text mt-2 w-full justify-center"
-                >
-                  <Icon name="undo" className="h-4 w-4" />
-                  No puedo ir — devolver boleta
-                </button>
-              )}
-
-              {confirming && (
-                <div className="mt-2 rounded-xl bg-red-500/10 p-4 ring-1 ring-red-500/30">
-                  <p className="text-sm font-bold text-red-300">
-                    ¿Seguro que no puedes ir?
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-zinc-300">
-                    Esto es irreversible: tu QR muere y el lugar vuelve al
-                    organizador
-                    {ticket?.return_until
-                      ? ` · Ventana abierta hasta ${ticket.return_until}`
-                      : ""}
-                    .
-                  </p>
-                  {returnError && (
-                    <p className="mt-2 text-xs font-medium text-red-300">
-                      {returnError}
-                    </p>
-                  )}
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={doReturn}
-                      disabled={returning}
-                      className="btn-danger flex-1 justify-center disabled:opacity-50"
-                    >
-                      {returning ? "Devolviendo…" : "Sí, devolver mi boleta"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirming(false)}
-                      disabled={returning}
-                      className="btn-ghost flex-1 justify-center"
-                    >
-                      Volver
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+            )}
+          </div>
         </div>
 
-        <p className="mt-4 text-center text-xs text-zinc-600">
-          Guarda esta página: la necesitas en la entrada · TicketFlow
-        </p>
+        {/* Ciclo de vida: sobre el escenario oscuro, con la firma del sistema */}
+        {lifecycle && !error && (
+          <div className="ticket-timeline mx-auto mt-4 w-fit rounded-xl bg-zinc-900/50 px-4 py-3 ring-1 ring-zinc-800/80">
+            {lifecycle.map((step) => (
+              <div key={step.label} className={`ticket-step ${step.state}`}>
+                <span className="ticket-step-dot" aria-hidden="true" />
+                <span className="ticket-step-label">{step.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="tkt-brandline">
+          <img src="/icon.svg" alt="" aria-hidden="true" />
+          <span>Tickelot</span>
+        </div>
+        <p className="tkt-footer">Guarda esta página: la necesitas en la entrada</p>
       </div>
     </div>
   );

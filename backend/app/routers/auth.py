@@ -338,7 +338,7 @@ async def forgot_password(
         mailer = Mailer(
             api_key=settings.resend_api_key,
             from_email=settings.email_from_address,
-            from_name="TicketFlow",
+            from_name="Tickelot",
             app_url=settings.app_public_url,
         )
         if mailer.enabled:

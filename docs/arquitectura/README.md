@@ -1,4 +1,4 @@
-# Arquitectura TicketFlow — Índice
+# Arquitectura Tickelot — Índice
 
 Documentación técnica del comité. Cada tema se ancla al código del repo.
 
