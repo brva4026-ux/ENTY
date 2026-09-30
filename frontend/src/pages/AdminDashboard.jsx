@@ -28,7 +28,7 @@ import EventWorkbench, {
   sortEventsForStrip,
 } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
-import { Star4, Bolt } from "../components/Doodles";
+import { Star4, Bolt, RibbonDivider } from "../components/Doodles";
 import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
 import PayoutsManager from "../components/PayoutsManager";
@@ -1417,6 +1417,11 @@ export default function AdminDashboard() {
               />
             )}
           </>
+        )}
+        {/* Divisor de lazo (scrapbook): cierra la portada de la noche antes
+            de la zona "del negocio", como los separadores del cartel. */}
+        {!selectedEventData && events?.length > 0 && (
+          <RibbonDivider className="my-1" />
         )}
         {/* ====== Del negocio: viven FUERA del evento ====== */}
         {/* Siempre visibles en modo lista: Reportes, Equipo, Liquidaciones e

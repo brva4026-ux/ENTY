@@ -103,3 +103,24 @@ export function ArrowScribble({ className = "", style }) {
     </svg>
   );
 }
+
+/** Estrella para el divisor de lazo (ribbon-divider). */
+export function DividerStar({ className = "" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`rd-star ${className}`} aria-hidden="true">
+      <path
+        d="M12 2c.6 4.8 2.2 7.4 8 10-5.8 2.6-7.4 5.2-8 10-.6-4.8-2.2-7.4-8-10 5.8-2.6 7.4-5.2 8-10Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+/** Divisor ornamental de lazo: linea + estrella central + linea. */
+export function RibbonDivider({ className = "" }) {
+  return (
+    <div className={`ribbon-divider ${className}`} role="presentation">
+      <DividerStar />
+    </div>
+  );
+}

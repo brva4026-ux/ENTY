@@ -104,6 +104,13 @@ export default function VenueHeader({ venueId, user, children = null }) {
               <Skeleton className="h-12 w-44" />
             )}
             <p className="vh-kpi-meta">
+              {/* Sello de goma (scrapbook): el mes queda "estampado" sobre la
+                  cifra, como los sellos del cartel de referencia. */}
+              {ov?.month && (
+                <span className="rubber-stamp hidden text-[#ef6c8a] sm:inline-flex">
+                  {labelMonth(ov.month).split(" ")[0]}
+                </span>
+              )}
               {delta !== null ? (
                 <span
                   className={`vh-delta ${up ? "is-up" : "is-down"}`}

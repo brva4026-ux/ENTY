@@ -42,6 +42,8 @@ export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPubl
 
   return (
     <div className="card onboard-hero relative overflow-hidden p-5 animate-scale-in">
+      {/* Cinta washi (scrapbook): la guía llega "pegada" al panel */}
+      <span aria-hidden="true" className="washi -left-3 -top-2 rotate-[-14deg]" />
       {allDone && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           {CONFETTI.map((emoji, i) => (

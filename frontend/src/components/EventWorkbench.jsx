@@ -40,6 +40,16 @@ export const STATUS_META = {
   },
 };
 
+/** Tips manuscritos del backstage (capa scrapbook): uno por estado, cortos.
+ *  Micro-copy que adorna, nunca datos ni acciones. */
+const TIPS = {
+  draft: "Borrador tranquilo: cuando lo publiques, los promotores ya pueden vender.",
+  published: "Ya está a la venta: cada boleta emitida aparece aquí al instante.",
+  live: "Puertas abiertas: escanea sin miedo, un QR ya usado muere en el acto.",
+  ended: "Noche cerrada: los números quedan aquí para liquidar.",
+  cancelled: "Cancelado: las boletas quedaron sin efecto, nadie entra con ellas.",
+};
+
 /** Peso operativo: vivos primero, muertos al final (ver AdminDashboard). */
 export const STATUS_WEIGHT = {
   live: 0,
@@ -297,6 +307,14 @@ export default function EventWorkbench({
               </button>
             ))}
           </div>
+        )}
+
+        {/* Nota de scrapbook: tip manuscrito segun el ciclo de vida, como las
+          notas pegadas del cartel. Unica por estado, cero datos duros. */}
+        {TIPS[ev.status] && (
+          <p className="paper-note mt-4 inline-block rotate-[-0.6deg]">
+            {TIPS[ev.status]}
+          </p>
         )}
       </section>
 
