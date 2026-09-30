@@ -28,6 +28,7 @@ import EventWorkbench, {
   sortEventsForStrip,
 } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
+import { Star4, Bolt } from "../components/Doodles";
 import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
 import PayoutsManager from "../components/PayoutsManager";
@@ -608,12 +609,14 @@ export default function AdminDashboard() {
                         idioma del dock Del negocio (eyebrow + display + la
                         acción principal a la derecha, ENCIMA de la barra de
                         búsqueda). */}
-                      <div className="evx-head">
+                      <div className="evx-head doodle-host">
+                        {/* Doodle de fiesta junto al titular (capa POP) */}
+                        <Star4 className="-left-1 -top-1 h-3.5 w-3.5 text-[#f0f542]" />
                         <div className="min-w-0">
                           <p className="eyebrow">Operación</p>
                           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                             <h2 className="display text-xl sm:text-2xl">
-                              Eventos
+                              <span className="brush-mark">Eventos</span>
                             </h2>
                             <p className="text-xs text-zinc-500">
                               {events.length} noche{events.length === 1 ? "" : "s"} en el calendario

@@ -7,6 +7,10 @@
    etiquetas del talon). Se cargan con display=swap: si tardan, la boleta
    pinta con la serif de fallback y no parpadea. */
 @import url("https://fonts.googleapis.com/css2?family=Shrikhand&family=Baloo+2:wght@600;700;800&display=swap");
+/* Capa POP (estudio de referencia Absolut/Dikshant): Gochi Hand para
+   anotaciones manuscritas ("Notas del barrio"), Permanent Marker para
+   subrayados de pincel. Solo decoran; la interaccion sigue siendo azul. */
+@import url("https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Permanent+Marker&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -3396,6 +3400,104 @@ body {
     align-items: center;
   }
 }
+/*
+ * ======================================================================
+ *  CAPA POP — estudio de referencia (Absolut pop / portfolio neon /
+ *  scrapbook). La base sigue siendo Tesla sobria: esta capa agrega
+ *  ORNAMENTOS con voz de festival sin romper la jerarquia de producto.
+ *
+ *  Reglas de la casa:
+ *   - Los colores pop SOLO adornan (doodles, halftone, stickers, marcas
+ *     de pincel). Todo lo clicable sigue siendo brand-500 #3e6ae1.
+ *   - La fuente manuscrita nunca lleva datos serios: anotaciones y
+ *     firmas, no cifras ni estados.
+ *   - Nada de esto aparece con prefers-reduced-motion en animacion.
+ * ======================================================================
+ */
+
+/* Tinta manuscrita (Gochi Hand) para anotaciones y tags */
+.hand {
+  font-family: "Gochi Hand", "Comic Sans MS", cursive;
+}
+
+/* Subrayado de pincel (Permanent Marker): un trazo detras del titular,
+   como el marcador del cartel de Dikshant. rotate(-0.5deg) le da el
+   gesto humano; en claro el trazo es el mismo (tinta sobre papel). */
+.brush-mark {
+  position: relative;
+  display: inline-block;
+}
+.brush-mark::after {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: 0.02em;
+  height: 0.28em;
+  z-index: -1;
+  border-radius: 2px;
+  transform: rotate(-0.6deg);
+  background: linear-gradient(90deg, #eff43a, #d9e028);
+  opacity: 0.9;
+}
+html[data-theme="light"] .brush-mark::after {
+  opacity: 0.65;
+}
+
+/* Halftone (manga de Absolut): puntadas de tinta que se desvanecen.
+   Se usa como capa decorativa de esquinas y fondos de escenario. */
+.halftone {
+  position: relative;
+}
+.halftone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1.2px, transparent 1.3px);
+  background-size: 13px 13px;
+  -webkit-mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), #000 0%, transparent 72%);
+  mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), #000 0%, transparent 72%);
+}
+html[data-theme="light"] .halftone::before {
+  background-image: radial-gradient(rgba(9, 9, 11, 0.14) 1.2px, transparent 1.3px);
+}
+
+/* Sticker: chip amarillo rotado con borde de tinta, como los stickers del
+   portfolio de referencia. Sirve para "EN VIVO" y contadas cosas mas. */
+.sticker-pop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transform: rotate(-2.2deg);
+  border-radius: 0.6rem;
+  padding: 0.28rem 0.65rem;
+  background: #f0f542;
+  color: #101013;
+  border: 2px solid #101013;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
+  font-family: "Baloo 2", "Inter", sans-serif;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+html[data-theme="light"] .sticker-pop {
+  box-shadow: 3px 3px 0 rgba(9, 9, 11, 0.18);
+}
+
+/* Doodle flotante: los garabatos del portfolio neon (corona, rayo,
+   estrella) posicionados absolutos dentro de un contenedor .doodle-host */
+.doodle-host {
+  position: relative;
+}
+.doodle {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
 /* ===========================================================================
    TKT - BOLETA DEL INVITADO (ticket de festival)
    La credencial se ve como una BOLETA real: campo de indigo de fondo, ticket
@@ -3782,6 +3884,14 @@ body {
   gap: 0.45rem;
   width: fit-content;
   color: #a1a1aa;
+}
+
+/* Escenario de la boleta con halftone (manga de Absolut): las esquinas
+   del fondo se llenan de trama de puntos, tipo impreso de festival. */
+.tkt-stage.halftone::before {
+  --hx: 50%;
+  --hy: 0%;
+  z-index: 0;
 }
 .tkt-brandline img {
   width: 1.15rem;

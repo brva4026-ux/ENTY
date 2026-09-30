@@ -171,7 +171,7 @@ export default function PublicTicketPage() {
       : null;
 
   return (
-    <div className="tkt-stage">
+    <div className="tkt-stage halftone">
       <div className="tkt-wrap">
         {/* El ticket: credencial ambar troquelada, como las de festival */}
         <div className="tkt">

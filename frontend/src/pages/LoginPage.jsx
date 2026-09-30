@@ -4,6 +4,7 @@ import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
 import { Logo } from "../components/Brand";
+import { Star4, MusicNote, Spiral } from "../components/Doodles";
 import { AuthBackdrop, LockIcon, MailIcon } from "../components/AuthBackdrop";
 
 /** Traduce errores técnicos del backend a mensajes que una persona entiende
@@ -119,9 +120,17 @@ export default function LoginPage() {
       <AuthBackdrop />
 
       <div className="relative w-full max-w-sm">
-        {/* Marca hero: sin eslogan ni claims de marketing. Solo el nombre. */}
-        <div className="mb-9 flex flex-col items-center text-center">
+        {/* Marca hero + capa POP: doodles de fiesta alrededor del logo
+            (corona de star4 y nota musical), como el hero del portfolio
+            de referencia. Con reduced-motion quedan estaticos (no animan). */}
+        <div className="doodle-host mb-9 flex flex-col items-center text-center">
+          <Star4 className="left-[2%] top-1 h-4 w-4 text-[#ef6c8a]" />
+          <MusicNote className="right-[3%] top-0 h-5 w-5 text-[#7dd3fc] rotate-12" />
+          <Spiral className="-bottom-2 right-[8%] h-4 w-10 text-[#f0f542]/80" />
           <Logo size="hero" />
+          <p className="hand mt-1.5 text-base text-zinc-400">
+            la lista de la puerta, resuelta
+          </p>
         </div>
 
         <div className="auth-card card-interactive reveal p-6 sm:p-7">

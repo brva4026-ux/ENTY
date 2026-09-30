@@ -12,6 +12,7 @@ import { money } from "../lib/format";
 import CountUpNumber from "./CountUpNumber";
 import Icon from "./Icon";
 import { Skeleton } from "./Skeleton";
+import { Star5 } from "./Doodles";
 
 /** "septiembre 2026" a partir de "2026-09". Local, sin dependencias. */
 function labelMonth(ym) {
@@ -81,8 +82,13 @@ export default function VenueHeader({ venueId, user, children = null }) {
           </div>
         </div>
 
-        {/* KPI headline: la cifra que un dueño mira primero, con tendencia */}
-        <div className="vh-kpi">
+        {/* KPI headline: la cifra que un dueño mira primero, con tendencia.
+            Capa POP: estrella doodle junto a la cifra (solo adorno). */}
+        <div className="vh-kpi doodle-host">
+          <Star5
+            className="-right-1 top-4 h-3.5 w-3.5 rotate-12 text-[#ef6c8a]"
+            aria-hidden="true"
+          />
           <div className="min-w-0">
             <p className="vh-kpi-label">
               Recaudado {ov?.month ? `· ${labelMonth(ov.month)}` : ""}
