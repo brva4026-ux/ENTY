@@ -62,13 +62,25 @@ export function Logo({ size = "md", animated = true }) {
         /* Wordmark hero (v3): tipografía pura, sin píldora ni degradados.
            "Flow" en el azul acento — el único color interactivo del sistema. */
         <span className="brand-chip animate-fade">
-          <span className="display text-[2.5rem] font-semibold leading-none tracking-[-0.03em]">
+          {/* Wordmark hero: Shrikhand (display jugosa del ticket) con el
+              sufijo en el azul acento — la misma voz del boleto. */}
+          <span
+            className="leading-none"
+            style={{
+              fontFamily: "'Shrikhand', Georgia, serif",
+              fontSize: "2.1rem",
+              letterSpacing: "0.01em",
+            }}
+          >
             <span className="brand-shine">Tick</span>
-            <span className="brand-flow">elot</span>
+            <span style={{ color: "#3e6ae1" }}>elot</span>
           </span>
         </span>
       ) : (
-        <span className={`${text} display brand-shine tracking-tight`}>
+        <span
+          className={`${text} brand-shine leading-none`}
+          style={{ fontFamily: "'Shrikhand', Georgia, serif" }}
+        >
           Tickelot
         </span>
       )}

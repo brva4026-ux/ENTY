@@ -5,11 +5,14 @@ un JPEG que se sirve por un media endpoint o se adjunta al wa.me de la boleta.
 
 La composicion imita una boleta troquelada de festival: campo indigo de fondo,
 ticket ambar con perforacion punteada, datos del asistente a la izquierda y el
-QR sobre panel blanco a la derecha (el talon). El QR se pega SIEMPRE en la
-posicion fija (W-300, 130) a 260px: el test guardian compara esa region contra
-una referencia determinista del token.
+QR sobre panel blanco a la derecha (el talon). El titulo del evento va en la
+misma display jugosa del ticket web (Shrikhand, OFL, embebida en app/assets)
+y hay burbujas de confeti detras del talon, tipo cartel "Jazz Love Fest".
+El QR se pega SIEMPRE en la posicion fija (W-300, 130) a 260px: el test
+guardian compara esa region contra una referencia determinista del token.
 """
 import io
+import os
 
 import qrcode
 from PIL import Image, ImageDraw, ImageFont
@@ -25,20 +28,42 @@ _AMBAR_CLARO = (245, 187, 96)
 _TINTA = (34, 26, 6)
 _TINTA_SUAVE = (74, 47, 5)
 _CREMA = (255, 244, 224)
+# Confeti estilo cartel: los mismos 4 acentos de la boleta web
+_CONFETI = [(239, 108, 138), (52, 211, 153), (125, 153, 236), (255, 255, 255)]
+
+_ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "fonts")
 
 
 def _load_font(size: int) -> ImageFont.FreeTypeFont:
-    """Elige la fuente. Evita depender de sistema usando DejaVuSans (muy comun).
+    """Elige la fuente. Prefiere las display del ticket (Shrikhand/Baloo 2,
+    embebidas en app/assets/fonts, licencia OFL) y cae a DejaVu si faltan.
 
     En serverless la imagen base puede no traer DejaVu. `load_default(size)`
     devuelve una fuente escalable con ese tamano; sin el argumento seria una
     bitmap fija de 10px y el texto saldria ilegible en la boleta.
     """
-    candidates = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
-    for path in candidates:
+    shrikhand = os.path.join(_ASSETS, "Shrikhand-Regular.ttf")
+    baloo = os.path.join(_ASSETS, "Baloo2-Variable.ttf")
+    try:
+        return ImageFont.truetype(shrikhand, size)
+    except Exception:
+        pass
+    for path in (baloo,
+                 "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                 "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    return ImageFont.load_default(size)
+
+
+def _load_baloo(size: int) -> ImageFont.FreeTypeFont:
+    """Baloo 2 (redonda amable) para etiquetas y datos del talon."""
+    baloo = os.path.join(_ASSETS, "Baloo2-Variable.ttf")
+    for path in (baloo,
+                 "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                 "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
         try:
             return ImageFont.truetype(path, size)
         except Exception:
@@ -128,43 +153,44 @@ def build_ticket_image(
         [tx0, ty0 + 26, tx1, ty1], radius=36, fill=_AMBAR
     )
 
-    font_marca = _load_font(22)
-    font_meta = _load_font(24)
-    font_meta_b = _load_font(26)
-    font_titulo = _load_font(64)
-    font_nombre = _load_font(40)
-    font_chica = _load_font(20)
-    font_micro = _load_font(17)
+    font_marca = _load_baloo(22)
+    font_meta = _load_baloo(24)
+    font_meta_b = _load_baloo(27)
+    font_titulo = _load_font(58)  # Shrikhand: display jugosa del cartel
+    font_nombre = _load_baloo(40)
+    font_chica = _load_baloo(20)
+    font_micro = _load_baloo(17)
 
     # --- Cabecera del ticket: marca + fecha ---------------------------------
-    d.text((tx0 + 36, ty0 + 24), "T I C K E L O T", font=font_marca, fill=_INDIGO)
+    d.text((tx0 + 36, ty0 + 22), "T I C K E L O T", font=font_marca, fill=_INDIGO)
     # fecha a la derecha de la cabecera
     fecha = _truncate(d, starts_at or "", font_meta, 300)
     wfecha = d.textlength(fecha, font=font_meta)
     d.text((tx1 - 36 - wfecha, ty0 + 25), fecha, font=font_meta, fill=_TINTA_SUAVE)
 
-    # --- Titulo del evento: la estrella del cartel --------------------------
+    # --- Titulo del evento: la estrella del cartel (Shrikhand) --------------
     titulo = event_name or "TU BOLETA"
-    # Dos lineas maximo: corta por palabras
+    # Shrikhand es mas ancha que DejaVu: reserva menos y parte en 2 lineas
+    ancho_util = tx1 - tx0 - 290
     palabras = titulo.split()
     linea1, linea2 = titulo, ""
-    if d.textlength(titulo, font=font_titulo) > (tx1 - tx0 - 250):
+    if d.textlength(titulo, font=font_titulo) > ancho_util:
         linea1 = ""
         for p in palabras:
             prueba = (linea1 + " " + p).strip()
-            if d.textlength(prueba, font=font_titulo) > (tx1 - tx0 - 250):
+            if d.textlength(prueba, font=font_titulo) > ancho_util:
                 break
             linea1 = prueba
         linea2 = titulo[len(linea1):].strip()
         # si aun asi no cabe la segunda linea, trunca
-        if d.textlength(linea2, font=font_titulo) > (tx1 - tx0 - 250):
-            linea2 = _truncate(d, linea2, font_titulo, tx1 - tx0 - 250)
-    d.text((tx0 + 36, ty0 + 70), linea1.upper(), font=font_titulo, fill=_INDIGO)
+        if d.textlength(linea2, font=font_titulo) > ancho_util:
+            linea2 = _truncate(d, linea2, font_titulo, ancho_util)
+    d.text((tx0 + 36, ty0 + 72), linea1.upper(), font=font_titulo, fill=_INDIGO)
     if linea2:
-        d.text((tx0 + 36, ty0 + 140), linea2.upper(), font=font_titulo, fill=_INDIGO)
-        y_datos = ty0 + 225
+        d.text((tx0 + 36, ty0 + 138), linea2.upper(), font=font_titulo, fill=_INDIGO)
+        y_datos = ty0 + 222
     else:
-        y_datos = ty0 + 170
+        y_datos = ty0 + 168
     # subrayado con destello, como sello del cartel
     _estrella(d, tx0 + 48, y_datos - 12, 14, (255, 255, 255, 230))
     d.rounded_rectangle(
@@ -223,6 +249,20 @@ def build_ticket_image(
     wsello = d.textlength(sello, font=font_micro)
     talon_centro = (perfo_x + tx1) / 2
     d.text((talon_centro - wsello / 2, 410), sello, font=font_micro, fill=_INDIGO)
+
+    # --- Burbujas de confeti detras de la perforacion (tipo Jazz Love Fest) -
+    # Dibujadas AL FINAL pero en la zona del campo (fuera del ticket): nunca
+    # tocan el QR ni el area del test guardian.
+    for (bx, by, br, color) in [
+        (24, 60, 14, _CONFETI[0]),
+        (14, 240, 18, _CONFETI[1]),
+        (30, 430, 12, _CONFETI[2]),
+        (W - 16, 52, 12, _CONFETI[3]),
+        (W - 22, 470, 16, _CONFETI[0]),
+    ]:
+        d.ellipse([bx - br, by - br, bx + br, by + br], fill=color)
+    # media luna sobre el ticket, como sello del cartel
+    d.arc([W // 2 - 26, ty0 - 34, W // 2 + 26, ty0 + 18], 200, 340, fill=_CREMA, width=4)
 
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=90)

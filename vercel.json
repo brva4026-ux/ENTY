@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd frontend && npm ci --no-fund --no-audit && npm run build",
   "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "backend/app/assets/fonts/**"
+    }
+  },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index.py" },
     { "source": "/:path*", "destination": "/index.html" }
