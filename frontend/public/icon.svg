@@ -1,24 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- Tickelot: boleta de festival (ambar) sobre campo de indigo profundo -->
-  <rect width="512" height="512" rx="96" fill="#2a2f8f"/>
+  <rect width="512" height="512" rx="96" fill="#16255c"/>
   <!-- rayos de sol del fondo (poster de festival) -->
   <g fill="#ffffff" opacity="0.06">
     <path d="M256 256 88 40h96zM256 256 264 8h72zM256 256 472 120v96z"/>
     <path d="M256 256 504 344h-96zM256 256 200 504h96zM256 256 8 320v96z"/>
   </g>
   <!-- cuerpo de la boleta -->
-  <rect x="96" y="176" width="320" height="160" rx="24" fill="#f0a832"/>
+  <rect x="96" y="176" width="320" height="160" rx="24" fill="#f5e6c8"/>
   <rect x="96" y="176" width="320" height="160" rx="24" fill="none" stroke="#ffffff" stroke-opacity="0.25" stroke-width="4"/>
   <!-- muescas de troquel arriba y abajo (se recortan contra el fondo) -->
-  <circle cx="296" cy="176" r="22" fill="#2a2f8f"/>
-  <circle cx="296" cy="336" r="22" fill="#2a2f8f"/>
+  <circle cx="296" cy="176" r="22" fill="#16255c"/>
+  <circle cx="296" cy="336" r="22" fill="#16255c"/>
   <!-- perforacion vertical punteada -->
   <g stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 20">
     <line x1="296" y1="200" x2="296" y2="312"/>
   </g>
   <!-- QR estilizado en el talon -->
   <g>
-    <rect x="322" y="216" width="64" height="64" rx="10" fill="#2a2f8f"/>
+    <rect x="322" y="216" width="64" height="64" rx="10" fill="#16255c"/>
     <g fill="#ffffff">
       <rect x="332" y="226" width="16" height="16" rx="3"/>
       <rect x="360" y="226" width="16" height="16" rx="3"/>
