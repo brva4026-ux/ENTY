@@ -4081,3 +4081,49 @@ html[data-theme="light"] .ribbon-divider .rd-star {
     animation: none;
   }
 }
+
+/* ===========================================================================
+   AJUSTES DE MARCA (2026-10): navy de superficie, rampa de estados y foco.
+   Se anaden al final a proposito: sobrescriben por cascada lo que quedo en
+   la marca azul anterior, sin reescribir 4000 lineas a ciegas.
+   =========================================================================== */
+
+/* --- PASO 4: la superficie es la boleta navy, no gris zinc ---------------
+   Los tokens --color-ticket-* ya existian pero no se usaban: la app leia
+   "naranja sobre gris". El contenido neutro (zinc-300/400) queda como esta;
+   lo que cambia es el lienzo y las superficies, para que la marca se lea
+   "boleta navy con fuego". */
+:root {
+  --color-zinc-950: #080d1a;
+  --color-zinc-900: #0d1425;
+  --color-zinc-800: #161e33;
+}
+html[data-theme="light"] {
+  --color-zinc-50: #f4f6fb;
+  --color-zinc-100: #e9ecf5;
+}
+html:not([data-theme="light"]) body {
+  background: #0a1226;
+}
+html[data-theme="light"] body {
+  background: #eef1f8;
+}
+
+/* --- PASO 5: la rampa de estados deja de ser arcoiris -------------------
+   Cuatro roles, cuatro familias separadas: accion (naranja), peligro (rojo
+   frio), en puerta (verde) y venta (crema). Antes el naranja de la CTA y el
+   rojo de "eliminar" eran casi el mismo tono. */
+html:not([data-theme="light"]) {
+  --color-zinc-400: #a8b2c9;
+}
+
+/* --- PASO 6: el anillo de foco no puede ser del color del boton ----------
+   Con el acento en naranja, un foco naranja DENTRO de un boton naranja
+   desaparecia. El foco va en crema (contrasta contra el lienzo navy y
+   contra el propio boton) y en tema claro, en navy. */
+:focus-visible {
+  outline-color: var(--color-cream);
+}
+html[data-theme="light"] :focus-visible {
+  outline-color: #16255c;
+}
