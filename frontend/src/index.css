@@ -1817,47 +1817,52 @@ html[data-theme="light"] .ec-when-soon {
      repite (doble línea = caja falsa). */
 }
 .evx-tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   white-space: nowrap;
-  padding: 0.35rem 0.5rem;
-  border-radius: 0.4rem;
+  /* min-height alinea la fila de pestañas con el buscador (43px): antes la
+     pestaña medía 30px y media renglón, se leia como texto suelto. */
+  min-height: 2.4rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.4rem 0.4rem 0 0;
   font-size: 0.8125rem;
   font-weight: 500;
   color: #71717a;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .evx-tab:hover {
   color: #d4d4d8;
 }
+/* Activo: se dice con TINTA + el filete del acento de abajo. Antes ademas
+   llevaba su propia caja gris, que competia con el buscador y convertia la
+   barra en una fila de botones; el comentario del codigo ya lo pedia asi. */
 .evx-tab.is-active {
   color: #fafafa;
-  background: rgba(255, 255, 255, 0.06);
 }
 .evx-tab-count {
   font-size: 0.6875rem;
-  color: #52525b;
+  /* 52525b sobre el fondo oscuro daba ~2.8:1, por debajo del minimo de
+     contraste para texto; 71717a llega a ~4.6:1. */
+  color: #71717a;
   font-weight: 600;
 }
 .evx-tab.is-active .evx-tab-count {
   color: #b0c0f2;
 }
-/* Tab activo: la pestaña se SUBRAYA (línea del acento), no se encierra en
-   caja: es la gramática de tabs de texto de nivel producto. */
-.evx-tab {
-  position: relative;
-  border-radius: 0.4rem 0.4rem 0 0;
-}
+/* El filete del activo, con degradado del acento: marca sin encerrar. */
 .evx-tab::after {
   content: "";
   position: absolute;
-  left: 0.4rem;
-  right: 0.4rem;
-  bottom: -0.45rem; /* cubre el padding-bottom de .evx-toolbar */
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: -0.45rem; /* cae en el padding-bottom de .evx-toolbar */
   height: 2px;
   border-radius: 2px;
-  background: #3e6ae1;
+  background: linear-gradient(90deg, #3e6ae1, #6f95f0);
   opacity: 0;
   transform: scaleX(0.4);
   transition:
@@ -1867,6 +1872,17 @@ html[data-theme="light"] .ec-when-soon {
 .evx-tab.is-active::after {
   opacity: 1;
   transform: scaleX(1);
+}
+/* El toggle de densidad va anclado a la derecha y con filete vertical: antes
+   flotaba pegado al borde del card y se leia como un icono perdido. */
+.evx-toolbar > .btn-icon {
+  margin-left: auto;
+  border-left: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 0.5rem;
+  padding-left: 0.65rem;
+}
+html[data-theme="light"] .evx-toolbar > .btn-icon {
+  border-left-color: #e4e4e7;
 }
 .evx-grid {
   display: grid;
@@ -2798,10 +2814,10 @@ html[data-theme="light"] .evx-tab:hover {
 }
 html[data-theme="light"] .evx-tab.is-active {
   color: #09090b;
-  background: rgba(9, 9, 11, 0.05);
 }
 html[data-theme="light"] .evx-tab-count {
-  color: #a1a1aa;
+  /* a1a1aa sobre #f4f4f5 daba ~2.3:1; 71717a llega a ~4.6:1. */
+  color: #71717a;
 }
 html[data-theme="light"] .evx-tab.is-active .evx-tab-count {
   color: #2a4fb8;

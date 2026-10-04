@@ -660,7 +660,7 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                       <div className="evx-toolbar">
-                        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+                        <div className="relative min-w-0 flex-1 sm:max-w-[16rem]">
                           <Icon
                             name="search"
                             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
@@ -670,7 +670,7 @@ export default function AdminDashboard() {
                             onChange={(e) => setEventQuery(e.target.value)}
                             placeholder="Buscar evento…"
                             aria-label="Buscar evento por nombre"
-                            className="field !py-2.5 !pl-10 text-sm"
+                            className="field !py-2 !pl-10 text-sm"
                           />
                         </div>
                         {/* Filtros como tabs de texto (no píldoras con borde):
