@@ -1828,23 +1828,18 @@ html[data-theme="light"] .ec-when-soon {
   gap: 1rem;
   margin-bottom: 0.55rem;
 }
-.evx-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-bottom: 0.75rem;
-  /* DENTRO de la portada el hairline lo pone .vh-embedded: aquí no se
-     repite (doble línea = caja falsa). */
-}
+/* .evx-toolbar (dos filas en móvil, una desde 640px) está definido más abajo,
+   junto al bloque que explica por qué. */
 .evx-tab {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   white-space: nowrap;
-  /* min-height alinea la fila de pestañas con el buscador (43px): antes la
-     pestaña medía 30px y media renglón, se leia como texto suelto. */
-  min-height: 2.4rem;
+  /* min-height alinea la fila de pestañas con el buscador: antes la pestaña
+     media 30px y media renglón, se leia como texto suelto. 2.75rem (44px) es
+     el minimo de tap target con el dedo; el buscador tambien mide eso. */
+  min-height: 2.75rem;
   padding: 0.35rem 0.6rem;
   border-radius: 0.4rem 0.4rem 0 0;
   font-size: 0.8125rem;
@@ -1903,6 +1898,146 @@ html[data-theme="light"] .ec-when-soon {
 }
 html[data-theme="light"] .evx-toolbar > .btn-icon {
   border-left-color: #e4e4e7;
+}
+/* =========================================================================
+   LA BARRA DE FILTROS EN MOVIL (2 filas)
+   -------------------------------------------------------------------------
+   Medido a 320/360/390/414px en una sola fila: el buscador quedaba con 54px
+   de caja de los cuales 40 eran padding para la lupa (14px de texto, el
+   placeholder no cabia), la lupa se montaba 16px sobre la primera pestaña y
+   solo entraban 2 de los 6 estados — sin ninguna pista de que la fila
+   scrolleara, porque .no-scrollbar oculta justamente la barra que lo diria.
+   La causa era una: buscador (flex-1, base 0) y tablist (nowrap, 553px de
+   contenido) compitiendo por el mismo ancho en una fila que no envuelve.
+
+   Arreglo: dos filas. El buscador toma el ancho COMPLETO (con el toggle de
+   densidad al lado, que es lo unico que comparte proposito con el) y los
+   filtros van debajo, scrolleando con snap. A partir de 640px, donde los 6
+   estados entran enteros, se vuelve a la fila unica de siempre.
+   ========================================================================= */
+.evx-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  /* row-gap chico: son dos filas pegadas, no dos bloques. Con 0.5rem la fila
+     de filtros quedaba a medio centimetro del buscador y se leia como otra
+     sección. */
+  gap: 0.35rem 0.5rem;
+  padding-bottom: 0.75rem;
+}
+.evx-search {
+  position: relative;
+  /* Crece hasta llenar la fila; el unico que compite por ese ancho es el
+     toggle de densidad (40px fijos). Los filtros van aparte (abajo), asi que
+     el buscador ya no puede quedar estrangulado como antes. */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.evx-filters {
+  /* Contenedor exterior: lleva la mascara que insinua el scroll. Se separa
+     del scroller (.evx-filters-row) para que la mascara no recorte el
+     foco/ring del boton activo en los extremos. */
+  position: relative;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.evx-filters-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  overflow-x: auto;
+  /* snap: cada estado para de a uno en el borde, sin inercia larga. */
+  scroll-snap-type: x proximity;
+  /* Margen de scroll: el padding lateral hace que la primera/ultima pestaña
+     puedan quedarse pegada al borde sin quedar cortada por el snap. */
+  scroll-padding-inline: 0.25rem;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* La pista de "hay más": el contenido se desvanece en el borde derecho en
+   vez de cortarse en seco. Solo cuando la fila scrollea de verdad, que es
+   hasta 1023px (el breakpoint de fila única de más abajo). */
+@media (max-width: 1023px) {
+  .evx-filters {
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      #000 0,
+      #000 calc(100% - 1.75rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      90deg,
+      #000 0,
+      #000 calc(100% - 1.75rem),
+      transparent 100%
+    );
+  }
+  /* El toggle de densidad vive al lado del buscador, no anclado a la derecha:
+     su filete vertical solo tenia sentido cuando estaba separado del resto.
+     Sin filete se lee como el control compacto que es. */
+  .evx-toolbar > .btn-icon {
+    border-left: 0;
+    padding-left: 0;
+    border-radius: 0.5rem;
+  }
+}
+/* Tap target del toggle de densidad: .btn-mini mide 40px de alto (0.3rem de
+   padding vertical + linea de 12px) y queda por debajo del minimo de 44px
+   (WCAG 2.5.5). Es el unico control de la fila que se tocaba con el dedo
+   sin reachable de 44, y en un toolbar de 40px el error de pulsacion es
+   facil. min-height lo sube sin cambiar el ancho ni el peso visual. */
+.evx-toolbar > .btn-icon {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}
+.evx-filters-row .evx-tab {
+  scroll-snap-align: start;
+  padding-inline: 0.7rem;
+}
+/* Fila única recién a 1024px: con los 6 estados (573px de contenido) mas el
+   buscador a 16rem, a 768px la fila se iba a 86px de scroll de PAGINA (medido).
+   En tablet la fila doble es ademas la que corresponde: el buscador a lo
+   ancho y los 6 filtros completos abajo, sin scrollear. */
+@media (min-width: 1024px) {
+  .evx-toolbar {
+    flex-wrap: nowrap;
+    gap: 0 0.75rem;
+  }
+  .evx-search {
+    flex: 0 1 16rem;
+  }
+  .evx-filters {
+    flex: 1 1 auto;
+  }
+  .evx-filters-row {
+    overflow-x: visible;
+  }
+  .evx-filters-row .evx-tab {
+    padding-inline: 0.6rem;
+  }
+}
+/* Nuevo evento: en movil el verbo completo se partia en dos lineas y
+   empujaba el contador de noches. Ahi queda el icono 44x44 con aria-label. */
+.evx-newbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding-inline: 0.85rem;
+  font-size: 0.8125rem;
+}
+/* Nuevo evento: en movil el verbo completo se partia en dos lineas y empujaba
+   el contador de noches. Ahi queda el icono 44x44 con aria-label. */
+@media (max-width: 1023px) {
+  .evx-newbtn {
+    width: 2.75rem;
+    padding-inline: 0;
+  }
+  /* La cabecera de la franja en movil: el titulo manda, el boton acompana. */
+  .evx-head {
+    align-items: center;
+  }
 }
 .evx-grid {
   display: grid;
@@ -2251,24 +2386,22 @@ html[data-theme="light"] .evx-pct {
    detras del hover las hacía invisibles — en táctil el hover NO existe y
    un botón que solo aparece al pasar el mouse es una función que nadie
    encuentra. Publicar/Abrir puertas/Duplicar son control, no decoración. */
+/* Acciones de la tarjeta: fila propia, alineada a la derecha, en TODOS los
+   anchos. Antes iban absolutas en la esquina (top/right), lo que servia
+   cuando solo aparecian al hover; pero hace rato que estan SIEMPRE visibles
+   (ver el bloque "SIEMPRE visible en ambos temas"), asi que la esquina quedo
+   escribiendo encima del nombre del evento: solape medido de 202x26px a
+   768/1024/1280/1440px y 175x26px a 640px. En movil ya se habia arreglado
+   con position:static; el mismo arreglo sirve en todos los lados porque el
+   ancho de la tarjeta cambia, no el ancho de la pantalla. */
 .evx-actions {
-  position: absolute;
-  top: 0.65rem;
-  right: 0.65rem;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   /* Separacion real entre vecinos: con areas tactiles de 40px, 0.15rem
      dejaba los dedos peleando entre "duplicar" y "eliminar". */
   gap: 0.4rem;
-}
-/* En móvil la esquina NO alcanza: las acciones absolutas tapaban el nombre
-   del evento. Abajo pasan a fila propia, alineadas a la derecha. */
-@media (max-width: 639px) {
-  .evx-actions {
-    position: static;
-    justify-content: flex-end;
-    padding: 0 0.75rem 0.75rem;
-  }
+  padding: 0 0.75rem 0.75rem;
 }
 
 /* Fila de metadatos del evento: cuándo empieza + estado + la señal de que

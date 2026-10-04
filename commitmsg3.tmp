@@ -1,0 +1,31 @@
+La barra de filtros del admin deja de ser inutil en movil
+
+Medido en el navegador a 320/360/390/414/640/768/1024/1440px: el buscador
+quedaba con 54px de caja de los cuales 40 eran padding para la lupa, o sea
+14px de texto y el placeholder "Buscar evento…" invisible. La lupa se
+montaba 16px encima de la primera pestaña. Y solo entraban 2 de los 6
+estados a la vista, sin ninguna pista de que la fila scrolleara, porque
+.no-scrollbar oculta justamente la barra que lo diria.
+
+La causa era una sola: buscador (flex-1, base 0) y tablist (nowrap, 553px
+de contenido) compitiendo por el mismo ancho en una fila que no envuelve.
+
+- Dos filas: buscador al ancho completo con el toggle de densidad al lado,
+  y los 6 filtros debajo scrolleando con scroll-snap y una mascara de
+  desvanecido que insinua que hay mas. A 1024px vuelve a la fila unica.
+- Tap targets a 44px: las tabs median 38.4px y el toggle de densidad 40px
+  (.btn-mini), ambos bajo el minimo de WCAG 2.5.5.
+- "Nuevo evento" pasa a icono 44x44 con aria-label hasta 1024px: el verbo
+  completo se partia en dos lineas y empujaba el contador de noches.
+
+Ademas, un bug que no era de esta barra pero salia al medirla: las
+acciones de esquina de la tarjeta (.evx-actions) iban en position:absolute
+sobre la esquina, disposicion que servia cuando solo aparecian al hover.
+Hace rato que estan SIEMPRE visibles, asi que la esquina estaba escribiendo
+encima del nombre del evento: solape medido de 202x26px a 768/1024/1280/
+1440px y 175x26px a 640px. Ahora son fila propia alineada a la derecha en
+todos los anchos, igual que ya funcionaba en movil.
+
+Verificado: 0 desborde de pagina en los 8 anchos x 2 temas, buscador >=246px
+en movil, todos los targets a 44px, 0 solapes, contraste AA sin fallos en
+68 nodos de texto por tema, npm run build OK y los 3 E2E en verde.
