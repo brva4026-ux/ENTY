@@ -301,7 +301,7 @@ export default function AdminDashboard() {
     setSearchParams(params); // push: back vuelve al evento/tab anterior
   }
 
-  /** Duplica un evento (borrador con sus tipos y cupos) y abre el backstage. */
+  /** Duplica un evento (borrador con sus tipos y cupos). */
   async function duplicateEvent(ev) {
     setDupingId(ev.id);
     try {
@@ -309,9 +309,11 @@ export default function AdminDashboard() {
         `/venues/${venueId}/events/${ev.id}/duplicate`,
         { method: "POST" },
       );
-      ui.success("Evento duplicado: ajusta la fecha y publica 📋");
       await loadEvents();
-      flyToEvent(copy.id, "resumen");
+      // NO se salta al backstage del borrador: con 20+ noches, duplicar una
+      // tras otra y que cada clic te expulse de la lista rompe el flujo. El
+      // borrador aparece arriba y el aviso dice que abrir.
+      ui.success(`Borrador "${copy.name}" creado: ajustá la fecha y publicá 📋`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -719,7 +721,7 @@ export default function AdminDashboard() {
                               ? "Ver como tarjetas"
                               : "Ver como lista compacta"
                           }
-                          className="btn-mini shrink-0"
+                          className="btn-mini btn-icon shrink-0"
                           data-variant="brand"
                         >
                           <Icon
@@ -736,7 +738,7 @@ export default function AdminDashboard() {
                 events.length > 0 && (
                   <section className="events-strip">
                     {visibleEvents.length === 0 ? (
-                      <p className="mt-4 text-sm text-zinc-500">
+                      <p className="mt-4 text-pretty text-sm text-zinc-500">
                         Ningún evento coincide con la búsqueda.
                       </p>
                     ) : compactView ? (
@@ -804,7 +806,7 @@ export default function AdminDashboard() {
                                     disabled={deletingId !== null}
                                     aria-label={`Eliminar ${ev.name}`}
                                     data-tip="Eliminar evento definitivamente"
-                                    className="btn-mini"
+                                    className="btn-mini btn-icon"
                                     data-variant="danger"
                                   >
                                     {deletingId === ev.id ? (
@@ -1106,7 +1108,7 @@ export default function AdminDashboard() {
                                   disabled={dupingId !== null}
                                   aria-label={`Duplicar ${ev.name}`}
                                   data-tip="Duplicar evento (borrador con sus tipos y cupos)"
-                                  className="btn-mini"
+                                  className="btn-mini btn-icon"
                                 >
                                   {dupingId === ev.id ? (
                                     <svg
@@ -1129,7 +1131,7 @@ export default function AdminDashboard() {
                                     disabled={deletingId !== null}
                                     aria-label={`Eliminar ${ev.name}`}
                                     data-tip="Eliminar evento definitivamente"
-                                    className="btn-mini"
+                                    className="btn-mini btn-icon"
                                     data-variant="danger"
                                   >
                                     {deletingId === ev.id ? (
