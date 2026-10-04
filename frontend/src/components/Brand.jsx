@@ -33,28 +33,42 @@ export function Logo({ size = "md", animated = true }) {
       >
         <span
           className={`relative grid h-full w-full place-items-center overflow-hidden ${radius}`}
-          style={{ background: "#3e6ae1" }}
+          style={{
+            // Navy del logo (no es azul de marca: es la tinta de la boleta).
+            background:
+              "linear-gradient(165deg, #243a7a 0%, #16255c 42%, #0b1638 100%)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14)",
+          }}
         >
           <svg
             viewBox="0 0 24 24"
-            className="relative h-[58%] w-[58%]"
+            className="relative h-[62%] w-[62%]"
             fill="none"
             aria-hidden="true"
           >
-          {/* Boleta con muescas laterales (troquel): blanca plana */}
-          <path
-            d="M3.5 7A2.5 2.5 0 0 1 6 4.5h12A2.5 2.5 0 0 1 20.5 7v2.1a2.9 2.9 0 0 0 0 5.8V17a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17v-2.1a2.9 2.9 0 0 0 0-5.8V7Z"
-            fill="#ffffff"
-          />
-          {/* Talón perforado + destello: la firma "flow" en azul profundo */}
-          <circle cx="16.6" cy="8.2" r="0.85" fill="#3e6ae1" opacity="0.55" />
-          <circle cx="16.6" cy="12" r="0.85" fill="#3e6ae1" opacity="0.55" />
-          <circle cx="16.6" cy="15.8" r="0.85" fill="#3e6ae1" opacity="0.55" />
-          <path
-            d="m14.4 7.6.55 1.65 1.65.55-1.65.55-.55 1.65-.55-1.65-1.65-.55 1.65-.55.55-1.65Z"
-            fill="#3e6ae1"
-            opacity="0.7"
-          />
+            {/* Boleta troquelada en crema: la silueta del logo */}
+            <path
+              d="M4.4 7.2A2.4 2.4 0 0 1 6.8 4.8h10.4a2.4 2.4 0 0 1 2.4 2.4v1.9a2.7 2.7 0 0 0 0 5.4v1.9a2.4 2.4 0 0 1-2.4 2.4H6.8a2.4 2.4 0 0 1-2.4-2.4v-1.9a2.7 2.7 0 0 0 0-5.4V7.2Z"
+              fill="#f5e6c8"
+            />
+            {/* El ojo que te mira, en tinta */}
+            <path
+              d="M7.9 11.7c1.1-1.5 2.6-2.2 4.1-2.2s3 .7 4.1 2.2c-1.1 1.5-2.6 2.2-4.1 2.2s-3-.7-4.1-2.2Z"
+              fill="#0b1638"
+            />
+            <circle cx="12" cy="11.7" r="1.35" fill="#f97316" />
+            <circle cx="12" cy="11.7" r="0.5" fill="#0b1638" />
+            {/* Cuernos de la llama */}
+            <path
+              d="M8.5 8.3C7.6 7.1 7.9 5.5 9.1 4.5c.5 1.3.6 2.4.2 3.8H8.5Z"
+              fill="#f97316"
+            />
+            <path
+              d="M15.5 8.3c.9-1.2.6-2.8-.6-3.8-.5 1.3-.6 2.4-.2 3.8h.8Z"
+              fill="#f97316"
+            />
+            {/* Brasa del talon */}
+            <circle cx="15.5" cy="15.3" r="0.7" fill="#ef4444" />
           </svg>
         </span>
       </span>
@@ -73,7 +87,7 @@ export function Logo({ size = "md", animated = true }) {
             }}
           >
             <span className="brand-shine">Tick</span>
-            <span style={{ color: "#3e6ae1" }}>elot</span>
+            <span style={{ color: "#f97316" }}>elot</span>
           </span>
         </span>
       ) : (
