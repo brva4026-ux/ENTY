@@ -991,3 +991,60 @@ class NotificationOut(BaseModel):
 class NotificationReadRequest(BaseModel):
     """ids vacío = marcar todas; con ids = solo esas (ajenas se ignoran)."""
     ids: list[int] = Field(default_factory=list, max_length=200)
+
+
+# --------------------------------------------------------------------------
+# Personal por evento (mig 025): "quién trabaja esta noche" + link de puerta
+# --------------------------------------------------------------------------
+class EventStaffOut(BaseModel):
+    """Una persona del roster de una noche."""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    user_id: int
+    full_name: str
+    email: str
+    # Rol DENTRO de la noche: "bouncer" (puerta) o "promotor" (venta).
+    role: Literal["bouncer", "promotor"]
+    shift_start: datetime | None = None
+    shift_end: datetime | None = None
+    created_at: datetime
+    # Si tiene un link de puerta vigente (para saber si hay que emitirlo).
+    has_link: bool = False
+
+
+class EventStaffCreate(BaseModel):
+    """Asigna (o reasigna) a alguien a una noche."""
+    user_id: int
+    role: Literal["bouncer", "promotor"] = "bouncer"
+    # Turno opcional: sin esto el link vale para la noche entera.
+    shift_start: datetime | None = None
+    shift_end: datetime | None = None
+
+
+class EventAccessOut(BaseModel):
+    """El link de puerta emitido. El token en claro viaja SOLO acá."""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    event_name: str
+    user_id: int
+    access_url: str
+    expires_at: datetime
+    created_at: datetime
+
+
+class EventAccessPreview(BaseModel):
+    """Lo que ve el bouncer al abrir el link, antes de canjearlo."""
+    event_id: int
+    event_name: str
+    event_status: str
+    starts_at: datetime
+    full_name: str
+    expires_at: datetime
+    used: bool = False
+    revoked: bool = False
+
+
+class EventAccessGranted(BaseModel):
+    """Respuesta del canje: a qué noche quedó atada esta persona."""
+    event_id: int

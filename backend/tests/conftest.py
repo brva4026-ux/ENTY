@@ -40,6 +40,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "022_event_waitlist.sql",
     ROOT / "db" / "migrations" / "023_ticket_payments.sql",
     ROOT / "db" / "migrations" / "024_notify_autoclose_kind.sql",
+    ROOT / "db" / "migrations" / "025_event_staff.sql",
 ]
 
 
@@ -66,6 +67,10 @@ def db():
             ticket_returns, event_waitlist, ticket_contact_edits, login_attempts, password_reset_tokens, media, audit_log,
             redemptions, promoter_payouts, tickets, promoter_allocations, ticket_types, events,
             venue_user_roles, venues, users, ticket_payments CASCADE;
+        -- event_staff / event_access_tokens (mig 025) referencian users y events:
+        -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
+        -- el orden de borrado no dependa de las FK.
+        DROP TABLE IF EXISTS event_access_tokens, event_staff CASCADE;
         DROP TYPE IF EXISTS ticket_status, user_role CASCADE;
         -- redeem_ticket tuvo dos firmas (3 y 4 args, mig 008): un DROP sin
         -- firma lanza AmbiguousFunction si conviven overloads.

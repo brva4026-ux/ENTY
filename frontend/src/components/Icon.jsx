@@ -10,6 +10,8 @@ const PATHS = {
   ticket:
     "M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.4a2.6 2.6 0 0 0 0 5.2V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.4a2.6 2.6 0 0 0 0-5.2V8Zm7.4-2.3v12.6",
   door: "M5 20V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v15M3.5 20h17M13 12h.01",
+  // Eslabón de cadena: el gesto de "mandarle este link a esta persona".
+  link: "M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1m1 4a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1",
   calendar:
     "M7 3v3M17 3v3M4 8.5h16M6 4.5h12a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z",
   money:

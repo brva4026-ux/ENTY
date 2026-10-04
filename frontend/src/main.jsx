@@ -48,6 +48,7 @@ const AcceptInvitationPage = lazyPage(
   () => import("./pages/AcceptInvitationPage"),
 );
 const ResetPasswordPage = lazyPage(() => import("./pages/ResetPasswordPage"));
+const DoorLinkPage = lazyPage(() => import("./pages/DoorLinkPage"));
 import Layout from "./components/Layout";
 import { SplashScreen } from "./components/SplashScreen";
 
@@ -120,6 +121,10 @@ function App() {
               fan tambien viaja en el fragmento y se guarda en localStorage. */}
               <Route path="/waitlist" element={<WaitlistPage />} />
               <Route path="/invitacion" element={<AcceptInvitationPage />} />
+              {/* Link de puerta con la NOCHE YA FIJA (mig 025): lo abre quien
+              el admin asigno a ese evento. El canje atada la persona a esa
+              noche y manda al escaner sin selector. */}
+              <Route path="/puerta" element={<DoorLinkPage />} />
               <Route
                 path="/admin"
                 element={

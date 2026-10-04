@@ -1808,6 +1808,66 @@ ALTER TABLE public.redemptions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY 
 );
 
 --
+-- Name: event_staff; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_staff (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    role text NOT NULL,
+    shift_start timestamp with time zone,
+    shift_end timestamp with time zone,
+    assigned_by bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT event_staff_shift_check CHECK (((shift_end IS NULL) OR (shift_start IS NULL) OR (shift_end > shift_start))),
+    CONSTRAINT event_staff_role_check CHECK ((role = ANY (ARRAY['bouncer'::text, 'promotor'::text]))),
+    CONSTRAINT event_staff_unique UNIQUE (event_id, user_id)
+);
+
+--
+-- Name: event_staff_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.event_staff ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.event_staff_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
+-- Name: event_access_tokens; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_access_tokens (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    token_hash text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    used_at timestamp with time zone,
+    created_by bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    revoked_at timestamp with time zone
+);
+
+--
+-- Name: event_access_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.event_access_tokens ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.event_access_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
 -- Name: staff_invitations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2224,6 +2284,27 @@ ALTER TABLE ONLY public.redemptions
     ADD CONSTRAINT redemptions_pkey PRIMARY KEY (id);
 
 --
+-- Name: event_staff event_staff_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_staff
+    ADD CONSTRAINT event_staff_pkey PRIMARY KEY (id);
+
+--
+-- Name: event_access_tokens event_access_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_access_tokens
+    ADD CONSTRAINT event_access_tokens_pkey PRIMARY KEY (id);
+
+--
+-- Name: event_access_tokens event_access_tokens_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_access_tokens
+    ADD CONSTRAINT event_access_tokens_token_hash_key UNIQUE (token_hash);
+
+--
 -- Name: staff_invitations staff_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2372,6 +2453,30 @@ CREATE INDEX idx_event_waitlist_queue ON public.event_waitlist USING btree (even
 --
 
 CREATE INDEX idx_events_ends_unended ON public.events USING btree (ends_at) WHERE (status = ANY (ARRAY['live'::text, 'published'::text]));
+
+--
+-- Name: idx_event_staff_event; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_staff_event ON public.event_staff USING btree (event_id);
+
+--
+-- Name: idx_event_staff_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_staff_user ON public.event_staff USING btree (user_id);
+
+--
+-- Name: idx_event_tokens_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_tokens_user ON public.event_access_tokens USING btree (user_id) WHERE (revoked_at IS NULL);
+
+--
+-- Name: idx_event_tokens_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_event_tokens_active ON public.event_access_tokens USING btree (event_id, user_id) WHERE ((used_at IS NULL) AND (revoked_at IS NULL));
 
 --
 -- Name: idx_invitations_venue_open; Type: INDEX; Schema: public; Owner: -
@@ -2752,6 +2857,48 @@ ALTER TABLE ONLY public.staff_invitations
 
 ALTER TABLE ONLY public.staff_invitations
     ADD CONSTRAINT staff_invitations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+--
+-- Name: event_staff event_staff_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_staff
+    ADD CONSTRAINT event_staff_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+--
+-- Name: event_staff event_staff_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_staff
+    ADD CONSTRAINT event_staff_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: event_staff event_staff_assigned_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_staff
+    ADD CONSTRAINT event_staff_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id);
+
+--
+-- Name: event_access_tokens event_access_tokens_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_access_tokens
+    ADD CONSTRAINT event_access_tokens_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+--
+-- Name: event_access_tokens event_access_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_access_tokens
+    ADD CONSTRAINT event_access_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: event_access_tokens event_access_tokens_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_access_tokens
+    ADD CONSTRAINT event_access_tokens_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
 
 --
 -- Name: staff_invitations staff_invitations_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

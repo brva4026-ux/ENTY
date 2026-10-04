@@ -35,6 +35,7 @@ import PayoutsManager from "../components/PayoutsManager";
 import TypeManager from "../components/TypeManager";
 import AllocationManager from "../components/AllocationManager";
 import TicketList from "../components/TicketList";
+import EventTeamPanel from "../components/EventTeamPanel";
 import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
 import BusinessOverview from "../components/BusinessOverview";
@@ -195,6 +196,7 @@ export default function AdminDashboard() {
     "entradas",
     "cupos",
     "boletas",
+    "noche",
     "cobros",
     "negocio",
     "equipo",
@@ -1531,6 +1533,17 @@ export default function AdminDashboard() {
                 eventId={selectedEvent}
                 onChanged={refreshEventData}
                 onError={setError}
+              />
+            )}
+
+            {/* "Equipo" DENTRO de la noche (mig 025): el roster de esta noche y
+                los links de puerta. Es lo unico de "Del negocio" que depende
+                del evento — el resto (Equipo del bar, Liquidaciones) sigue en
+                la portada porque no cambia con la noche abierta. */}
+            {section === "noche" && selectedEventData && (
+              <EventTeamPanel
+                venueId={venueId}
+                event={selectedEventData}
               />
             )}
           </>

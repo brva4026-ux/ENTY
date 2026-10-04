@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import { apiFetch } from "../lib/api";
 import { activeVenueId } from "../lib/venue";
@@ -147,7 +148,12 @@ export default function BouncerScanner() {
   }, []);
 
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  // Evento YA FIJO por el link de puerta. Si vino, esta persona está
+  // asignada a esa noche (mig 025): el selector se aparta y el escaner se
+  // abre en su turno, no en el primero que aparezca.
+  const [searchParams] = useSearchParams();
+  const fijo = Number(searchParams.get("evento")) || null;
+  const [selectedEvent, setSelectedEvent] = useState(fijo);
   const [scanning, setScanning] = useState(false);
   // La cámara está EN preparar (permiso + hardware): el botón dice lo que pasa
   // y no parece un cuelgue en móviles lentos, donde puede tardar segundos.
@@ -190,17 +196,24 @@ export default function BouncerScanner() {
   // evento mientras tanto, el selector se actualiza sin recargar. Solo se
   // auto-selecciona el primero la PRIMERA vez: nunca se cambia el evento en
   // pleno turno por una recarga de fondo.
+  //
+  // `fijo` es el evento del link de puerta (/puerta?token=…): cuando viene,
+  // la persona YA está asignada a esa noche (mig 025) y el selector se
+  // aparta — elegir otra sería cambiar de turno con un toque de más.
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
     try {
       const data = await apiFetch(`/venues/${venueId}/events`);
       setEvents(data);
-      setSelectedEvent((prev) => prev ?? (data.length ? data[0].id : null));
+      setSelectedEvent((prev) => {
+        if (fijo) return fijo;
+        return prev ?? (data.length ? data[0].id : null);
+      });
     } catch (e) {
       setError(e.message);
       setEvents((prev) => prev ?? []); // null = cargando; un fallo no es "cargando"
     }
-  }, [venueId]);
+  }, [venueId, fijo]);
 
   useEffect(() => {
     loadEvents();
@@ -658,22 +671,27 @@ export default function BouncerScanner() {
             <span className="hidden sm:inline-flex">
               <LiveIndicator lastUpdated={lastEventsUpdate} live={false} />
             </span>
-            <select
-              value={selectedEvent ?? ""}
-              onChange={(e) => setSelectedEvent(Number(e.target.value))}
-              className="max-w-[52vw] rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-sm text-white sm:max-w-none"
-            >
-              <option value="" disabled>
-                Evento…
-              </option>
-              {events === null
-                ? null // el select se renderiza vacío un instante; el error global cubre fallos
-                : events.map((ev) => (
-                    <option key={ev.id} value={ev.id}>
-                      {ev.name}
-                    </option>
-                  ))}
-            </select>
+            {/* Con link de puerta la noche YA está elegida (mig 025): el selector se
+                aparta a propósito. Dejarlo sería ofrecerle a alguien que ya
+                sabe su noche cambiar de turno con un toque accidental. */}
+            {!fijo && (
+              <select
+                value={selectedEvent ?? ""}
+                onChange={(e) => setSelectedEvent(Number(e.target.value))}
+                className="max-w-[52vw] rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-sm text-white sm:max-w-none"
+              >
+                <option value="" disabled>
+                  Evento…
+                </option>
+                {events === null
+                  ? null // el select se renderiza vacío un instante; el error global cubre fallos
+                  : events.map((ev) => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name}
+                      </option>
+                    ))}
+              </select>
+            )}
             <button
               onClick={() => setKiosk(true)}
               className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"

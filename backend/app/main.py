@@ -35,6 +35,7 @@ from app.routers import (
     report,
     seed,
     team,
+    event_staff,
     tickets,
     waitlist,
     payments,
@@ -118,6 +119,7 @@ def create_app() -> FastAPI:
     app.include_router(report.router)
     app.include_router(redemptions.router)
     app.include_router(team.router)
+    app.include_router(event_staff.router)
     app.include_router(payouts.router)
     app.include_router(public.router)
     app.include_router(waitlist.router)
