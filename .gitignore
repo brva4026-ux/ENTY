@@ -39,3 +39,5 @@ build/
 
 # Skills locales de la sesion del agente
 .agents/
+.claude/
+skills-lock.json

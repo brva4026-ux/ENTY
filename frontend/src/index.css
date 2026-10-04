@@ -402,6 +402,16 @@ body {
   opacity: 0.45;
   pointer-events: none;
 }
+/* Botones SOLO icono (duplicar, eliminar, densidad de lista): area tactil
+   de 40px sin agrandar el glifo. Antes median ~27px — por debajo del minimo
+   y facilisimo de fallar con el dedo; peor aun, "duplicar" y "eliminar"
+   quedaban pegados, asi que un dedo impreciso borraba una noche. */
+.btn-icon {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  justify-content: center;
+  padding: 0;
+}
 .btn-mini[data-variant="brand"] {
   color: #b0c0f2;
 }
@@ -2192,7 +2202,9 @@ html[data-theme="light"] .evx-pct {
   right: 0.65rem;
   display: flex;
   align-items: center;
-  gap: 0.15rem;
+  /* Separacion real entre vecinos: con areas tactiles de 40px, 0.15rem
+     dejaba los dedos peleando entre "duplicar" y "eliminar". */
+  gap: 0.4rem;
 }
 /* En móvil la esquina NO alcanza: las acciones absolutas tapaban el nombre
    del evento. Abajo pasan a fila propia, alineadas a la derecha. */
@@ -2311,7 +2323,7 @@ html[data-theme="light"] .evx-open-label {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.15rem;
+  gap: 0.4rem;
 }
 .evx-row-state {
   font-size: 0.6875rem;

@@ -213,7 +213,7 @@ export default function EventWorkbench({
               )}
             </p>
             {ev.description && (
-              <p className="mt-2 line-clamp-2 whitespace-pre-line text-sm text-zinc-400">
+              <p className="mt-2 line-clamp-2 whitespace-pre-line text-pretty text-sm text-zinc-400">
                 {ev.description}
               </p>
             )}
