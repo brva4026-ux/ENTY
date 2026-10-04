@@ -143,6 +143,22 @@ export const STATUS_DOT_COLOR = {
   cancelled: "#f87171",
 };
 
+/**
+ * Espejo de la regla del backend (lifecycle.delete_event): un borrador se
+ * borra siempre; cancelado/finalizado solo si no le quedan boletas vivas.
+ * La lista lo usa para no ofrecer un borrado que el servidor rechazaría.
+ * Sin cifras aún (`stat` undefined) no se ofrece el borrado de los no-draft:
+ * es preferible que aparezca medio segundo después a un 409 en la cara.
+ */
+export function canDeleteEvent(ev, stat) {
+  if (!ev) return false;
+  if (ev.status === "draft") return true;
+  if (ev.status === "cancelled" || ev.status === "ended") {
+    return stat ? stat.active === 0 : false;
+  }
+  return false;
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const ui = useUI();
@@ -213,6 +229,8 @@ export default function AdminDashboard() {
   }, [compactView]);
   // Id del evento duplicándose ahora (spinner in situ en SU tarjeta).
   const [dupingId, setDupingId] = useState(null);
+  // Id del evento eliminándose ahora (spinner in situ en SU tarjeta/fila).
+  const [deletingId, setDeletingId] = useState(null);
   // Flyers que ya fallaron al cargar ({url: true}): la tarjeta muestra sus
   // iniciales en lugar de un img roto. Estado unificado para toda la franja.
   const [badFlyers, setBadFlyers] = useState({});
@@ -513,8 +531,12 @@ export default function AdminDashboard() {
     }
   }
 
-  async function deleteSelectedEvent() {
-    const ev = selectedEventData;
+  /**
+   * Elimina un evento desde donde se dispare: la lista (tarjeta/fila) o el
+   * backstage. El backend exige el nombre exacto como confirmación y solo lo
+   * permite en borrador o sin boletas emitidas: aquí solo traducimos.
+   */
+  async function deleteEvent(ev) {
     if (!ev) return;
     const confirm = await ui.prompt(`Eliminar "${ev.name}"`, {
       message:
@@ -525,18 +547,29 @@ export default function AdminDashboard() {
     });
     if (confirm === null) return;
     setError("");
+    setDeletingId(ev.id);
     try {
       await apiFetch(`/venues/${venueId}/events/${ev.id}`, {
         method: "DELETE",
         body: JSON.stringify({ confirm }),
       });
-      setSelectedEvent(null);
-      setSearchParams({}); // sin ?event=…: el efecto de URL re-sienta en el primer evento restante
+      // Si el evento borrado era el que estaba abierto, salir del backstage
+      // (sin tocar la URL si se borró desde la lista: ahí no hay ?event=).
+      if (selectedEvent === ev.id) {
+        setSelectedEvent(null);
+        setSearchParams({});
+      }
       await loadEvents();
       ui.success("Evento eliminado");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setDeletingId(null);
     }
+  }
+
+  function deleteSelectedEvent() {
+    return deleteEvent(selectedEventData);
   }
 
   const selectedEventData = (events ?? []).find(
@@ -767,6 +800,37 @@ export default function AdminDashboard() {
                               >
                                 {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
                               </span>
+                              {/* Acciones de la fila: con 20+ noches la lista
+                                compacta es la vista de trabajo, no un resumen
+                                de solo lectura. Eliminar vive aquí para no
+                                tener que abrir el backstage de cada evento. */}
+                              {canDeleteEvent(ev, stat) && (
+                                <span className="evx-row-actions">
+                                  <button
+                                    onClick={() => deleteEvent(ev)}
+                                    disabled={deletingId !== null}
+                                    aria-label={`Eliminar ${ev.name}`}
+                                    data-tip="Eliminar evento definitivamente"
+                                    className="btn-mini"
+                                    data-variant="danger"
+                                  >
+                                    {deletingId === ev.id ? (
+                                      <svg
+                                        className="btn-spinner"
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                      >
+                                        <circle cx="12" cy="12" r="9" />
+                                      </svg>
+                                    ) : (
+                                      <Icon
+                                        name="trash"
+                                        className="h-3.5 w-3.5"
+                                      />
+                                    )}
+                                  </button>
+                                </span>
+                              )}
                             </li>
                           );
                         })}
@@ -1063,6 +1127,34 @@ export default function AdminDashboard() {
                                     <Icon name="copy" className="h-3.5 w-3.5" />
                                   )}
                                 </button>
+                                {/* Eliminar: para limpiar el calendario de 20
+                                    noches sin entrar al backstage de cada
+                                    evento. Solo donde el backend lo permite. */}
+                                {canDeleteEvent(ev, stat) && (
+                                  <button
+                                    onClick={() => deleteEvent(ev)}
+                                    disabled={deletingId !== null}
+                                    aria-label={`Eliminar ${ev.name}`}
+                                    data-tip="Eliminar evento definitivamente"
+                                    className="btn-mini"
+                                    data-variant="danger"
+                                  >
+                                    {deletingId === ev.id ? (
+                                      <svg
+                                        className="btn-spinner"
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                      >
+                                        <circle cx="12" cy="12" r="9" />
+                                      </svg>
+                                    ) : (
+                                      <Icon
+                                        name="trash"
+                                        className="h-3.5 w-3.5"
+                                      />
+                                    )}
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );
