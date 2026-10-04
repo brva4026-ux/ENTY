@@ -2242,7 +2242,8 @@ html[data-theme="light"] .evx-open-label {
 .evx-row {
   position: relative;
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  /* punto · nombre · cuándo · cifras · estado · acciones */
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0.55rem;
@@ -2294,6 +2295,23 @@ html[data-theme="light"] .evx-open-label {
   font-size: 0.75rem;
   color: #a1a1aa;
   white-space: nowrap;
+}
+/* En pantallas estrechas las columnas auto pueden encoger con “…”: una fila
+   de 6 columnas no debe empujar un scroll horizontal en el móvil. */
+.evx-row-when,
+.evx-row-nums {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Acciones de la fila (eliminar): SIEMPRE visibles, a la derecha. La lista
+   compacta es el panel de control de muchas noches, no un resumen de lectura. */
+.evx-row-actions {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
 }
 .evx-row-state {
   font-size: 0.6875rem;
