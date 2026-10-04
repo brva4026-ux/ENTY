@@ -137,9 +137,9 @@ const NEXT_ACTIONS = {
  * el backstage: el mismo estado siempre representa con el mismo tono. */
 export const STATUS_DOT_COLOR = {
   live: "#34d399",
-  // "A la venta" usa el fuego de la marca (antes era el azul viejo #7d99ec:
-  // era el punto azul que seguia apareciendo en las tarjetas).
-  published: "#fb923c",
+  // "A la venta" va en crema, NO en el naranja de la CTA: si comparte color
+  // con el boton de accion, la etiqueta de estado se lee como un boton.
+  published: "#f5e6c8",
   draft: "#71717a",
   ended: "#a1a1aa",
   cancelled: "#f87171",
@@ -770,7 +770,7 @@ export default function AdminDashboard() {
                                       ev.status === "live"
                                         ? "#34d399"
                                         : ev.status === "published"
-                                          ? "#fb923c"
+                                          ? "#f5e6c8"
                                           : ev.status === "draft"
                                             ? "#71717a"
                                             : ev.status === "cancelled"

@@ -229,7 +229,7 @@ body {
   gap: 0.45rem;
   border-radius: 0.5rem;
   background: #f97316;
-  color: #ffffff;
+  color: #1a1208;
   border: 3px solid transparent;
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
   padding: 0.55rem 1rem;
@@ -248,11 +248,11 @@ body {
   background: #ea580c;
 }
 .btn-primary:focus-visible {
-  border-color: #ffffff;
+  border-color: #1a1208;
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
 }
 .btn-primary:active {
-  background: #2f57c4;
+  background: #9a3412;
   transform: translateY(1px);
   box-shadow: none;
 }
@@ -309,7 +309,7 @@ body {
   padding: 0.45rem 0.85rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #f87171;
+  color: #dc2626;
   cursor: pointer;
   transition:
     background 0.12s,
@@ -317,7 +317,7 @@ body {
 }
 .btn-danger-text:hover {
   background: rgba(239, 68, 68, 0.09);
-  color: #fca5a5;
+  color: #f87171;
 }
 .btn-danger-text:active {
   transform: translateY(1px);
@@ -438,11 +438,11 @@ body {
   color: #6ee7b7;
 }
 .btn-mini[data-variant="danger"] {
-  color: #f87171;
+  color: #dc2626;
 }
 .btn-mini[data-variant="danger"]:hover {
   background: rgba(239, 68, 68, 0.12);
-  color: #fca5a5;
+  color: #f87171;
 }
 html[data-theme="light"] .btn-mini {
   color: #52525b;
@@ -1608,7 +1608,7 @@ html[data-theme="light"] .bizdock-desc {
   background: rgba(52, 211, 153, 0.1);
 }
 .vh-delta.is-down {
-  color: #f87171;
+  color: #dc2626;
   background: rgba(248, 113, 113, 0.1);
 }
 
@@ -1946,7 +1946,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   background: linear-gradient(90deg, #34d399, rgba(52, 211, 153, 0.25));
 }
 .evx-card.is-published::before {
-  background: linear-gradient(90deg, #fb923c, rgba(251, 146, 60, 0.25));
+  background: linear-gradient(90deg, #f5e6c8, rgba(245, 230, 200, 0.25));
 }
 /* Halo de marca que emerge al hover (profundidad, no decoración): la
    tarjeta "se enciende" — la que vas a abrir responde. */
@@ -2195,7 +2195,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .is-live .evx-meter-fill { background: #34d399; }
 .evx-meter-fill.is-warn { background: #fbbf24; }
-.evx-meter-fill.is-full { background: #f87171; }
+.evx-meter-fill.is-full { background: #dc2626; }
 .is-ended .evx-meter-fill { background: #52525b; }
 html[data-theme="light"] .evx-thumb {
   border-color: #e4e4e7;
@@ -2536,7 +2536,7 @@ html[data-theme="light"] .dialog-panel {
   border-left: 3px solid #34d399;
 }
 .toast-in[data-kind="error"] {
-  border-left: 3px solid #f87171;
+  border-left: 3px solid #dc2626;
 }
 .toast-in[data-kind="info"] {
   border-left: 3px solid #fb923c;
