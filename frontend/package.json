@@ -1,13 +1,14 @@
 {
-  "name": "ticketflow-frontend",
+  "name": "tickelot-frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "TicketFlow - frontend web (admin, promotor, bouncer)",
+  "description": "Tickelot - frontend web (admin, promotor, bouncer)",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node replace-sw-version.js",
     "preview": "vite preview --host 0.0.0.0 --port 12000",
+    "icons": "node build-icons.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

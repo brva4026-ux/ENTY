@@ -1,4 +1,4 @@
-/* TicketFlow service worker — app shell offline para la puerta.
+/* Tickelot service worker — app shell offline para la puerta.
  *
  * Objetivo: si el venue pierde internet, el portero aún puede ABRIR el
  * escáner (la validación de boletas obviamente requiere red; eso es
@@ -64,12 +64,12 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "TicketFlow", body: event.data ? event.data.text() : "" };
+    data = { title: "Tickelot", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "TicketFlow";
+  const title = data.title || "Tickelot";
   const options = {
     body: data.body || "",
-    tag: data.tag || "ticketflow",
+    tag: data.tag || "tickelot",
     renotify: true, // el tag repetido vuelve a vibrar: cada apertura importa
     vibrate: [80, 60, 80],
     badge: "/icons/icon-maskable-192.png",

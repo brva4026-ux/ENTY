@@ -34,7 +34,12 @@ build/
 .env*
 
 # Evidencias de QA (capturas de pantalla) y estado local del agente
+# OJO: *.png es global, pero los iconos de la PWA SON PNG y son producto de
+# build. Sin la excepcion, /icons/*.png nunca entra al repo, nunca llega a
+# produccion y el manifiesto declara 5 iconos de los que 4 dan 404.
 *.png
+!frontend/public/**/*.png
+!.agents/skills/**/*.png
 .freebuff/
 
 # Skills locales de la sesion del agente

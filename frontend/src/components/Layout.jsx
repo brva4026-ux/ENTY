@@ -3,6 +3,7 @@ import { useAuth } from "../lib/auth";
 import { hasRole, navTabsFor, topRoleLabel } from "../lib/roles";
 import { haptics } from "../lib/haptics";
 import { Logo } from "./Brand";
+import Icon from "./Icon";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 
@@ -103,7 +104,9 @@ export default function Layout({ children }) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3 text-sm">
+          {/* min-w-0 + shrink: sin esto, a 320px el bloque no cedia y el
+              documento ganaba 13px de scroll horizontal (medido). */}
+          <div className="flex min-w-0 items-center gap-3 text-sm">
             <ThemeToggle />
             <NotificationBell />
             <div className="hidden text-right sm:block">
@@ -133,11 +136,19 @@ export default function Layout({ children }) {
                 // de tu rol.
                 nav("/login", { replace: true });
               }}
-              className="btn-ghost !px-2.5 !py-1.5 text-xs"
+              className="btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs"
+              aria-label="Cerrar sesión"
             >
               {/* Mismo verbo que el escáner: "salir" era ambiguo (¿salir de
-                dónde?). Cerrar sesión no se confunde con navegar. */}
-              Cerrar sesión
+                dónde?). Cerrar sesión no se confunde con navegar.
+                Bajo 380px el verbo no entra y el botón se iba de la pantalla:
+                ahí queda el ícono, con su aria-label. */}
+              <Icon
+                name="logout"
+                className="h-4 w-4 sm:hidden"
+                aria-hidden="true"
+              />
+              <span className="hidden sm:inline">Cerrar sesión</span>
             </button>
           </div>
         </div>

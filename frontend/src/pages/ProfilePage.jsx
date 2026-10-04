@@ -196,7 +196,7 @@ export default function ProfilePage() {
           {initials}
         </span>
         <div className="min-w-0">
-          <p className="text-base font-bold text-white">{user.full_name}</p>
+          <p className="text-base font-bold text-zinc-200">{user.full_name}</p>
           <p className="truncate text-sm text-zinc-400">{user.email}</p>
           <p className="mt-1 text-xs text-zinc-500">
             {roleLabel(role)}
@@ -232,7 +232,7 @@ export default function ProfilePage() {
                   }`}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold text-white">
+                    <span className="block truncate text-sm font-bold text-zinc-200">
                       {v.name}
                     </span>
                     <span className="block text-xs text-zinc-500">

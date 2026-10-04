@@ -17,8 +17,12 @@
 const KEY = "tf_theme";
 
 const META_THEME = document.querySelector('meta[name="theme-color"]');
-const DARK_BG = "#09090b";
-const LIGHT_BG = "#f4f4f5";
+/* El meta theme-color tiene que coincidir con el lienzo real de cada tema
+   (los mismos valores que html[data-theme="light"] body y :root en
+   index.css): si no, la barra del navegador en Android muestra el gris
+   viejo mientras la app ya esta en navy. */
+const DARK_BG = "#070c17";
+const LIGHT_BG = "#eef1f8";
 
 /** Preferencia guardada (default: seguir al sistema). */
 export function getPreference() {
