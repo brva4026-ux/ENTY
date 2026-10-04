@@ -99,7 +99,7 @@ export default function PublicTicketPage() {
       const blob = await (await fetch(imageUrl)).blob();
       const file = new File(
         [blob],
-        `boleta-${ticket?.ticket_id ?? "ticketflow"}.jpg`,
+        `boleta-${ticket?.ticket_id ?? "tickelot"}.jpg`,
         {
           type: "image/jpeg",
         },

@@ -26,49 +26,60 @@ export function Logo({ size = "md", animated = true }) {
         : "rounded-[0.9rem]";
   return (
     <span className="inline-flex items-center gap-3">
-      {/* Isotipo (v3): tile plano del azul acento — cero gradiente, cero
-          glow, cero sombra. El troquel de la boleta basta como firma. */}
+      {/* ISOTIPO UNICO. El mismo desenho que public/icon.svg y que el
+          favicon del index.html: la criatura de fuego sobre la boleta
+          troquelada. Antes cada superficie tenia su propia version del
+          logo (y ninguna era la del usuario). Aqui los colores van planos
+          a proposito — un <defs> con id se duplicaria en cada render del
+          Logo y el segundo svg del DOM quedaria sin gradiente. */}
       <span
         className={`${box} relative ${animated ? "logo-pop" : ""} grid place-items-center`}
       >
         <span
           className={`relative grid h-full w-full place-items-center overflow-hidden ${radius}`}
-          style={{
-            // Navy del logo (no es azul de marca: es la tinta de la boleta).
-            background:
-              "linear-gradient(165deg, #243a7a 0%, #16255c 42%, #0b1638 100%)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14)",
-          }}
+          style={{ background: "#16255c" }}
         >
           <svg
-            viewBox="0 0 24 24"
-            className="relative h-[62%] w-[62%]"
-            fill="none"
+            viewBox="0 0 512 512"
+            className="relative h-full w-full"
             aria-hidden="true"
           >
-            {/* Boleta troquelada en crema: la silueta del logo */}
+            {/* Rayos de cartel, al 5%: textura que se siente, no que se ve. */}
+            <g fill="#f5e6c8" opacity="0.05">
+              <path d="M256 256 96 24h92zM256 256 268 0h64zM256 256 480 128v84zM256 256 416 488h-92zM256 256 44 384v-84z" />
+            </g>
+            {/* La criatura: la llama. */}
             <path
-              d="M4.4 7.2A2.4 2.4 0 0 1 6.8 4.8h10.4a2.4 2.4 0 0 1 2.4 2.4v1.9a2.7 2.7 0 0 0 0 5.4v1.9a2.4 2.4 0 0 1-2.4 2.4H6.8a2.4 2.4 0 0 1-2.4-2.4v-1.9a2.7 2.7 0 0 0 0-5.4V7.2Z"
-              fill="#f5e6c8"
+              fill="#f97316"
+              d="M256 40c40 64 88 108 88 168a88 88 0 0 1-176 0c0-36 18-58 42-70-4 30 5 46 23 53-14-49-9-95 23-151Z"
             />
-            {/* El ojo que te mira, en tinta */}
             <path
-              d="M7.9 11.7c1.1-1.5 2.6-2.2 4.1-2.2s3 .7 4.1 2.2c-1.1 1.5-2.6 2.2-4.1 2.2s-3-.7-4.1-2.2Z"
               fill="#0b1638"
+              d="M212 206c19-29 69-29 88 0-19 29-69 29-88 0Z"
             />
-            <circle cx="12" cy="11.7" r="1.35" fill="#f97316" />
-            <circle cx="12" cy="11.7" r="0.5" fill="#0b1638" />
-            {/* Cuernos de la llama */}
-            <path
-              d="M8.5 8.3C7.6 7.1 7.9 5.5 9.1 4.5c.5 1.3.6 2.4.2 3.8H8.5Z"
-              fill="#f97316"
-            />
-            <path
-              d="M15.5 8.3c.9-1.2.6-2.8-.6-3.8-.5 1.3-.6 2.4-.2 3.8h.8Z"
-              fill="#f97316"
-            />
-            {/* Brasa del talon */}
-            <circle cx="15.5" cy="15.3" r="0.7" fill="#ef4444" />
+            <circle cx="256" cy="206" r="15" fill="#f5e6c8" />
+            <circle cx="262" cy="199" r="5" fill="#0b1638" />
+            {/* La boleta, con el troquel resuelto en alpha (ver el mask del
+                icon.svg): aqui no cabe un <mask> sin id duplicado, asi que
+                el troquel se come con los dos-circulos del color del campo. */}
+            <g>
+              <rect x="112" y="292" width="288" height="132" rx="20" fill="#f5e6c8" />
+              <path
+                d="M338 312v92"
+                stroke="#0f1c46"
+                strokeOpacity="0.45"
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeDasharray="3 17"
+              />
+              <g fill="#0f1c46">
+                <rect x="360" y="316" width="24" height="84" rx="4" />
+                <rect x="360" y="316" width="7" height="84" fill="#f5e6c8" />
+                <rect x="376" y="316" width="8" height="84" rx="4" />
+              </g>
+              <circle cx="112" cy="353" r="27" fill="#16255c" />
+              <circle cx="400" cy="353" r="27" fill="#16255c" />
+            </g>
           </svg>
         </span>
       </span>
@@ -87,7 +98,7 @@ export function Logo({ size = "md", animated = true }) {
             }}
           >
             <span className="brand-shine">Tick</span>
-            <span style={{ color: "#f97316" }}>elot</span>
+            <span className="brand-suffix">elot</span>
           </span>
         </span>
       ) : (

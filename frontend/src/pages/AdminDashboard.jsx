@@ -678,7 +678,7 @@ export default function AdminDashboard() {
                         {/* Filtros como tabs de texto (no píldoras con borde):
                     el estado activo se dice con tinta, no con otra caja. */}
                         <div
-                          className="no-scrollbar flex items-center gap-1 overflow-x-auto"
+                          className="no-scrollbar flex min-w-0 items-center gap-1 overflow-x-auto"
                           role="tablist"
                           aria-label="Filtrar eventos por estado"
                         >

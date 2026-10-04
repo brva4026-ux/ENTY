@@ -1,34 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Tickelot: boleta de festival (ambar) sobre campo de indigo profundo -->
-  <rect width="512" height="512" rx="96" fill="#16255c"/>
-  <!-- rayos de sol del fondo (poster de festival) -->
-  <g fill="#ffffff" opacity="0.06">
-    <path d="M256 256 88 40h96zM256 256 264 8h72zM256 256 472 120v96z"/>
-    <path d="M256 256 504 344h-96zM256 256 200 504h96zM256 256 8 320v96z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tickelot">
+  <defs>
+    <!-- userSpaceOnUse: el campo sirve para el fondo entero sin ambiguedad. -->
+    <linearGradient id="tile" gradientUnits="userSpaceOnUse" x1="40" y1="0" x2="470" y2="512">
+      <stop offset="0" stop-color="#1b2a5c"/>
+      <stop offset="0.55" stop-color="#0f1c46"/>
+      <stop offset="1" stop-color="#070c17"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#fdba74"/>
+      <stop offset="0.45" stop-color="#f97316"/>
+      <stop offset="1" stop-color="#ea580c"/>
+    </linearGradient>
+    <!-- El troquel es un HUECO de verdad (alpha 0), no un disco del color del
+         fondo: asi se ve igual sobre el degradado y sobre los rayos. -->
+    <mask id="perf" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <circle cx="112" cy="353" r="27" fill="#000"/>
+      <circle cx="400" cy="353" r="27" fill="#000"/>
+    </mask>
+  </defs>
+
+  <!-- CAMPO: el navy del logo. Un solo plano con caida de luz, sin brillos. -->
+  <rect width="512" height="512" rx="112" fill="url(#tile)"/>
+
+  <!-- Rayos de cartel: textura de fondo, apenas perceptible. -->
+  <g fill="#f5e6c8" opacity="0.05">
+    <path d="M256 256 96 24h92zM256 256 268 0h64zM256 256 480 128v84zM256 256 416 488h-92zM256 256 44 384v-84z"/>
   </g>
-  <!-- cuerpo de la boleta -->
-  <rect x="96" y="176" width="320" height="160" rx="24" fill="#f5e6c8"/>
-  <rect x="96" y="176" width="320" height="160" rx="24" fill="none" stroke="#ffffff" stroke-opacity="0.25" stroke-width="4"/>
-  <!-- muescas de troquel arriba y abajo (se recortan contra el fondo) -->
-  <circle cx="296" cy="176" r="22" fill="#16255c"/>
-  <circle cx="296" cy="336" r="22" fill="#16255c"/>
-  <!-- perforacion vertical punteada -->
-  <g stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 20">
-    <line x1="296" y1="200" x2="296" y2="312"/>
-  </g>
-  <!-- QR estilizado en el talon -->
-  <g>
-    <rect x="322" y="216" width="64" height="64" rx="10" fill="#16255c"/>
-    <g fill="#ffffff">
-      <rect x="332" y="226" width="16" height="16" rx="3"/>
-      <rect x="360" y="226" width="16" height="16" rx="3"/>
-      <rect x="332" y="254" width="16" height="16" rx="3"/>
-      <rect x="356" y="252" width="8" height="8" rx="2"/>
-      <rect x="368" y="262" width="10" height="10" rx="2"/>
+
+  <!-- LA CRIATURA: la llama. Es el elemento vivo de la marca. -->
+  <path fill="url(#flame)" d="M256 40c40 64 88 108 88 168a88 88 0 0 1-176 0c0-36 18-58 42-70-4 30 5 46 23 53-14-49-9-95 23-151Z"/>
+  <!-- El ojo que te mira, en tinta. -->
+  <path fill="#0b1638" d="M212 206c19-29 69-29 88 0-19 29-69 29-88 0Z"/>
+  <circle cx="256" cy="206" r="15" fill="#f5e6c8"/>
+  <circle cx="262" cy="199" r="5" fill="#0b1638"/>
+
+  <!-- LA BOLETA: el troquel lateral es la firma; la perforacion parte el
+       talon, que es donde el bouncer escanea. -->
+  <g mask="url(#perf)">
+    <rect x="112" y="292" width="288" height="132" rx="20" fill="#f5e6c8"/>
+    <path d="M338 312v92" stroke="#0f1c46" stroke-opacity="0.45" stroke-width="7" stroke-linecap="round" stroke-dasharray="3 17"/>
+    <g fill="#0f1c46">
+      <rect x="360" y="316" width="24" height="84" rx="4"/>
+      <rect x="360" y="316" width="7" height="84" fill="#f5e6c8"/>
+      <rect x="376" y="316" width="8" height="84" rx="4"/>
     </g>
   </g>
-  <!-- destello y texto inferior de la zona libre -->
-  <path d="m150 216 5.5 16.5 16.5 5.5-16.5 5.5-5.5 16.5-5.5-16.5-16.5-5.5 16.5-5.5 5.5-16.5Z" fill="#ffffff" opacity="0.9"/>
-  <rect x="132" y="266" width="120" height="12" rx="6" fill="#ffffff" opacity="0.55"/>
-  <rect x="132" y="290" width="80" height="12" rx="6" fill="#ffffff" opacity="0.3"/>
 </svg>

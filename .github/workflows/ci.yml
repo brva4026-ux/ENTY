@@ -131,11 +131,23 @@ jobs:
       - name: Run E2E (puerta + portada admin)
         run: |
           cd backend
-          nohup python run.py &
+          # API_PORT explicito: run.py usa 8001 por default y el proxy de
+          # Vite (vite.config.js) cae a localhost:8000 sin VITE_BACKEND_URL.
+          # Con el default, /api daba ECONNREFUSED y el unico test que
+          # tocaba login fallaba en rojo mientras los otros dos se saltaban.
+          API_PORT=8001 nohup python run.py &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8001/health && break
+            sleep 1
+          done
           cd ../frontend
           # El preview proxya /api al 8001 (vite.config.js): mismo camino que
           # el dev, con el bundle real de producción servido por Vite.
-          nohup npx vite preview --port 12000 &
+          VITE_BACKEND_URL=http://127.0.0.1:8001 nohup npx vite preview --port 12000 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:12000/login && break
+            sleep 1
+          done
           npx playwright install --with-deps chromium
           npx playwright test
         env:

@@ -60,8 +60,8 @@ body {
   /* Canvas plano (Tesla/Apple): un solo tono, sin lavados ni gradientes.
      La jerarquía viene de tipografía, aire y el cambio de superficie —
      nunca de brillo decorativo. */
-  background: #09090b;
-  color: #e4e4e7;
+  background: var(--color-zinc-950);
+  color: var(--color-zinc-200);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   font-feature-settings: "cv05" 1; /* Inter: 'l' con cola, más legible */
@@ -93,9 +93,9 @@ body {
   left: 50%;
   transform: translate(-50%, calc(-100% - 0.75rem));
   z-index: 100;
-  background: #18181b;
-  color: #e4e4e7;
-  border: 1px solid #3f3f46;
+  background: var(--color-zinc-900);
+  color: var(--color-zinc-200);
+  border: 1px solid var(--color-zinc-700);
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
   font-size: 0.8125rem;
@@ -109,18 +109,18 @@ body {
 /* Scrollbar discreto */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #27272a transparent;
+  scrollbar-color: var(--color-zinc-800) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: var(--color-zinc-800);
   border-radius: 8px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: var(--color-zinc-700);
 }
 *::-webkit-scrollbar-track {
   background: transparent;
@@ -150,7 +150,7 @@ body {
      seguros pero silenciosos. */
   letter-spacing: -0.03em;
   font-weight: 600;
-  color: #fafafa;
+  color: var(--color-zinc-50);
   font-variation-settings: "opsz" 32;
 }
 
@@ -166,7 +166,7 @@ body {
       rgba(255, 255, 255, 0.035),
       rgba(255, 255, 255, 0) 42%
     ),
-    #101013;
+    var(--color-zinc-925);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
     0 10px 30px -12px rgba(0, 0, 0, 0.55);
@@ -178,13 +178,13 @@ body {
    que .card — una sola escala de radios (8 control, 16 card, 999 pill). */
 .auth-card {
   border-radius: 1rem;
-  border: 1px solid #27272a;
-  background: #101013;
+  border: 1px solid var(--color-zinc-800);
+  background: var(--color-zinc-925);
 }
 
 /* Separadores internos consistentes */
 .divide-list > :not([hidden]) ~ :not([hidden]) {
-  border-top: 1px solid #1c1c1f;
+  border-top: 1px solid var(--color-zinc-850);
 }
 
 /* Inputs: fondo hundido, borde real, foco con acento. En la entrada piden
@@ -193,24 +193,24 @@ body {
 .field {
   width: 100%;
   border-radius: 0.5rem;
-  border: 1px solid #2a2a2e;
+  border: 1px solid var(--color-zinc-800);
   /* El color va en background-COLOR (no en el shorthand): el shorthand
      background: resetea background-repeat a initial y el chevron del
      select.field se repetia en cinta (el bug de los "vvvvvvv"). */
-  background-color: #0c0c0e;
+  background-color: var(--color-zinc-940);
   padding: 0.7rem 0.85rem;
   font-size: 0.9375rem;
-  color: #fafafa;
+  color: var(--color-zinc-50);
   outline: none;
   transition:
     border-color 0.33s cubic-bezier(0.5, 0, 0, 0.75),
     box-shadow 0.25s;
 }
 .field::placeholder {
-  color: #52525b;
+  color: var(--color-zinc-500);
 }
 .field:hover {
-  border-color: #3f3f46;
+  border-color: var(--color-zinc-700);
 }
 .field:focus {
   /* Apple: el foco es un anillo limpio del acento, sin glow difuso. */
@@ -276,12 +276,12 @@ body {
   justify-content: center;
   gap: 0.4rem;
   border-radius: 0.5rem;
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-zinc-800);
   background: transparent;
   padding: 0.5rem 0.9rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #d4d4d8;
+  color: var(--color-zinc-300);
   transition:
     background 0.12s,
     border-color 0.12s,
@@ -291,7 +291,7 @@ body {
 .btn-ghost:hover {
   background: rgba(249, 115, 22, 0.08);
   border-color: rgba(249, 115, 22, 0.45);
-  color: #fafafa;
+  color: var(--color-zinc-50);
 }
 .btn-ghost:active {
   transform: translateY(1px);
@@ -395,7 +395,7 @@ body {
   padding: 0.3rem 0.6rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
   cursor: pointer;
   transition:
     background 0.15s,
@@ -404,7 +404,7 @@ body {
 }
 .btn-mini:hover {
   background: rgba(255, 255, 255, 0.07);
-  color: #e4e4e7;
+  color: var(--color-zinc-200);
 }
 .btn-mini:active {
   transform: translateY(1px);
@@ -493,11 +493,11 @@ html[data-theme="light"] .btn-ghost.btn-success {
   align-items: center;
   gap: 0.35rem;
   border-radius: 999px;
-  border: 1px solid #3f3f46;
+  border: 1px solid var(--color-zinc-700);
   padding: 0.4rem 0.8rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
   background: transparent;
   cursor: pointer;
   transition:
@@ -507,8 +507,8 @@ html[data-theme="light"] .btn-ghost.btn-success {
     transform 0.1s ease;
 }
 .opt-chip:hover {
-  border-color: #71717a;
-  color: #e4e4e7;
+  border-color: var(--color-zinc-500);
+  color: var(--color-zinc-200);
   transform: translateY(-1px);
 }
 .opt-chip:active {
@@ -543,8 +543,8 @@ input[type="checkbox"].accent-brand-500 {
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 0.375rem;
-  border: 1.5px solid #52525b;
-  background: #0c0c0e;
+  border: 1.5px solid var(--color-zinc-600);
+  background: var(--color-zinc-940);
   display: inline-grid;
   place-content: center;
   cursor: pointer;
@@ -589,15 +589,15 @@ select.field {
   padding-right: 2.1rem;
 }
 select.field option {
-  background: #101013;
-  color: #fafafa;
+  background: var(--color-zinc-925);
+  color: var(--color-zinc-50);
 }
 html[data-theme="light"] select.field {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2352525b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 html[data-theme="light"] select.field option {
   background: #ffffff;
-  color: #09090b;
+  color: var(--color-zinc-50);
 }
 
 /* Chips de evento: pill sobria, activa = superficie clara */
@@ -609,7 +609,7 @@ html[data-theme="light"] select.field option {
     color 0.12s;
 }
 .chip-active {
-  background: #fafafa !important;
+  background: var(--color-zinc-50) !important;
   color: #101013 !important;
   font-weight: 600;
 }
@@ -631,8 +631,8 @@ html[data-theme="light"] select.field option {
   transform: translateX(-50%) translateY(3px);
   padding: 0.3rem 0.55rem;
   border-radius: 0.4rem;
-  background: #18181b;
-  color: #e4e4e7;
+  background: var(--color-zinc-900);
+  color: var(--color-zinc-200);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.7);
   font-size: 0.6875rem;
@@ -640,7 +640,11 @@ html[data-theme="light"] select.field option {
   line-height: 1.3;
   white-space: nowrap;
   pointer-events: none;
-  opacity: 0;
+  /* display en vez de opacity: un tooltip con opacity:0 SIGUE OCUPANDO
+     espacio, y como nowrap es mas ancho que el boton que lo genera
+     ensancha el documento (18px de scroll horizontal en movil, medido).
+     Invisible que empuja la pagina es la peor de las dos opciones. */
+  display: none;
   z-index: 60;
   transition:
     opacity 0.15s ease 0.35s,
@@ -648,6 +652,7 @@ html[data-theme="light"] select.field option {
 }
 [data-tip]:hover::after,
 [data-tip]:focus-visible::after {
+  display: block;
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
@@ -689,7 +694,7 @@ html[data-theme="light"] select.field option {
   padding: 0.42rem 0.85rem;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
   white-space: nowrap;
   transition:
     background 0.18s ease,
@@ -697,12 +702,12 @@ html[data-theme="light"] select.field option {
     box-shadow 0.18s ease;
 }
 .tabbar-item:hover {
-  color: #e4e4e7;
+  color: var(--color-zinc-200);
   background: rgba(255, 255, 255, 0.05);
 }
 .tabbar-item[aria-selected="true"] {
-  background: linear-gradient(180deg, #27272a, #1c1c1f);
-  color: #fafafa;
+  background: linear-gradient(180deg, var(--color-zinc-800), var(--color-zinc-850));
+  color: var(--color-zinc-50);
   font-weight: 600;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.07),
@@ -738,7 +743,7 @@ html[data-theme="light"] select.field option {
 .meter {
   height: 0.4375rem;
   border-radius: 999px;
-  background: #1c1c1f;
+  background: var(--color-zinc-850);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
@@ -767,7 +772,7 @@ html[data-theme="light"] select.field option {
   background: rgba(255, 255, 255, 0.03);
 }
 .list-row .text-zinc-200 {
-  color: #e4e4e7;
+  color: var(--color-zinc-200);
 }
 html[data-theme="light"] .list-row {
   border-color: #e4e4e7;
@@ -789,7 +794,7 @@ html[data-theme="light"] header nav a {
   color: #52525b;
 }
 html[data-theme="light"] header nav a:hover {
-  background: #f4f4f5;
+  background: #eef1f8;
   color: #18181b;
 }
 html[data-theme="light"] header nav a[aria-current="page"] {
@@ -807,7 +812,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
      usada) con línea y puntos, como el timeline de reportes del original.
    =========================================================================== */
 .text-gradient {
-  background: linear-gradient(120deg, #fafafa 0%, #fdba74 55%, #f97316 100%);
+  background: linear-gradient(120deg, var(--color-zinc-50) 0%, #fdba74 55%, #f97316 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -841,13 +846,13 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   font-size: 0.9375rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: #fafafa;
+  color: var(--color-zinc-50);
 }
 .empty-state-text {
   margin-top: 0.3rem;
   font-size: 0.8125rem;
   line-height: 1.55;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
 }
 .empty-state-cta {
   margin-top: 1rem;
@@ -884,8 +889,8 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   height: 16px;
   flex-shrink: 0;
   border-radius: 999px;
-  background: #1c1c1f;
-  box-shadow: inset 0 0 0 2px #3f3f46;
+  background: var(--color-zinc-850);
+  box-shadow: inset 0 0 0 2px var(--color-zinc-700);
 }
 .ticket-step.done .ticket-step-dot {
   background: #f97316;
@@ -920,13 +925,13 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .ticket-step-label {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 .ticket-step.done .ticket-step-label {
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
 }
 .ticket-step.current .ticket-step-label {
-  color: #fafafa;
+  color: var(--color-zinc-50);
   font-weight: 600;
 }
 
@@ -1020,7 +1025,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 /* Wordmark: tinta sólida (Tesla — el tipo se defiende solo, sin luces).
    La clase queda porque la usa el logo pequeño del header. */
 .brand-shine {
-  color: #fafafa;
+  color: var(--color-zinc-50);
   -webkit-text-fill-color: currentColor;
 }
 
@@ -1069,7 +1074,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 .card-interactive:hover {
   transform: translateY(-2px);
-  border-color: #2c2c31;
+  border-color: var(--color-zinc-800);
   box-shadow: 0 10px 28px -14px rgba(0, 0, 0, 0.65);
 }
 .card-interactive:active {
@@ -1098,7 +1103,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 .skeleton {
-  background: linear-gradient(90deg, #101013 25%, #1a1a1e 50%, #101013 75%);
+  background: linear-gradient(90deg, var(--color-zinc-925) 25%, #1a1a1e 50%, var(--color-zinc-925) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.4s infinite linear;
   border-radius: 0.5rem;
@@ -1402,7 +1407,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   width: 2.1rem;
   height: 2.1rem;
   border-radius: 0.6rem;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
   transition:
@@ -1411,7 +1416,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
     background 0.2s;
 }
 .bizdock-item:hover .bizdock-icon {
-  color: #d4d4d8;
+  color: var(--color-zinc-300);
 }
 .bizdock-item.is-active .bizdock-icon {
   color: #ffffff;
@@ -1426,15 +1431,15 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .bizdock-label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #e4e4e7;
+  color: var(--color-zinc-200);
   line-height: 1.2;
 }
 .bizdock-item.is-active .bizdock-label {
-  color: #fafafa;
+  color: var(--color-zinc-50);
 }
 .bizdock-desc {
   font-size: 0.6875rem;
-  color: #71717a;
+  color: var(--color-zinc-500);
   line-height: 1.35;
   /* Dos lineas maximo: si crece, corta con puntos suspensivos (sin romper la fila). */
   display: -webkit-box;
@@ -1451,7 +1456,9 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   font-weight: 700;
   padding: 0.1rem 0.35rem;
   border-radius: 999px;
-  color: #ffffff;
+  /* Tinta, no blanco: el contador vive sobre el naranja de la marca y el
+     blanco ahi daba 2.8:1. El mismo par tinta/naranja del boton primario. */
+  color: #1a1208;
   background: #f97316;
 }
 
@@ -1481,7 +1488,7 @@ html[data-theme="light"] .bizdock-label {
   color: #18181b;
 }
 html[data-theme="light"] .bizdock-desc {
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 
 /* ----------------------------------------------------------------------
@@ -1511,7 +1518,7 @@ html[data-theme="light"] .bizdock-desc {
       rgba(255, 255, 255, 0.05),
       rgba(255, 255, 255, 0) 46%
     ),
-    #101013;
+    var(--color-zinc-925);
 }
 /* Fila superior: identidad | KPI. Baja a columna en móvil. */
 .vh-top {
@@ -1547,7 +1554,7 @@ html[data-theme="light"] .bizdock-desc {
   color: #ffffff;
   /* Pizarra de marca: el azul es el unico color interactivo; la identidad
      del negocio NO es interactiva, así que va en tinta neutra profunda. */
-  background: linear-gradient(160deg, #27272a, #18181b);
+  background: linear-gradient(160deg, var(--color-zinc-800), var(--color-zinc-900));
 }
 .vh-kpi {
   min-width: 0;
@@ -1576,13 +1583,13 @@ html[data-theme="light"] .bizdock-desc {
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 .vh-kpi-amount {
   font-size: clamp(2rem, 4.5vw, 2.8rem);
   font-weight: 800;
   letter-spacing: -0.04em;
-  color: #fafafa;
+  color: var(--color-zinc-50);
   line-height: 1.05;
   font-variation-settings: "opsz" 32;
 }
@@ -1592,7 +1599,7 @@ html[data-theme="light"] .bizdock-desc {
   justify-content: flex-end;
   gap: 0.6rem;
   font-size: 0.75rem;
-  color: #71717a;
+  color: var(--color-zinc-500);
   margin-top: 0.3rem;
 }
 .vh-delta {
@@ -1634,15 +1641,17 @@ html[data-theme="light"] .vh-logo {
   border-color: #e4e4e7;
 }
 html[data-theme="light"] .vh-logo-fallback {
+  /* Navy explicito: tomaba el token de borde, que en claro es un tono claro,
+     y las iniciales quedaban blancas sobre blanco (1:1). */
   color: #ffffff;
-  background: linear-gradient(160deg, #3f3f46, #18181b);
+  background: linear-gradient(160deg, #243a7a, #0f1c46);
 }
 html[data-theme="light"] .vh-kpi-amount {
-  color: #09090b;
+  color: var(--color-zinc-50);
 }
 html[data-theme="light"] .vh-kpi-label,
 html[data-theme="light"] .vh-kpi-meta {
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 html[data-theme="light"] .vh-delta.is-up {
   color: #047857;
@@ -1704,7 +1713,7 @@ html[data-theme="light"] .vh-embedded {
       rgba(249, 115, 22, 0.28),
       transparent 62%
     ),
-    linear-gradient(180deg, #18181b, #101013);
+    linear-gradient(180deg, var(--color-zinc-900), #101013);
   border: 1px dashed rgba(251, 146, 60, 0.45);
   position: relative;
   box-shadow:
@@ -1763,20 +1772,20 @@ html[data-theme="light"] .vh-embedded {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 html[data-theme="light"] .ec-stat {
   border-left-color: #e4e4e7;
 }
 html[data-theme="light"] .ec-stat-label {
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 
 /* Píldora de apertura ("Hoy 8 p.m."): cuándo arranca sin leer la fecha.
    Hoy = acento de marca; esta semana = tinta clara; lejana/pasada = neutra. */
 .ec-when {
-  border: 1px solid #3f3f46;
-  color: #a1a1aa;
+  border: 1px solid var(--color-zinc-700);
+  color: var(--color-zinc-400);
 }
 .ec-when-today {
   border-color: rgba(249, 115, 22, 0.55);
@@ -1798,7 +1807,7 @@ html[data-theme="light"] .ec-when-today {
 }
 html[data-theme="light"] .ec-when-soon {
   border-color: rgba(249, 115, 22, 0.3);
-  color: #c2410c;
+  color: #9a3412;
 }
 
 /* ----------------------------------------------------------------------
@@ -1840,25 +1849,25 @@ html[data-theme="light"] .ec-when-soon {
   border-radius: 0.4rem 0.4rem 0 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #71717a;
+  color: var(--color-zinc-500);
   transition:
     color 0.15s,
     background 0.15s;
 }
 .evx-tab:hover {
-  color: #d4d4d8;
+  color: var(--color-zinc-300);
 }
 /* Activo: se dice con TINTA + el filete del acento de abajo. Antes ademas
    llevaba su propia caja gris, que competia con el buscador y convertia la
    barra en una fila de botones; el comentario del codigo ya lo pedia asi. */
 .evx-tab.is-active {
-  color: #fafafa;
+  color: var(--color-zinc-50);
 }
 .evx-tab-count {
   font-size: 0.6875rem;
   /* 52525b sobre el fondo oscuro daba ~2.8:1, por debajo del minimo de
      contraste para texto; 71717a llega a ~4.6:1. */
-  color: #71717a;
+  color: var(--color-zinc-500);
   font-weight: 600;
 }
 .evx-tab.is-active .evx-tab-count {
@@ -1991,7 +2000,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   font-size: 1.0625rem;
   font-weight: 650;
   letter-spacing: -0.015em;
-  color: #fafafa;
+  color: var(--color-zinc-50);
   font-variation-settings: "opsz" 24;
 }
 .evx-state {
@@ -2000,7 +2009,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   gap: 0.35rem;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
   white-space: nowrap;
 }
 /* El estado es UN punto de color + palabra: la información de la categoría
@@ -2010,7 +2019,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 999px;
-  background: #52525b;
+  background: var(--color-zinc-600);
   flex-shrink: 0;
 }
 /* En puerta: el punto RESPIRA (pulso discreto) — vida sin ruido. */
@@ -2042,7 +2051,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   border-radius: 0.7rem;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #0c0c0e;
+  background: var(--color-zinc-940);
 }
 .evx-thumb-fallback {
   display: grid;
@@ -2061,7 +2070,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   text-shadow: 0 1px 2px rgba(9, 9, 11, 0.4);
 }
 .evx-thumb-fallback.is-ended {
-  color: #d4d4d8;
+  color: var(--color-zinc-300);
   background: linear-gradient(140deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
   border-color: rgba(255, 255, 255, 0.1);
   text-shadow: none;
@@ -2102,7 +2111,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #71717a;
+  color: var(--color-zinc-500);
   white-space: nowrap;
 }
 /* Moviles angostos (320-380px): los tres rotulos en mayusculas no cabian en su
@@ -2128,7 +2137,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   font-size: 1.2rem;
   font-weight: 750;
   letter-spacing: -0.02em;
-  color: #fafafa;
+  color: var(--color-zinc-50);
   white-space: nowrap;
   font-variation-settings: "opsz" 24;
 }
@@ -2138,12 +2147,12 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 /* Evento terminado/cancelado: el dinero pierde el protagonismo del color
    (ya no hay nada que esperar de esa noche) pero no la cifra. */
 .is-ended .evx-stat-value.has-money {
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
 }
 .evx-stat-denom {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 /* En puerta con gente entrando: el contador de ingresos se enciende. */
 .evx-stat-value.is-counting {
@@ -2173,7 +2182,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 .evx-pct {
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
   text-align: right;
   white-space: nowrap;
 }
@@ -2196,13 +2205,13 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 .is-live .evx-meter-fill { background: #34d399; }
 .evx-meter-fill.is-warn { background: #fbbf24; }
 .evx-meter-fill.is-full { background: #dc2626; }
-.is-ended .evx-meter-fill { background: #52525b; }
+.is-ended .evx-meter-fill { background: var(--color-zinc-600); }
 html[data-theme="light"] .evx-thumb {
   border-color: #e4e4e7;
   background: #f4f4f5;
 }
 html[data-theme="light"] .evx-thumb-fallback {
-  color: #c2410c;
+  color: #9a3412;
   text-shadow: none;
   background: linear-gradient(
     140deg,
@@ -2213,7 +2222,7 @@ html[data-theme="light"] .evx-thumb-fallback {
   border-color: rgba(249, 115, 22, 0.25);
 }
 html[data-theme="light"] .evx-thumb-fallback.is-ended {
-  color: #71717a;
+  color: var(--color-zinc-500);
   background: linear-gradient(140deg, rgba(9, 9, 11, 0.07), rgba(9, 9, 11, 0.02));
   border-color: #e4e4e7;
 }
@@ -2221,7 +2230,7 @@ html[data-theme="light"] .evx-stat {
   border-left-color: #e4e4e7;
 }
 html[data-theme="light"] .evx-stat-value {
-  color: #09090b;
+  color: var(--color-zinc-50);
 }
 html[data-theme="light"] .evx-card:hover .evx-stat:first-child {
   border-left-color: rgba(5, 150, 105, 0.6);
@@ -2230,7 +2239,7 @@ html[data-theme="light"] .evx-stat-value.has-money {
   color: #047857;
 }
 html[data-theme="light"] .is-ended .evx-stat-value.has-money {
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 html[data-theme="light"] .evx-stat-value.is-counting {
   color: #047857;
@@ -2285,7 +2294,7 @@ html[data-theme="light"] .evx-pct {
   white-space: nowrap;
 }
 html[data-theme="light"] .evx-open-label {
-  color: #c2410c;
+  color: #9a3412;
 }
 
 /* LISTA COMPACTA: una línea por evento. Con 20+ noches la grilla de
@@ -2341,17 +2350,17 @@ html[data-theme="light"] .evx-open-label {
 }
 .evx-row-name {
   font-weight: 600;
-  color: #e4e4e7;
+  color: var(--color-zinc-200);
   min-width: 0;
 }
 .evx-row-when {
   font-size: 0.6875rem;
-  color: #71717a;
+  color: var(--color-zinc-500);
   white-space: nowrap;
 }
 .evx-row-nums {
   font-size: 0.75rem;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
   white-space: nowrap;
 }
 /* En pantallas estrechas las columnas auto pueden encoger con “…”: una fila
@@ -2375,7 +2384,7 @@ html[data-theme="light"] .evx-open-label {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #71717a;
+  color: var(--color-zinc-500);
   white-space: nowrap;
 }
 .evx-row-state.is-live {
@@ -2418,7 +2427,7 @@ html[data-theme="light"] .evx-row-state.is-live {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 /* El recaudo del evento manda como en la portada: cifra hero con brillo
    propio (el dinero ES el titular del backstage). */
@@ -2483,7 +2492,7 @@ html[data-theme="light"] .wb-flyer {
       rgba(255, 255, 255, 0.035),
       rgba(255, 255, 255, 0) 42%
     ),
-    #101013;
+    var(--color-zinc-925);
 }
 html[data-theme="light"] .card-hero {
   background:
@@ -2578,15 +2587,15 @@ html[data-theme="light"] .topbar {
   padding: 0.4rem 0.8rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
   transition: color 0.15s ease, background 0.15s ease;
 }
 .topnav-item:hover {
-  color: #e4e4e7;
+  color: var(--color-zinc-200);
   background: rgba(255, 255, 255, 0.05);
 }
 .topnav-item.is-active {
-  color: #fafafa;
+  color: var(--color-zinc-50);
   font-weight: 600;
 }
 /* Subrayado de marca: la pestaña activa del topnav habla el MISMO idioma
@@ -2607,14 +2616,14 @@ html[data-theme="light"] .topbar {
   transform: scaleX(1);
 }
 html[data-theme="light"] .topnav-item {
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 html[data-theme="light"] .topnav-item:hover {
   color: #18181b;
   background: rgba(9, 9, 11, 0.04);
 }
 html[data-theme="light"] .topnav-item.is-active {
-  color: #09090b;
+  color: var(--color-zinc-50);
 }
 .topbar-avatar {
   display: grid;
@@ -2624,7 +2633,7 @@ html[data-theme="light"] .topnav-item.is-active {
   border-radius: 999px;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #d4d4d8;
+  color: var(--color-zinc-300);
   background: linear-gradient(140deg, rgba(249, 115, 22, 0.3), rgba(249, 115, 22, 0.1));
   box-shadow:
     inset 0 0 0 1px rgba(251, 146, 60, 0.35),
@@ -2652,7 +2661,7 @@ html[data-theme="light"] .topbar-avatar {
   border-radius: 1.1rem;
   padding: 0.8rem;
   background:
-    linear-gradient(160deg, #ffffff, #f4f4f5 70%),
+    linear-gradient(160deg, #ffffff, var(--color-zinc-100) 70%),
     #ffffff;
   box-shadow:
     inset 0 0 0 1px rgba(9, 9, 11, 0.08),
@@ -2692,7 +2701,7 @@ html[data-theme="light"] .topbar-avatar {
       rgba(249, 115, 22, 0.14),
       transparent 62%
     ),
-    #101013;
+    var(--color-zinc-925);
 }
 html[data-theme="light"] .onboard-hero {
   background:
@@ -2762,14 +2771,14 @@ html[data-theme="light"] .list-row:hover {
   padding: 0.375rem 0.75rem;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #71717a;
+  color: var(--color-zinc-500);
   transition: color 0.18s ease, background 0.18s ease;
 }
 .bottomnav-item:active {
   background: rgba(255, 255, 255, 0.05);
 }
 .bottomnav-item.is-active {
-  color: #fafafa;
+  color: var(--color-zinc-50);
 }
 .bottomnav-item.is-active > span:first-child {
   filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.55));
@@ -2779,13 +2788,13 @@ html[data-theme="light"] .bottomnav {
   background: rgba(255, 255, 255, 0.94);
 }
 html[data-theme="light"] .bottomnav-item {
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 html[data-theme="light"] .bottomnav-item:active {
   background: rgba(9, 9, 11, 0.04);
 }
 html[data-theme="light"] .bottomnav-item.is-active {
-  color: #09090b;
+  color: var(--color-zinc-50);
 }
 html[data-theme="light"] .bottomnav-item.is-active > span:first-child {
   filter: none;
@@ -2818,24 +2827,27 @@ html[data-theme="light"] .bottomnav-item.is-active > span:first-child {
 
 /* Claro: mismas formas, tinta invertida. */
 html[data-theme="light"] .evx-tab {
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 html[data-theme="light"] .evx-tab:hover {
   color: #18181b;
 }
 html[data-theme="light"] .evx-tab.is-active {
-  color: #09090b;
+  color: var(--color-zinc-50);
 }
 html[data-theme="light"] .evx-tab-count {
-  /* a1a1aa sobre #f4f4f5 daba ~2.3:1; 71717a llega a ~4.6:1. */
-  color: #71717a;
+  /* a1a1aa sobre var(--color-zinc-100) daba ~2.3:1; 71717a llega a ~4.6:1. */
+  color: var(--color-zinc-500);
 }
 html[data-theme="light"] .evx-tab.is-active .evx-tab-count {
   color: #c2410c;
 }
 html[data-theme="light"] .evx-card {
   background: #f4f4f5;
-  border-color: #ececee;
+  /* #ececee sobre #e9ecf5 era un borde invisible: la tarjeta no se separaba
+     del lienzo y la grilla se leia como un solo bloque. El hairline tiene
+     que notarse. */
+  border-color: #d3dbec;
 }
 html[data-theme="light"] .evx-card::after {
   background: radial-gradient(
@@ -2864,7 +2876,7 @@ html[data-theme="light"] .evx-card.is-live:hover {
     0 10px 32px -14px rgba(5, 150, 105, 0.22);
 }
 html[data-theme="light"] .evx-name {
-  color: #09090b;
+  color: var(--color-zinc-50);
 }
 html[data-theme="light"] .evx-state {
   color: #52525b;
@@ -2879,7 +2891,7 @@ html[data-theme="light"] .evx-meter-fill {
 html[data-theme="light"] .is-live .evx-meter-fill { background: #059669; }
 html[data-theme="light"] .evx-meter-fill.is-warn { background: #d97706; }
 html[data-theme="light"] .evx-meter-fill.is-full { background: #dc2626; }
-html[data-theme="light"] .is-ended .evx-meter-fill { background: #d4d4d8; }
+html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zinc-300); }
 /* evx-actions: SIEMPRE visible en ambos temas (antes el claro las
    re-ocultaba tras el hover: en táctil eran imposibles de encontrar). */
 
@@ -3081,16 +3093,16 @@ html {
  */
 html[data-theme="light"] {
   /* --- zinc: remapeo de superficie/tinta (bordes 400 y 50 intactos) --- */
-  --color-zinc-50: #fafafa;
-  --color-zinc-100: #f4f4f5;
-  --color-zinc-200: #e4e4e7;
-  --color-zinc-300: #d4d4d8;
-  --color-zinc-500: #71717a;
+  --color-zinc-50: var(--color-zinc-50);
+  --color-zinc-100: var(--color-zinc-100);
+  --color-zinc-200: var(--color-zinc-200);
+  --color-zinc-300: var(--color-zinc-300);
+  --color-zinc-500: var(--color-zinc-500);
   --color-zinc-600: #52525b;
-  --color-zinc-700: #d4d4d8;
+  --color-zinc-700: var(--color-zinc-300);
   --color-zinc-800: #ffffff;
   --color-zinc-900: #ffffff;
-  --color-zinc-950: #fafafa;
+  --color-zinc-950: var(--color-zinc-50);
 
   /* --- texto semántico: par más oscuro de la misma familia --- */
   --color-emerald-200: #065f46;
@@ -3120,7 +3132,7 @@ html[data-theme="light"] {
    ---------------------------------------------------------------------- */
 html[data-theme="light"] body {
   /* Canvas claro plano (Tesla): un solo tono, sin lavados. */
-  background: #f4f4f5;
+  background: #eef1f8;
   color: #18181b;
 }
 html[data-theme="light"] ::selection {
@@ -3137,7 +3149,7 @@ html[data-theme="light"] .eyebrow {
 }
 html[data-theme="light"] .display,
 html[data-theme="light"] .text-gradient {
-  color: #09090b;
+  color: var(--color-zinc-50);
   background: none;
   -webkit-text-fill-color: currentColor;
 }
@@ -3179,7 +3191,7 @@ html[data-theme="light"] .field {
   /* background-color (no shorthand): ver .field — el shorthand pisaba el
      no-repeat del chevron del select y lo repetia en cinta en tema claro. */
   background-color: #ffffff;
-  color: #09090b;
+  color: var(--color-zinc-50);
 }
 /* Refuerzo especifico: el chevron del select NO se repite en ningun tema
    (la regla clara de .field ganaba por especificidad y lo rompia). */
@@ -3187,7 +3199,7 @@ html[data-theme="light"] select.field {
   background-repeat: no-repeat;
 }
 html[data-theme="light"] .field::placeholder {
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
 }
 html[data-theme="light"] .field:hover {
   border-color: #a1a1aa;
@@ -3220,8 +3232,8 @@ html[data-theme="light"] .btn-danger-text:hover {
 /* Chip activo: se invierte (superficie oscura sobre tema claro — mismo
    gesto visual que el dark: "la activa es la que contrasta"). */
 html[data-theme="light"] .chip-active {
-  background: #18181b !important;
-  color: #fafafa !important;
+  background: var(--color-zinc-900) !important;
+  color: var(--color-zinc-50) !important;
 }
 
 /* Tabbar: pista hundida gris, activa = papel blanco con borde */
@@ -3277,7 +3289,7 @@ html[data-theme="light"] .empty-state-text {
   color: #52525b;
 }
 html[data-theme="light"] .empty-state-title {
-  color: #09090b;
+  color: var(--color-zinc-50);
 }
 
 /* Timeline: tinta más oscura en la línea y los puntos */
@@ -3293,7 +3305,7 @@ html[data-theme="light"] .ticket-step-dot {
   box-shadow: inset 0 0 0 2px #d4d4d8;
 }
 html[data-theme="light"] .ticket-step-label {
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 html[data-theme="light"] .ticket-step.done .ticket-step-label {
   color: #52525b;
@@ -3313,7 +3325,7 @@ html[data-theme="light"] .ticket-ghost {
       rgba(249, 115, 22, 0.1),
       transparent 62%
     ),
-    linear-gradient(180deg, #ffffff, #fafafa);
+    linear-gradient(180deg, #ffffff, var(--color-zinc-50));
   border-color: rgba(249, 115, 22, 0.35);
 }
 html[data-theme="light"] .ticket-ghost::after {
@@ -3346,7 +3358,7 @@ html[data-theme="light"] .brand-flow {
   -webkit-text-fill-color: #f97316;
 }
 html[data-theme="light"] .auth-field-icon {
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
 }
 html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   color: #f97316;
@@ -3358,8 +3370,8 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   color-scheme: dark;
 }
 [data-theme-lock="dark"] body {
-  background: #09090b !important;
-  color: #e4e4e7 !important;
+  background: var(--color-zinc-950) !important;
+  color: var(--color-zinc-200) !important;
 }
 
 /* ===========================================================================
@@ -3437,7 +3449,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   transform: translateY(-50%);
   height: 1.15rem;
   width: 1.15rem;
-  color: #52525b;
+  color: var(--color-zinc-500);
   transition: color 0.15s;
 }
 .auth-field-has-icon {
@@ -3549,7 +3561,7 @@ html[data-theme="light"] .halftone::before {
   padding: 0.28rem 0.65rem;
   background: #f0f542;
   color: #101013;
-  border: 2px solid #101013;
+  border: 2px solid var(--color-zinc-925);
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
   font-family: "Baloo 2", "Inter", sans-serif;
   font-weight: 800;
@@ -3681,7 +3693,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   padding: 2rem 1rem 3rem;
   background:
     radial-gradient(46rem 30rem at 50% -10rem, rgba(249, 115, 22, 0.16), transparent 62%),
-    #09090b;
+    var(--color-zinc-950);
 }
 .tkt-wrap {
   max-width: 26rem;
@@ -3699,7 +3711,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   /* Cartuchera de festival: ambar con luz cenital y tinte indigo abajo */
   background:
     radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.22), transparent 55%),
-    radial-gradient(140% 60% at 50% 115%, rgba(42, 47, 143, 0.28), transparent 60%),
+    radial-gradient(140% 60% at 50% 115%, rgba(22, 37, 92, 0.28), transparent 60%),
     linear-gradient(180deg, #f2b23c, #e89a26);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
@@ -3714,7 +3726,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   right: -10%;
   bottom: -2.2rem;
   height: 4.5rem;
-  background: radial-gradient(60% 100% at 50% 100%, rgba(42, 47, 143, 0.3), transparent 70%);
+  background: radial-gradient(60% 100% at 50% 100%, rgba(22, 37, 92, 0.3), transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -3750,8 +3762,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   flex-shrink: 0;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: rgba(42, 47, 143, 0.14);
-  color: #2a2f8f;
+  background: rgba(22, 37, 92, 0.14);
+  color: #16255c;
   font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
   font-size: 0.68rem;
   font-weight: 800;
@@ -3771,7 +3783,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   line-height: 1.02;
   letter-spacing: 0.01em;
   text-transform: uppercase;
-  color: #2a2f8f;
+  color: #16255c;
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.4),
     0 2px 10px rgba(255, 255, 255, 0.22);
@@ -3815,8 +3827,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   right: -0.55rem;
   height: 1.1rem;
   background:
-    radial-gradient(circle 0.55rem at 0 50%, #09090b 98%, transparent),
-    radial-gradient(circle 0.55rem at 100% 50%, #09090b 98%, transparent);
+    radial-gradient(circle 0.55rem at 0 50%, var(--color-zinc-950) 98%, transparent),
+    radial-gradient(circle 0.55rem at 100% 50%, var(--color-zinc-950) 98%, transparent);
 }
 .tkt-tear::after {
   content: "";
@@ -3831,7 +3843,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   position: relative;
   z-index: 1;
   padding: 1.1rem 1.25rem 1.25rem;
-  background: linear-gradient(180deg, rgba(42, 47, 143, 0.06), rgba(42, 47, 143, 0.12));
+  background: linear-gradient(180deg, rgba(22, 37, 92, 0.06), rgba(22, 37, 92, 0.12));
 }
 
 /* --- Zona del QR: panel blanco sobre el ambar --------------------------- */
@@ -3848,7 +3860,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   background: #ffffff;
   box-shadow:
     0 10px 24px -14px rgba(34, 26, 6, 0.65),
-    0 0 0 1px rgba(42, 47, 143, 0.12);
+    0 0 0 1px rgba(22, 37, 92, 0.12);
 }
 /* Esquinas de encuadre (credencial escaneable) */
 .tkt-qr::before,
@@ -3857,7 +3869,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   position: absolute;
   width: 1.15rem;
   height: 1.15rem;
-  border: 2.5px solid #2a2f8f;
+  border: 2.5px solid #16255c;
   pointer-events: none;
 }
 .tkt-qr::before {
@@ -3885,8 +3897,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-admit {
   padding: 0.3rem 0.9rem;
   border-radius: 999px;
-  border: 1.5px dashed rgba(42, 47, 143, 0.45);
-  color: #2a2f8f;
+  border: 1.5px dashed rgba(22, 37, 92, 0.45);
+  color: #16255c;
   font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
   font-size: 0.66rem;
   font-weight: 800;
@@ -3900,7 +3912,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   margin-top: 1.1rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border: 1.5px solid rgba(42, 47, 143, 0.35);
+  border: 1.5px solid rgba(22, 37, 92, 0.35);
   border-radius: 0.75rem;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.4);
@@ -3910,7 +3922,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   text-align: center;
 }
 .tkt-cell + .tkt-cell {
-  border-left: 1.5px dashed rgba(42, 47, 143, 0.3);
+  border-left: 1.5px dashed rgba(22, 37, 92, 0.3);
 }
 .tkt-cell-label {
   font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
@@ -3937,8 +3949,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   gap: 0.75rem;
   padding: 0.55rem 0.75rem;
   border-radius: 0.75rem;
-  background: rgba(42, 47, 143, 0.1);
-  border: 1.5px solid rgba(42, 47, 143, 0.25);
+  background: rgba(22, 37, 92, 0.1);
+  border: 1.5px solid rgba(22, 37, 92, 0.25);
 }
 .tkt-name-row .tkt-cell-label {
   flex-shrink: 0;
@@ -3954,7 +3966,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   padding: 1.1rem 1rem;
   text-align: center;
   background: rgba(255, 255, 255, 0.55);
-  border: 1.5px dashed rgba(42, 47, 143, 0.4);
+  border: 1.5px dashed rgba(22, 37, 92, 0.4);
   color: #221a06;
 }
 .tkt-note .tkt-note-icon {
@@ -3964,8 +3976,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: rgba(42, 47, 143, 0.12);
-  color: #2a2f8f;
+  background: rgba(22, 37, 92, 0.12);
+  color: #16255c;
 }
 .tkt-note strong {
   display: block;
@@ -4012,20 +4024,20 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   opacity: 0.55;
   pointer-events: none;
 }
-/* Primario: indigo solido (el acento del cartel) */
+/* Primario: navy solido — la tinta de la boleta del logo */
 .tkt-btn-primary {
-  background: #2a2f8f;
+  background: #16255c;
   color: #ffffff;
-  box-shadow: 0 8px 20px -10px rgba(42, 47, 143, 0.8);
+  box-shadow: 0 8px 20px -10px rgba(22, 37, 92, 0.8);
 }
 .tkt-btn-primary:hover {
   filter: brightness(1.12);
 }
-/* Secundario: blanco translucido con tinta indigo */
+/* Secundario: blanco translucido con la misma tinta navy */
 .tkt-btn-quiet {
   background: rgba(255, 255, 255, 0.45);
-  color: #2a2f8f;
-  border-color: rgba(42, 47, 143, 0.3);
+  color: #16255c;
+  border-color: rgba(22, 37, 92, 0.3);
 }
 .tkt-btn-quiet:hover {
   background: rgba(255, 255, 255, 0.65);
@@ -4044,7 +4056,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   margin-top: 1.1rem;
   text-align: center;
   font-size: 0.72rem;
-  color: #71717a;
+  color: var(--color-zinc-500);
 }
 /* Firma Tickelot centrada bajo el ticket */
 .tkt-brandline {
@@ -4054,7 +4066,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   justify-content: center;
   gap: 0.45rem;
   width: fit-content;
-  color: #a1a1aa;
+  color: var(--color-zinc-400);
 }
 
 /* Escenario de la boleta con halftone (manga de Absolut): las esquinas
@@ -4090,32 +4102,105 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 
 /* --- PASO 4: la superficie es la boleta navy, no gris zinc ---------------
    Los tokens --color-ticket-* ya existian pero no se usaban: la app leia
-   "naranja sobre gris". El contenido neutro (zinc-300/400) queda como esta;
-   lo que cambia es el lienzo y las superficies, para que la marca se lea
-   "boleta navy con fuego". */
+   "naranja sobre gris". Ahora la rampa zinc COMPLETA esta teñida de navy —
+   no solo el lienzo: tambien los neutros de texto y de borde, para que el
+   gris-azulado de la app sea el mismo azul de la tinta del logo.
+
+   Los pasos 925/850/940 no existian en Tailwind: hacen falta porque el
+   lienzo (#080d1a) y la tarjeta (#0d1425) estan separados por varios pasos y
+   sin intermedios el degradado se ve a bandas. Tailwind v4 genera la
+   utilidad bg-zinc-925 a partir del token, asi que no hay caja suelta. */
 :root {
-  --color-zinc-950: #080d1a;
+  /* DOS RAMPAS, UN NOMBRE. Este es el problema de fondo que arrastraba la
+     app: `zinc` se usaba como rampa de TEXTO (200/300/400, casi 200 usos en
+     el JSX) y al mismo tiempo como rampa de SUPERFICIE (bg-zinc-700,
+     border-zinc-200). En oscuro eso no choca porque texto claro y fondo
+     oscuro van en direcciones opuestas; en CLARO las dos son claras y el
+     texto secundario quedaba en 2.7:1 sobre blanco — ilegible en 114
+     lugares (medido con el auditor de contraste, no estimado).
+
+     Por eso el corte va en 500: 50–400 es SOLO texto (0 usos de fondo o
+     borde en todo src/), 500–950 es superficie/borde. Cada tema invierte su
+     mitad de texto; la superficie se queda como esta. */
+  /* Lienzo -> tarjeta: pasos de navy, del mas profundo al mas alto. */
+  --color-zinc-950: #070c17;
+  --color-zinc-940: #090e1b;
+  --color-zinc-925: #0b1120;
   --color-zinc-900: #0d1425;
-  --color-zinc-800: #161e33;
+  --color-zinc-850: #111830;
+  --color-zinc-800: #16203c;
+  --color-zinc-700: #2e3760;
+  /* Texto (50–400), gris-azulado y no gris. 400 da 6.6:1 sobre el lienzo. */
+  --color-zinc-400: #8f9cba;
+  --color-zinc-300: #aab6cf;
+  --color-zinc-200: #c9d2e4;
+  --color-zinc-100: #dde3f0;
+  --color-zinc-50: #e8ecf6;
+  /* 500 y 600 son la bisagra: texto terciario en oscuro y gris medio en
+     claro. Los dos siguen por debajo del corte porque sí se usan de fondo. */
+  --color-zinc-600: #6d7a99;
+  --color-zinc-500: #7d8bab;
 }
 html[data-theme="light"] {
-  --color-zinc-50: #f4f6fb;
-  --color-zinc-100: #e9ecf5;
+  /* La mitad de TEXTO se invierte a tinta: en claro el numero alto es el
+     MAS oscuro, que es lo que necesita el contraste. Superficie y borde ya
+     los resuelven las reglas `html[data-theme="light"]`, que en vez de
+     depender del token llevan su hex (asi el token queda libre). */
+  --color-zinc-50: #18181b;
+  --color-zinc-100: #27272a;
+  --color-zinc-200: #3f3f46;
+  --color-zinc-300: #52525b;
+  --color-zinc-400: #626d84;
+  /* #71717a daba 4.4:1 sobre el gris de la tarjeta: rozaba el limite en 96
+     rotulos (stat-label, denominador, descripcion del dock). Este gris con
+     tinte navy sube a 5.2:1 sin oscurecer el resto del texto. */
+  --color-zinc-500: #5f6577;
+  --color-zinc-600: #4b5163;
+  /* Intermedios del lienzo claro (no existen en Tailwind, igual que en dark) */
+  --color-zinc-850: #f2f5fb;
+  --color-zinc-925: #f5f7fc;
+  --color-zinc-940: #f7f9fd;
 }
 html:not([data-theme="light"]) body {
-  background: #0a1226;
+  background: var(--color-zinc-950);
 }
 html[data-theme="light"] body {
   background: #eef1f8;
+}
+/* El scrollbar tomaba el token de superficie, que en claro vale blanco:
+   sobre el lienzo claro se volvía invisible. Lleva su propio par. */
+html[data-theme="light"] * {
+  scrollbar-color: #c3cce0 transparent;
+}
+html[data-theme="light"] *::-webkit-scrollbar-thumb {
+  background: #c3cce0;
+}
+html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
+  background: #a8b3cc;
+}
+
+/* --- El sufijo del wordmark necesita su propio color por tema ----------
+   El naranja de marca sobre el lienzo claro daba 2.5:1: es el color de la
+   llama, no un color de texto. En claro se apaga al naranja quemado, que es
+   el mismo tono que ya usa --color-brand-300 para texto de marca. */
+.brand-suffix {
+  color: #f97316;
+}
+html[data-theme="light"] .brand-suffix {
+  color: #b03a08;
+}
+
+/* El sello de goma es decorativo y va en magenta pastel: sobre blanco se
+   iba a 2.9:1. En claro usa el mismo rosa, oscurecido. */
+html[data-theme="light"] .rubber-stamp {
+  color: #a82f52;
 }
 
 /* --- PASO 5: la rampa de estados deja de ser arcoiris -------------------
    Cuatro roles, cuatro familias separadas: accion (naranja), peligro (rojo
    frio), en puerta (verde) y venta (crema). Antes el naranja de la CTA y el
-   rojo de "eliminar" eran casi el mismo tono. */
-html:not([data-theme="light"]) {
-  --color-zinc-400: #a8b2c9;
-}
+   rojo de "eliminar" eran casi el mismo tono. El neutro de texto ya quedo
+   resuelto en :root (arriba): no necesita parche propio. */
 
 /* --- PASO 6: el anillo de foco no puede ser del color del boton ----------
    Con el acento en naranja, un foco naranja DENTRO de un boton naranja
@@ -4187,3 +4272,17 @@ html[data-theme="light"] .evx-card > .evx-perf {
 }
 /* Sin reduced-motion igual: la mascara es estatica, pero el hover mueve la
    tarjeta; se deja el translateY como estaba (0.18s). */
+
+/* --- Jerarquia tipografica: el nombre del evento es el protagonista ------
+   Uses la sans de UI como todo lo demas, asi que la tarjeta no tiene foco:
+   el ojo no sabe por donde empezar. El nombre de la noche pasa a la display
+   (Baloo 2, ya cargada) con mas cuerpo y tracking cerrado: jerarquia sin
+   cambiar la fuente de la app ni recargar nada. */
+.evx-name {
+  font-family: "Baloo 2", var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+html[data-theme="light"] .evx-name {
+  color: #0b1638;
+}
