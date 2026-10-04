@@ -4127,3 +4127,63 @@ html:not([data-theme="light"]) {
 html[data-theme="light"] :focus-visible {
   outline-color: #16255c;
 }
+
+/* ===========================================================================
+   LA SILUETA: la tarjeta DE EVENTO es una boleta troquelada.
+   El logo es una boleta con las esquinas derechas comidas por el troquel; la
+   app usaba border-radius uniforme y se leia "tarjeta generica".
+   Aqui el troquel es REAL (mascara, no un parche del color del fondo): se
+   puncha un semiojo con alpha 0, asi que funciona igual sobre el lienzo
+   navy, sobre el claro y sobre cualquier superficie que cambie despues.
+   =========================================================================== */
+.evx-card {
+  --notch: 7px;
+  -webkit-mask:
+    radial-gradient(
+      circle var(--notch) at 0% 50%,
+      transparent 98%,
+      #000 100%
+    ),
+    radial-gradient(
+      circle var(--notch) at 100% 50%,
+      transparent 98%,
+      #000 100%
+    );
+  mask:
+    radial-gradient(
+      circle var(--notch) at 0% 50%,
+      transparent 98%,
+      #000 100%
+    ),
+    radial-gradient(
+      circle var(--notch) at 100% 50%,
+      transparent 98%,
+      #000 100%
+    );
+  mask-composite: add;
+  -webkit-mask-composite: source-over;
+}
+/* El perno del talon: linea punteada que separa el cuerpo del codigo, como
+   en la boleta del logo. Solo en grid (en la fila compacta seria ruido). */
+.evx-card::after {
+  background: radial-gradient(
+    90% 70% at 50% -10%,
+    rgba(249, 115, 22, 0.13),
+    transparent 62%
+  );
+}
+.evx-card > .evx-perf {
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  right: 52px;
+  width: 0;
+  border-left: 1px dashed rgba(245, 230, 200, 0.16);
+  pointer-events: none;
+  z-index: 0;
+}
+html[data-theme="light"] .evx-card > .evx-perf {
+  border-left-color: rgba(11, 22, 56, 0.14);
+}
+/* Sin reduced-motion igual: la mascara es estatica, pero el hover mueve la
+   tarjeta; se deja el translateY como estaba (0.18s). */
