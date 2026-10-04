@@ -237,7 +237,7 @@ export default function EventWorkbench({
                 Editar
               </button>
             )}
-            {["draft", "cancelled"].includes(ev.status) && (
+            {ev.status !== "live" && (
               <button
                 onClick={onDelete}
                 className="btn-ghost !px-3 !py-1.5 text-xs font-bold text-red-400"
