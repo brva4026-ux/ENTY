@@ -886,6 +886,9 @@ export default function AdminDashboard() {
                                 className="absolute inset-0 rounded-xl"
                                 aria-label={`Abrir ${ev.name}`}
                               />
+                              {/* Perno del talon: la linea punteada que
+                                  separa el cuerpo de la boleta del codigo. */}
+                              <span className="evx-perf" aria-hidden="true" />
                               <div className="pointer-events-none p-4">
                                 {/* Fila 1: identidad. Flyer (o iniciales) + nombre
                               y estado; la fecha en su propia línea es lo
