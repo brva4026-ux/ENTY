@@ -142,7 +142,7 @@ export const STATUS_DOT_COLOR = {
   published: "#f5e6c8",
   draft: "#71717a",
   ended: "#a1a1aa",
-  cancelled: "#f87171",
+  cancelled: "#dc2626",
 };
 
 /**
