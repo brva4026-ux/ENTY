@@ -1048,3 +1048,62 @@ class EventAccessPreview(BaseModel):
 class EventAccessGranted(BaseModel):
     """Respuesta del canje: a qué noche quedó atada esta persona."""
     event_id: int
+
+
+class EventPulse(BaseModel):
+    """Pulso del evento SIN dinero (para la puerta y el nudge del promotor).
+
+    Mismo criterio que el reporte: boletas vivas (issued+redeemed) cuentan; lo
+    anulado/reembolsado no. El bouncer ve ocupación; promotor+nombre de rol.
+    """
+    event_id: int
+    event_name: str
+    status: str
+    capacity: int
+    issued: int = 0
+    redeemed: int = 0
+
+
+class MyEventOut(BaseModel):
+    """Una noche donde este promotor trabaja, con SUS números."""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    starts_at: datetime
+    status: str
+    flyer_url: str | None = None
+    capacity: int
+    # Cupo agregado del promotor EN este evento (sum de sus allocations).
+    my_capacity: int = 0
+    my_issued: int = 0
+    my_redeemed: int = 0
+
+
+class PreflightStaff(BaseModel):
+    """Una persona de puerta en el pre-vuelo de apertura."""
+    user_id: int
+    full_name: str
+    shift_start: datetime | None = None
+    shift_end: datetime | None = None
+    # True = ya canjeó su link: tiene el escáner de esta noche abierto.
+    link_used: bool = False
+
+
+class EventPreflight(BaseModel):
+    """Checklist previo a abrir puertas.
+
+    `door_ready` responde la pregunta que motiva el endpoint: ¿hay ALGUIEN de
+    puerta con su escáner de esta noche ya abierto? Sin roster el aviso es
+    claro; con roster pero sin canje, también ("generá y mandá el link").
+    """
+    event_id: int
+    event_name: str
+    status: str
+    capacity: int
+    starts_at: datetime
+    bouncers: int = 0
+    promoters: int = 0
+    door_ready: bool = False
+    door_staff: list[PreflightStaff] = []
+    tickets_issued: int = 0
+    tickets_redeemed: int = 0

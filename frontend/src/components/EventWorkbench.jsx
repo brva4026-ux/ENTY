@@ -116,6 +116,7 @@ function Kpi({ value, label, accent }) {
  * @param {boolean}  editable     El evento admite edición (draft/published)
  * @param {function} onDelete     Eliminar evento (draft/cancelled)
  * @param {function} onExit       Volver a la lista (sale del modo evento)
+ * @param {object}   preflight    Pre-vuelo (roster de puerta + quién canjeó)
  */
 export default function EventWorkbench({
   ev,
@@ -131,6 +132,7 @@ export default function EventWorkbench({
   editable,
   onDelete,
   onExit,
+  preflight,
 }) {
   // Hooks SIEMPRE antes de cualquier return condicional (reglas de hooks:
   // un return temprano encima de useState crashea al re-render con ev=null).
@@ -277,6 +279,41 @@ export default function EventWorkbench({
             <LiveIndicator live={isLive} lastUpdated={lastUpdated} />
           </div>
         </div>
+
+        {/* Píldora de turno (tanda 3): quién está en puerta ESTA noche y si
+          su escáner ya está activo. Antes `shift_start/shift_end` se guardaban
+          y nadie los veía; el admin abría puertas a ciegas. */}
+        {preflight && preflight.bouncers > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-zinc-940 px-3 py-2 text-xs">
+            <Icon name="users" className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+            <span className="text-zinc-400">Puerta:</span>
+            {preflight.door_staff.map((s) => (
+              <span
+                key={s.user_id}
+                className="inline-flex items-center gap-1"
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    s.link_used ? "bg-emerald-400" : "bg-amber-400"
+                  }`}
+                  aria-hidden="true"
+                />
+                <span className="font-medium text-zinc-200">
+                  {s.full_name}
+                </span>
+                {(s.shift_start || s.shift_end) && (
+                  <span className="tnum text-zinc-500">
+                    ({s.shift_start ? new Date(s.shift_start).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }) : ""}
+                    {s.shift_end ? `–${new Date(s.shift_end).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}` : ""})
+                  </span>
+                )}
+              </span>
+            ))}
+            {!preflight.door_ready && (
+              <span className="text-amber-400">· nadie abrió su link aún</span>
+            )}
+          </div>
+ )}
 
         {/* Ciclo de vida: las acciones SIEMPRE visibles dentro del backstage */}
         {actions.length > 0 && (

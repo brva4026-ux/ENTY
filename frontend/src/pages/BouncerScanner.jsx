@@ -24,6 +24,7 @@ import {
 } from "../lib/doorCache";
 import { LiveIndicator } from "../components/Brand";
 import { PushToggle } from "../components/PushToggle";
+import Icon from "../components/Icon";
 
 function firstVenueId(user) {
   return activeVenueId(user);
@@ -537,6 +538,9 @@ export default function BouncerScanner() {
   // Cuántos escaneos offline esperan sincronización (badge del banner).
   const [pendingSync, setPendingSync] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  // Contador del evento al vuelo: lo pide junto con el snapshot para no gastar
+  // un request extra; si falla, el badge "quedan X" no aparece (no miente).
+  const [eventPulse, setEventPulse] = useState(null);
 
   const refreshPending = useCallback(async () => {
     try {
@@ -557,6 +561,24 @@ export default function BouncerScanner() {
     getSnapshot(selectedEvent)
       .then((s) => alive && setSnapInfo(s ? { count: s.count, generated_at: s.generated_at } : null))
       .catch(() => alive && setSnapInfo(null));
+    // Pulso del evento: ocupación y cuántos quedan (sin dinero; el bouncer no
+    // necesita ni ve el recaudo). Se pide junto con el snapshot para no gastar
+    // un request extra; si falla, el badge "quedan X" no aparece (no miente).
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/pulse`)
+      .then(setEventPulse)
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+    // Pulso del evento: ocupación y cuántos quedan (sin dinero; el bouncer no
+    // necesita ni ve el recaudo). Se pide junto con el snapshot para no gastar
+    // un request extra; si falla, el badge "quedan X" no aparece (no miente).
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/pulse`)
+      .then(setEventPulse)
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
     refreshPending();
     return () => {
       alive = false;
@@ -634,14 +656,46 @@ export default function BouncerScanner() {
         </div>
       )}
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-lg font-bold tracking-tight text-white">
             Control de puerta
-          </h1>
-          <p className="text-xs text-zinc-500">
+          </h1>            <p className="text-xs text-zinc-500">
             {user?.full_name}
             {selectedEventName ? ` · ${selectedEventName}` : ""}
           </p>
+          {/* Contador del turno: lo que el bouncer necesita ver para saber
+              quién entra y cuántos quedan, sin tocar el selector ni el bajo. */}
+          {fijo && eventPulse && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className="text-zinc-200 font-semibold text-[11px]">
+                  {eventPulse.redeemed}
+                </span>
+                <span className="text-zinc-500">ingresaron</span>
+              </span>
+              <span className="tnum text-zinc-600">
+                {Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
+              </span>
+              <span className="text-zinc-500">quedan de {eventPulse.capacity}</span>
+              {eventPulse.issued > 0 && (
+                <span className="text-zinc-500">· {eventPulse.issued - eventPulse.redeemed} pendientes</span>
+              )}
+            </div>
+          )
+          {!fijo && eventPulse && eventPulse.issued > 0 && (
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-zinc-500">
+              <span className="flex items-center gap-1.5">
+                <Icon name="ticket" className="h-3 w-3 text-zinc-600" />
+                <span className="text-zinc-200">{eventPulse.redeemed}</span>
+                <span className="text-zinc-500">ingresaron ·</span>
+              </span>
+              <span className="tnum text-zinc-600">
+                {Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
+              </span>
+              <span className="text-zinc-500">quedan de {eventPulse.capacity}</span>
+            </div>
+          )}
         </div>
         {kiosk ? (
           /* Kiosco: salir exige MANTENER presionado (la barra llena el botón

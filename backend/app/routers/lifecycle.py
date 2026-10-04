@@ -20,6 +20,7 @@ from app.schemas import (
     CreateVenueUser,
     DeleteEventRequest,
     EventOut,
+    EventPreflight,
     MessageOut,
     PurgeUserRequest,
     ResetPassword,
@@ -118,13 +119,27 @@ async def go_live(
     if settings.vapid_private_key_b64:
         try:
             async with db.cursor() as cur:
+                # El aviso va AL EQUIPO DE LA NOCHE (mig 025), no a la venue
+                # entera: el promotor de la noche del 14 no necesita enterarse
+                # de que abrió la del 21. Si la noche no tiene roster, cae al
+                # comportamiento anterior (todos los dispositivos de la venue):
+                # avisar de más sigue siendo mejor que no avisar.
                 await cur.execute(
                     """
-                    SELECT id, endpoint, p256dh, auth
-                    FROM push_subscriptions
-                    WHERE venue_id = %s
+                    SELECT ps.id, ps.endpoint, ps.p256dh, ps.auth
+                    FROM push_subscriptions ps
+                    WHERE ps.venue_id = %s
+                      AND (
+                        EXISTS (
+                            SELECT 1 FROM event_staff s
+                            WHERE s.event_id = %s AND s.user_id = ps.user_id
+                        )
+                        OR NOT EXISTS (
+                            SELECT 1 FROM event_staff s2 WHERE s2.event_id = %s
+                        )
+                      )
                     """,
-                    (venue_id,),
+                    (venue_id, event_id, event_id),
                 )
                 rows = await cur.fetchall()
 
@@ -175,6 +190,202 @@ async def cancel_event(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     return await _transition(venue_id, event_id, user, db, "cancel")
+
+
+# ---------------------------------------------------------------------------
+# Pre-vuelo de apertura y cierre de noche (tanda 3)
+# ---------------------------------------------------------------------------
+@router.get("/events/{event_id}/preflight", response_model=EventPreflight)
+async def event_preflight(
+    venue_id: int, event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Qué falta ANTES de abrir puertas (published -> live).
+
+    La apertura con la puerta vacía era un fracaso silencioso: el evento pasaba
+    a live, los escaneos empezaban a rechazar con 403 y nadie entendía por qué.
+    Este endpoint alimenta el aviso del admin ANTES del confirm: abrir sin
+    puerta asignada sigue siendo posible (el negocio decide), pero ya no es
+    un accidente.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT id, name, status, capacity, starts_at FROM events WHERE id=%s AND venue_id=%s",
+            (event_id, venue_id),
+        )
+        ev = await cur.fetchone()
+        if not ev:
+            raise HTTPException(404, "Evento no encontrado")
+
+        await cur.execute(
+            """
+            SELECT s.user_id, s.role, s.shift_start, s.shift_end,
+                   u.full_name,
+                   EXISTS (
+                       SELECT 1 FROM event_access_tokens t
+                       WHERE t.event_id = s.event_id AND t.user_id = s.user_id
+                         AND t.used_at IS NOT NULL AND t.revoked_at IS NULL
+                   ) AS link_used
+            FROM event_staff s
+            JOIN users u ON u.id = s.user_id
+            WHERE s.event_id = %s
+            ORDER BY s.role, u.full_name
+            """,
+            (event_id,),
+        )
+        roster = await cur.fetchall()
+
+        await cur.execute(
+            """
+            SELECT count(*) FILTER (WHERE status IN ('issued','redeemed'))::int AS issued,
+                   count(*) FILTER (WHERE status='redeemed')::int AS redeemed
+            FROM tickets WHERE event_id = %s
+            """,
+            (event_id,),
+        )
+        tk = await cur.fetchone()
+
+    puerta = [r for r in roster if r["role"] == "bouncer"]
+    venta = [r for r in roster if r["role"] == "promotor"]
+    # Con link usado = la persona ya canjeó su acceso y tiene el escáner listo.
+    ready = any(r["link_used"] for r in puerta)
+    return EventPreflight(
+        event_id=event_id,
+        event_name=ev["name"],
+        status=ev["status"],
+        capacity=ev["capacity"],
+        starts_at=ev["starts_at"],
+        bouncers=len(puerta),
+        promoters=len(venta),
+        door_ready=ready,
+        door_staff=[
+            {
+                "user_id": r["user_id"],
+                "full_name": r["full_name"],
+                "shift_start": r["shift_start"],
+                "shift_end": r["shift_end"],
+                "link_used": r["link_used"],
+            }
+            for r in puerta
+        ],
+        tickets_issued=tk["issued"],
+        tickets_redeemed=tk["redeemed"],
+    )
+
+
+@router.get("/events/{event_id}/closing.csv")
+async def export_closing_csv(
+    venue_id: int, event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Cierre de ESTA noche: caja + puerta + equipo en un CSV para el contador.
+
+    Existe porque /summary vive en la pantalla y se pierde con el refresh; la
+    noche real se cierra con un papel (o un Excel compartido por WhatsApp).
+    Mismos criterios contables del reporte: boletas vivas facturan, la
+    integridad de la puerta viene del log de redemptions.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT name FROM events WHERE id=%s AND venue_id=%s",
+            (event_id, venue_id),
+        )
+        ev = await cur.fetchone()
+        if not ev:
+            raise HTTPException(404, "Evento no encontrado")
+
+        await cur.execute(
+            """
+            SELECT coalesce(sum(price_cents_snapshot)
+                            FILTER (WHERE status IN ('issued','redeemed')), 0)::bigint AS revenue_cents,
+                   count(*) FILTER (WHERE status IN ('issued','redeemed')
+                                      AND price_cents_snapshot > 0)::int AS paid,
+                   count(*) FILTER (WHERE status IN ('issued','redeemed')
+                                      AND price_cents_snapshot = 0)::int AS courtesy,
+                   count(*) FILTER (WHERE status='voided')::int AS voided
+            FROM tickets WHERE event_id=%s
+            """,
+            (event_id,),
+        )
+        money = await cur.fetchone()
+
+        await cur.execute(
+            """
+            SELECT coalesce(u.full_name, 'Sin identificar') AS who,
+                   count(*) FILTER (WHERE r.outcome IN ('granted','granted_forced'))::int AS granted,
+                   count(*) FILTER (WHERE r.outcome NOT IN ('granted','granted_forced'))::int AS failed,
+                   count(*)::int AS total,
+                   max(r.scanned_at) AS last_scan
+            FROM redemptions r
+            LEFT JOIN users u ON u.id = r.scanned_by_user_id
+            WHERE r.event_id=%s
+            GROUP BY u.full_name ORDER BY total DESC
+            """,
+            (event_id,),
+        )
+        door_rows = await cur.fetchall()
+
+        await cur.execute(
+            """
+            SELECT u.full_name, s.role,
+                   s.shift_start, s.shift_end
+            FROM event_staff s JOIN users u ON u.id = s.user_id
+            WHERE s.event_id=%s ORDER BY s.role, u.full_name
+            """,
+            (event_id,),
+        )
+        roster = await cur.fetchall()
+
+        await write_audit(
+            cur, venue_id, user["id"], "export", "closing_csv", event_id,
+            {"evento": ev["name"]},
+        )
+        await db.commit()
+
+    paid = money["paid"]
+    revenue = money["revenue_cents"]
+    rows_door = [
+        [r["who"], r["granted"], r["failed"], r["total"],
+         r["last_scan"].strftime("%H:%M") if r["last_scan"] else ""]
+        for r in door_rows
+    ] or [["(nadie escaneó)", 0, 0, 0, ""]]
+    rows_staff = [
+        [r["full_name"], "Puerta" if r["role"] == "bouncer" else "Venta",
+         r["shift_start"].strftime("%H:%M") if r["shift_start"] else "",
+         r["shift_end"].strftime("%H:%M") if r["shift_end"] else ""]
+        for r in roster
+    ] or [["(sin equipo asignado)", "", "", ""]]
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow([f"Cierre de noche - {ev['name']}"])
+    w.writerow([])
+    w.writerow(["Caja", ""])
+    w.writerow(["Recaudo (COP)", round(revenue / 100, 2)])
+    w.writerow(["Boletas pagas", paid])
+    w.writerow(["Cortesias", money["courtesy"]])
+    w.writerow(["Anuladas", money["voided"]])
+    w.writerow(["Promedio por boleta paga (COP)", round(revenue / paid / 100, 2) if paid else 0])
+    w.writerow([])
+    w.writerow(["Puerta", "Entras", "Rechazadas", "Total escaneos", "Ultimo escaneo"])
+    w.writerows(rows_door)
+    w.writerow([])
+    w.writerow(["Equipo de la noche", "Rol", "Turno desde", "Turno hasta"])
+    w.writerows(rows_staff)
+
+    content = "\ufeff" + buf.getvalue()
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="cierre-evento-{event_id}.csv"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.delete("/events/{event_id}", response_model=MessageOut)

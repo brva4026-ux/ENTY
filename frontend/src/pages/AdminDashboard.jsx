@@ -385,6 +385,38 @@ export default function AdminDashboard() {
 
   async function runAction(action, label) {
     if (!selectedEvent) return;
+    // Pre-vuelo también en el backstage (la misma apertura, otro camino).
+    if (action === "live") {
+      try {
+        const pf = await apiFetch(
+          `/venues/${venueId}/events/${selectedEvent}/preflight`,
+        );
+        if (pf.bouncers === 0) {
+          const ok0 = await ui.confirm("¿Abrir puertas sin nadie en puerta?", {
+            message:
+              "Esta noche no tiene nadie asignado en puerta. Podés sumar a alguien en la pestaña Equipo antes de abrir.",
+            confirmLabel: "Abrir igual",
+            danger: true,
+          });
+          if (!ok0) {
+            setSection("noche");
+            return;
+          }
+        } else if (!pf.door_ready) {
+          const names = pf.door_staff.map((s) => s.full_name).join(", ");
+          const ok1 = await ui.confirm("¿Abrir puertas sin escáner activo?", {
+            message: `${names} aún no abrió su link de puerta. Sin canjearlo no podrá escanear esta noche.`,
+            confirmLabel: "Abrir igual",
+          });
+          if (!ok1) {
+            setSection("noche");
+            return;
+          }
+        }
+      } catch {
+        // Sin pre-vuelo no se bloquea la apertura.
+      }
+    }
     if (action === "cancel") {
       const ok = await ui.confirm("¿Cancelar el evento?", {
         message:
@@ -438,6 +470,44 @@ export default function AdminDashboard() {
       publish: "Evento publicado: ya puede vender 🎟️",
       live: "Puertas abiertas: la puerta fue avisada 🚪",
     };
+    // PRE-VUELO: abrir puertas sin nadie en puerta era el fracaso silencioso
+    // (el evento pasa a live y el escáner rechaza con 403). El pre-vuelo lo
+    // dice ANTES del confirm, con los nombres, y deja seguir si el admin
+    // decide que así sea.
+    if (action === "live") {
+      try {
+        const pf = await apiFetch(
+          `/venues/${venueId}/events/${ev.id}/preflight`,
+        );
+        if (pf.bouncers === 0) {
+          const ok0 = await ui.confirm("¿Abrir puertas sin nadie en puerta?", {
+            message:
+              "Esta noche no tiene nadie asignado en puerta. La boletería funciona, pero no habrá quien escanee. Podés sumar a alguien en la pestaña Equipo de la noche.",
+            confirmLabel: "Abrir igual",
+            danger: true,
+          });
+          if (!ok0) {
+            flyToEvent(ev.id, "noche");
+            return;
+          }
+        } else if (!pf.door_ready) {
+          const names = pf.door_staff.map((s) => s.full_name).join(", ");
+          const ok1 = await ui.confirm(
+            `¿Abrir puertas sin escáner activo?`,
+            {
+              message: `${names} ${pf.bouncers === 1 ? "está" : "están"} asignado${pf.bouncers === 1 ? "" : "s"} a puerta pero nadie abrió su link todavía. Sin canjear el link no van a poder escanear esta noche.`,
+              confirmLabel: "Abrir igual",
+            },
+          );
+          if (!ok1) {
+            flyToEvent(ev.id, "noche");
+            return;
+          }
+        }
+      } catch {
+        // Pre-vuelo caído: no bloquea la apertura (el negocio decide igual).
+      }
+    }
     const ok = await ui.confirm(labels[action], {
       message:
         action === "publish"
@@ -586,6 +656,45 @@ export default function AdminDashboard() {
   // El hook pausa el intervalo con la pestaña oculta y refresca al volver.
   const isLive = selectedEventData?.status === "live";
   const lastUpdated = useLiveRefresh(refreshEventData, isLive);
+
+  // Píldora de turno (tanda 3): quién está en puerta AHORA y si su escáner
+  // está activo. Se pide con el resto de los datos del evento; si el endpoint
+  // falla, la píldora simplemente no aparece (es información, no control).
+  const [preflight, setPreflight] = useState(null);
+  useEffect(() => {
+    if (!selectedEvent) {
+      setPreflight(null);
+      return;
+    }
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/preflight`)
+      .then(setPreflight)
+      .catch(() => setPreflight(null));
+  }, [selectedEvent, venueId]);
+
+  // Cierre de noche (tanda 3): el botón aparece en el backstage; si el evento
+  // tiene boletas o escaneos, hay algo que cerrar. Fallar la descarga no
+  // rompe el panel: el CSV se puede reintentar.
+  const closing = !!selectedEventData;
+  async function closeNight() {
+    setError("");
+    try {
+      const token = localStorage.getItem("tf_token");
+      const res = await fetch(
+        `/api/venues/${venueId}/events/${selectedEvent}/closing.csv`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      );
+      if (!res.ok) throw new Error("No se pudo exportar el cierre");
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `cierre-evento-${selectedEvent}.csv`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      ui.success("Cierre descargado");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   if (!venueId) {
     return (
@@ -1235,8 +1344,7 @@ export default function AdminDashboard() {
         {/* Enlace viejo o evento borrado: pantalla honesta, no un limbo */}
         {selectedEvent && !selectedEventData && (
           <EventNotFound onBack={() => setSearchParams({})} />
-        )}
-        {selectedEvent && selectedEventData && (
+        )}        {selectedEvent && selectedEventData && (
           <>
             {/* Backstage del evento: identidad, pulso y ciclo de vida */}
             <EventWorkbench
@@ -1253,6 +1361,7 @@ export default function AdminDashboard() {
               editable={editable}
               onDelete={deleteSelectedEvent}
               onExit={() => setSearchParams({})}
+              preflight={preflight}
             />
 
             {/* Edición del evento (draft/published) */}
@@ -1461,6 +1570,26 @@ export default function AdminDashboard() {
                 ) : (
                   <StatSkeletonRow />
                 )}
+                {closing && (
+                  <div className="card p-4 lg:col-span-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="eyebrow">Cierre de noche</p>
+                        <p className="mt-0.5 text-sm text-zinc-400">
+                          Caja + puerta + equipo de ESTA noche en un CSV para el
+                          contador. Se descarga con los datos de ahora.
+                        </p>
+                      </div>
+                      <button
+                        onClick={closeNight}
+                        className="btn-primary shrink-0"
+                      >
+                        <Icon name="download" className="h-4 w-4" />
+                        Cerrar noche
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {/* Tips operativos: el qué-hacer-now del evento, sin duplicar
                   el ciclo de vida (que vive siempre visible en el header). */}
                 <div className="card p-4">
@@ -1544,6 +1673,7 @@ export default function AdminDashboard() {
               <EventTeamPanel
                 venueId={venueId}
                 event={selectedEventData}
+                preflight={preflight}
               />
             )}
           </>

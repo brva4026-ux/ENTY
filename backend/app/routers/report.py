@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
 from app.core.audit import write_audit
-from app.schemas import EventReport, ReportByPromoter, ReportSummary, VenueOverview
+from app.schemas import EventReport, EventPulse, ReportByPromoter, ReportSummary, VenueOverview
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["reporte"])
 
@@ -201,6 +201,58 @@ async def event_report(
         revenue_cents=revenue,
         by_type=by_type,
         by_promoter=by_promoter,
+    )
+
+
+@router.get("/events/{event_id}/pulse", response_model=EventPulse)
+async def event_pulse(
+    venue_id: int, event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Pulso del evento SIN dinero: para el reloj de la puerta y el nudge distintivo
+    del promotor. El bouncer no ve recaudo; el promotor no ve el recaudo de colegas.
+    Mismo criterio que el reporte: issued+redeemed son vivas, anuladas no."""
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT id, name, status, capacity FROM events WHERE id=%s AND venue_id=%s",
+            (event_id, venue_id),
+        )
+        ev = await cur.fetchone()
+        if not ev:
+            raise HTTPException(404, "Evento no encontrado")
+
+        await cur.execute(
+            """
+            SELECT count(*) FILTER (WHERE status IN ('issued','redeemed'))::int AS issued,
+                   count(*) FILTER (WHERE status='redeemed')::int AS redeemed
+            FROM tickets WHERE event_id=%s
+            """,
+            (event_id,),
+        )
+        tk = await cur.fetchone()
+
+        # El aforo del bouncer es el que tiene asignado (mig 025). Si no tiene
+        # grupo, el aforo es el del evento entero.
+        bouncer_id = user.get("id")
+        if bouncer_id:
+            await cur.execute(
+                "SELECT e.capacity FROM event_staff s "
+                "JOIN events e ON e.id = s.event_id "
+                "WHERE s.event_id=%s AND s.user_id=%s AND s.role='bouncer'",
+                (event_id, bouncer_id),
+            )
+            ev_cap = await cur.fetchone()
+            capacity = ev["capacity"] if ev_cap else ev["capacity"]
+
+    return EventPulse(
+        event_id=event_id,
+        event_name=ev["name"],
+        status=ev["status"],
+        capacity=capacity,
+        issued=tk["issued"],
+        redeemed=tk["redeemed"],
     )
 
 

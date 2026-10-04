@@ -18,7 +18,7 @@ import Icon from "./Icon";
  * SHA-256). Por eso el estado `linkReciente` vive en el componente: si el
  * admin recarga, tiene que pedir uno nuevo en vez de creer que lo tiene.
  */
-export default function EventTeamPanel({ venueId, event, onLinkSent }) {
+export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }) {
   const { user } = useAuth();
   const ui = useUI();
   const [rows, setRows] = useState(null); // null = cargando
@@ -112,6 +112,13 @@ export default function EventTeamPanel({ venueId, event, onLinkSent }) {
   const porRol = (rol) => (rows ?? []).filter((r) => r.role === rol);
   const puerta = porRol("bouncer");
   const venta = porRol("promotor");
+  // Quién YA canjeó su link (escáner abierto): viene del preflight del padre.
+  // `has_link` solo dice que hay token vigente; `link_used` dice que la
+  // persona YA entró con él. Distinguirlos es la diferencia entre "te mandé
+  // el link" y "ya está trabajando".
+  const usados = new Set(
+    (preflight?.door_staff ?? []).filter((s) => s.link_used).map((s) => s.user_id),
+  );
 
   return (
     <div className="space-y-4">
@@ -233,6 +240,7 @@ export default function EventTeamPanel({ venueId, event, onLinkSent }) {
             desc="Escanean boletas. Cada uno con su link a esta noche."
             icon="door"
             filas={puerta}
+            usados={usados}
             onLink={generarLink}
             onQuitar={quitar}
             emitiendo={emitiendo}
@@ -244,6 +252,7 @@ export default function EventTeamPanel({ venueId, event, onLinkSent }) {
             desc="Pueden emitir boletas de esta noche."
             icon="ticket"
             filas={venta}
+            usados={usados}
             onLink={generarLink}
             onQuitar={quitar}
             emitiendo={emitiendo}
@@ -261,6 +270,7 @@ function Roster({
   desc,
   icon,
   filas,
+  usados,
   onLink,
   onQuitar,
   emitiendo,
@@ -288,12 +298,16 @@ function Roster({
                 {p.full_name}
               </p>
               <p className="truncate text-[11px] text-zinc-500">
-                {p.has_link ? (
+                {usados.has(p.user_id) ? (
                   <span className="text-emerald-400">
-                    Link generado —{" "}
+                    Escáner activo: ya entró con su link
+                  </span>
+                ) : p.has_link ? (
+                  <span className="text-emerald-400">
+                    Link vigente —{" "}
                     {linkReciente?.user_id === p.user_id
                       ? "lo tenés en pantalla"
-                      : "guardalo cuando lo generes"}
+                      : "reenvíaselo si no lo abrió"}
                   </span>
                 ) : (
                   "Sin link: no puede entrar a la puerta"
@@ -318,7 +332,7 @@ function Roster({
               ) : (
                 <Icon name="link" className="h-3.5 w-3.5" />
               )}
-              {p.has_link ? "Rotar" : "Link"}
+              {usados.has(p.user_id) ? "Rotar" : p.has_link ? "Reenviar" : "Link"}
             </button>
             <button
               onClick={() => onQuitar(p.user_id, p.full_name)}
