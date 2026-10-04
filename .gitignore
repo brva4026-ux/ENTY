@@ -36,3 +36,6 @@ build/
 # Evidencias de QA (capturas de pantalla) y estado local del agente
 *.png
 .freebuff/
+
+# Skills locales de la sesion del agente
+.agents/
