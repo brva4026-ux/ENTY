@@ -144,19 +144,12 @@ export const STATUS_DOT_COLOR = {
 };
 
 /**
- * Espejo de la regla del backend (lifecycle.delete_event): un borrador se
- * borra siempre; cancelado/finalizado solo si no le quedan boletas vivas.
- * La lista lo usa para no ofrecer un borrado que el servidor rechazaría.
- * Sin cifras aún (`stat` undefined) no se ofrece el borrado de los no-draft:
- * es preferible que aparezca medio segundo después a un 409 en la cara.
+ * Espejo de la regla del backend (lifecycle.delete_event): se borra cualquier
+ * evento salvo el que tiene las puertas abiertas (se está operando ahora).
+ * Para limpiar un catálogo de pruebas no hace falta vaciar boletas a mano.
  */
-export function canDeleteEvent(ev, stat) {
-  if (!ev) return false;
-  if (ev.status === "draft") return true;
-  if (ev.status === "cancelled" || ev.status === "ended") {
-    return stat ? stat.active === 0 : false;
-  }
-  return false;
+export function canDeleteEvent(ev) {
+  return !!ev && ev.status !== "live";
 }
 
 export default function AdminDashboard() {
@@ -540,7 +533,7 @@ export default function AdminDashboard() {
     if (!ev) return;
     const confirm = await ui.prompt(`Eliminar "${ev.name}"`, {
       message:
-        "Se borran también sus tipos, cupos y boletas. Esta acción no tiene deshacer.\nEscribe el nombre del evento para confirmar:",
+        "Se borran también sus tipos, cupos, boletas y pagos. Esta acción no tiene deshacer.\nEscribe el nombre del evento para confirmar:",
       placeholder: ev.name,
       danger: true,
       confirmLabel: "Eliminar definitivamente",
@@ -804,7 +797,7 @@ export default function AdminDashboard() {
                                 compacta es la vista de trabajo, no un resumen
                                 de solo lectura. Eliminar vive aquí para no
                                 tener que abrir el backstage de cada evento. */}
-                              {canDeleteEvent(ev, stat) && (
+                              {canDeleteEvent(ev) && (
                                 <span className="evx-row-actions">
                                   <button
                                     onClick={() => deleteEvent(ev)}
@@ -1130,7 +1123,7 @@ export default function AdminDashboard() {
                                 {/* Eliminar: para limpiar el calendario de 20
                                     noches sin entrar al backstage de cada
                                     evento. Solo donde el backend lo permite. */}
-                                {canDeleteEvent(ev, stat) && (
+                                {canDeleteEvent(ev) && (
                                   <button
                                     onClick={() => deleteEvent(ev)}
                                     disabled={deletingId !== null}

@@ -232,11 +232,18 @@ def test_update_venue_name_and_logo(api):
     assert res.status_code == 403
 
 
-def test_delete_event_requires_name_confirm_and_draft(api):
+def _event_ids(api, venue_id, who) -> list[int]:
+    """Ids de los eventos de la venue (no hay GET de un evento suelto)."""
+    res = api.get(f"/venues/{venue_id}/events", who)
+    assert res.status_code == 200, res.text
+    return [e["id"] for e in res.json()]
+
+
+def test_delete_event_requires_exact_name_and_works_when_published(api):
     venue = api.world["venue_a"]
     ev = api.create_event("admin", venue, name="Borrable")
 
-    # Nombre incorrecto -> 400.
+    # Nombre incorrecto -> 400; el evento sigue existiendo.
     res = api.client.request(
         "DELETE",
         api.event_url(venue, ev["id"]),
@@ -244,8 +251,9 @@ def test_delete_event_requires_name_confirm_and_draft(api):
         json={"confirm": "Otro"},
     )
     assert res.status_code == 400
+    assert _event_ids(api, venue, "admin").count(ev["id"]) == 1
 
-    # Evento publicado no se borra -> 409 (se cancela, no se borra).
+    # Publicado: ahora SI se borra (limpieza del catalogo del dueno).
     api.publish("admin", venue, ev["id"])
     res = api.client.request(
         "DELETE",
@@ -253,4 +261,56 @@ def test_delete_event_requires_name_confirm_and_draft(api):
         headers=api.headers("admin"),
         json={"confirm": "Borrable"},
     )
+    assert res.status_code == 200, res.text
+    assert _event_ids(api, venue, "admin").count(ev["id"]) == 0
+
+
+def test_delete_event_is_blocked_only_while_live(api):
+    venue = api.world["venue_a"]
+    ev = api.create_event("admin", venue, name="EnVivo")
+    api.publish("admin", venue, ev["id"])
+    live = api.post(f"/venues/{venue}/events/{ev['id']}/live", "admin")
+    assert live.status_code == 200, live.text
+
+    res = api.client.request(
+        "DELETE",
+        api.event_url(venue, ev["id"]),
+        headers=api.headers("admin"),
+        json={"confirm": "EnVivo"},
+    )
     assert res.status_code == 409
+    assert _event_ids(api, venue, "admin").count(ev["id"]) == 1
+
+
+def test_delete_event_removes_its_payments(api):
+    """ticket_payments NO tiene ON DELETE CASCADE: el router debe limpiarlo
+    o el FK aborta el borrado de un evento que vendio con pasarela."""
+    scen = api.scenario()
+    venue, ev_id, type_id = scen["venue"], scen["event"], scen["type"]
+    api.run_sql(
+        "INSERT INTO ticket_payments "
+        "(venue_id, event_id, ticket_type_id, reference, amount_in_cents, "
+        " customer_name, customer_phone) VALUES "
+        f"({venue}, {ev_id}, {type_id}, 'TF-{ev_id}-t', 5000, "
+        "'Asistente', '3001234567')"
+    )
+    assert (
+        api.run_sql(
+            f"SELECT count(*)::int FROM ticket_payments WHERE event_id={ev_id}"
+        )
+        == 1
+    )
+
+    res = api.client.request(
+        "DELETE",
+        api.event_url(venue, ev_id),
+        headers=api.headers("admin"),
+        json={"confirm": "Evento de prueba"},
+    )
+    assert res.status_code == 200, res.text
+    assert (
+        api.run_sql(
+            f"SELECT count(*)::int FROM ticket_payments WHERE event_id={ev_id}"
+        )
+        == 0
+    )

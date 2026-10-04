@@ -184,16 +184,17 @@ async def delete_event(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Elimina definitivamente un evento y sus boletas.
+    """Elimina definitivamente un evento, en cualquier estado salvo `live`.
 
-    Regla de negocio: solo puede borrarse en `draft` (no hay nada que
-    perdimos) o `cancelled` con cero boletas activas; un evento con
-    historial comercial se cancela, no se borra. El admin debe escribir el
-    nombre exacto del evento para confirmar."""
+    El dueno del negocio limpia su catalogo sin vaciar boletas a mano: la
+    salvaguarda es la confirmacion por nombre exacto y el veto al evento con
+    las puertas abiertas (se esta operando ahora mismo). `tickets`, tipos,
+    cupos, redenciones, devoluciones y waitlist caen por ON DELETE CASCADE;
+    `ticket_payments` no tiene cascada, asi que se borra explicitamente."""
     ensure_roles(user, venue_id, "super_admin", "admin")
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT name FROM events WHERE id=%s AND venue_id=%s",
+            "SELECT name, status FROM events WHERE id=%s AND venue_id=%s",
             (event_id, venue_id),
         )
         ev = await cur.fetchone()
@@ -203,39 +204,19 @@ async def delete_event(
             raise HTTPException(
                 400, "Escribe el nombre exacto del evento para confirmar el borrado."
             )
-
-        await cur.execute(
-            "SELECT status FROM events WHERE id=%s", (event_id,)
-        )
-        st = (await cur.fetchone())["status"]
-        if st not in ("draft", "cancelled", "ended"):
+        if ev["status"] == "live":
             raise HTTPException(
                 409,
-                "Solo se pueden borrar eventos en borrador, cancelados o "
-                "finalizados. Un evento publicado se cancela, no se borra.",
+                "El evento tiene las puertas abiertas: finalizalo antes de "
+                "borrarlo.",
             )
-        if st != "draft":
-            await cur.execute(
-                """SELECT count(*)::int AS n FROM tickets
-                   WHERE event_id=%s AND status='issued'""",
-                (event_id,),
-            )
-            pending = (await cur.fetchone())["n"]
-            if pending > 0:
-                if st == "ended":
-                    # En un evento finalizado las boletas emitidas son
-                    # historial contable (void_ticket bloquea anularlas).
-                    raise HTTPException(
-                        409,
-                        "El evento tiene boletas emitidas en su historial: se "
-                        "conserva como registro y no puede borrarse.",
-                    )
-                raise HTTPException(
-                    409,
-                    "Tiene boletas pendientes de uso: anúlalas antes de "
-                    "borrar el evento.",
-                )
 
+        # ticket_payments conserva el cobro historico y NO tiene ON DELETE
+        # CASCADE: sin esta limpieza el FK aborta el borrado de un evento con
+        # pagos. El resto de las tablas hijas cae sola.
+        await cur.execute(
+            "DELETE FROM ticket_payments WHERE event_id=%s", (event_id,)
+        )
         await cur.execute("DELETE FROM events WHERE id=%s", (event_id,))
         await db.commit()
     return MessageOut(detail=f"Evento '{ev['name']}' eliminado.")
