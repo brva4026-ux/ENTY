@@ -147,11 +147,14 @@ export default function EventWorkbench({
   // Solo pestañas DE ESTE evento. Equipo/Liquidaciones/Invitaciones son de la
   // venue (no cambian con el evento elegido): viven en la lista, no dentro del
   // backstage — mezclarlas aquí es lo que hacia sentir "todo amontonado".
+  // La ÚNICA excepción es "equipo de la noche": el roster y los links de puerta
+  // sí son por evento (mig 025), así que viven acá donde se trabaja la noche.
   const tabs = [
     { id: "resumen", label: "Resumen", icon: "chart" },
     { id: "entradas", label: "Entradas", icon: "door" },
     { id: "cupos", label: "Cupos", icon: "users" },
     { id: "boletas", label: "Boletas", icon: "ticket" },
+    { id: "noche", label: "Equipo", icon: "users" },
   ];
 
   // Color del punto de estado: EL MISMO mapa de la franja de eventos. Un solo
