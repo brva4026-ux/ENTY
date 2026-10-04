@@ -46,3 +46,4 @@ build/
 .agents/
 .claude/
 skills-lock.json
+commitmsg*.tmp
