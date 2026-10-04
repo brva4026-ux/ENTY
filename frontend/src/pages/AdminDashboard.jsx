@@ -653,16 +653,32 @@ export default function AdminDashboard() {
                             </p>
                           </div>
                         </div>
+                        {/* Nuevo evento: en móvil el verbo completo no entra sin
+                            partirse en dos líneas y empujar el contador de la
+                            franja; ahí queda el ícono solo (44x44, con
+                            aria-label), que es el gesto que ya se reconoce. */}
                         <button
                           onClick={() => setCreateOpen(true)}
-                          className="btn-primary !px-3.5 !py-2 text-xs"
+                          aria-label="Nuevo evento"
+                          data-tip="Nuevo evento"
+                          className="btn-primary evx-newbtn shrink-0"
                         >
-                          <Icon name="plus" className="h-3.5 w-3.5" />
-                          Nuevo evento
+                          <Icon name="plus" className="h-4 w-4" />
+                          {/* El verbo aparece a 1024px, el mismo breakpoint
+                              en que la barra vuelve a ser de una fila: antes
+                              de eso el boton es solo el icono (CSS .evx-newbtn). */}
+                          <span className="hidden lg:inline">
+                            Nuevo evento
+                          </span>
                         </button>
                       </div>
                       <div className="evx-toolbar">
-                        <div className="relative min-w-0 flex-1 sm:max-w-[16rem]">
+                        {/* El buscador en su PROPIA fila en móvil. Antes
+                            compartia fila con los filtros y terminaba con
+                            54px de caja (40 de padding para la lupa): el
+                            placeholder era invisible y la lupa se montaba
+                            sobre la primera pestaña. Medido a 320/390/414px. */}
+                        <div className="evx-search">
                           <Icon
                             name="search"
                             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
@@ -675,38 +691,10 @@ export default function AdminDashboard() {
                             className="field !py-2 !pl-10 text-sm"
                           />
                         </div>
-                        {/* Filtros como tabs de texto (no píldoras con borde):
-                    el estado activo se dice con tinta, no con otra caja. */}
-                        <div
-                          className="no-scrollbar flex min-w-0 items-center gap-1 overflow-x-auto"
-                          role="tablist"
-                          aria-label="Filtrar eventos por estado"
-                        >
-                          {BUCKETS.map(([id, label]) => {
-                            const n =
-                              id === "todos"
-                                ? events.length
-                                : events.filter((ev) => ev.status === id)
-                                    .length;
-                            const active = eventBucket === id;
-                            return (
-                              <button
-                                key={id}
-                                role="tab"
-                                aria-selected={active}
-                                onClick={() => setEventBucket(id)}
-                                className={`evx-tab ${active ? "is-active" : ""}`}
-                              >
-                                {label}
-                                <span className="tnum evx-tab-count">
-                                  {n > 0 ? n : ""}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
                         {/* Densidad: tarjetas para pocas noches, tabla de una línea
-                    cuando la lista crece (20+ eventos no caben en grilla). */}
+                    cuando la lista crece (20+ eventos no caben en grilla).
+                    Comparte la fila del buscador, no la de los filtros: ahí
+                    competía por el mismo ancho. */}
                         <button
                           onClick={() => {
                             haptics.tick();
@@ -731,6 +719,43 @@ export default function AdminDashboard() {
                             className="h-3.5 w-3.5"
                           />
                         </button>
+                        {/* Filtros como tabs de texto (no píldoras con borde):
+                    el estado activo se dice con tinta, no con otra caja. En
+                    móvil van en fila propia con scroll-snap: son 6 estados y
+                    con el buscador al lado solo entraban 2 a la vista, sin
+                    ninguna pista de que la fila scrolleara. La pista se pinta
+                    con la mascara de desvanecido (solo en móvil, que es donde
+                    hay algo que scrollear de verdad). */}
+                        <div
+                          className="evx-filters"
+                          role="tablist"
+                          aria-label="Filtrar eventos por estado"
+                        >
+                          <div className="no-scrollbar evx-filters-row">
+                            {BUCKETS.map(([id, label]) => {
+                              const n =
+                                id === "todos"
+                                  ? events.length
+                                  : events.filter((ev) => ev.status === id)
+                                      .length;
+                              const active = eventBucket === id;
+                              return (
+                                <button
+                                  key={id}
+                                  role="tab"
+                                  aria-selected={active}
+                                  onClick={() => setEventBucket(id)}
+                                  className={`evx-tab ${active ? "is-active" : ""}`}
+                                >
+                                  {label}
+                                  <span className="tnum evx-tab-count">
+                                    {n > 0 ? n : ""}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                     </>
                   )}
