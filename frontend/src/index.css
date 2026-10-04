@@ -2078,6 +2078,25 @@ html[data-theme="light"] .ec-when-soon {
   color: #71717a;
   white-space: nowrap;
 }
+/* Moviles angostos (320-380px): los tres rotulos en mayusculas no cabian en su
+   columna y empujaban la tarjeta, lo que SCAneaba la pagina en horizontal.
+   Afinar tracking y cuerpo de la rotulo deja las tres cifras en su carril. */
+@media (max-width: 400px) {
+  .evx-stats {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.4rem;
+  }
+  .evx-stat {
+    padding-left: 0.4rem;
+  }
+  .evx-stat-label {
+    font-size: 0.5625rem;
+    letter-spacing: 0.02em;
+  }
+  .evx-stat-value {
+    font-size: 1.05rem;
+  }
+}
 .evx-stat-value {
   font-size: 1.2rem;
   font-weight: 750;
