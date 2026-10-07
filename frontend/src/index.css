@@ -1532,29 +1532,71 @@ html[data-theme="light"] .bizdock-desc {
      wrap, la fila crece ORDENADA y nada se desborda. */
   flex-wrap: wrap;
 }
+/* Lockup de identidad: el tile y el texto van JUNTOS (gap corto), como una
+   marca y su wordmark, no como dos bloques vecinos. */
 .vh-identidad {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.7rem;
   min-width: 0;
+}
+/* Bloque de texto: eyebrow pegado arriba del nombre, con ritmo propio en vez
+   de depender del leading del titular. */
+.vh-nombre {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+/* El nombre de la venue es una portada: escala escalonada (no fluida) y un
+   paso extra en pantallas anchas, donde el KPI ya domina en tamaño. */
+.vh-nombre-titulo {
+  font-size: 1.25rem;
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+  /* Un nombre de una sola palabra larga corta antes de desbordar el lockup
+     (el contenedor es min-w-0 por el flex). */
+  overflow-wrap: break-word;
+}
+@media (min-width: 640px) {
+  .vh-nombre-titulo {
+    font-size: 1.5rem;
+  }
+}
+@media (min-width: 1280px) {
+  .vh-nombre-titulo {
+    font-size: 1.625rem;
+  }
 }
 .vh-logo {
   width: 3rem;
   height: 3rem;
-  border-radius: 0.75rem;
+  border-radius: 0.875rem;
   object-fit: cover;
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Profundidad: offset + blur suave, tintada con el navy del propio tile.
+     Sin esto el tile se lee pegado al papel, como una caja dibujada. */
+  box-shadow:
+    0 1px 2px rgba(9, 15, 38, 0.3),
+    0 10px 20px -12px rgba(9, 15, 38, 0.6);
 }
 .vh-logo-fallback {
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  /* Dos iniciales pegadas se leen como una sola letra rara. */
+  letter-spacing: 0.02em;
   color: #ffffff;
   /* Pizarra de marca: el azul es el unico color interactivo; la identidad
      del negocio NO es interactiva, así que va en tinta neutra profunda. */
   background: linear-gradient(160deg, var(--color-zinc-800), var(--color-zinc-900));
+  /* El canto superior recibe la luz que ya baja por la portada: el mismo
+     lavado cenital, aplicado al tile. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 1px 2px rgba(9, 15, 38, 0.3),
+    0 10px 20px -12px rgba(9, 15, 38, 0.6);
 }
 .vh-kpi {
   min-width: 0;
@@ -1639,12 +1681,28 @@ html[data-theme="light"] .vh-kpi::before {
 }
 html[data-theme="light"] .vh-logo {
   border-color: #e4e4e7;
+  /* Sobre papel la profundidad la da el contraste, no el negro: la sombra
+     baja de intensidad pero no desaparece. */
+  box-shadow:
+    0 1px 2px rgba(9, 15, 38, 0.14),
+    0 8px 18px -10px rgba(9, 15, 38, 0.32);
 }
 html[data-theme="light"] .vh-logo-fallback {
   /* Navy explicito: tomaba el token de borde, que en claro es un tono claro,
-     y las iniciales quedaban blancas sobre blanco (1:1). */
+     y las iniciales quedaban blancas sobre blanco (1:1). Los tokens
+     --color-ticket-* son el navy del logo, el mismo del talón de la boleta. */
   color: #ffffff;
-  background: linear-gradient(160deg, #243a7a, #0f1c46);
+  background: linear-gradient(
+    160deg,
+    var(--color-ticket-600),
+    var(--color-ticket-900)
+  );
+  /* Canto iluminado mas marcado: sobre blanco es lo que hace que el tile
+     "flote" en vez de recortarse. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 1px 2px rgba(9, 15, 38, 0.18),
+    0 8px 18px -10px rgba(9, 15, 38, 0.34);
 }
 html[data-theme="light"] .vh-kpi-amount {
   color: var(--color-zinc-50);
