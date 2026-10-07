@@ -1540,11 +1540,11 @@ html[data-theme="light"] .bizdock-desc {
   gap: 0.7rem;
   min-width: 0;
 }
-/* Bloque de texto: eyebrow pegado arriba del nombre, con ritmo propio en vez
-   de depender del leading del titular. */
+/* Bloque de texto: el eyebrow flota arriba del nombre con su propio aire (no
+   pegado) y el ritmo no depende del leading del titular. */
 .vh-nombre {
   display: grid;
-  gap: 0.1rem;
+  gap: 0.25rem;
   min-width: 0;
 }
 /* El nombre de la venue es una portada: escala escalonada (no fluida) y un
@@ -1564,39 +1564,58 @@ html[data-theme="light"] .bizdock-desc {
 }
 @media (min-width: 1280px) {
   .vh-nombre-titulo {
-    font-size: 1.625rem;
+    font-size: 1.75rem;
   }
 }
+/* El tile de identidad es un CHIP DE MARCA, no un rectangulo con borde: el
+   material hace el trabajo. Canto especular arriba, media sombra interior
+   abajo (el chip tiene canto, no es una calcomania plana) y sombra de
+   contacto + ambiente afuera para que se apoye sobre la superficie. El borde
+   plano anterior era justamente lo que lo delataba como caja dibujada. */
 .vh-logo {
+  /* El aro de las fotos se compone aqui: el fallback no lo paga y el <img>
+     si, sin duplicar la lista entera de sombras. */
+  --vh-logo-ring: 0 0 0 0 rgba(255, 255, 255, 0);
   width: 3rem;
   height: 3rem;
   border-radius: 0.875rem;
   object-fit: cover;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  /* Profundidad: offset + blur suave, tintada con el navy del propio tile.
-     Sin esto el tile se lee pegado al papel, como una caja dibujada. */
   box-shadow:
-    0 1px 2px rgba(9, 15, 38, 0.3),
-    0 10px 20px -12px rgba(9, 15, 38, 0.6);
+    var(--vh-logo-ring),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.3),
+    0 1px 1px rgba(3, 7, 18, 0.4),
+    0 10px 22px -12px rgba(3, 7, 18, 0.75);
+}
+/* Un flyer como logo necesita su hairline: sin aro, una imagen clara se
+   derrama sobre la superficie. Va finisimo — separa, no enmarca. */
+.vh-logo-img {
+  --vh-logo-ring: 0 0 0 1px rgba(255, 255, 255, 0.09);
 }
 .vh-logo-fallback {
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   /* Dos iniciales pegadas se leen como una sola letra rara. */
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: #ffffff;
-  /* Pizarra de marca: el azul es el unico color interactivo; la identidad
-     del negocio NO es interactiva, así que va en tinta neutra profunda. */
-  background: linear-gradient(160deg, var(--color-zinc-800), var(--color-zinc-900));
-  /* El canto superior recibe la luz que ya baja por la portada: el mismo
-     lavado cenital, aplicado al tile. */
+  /* Navy de marca: el mismo del logo y del talon de la boleta. La identidad
+     del negocio se apoya en el material de la marca en vez de un gris que se
+     confundia con el fondo del card (que es lo que la hacia ver apagada). */
+  background: linear-gradient(
+    160deg,
+    var(--color-ticket-600),
+    var(--color-ticket-900)
+  );
+  /* Canto del chip: la luz entra por arriba, el borde inferior se redondea
+     con la media sombra interior. */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 1px 2px rgba(9, 15, 38, 0.3),
-    0 10px 20px -12px rgba(9, 15, 38, 0.6);
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.35),
+    0 1px 1px rgba(3, 7, 18, 0.4),
+    0 10px 22px -12px rgba(3, 7, 18, 0.75);
 }
 .vh-kpi {
   min-width: 0;
@@ -1680,28 +1699,26 @@ html[data-theme="light"] .vh-kpi::before {
   );
 }
 html[data-theme="light"] .vh-logo {
-  border-color: #e4e4e7;
-  /* Sobre papel la profundidad la da el contraste, no el negro: la sombra
-     baja de intensidad pero no desaparece. */
+  /* Sobre papel la profundidad la da el contraste, no el negro: las sombras
+     bajan de intensidad pero no desaparecen. El canto interior oscuro es lo
+     que hace que el chip se lea como objeto y no como recorte. */
   box-shadow:
-    0 1px 2px rgba(9, 15, 38, 0.14),
-    0 8px 18px -10px rgba(9, 15, 38, 0.32);
+    var(--vh-logo-ring),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 1px rgba(9, 15, 38, 0.18),
+    0 1px 1px rgba(9, 15, 38, 0.12),
+    0 8px 18px -10px rgba(9, 15, 38, 0.34);
+}
+html[data-theme="light"] .vh-logo-img {
+  --vh-logo-ring: 0 0 0 1px rgba(24, 24, 27, 0.08);
 }
 html[data-theme="light"] .vh-logo-fallback {
-  /* Navy explicito: tomaba el token de borde, que en claro es un tono claro,
-     y las iniciales quedaban blancas sobre blanco (1:1). Los tokens
-     --color-ticket-* son el navy del logo, el mismo del talón de la boleta. */
-  color: #ffffff;
-  background: linear-gradient(
-    160deg,
-    var(--color-ticket-600),
-    var(--color-ticket-900)
-  );
-  /* Canto iluminado mas marcado: sobre blanco es lo que hace que el tile
-     "flote" en vez de recortarse. */
+  /* Canto mas marcado: sobre blanco es lo que hace flotar al chip en vez de
+     recortarlo. El relleno navy ya viene del bloque base (mismos tokens). */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    0 1px 2px rgba(9, 15, 38, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px rgba(9, 15, 38, 0.25),
+    0 1px 1px rgba(9, 15, 38, 0.14),
     0 8px 18px -10px rgba(9, 15, 38, 0.34);
 }
 html[data-theme="light"] .vh-kpi-amount {

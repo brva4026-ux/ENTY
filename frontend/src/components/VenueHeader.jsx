@@ -62,7 +62,7 @@ export default function VenueHeader({ venueId, user, children = null }) {
             <img
               src={venue.logo_url}
               alt={`Logo de ${venue.name}`}
-              className="vh-logo"
+              className="vh-logo vh-logo-img"
             />
           ) : (
             <span className="vh-logo vh-logo-fallback" aria-hidden="true">
