@@ -74,9 +74,13 @@ export default function VenueHeader({ venueId, user, children = null }) {
                 .toUpperCase() ?? ""}
             </span>
           )}
-          <div className="min-w-0">
+          {/* Lockup: el tile y el bloque de texto van juntos (gap corto) y
+            el ritmo eyebrow→nombre lo fija la propia columna, no el leading
+            del titular. El tamaño del nombre vive en .vh-nombre-titulo para
+            que la escala sea una sola fuente de verdad. */}
+          <div className="vh-nombre">
             <p className="eyebrow">Panel de la venue</p>
-            <h1 className="display text-xl leading-tight sm:text-2xl">
+            <h1 className="display vh-nombre-titulo">
               {venue?.name ?? "Tu negocio"}
             </h1>
           </div>
