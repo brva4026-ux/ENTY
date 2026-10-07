@@ -123,6 +123,22 @@ export default function PromoterDashboard() {
   }, [venueId]);
   const lastEventsUpdate = useLiveRefresh(loadEvents, true, 20_000);
 
+  // MIS NOCHES (tanda 3): los eventos donde ESTE promotor fue asignado, con
+  // su cupo agregado. La lista de la venue entera es del admin; el promotor
+  // de la noche del 14 no necesita ver las otras 30 noches del calendario.
+  const [myNights, setMyNights] = useState([]);
+  const loadMyNights = useCallback(async () => {
+    if (!venueId) return;
+    try {
+      setMyNights(await apiFetch(`/venues/${venueId}/events/mine`));
+    } catch {
+      /* silencioso: la tarjeta no aparece y ya */
+    }
+  }, [venueId]);
+  useEffect(() => {
+    loadMyNights();
+  }, [loadMyNights]);
+
   // Auto-refresh de cupos mientras el evento seleccionado acepta emisión
   // (published/live): si el admin ajusta cupos a mitad de evento, el medidor
   // refleja el cambio sin recargar. En draft/ended/cancelled no hay nada que
@@ -148,6 +164,23 @@ export default function PromoterDashboard() {
     (a) =>
       a.promoter_id === user.id &&
       courtesyTypes.some((t) => t.id === a.ticket_type_id),
+  );
+  // Cupo del tipo que se está vendiendo AHORA: la duda "¿puedo emitir o ya se
+  // agotó?" se responde en el formulario, donde nace la pregunta, sin subir a
+  // interpretar el medidor de la cabecera.
+  const selectedType = types.find(
+    (t) => t.id === Number(form.ticket_type_id),
+  );
+  const selectedTypeAllocs = allocations.filter(
+    (a) => a.promoter_id === user.id && a.ticket_type_id === selectedType?.id,
+  );
+  const selectedTypeCapacity = selectedTypeAllocs.reduce(
+    (s, a) => s + a.capacity,
+    0,
+  );
+  const selectedTypeIssued = selectedTypeAllocs.reduce(
+    (s, a) => s + (a.issued ?? 0),
+    0,
   );
 
   function handleTypeChange(id) {
@@ -326,8 +359,9 @@ export default function PromoterDashboard() {
         loadEvents(),
         selectedEvent ? refreshOperational() : Promise.resolve(),
         loadPayouts(),
+        loadMyNights(),
       ]),
-    [loadEvents, refreshOperational, selectedEvent],
+    [loadEvents, refreshOperational, selectedEvent, loadPayouts, loadMyNights],
   );
 
   return (
@@ -370,6 +404,70 @@ export default function PromoterDashboard() {
 
         {events != null && events.length > 0 && (
           <>
+            {/* MIS NOCHES (tanda 3): a dónde tengo que ir a trabajar. Solo
+              aparece si el admin me asignó a alguna noche; con las fechas y
+              mi cupo de esa noche, sin abrir el evento. */}
+            {myNights.length > 0 && (
+              <div className="card p-4">
+                <p className="eyebrow">Mis noches</p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  Las noches donde te asignaron. Tu cupo es de cada evento.
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {myNights.map((n) => {
+                    const meta = STATUS_META[n.status] ?? STATUS_META.draft;
+                    const activa = n.id === selectedEvent;
+                    const restantes = Math.max(0, n.my_capacity - n.my_issued);
+                    return (
+                      <li key={n.id}>
+                        <button
+                          onClick={() => setSelectedEvent(n.id)}
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
+                            activa
+                              ? "bg-brand-500/10 ring-1 ring-brand-500/40"
+                              : "bg-zinc-940 hover:bg-zinc-900"
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-zinc-100">
+                              {n.name}
+                            </p>
+                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-zinc-500">
+                              {new Date(n.starts_at).toLocaleString("es-CO", {
+                                weekday: "short",
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                              <span
+                                className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ring-1 ${meta.cls}`}
+                              >
+                                {meta.label}
+                              </span>
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="tnum text-sm font-bold text-zinc-100">
+                              {n.my_issued}
+                              <span className="text-xs text-zinc-500">
+                                /{n.my_capacity}
+                              </span>
+                            </p>
+                            <p className="text-[10px] text-zinc-500">
+                              {restantes === 0
+                                ? "cupo agotado"
+                                : `te quedan ${restantes}`}
+                            </p>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
             {/* Contexto del evento: siempre visible arriba, fuera del formulario.
               Selector premium: el estado en español con su color en CADA opción. */}
             <div className="card card-hero p-4">
@@ -417,6 +515,18 @@ export default function PromoterDashboard() {
                   ))}
                 </div>
               )}
+              {/* Cambio de equipo (tanda 3): el admin puede sacar a alguien del
+                  roster de una noche. Si este promotor está asignado a otras
+                  noches pero NO a la que tiene abierta, se lo decimos antes de
+                  que intente vender un cupo que ya no le toca. */}
+              {myNights.length > 0 &&
+                selectedEvent &&
+                !myNights.some((n) => n.id === selectedEvent) && (
+                  <div className="mt-3 rounded-xl border border-amber-900/50 bg-amber-950/30 px-4 py-2.5 text-xs text-amber-200/90">
+                    Ya no estás asignado a esta noche. Si necesitás vender acá,
+                    pedile al admin que te sume otra vez.
+                  </div>
+                )}
             </div>
 
             {/* ====== Pestañas: Vender · Mis boletas · Mis liquidaciones ======
@@ -485,6 +595,23 @@ export default function PromoterDashboard() {
                             </option>
                           ))}
                         </select>
+                        {/* Cuánto queda EN ESTE TIPO: si el cupo del tipo ya se
+                            agotó, el promotor se entera acá y no después del
+                            rechazo de la DB. */}
+                        {selectedTypeCapacity > 0 &&
+                          (selectedTypeIssued >= selectedTypeCapacity ? (
+                            <p className="mt-1 text-[11px] font-semibold text-amber-300">
+                              Sin cupo en este tipo: no podés emitir más acá.
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-[11px] text-zinc-500">
+                              Te quedan{" "}
+                              <strong className="tnum text-zinc-300">
+                                {selectedTypeCapacity - selectedTypeIssued}
+                              </strong>{" "}
+                              de {selectedTypeCapacity} en este tipo.
+                            </p>
+                          ))}
                       </div>
 
                       <div>

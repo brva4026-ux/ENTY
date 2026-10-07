@@ -24,6 +24,7 @@ import {
 } from "../lib/doorCache";
 import { LiveIndicator } from "../components/Brand";
 import { PushToggle } from "../components/PushToggle";
+import Icon from "../components/Icon";
 
 function firstVenueId(user) {
   return activeVenueId(user);
@@ -389,6 +390,9 @@ export default function BouncerScanner() {
         },
       );
       setResult(data);
+      // El contador de la cabecera tiene que reflejar ESTE escaneo: sin esto
+      // el número quedaba congelado hasta cambiar de evento.
+      refreshStats();
       // Al log local: hora + resultado + nombre si el server lo devolvió.
       setScanLog((prev) =>
         [
@@ -537,6 +541,13 @@ export default function BouncerScanner() {
   // Cuántos escaneos offline esperan sincronización (badge del banner).
   const [pendingSync, setPendingSync] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  // Contador del evento al vuelo: lo pide junto con el snapshot para no gastar
+  // un request extra; si falla, el badge "quedan X" no aparece (no miente).
+  const [eventPulse, setEventPulse] = useState(null);
+  // Lo que movió ESTE escáner en la noche (redemptions.scanned_by_user_id):
+  // la cabecera ya dice cuántos entraron en total; esto dice cuántos fueron
+  // por esta puerta. Se refresca después de cada escaneo, no una vez.
+  const [myScans, setMyScans] = useState(null);
 
   const refreshPending = useCallback(async () => {
     try {
@@ -546,22 +557,48 @@ export default function BouncerScanner() {
     }
   }, []);
 
+  // Contadores de la cabecera: el pulso del EVENTO (cuántos entraron en total)
+  // y lo que movió ESTE escáner. Se piden juntos y se refrescan DESPUÉS de
+  // cada escaneo y de cada sincronización: un contador que no cambia al
+  // escanear no sirve para nada.
+  const refreshStats = useCallback(async () => {
+    if (!selectedEvent) {
+      setEventPulse(null);
+      setMyScans(null);
+      return;
+    }
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/pulse`)
+      .then(setEventPulse)
+      .catch(() => {});
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/scanner-stats`)
+      .then(setMyScans)
+      .catch(() => {});
+  }, [selectedEvent, venueId]);
+
   // Info del snapshot al (cambiar de) evento; NO lo descarga solo: la
   // descarga es un botón (consume datos personales y ancho de banda).
   useEffect(() => {
     let alive = true;
     if (!selectedEvent) {
       setSnapInfo(null);
+      setEventPulse(null);
+      setMyScans(null);
       return;
     }
     getSnapshot(selectedEvent)
       .then((s) => alive && setSnapInfo(s ? { count: s.count, generated_at: s.generated_at } : null))
       .catch(() => alive && setSnapInfo(null));
+    // Contadores del turno (pulso del evento + lo de este escáner). Antes
+    // este efecto tenía el MISMO fetch duplicado y un `return` de limpieza en
+    // el medio: el callback terminaba en ese return, así que refreshPending()
+    // nunca corría y el badge de pendientes quedaba siempre en 0 — justo el
+    // dato que el bouncer necesita sin red.
+    refreshStats();
     refreshPending();
     return () => {
       alive = false;
     };
-  }, [selectedEvent, refreshPending]);
+  }, [selectedEvent, venueId, refreshPending, refreshStats]);
 
   /** Descarga manual del snapshot: la puerta prepara su modo sin red. */
   async function prepareOffline() {
@@ -582,7 +619,7 @@ export default function BouncerScanner() {
     setSyncing(true);
     try {
       const out = await syncQueue(venueId, selectedEvent);
-      await refreshPending();
+      await Promise.all([refreshPending(), refreshStats()]);
       ui.toast(
         `Sincronizado: ${out.granted} entraron, ${out.already_redeemed} ya estaban, ${out.rejected} rechazadas`,
       );
@@ -633,15 +670,76 @@ export default function BouncerScanner() {
             : "⚠️ Sin conexión y sin caché de puerta: descarga el caché con red para poder canjear offline."}
         </div>
       )}
+      {/* La puerta existe para una noche EN PUERTA. Si el evento todavía no
+          abrió (draft/publicado) o ya cerró (terminado/cancelado), el escáner
+          rechaza todo y el bouncer quedaría adivinando por qué. Este aviso lo
+          dice antes de que empiece a escanear. */}
+      {selectedEvent && eventPulse && eventPulse.status !== "live" && (
+        <div
+          role="status"
+          className="bg-amber-950/70 px-4 py-2 text-center text-xs font-semibold text-amber-200"
+        >
+          {["ended", "cancelled"].includes(eventPulse.status)
+            ? "Esta noche ya cerró: el escáner no va a aceptar boletas."
+            : "La noche todavía no abrió: el escáner va a rechazar las boletas hasta que el admin abra puertas."}
+        </div>
+      )}
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-lg font-bold tracking-tight text-white">
             Control de puerta
-          </h1>
-          <p className="text-xs text-zinc-500">
+          </h1>            <p className="text-xs text-zinc-500">
             {user?.full_name}
             {selectedEventName ? ` · ${selectedEventName}` : ""}
           </p>
+          {/* Contador del turno: lo que el bouncer necesita ver para saber
+              quién entra y cuántos quedan, sin tocar el selector ni el bajo. */}
+          {fijo && eventPulse && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className="text-zinc-200 font-semibold text-[11px]">
+                  {eventPulse.redeemed}
+                </span>
+                <span className="text-zinc-500">ingresaron</span>
+              </span>
+              <span className="tnum text-zinc-600">
+                {Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
+              </span>
+              <span className="text-zinc-500">quedan de {eventPulse.capacity}</span>
+              {eventPulse.issued > 0 && (
+                <span className="text-zinc-500">· {eventPulse.issued - eventPulse.redeemed} pendientes</span>
+              )}
+              {/* Lo que movió este escáner: en un evento con dos puertas, el
+                  total del evento no dice si la noche la trabajó esta puerta. */}
+              {myScans && myScans.granted > 0 && (
+                <span className="text-emerald-300/90">
+                  · vos: {myScans.granted}
+                </span>
+              )}
+            </div>
+          )
+          }
+          {!fijo && eventPulse && eventPulse.issued > 0 && (
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-zinc-500">
+              <span className="flex items-center gap-1.5">
+                <Icon name="ticket" className="h-3 w-3 text-zinc-600" />
+                <span className="text-zinc-200">{eventPulse.redeemed}</span>
+                <span className="text-zinc-500">ingresaron ·</span>
+              </span>
+              <span className="tnum text-zinc-600">
+                {Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
+              </span>
+              <span className="text-zinc-500">quedan de {eventPulse.capacity}</span>
+              {/* Mismo contador que en el modo con link: sin él, el bouncer
+                  que entra por el menú no ve cuánto movió su escáner. */}
+              {myScans && myScans.granted > 0 && (
+                <span className="text-emerald-300/90">
+                  · vos: {myScans.granted}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         {kiosk ? (
           /* Kiosco: salir exige MANTENER presionado (la barra llena el botón

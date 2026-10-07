@@ -45,6 +45,7 @@ const PATHS = {
   list: "M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01",
   trash:
     "M4 7h16M9.5 7V5.2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V7M6.5 7l.8 12.1a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9L17.5 7M10 11v6M14 11v6",
+  download: "M12 3v12M7 11l5 5 5-5M4 20h16",
 };
 
 const FILLED = {

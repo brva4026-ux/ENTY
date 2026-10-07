@@ -113,6 +113,11 @@ export default function DoorLinkPage() {
             </div>
           ) : (
             <>
+              <p className="mt-4 text-xs text-zinc-500">
+                Este link sirve solo para entrar a esa noche, con tu cuenta. Si no
+                tienes cámara o no puedes generar el QR en el escáner, pedí el
+                código manual al administrar y entrá por la pantalla de puerta.
+              </p>
               <p className="eyebrow mt-4">Tu noche</p>
               <h1 className="display mt-0.5 text-xl">{preview.event_name}</h1>
               <p className="mt-1 flex items-center gap-1.5 text-sm text-zinc-400">
