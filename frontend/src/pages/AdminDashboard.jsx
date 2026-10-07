@@ -159,6 +159,7 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const ui = useUI();
   const venueId = firstVenueId(user);
+  const realVenueId = venueId ?? 0;
 
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)
   // Boletas activas por evento ({id: n}): el pulso de la franja sin abrir
@@ -240,6 +241,7 @@ export default function AdminDashboard() {
     ["ended", "Terminados"],
     ["cancelled", "Cancelados"],
   ];
+  const venueForTeam = realVenueId;
   const q = eventQuery.trim().toLowerCase();
   const visibleEvents = (events ?? []).filter(
     (ev) =>
@@ -333,7 +335,7 @@ export default function AdminDashboard() {
   // Usuarios de la venue: para asignar cupos con nombres reales
   const reloadUsers = useCallback(() => {
     if (!venueId) return Promise.resolve();
-    return apiFetch(`/venues/${venueId}/users?include_inactive=true`)
+    return apiFetch(`/venues/${realVenueId}/users?include_inactive=true`)
       .then(setUsers)
       .catch(() => setUsers([]));
   }, [venueId]);
@@ -1588,6 +1590,54 @@ export default function AdminDashboard() {
                         Cerrar noche
                       </button>
                     </div>
+                    {/* Las cifras EN PANTALLA antes de descargar: el CSV es
+                        para el contador; esto es para decidir si la noche ya
+                        está para cerrar o si quedó gente sin entrar. */}
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {[
+                        ["Recaudo", money(report?.revenue_cents ?? 0)],
+                        ["Vendidas", report?.issued ?? 0],
+                        ["Entraron", report?.redeemed ?? 0],
+                        ["En puerta", preflight?.bouncers ?? 0],
+                      ].map(([label, value]) => (
+                        <div
+                          key={label}
+                          className="rounded-xl bg-zinc-940 px-3 py-2"
+                        >
+                          <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+                            {label}
+                          </p>
+                          <p className="tnum mt-0.5 text-lg font-bold text-zinc-100">
+                            {value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Semáforo de "listo para vender": solo antes de abrir
+                        puertas, que es cuando todavía se puede corregir. */}
+                    {["draft", "published"].includes(
+                      selectedEventData?.status,
+                    ) && (
+                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                        {[
+                          [
+                            types.filter((t) => t.is_active !== false).length >
+                              0,
+                            "Tipos de boleta",
+                          ],
+                          [allocations.length > 0, "Cupos de promotor"],
+                          [(preflight?.bouncers ?? 0) > 0, "Portero asignado"],
+                          [preflight?.door_ready === true, "Escáner activo"],
+                        ].map(([ok, label]) => (
+                          <span
+                            key={label}
+                            className={ok ? "text-emerald-300" : "text-amber-300"}
+                          >
+                            {ok ? "✓" : "•"} {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 {/* Tips operativos: el qué-hacer-now del evento, sin duplicar
@@ -1671,7 +1721,7 @@ export default function AdminDashboard() {
                 la portada porque no cambia con la noche abierta. */}
             {section === "noche" && selectedEventData && (
               <EventTeamPanel
-                venueId={venueId}
+                venueId={venueForTeam}
                 event={selectedEventData}
                 preflight={preflight}
               />

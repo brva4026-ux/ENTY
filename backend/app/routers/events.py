@@ -253,45 +253,46 @@ async def list_events(
                 )
         return out
 
-    # -----------------------------------------------------------------------
-    # MIS NOCHES (tanda 3): los eventos donde ESTE promotor trabaja. Con el
-    # equipo aislado por evento (mig 025), la lista de la venue entera es
-    # ruido: el promotor de la noche del 14 no necesita ver las otras 30.
-    # Devuelve el evento + su cupo agregado, para pintar la tarjeta y el
-    # medidor sin N requests.
-    # -----------------------------------------------------------------------
-    @router.get("/events/mine", response_model=list[MyEventOut])
-    async def list_my_events(
-        venue_id: int,
-        user: Annotated[dict, Depends(get_current_user)],
-        db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
-    ):
-        ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
-        _event_ctx(venue_id, user)
-        async with db.cursor() as cur:
-            await cur.execute(
-                """
-                SELECT e.id, e.name, e.starts_at, e.status, e.flyer_url,
-                       e.capacity,
-                       coalesce(sum(a.capacity), 0)::int AS my_capacity,
-                       (SELECT count(*)::int FROM tickets t
-                         WHERE t.event_id = e.id AND t.sold_by_user_id = %s
-                           AND t.status IN ('issued','redeemed')) AS my_issued,
-                       (SELECT count(*)::int FROM tickets t
-                         WHERE t.event_id = e.id AND t.sold_by_user_id = %s
-                           AND t.status = 'redeemed') AS my_redeemed
-                FROM events e
-                JOIN event_staff s ON s.event_id = e.id AND s.user_id = %s
-                LEFT JOIN promoter_allocations a
-                       ON a.event_id = e.id AND a.promoter_id = %s AND a.is_active
-                WHERE e.venue_id = %s
-                GROUP BY e.id
-                ORDER BY e.starts_at DESC
-                """,
-                (user["id"], user["id"], user["id"], user["id"], venue_id),
-            )
-            rows = await cur.fetchall()
-        return [MyEventOut(**r) for r in rows]
+
+# -----------------------------------------------------------------------
+# MIS NOCHES (tanda 3): los eventos donde ESTE promotor trabaja. Con el
+# equipo aislado por evento (mig 025), la lista de la venue entera es
+# ruido: el promotor de la noche del 14 no necesita ver las otras 30.
+# Devuelve el evento + su cupo agregado, para pintar la tarjeta y el
+# medidor sin N requests.
+# -----------------------------------------------------------------------
+@router.get("/events/mine", response_model=list[MyEventOut])
+async def list_my_events(
+    venue_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+    _event_ctx(venue_id, user)
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT e.id, e.name, e.starts_at, e.status, e.flyer_url,
+                   e.capacity,
+                   coalesce(sum(a.capacity), 0)::int AS my_capacity,
+                   (SELECT count(*)::int FROM tickets t
+                     WHERE t.event_id = e.id AND t.sold_by_user_id = %s
+                       AND t.status IN ('issued','redeemed')) AS my_issued,
+                   (SELECT count(*)::int FROM tickets t
+                     WHERE t.event_id = e.id AND t.sold_by_user_id = %s
+                       AND t.status = 'redeemed') AS my_redeemed
+            FROM events e
+            JOIN event_staff s ON s.event_id = e.id AND s.user_id = %s
+            LEFT JOIN promoter_allocations a
+                   ON a.event_id = e.id AND a.promoter_id = %s AND a.is_active
+            WHERE e.venue_id = %s
+            GROUP BY e.id
+            ORDER BY e.starts_at DESC
+            """,
+            (user["id"], user["id"], user["id"], user["id"], venue_id),
+        )
+        rows = await cur.fetchall()
+    return [MyEventOut(**r) for r in rows]
 
 
 @router.post("/events", response_model=EventOut, status_code=status.HTTP_201_CREATED)

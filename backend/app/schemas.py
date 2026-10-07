@@ -1064,6 +1064,21 @@ class EventPulse(BaseModel):
     redeemed: int = 0
 
 
+class ScannerStats(BaseModel):
+    """Lo que hizo ESTE escáner en esta noche (redemptions.scanned_by_user_id).
+
+    La cabecera de puerta ya muestra el total del evento; esto responde la
+    otra pregunta del bouncer: "¿cuánto de esto lo hice yo?". `granted` son
+    los ingresos POR SU escáner, no el total. Los rechazos van separados:
+    un `already_redeemed` (boleta repetida) es una situación; un `not_found`
+    (QR de otra noche) es operativa distinta.
+    """
+    event_id: int
+    granted: int = 0
+    already_redeemed: int = 0
+    rejected: int = 0
+
+
 class MyEventOut(BaseModel):
     """Una noche donde este promotor trabaja, con SUS números."""
     model_config = ConfigDict(from_attributes=True)

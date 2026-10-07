@@ -165,6 +165,23 @@ export default function PromoterDashboard() {
       a.promoter_id === user.id &&
       courtesyTypes.some((t) => t.id === a.ticket_type_id),
   );
+  // Cupo del tipo que se está vendiendo AHORA: la duda "¿puedo emitir o ya se
+  // agotó?" se responde en el formulario, donde nace la pregunta, sin subir a
+  // interpretar el medidor de la cabecera.
+  const selectedType = types.find(
+    (t) => t.id === Number(form.ticket_type_id),
+  );
+  const selectedTypeAllocs = allocations.filter(
+    (a) => a.promoter_id === user.id && a.ticket_type_id === selectedType?.id,
+  );
+  const selectedTypeCapacity = selectedTypeAllocs.reduce(
+    (s, a) => s + a.capacity,
+    0,
+  );
+  const selectedTypeIssued = selectedTypeAllocs.reduce(
+    (s, a) => s + (a.issued ?? 0),
+    0,
+  );
 
   function handleTypeChange(id) {
     setForm((f) => {
@@ -498,6 +515,18 @@ export default function PromoterDashboard() {
                   ))}
                 </div>
               )}
+              {/* Cambio de equipo (tanda 3): el admin puede sacar a alguien del
+                  roster de una noche. Si este promotor está asignado a otras
+                  noches pero NO a la que tiene abierta, se lo decimos antes de
+                  que intente vender un cupo que ya no le toca. */}
+              {myNights.length > 0 &&
+                selectedEvent &&
+                !myNights.some((n) => n.id === selectedEvent) && (
+                  <div className="mt-3 rounded-xl border border-amber-900/50 bg-amber-950/30 px-4 py-2.5 text-xs text-amber-200/90">
+                    Ya no estás asignado a esta noche. Si necesitás vender acá,
+                    pedile al admin que te sume otra vez.
+                  </div>
+                )}
             </div>
 
             {/* ====== Pestañas: Vender · Mis boletas · Mis liquidaciones ======
@@ -566,6 +595,23 @@ export default function PromoterDashboard() {
                             </option>
                           ))}
                         </select>
+                        {/* Cuánto queda EN ESTE TIPO: si el cupo del tipo ya se
+                            agotó, el promotor se entera acá y no después del
+                            rechazo de la DB. */}
+                        {selectedTypeCapacity > 0 &&
+                          (selectedTypeIssued >= selectedTypeCapacity ? (
+                            <p className="mt-1 text-[11px] font-semibold text-amber-300">
+                              Sin cupo en este tipo: no podés emitir más acá.
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-[11px] text-zinc-500">
+                              Te quedan{" "}
+                              <strong className="tnum text-zinc-300">
+                                {selectedTypeCapacity - selectedTypeIssued}
+                              </strong>{" "}
+                              de {selectedTypeCapacity} en este tipo.
+                            </p>
+                          ))}
                       </div>
 
                       <div>
