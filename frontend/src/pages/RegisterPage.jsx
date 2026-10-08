@@ -5,9 +5,9 @@ import { useAuth } from "../lib/auth";
 // que el login (lib/roles.js), sin re-hacerlo a mano.
 import { homeForRole } from "../lib/roles";
 import { missingList } from "../lib/passwordPolicy";
-import { Logo } from "../components/Brand";
 import PasswordMeter from "../components/PasswordMeter";
-import { AuthBackdrop, LockIcon, MailIcon } from "../components/AuthBackdrop";
+import { LockIcon, MailIcon } from "../components/AuthBackdrop";
+import { AuthShell } from "../components/AuthShell";
 
 const STRENGTH = [
   { max: 2, label: "Débil", color: "bg-red-500", width: "w-1/4" },
@@ -71,18 +71,14 @@ export default function RegisterPage() {
   const filled = Object.values(form).filter((v) => v.trim()).length;
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      {/* Misma escenografía que el login: una sola experiencia de entrada */}
-      <AuthBackdrop />
-
-      <div className="relative w-full max-w-md">
-        {/* Misma entrada premium que el login: marca hero, sin lemas. */}
-        <div className="mb-9 flex flex-col items-center text-center">
-          <Logo size="hero" />
-        </div>
-
-        <div className="auth-card card-interactive reveal p-6 sm:p-7">
-          <h1 className="display mb-5 text-lg">Crea tu cuenta</h1>
+    <AuthShell>
+      <div className="relative w-full">
+        <div className="auth-card reveal p-6 sm:p-7">
+          <p className="eyebrow">Empieza gratis</p>
+          <h1 className="display mt-1 mb-1 text-2xl">Crea tu cuenta</h1>
+          <p className="mb-5 text-sm leading-relaxed text-zinc-400">
+            Crea el panel de tu negocio en un minuto. Serás su administrador.
+          </p>
 
           <form onSubmit={submit}>
             <label className="mb-1.5 block text-xs font-medium text-zinc-400">
@@ -226,6 +222,6 @@ export default function RegisterPage() {
           </button>
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }
