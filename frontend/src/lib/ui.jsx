@@ -12,7 +12,7 @@
  *
  * ToastHost + ConfirmHost se montan una vez en <App/> (main.jsx).
  */
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { haptics } from "./haptics";
 
 const UIContext = createContext(null);
@@ -202,17 +202,27 @@ export function UIProvider({ children }) {
     return new Promise((resolve) => setDialog({ spec, resolve }));
   }, []);
 
-  const ui = {
-    toast,
-    success: (m, o) => toast(m, "success", o),
-    error: (m, o) => toast(m, "error", o),
-    info: (m, o) => toast(m, "info", o),
-    confirm: (title, opts = {}) =>
-      openDialog({ kind: "confirm", danger: !!opts.danger, ...opts, title }),
-    prompt: (title, opts = {}) =>
-      openDialog({ kind: "prompt", danger: !!opts.danger, ...opts, title }),
-    alert: (title, opts = {}) => openDialog({ kind: "alert", ...opts, title }),
-  };
+  // El objeto `ui` tiene que ser ESTABLE. Antes se recreaba en cada render y
+  // como el estado de los toasts vive en este mismo provider, cada toast
+  // cambiaba la identidad de `ui` y re-renderizaba a todos los consumidores:
+  // un componente con `useEffect(..., [ui])` volvia a pedir sus datos en cada
+  // toast. Si esa peticion falla, el error dispara otro toast, que dispara
+  // otro fetch... y el admin ve el mismo error apilado para siempre (tope de
+  // 4 en pantalla). Memoizado, el efecto corre una vez por dependencia real.
+  const ui = useMemo(
+    () => ({
+      toast,
+      success: (m, o) => toast(m, "success", o),
+      error: (m, o) => toast(m, "error", o),
+      info: (m, o) => toast(m, "info", o),
+      confirm: (title, opts = {}) =>
+        openDialog({ kind: "confirm", danger: !!opts.danger, ...opts, title }),
+      prompt: (title, opts = {}) =>
+        openDialog({ kind: "prompt", danger: !!opts.danger, ...opts, title }),
+      alert: (title, opts = {}) => openDialog({ kind: "alert", ...opts, title }),
+    }),
+    [toast, openDialog],
+  );
 
   return (
     <UIContext.Provider value={ui}>

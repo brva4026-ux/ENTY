@@ -1943,7 +1943,11 @@ html[data-theme="light"] .ec-when-soon {
 .evx-tab.is-active .evx-tab-count {
   color: #fdba74;
 }
-/* El filete del activo, con degradado del acento: marca sin encerrar. */
+/* El filete del activo: UN solo acento, plano. Antes iba de naranja a azul
+   periwinkle (#f97316 -> #6f95f0), que contradecia la regla de marca de este
+   mismo archivo ("un solo acento disciplinado ... Nada de arcoiris") y en
+   pantalla se leia como dos pedazos de distinto color pegados, no como una
+   marca. Sobre 2px de alto, el color plano es ademas lo que se ve nitido. */
 .evx-tab::after {
   content: "";
   position: absolute;
@@ -1952,7 +1956,7 @@ html[data-theme="light"] .ec-when-soon {
   bottom: -0.45rem; /* cae en el padding-bottom de .evx-toolbar */
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, #f97316, #6f95f0);
+  background: var(--color-brand-500);
   opacity: 0;
   transform: scaleX(0.4);
   transition:
@@ -2007,6 +2011,15 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
      el buscador ya no puede quedar estrangulado como antes. */
   flex: 1 1 auto;
   min-width: 0;
+}
+/* Desde 1024px el buscador comparte fila con la tablist, y media 39.4px
+   contra los 44px de las pestanas: los bordes no coincidian y la fila se veia
+   desalineada aunque los centros estuvieran centrados. El mismo minimo de tap
+   target (.evx-tab) los pone en la misma linea. */
+@media (min-width: 1024px) {
+  .evx-search input {
+    min-height: 2.75rem;
+  }
 }
 .evx-filters {
   /* Contenedor exterior: lleva la mascara que insinua el scroll. Se separa
