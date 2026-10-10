@@ -1943,7 +1943,11 @@ html[data-theme="light"] .ec-when-soon {
 .evx-tab.is-active .evx-tab-count {
   color: #fdba74;
 }
-/* El filete del activo, con degradado del acento: marca sin encerrar. */
+/* El filete del activo: UN solo acento, plano. Antes iba de naranja a azul
+   periwinkle (#f97316 -> #6f95f0), que contradecia la regla de marca de este
+   mismo archivo ("un solo acento disciplinado ... Nada de arcoiris") y en
+   pantalla se leia como dos pedazos de distinto color pegados, no como una
+   marca. Sobre 2px de alto, el color plano es ademas lo que se ve nitido. */
 .evx-tab::after {
   content: "";
   position: absolute;
@@ -1952,7 +1956,7 @@ html[data-theme="light"] .ec-when-soon {
   bottom: -0.45rem; /* cae en el padding-bottom de .evx-toolbar */
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, #f97316, #6f95f0);
+  background: var(--color-brand-500);
   opacity: 0;
   transform: scaleX(0.4);
   transition:
@@ -2007,6 +2011,15 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
      el buscador ya no puede quedar estrangulado como antes. */
   flex: 1 1 auto;
   min-width: 0;
+}
+/* Desde 1024px el buscador comparte fila con la tablist, y media 39.4px
+   contra los 44px de las pestanas: los bordes no coincidian y la fila se veia
+   desalineada aunque los centros estuvieran centrados. El mismo minimo de tap
+   target (.evx-tab) los pone en la misma linea. */
+@media (min-width: 1024px) {
+  .evx-search input {
+    min-height: 2.75rem;
+  }
 }
 .evx-filters {
   /* Contenedor exterior: lleva la mascara que insinua el scroll. Se separa
@@ -4493,4 +4506,268 @@ html[data-theme="light"] .evx-card > .evx-perf {
 }
 html[data-theme="light"] .evx-name {
   color: #0b1638;
+}
+
+/* ===========================================================================
+   ENTRADA A DOS PANELES (login/registro): panel de MARCA + formulario.
+   La tarjeta centrada flotando en un lienzo vacio se veia "basica"; el
+   panel de marca le da contexto de producto (lema + beneficios) y el TROQUEL
+   de la boleta (linea perforada + muescas) une los dos paneles. Las muescas
+   son MASCARA, no un parche del color del fondo: funcionan igual en claro y
+   oscuro. En movil el panel se oculta y queda una cabecera compacta.
+   =========================================================================== */
+.auth-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100vh;
+}
+@media (min-width: 1024px) {
+  .auth-shell {
+    grid-template-columns: minmax(0, 1.06fr) minmax(0, 1fr);
+  }
+}
+
+/* --- Panel de marca (solo desktop). Superficie = navy de la boleta, el
+       mismo material del logo y del talon. No sigue el tema: la marca es
+       oscura por definicion. --- */
+.auth-brand {
+  --auth-notch: 13px;
+  position: relative;
+  display: none;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2.75rem 3rem;
+  background:
+    radial-gradient(
+      44rem 34rem at 76% -14%,
+      rgba(249, 115, 22, 0.16),
+      transparent 58%
+    ),
+    linear-gradient(
+      158deg,
+      var(--color-ticket-900) 0%,
+      var(--color-ticket-950) 58%,
+      #070c17 100%
+    );
+  /* El troquel: dos muescas comidas en el borde derecho del panel, a la
+     altura donde arranca y termina la linea perforada. */
+  -webkit-mask:
+    radial-gradient(
+      circle var(--auth-notch) at 100% 12%,
+      transparent 98%,
+      #000 100%
+    ),
+    radial-gradient(
+      circle var(--auth-notch) at 100% 88%,
+      transparent 98%,
+      #000 100%
+    );
+  mask:
+    radial-gradient(
+      circle var(--auth-notch) at 100% 12%,
+      transparent 98%,
+      #000 100%
+    ),
+    radial-gradient(
+      circle var(--auth-notch) at 100% 88%,
+      transparent 98%,
+      #000 100%
+    );
+  /* INTERSECT, no add: con `add` (source-over) las dos capas se UNEN y el
+     resultado queda opaco en todas partes — las muescas no se ven. Con
+     `intersect` el alpha es el producto: 0 en cada muesca y 1 fuera. */
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+@media (min-width: 1024px) {
+  .auth-brand {
+    display: flex;
+  }
+}
+
+/* La linea perforada: del centro de la muesca de arriba a la de abajo. */
+.auth-perf {
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  right: 0;
+  width: 0;
+  border-left: 1px dashed rgba(245, 230, 200, 0.18);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Agua de marca: lavado de fuego + rayos del logo + la criatura troquelada.
+   Reemplazan a los doodles sueltos por algo del propio isotipo. */
+.auth-brand-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    40rem 30rem at 84% 6%,
+    rgba(249, 115, 22, 0.18),
+    transparent 60%
+  );
+}
+.auth-brand-rays {
+  position: absolute;
+  right: -16%;
+  top: -26%;
+  width: 44rem;
+  height: 44rem;
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 0;
+}
+.auth-brand-mark {
+  position: absolute;
+  right: -9%;
+  bottom: -16%;
+  width: 26rem;
+  height: 26rem;
+  opacity: 0.06;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* El logo se ancla arriba a la izquierda y el bloque de copy se centra
+   vertical: el hueco del medio lo llena la marca de agua, no un vacío. */
+.auth-brand-top {
+  position: absolute;
+  top: 2.75rem;
+  left: 3rem;
+  z-index: 1;
+}
+
+.auth-brand-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 30rem;
+}
+.auth-brand-title {
+  margin-top: 0.7rem;
+  font-size: clamp(2.1rem, 3.1vw, 3rem);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  color: #f6f8fd;
+}
+.auth-brand-sub {
+  margin-top: 1rem;
+  max-width: 26rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #b3bfd6;
+}
+.auth-benefits {
+  margin-top: 2rem;
+  display: grid;
+  gap: 0.7rem;
+}
+.auth-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: #cad4e8;
+}
+.auth-benefit-check {
+  flex-shrink: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fdba74;
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.38);
+}
+.auth-benefit-check svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+/* --- Columna del formulario --- */
+.auth-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem 1.25rem;
+}
+.auth-panel-inner {
+  width: 100%;
+  max-width: 24rem;
+}
+
+/* Cabecera compacta para movil (reemplaza al panel de marca). */
+.auth-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 2rem;
+  animation: fade 0.4s ease-out both;
+}
+.auth-compact-lema {
+  margin-top: 0.4rem;
+  font-size: 1rem;
+  color: var(--color-zinc-400);
+}
+@media (min-width: 1024px) {
+  .auth-compact {
+    display: none;
+  }
+}
+
+/* La tarjeta gana la luz cenital del sistema y una sombra de contacto
+   contenida: en el split ya no es "una caja en el vacio", es la superficie
+   del formulario. */
+.auth-shell .auth-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(255, 255, 255, 0) 42%
+    ),
+    var(--color-zinc-925);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+    0 22px 50px -30px rgba(0, 0, 0, 0.9);
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-compact {
+    animation: none;
+  }
+}
+
+/* El panel de marca es navy en AMBOS temas: sus tintas no pueden seguir al
+   tema. En claro, `html[data-theme="light"] .display` y `.eyebrow` tienen
+   mas especificidad (0,2,1) que un selector de dos clases, asi que voltean
+   el titular a tinta oscura sobre el navy. Se repiten con la misma forma. */
+.auth-brand .auth-brand-title {
+  color: #f6f8fd;
+}
+.auth-brand .eyebrow {
+  color: #fdba74;
+}
+html[data-theme="light"] .auth-brand .auth-brand-title {
+  color: #f6f8fd;
+}
+html[data-theme="light"] .auth-brand .eyebrow {
+  color: #fdba74;
+}
+
+html[data-theme="light"] .auth-shell {
+  background: #eef1f8;
+}
+html[data-theme="light"] .auth-shell .auth-card {
+  background: #ffffff;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+    0 22px 50px -34px rgba(9, 15, 38, 0.35);
 }

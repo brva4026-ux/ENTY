@@ -3,9 +3,8 @@ import { useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
-import { Logo } from "../components/Brand";
-import { Star4, MusicNote, Spiral } from "../components/Doodles";
-import { AuthBackdrop, LockIcon, MailIcon } from "../components/AuthBackdrop";
+import { LockIcon, MailIcon } from "../components/AuthBackdrop";
+import { AuthShell } from "../components/AuthShell";
 
 /** Traduce errores técnicos del backend a mensajes que una persona entiende
  *  y sabe qué hacer después. */
@@ -114,27 +113,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      {/* Escenografía completa de la entrada: aurora viva, orbes, rejilla,
-          grano y foco de luz detrás de la tarjeta. La vitrina del producto. */}
-      <AuthBackdrop />
-
-      <div className="relative w-full max-w-sm">
-        {/* Marca hero + capa POP: doodles de fiesta alrededor del logo
-            (corona de star4 y nota musical), como el hero del portfolio
-            de referencia. Con reduced-motion quedan estaticos (no animan). */}
-        <div className="doodle-host mb-9 flex flex-col items-center text-center">
-          <Star4 className="left-[2%] top-1 h-4 w-4 text-[#ef6c8a]" />
-          <MusicNote className="right-[3%] top-0 h-5 w-5 text-[#7dd3fc] rotate-12" />
-          <Spiral className="-bottom-2 right-[8%] h-4 w-10 text-[#f0f542]/80" />
-          <Logo size="hero" />
-          <p className="hand mt-1.5 text-base text-zinc-400">
-            la lista de la puerta, resuelta
+    <AuthShell>
+      <div className="relative w-full">
+        <div className="auth-card reveal p-6 sm:p-7">
+          <p className="eyebrow">Tu panel</p>
+          <h1 className="display mt-1 mb-1 text-2xl">Ingresar</h1>
+          <p className="mb-5 text-sm leading-relaxed text-zinc-400">
+            Entra con tu correo de trabajo para manejar la venta y la puerta.
           </p>
-        </div>
-
-        <div className="auth-card card-interactive reveal p-6 sm:p-7">
-          <h1 className="display mb-5 text-lg">Ingresar</h1>
 
           <form onSubmit={submit}>
             <label
@@ -273,6 +259,6 @@ export default function LoginPage() {
           </button>
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

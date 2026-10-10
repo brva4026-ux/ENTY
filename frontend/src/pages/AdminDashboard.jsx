@@ -861,9 +861,15 @@ export default function AdminDashboard() {
                                   className={`evx-tab ${active ? "is-active" : ""}`}
                                 >
                                   {label}
-                                  <span className="tnum evx-tab-count">
-                                    {n > 0 ? n : ""}
-                                  </span>
+                                  {/* El contador solo existe si hay algo que
+                                    contar: un span vacio dejaba el gap del
+                                    flex puesto igual y la pestana quedaba ~5px
+                                    mas ancha que las que no tienen numero. */}
+                                  {n > 0 && (
+                                    <span className="tnum evx-tab-count">
+                                      {n}
+                                    </span>
+                                  )}
                                 </button>
                               );
                             })}
