@@ -124,6 +124,34 @@ muere en el acto.
 - Si agregás objetos de esquema, sumalos al `DROP` del `conftest` o los tests
   arrastran estado entre sesiones.
 
+## App del fan (Enty)
+
+El fan **no tiene cuenta**: su correo o teléfono ES la identidad. Las pantallas
+públicas viven bajo `.home` (shell nocturno: negro + violeta, Sora 300) y se
+fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO.
+
+- `/inicio` — vitrina pública (`HomePage`): catálogo de `/public/events`.
+- `/boletas` — la entrada del fan (`MyTicketsPage`): escribe su contacto y ve
+  sus boletas. "Ver mi QR" regenera el enlace de esa boleta.
+- `GET /public/events` — catálogo (sin auth; eventos publicados y futuros).
+- `POST /public/my-tickets` — boletas por contacto. **Nunca** devuelve tokens:
+  el listado solo trae datos de la boleta + `has_link`.
+- `POST /public/my-tickets/{id}/token` — "magic link": comprueba que el
+  contacto es dueño de la boleta y **rota** el token con `reissue_ticket`
+  (auditado en `ticket_reissues`). Devuelve el `raw_token` una sola vez.
+- Normalización del contacto (`_contact_params` en `routers/public.py`): el
+  correo solo se recorta y baja a minúsculas (sus puntos son significativos);
+  el teléfono se reduce a dígitos (`+57 300 123 4567` == `573001234567`). La
+  comparación usa un flag `is_email` en SQL — **no** mandes un centinela NUL
+  como parámetro: psycopg/Postgres lo rechaza (`text fields cannot contain NUL`).
+- El token nuevo vive en `localStorage` (`tf_fan_contact` guarda el contacto,
+  no el token): el QR se dibuja local con `qrcode`, igual que en `/t`.
+- La barra inferior (Inicio · Explorar · Boletos · Perfil) es
+  `components/FanNav.jsx`; la comparten Inicio y Mis boletas.
+- Tests: `tests/test_public_my_tickets.py`. Usá teléfonos/correos **únicos por
+  test** (`uuid`): la suite siembra números fijos como `573001234567` y
+  `3001234567` que colisionarían con una búsqueda por dígitos.
+
 ## Revisar un preview (Vercel)
 
 El login del preview no se puede automatizar: la herramienta de navegador no

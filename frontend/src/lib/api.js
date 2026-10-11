@@ -54,6 +54,29 @@ export function fetchPublicEvents({ category, city, limit } = {}) {
   return apiFetch(`/public/events${tail}`);
 }
 
+/**
+ * App del fan: "mis boletas" por contacto (magic link, sin cuenta).
+ * El correo o telefono con que le emitieron las boletas es la identidad.
+ * No devuelve tokens: para el QR se pide `fetchMyTicketToken`.
+ */
+export function fetchMyTickets(contact) {
+  return apiFetch("/public/my-tickets", {
+    method: "POST",
+    body: JSON.stringify({ contact }),
+  });
+}
+
+/**
+ * Regenera el enlace (QR) de UNA boleta propia. El token anterior muere: la
+ * DB rota el hash con `reissue_ticket`. Devuelve el token crudo una sola vez.
+ */
+export function fetchMyTicketToken(ticketId, contact) {
+  return apiFetch(`/public/my-tickets/${ticketId}/token`, {
+    method: "POST",
+    body: JSON.stringify({ contact }),
+  });
+}
+
 export function listTickets(venueId, eventId, phone) {
   const q = phone ? `?phone=${encodeURIComponent(phone)}` : "";
   return apiFetch(`/venues/${venueId}/events/${eventId}/tickets${q}`).then(
