@@ -334,6 +334,12 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 
 .bizdock-count {
   background: var(--tf-purple);
+  /* Tinta Enty sobre el violeta brillante (oscuro): 6.2:1. En claro
+     --tf-purple cambia a #7c3aed (mas oscuro), donde la tinta bajaba a
+     3.4:1; ahi el par correcto es blanco (5.1:1). */
+  color: #0b0b0f;
+}
+html[data-theme="light"] .bizdock-count {
   color: #ffffff;
 }
 

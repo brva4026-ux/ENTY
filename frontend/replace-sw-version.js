@@ -15,13 +15,10 @@
 //
 // Se invoca desde "build": "vite build && node replace-sw-version.js".
 import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 
-// El marcador cubre la ASIGNACIÓN COMPLETA: el sello reemplaza el valor de
-// VERSION (no solo un comentario). Con VERSION único por build, los caches
-// tf-shell-*/tf-runtime-* cambian de nombre y el `activate` del SW nuevo
-// borra TODOS los caches anteriores — invalidación real, no solo bytes.
 const MARKER = 'const VERSION = "v1"; /*BUILD_ID*/';
+const ASSETS_MARKER = "const BUILD_ASSETS = []; /*BUILD_ASSETS*/";
 const SW_PATH = "dist/sw.js";
 
 let content;
@@ -37,6 +34,18 @@ if (!content.includes(MARKER)) {
   process.exit(0);
 }
 
+// Assets con hash del build: JS/CSS de dist/assets. Se precachean en el
+// install del SW para que la puerta tenga el escaner offline ya en su
+// PRIMERA carga, sin depender de una segunda visita.
+let assetList = [];
+try {
+  assetList = readdirSync("dist/assets")
+    .filter((f) => /\.(js|css)$/.test(f))
+    .map((f) => `/assets/${f}`);
+} catch {
+  console.warn("[sw-version] dist/assets no encontrado; precache sin bundles.");
+}
+
 let gitShort = "nogit";
 try {
   gitShort = execSync("git rev-parse --short HEAD").toString().trim();
@@ -45,5 +54,16 @@ try {
 }
 
 const buildId = `build-${new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)}-${gitShort}`;
-writeFileSync(SW_PATH, content.replace(MARKER, `const VERSION = "${buildId}";`));
-console.log(`[sw-version] dist/sw.js con VERSION=${buildId} (caches únicos por deploy)`);
+content = content.replace(MARKER, `const VERSION = "${buildId}";`);
+if (content.includes(ASSETS_MARKER)) {
+  content = content.replace(
+    ASSETS_MARKER,
+    `const BUILD_ASSETS = ${JSON.stringify(assetList)};`
+  );
+} else {
+  console.warn("[sw-version] Marcador BUILD_ASSETS ausente — precache sin bundles.");
+}
+writeFileSync(SW_PATH, content);
+console.log(
+  `[sw-version] dist/sw.js con VERSION=${buildId}, ${assetList.length} assets precacheados`
+);
