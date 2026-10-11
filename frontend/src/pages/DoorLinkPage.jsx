@@ -68,7 +68,7 @@ export default function DoorLinkPage() {
   // persona, no un atajo para entrar sin cuenta.
   if (!user) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+      <div className="app-shell relative flex min-h-screen items-center justify-center overflow-hidden p-4">
         <AuthBackdrop />
         <div className="relative w-full max-w-sm">
           <div className="card p-6 text-center">
@@ -91,7 +91,7 @@ export default function DoorLinkPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+    <div className="app-shell relative flex min-h-screen items-center justify-center overflow-hidden p-4">
       <AuthBackdrop />
       <div className="relative w-full max-w-sm">
         <div className="card p-6">

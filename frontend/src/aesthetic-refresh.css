@@ -17,7 +17,7 @@
   --tf-purple: #bb5cf6;
   --tf-purple-2: #7c3aed;
   --tf-purple-3: #d9b6ff;
-  --tf-green: #7cff00;
+  --tf-green: #00e6ab;
   --tf-pink: #ff2d98;
   --tf-radius-card: 1.25rem;
   --tf-radius-control: 1rem;
@@ -295,7 +295,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .ticket-timeline::before {
-  background: linear-gradient(180deg, rgba(187, 92, 246, 0.66), rgba(124, 255, 0, 0.32));
+  background: linear-gradient(180deg, rgba(187, 92, 246, 0.66), rgba(0, 230, 171, 0.32));
 }
 
 .ticket-step.done .ticket-step-dot {
@@ -305,7 +305,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 
 .ticket-step.current .ticket-step-dot {
   background: var(--tf-green);
-  box-shadow: 0 0 0 4px rgba(124, 255, 0, 0.15), 0 0 16px -2px rgba(124, 255, 0, 0.78);
+  box-shadow: 0 0 0 4px rgba(0, 230, 171, 0.15), 0 0 16px -2px rgba(0, 230, 171, 0.78);
 }
 
 .vh-logo,
@@ -440,7 +440,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 
 .tkt-body {
   background:
-    radial-gradient(18rem 10rem at 18% 0%, rgba(124, 255, 0, 0.08), transparent 64%),
+    radial-gradient(18rem 10rem at 18% 0%, rgba(0, 230, 171, 0.08), transparent 64%),
     rgba(255, 255, 255, 0.035);
 }
 
@@ -453,7 +453,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .tkt-qr::before,
 .tkt-qr::after {
   border-color: var(--tf-green);
-  filter: drop-shadow(0 0 8px rgba(124, 255, 0, 0.45));
+  filter: drop-shadow(0 0 8px rgba(0, 230, 171, 0.45));
 }
 
 .tkt-grid,
@@ -1617,3 +1617,183 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .fan-qr-hint.is-bad {
   color: #ff2d98;
 }
+
+/* ===========================================================================
+   INTERIOR — Admin · Promotor · Puerta ("la casa" de Enty).
+   El fan ya tiene su vitrina editorial; estas pantallas son el backstage.
+   Aquí el sistema se vuelve más DENSO, no más decorado: cristal esmerilado
+   sobre negro mate, un encuadre de luz nocturna en las esquinas del viewport
+   y titulares con más peso óptico. Todo scopeado a .app-shell para no tocar
+   ni la vitrina del fan ni la boleta pública.
+   =========================================================================== */
+
+.app-shell {
+  --in-line-soft: rgba(255, 255, 255, 0.06);
+  --in-violet-bright: #bb5cf6;
+  --in-violet-soft: #d9b6ff;
+  --in-ink: #f5f5f7;
+  position: relative;
+}
+/* La tinta de marca (casi blanca) SOLO en oscuro: en claro heredaría un
+   texto blanco sobre blanco. En claro el color lo fija body, como siempre. */
+html:not([data-theme="light"]) .app-shell {
+  color: var(--in-ink);
+}
+
+/* Encuadre nocturno: tres luces de marca en las esquinas del viewport,
+   ancladas (background-attachment: fixed) para que enmarquen SIEMPRE la
+   vista y no el documento. Es atmósfera, nunca compite con el contenido ni
+   intercepta el puntero. */
+html:not([data-theme="light"]) .app-shell {
+  background-image:
+    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.16), transparent 62%),
+    radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.07), transparent 62%),
+    radial-gradient(34rem 26rem at 108% 96%, rgba(255, 45, 152, 0.06), transparent 62%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+html[data-theme="light"] .app-shell {
+  background-image:
+    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.06), transparent 62%),
+    radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.05), transparent 62%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* Titulares con más peso óptico y tracking cerrado: la voz editorial de la
+   casa. El cuerpo queda liviano para que la jerarquía la haga el CONTRASTE
+   de peso, no más tamaño ni más color. */
+.app-shell .display,
+.app-shell .vh-nombre-titulo {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+/* Superficies: el card de la casa es cristal sobre el negro mate — un solo
+   material para .card, portada y dock, para que la app se lea como UNA
+   pieza. La translucidez deja pasar el encuadre de luz de las esquinas. */
+html:not([data-theme="light"]) .app-shell .card,
+html:not([data-theme="light"]) .app-shell .venue-header,
+html:not([data-theme="light"]) .app-shell .bizdock {
+  border-color: var(--in-line-soft);
+  background:
+    radial-gradient(30rem 18rem at 88% -8rem, rgba(124, 58, 237, 0.1), transparent 66%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 44%),
+    rgba(17, 17, 23, 0.86);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 44px -30px rgba(0, 0, 0, 0.9);
+}
+
+/* --- Portada de la venue: la "home" del admin ------------------------- */
+html:not([data-theme="light"]) .app-shell .venue-header {
+  --vh-pad-y: 1.35rem;
+  padding: var(--vh-pad-y) 1.4rem;
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(38rem 18rem at 90% -8rem, rgba(124, 58, 237, 0.17), transparent 64%),
+    radial-gradient(26rem 14rem at 6% 118%, rgba(0, 230, 171, 0.06), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 48%),
+    rgba(16, 16, 22, 0.9);
+}
+.app-shell .vh-logo,
+.app-shell .vh-logo-fallback {
+  width: 3.35rem;
+  height: 3.35rem;
+  border-radius: 1rem;
+}
+.app-shell .vh-kpi-amount {
+  letter-spacing: -0.045em;
+}
+/* La viga del KPI es más marcada: es la firma de la portada. */
+.app-shell .vh-kpi::before {
+  background: linear-gradient(
+    180deg,
+    rgba(124, 58, 237, 0.85),
+    rgba(124, 58, 237, 0.08) 80%,
+    transparent
+  );
+}
+
+/* --- Hero del promotor: su taquilla ----------------------------------- */
+html:not([data-theme="light"]) .app-shell .promo-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-radius: 1.4rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--in-line-soft);
+  background:
+    radial-gradient(30rem 14rem at 94% -8rem, rgba(124, 58, 237, 0.16), transparent 64%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 46%),
+    rgba(16, 16, 22, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 44px -30px rgba(0, 0, 0, 0.9);
+}
+html[data-theme="light"] .app-shell .promo-hero {
+  border: 1px solid rgba(17, 17, 22, 0.09);
+  background: #ffffff;
+  box-shadow: 0 18px 40px -34px rgba(15, 23, 42, 0.5);
+}
+.promo-hero-title {
+  font-size: 1.55rem;
+  line-height: 1.12;
+}
+
+/* --- Puerta: cabecera de servicio ------------------------------------- */
+.app-shell .door-head {
+  border-bottom: 1px solid var(--in-line-soft);
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.12), transparent);
+}
+.app-shell .door-title {
+  letter-spacing: -0.02em;
+}
+/* El marco del escáner es la pieza de marca de la puerta: un halo violeta
+   alrededor del visor dice "acá apuntá" sin una etiqueta. */
+.app-shell .scan-frame {
+  filter: drop-shadow(0 0 26px rgba(124, 58, 237, 0.35));
+}
+
+/* --- Segmentado (tabbar) y navegación inferior ------------------------ */
+.app-shell .tabbar {
+  border: 1px solid var(--in-line-soft);
+  background: rgba(255, 255, 255, 0.04);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+}
+.app-shell .tabbar-item[aria-selected="true"] {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.28), rgba(124, 58, 237, 0.14));
+  color: var(--in-ink);
+  box-shadow:
+    inset 0 0 0 1px rgba(124, 58, 237, 0.34),
+    0 12px 28px -20px rgba(124, 58, 237, 0.95);
+}
+html:not([data-theme="light"]) .app-shell .bottomnav-item.is-active {
+  color: var(--in-violet-soft);
+}
+
+/* --- Controles: foco y presión con firma de marca --------------------- */
+.app-shell .field:focus {
+  border-color: var(--in-violet-bright);
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.26),
+    0 0 30px -14px rgba(124, 58, 237, 0.95);
+}
+.app-shell .btn-primary {
+  background: linear-gradient(135deg, #7c3aed 0%, #bb5cf6 58%, #a855f7 100%);
+}
+.app-shell .btn-primary:hover {
+  background: linear-gradient(135deg, #6d28d9 0%, #a855f7 58%, #9333ea 100%);
+}
+
+/* Scrollbar con tinte de marca (solo en la casa). */
+html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.4);
+}
+html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.6);
+}
+

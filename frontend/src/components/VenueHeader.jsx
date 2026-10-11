@@ -90,7 +90,7 @@ export default function VenueHeader({ venueId, user, children = null }) {
             Capa POP: estrella doodle junto a la cifra (solo adorno). */}
         <div className="vh-kpi doodle-host">
           <Star5
-            className="-right-1 top-4 h-3.5 w-3.5 rotate-12 text-[#ef6c8a]"
+            className="-right-1 top-4 h-3.5 w-3.5 rotate-12 text-[#FF2D98]"
             aria-hidden="true"
           />
           <div className="min-w-0">
@@ -111,7 +111,7 @@ export default function VenueHeader({ venueId, user, children = null }) {
               {/* Sello de goma (scrapbook): el mes queda "estampado" sobre la
                   cifra, como los sellos del cartel de referencia. */}
               {ov?.month && (
-                <span className="rubber-stamp hidden text-[#ef6c8a] sm:inline-flex">
+                <span className="rubber-stamp hidden text-[#FF2D98] sm:inline-flex">
                   {labelMonth(ov.month).split(" ")[0]}
                 </span>
               )}

@@ -159,6 +159,24 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
   test** (`uuid`): la suite siembra números fijos como `573001234567` y
   `3001234567` que colisionarían con una búsqueda por dígitos.
 
+## App interna (Enty): Admin · Promotor · Puerta
+
+El interior NO comparte el shell del fan: esas pantallas viven bajo
+`.app-shell` (Layout, BouncerScanner, DoorLinkPage). La capa de marca está al
+final de `frontend/src/aesthetic-refresh.css`, scopeada a `.app-shell`, así que
+la vitrina del fan (`.home`) y la boleta pública no se tocan.
+
+- **Regla al agregar una pantalla interna**: ponele `app-shell` al root o no
+  recibe el encuadre nocturno, las superficies de cristal ni la tinta de marca.
+- La paleta interna es violeta `#7C3AED` (marca) / `#BB5CF6` (brillo), verde
+  `#00E6AB` y rosa `#FF2D98`. **No** reintroducir naranja/ámbar de la marca
+  anterior (`rgba(251,146,60,…)`, `#9a3412`) ni lima (`#7cff00`, `#f0f542`).
+- La tinta casi blanca (`--in-ink`) se aplica **solo en oscuro**
+  (`html:not([data-theme="light"]) .app-shell`): en claro hereda el color de
+  `body`, o quedaría texto blanco sobre blanco.
+- Verificación: contraste de texto ≥ 4.5:1 y `scrollWidth == clientWidth` en
+  ambos temas, en `/admin`, `/admin?event=1`, `/promotor`, `/bouncer`.
+
 ## Revisar un preview (Vercel)
 
 El login del preview no se puede automatizar: la herramienta de navegador no
