@@ -4,6 +4,8 @@ Crea una venue de ejemplo con sus usuarios y roles de forma idempotente para
 poder probar la API sin procesos de registro. Llama de forma manual via:
     POST /seed  (solo si `IS_DEMO=true`)
 """
+import secrets
+
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -14,6 +16,73 @@ from app.core.security import hash_password
 router = APIRouter(prefix="/seed", tags=["dev"])
 
 _DEFAULT_PASSWORD = "demo1234"
+
+
+async def _ensure_fan_ticket(
+    cur: psycopg.AsyncCursor,
+    event_id: int,
+    ticket_type_id: int,
+    allocation_id: int,
+    seller_id: int,
+    email: str,
+    phone: str,
+) -> None:
+    """Emite una cortesia para el fan demo una sola vez (idempotente).
+
+    El token crudo se genera y se descarta: la DB solo guarda su hash y el fan
+    pide uno nuevo desde /boletas ("Ver mi QR").
+    """
+    await cur.execute(
+        "SELECT id FROM tickets WHERE event_id=%s AND customer_email=%s",
+        (event_id, email),
+    )
+    if await cur.fetchone():
+        return
+    await cur.execute(
+        "SELECT emit_ticket(%s, %s, %s, %s, %s, %s, %s, %s)",
+        (
+            event_id,
+            ticket_type_id,
+            allocation_id,
+            seller_id,
+            "Fan Demo",
+            secrets.token_urlsafe(24),
+            phone,
+            email,
+        ),
+    )
+
+
+async def _ensure_event(
+    cur: psycopg.AsyncCursor,
+    venue_id: int,
+    name: str,
+    description: str,
+    interval_sql: str,
+    capacity: int,
+) -> int:
+    """Devuelve el id de un evento del seed, creandolo la primera vez.
+
+    `events` no tiene UNIQUE(venue_id, name), asi que `ON CONFLICT DO NOTHING`
+    no evita duplicados: hay que buscar antes de insertar. `interval_sql` es un
+    literal constante del seed (no entrada del usuario).
+    """
+    await cur.execute(
+        "SELECT id FROM events WHERE venue_id=%s AND name=%s ORDER BY id LIMIT 1",
+        (venue_id, name),
+    )
+    row = await cur.fetchone()
+    if row:
+        return row["id"]
+    await cur.execute(
+        f"""
+        INSERT INTO events (venue_id, name, description, starts_at, capacity, status)
+        VALUES (%s, %s, %s, now() + interval '{interval_sql}', %s, 'published')
+        RETURNING id
+        """,
+        (venue_id, name, description, capacity),
+    )
+    return (await cur.fetchone())["id"]
 
 
 async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
@@ -62,24 +131,10 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
         # --- evento de ejemplo -------------------------------------------------
         admin_id = user_ids["admin@bar.test"]
         promo1_id = user_ids["promo1@bar.test"]
-        await cur.execute(
-            """
-            INSERT INTO events (venue_id, name, description, starts_at, capacity, status)
-            VALUES (%s, 'Noche Electrónica', 'DJ set + open bar cortesías',
-                    now() + interval '7 days', 100, 'published')
-            ON CONFLICT DO NOTHING RETURNING id
-            """,
-            (venue_id,),
+        event_id = await _ensure_event(
+            cur, venue_id, "Noche Electrónica",
+            "DJ set + open bar cortesías", "7 days", 100,
         )
-        row = await cur.fetchone()
-        if row:
-            event_id = row["id"]
-        else:
-            await cur.execute(
-                "SELECT id FROM events WHERE venue_id=%s AND name='Noche Electrónica'",
-                (venue_id,),
-            )
-            event_id = (await cur.fetchone())["id"]
 
         # --- tipos de boleta -------------------------------------------------
         await cur.execute(
@@ -116,6 +171,63 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
             (event_id, cortesia_id, promo2_id),
         )
 
+        # --- boletas de un fan demo ------------------------------------------
+        # El fan no tiene cuenta: para probar /boletas hace falta una boleta
+        # emitida a un contacto conocido. Son cortesias emitidas por promo1
+        # (que tiene la asignacion de cortesia). Dos eventos: uno lejano, para
+        # ver la boleta con el QR aun inactivo, y uno inminente, para ver el QR
+        # ya activo y escaneable.
+        fan_email = "fan@bar.test"
+        fan_phone = "3100000001"
+
+        await cur.execute(
+            "SELECT id FROM promoter_allocations WHERE event_id=%s AND promoter_id=%s",
+            (event_id, promo1_id),
+        )
+        alloc_id = (await cur.fetchone())["id"]
+
+        soon_event_id = await _ensure_event(
+            cur, venue_id, "Prueba de QR",
+            "Evento que empieza en 20 min para probar el QR activo", "20 minutes", 50,
+        )
+        # Reafina la hora en cada corrida: el evento debe quedar inminente para
+        # que el QR siga activo cuando se vuelva a sembrar mas tarde.
+        await cur.execute(
+            "UPDATE events SET starts_at = now() + interval '20 minutes' WHERE id = %s",
+            (soon_event_id,),
+        )
+
+        await cur.execute(
+            "INSERT INTO ticket_types (event_id, name, price_cents, quantity, is_courtesy) "
+            "VALUES (%s, 'Cortesia', 0, 20, TRUE) ON CONFLICT (event_id, name) DO NOTHING",
+            (soon_event_id,),
+        )
+        await cur.execute(
+            "SELECT id FROM ticket_types WHERE event_id=%s AND name='Cortesia'", (soon_event_id,)
+        )
+        soon_type_id = (await cur.fetchone())["id"]
+        await cur.execute(
+            """
+            INSERT INTO promoter_allocations (event_id, ticket_type_id, promoter_id, capacity)
+            VALUES (%s, %s, %s, 5) ON CONFLICT DO NOTHING
+            """,
+            (soon_event_id, soon_type_id, promo1_id),
+        )
+        await cur.execute(
+            "SELECT id FROM promoter_allocations WHERE event_id=%s AND promoter_id=%s",
+            (soon_event_id, promo1_id),
+        )
+        soon_alloc_id = (await cur.fetchone())["id"]
+
+        await _ensure_fan_ticket(
+            cur, event_id, cortesia_id, alloc_id, promo1_id,
+            fan_email, fan_phone,
+        )
+        await _ensure_fan_ticket(
+            cur, soon_event_id, soon_type_id, soon_alloc_id, promo1_id,
+            fan_email, fan_phone,
+        )
+
         await db.commit()
 
         return {
@@ -123,6 +235,9 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
             "event_id": event_id,
             "users": {email: user_ids[email] for email, *_ in demo_users},
             "password": _DEFAULT_PASSWORD,
+            # Contacto del fan para probar "Mis boletas" (/boletas). No tiene
+            # cuenta: basta con escribir este correo o telefono en la pantalla.
+            "fan": {"email": fan_email, "phone": fan_phone},
         }
 
 

@@ -7,6 +7,8 @@ busca al entregarla. Por eso el nombre del asistente va impreso en la imagen y
 el bouncer lo compara en la puerta (ver docs/arquitectura/03-seguridad.md).
 """
 from html import escape
+import re
+import secrets
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
@@ -17,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from starlette.concurrency import run_in_threadpool
 
 from app.core.db import get_db
+from app.schemas import FanLookupRequest, FanTicketTokenOut
 from app.services.ticket_image import build_ticket_image
 
 router = APIRouter(prefix="/public", tags=["publico"])
@@ -225,6 +228,147 @@ async def public_events(
         "categories": list(_CATEGORIES),
         "events": events,
     }
+
+
+# --- App del fan: "mis boletas" (magic link) ------------------------------
+#
+# El fan no tiene cuenta: su correo o telefono ES la identidad con la que le
+# emitieron las boletas. Pide el enlace con ese contacto, ve su lista y, para
+# la boleta que quiera usar, regenera el QR (magic link). Sin sesion, igual
+# que la boleta: el contacto es el unico dato y la respuesta nunca lo repite.
+
+# Normalizacion del contacto. El correo solo se recorta y baja a minusculas
+# (sus puntos son significativos: "a.b@x.com" no es "ab@x.com"). El telefono se
+# reduce a digitos, para que "+57 300 123 4567" y "573001234567" sean el mismo.
+# `is_email` decide que columna se compara: asi no hacen falta centinelas.
+def _contact_params(raw: str) -> dict:
+    s = raw.strip().lower()
+    if "@" in s:
+        return {"is_email": True, "email": s, "phone": ""}
+    return {"is_email": False, "email": "", "phone": re.sub(r"\D", "", s)}
+
+
+_FAN_TICKETS_SQL = """
+    SELECT t.id            AS ticket_id,
+           t.status::text  AS status,
+           e.name          AS event_name,
+           e.status        AS event_status,
+           e.location      AS location,
+           e.starts_at     AS starts_at,
+           e.event_timezone AS event_timezone,
+           e.qr_unlock_minutes AS qr_unlock_minutes,
+           v.name          AS venue_name
+      FROM tickets t
+      JOIN events e ON e.id = t.event_id
+      JOIN venues v ON v.id = e.venue_id
+     WHERE (%(is_email)s AND t.customer_email = %(email)s)
+        OR (NOT %(is_email)s
+            AND regexp_replace(coalesce(t.customer_phone, ''), '[^0-9]', '', 'g') = %(phone)s)
+     ORDER BY e.starts_at DESC
+     LIMIT 100
+"""
+
+
+def _fan_starts_at_label(starts_at: datetime, tz_name: str | None) -> str:
+    try:
+        tz = ZoneInfo(tz_name) if tz_name else timezone.utc
+    except Exception:
+        tz = timezone.utc
+    return starts_at.astimezone(tz).strftime("%d/%m/%Y %H:%M")
+
+
+def _fan_ticket_row(r: dict) -> dict:
+    """Fila de DB -> FanTicketOut. `has_link`: se puede regenerar el QR."""
+    live = r["status"] == "issued" and r["event_status"] not in ("ended", "cancelled")
+    qr_active, qr_message = _qr_window(r)
+    return {
+        "ticket_id": r["ticket_id"],
+        "event_name": r["event_name"],
+        "venue_name": r["venue_name"],
+        "location": r["location"],
+        "starts_at": _fan_starts_at_label(r["starts_at"], r["event_timezone"]),
+        "status": r["status"],
+        "has_link": live,
+        "qr_active": qr_active,
+        "qr_message": qr_message,
+    }
+
+
+@router.post("/my-tickets")
+async def fan_my_tickets(
+    body: FanLookupRequest,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Boletas de un fan, buscadas por el contacto con que se emitieron.
+
+    Sin sesion: el contacto (correo o telefono) es la identidad, igual que el
+    token del QR es la credencial de una boleta. No se expone ningun token
+    aqui; para ver el QR se pide `my-ticket-token`.
+    """
+    key = _contact_params(body.contact)
+    async with db.cursor() as cur:
+        await cur.execute(_FAN_TICKETS_SQL, key)
+        rows = await cur.fetchall()
+
+    tickets = [_fan_ticket_row(r) for r in rows]
+    return {"contact": body.contact, "count": len(tickets), "tickets": tickets}
+
+
+@router.post("/my-tickets/{ticket_id}/token", response_model=FanTicketTokenOut)
+async def fan_ticket_token(
+    ticket_id: int,
+    body: FanLookupRequest,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Regenera el enlace (QR) de UNA boleta del fan que comprueba el contacto.
+
+    Es el "magic link": el contacto identifica al dueno; la DB rota el token
+    con `reissue_ticket` (auditado) y devuelve el token crudo una sola vez.
+    """
+    key = _contact_params(body.contact)
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.id
+              FROM tickets t
+             WHERE t.id = %s
+               AND ((%s AND t.customer_email = %s)
+                    OR (NOT %s
+                        AND regexp_replace(coalesce(t.customer_phone, ''), '[^0-9]', '', 'g') = %s))
+            """,
+            (ticket_id, key["is_email"], key["email"], key["is_email"], key["phone"]),
+        )
+        if not await cur.fetchone():
+            # Mismo mensaje que una boleta inexistente: no revelamos si existe.
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Boleta no encontrada")
+
+        raw_token = secrets.token_urlsafe(24)
+        try:
+            await cur.execute(
+                "SELECT reissue_ticket(%s, %s, %s, %s)",
+                (ticket_id, raw_token, None, "fan_self_service"),
+            )
+        except psycopg.errors.Error as e:
+            raise _fan_reissue_error(e)
+
+    return {"ticket_id": ticket_id, "raw_token": raw_token}
+
+
+def _fan_reissue_error(e: psycopg.errors.Error) -> HTTPException:
+    """Errores de reissue_ticket a HTTP legible para el fan."""
+    primary = str(e)
+    diag = getattr(e, "diag", None)
+    if diag is not None and getattr(diag, "message_primary", ""):
+        primary = diag.message_primary
+    if "cannot_reissue_redeemed" in primary:
+        return HTTPException(status.HTTP_409_CONFLICT, "Esta boleta ya fue usada")
+    if "event_closed" in primary:
+        return HTTPException(status.HTTP_409_CONFLICT, "El evento ya cerró")
+    if "cannot_reissue_ticket" in primary or "ticket_not_found" in primary:
+        return HTTPException(status.HTTP_409_CONFLICT, "Esta boleta ya no se puede usar")
+    return HTTPException(status.HTTP_400_BAD_REQUEST, "No pudimos generar el enlace")
 
 
 @router.get(

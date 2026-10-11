@@ -1288,3 +1288,164 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 
+
+/* ===========================================================================
+   MIS BOLETAS (app del fan) - la entrada del fan por contacto (magic link).
+   Reusa el shell y los tokens de .home; aqui solo viven el formulario de
+   entrada, la lista de boletas y el QR.
+   =========================================================================== */
+.fan-lookup {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+.fan-lookup input {
+  flex: 1;
+  min-width: 0;
+  height: 3rem;
+  padding: 0 1rem;
+  border-radius: 1rem;
+  background: var(--home-surface);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--home-ink);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+.fan-lookup input::placeholder {
+  color: #6d6c76;
+}
+.fan-lookup input:focus {
+  outline: none;
+  border-color: var(--home-accent);
+}
+.fan-lookup button {
+  flex: none;
+  height: 3rem;
+  padding: 0 1.1rem;
+  border-radius: 1rem;
+  background: var(--home-accent-2);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: inherit;
+  transition: filter 0.15s ease;
+}
+.fan-lookup button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.fan-lookup button:disabled {
+  opacity: 0.6;
+}
+
+.fan-list {
+  margin-top: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.fan-ticket {
+  border-radius: 1.2rem;
+  background: var(--home-surface);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 1.1rem 1.15rem;
+}
+.fan-ticket-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.fan-ticket-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.fan-ticket-info strong {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.fan-ticket-info em {
+  font-size: 0.75rem;
+  font-style: normal;
+  color: var(--home-dim);
+  line-height: 1.45;
+}
+.fan-badge {
+  flex: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fan-badge.is-ok {
+  color: #00e6ab;
+  background: rgba(0, 230, 171, 0.12);
+}
+.fan-badge.is-warn {
+  color: #ffcf6b;
+  background: rgba(255, 207, 107, 0.12);
+}
+.fan-badge.is-bad {
+  color: #ff2d98;
+  background: rgba(255, 45, 152, 0.12);
+}
+.fan-ticket-foot {
+  margin-top: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.fan-ticket-num {
+  font-size: 0.7rem;
+  color: var(--home-dim);
+  letter-spacing: 0.04em;
+}
+.fan-link {
+  font-size: 0.78rem;
+  color: var(--home-accent);
+}
+.fan-cta {
+  height: 2.35rem;
+  padding: 0 1.1rem;
+  font-size: 0.78rem;
+}
+.fan-cta:disabled {
+  opacity: 0.5;
+  filter: none;
+}
+.fan-qr-wait {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  text-align: center;
+}
+
+.fan-qr {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  text-align: center;
+}
+.fan-qr img {
+  width: 15rem;
+  max-width: 100%;
+  border-radius: 0.85rem;
+  background: #fff;
+  padding: 0.6rem;
+  display: inline-block;
+}
+.fan-qr-hint {
+  margin: 0.7rem 0 0;
+  font-size: 0.75rem;
+  color: var(--home-dim);
+}
+.fan-qr-hint.is-bad {
+  color: #ff2d98;
+}

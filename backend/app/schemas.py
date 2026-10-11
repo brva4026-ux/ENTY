@@ -540,6 +540,59 @@ class PaymentCreateRequest(BaseModel):
     customer_email: str | None = Field(default=None, max_length=200)
 
 
+# --- App del fan: "mis boletas" (magic link) --------------------------------
+#
+# El fan no tiene cuenta: su correo o telefono ES la identidad. Con el mismo
+# contacto con que le emitieron las boletas, pide el enlace y ve su lista.
+# Igual que el token del QR, la respuesta no devuelve PII de contacto.
+
+
+class FanLookupRequest(BaseModel):
+    """Contacto con el que se emitieron las boletas (correo o telefono)."""
+
+    contact: str = Field(min_length=5, max_length=200)
+
+
+class FanTicketOut(BaseModel):
+    """Una boleta vista por su dueno en la lista, sin exponer el token."""
+
+    ticket_id: int
+    event_name: str
+    venue_name: str
+    location: str | None = None
+    starts_at: str
+    status: str
+    # El token crudo NO viaja en el listado: solo lo entrega `my-ticket-token`
+    # para la boleta que el fan reclama. `has_link` indica si aun se puede
+    # pedir (boleta viva y evento no cerrado).
+    has_link: bool = False
+    # Ventana de activacion del QR (mig 013, patron DICE): el QR solo se dibuja
+    # desde starts_at - qr_unlock_minutes. Misma regla que la boleta (/t), para
+    # que el fan no vea un QR que la puerta aun no honra.
+    qr_active: bool = True
+    qr_message: str | None = None
+
+
+class FanTicketsOut(BaseModel):
+    """Resultado del enlace: si no hay boletas, la UI dice que no encontro nada."""
+
+    contact: str
+    count: int
+    tickets: list[FanTicketOut] = []
+
+
+class FanTicketTokenOut(BaseModel):
+    """Enlace regenerado de UNA boleta del fan (el token crudo, una sola vez).
+
+    El token anterior queda invalido: la DB guarda solo su hash y se rota con
+    `reissue_ticket`, que audita el cambio en `ticket_reissues`.
+    """
+
+    ticket_id: int
+    raw_token: str
+
+
+
 class PaymentCreateOut(BaseModel):
     """Cobro creado: la URL de Wompi se manda al cliente por WhatsApp.
 

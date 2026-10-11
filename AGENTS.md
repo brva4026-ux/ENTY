@@ -71,6 +71,13 @@ Usuarios con contraseña `demo1234`:
 | `promo2@bar.test` | promotor (cupo 3) |
 | `puerta@bar.test` | bouncer |
 
+**Fan de prueba** (sin cuenta): `fan@bar.test` / `3100000001`. El seed le emite
+dos cortesías: una al evento `Noche Electrónica` (en +7 días → QR **inactivo**,
+para ver el aviso de espera) y otra al evento `Prueba de QR` (en +20 min → QR
+**activo** y escaneable). En `/boletas` basta con escribir ese correo o
+teléfono. El seed es idempotente: `events` no tiene UNIQUE(venue_id, name), así
+que busca antes de insertar (no confíes en `ON CONFLICT` ahí).
+
 Ojo: los ids son `GENERATED ALWAYS AS IDENTITY`, así que **cambian en cada
 seed**. No los fijes en scripts; consúltalos. Además, correr `pytest` **borra
 estos datos** (el `conftest` hace `DROP TABLE`), así que después de testear hay
@@ -123,6 +130,34 @@ muere en el acto.
   nunca el token crudo.
 - Si agregás objetos de esquema, sumalos al `DROP` del `conftest` o los tests
   arrastran estado entre sesiones.
+
+## App del fan (Enty)
+
+El fan **no tiene cuenta**: su correo o teléfono ES la identidad. Las pantallas
+públicas viven bajo `.home` (shell nocturno: negro + violeta, Sora 300) y se
+fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO.
+
+- `/inicio` — vitrina pública (`HomePage`): catálogo de `/public/events`.
+- `/boletas` — la entrada del fan (`MyTicketsPage`): escribe su contacto y ve
+  sus boletas. "Ver mi QR" regenera el enlace de esa boleta.
+- `GET /public/events` — catálogo (sin auth; eventos publicados y futuros).
+- `POST /public/my-tickets` — boletas por contacto. **Nunca** devuelve tokens:
+  el listado solo trae datos de la boleta + `has_link`.
+- `POST /public/my-tickets/{id}/token` — "magic link": comprueba que el
+  contacto es dueño de la boleta y **rota** el token con `reissue_ticket`
+  (auditado en `ticket_reissues`). Devuelve el `raw_token` una sola vez.
+- Normalización del contacto (`_contact_params` en `routers/public.py`): el
+  correo solo se recorta y baja a minúsculas (sus puntos son significativos);
+  el teléfono se reduce a dígitos (`+57 300 123 4567` == `573001234567`). La
+  comparación usa un flag `is_email` en SQL — **no** mandes un centinela NUL
+  como parámetro: psycopg/Postgres lo rechaza (`text fields cannot contain NUL`).
+- El token nuevo vive en `localStorage` (`tf_fan_contact` guarda el contacto,
+  no el token): el QR se dibuja local con `qrcode`, igual que en `/t`.
+- La barra inferior (Inicio · Explorar · Boletos · Perfil) es
+  `components/FanNav.jsx`; la comparten Inicio y Mis boletas.
+- Tests: `tests/test_public_my_tickets.py`. Usá teléfonos/correos **únicos por
+  test** (`uuid`): la suite siembra números fijos como `573001234567` y
+  `3001234567` que colisionarían con una búsqueda por dígitos.
 
 ## Revisar un preview (Vercel)
 
