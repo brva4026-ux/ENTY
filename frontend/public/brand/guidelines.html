@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Enty — Brand Guidelines</title>
+<meta name="theme-color" content="#050508" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --violet:#7C3AED;
+    --violet-lo:#5B21B6;
+    --violet-hi:#A78BFA;
+    --black:#0B0B0F;
+    --white:#F5F5F7;
+    --green:#00E6AB;
+    --pink:#FF2D98;
+    --field:#050508;
+    --panel:#0D0D12;
+    --panel-2:#111117;
+    --line:rgba(255,255,255,.09);
+    --muted:#8B8B97;
+    --dim:rgba(255,255,255,.42);
+    --r:26px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:"Sora",system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--field);
+    color:var(--white);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    line-height:1.4;
+  }
+  /* --- Lienzo: columna vertical, como una hoja de guidelines ------------ */
+  .sheet{
+    position:relative;
+    max-width:880px;
+    margin:0 auto;
+    padding:56px 56px 44px;
+    min-height:100vh;
+    overflow:hidden;
+    isolation:isolate;
+  }
+  /* Degradados sutiles en las esquinas (no planos). */
+  .sheet::before,.sheet::after{
+    content:"";position:absolute;z-index:-2;border-radius:50%;filter:blur(70px);
+    pointer-events:none;
+  }
+  .sheet::before{
+    width:620px;height:620px;top:-320px;left:-260px;
+    background:radial-gradient(circle,rgba(124,58,237,.24),transparent 66%);
+  }
+  .sheet::after{
+    width:640px;height:640px;bottom:-340px;right:-280px;
+    background:radial-gradient(circle,rgba(0,230,171,.13),transparent 64%),
+               radial-gradient(circle at 70% 30%,rgba(255,45,152,.12),transparent 60%);
+  }
+
+  /* --- Tickets de fondo en las esquinas -------------------------------- */
+  .bg-ticket{position:absolute;z-index:-1;opacity:.9;pointer-events:none}
+  .bg-ticket svg{display:block;width:100%;height:auto}
+  .bg-ticket.tl{top:34px;left:-26px;width:210px;transform:rotate(-12deg)}
+  .bg-ticket.tr{top:30px;right:-30px;width:196px;transform:rotate(13deg)}
+
+  /* --- Encabezado ------------------------------------------------------ */
+  .eyebrow{
+    font-size:11px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;
+    color:var(--violet-hi);
+  }
+  .eyebrow.dim{color:#7a5cc4}
+  .head{
+    display:grid;grid-template-columns:1fr auto 1fr;align-items:start;
+    gap:24px;margin-bottom:76px;
+  }
+  .head .left{padding-top:6px}
+  .head .right{
+    text-align:right;font-size:10.5px;font-weight:600;letter-spacing:.24em;
+    color:var(--dim);line-height:1.9;padding-top:30px;
+  }
+  .head .right span{display:block}
+
+  /* Wordmark central: la "E" es un boleto (muesca en el borde izquierdo). */
+  .brandmark{text-align:center;line-height:1}
+  .wordmark{
+    display:inline-flex;align-items:flex-start;
+    font-size:62px;font-weight:700;letter-spacing:-.03em;color:#fff;
+  }
+  .wordmark .tick-e{display:inline-block;height:.78em;margin:0 .01em 0 0;transform:translateY(.07em)}
+  .wordmark .tick-e svg{height:100%;width:auto;display:block}
+  .brandmark .tag{
+    margin-top:12px;font-size:10.5px;font-weight:600;letter-spacing:.42em;
+    text-transform:uppercase;color:var(--dim);text-indent:.42em;
+  }
+
+  /* --- Paneles --------------------------------------------------------- */
+  .panel{
+    position:relative;background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line);border-radius:var(--r);
+    padding:34px 34px 38px;margin-bottom:26px;
+  }
+  .panel > .eyebrow{margin-bottom:26px;display:block}
+
+  /* --- Paleta ---------------------------------------------------------- */
+  .swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  .swatch .chip{
+    aspect-ratio:1;border-radius:20px;border:1px solid rgba(255,255,255,.10);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.18), 0 10px 24px rgba(0,0,0,.35);
+  }
+  .swatch .name{
+    margin-top:12px;font-size:12.5px;font-weight:600;line-height:1.25;
+  }
+  .swatch .hex{
+    margin-top:3px;font-size:11px;font-weight:500;letter-spacing:.04em;
+    color:var(--muted);font-variant-numeric:tabular-nums;
+  }
+
+  /* --- Tipografía ------------------------------------------------------ */
+  .type-grid{display:grid;grid-template-columns:.86fr 1fr}
+  .type-grid .col-l{padding-right:34px;border-right:1px solid var(--line)}
+  .type-grid .col-r{padding-left:34px}
+  .type-name{font-size:56px;font-weight:600;letter-spacing:-.02em;color:#fff;margin-top:8px}
+  .type-desc{
+    margin-top:14px;font-size:10.5px;font-weight:600;letter-spacing:.2em;
+    color:var(--muted);
+  }
+  .type-desc b{color:var(--violet-hi);font-weight:600}
+  .type-set{display:flex;flex-direction:column;gap:20px}
+  .type-set .label{
+    font-size:10px;font-weight:700;letter-spacing:.22em;color:var(--dim);
+    margin-bottom:7px;
+  }
+  .type-set .glyphs{
+    font-size:19px;font-weight:400;letter-spacing:.06em;color:var(--white);
+    word-break:break-word;line-height:1.5;
+  }
+  .type-set .glyphs.num{letter-spacing:.18em;font-variant-numeric:tabular-nums}
+
+  /* --- Pie ------------------------------------------------------------- */
+  .foot{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    margin-top:40px;padding-top:22px;border-top:1px solid var(--line);
+    font-size:10px;font-weight:600;letter-spacing:.22em;color:var(--dim);
+    text-transform:uppercase;
+  }
+  .foot .more{display:inline-flex;align-items:center;gap:12px;color:var(--violet-hi)}
+  .foot .more i{display:block;width:34px;height:2px;background:var(--violet);border-radius:2px}
+
+  @media (max-width:760px){
+    .sheet{padding:38px 24px 32px}
+    .head{grid-template-columns:1fr;gap:18px;margin-bottom:52px;text-align:center}
+    .head .right{text-align:center;padding-top:0}
+    .head .right span{display:inline-block;margin:0 8px}
+    .wordmark{font-size:46px}
+    .swatches{grid-template-columns:repeat(2,1fr)}
+    .swatch:last-child{grid-column:1 / -1;max-width:calc(50% - 7px)}
+    .type-grid{grid-template-columns:1fr}
+    .type-grid .col-l{padding:0 0 26px;border-right:0;border-bottom:1px solid var(--line)}
+    .type-grid .col-r{padding:26px 0 0}
+    .type-name{font-size:44px}
+    .foot{flex-direction:column;gap:14px;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+  <main class="sheet">
+
+    <!-- Boleto superior izquierdo: degradado morado. -->
+    <div class="bg-ticket tl" aria-hidden="true">
+      <svg viewBox="0 0 240 150">
+        <defs>
+          <linearGradient id="ticketP" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#A78BFA"/>
+            <stop offset=".55" stop-color="#7C3AED"/>
+            <stop offset="1" stop-color="#4C1D95"/>
+          </linearGradient>
+        </defs>
+        <path d="M14 26h212a12 12 0 0 1 12 12v24a20 20 0 0 0 0 26v24a12 12 0 0 1-12 12H14A12 12 0 0 1 2 112V88a20 20 0 0 0 0-26V38A12 12 0 0 1 14 26Z"
+              fill="url(#ticketP)" opacity=".9"/>
+        <g fill="#050508" opacity=".55">
+          <rect x="30" y="52" width="118" height="7" rx="3.5"/>
+          <rect x="30" y="70" width="76" height="7" rx="3.5"/>
+          <rect x="30" y="90" width="96" height="7" rx="3.5"/>
+        </g>
+        <path d="M176 44v62" stroke="#050508" stroke-width="2.5" stroke-dasharray="7 7" opacity=".5"/>
+      </svg>
+    </div>
+
+    <!-- Boleto superior derecho: contorno rosa -> verde neón. -->
+    <div class="bg-ticket tr" aria-hidden="true">
+      <svg viewBox="0 0 240 150">
+        <defs>
+          <linearGradient id="ticketRG" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#FF2D98"/>
+            <stop offset="1" stop-color="#00E6AB"/>
+          </linearGradient>
+        </defs>
+        <path d="M14 26h212a12 12 0 0 1 12 12v24a20 20 0 0 0 0 26v24a12 12 0 0 1-12 12H14A12 12 0 0 1 2 112V88a20 20 0 0 0 0-26V38A12 12 0 0 1 14 26Z"
+              fill="none" stroke="url(#ticketRG)" stroke-width="3" opacity=".85"/>
+        <g fill="none" stroke="url(#ticketRG)" stroke-width="3" opacity=".75">
+          <rect x="30" y="52" width="118" height="7" rx="3.5"/>
+          <rect x="30" y="70" width="76" height="7" rx="3.5"/>
+          <rect x="30" y="90" width="96" height="7" rx="3.5"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- ENCABEZADO -->
+    <header class="head">
+      <div class="left">
+        <p class="eyebrow dim">— Brand Guidelines</p>
+      </div>
+
+      <div class="brandmark">
+        <div class="wordmark" role="img" aria-label="Enty">
+          <span class="tick-e" aria-hidden="true">
+            <!-- La "E" boleto: muesca semicircular en el borde izquierdo. -->
+            <svg viewBox="0 0 64 84">
+              <path d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z"
+                    fill="#FFFFFF"/>
+              <g fill="#050508">
+                <rect x="20" y="24" width="26" height="6" rx="3"/>
+                <rect x="20" y="40" width="26" height="6" rx="3"/>
+                <rect x="20" y="56" width="26" height="6" rx="3"/>
+              </g>
+            </svg>
+          </span>nty
+        </div>
+        <p class="tag">Ticketing App</p>
+      </div>
+
+      <div class="right">
+        <span>Events</span>
+        <span>People</span>
+        <span>Together</span>
+      </div>
+    </header>
+
+    <!-- PALETA DE COLORES -->
+    <section class="panel">
+      <p class="eyebrow">— Color Palette</p>
+      <div class="swatches">
+        <div class="swatch">
+          <div class="chip" style="background:#7C3AED"></div>
+          <p class="name">Morado Enty</p>
+          <p class="hex">#7C3AED</p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#0B0B0F"></div>
+          <p class="name">Negro</p>
+          <p class="hex">#0B0B0F</p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#F5F5F7"></div>
+          <p class="name">Blanco</p>
+          <p class="hex">#F5F5F7</p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#00E6AB"></div>
+          <p class="name">Verde neón</p>
+          <p class="hex">#00E6AB</p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#FF2D98"></div>
+          <p class="name">Rosa neón</p>
+          <p class="hex">#FF2D98</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TIPOGRAFÍA -->
+    <section class="panel">
+      <div class="type-grid">
+        <div class="col-l">
+          <p class="eyebrow">— Tipografía</p>
+          <p class="type-name">Sora</p>
+          <p class="type-desc"><b>Modern</b> / Clean / Versatile</p>
+        </div>
+        <div class="col-r">
+          <div class="type-set">
+            <div>
+              <p class="label">Uppercase</p>
+              <p class="glyphs">ABCDEFGHIJKLMNOPQRSTUVWXYZ</p>
+            </div>
+            <div>
+              <p class="label">Lowercase</p>
+              <p class="glyphs">abcdefghijklmnopqrstuvwxyz</p>
+            </div>
+            <div>
+              <p class="label">Numbers</p>
+              <p class="glyphs num">0123456789</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIE -->
+    <footer class="foot">
+      <p>Enty / Brand Guidelines</p>
+      <p class="more"><i></i> More than tickets</p>
+    </footer>
+  </main>
+</body>
+</html>
