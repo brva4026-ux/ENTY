@@ -193,6 +193,19 @@ async def event_report(
         )
         revenue = (await cur.fetchone())["revenue"]
 
+        # Salud de puerta: qué pasó al escanear (redemptions), sin dinero.
+        # `duplicates` = boletas que ya habían entrado (síntoma de QR
+        # reenviado/clonado); `rejected` = todo lo demás que la puerta negó.
+        await cur.execute(
+            """
+            SELECT count(*) FILTER (WHERE outcome='already_redeemed')::int AS duplicates,
+                   count(*) FILTER (WHERE outcome NOT IN ('granted','granted_forced','already_redeemed'))::int AS rejected
+            FROM redemptions WHERE event_id=%s
+            """,
+            (event_id,),
+        )
+        rd = await cur.fetchone()
+
     return EventReport(
         event_id=ev["id"],
         event_name=ev["name"],
@@ -201,6 +214,8 @@ async def event_report(
         revenue_cents=revenue,
         by_type=by_type,
         by_promoter=by_promoter,
+        door_duplicates=rd["duplicates"],
+        door_rejected=rd["rejected"],
     )
 
 
