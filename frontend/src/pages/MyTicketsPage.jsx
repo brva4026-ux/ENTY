@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import { fetchMyTickets, fetchMyTicketToken } from "../lib/api";
 import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
+import { Spark } from "../components/Brand";
 
 /**
  * Mis boletas — la entrada del fan (magic link, sin cuenta).
@@ -93,7 +94,7 @@ export default function MyTicketsPage() {
         width: 640,
         margin: 1,
         errorCorrectionLevel: "H",
-        color: { dark: "#0f172a", light: "#ffffff" },
+        color: { dark: "#0B0B0F", light: "#ffffff" },
       });
       if (mounted.current) setQr(url);
     } catch (e) {
@@ -210,12 +211,18 @@ export default function MyTicketsPage() {
                 {isOpen && t.qr_active ? (
                   <div className="fan-qr">
                     {qrBusy ? (
-                      <p className="fan-qr-hint">Generando tu QR…</p>
+                      <p className="fan-qr-hint fan-qr-loading">
+                        <Spark size={14} color="#00E6AB" />
+                        Generando tu QR…
+                      </p>
                     ) : qrError ? (
                       <p className="fan-qr-hint is-bad">{qrError}</p>
                     ) : qr ? (
                       <>
-                        <img src={qr} alt="Código QR de tu boleta" />
+                        <span className="fan-qr-frame">
+                          <img src={qr} alt="Código QR de tu boleta" />
+                          <Spark size={34} color="#00E6AB" className="fan-qr-spark" />
+                        </span>
                         <p className="fan-qr-hint">
                           Presenta este QR en la puerta junto con tu documento.
                         </p>
