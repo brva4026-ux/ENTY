@@ -46,6 +46,16 @@ y reemplazá el archivo) o el test falla.
   la DB; los routers solo traducen parámetros y errores SQL a HTTP.
 - **Errores de negocio**: la DB los señala con `message_primary` (p. ej.
   `promoter_quota_exceeded`); `tickets.py::_handle` los mapea a HTTP.
+- **Comisión vs. recaudo**: `emit_ticket` **rechaza** atar una boleta de pago a
+  un cupo de promotor, así que en el MVP el promotor solo mueve cortesías
+  (`price_cents_snapshot = 0`). Por eso `commissions_cents` del overview es
+  `null` (no `0`) cuando no hay liquidaciones: "no hay comisión calculable" ≠
+  "la comisión fue 0". La UI decide con ese `null` si muestra el neto o el
+  recaudado; no inventes una resta sobre `0`.
+- **Mes del panel en la URL**: la portada (`VenueHeader`) y Reportes
+  (`BusinessOverview`) leen y escriben el mes en `/admin?mes=YYYY-MM`. Es un
+  único dueño (el switcher de la portada); `BusinessOverview` es controlado y
+  no tiene estado de mes propio. Ausencia del param = mes en curso.
 
 ## Trampas conocidas
 

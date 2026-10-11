@@ -66,10 +66,10 @@ test("el admin entra y ve la portada de su negocio", async ({ page }) => {
   // Portada: identidad de la venue + cifra del mes + dock del negocio.
   // (La franja de eventos depende de un fetch extra; la identidad y el dock
   // son incondicionales del panel.) El KPI del mes lleva su rótulo propio
-  // ("Recaudado · <mes>"): specific para no chocar con "Recaudo" de las
-  // tarjetas de evento de la franja.
+  // ("Recaudado del mes" / "Neto del mes" según haya comisiones): specific
+  // para no chocar con "Recaudo" de las tarjetas de evento de la franja.
   await expect(page.getByText("Panel de la venue")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Bar Esquina" })).toBeVisible();
-  await expect(page.getByText(/Recaudado · /)).toBeVisible();
+  await expect(page.getByText(/(Recaudado|Neto) del mes/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Del negocio" })).toBeVisible();
 });

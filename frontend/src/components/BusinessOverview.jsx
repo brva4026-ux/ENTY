@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
-import { money } from "../lib/format";
+import { money, labelMonth } from "../lib/format";
 import CountUpNumber from "./CountUpNumber";
 import { STATUS_META } from "./EventWorkbench";
 import EmptyState from "./EmptyState";
@@ -20,40 +20,6 @@ async function downloadOverviewCsv(venueId, month) {
   a.download = `resumen-${month || "mes-actual"}.csv`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-}
-
-const MONTHS = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
-];
-
-function labelMonth(ym) {
-  const [y, m] = ym.split("-").map(Number);
-  return `${MONTHS[m - 1]} ${y}`;
-}
-
-function shiftMonth(ym, delta) {
-  let [y, m] = ym.split("-").map(Number);
-  m += delta;
-  if (m < 1) {
-    m = 12;
-    y -= 1;
-  }
-  if (m > 12) {
-    m = 1;
-    y += 1;
-  }
-  return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}`;
 }
 
 /** Delta % entre mes actual y anterior (null si no hay base comparable). */
@@ -172,17 +138,25 @@ function RevenueBars({ events, onOpen }) {
  * la MAGNITUD la da la barra — un ranking solo-numeros obliga a hacer
  * aritmética mental para saber que el #1 duplicó al #2. Mismo idioma visual
  * de RevenueBars (brand-500, transición con stagger) sin SVG nuevo.
+ * La cifra que manda es BOLETAS: en el MVP el promotor coloca cortesías.
  */
 function PromoterBars({ promoters }) {
-  const max = Math.max(...promoters.map((p) => p.revenue_cents), 1);
+  // El ranking se mide en BOLETAS, no en dinero: en el MVP la boleta de pago
+  // es venta directa (sin cupo) y `emit_ticket` rechaza atar una boleta de
+  // pago a un promotor, así que el promotor mueve cortesías y su
+  // `revenue_cents` es 0 SIEMPRE. Medir por dinero dejaba barras vacías y
+  // "$ 0" en todas las filas. El dinero se muestra solo si existe (cuando
+  // entre la venta por cupo), para no perder la métrica si el modelo cambia.
+  const max = Math.max(...promoters.map((p) => p.tickets), 1);
+  const showMoney = promoters.some((p) => p.revenue_cents > 0);
   return (
     <ol
       role="img"
-      aria-label="Recaudo por promotor del mes"
+      aria-label="Boletas colocadas por promotor del mes"
       className="space-y-2.5"
     >
       {promoters.map((p, i) => {
-        const w = Math.max(4, Math.round((p.revenue_cents / max) * 100));
+        const w = Math.max(4, Math.round((p.tickets / max) * 100));
         return (
           <li key={p.name} className="text-sm">
             <div className="flex items-center gap-2.5">
@@ -198,12 +172,19 @@ function PromoterBars({ promoters }) {
               <span className="min-w-0 flex-1 truncate font-medium text-zinc-200">
                 {p.name}
               </span>
-              <span className="tnum shrink-0 text-xs text-zinc-400">
-                {p.tickets} boletas
+              <span className="tnum shrink-0 text-xs font-semibold text-zinc-300">
+                {p.tickets} {p.tickets === 1 ? "boleta" : "boletas"}
+                {p.has_courtesy && (
+                  <span className="ml-1 font-normal text-zinc-500">
+                    cortesía
+                  </span>
+                )}
               </span>
-              <span className="tnum w-24 shrink-0 text-right text-xs font-semibold text-emerald-300">
-                {money(p.revenue_cents)}
-              </span>
+              {showMoney && (
+                <span className="tnum w-24 shrink-0 text-right text-xs font-semibold text-emerald-300">
+                  {money(p.revenue_cents)}
+                </span>
+              )}
             </div>
             {/* La barra debajo del nombre: llena el ancho de la fila sin
                 competir con las cifras (que quedan alineadas en columna). */}
@@ -229,8 +210,7 @@ function PromoterBars({ promoters }) {
  * (zona del venue), criterio contable idéntico al reporte por evento:
  * boletas vivas facturan; anuladas/reembolsadas no.
  */
-export default function BusinessOverview({ venueId, onOpenEvent }) {
-  const [month, setMonth] = useState(null); // null = "mes actual" (lo fija el API)
+export default function BusinessOverview({ venueId, month, onOpenEvent }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -243,7 +223,6 @@ export default function BusinessOverview({ venueId, onOpenEvent }) {
       .then((d) => {
         if (!alive) return;
         setData(d);
-        if (!month) setMonth(d.month); // el API dice el mes en curso
         setError("");
       })
       .catch((e) => alive && setError(e.message))
@@ -252,10 +231,6 @@ export default function BusinessOverview({ venueId, onOpenEvent }) {
       alive = false;
     };
   }, [venueId, month]);
-
-  const now = new Date();
-  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const isCurrent = month === currentYM;
 
   if (error) {
     return (
@@ -267,40 +242,18 @@ export default function BusinessOverview({ venueId, onOpenEvent }) {
 
   return (
     <div className="space-y-5">
-      {/* Navegación histórica: mes anterior / siguiente (sin futuro) */}
+      {/* El mes NO se navega aquí: la portada (VenueHeader) es la dueña del
+          mes y lo comparte por la URL. Reportes solo muestra el título del
+          mes abierto y ofrece la exportación. Dos navegadores de mes en la
+          misma pantalla (portada + reportes) se desincronizaban. */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setMonth((m) => shiftMonth(m ?? currentYM, -1))}
-            className="btn-ghost !px-3 !py-1.5 text-xs"
-            aria-label="Mes anterior"
-          >
-            ←
-          </button>
-          <span className="display min-w-36 text-center text-base capitalize">
-            {month ? labelMonth(month) : "…"}
-          </span>
-          <button
-            onClick={() => setMonth((m) => shiftMonth(m ?? currentYM, 1))}
-            disabled={isCurrent}
-            className="btn-ghost !px-3 !py-1.5 text-xs disabled:opacity-30"
-            aria-label="Mes siguiente"
-          >
-            →
-          </button>
-        </div>{" "}
-        {!isCurrent && month && (
-          <button
-            onClick={() => setMonth(null)}
-            className="btn-ghost text-xs font-bold"
-          >
-            Volver al mes actual
-          </button>
-        )}
-        {month && (
+        <span className="display text-base capitalize">
+          {data?.month ? labelMonth(data.month) : "…"}
+        </span>
+        {data?.month && (
           <button
             onClick={() =>
-              downloadOverviewCsv(venueId, month).catch((e) =>
+              downloadOverviewCsv(venueId, data.month).catch((e) =>
                 setError(e.message),
               )
             }
@@ -324,8 +277,9 @@ export default function BusinessOverview({ venueId, onOpenEvent }) {
       ) : (
         data && (
           <>
-            {/* KPIs del mes con tendencia */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {/* KPIs del mes con tendencia (5: recaudo, boletas, ingresaron,
+                comisiones, promedio) — en xl entran en una sola fila. */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               <KpiCard
                 label="Recaudo del mes"
                 value={data.revenue_cents / 100}
@@ -352,6 +306,22 @@ export default function BusinessOverview({ venueId, onOpenEvent }) {
                   {data.tickets_issued > 0
                     ? `${Math.round((data.tickets_redeemed / data.tickets_issued) * 100)}% de las vendidas`
                     : "—"}
+                </span>
+              </KpiCard>
+              <KpiCard
+                label="Comisiones"
+                value={
+                  data.commissions_cents !== null
+                    ? data.commissions_cents / 100
+                    : 0
+                }
+                format={(v) => `$${Math.round(v).toLocaleString("es-CO")}`}
+                accent="text-rose-300"
+              >
+                <span className="text-[10px] text-zinc-600">
+                  {data.commissions_cents !== null
+                    ? "se descuentan del recaudo"
+                    : "sin liquidaciones este mes"}
                 </span>
               </KpiCard>
               <KpiCard
@@ -388,11 +358,16 @@ export default function BusinessOverview({ venueId, onOpenEvent }) {
               <div className="grid gap-5 lg:grid-cols-2">
                 {/* Top promotores del mes */}
                 <div className="card p-5">
-                  <p className="display mb-3 text-base">Mejores promotores</p>
+                  <p className="display mb-3 text-base">
+                    Promotores del mes
+                    <span className="ml-2 text-xs font-normal text-zinc-500">
+                      boletas con cupo propio
+                    </span>
+                  </p>
                   {data.top_promoters.length === 0 ? (
                     <p className="text-sm text-zinc-500">
-                      Nadie vendió con cupo propio este mes (las ventas directas
-                      del admin no entran al ranking).
+                      Nadie colocó boletas con cupo propio este mes (las ventas
+                      directas del admin no entran al ranking).
                     </p>
                   ) : (
                     <PromoterBars promoters={data.top_promoters} />

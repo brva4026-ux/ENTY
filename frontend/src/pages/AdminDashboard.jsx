@@ -18,7 +18,7 @@ import {
 } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
 import { activeVenueId } from "../lib/venue";
-import { money } from "../lib/format";
+import { money, currentYM } from "../lib/format";
 import CountUpNumber from "../components/CountUpNumber";
 
 import EmptyState from "../components/EmptyState";
@@ -179,6 +179,7 @@ export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlEvent = searchParams.get("event");
   const urlTab = searchParams.get("tab") || "resumen";
+  const urlMonth = searchParams.get("mes"); // null = mes en curso
   const [error, setError] = useState("");
   // Modal de crear evento: cerrado por defecto — el admin trabaja en su
   // evento, no mira un formulario gigante todo el día.
@@ -305,6 +306,21 @@ export default function AdminDashboard() {
     params.set("event", String(id));
     if (tab && tab !== "resumen") params.set("tab", tab);
     setSearchParams(params); // push: back vuelve al evento/tab anterior
+  }
+
+  /**
+   * Mes del panel (portada + Reportes), en la URL para que un refresh o un
+   * enlace compartido caigan en el mismo mes. `null` = mes en curso (se
+   * omite el param, no se escribe "hoy": la URL queda limpia).
+   */
+  function setMonth(ym) {
+    const params = new URLSearchParams(searchParams);
+    // El mes en curso no se escribe: la URL queda limpia (?mes solo cuando
+    // se navega al pasado/futuro). Se compara contra el mes del navegador —
+    // el mismo valor de arranque que usa la cabecera para su flecha.
+    if (ym && ym !== currentYM()) params.set("mes", ym);
+    else params.delete("mes");
+    setSearchParams(params, { replace: true });
   }
 
   /** Duplica un evento (borrador con sus tipos y cupos). */
@@ -739,7 +755,12 @@ export default function AdminDashboard() {
               el MISMO card. Antes eran dos boxes apiladas que competían por
               ser "la cabecera"; aquí hay una sola portada con una sola línea
               de lectura: quién eres → cuánto va el mes → tus noches. */}
-            <VenueHeader venueId={venueId} user={user}>
+            <VenueHeader
+              venueId={venueId}
+              user={user}
+              month={urlMonth}
+              onMonth={setMonth}
+            >
               {/* PORTADA UNIFICADA: la franja de eventos vive DENTRO del card
                 de la venue — un solo contexto como Del negocio, secciones
                 separadas por hairline. Sin evento abierto no hay segundo
@@ -1760,6 +1781,7 @@ export default function AdminDashboard() {
         {!selectedEventData && section === "negocio" && (
           <BusinessOverview
             venueId={venueId}
+            month={urlMonth}
             onOpenEvent={(id) => flyToEvent(id, "resumen")}
           />
         )}

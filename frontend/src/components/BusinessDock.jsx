@@ -111,6 +111,29 @@ export default function BusinessDock({ venueId, section, onNavigate }) {
           );
         })}
       </div>
+
+      {/* Fila "Pendientes": lo que espera una acción del admin, no un acceso
+          más. Solo existe si hay algo que revisar — una fila vacía permanente
+          es ruido y entrena a ignorarla. Hoy la única bandeja con estado
+          "pendiente" es Liquidaciones (pending + disputed); si suma otra, se
+          agrega un chip aquí sin tocar la grilla de accesos. */}
+      {counts.payouts > 0 && (
+        <div className="bizdock-pending">
+          <span className="bizdock-pending-label">Pendientes</span>
+          <button
+            type="button"
+            className="bizdock-chip"
+            onClick={() => {
+              haptics.tick();
+              onNavigate("liquidaciones");
+            }}
+          >
+            <Icon name="money" className="h-3.5 w-3.5" />
+            {counts.payouts} liquidación{counts.payouts === 1 ? "" : "es"} por
+            revisar
+          </button>
+        </div>
+      )}
     </nav>
   );
 }

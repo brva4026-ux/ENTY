@@ -1464,6 +1464,49 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   background: #BB5CF6;
 }
 
+/* Fila Pendientes: una sola línea bajo la grilla, separada por hairline.
+   Chips ámbar porque "pendiente" pide atención sin ser un error. */
+.bizdock-pending {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.bizdock-pending-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-zinc-500);
+}
+.bizdock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fcd34d;
+  background: rgba(251, 191, 36, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.32);
+  transition: background 0.2s;
+}
+.bizdock-chip:hover {
+  background: rgba(251, 191, 36, 0.2);
+}
+html[data-theme="light"] .bizdock-pending {
+  border-top-color: #e4e4e7;
+}
+html[data-theme="light"] .bizdock-chip {
+  color: #92400e;
+  background: rgba(217, 119, 6, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.3);
+}
+
 /* Claro: mismas formas, tinta invertida. El activo conserva el acento
    (brand-500 es el unico color interactivo en ambos temas). */
 html[data-theme="light"] .bizdock-item {
@@ -1773,6 +1816,199 @@ html[data-theme="light"] .vh-delta.is-down {
 }
 html[data-theme="light"] .vh-embedded {
   border-top-color: #e4e4e7;
+}
+
+/* ----------------------------------------------------------------------
+   PORTADA: desglose del mes, navegación de mes y rankings.
+   Todo cuelga del MISMO hairline del sistema; nada de cajas nuevas.
+   ---------------------------------------------------------------------- */
+
+/* Desglose: la cuenta que explica la cifra grande. Una sola línea que
+   envuelve en móvil; los operadores (−, =) son estructura, no texto. */
+.vh-cuenta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.35rem 0.9rem;
+  margin-top: 0.95rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.vh-cuenta-item {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.vh-cuenta-op {
+  align-self: flex-end;
+  padding-bottom: 0.1rem;
+  color: var(--color-zinc-600);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.vh-cuenta-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-zinc-500);
+}
+.vh-cuenta-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-zinc-100);
+}
+.vh-cuenta-val.is-out {
+  color: #fca5a5;
+}
+.vh-cuenta-val.is-net {
+  color: var(--color-enty-green);
+}
+.vh-cuenta-hint {
+  font-size: 0.625rem;
+  color: var(--color-zinc-600);
+}
+/* El promedio se separa del bloque de la cuenta: a la derecha en pantallas
+   anchas, en su propia línea en móvil. */
+.vh-cuenta-push {
+  margin-left: auto;
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .vh-cuenta-push {
+    margin-left: 0;
+    text-align: left;
+  }
+}
+
+/* Navegación histórica del mes (comparte estado con Reportes vía URL). */
+.vh-mesnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+.vh-mesnav-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.vh-mesnav-label {
+  min-width: 9rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-zinc-100);
+}
+.vh-mesnav-hoy {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-brand-300);
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.5rem;
+}
+.vh-mesnav-hoy:hover {
+  color: var(--color-brand-200);
+  background: rgba(187, 92, 246, 0.1);
+}
+
+/* Rankings: "quién mueve la noche". Barras finas, misma gramática de
+   RevenueBars (brand-500) sin SVG nuevo. */
+.vh-rank {
+  margin-top: 0.95rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.vh-rank-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+.vh-rank-sub {
+  font-size: 0.6875rem;
+  color: var(--color-zinc-500);
+}
+.vh-rank-list {
+  display: grid;
+  gap: 0.4rem;
+}
+.vh-rank-row {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.8125rem;
+}
+.vh-rank-pos {
+  display: grid;
+  place-items: center;
+  height: 1.4rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-zinc-400);
+  background: var(--color-zinc-800);
+}
+.vh-rank-pos.is-first {
+  color: #fcd34d;
+  background: rgba(251, 191, 36, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.4);
+}
+.vh-rank-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--color-zinc-200);
+}
+.vh-rank-count {
+  font-weight: 700;
+  color: var(--color-zinc-100);
+}
+.vh-rank-courtesy {
+  font-weight: 400;
+  color: var(--color-zinc-500);
+}
+/* La barra ocupa la fila entera por debajo (columna completa), como el
+   ranking de Reportes: el nombre y la cifra mandan, la barra es magnitud. */
+.vh-rank-bar {
+  grid-column: 1 / -1;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--color-zinc-800);
+  overflow: hidden;
+}
+.vh-rank-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-700),
+    var(--color-brand-500)
+  );
+  transition: width 0.5s ease;
+}
+html[data-theme="light"] .vh-cuenta,
+html[data-theme="light"] .vh-rank {
+  border-top-color: #e4e4e7;
+}
+html[data-theme="light"] .vh-cuenta-val.is-out {
+  color: #b91c1c;
+}
+html[data-theme="light"] .vh-cuenta-val.is-net {
+  color: #047857;
+}
+html[data-theme="light"] .vh-mesnav-hoy {
+  color: var(--color-brand-700);
+}
+@media (prefers-reduced-motion: reduce) {
+  .vh-rank-bar-fill {
+    transition: none;
+  }
 }
 
 /* ===========================================================================
