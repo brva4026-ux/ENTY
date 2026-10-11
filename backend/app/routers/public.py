@@ -230,6 +230,90 @@ async def public_events(
     }
 
 
+@router.get("/events/{event_id}")
+async def public_event_detail(
+    event_id: int,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Detalle publico de un evento (pantalla "comprar boleto").
+
+    Hermano de `/events`: misma derivacion (categoria inferida, precio minimo,
+    aforo vendido) mas el `description` y las localidades activas con su
+    precio. Mismas condiciones que el listado — venta abierta
+    (`published`/`live`) y futuro —: un borrador, un evento pasado o un id
+    inexistente responden 404 por igual, para no filtrar la existencia de
+    eventos no publicos ni ofrecer compra de algo que ya ocurrio.
+    """
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT e.id, e.name, e.description, e.flyer_url, e.location,
+                   e.starts_at, e.event_timezone, e.capacity, e.status,
+                   v.name AS venue_name,
+                   (SELECT count(*) FROM tickets t
+                     WHERE t.event_id = e.id
+                       AND t.status IN ('issued', 'redeemed'))::int AS active
+            FROM events e
+            JOIN venues v ON v.id = e.venue_id
+            WHERE e.id = %s AND e.status IN ('published', 'live')
+              AND e.starts_at >= now()
+            """,
+            (event_id,),
+        )
+        row = await cur.fetchone()
+        if row is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Evento no encontrado")
+        await cur.execute(
+            """
+            SELECT name, price_cents, quantity
+            FROM ticket_types
+            WHERE event_id = %s AND is_active
+            ORDER BY price_cents NULLS LAST, name
+            """,
+            (event_id,),
+        )
+        types = await cur.fetchall()
+
+    prices = [
+        int(t["price_cents"])
+        for t in types
+        if t["price_cents"] is not None and t["price_cents"] > 0
+    ]
+    min_price = min(prices) if prices else None
+    cat = _category_of(row["name"], row["description"])
+    where = " · ".join(p for p in (row["location"], row["venue_name"]) if p)
+
+    # Lineup: el modelo no tiene artistas todavia. Se devuelve la lista vacia
+    # en vez de inventar cabezas de cartel; la UI muestra "por anunciar".
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "description": row["description"],
+        "flyer_url": row["flyer_url"],
+        "location": row["location"],
+        "venue": row["venue_name"],
+        "where": where,
+        "starts_at": row["starts_at"].isoformat(),
+        "timezone": row["event_timezone"],
+        "category": cat,
+        "price_cents": min_price,
+        "sold_pct": _sold_pct(row["active"], row["capacity"]),
+        "status": row["status"],
+        "ticket_types": [
+            {
+                "name": t["name"],
+                "price_cents": int(t["price_cents"])
+                if t["price_cents"] is not None
+                else None,
+                "quantity": t["quantity"],
+            }
+            for t in types
+        ],
+        "lineup": [],
+    }
+
+
 # --- App del fan: "mis boletas" (magic link) ------------------------------
 #
 # El fan no tiene cuenta: su correo o telefono ES la identidad con la que le

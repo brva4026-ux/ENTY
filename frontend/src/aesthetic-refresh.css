@@ -1409,6 +1409,627 @@ html[data-theme="light"] .bizdock-count {
   }
 }
 
+/* ----------------------------------------------------------------------
+   INICIO (pasada 2): campana, buscador, carrusel de categorias, fila con
+   favorito. Mismo lenguaje que la base: cristal sobre negro, violeta como
+   unico color interactivo, neon solo como energia grafica.
+   ---------------------------------------------------------------------- */
+
+/* Campana de avisos (reemplaza al avatar de login del header). */
+.home-bell {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b9b7c0;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.home-bell:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--home-ink);
+}
+.home-bell-dot {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--home-violet-bright);
+  box-shadow: 0 0 8px rgba(187, 92, 246, 0.9);
+}
+.home-bell-panel {
+  margin-top: 0.9rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1.1rem;
+  background: rgba(23, 22, 34, 0.92);
+  border: 1px solid var(--home-glass-line);
+  animation: rise 0.28s var(--ease-out-expo, ease) both;
+}
+.home-bell-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--home-dim);
+}
+.home-bell-panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.home-bell-panel li a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.7rem;
+  transition: background 0.15s ease;
+}
+.home-bell-panel li a:hover {
+  background: rgba(124, 58, 237, 0.14);
+}
+.home-bell-panel strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.home-bell-panel em {
+  font-size: 0.72rem;
+  font-style: normal;
+  color: var(--home-dim);
+}
+.home-bell-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--home-dim);
+}
+
+/* Buscador de ancho completo */
+.home-search {
+  margin-top: 1.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  height: 3rem;
+  padding: 0 1rem;
+  border-radius: 1rem;
+  background: var(--home-glass);
+  border: 1px solid var(--home-glass-line);
+  color: var(--home-dim);
+  transition: border-color 0.15s ease, box-shadow 0.2s ease;
+}
+.home-search:focus-within {
+  border-color: rgba(124, 58, 237, 0.6);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+}
+.home-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--home-ink);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+.home-search input::placeholder {
+  color: var(--home-dim);
+}
+/* El buscador nativo (type=search) trae una X propia que rompe el estilo. */
+.home-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* Carrusel de categorias (circulos con etiqueta) */
+.home-cats {
+  margin-top: 1.35rem;
+  display: flex;
+  gap: 1.1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 0.25rem;
+}
+.home-cats::-webkit-scrollbar {
+  display: none;
+}
+.home-cats button {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--home-dim);
+  transition: color 0.15s ease;
+}
+.home-cat-dot {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--home-dim-2);
+  background: var(--home-glass);
+  border: 1px solid var(--home-glass-line);
+  transition: color 0.15s ease, border-color 0.15s ease,
+    background 0.15s ease, box-shadow 0.2s ease;
+}
+.home-cats button.is-on {
+  color: var(--home-ink);
+  font-weight: 600;
+}
+.home-cats button.is-on .home-cat-dot {
+  color: #fff;
+  background: var(--home-violet);
+  border-color: transparent;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.6),
+    0 12px 26px -12px rgba(124, 58, 237, 0.95),
+    0 0 22px -6px rgba(124, 58, 237, 0.8);
+}
+
+/* La fila ahora envuelve un enlace (main) + boton de favorito. */
+.home-row {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.home-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.7rem 0.25rem 0.7rem 0.7rem;
+}
+.home-row-thumb {
+  flex: none;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 0.8rem;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #1c1730, #14121c);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.home-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.home-row-thumb-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+.home-row-thumb-date b {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.home-row-thumb-date i {
+  font-size: 0.5rem;
+  font-style: normal;
+  letter-spacing: 0.14em;
+  color: var(--home-dim);
+}
+.home-row-fav {
+  flex: none;
+  align-self: stretch;
+  width: 3rem;
+  display: grid;
+  place-items: center;
+  color: var(--home-dim);
+  transition: color 0.15s ease, transform 0.1s ease;
+}
+.home-row-fav:hover {
+  color: var(--home-violet-bright);
+}
+.home-row-fav:active {
+  transform: scale(0.9);
+}
+.home-row-fav.is-on {
+  color: var(--home-violet-bright);
+}
+
+/* ----------------------------------------------------------------------
+   DETALLE DEL EVENTO (pantalla 2). Mismo negro, hero que se funde y
+   violeta como unico color interactivo.
+   ---------------------------------------------------------------------- */
+.evd {
+  --evd-bg: #0b0b0f;
+  --evd-ink: #f5f5f7;
+  --evd-dim: #8f8b9c;
+  --evd-violet: #7c3aed;
+  --evd-violet-bright: #bb5cf6;
+  min-height: 100vh;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+  background: var(--evd-bg);
+  color: var(--evd-ink);
+  font-family: "Sora", system-ui, -apple-system, sans-serif;
+  position: relative;
+}
+
+/* Hero: 40% de la pantalla, con degradado suave hacia el negro del fondo. */
+.evd-hero {
+  position: relative;
+  height: 40vh;
+  min-height: 15rem;
+  max-height: 22rem;
+  overflow: hidden;
+}
+.evd-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.evd-hero-fallback {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(30rem 22rem at 80% 10%, rgba(124, 58, 237, 0.5), transparent 60%),
+    radial-gradient(24rem 20rem at 0% 90%, rgba(0, 230, 171, 0.22), transparent 60%),
+    linear-gradient(160deg, #241c3d, #0b0b0f);
+}
+/* El degradado va de transparente arriba a negro abajo: la foto se disuelve
+   en la interfaz, nunca hay un corte duro. */
+.evd-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(11, 11, 15, 0) 30%,
+    rgba(11, 11, 15, 0.55) 68%,
+    #0b0b0f 100%
+  );
+}
+.evd-hero-actions {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  right: 0.9rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.evd-hero-actions-right {
+  display: flex;
+  gap: 0.5rem;
+}
+.evd-round {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--evd-ink);
+  background: rgba(11, 11, 15, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.evd-round:hover {
+  background: rgba(11, 11, 15, 0.75);
+}
+.evd-round.is-on {
+  color: #fff;
+  border-color: transparent;
+  background: var(--evd-violet);
+  box-shadow: 0 0 18px -4px rgba(124, 58, 237, 0.9);
+}
+
+.evd-body {
+  position: relative;
+  z-index: 1;
+  margin-top: -2.5rem;
+  padding: 0 1.5rem;
+}
+.evd-eyebrow {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--evd-violet-bright);
+}
+.evd-title {
+  margin: 0.5rem 0 0;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  line-height: 0.98;
+}
+.evd-sub {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--evd-dim);
+}
+
+/* Grid de datos: fecha / ubicacion / precio */
+.evd-grid {
+  margin-top: 1.4rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+.evd-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 0.8rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.evd-cell-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--evd-violet-bright);
+  margin-bottom: 0.15rem;
+}
+.evd-cell-k {
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--evd-dim);
+}
+.evd-cell-v {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.evd-cell-sub {
+  font-size: 0.68rem;
+  color: var(--evd-dim);
+}
+
+/* CTA principal: pildora violeta que emite luz (mismo idioma que .home-cta) */
+.evd-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 3.25rem;
+  padding: 0 1.5rem;
+  border-radius: 999px;
+  background: var(--evd-violet);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
+    0 16px 34px -14px rgba(124, 58, 237, 0.95),
+    0 0 26px -6px rgba(124, 58, 237, 0.7);
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.evd-cta:hover {
+  filter: brightness(1.08);
+}
+.evd-cta:active {
+  transform: translateY(1px);
+}
+.evd-cta--wide {
+  margin-top: 1.4rem;
+  width: 100%;
+}
+
+/* Pestanas con subrayado violeta */
+.evd-tabs {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.evd-tabs button {
+  min-height: 2.75rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--evd-dim);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.evd-tabs button.is-on {
+  color: var(--evd-ink);
+  font-weight: 600;
+  border-bottom-color: var(--evd-violet);
+}
+.evd-tabbody {
+  padding-top: 1.1rem;
+}
+.evd-prose {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #c9c6d4;
+  white-space: pre-line;
+}
+.evd-muted {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--evd-dim);
+}
+
+/* Lineup (cuando exista): avatar circular + rol en etiqueta violeta */
+.evd-lineup {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.evd-lineup li {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.evd-lineup-avatar {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #241c3d);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.evd-lineup-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.evd-lineup-info strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.evd-lineup-info em {
+  align-self: flex-start;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--evd-violet-bright);
+  background: rgba(124, 58, 237, 0.16);
+}
+
+/* Mapa (OSM embebido, tenido oscuro) + pin de marca encima */
+.evd-map-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.evd-map-frame {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.evd-map {
+  display: block;
+  width: 100%;
+  height: 13rem;
+  border: 0;
+  /* El embed de OSM es claro; el filtro lo lleva al modo nocturno de Enty
+     sin pedir una capa oscura al servidor (no hay API key). */
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.7);
+}
+.evd-map-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -90%);
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6));
+}
+.evd-map-skeleton {
+  height: 13rem;
+  border-radius: 1rem;
+  background: linear-gradient(100deg, #16151f 30%, #1e1c2a 50%, #16151f 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.evd-address {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: #c9c6d4;
+}
+.evd-address svg {
+  color: var(--evd-violet-bright);
+  flex: none;
+}
+
+.evd-empty {
+  padding: 4rem 1.5rem;
+  text-align: center;
+  color: var(--evd-dim);
+}
+.evd-empty p {
+  margin: 0 0 1.2rem;
+  font-size: 0.95rem;
+  color: var(--evd-ink);
+}
+.evd-copied {
+  position: fixed;
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(124, 58, 237, 0.92);
+  box-shadow: 0 12px 30px -12px rgba(124, 58, 237, 0.95);
+  animation: rise 0.25s ease both;
+  z-index: 20;
+}
+
+/* ----------------------------------------------------------------------
+   BOLETO TROQUELADO (pantalla 3): los bordes superior e inferior dejan de
+   ser rectos y se vuelven dentados, como un talón de papel rasgado.
+   ---------------------------------------------------------------------- */
+
+/* La sombra sale del contorno (no de la caja): al recortar el boleto con
+   mask, la profundidad tiene que nacer del silueta, no de un box-shadow
+   rectangular. El wrap deja de pintar su propio negro para que el
+   drop-shadow siga SOLO al boleto. */
+.tkt-wrap {
+  background: none;
+  filter: drop-shadow(0 26px 34px rgba(0, 0, 0, 0.8));
+}
+
+/* Dos capas de mascara: cada una cubre todo el alto y solo perfora
+   semicirculos en su borde (arriba / abajo). La union deja el cuerpo
+   intacto y las dos orillas dentadas, sin tocar el DOM. */
+.tkt {
+  --notch: 0.5rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.16) inset,
+    0 0 0 1px rgba(187, 92, 246, 0.1) inset;
+  -webkit-mask:
+    radial-gradient(circle at 50% 0, #0000 0 var(--notch), #000 calc(var(--notch) + 1px))
+      0 0 / calc(var(--notch) * 2) 100% repeat-x,
+    radial-gradient(circle at 50% 100%, #0000 0 var(--notch), #000 calc(var(--notch) + 1px))
+      0 0 / calc(var(--notch) * 2) 100% repeat-x;
+  mask:
+    radial-gradient(circle at 50% 0, #0000 0 var(--notch), #000 calc(var(--notch) + 1px))
+      0 0 / calc(var(--notch) * 2) 100% repeat-x,
+    radial-gradient(circle at 50% 100%, #0000 0 var(--notch), #000 calc(var(--notch) + 1px))
+      0 0 / calc(var(--notch) * 2) 100% repeat-x;
+}
+
+
+
 
 
 /* ===========================================================================

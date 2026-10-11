@@ -55,6 +55,14 @@ export function fetchPublicEvents({ category, city, limit } = {}) {
 }
 
 /**
+ * Detalle publico de un evento (pantalla de compra). Mismo caracter que el
+ * catalogo: sin sesion. Un evento no publicado o inexistente responde 404.
+ */
+export function fetchPublicEventDetail(eventId) {
+  return apiFetch(`/public/events/${encodeURIComponent(eventId)}`);
+}
+
+/**
  * App del fan: "mis boletas" por contacto (magic link, sin cuenta).
  * El correo o telefono con que le emitieron las boletas es la identidad.
  * No devuelve tokens: para el QR se pide `fetchMyTicketToken`.

@@ -108,3 +108,52 @@ def test_draft_and_past_events_are_not_shown(api, api_client):
     body = api_client.get("/public/events", params={"city": city}).json()
     names = [e["name"] for e in body["events"]]
     assert names == [visible]
+
+
+# --- Detalle publico de un evento (`/public/events/{id}`) -----------------
+#
+# Pantalla "comprar boleto": el fan abre un evento del catalogo. Misma
+# derivacion que el listado (categoria, precio minimo) mas la descripcion y
+# las localidades. Como es publico, un evento no publicado debe responder 404
+# igual que un id inexistente: no se filtra la existencia de borradores.
+
+
+def test_detail_is_public_and_returns_description_and_types(api, api_client):
+    venue = api.world["venue_a"]
+    tag = _tag()
+    name = f"Detalle Publico {tag}"
+    event = _future_show(api, venue, name, price_cents=18000000)
+    api.run_sql(
+        f"UPDATE events SET description = 'Una noche de sintetizadores' "
+        f"WHERE id = {event['id']}"
+    )
+
+    res = api_client.get(f"/public/events/{event['id']}")  # sin Authorization
+    assert res.status_code == 200, res.text
+    body = res.json()
+
+    assert body["id"] == event["id"]
+    assert body["name"] == name
+    assert body["description"] == "Una noche de sintetizadores"
+    assert body["category"] == "Música"
+    assert body["price_cents"] == 18000000  # la cortesia no baja el minimo
+    # Ambas localidades viajan (la cortesia con precio 0), para pintar el
+    # selector de compra.
+    by_type = {t["name"]: t for t in body["ticket_types"]}
+    assert by_type["General"]["price_cents"] == 18000000
+    assert by_type["Cortesia"]["price_cents"] == 0
+    assert body["lineup"] == []  # sin tabla de artistas: lista vacia explicita
+
+
+def test_detail_404_for_draft_past_and_unknown(api, api_client):
+    venue = api.world["venue_a"]
+    tag = _tag()
+    draft = api.create_event("admin", venue, name=f"Borrador {tag}", capacity=50)
+    past = _future_show(api, venue, f"Pasado {tag}", price_cents=1000000)
+    api.run_sql(
+        f"UPDATE events SET starts_at = now() - interval '2 days' WHERE id = {past['id']}"
+    )
+
+    assert api_client.get(f"/public/events/{draft['id']}").status_code == 404
+    assert api_client.get(f"/public/events/{past['id']}").status_code == 404
+    assert api_client.get("/public/events/99999999").status_code == 404
