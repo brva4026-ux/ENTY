@@ -649,7 +649,7 @@ html[data-theme="light"] .bizdock-count {
   position: relative;
   z-index: 2;
   margin: 0.4rem 0 0.55rem;
-  font-family: "Anton", "Sora", system-ui, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-weight: 400;
   font-size: clamp(3rem, 15vw, 4.6rem);
   line-height: 0.9;
@@ -694,7 +694,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--tkt-dim-2);
 }
 .tkt-big {
-  font-family: "Anton", "Sora", system-ui, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-weight: 400;
   font-size: clamp(1.5rem, 7vw, 2.3rem);
   line-height: 1.05;
@@ -852,7 +852,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .tkt-seat-v {
   margin-top: 0.2rem;
-  font-family: "Anton", "Sora", system-ui, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-weight: 400;
   font-size: 1.35rem;
   line-height: 1.1;
@@ -917,7 +917,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--tkt-dim-2);
 }
 .tkt-sign {
-  font-family: "Permanent Marker", cursive;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 1.4rem;
   line-height: 1;
   color: var(--tkt-green-hot);
@@ -1097,7 +1097,8 @@ html[data-theme="light"] .bizdock-count {
   display: none;
 }
 .home-tabs button {
-  height: 2.25rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
   font-size: 0.875rem;
   font-weight: 400;
   color: var(--home-dim);
@@ -1108,7 +1109,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .home-tabs button.is-on {
   color: var(--home-ink);
-  font-weight: 500;
+  font-weight: 600;
   border-bottom-color: var(--home-ink);
 }
 
@@ -1247,7 +1248,10 @@ html[data-theme="light"] .bizdock-count {
   color: var(--home-dim);
 }
 .home-subhead button {
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
   font-size: 0.75rem;
+  font-weight: 600;
   color: var(--home-accent);
 }
 
@@ -1265,10 +1269,11 @@ html[data-theme="light"] .bizdock-count {
   min-height: 4.1rem;
   padding: 0.7rem 1rem;
   border-radius: 1.1rem;
-  background: var(--home-glass);
+  /* Superficie sólida, no cristal: una lista que scrollea con backdrop-filter
+     fuerza al compositor a recomponer el blur en cada frame (iOS sobre todo).
+     El cristal queda para lo fijo (nav) y el hero; acá manda el rendimiento. */
+  background: rgba(23, 22, 34, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(var(--home-blur)) saturate(130%);
-  -webkit-backdrop-filter: blur(var(--home-blur)) saturate(130%);
   transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.2s ease;
 }
 .home-list .home-row:last-child {
@@ -1355,9 +1360,9 @@ html[data-theme="light"] .bizdock-count {
   width: 100%;
   max-width: 26rem;
   height: 4.9rem;
-  background: rgba(11, 11, 15, 0.62);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  background: rgba(11, 11, 15, 0.66);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--home-glass-line);
   display: flex;
   align-items: flex-start;
@@ -1368,9 +1373,11 @@ html[data-theme="light"] .bizdock-count {
 }
 .home-nav a {
   width: 4.4rem;
+  min-height: 2.75rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   font-size: 0.625rem;
   font-weight: 400;

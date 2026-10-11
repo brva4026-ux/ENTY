@@ -1,0 +1,348 @@
+/*
+ * ==========================================================================
+ *  ENTY · CAPA VISUAL DE PRODUCTO (v2)
+ * --------------------------------------------------------------------------
+ *  Reforça y unifica la estética Enty sobre TODO el producto: shell interno
+ *  (admin / promotor / puerta / auth) y app del fan. Se importa DESPUÉS de
+ *  index.css y aesthetic-refresh.css: no reescribe el sistema, lo eleva.
+ *
+ *  Reglas que gobiernan esta capa:
+ *   1. Sora es la única voz tipográfica. Las fuentes de cartel quedan como
+ *      acento confinado a la boleta del invitado.
+ *   2. Violeta con texto = #7C3AED (blanco encima = 5.7:1). #BB5CF6 solo
+ *      como halo/luz, nunca como relleno que sostenga texto.
+ *   3. Verde = validado/disponible. Rosa = urgencia/últimas. Acento con
+ *      significado, no decoración.
+ *   4. Motion: solo transform/opacity. Nada de animar filter/backdrop-filter
+ *      (mata el compositor en móvil). Curva única: cubic-bezier(.2,.8,.2,1).
+ * ==========================================================================
+ */
+
+/* --------------------------------------------------------------------------
+ *  1. TIPOGRAFÍA · Sora variable self-hosted (1 archivo, 100–800)
+ * ------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Sora";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/fonts/sora-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Sora";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/fonts/sora-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* --------------------------------------------------------------------------
+ *  2. TOKENS DE PRODUCTO · una sola fuente de verdad
+ * ------------------------------------------------------------------------- */
+:root {
+  /* Superficies (negro profundo → elevación) */
+  --e-bg: #0b0b0f;
+  --e-surface: #101017;
+  --e-surface-2: #171622;
+  --e-surface-3: #1e1c2c;
+
+  /* Tinta */
+  --e-ink: #f5f5f7;
+  --e-muted: #b8b4c8;
+  --e-subtle: #8f8b9c;
+
+  /* Marca */
+  --e-violet: #7c3aed;      /* relleno con texto */
+  --e-violet-glow: #bb5cf6; /* solo halo/hover */
+  --e-green: #00e6ab;
+  --e-pink: #ff2d98;
+
+  /* Líneas y cristal */
+  --e-line: rgba(255, 255, 255, 0.1);
+  --e-line-soft: rgba(255, 255, 255, 0.07);
+  --e-glass: rgba(255, 255, 255, 0.045);
+  --e-glass-strong: rgba(255, 255, 255, 0.075);
+  --e-glass-blur: 16px;
+
+  /* Geometría */
+  --e-r-card: 1.25rem;
+  --e-r-control: 0.875rem;
+  --e-r-pill: 999px;
+
+  /* Elevación */
+  --e-shadow-card: 0 22px 54px -38px rgba(0, 0, 0, 0.95);
+  --e-glow-violet: 0 12px 34px -18px rgba(124, 58, 237, 0.9);
+  --e-glow-green: 0 12px 34px -18px rgba(0, 230, 171, 0.75);
+  --e-glow-pink: 0 12px 34px -18px rgba(255, 45, 152, 0.75);
+
+  /* Movimiento: una curva, tres duraciones */
+  --e-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --e-dur-tap: 120ms;
+  --e-dur-ui: 200ms;
+  --e-dur-enter: 320ms;
+}
+
+html[data-theme="light"] {
+  --e-bg: #f4f3f8;
+  --e-surface: #ffffff;
+  --e-surface-2: #f8f7fb;
+  --e-surface-3: #f1eef9;
+  --e-ink: #111116;
+  --e-muted: #555064;
+  --e-subtle: #777286;
+  --e-violet: #6d28d9; /* un paso más oscuro: sostiene blanco en claro */
+  --e-violet-glow: #7c3aed;
+  --e-line: rgba(17, 17, 22, 0.12);
+  --e-line-soft: rgba(17, 17, 22, 0.08);
+  --e-glass: rgba(255, 255, 255, 0.7);
+  --e-glass-strong: rgba(255, 255, 255, 0.85);
+  --e-shadow-card: 0 22px 48px -38px rgba(15, 23, 42, 0.45);
+  --e-glow-violet: 0 12px 30px -18px rgba(109, 40, 217, 0.55);
+}
+
+/* --------------------------------------------------------------------------
+ *  3. ESCALA TIPOGRÁFICA · Sora con jerarquía por peso, no por tamaño
+ * ------------------------------------------------------------------------- */
+body {
+  font-family: "Sora", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-feature-settings: normal;
+  letter-spacing: -0.006em;
+}
+
+.e-display {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.e-h1 {
+  font-size: 1.75rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.e-h2 {
+  font-size: 1.25rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.e-label {
+  font-size: 0.75rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--e-subtle);
+}
+
+/* La casa habla en titulares cerrados y con más peso óptico. */
+.app-shell h1,
+.app-shell h2,
+.app-shell .display,
+.app-shell .vh-nombre-titulo {
+  letter-spacing: -0.025em;
+  font-weight: 650;
+}
+
+/* --------------------------------------------------------------------------
+ *  4. MATERIAL ÚNICO · cristal sobre negro mate para TODA la app
+ * ------------------------------------------------------------------------- */
+html:not([data-theme="light"]) .app-shell .card,
+html:not([data-theme="light"]) .app-shell .venue-header,
+html:not([data-theme="light"]) .app-shell .bizdock {
+  background:
+    radial-gradient(30rem 18rem at 88% -8rem, rgba(124, 58, 237, 0.11), transparent 66%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 44%),
+    rgba(17, 17, 23, 0.88);
+  border-color: var(--e-line-soft);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    var(--e-shadow-card);
+}
+
+/* --------------------------------------------------------------------------
+ *  5. CTA · la píldora que convierte
+ * ------------------------------------------------------------------------- */
+.app-shell .btn-primary,
+.btn-primary {
+  border-radius: var(--e-r-pill);
+  min-height: 3.25rem; /* 52px: premium, no solo el mínimo táctil */
+  padding-inline: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  background: var(--e-violet);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    var(--e-glow-violet);
+  transition:
+    transform var(--e-dur-tap) var(--e-ease),
+    box-shadow var(--e-dur-ui) var(--e-ease),
+    background-color var(--e-dur-ui) var(--e-ease);
+}
+.app-shell .btn-primary:hover,
+.btn-primary:hover {
+  background: #8b5cf6;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 16px 40px -18px rgba(124, 58, 237, 1);
+}
+.app-shell .btn-primary:active,
+.btn-primary:active {
+  transform: scale(0.975);
+}
+
+/* --------------------------------------------------------------------------
+ *  6. PÍLDORAS SEMÁNTICAS · verde = validado, rosa = urgencia
+ * ------------------------------------------------------------------------- */
+.e-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: var(--e-r-pill);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  border: 1px solid transparent;
+}
+.e-pill--ok {
+  color: var(--e-green);
+  background: rgba(0, 230, 171, 0.12);
+  border-color: rgba(0, 230, 171, 0.3);
+}
+.e-pill--hot {
+  color: var(--e-pink);
+  background: rgba(255, 45, 152, 0.12);
+  border-color: rgba(255, 45, 152, 0.3);
+}
+.e-pill--brand {
+  color: #d9b6ff;
+  background: rgba(124, 58, 237, 0.16);
+  border-color: rgba(124, 58, 237, 0.34);
+}
+
+/* --------------------------------------------------------------------------
+ *  7. MICRO-INTERACCIÓN · feedback táctil consistente en toda la app
+ * ------------------------------------------------------------------------- */
+.app-shell .card-interactive,
+.app-shell .bizdock-item,
+.app-shell .tabbar-item,
+.app-shell .bottomnav-item,
+.app-shell .chip,
+.app-shell .btn-ghost,
+.app-shell .btn-mini {
+  transition:
+    transform var(--e-dur-tap) var(--e-ease),
+    background-color var(--e-dur-ui) var(--e-ease),
+    border-color var(--e-dur-ui) var(--e-ease),
+    box-shadow var(--e-dur-ui) var(--e-ease),
+    color var(--e-dur-ui) var(--e-ease);
+}
+.app-shell .bizdock-item:active,
+.app-shell .tabbar-item:active,
+.app-shell .bottomnav-item:active,
+.app-shell .chip:active,
+.app-shell .btn-ghost:active,
+.app-shell .btn-mini:active,
+.app-shell .card-interactive:active {
+  transform: scale(0.97);
+}
+
+/* Foco de marca unificado: un anillo violeta, jamás outline gris. */
+.app-shell :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--e-violet-glow);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+ *  8. TOPBAR / BOTTOMNAV · cristal con coste de GPU contenido
+ *    blur 16px sin saturate(): el saturate duplica el recosteo del
+ *    compositor en cada frame de scroll en iOS.
+ * ------------------------------------------------------------------------- */
+html:not([data-theme="light"]) .app-shell .topbar {
+  background: rgba(11, 11, 15, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--e-line-soft);
+}
+html:not([data-theme="light"]) .app-shell .bottomnav {
+  background: rgba(11, 11, 15, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--e-line-soft);
+}
+
+/* --------------------------------------------------------------------------
+ *  9. MOVIMIENTO REDUCIDO · respeto absoluto
+ * ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after,
+  .home *,
+  .home *::before,
+  .home *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * 10. MÓVIL · densidad táctil real (≥44px) sin romper la retícula
+ * ------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .btn-primary,
+  .app-shell .btn-primary {
+    min-height: 3.25rem;
+  }
+  /* El display se contiene para no desbordar a 320px. */
+  .e-display {
+    font-size: 2.05rem;
+  }
+
+  /* Controles de texto que no pueden crecer sin romper el renglón: conservan
+     su tamaño visual y ganan área táctil con un ::after invisible. */
+  .auth-shell [aria-label="Mostrar contraseña"],
+  .auth-shell [aria-label="Ocultar contraseña"] {
+    position: relative;
+  }
+  .auth-shell [aria-label="Mostrar contraseña"]::after,
+  .auth-shell [aria-label="Ocultar contraseña"]::after {
+    content: "";
+    position: absolute;
+    inset: -4px; /* 36px → 44px reales */
+  }
+  .auth-shell p > button,
+  .auth-shell button.link-underline {
+    position: relative;
+  }
+  .auth-shell p > button::after,
+  .auth-shell button.link-underline::after {
+    content: "";
+    position: absolute;
+    inset: -14px -8px; /* 16px de renglón → 44px de toque */
+  }
+
+  /* App del fan: avatar y CTA a 44px. */
+  .home-avatar {
+    position: relative;
+  }
+  .home-avatar::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+  .home-cta {
+    min-height: 2.75rem;
+  }
+}

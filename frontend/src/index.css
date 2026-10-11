@@ -1,19 +1,9 @@
-/* La fuente se declara ANTES de tailwindcss: al inlinearse Tailwind v4,
-   el @import de la fuente queda primero y el navegador la descarga sin
-   warning de orden CSS (además, index.html hace preconnect). */
-@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,450;14..32,500;14..32,600;14..32,700;14..32,800&display=swap");
-/* Fuentes de cartel para la boleta del invitado: Shrikhand (display con
-   contraste jugoso, tipo "Jazz Love Fest") y Baloo 2 (redonda amable para
-   etiquetas del talon). Se cargan con display=swap: si tardan, la boleta
-   pinta con la serif de fallback y no parpadea. */
-@import url("https://fonts.googleapis.com/css2?family=Shrikhand&family=Baloo+2:wght@600;700;800&display=swap");
-/* Capa POP (estudio de referencia Absolut/Dikshant): Gochi Hand para
-   anotaciones manuscritas ("Notas del barrio"), Permanent Marker para
-   subrayados de pincel. Solo decoran; la interaccion sigue siendo azul. */
-@import url("https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Permanent+Marker&family=Anton&display=swap");
-/* Sora: la voz editorial de la app del fan (pantalla Inicio). Titulares en
-   peso 300 con tracking negativo, UI en 500 — el look del mockup de marca. */
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400;500;600;700&display=swap");
+/* TIPOGRAFÍA · Sora es la ÚNICA voz del producto, self-hosted como fuente
+   variable (public/fonts/sora-*.woff2, 1 archivo cubre 100–800). Sin
+   @import a Google Fonts: cero requests bloqueantes, cero FOUT de terceros.
+   Las voces de cartel (Shrikhand/Baloo/Gochi/Permanent Marker/Anton) se
+   retiraron del sistema: la jerarquía la hace el peso de Sora, no otra
+   familia. Ver src/enty-system.css. */
 @import "tailwindcss";
 
 @theme {
@@ -468,7 +458,7 @@ html[data-theme="light"] .btn-mini[data-variant="brand"] {
 }
 html[data-theme="light"] .btn-mini[data-variant="brand"]:hover {
   background: rgba(187, 92, 246, 0.09);
-  color: #1e3a8a;
+  color: #5b21b6;
 }
 html[data-theme="light"] .btn-mini[data-variant="success"] {
   color: #047857;
@@ -3765,7 +3755,7 @@ body {
 
 /* Tinta manuscrita (Gochi Hand) para anotaciones y tags */
 .hand {
-  font-family: "Gochi Hand", "Comic Sans MS", cursive;
+  font-family: "Sora", system-ui, sans-serif;
 }
 
 /* Subrayado de pincel (Permanent Marker): un trazo detras del titular,
@@ -3824,7 +3814,7 @@ html[data-theme="light"] .halftone::before {
   color: #101013;
   border: 2px solid var(--color-zinc-925);
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
-  font-family: "Baloo 2", "Inter", sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   font-size: 0.72rem;
   letter-spacing: 0.04em;
@@ -3879,7 +3869,7 @@ html[data-theme="light"] .sticker-pop {
   border-radius: 999px;
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
   padding: 0.2rem 0.6rem;
-  font-family: "Baloo 2", "Inter", sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   font-size: 0.66rem;
   letter-spacing: 0.12em;
@@ -3898,7 +3888,7 @@ html[data-theme="light"] .sticker-pop {
   box-shadow:
     0 2px 6px rgba(0, 0, 0, 0.22),
     inset 0 0 0 1px rgba(0, 0, 0, 0.05);
-  font-family: "Gochi Hand", "Comic Sans MS", cursive;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 0.85rem;
   line-height: 1.45;
 }
@@ -4002,7 +3992,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   gap: 0.75rem;
 }
 .tkt-date {
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   font-size: 0.85rem;
   letter-spacing: 0.1em;
@@ -4011,7 +4001,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 .tkt-venue {
   margin-top: 0.15rem;
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 0.78rem;
   font-weight: 700;
   color: rgba(74, 47, 5, 0.75);
@@ -4025,24 +4015,24 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   border-radius: 999px;
   background: rgba(22, 37, 92, 0.14);
   color: #1C1730;
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-/* Nombre del evento: la estrella del cartel. Shrikhand (display jugosa con
-   contraste de trazos, estilo "Jazz Love Fest") con fallback serif; el
-   contorno claro tipo sticker hace que el titular se lea impreso. */
+/* Nombre del evento: la estrella del cartel. Sora en 800 con tracking
+   cerrado sostiene el rol display sin segunda familia; el contorno claro
+   tipo sticker hace que el titular se lea impreso. */
 .tkt-title {
   position: relative;
   z-index: 1;
   margin: 0.5rem 1.25rem 0;
-  font-family: "Shrikhand", Georgia, "Times New Roman", serif;
-  font-weight: 400; /* Shrikhand ya es extra-bold: un 800 sintetico la deforma */
+  font-family: "Sora", system-ui, sans-serif;
+  font-weight: 800;
   font-size: clamp(1.8rem, 8.5vw, 2.4rem);
   line-height: 1.02;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.02em;
   text-transform: uppercase;
   color: #1C1730;
   text-shadow:
@@ -4054,7 +4044,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   position: relative;
   z-index: 1;
   margin: 0.45rem 1.25rem 0;
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.24em;
@@ -4160,7 +4150,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   border-radius: 999px;
   border: 1.5px dashed rgba(22, 37, 92, 0.45);
   color: #1C1730;
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 0.66rem;
   font-weight: 800;
   letter-spacing: 0.26em;
@@ -4186,7 +4176,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   border-left: 1.5px dashed rgba(22, 37, 92, 0.3);
 }
 .tkt-cell-label {
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -4195,7 +4185,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 .tkt-cell-value {
   margin-top: 0.15rem;
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   font-size: 0.85rem;
   color: #221a06;
@@ -4242,13 +4232,13 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 .tkt-note strong {
   display: block;
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 1rem;
   color: #221a06;
 }
 .tkt-note p {
   margin-top: 0.3rem;
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 0.8rem;
   line-height: 1.5;
   color: rgba(34, 26, 6, 0.75);
@@ -4271,7 +4261,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   width: 100%;
   border-radius: 0.75rem;
   padding: 0.7rem 1rem;
-  font-family: "Baloo 2", "Inter", ui-sans-serif, sans-serif;
+  font-family: "Sora", system-ui, sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
@@ -4559,7 +4549,7 @@ html[data-theme="light"] .evx-card > .evx-perf {
    (Baloo 2, ya cargada) con mas cuerpo y tracking cerrado: jerarquia sin
    cambiar la fuente de la app ni recargar nada. */
 .evx-name {
-  font-family: "Baloo 2", var(--font-sans);
+  font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
