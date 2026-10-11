@@ -393,14 +393,23 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   background: var(--tf-black);
 }
 
-.tkt-card {
+.tkt {
   border-radius: 1.25rem;
   background:
-    radial-gradient(24rem 18rem at 78% 16%, rgba(187, 92, 246, 0.14), transparent 60%),
+    radial-gradient(26rem 18rem at 78% 12%, rgba(187, 92, 246, 0.14), transparent 60%),
+    radial-gradient(18rem 10rem at 14% 72%, rgba(255, 45, 152, 0.1), transparent 62%),
     linear-gradient(180deg, #111116, #08080b);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 28px 70px -38px rgba(0, 0, 0, 1), 0 0 0 1px rgba(187, 92, 246, 0.08);
+}
+
+.tkt::before {
+  opacity: 0.16;
+}
+
+.tkt-head {
+  color: #ffffff;
 }
 
 .tkt-title,
@@ -423,6 +432,10 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   background: rgba(187, 92, 246, 0.16);
   color: #ffffff;
   border-color: rgba(187, 92, 246, 0.42);
+}
+
+.tkt-tear::after {
+  border-top-color: rgba(255, 255, 255, 0.22);
 }
 
 .tkt-body {
@@ -455,10 +468,17 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   border-left-color: rgba(255, 255, 255, 0.18);
 }
 
+.tkt-cell-label,
 .tkt-cell-value,
 .tkt-note strong,
-.tkt-note p {
+.tkt-note p,
+.tkt-name-row .tkt-cell-label,
+.tkt-name-row .tkt-cell-value {
   color: #ffffff;
+}
+
+.tkt-body [style*="rgba(74, 47, 5"] {
+  color: rgba(247, 247, 251, 0.72) !important;
 }
 
 .tkt-btn-primary {
@@ -471,6 +491,10 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.16);
+}
+
+.tkt-brandline span {
+  color: rgba(247, 247, 251, 0.78);
 }
 
 @media (max-width: 640px) {
