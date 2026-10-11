@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { fetchPublicTicket, fetchTicketImage, returnTicket } from "../lib/api";
-import { eventDate } from "../lib/format";
+import { eventDate, clockTime } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import Icon from "../components/Icon";
 
@@ -24,6 +24,60 @@ function readToken() {
   } catch {
     return raw;
   }
+}
+
+/** Isotipo Enty: la "E" con muesca de boleto, en blanco sobre la boleta. */
+function EntyMark({ className }) {
+  return (
+    <svg viewBox="0 0 64 84" className={className} aria-hidden="true">
+      <path
+        d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z"
+        fill="#FFFFFF"
+      />
+      <g fill="#0A0A0D">
+        <rect x="20" y="24" width="26" height="6" rx="3" />
+        <rect x="20" y="40" width="26" height="6" rx="3" />
+        <rect x="20" y="56" width="26" height="6" rx="3" />
+      </g>
+    </svg>
+  );
+}
+
+/** Estrella de cuatro puntas (acento de marca). */
+function Star({ className, color = "#00E6AB" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill={color}
+        d="M12 1 l2.6 8.4 8.4 2.6 -8.4 2.6 -2.6 8.4 -2.6 -8.4 -8.4 -2.6 8.4 -2.6 z"
+      />
+    </svg>
+  );
+}
+
+/** Código de barras decorativo (determinista: mismo ancho en cada render). */
+function Barcode() {
+  let seed = 99;
+  const rnd = () =>
+    (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const bars = [];
+  let x = 0;
+  while (x < 190) {
+    const w = 0.6 + rnd() * 2.2;
+    if (rnd() > 0.45) {
+      bars.push(
+        <rect
+          key={x.toFixed(1)}
+          x={x.toFixed(1)}
+          y="0"
+          width={w.toFixed(1)}
+          height="40"
+        />,
+      );
+    }
+    x += w + 0.6 + rnd() * 1.6;
+  }
+  return <g fill="#FFFFFF">{bars}</g>;
 }
 
 export default function PublicTicketPage() {
@@ -97,13 +151,9 @@ export default function PublicTicketPage() {
     setBusy(true);
     try {
       const blob = await (await fetch(imageUrl)).blob();
-      const file = new File(
-        [blob],
-        `boleta-${ticket?.ticket_id ?? "tickelot"}.jpg`,
-        {
-          type: "image/jpeg",
-        },
-      );
+      const file = new File([blob], `boleta-${ticket?.ticket_id ?? "enty"}.jpg`, {
+        type: "image/jpeg",
+      });
       // Web Share API (movil): manda la IMAGEN, no un texto.
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: "Mi boleta" });
@@ -170,23 +220,81 @@ export default function PublicTicketPage() {
         ]
       : null;
 
+  // Localidad del talón: "CIUDAD, REGION" derivada del venue con heuristicas
+  // tolerantes a los separadores que usa el formulario.
+  const venue = ticket?.venue_name ?? "";
+  const [venueMain, venueCityRaw] = venue.includes("·")
+    ? venue.split("·").map((s) => s.trim())
+    : [venue, ""];
+  const venueCity = /online|virtual|remoto/i.test(venue)
+    ? "EN LÍNEA"
+    : (venueCityRaw || venueMain).toUpperCase();
+
+  const statusLabel = terminal
+    ? returned
+      ? "DEVUELTA"
+      : "ANULADA"
+    : redeemed
+      ? "USADA"
+      : "VÁLIDA";
+
+  // Hora de puerta: solo se muestra si la fecha no la trae ya formateada.
+  const dateStr = eventDate(ticket?.starts_at) || "—";
+  const doorTime = /\d{1,2}:\d{2}/.test(dateStr)
+    ? null
+    : clockTime(ticket?.starts_at);
+  const year = new Date(ticket?.starts_at).getFullYear();
+
   return (
-    <div className="tkt-stage halftone">
+    <div className="tkt-stage">
       <div className="tkt-wrap">
-        {/* El ticket: credencial ambar troquelada, como las de festival */}
+        {/* El ticket: pase de festival de papel negro con acentos neon */}
         <div className="tkt">
           <div className="tkt-head">
-            <div className="min-w-0">
-              <p className="tkt-date">{eventDate(ticket?.starts_at) || "—"}</p>
-              <p className="tkt-venue truncate">{ticket?.venue_name ?? ""}</p>
+            <div className="tkt-brand-lock">
+              <EntyMark className="tkt-mark" />
+              <span>Enty</span>
             </div>
-            <span className="tkt-brand">Enty</span>
+            <p className="tkt-connect">
+              Music
+              <br />
+              Connects
+              <br />
+              Us<span className="tkt-arw">↗</span>
+            </p>
           </div>
 
-          <h1 className="tkt-title">{ticket?.event_name ?? "Tu boleta"}</h1>
-          <p className="tkt-sub">Boleta de invitado</p>
-
-          <div className="tkt-tear" aria-hidden="true" />
+          <div className="tkt-hero">
+            <svg
+              className="tkt-orbit"
+              viewBox="0 0 430 190"
+              aria-hidden="true"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <ellipse
+                cx="215"
+                cy="95"
+                rx="205"
+                ry="58"
+                fill="none"
+                stroke="#00E6AB"
+                strokeWidth="1.6"
+                opacity="0.8"
+                transform="rotate(-7 215 95)"
+              />
+              <path
+                d="M360 24 l6 15 15 6 -15 6 -6 15 -6 -15 -15 -6 15 -6 z"
+                fill="#00E6AB"
+                className="tkt-orbit-star"
+              />
+            </svg>
+            <p className="tkt-kicker">Festival</p>
+            <h1 className="tkt-title">{ticket?.event_name ?? "Tu boleta"}</h1>
+            <p className="tkt-tags">
+              Music / Art / Nature
+              <span className="tkt-one">One Night</span>
+            </p>
+          </div>
 
           <div className="tkt-body">
             {error ? (
@@ -222,57 +330,104 @@ export default function PublicTicketPage() {
               </div>
             ) : (
               <>
-                <div className="tkt-qr-zone">
-                  <div className="tkt-qr">
-                    {qrDataUrl ? (
-                      <img src={qrDataUrl} alt="QR de tu boleta" />
-                    ) : (
-                      <div className="skeleton" />
-                    )}
-                    {redeemed && (
-                      <div className="absolute inset-0 grid place-items-center rounded-[1rem] bg-zinc-950/70">
-                        <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-black">
-                          Ya usada
-                        </span>
-                      </div>
-                    )}
+                <div className="tkt-body-grid">
+                  <div className="tkt-when">
+                    {year ? <p className="tkt-yr">{year}</p> : null}
+                    <p className="tkt-big">{dateStr}</p>
+                    {doorTime && <p className="tkt-hrs">Puerta {doorTime}</p>}
+                    <p className="tkt-place">{venueMain || "—"}</p>
+                    <p className="tkt-city">{venueCity}</p>
                   </div>
-                  <span className="tkt-admit">Admit one</span>
+
+                  <div className="tkt-qr-zone">
+                    <div className="tkt-qr">
+                      {qrDataUrl ? (
+                        <img src={qrDataUrl} alt="QR de tu boleta" />
+                      ) : (
+                        <div className="skeleton" />
+                      )}
+                      <Star className="tkt-qr-star" />
+                      {redeemed && (
+                        <div className="tkt-qr-used">
+                          <span>Ya usada</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="tkt-scan">
+                      Scan for Entry <span className="tkt-arw">↗</span>
+                    </span>
+                  </div>
                 </div>
 
-                <div className="tkt-grid">
-                  <div className="tkt-cell">
-                    <p className="tkt-cell-label">Boleta</p>
-                    <p className="tkt-cell-value tnum">
-                      #{ticket?.ticket_id ?? "—"}
-                    </p>
+                <div className="tkt-strokes" aria-hidden="true">
+                  <svg viewBox="0 0 380 44" preserveAspectRatio="none">
+                    <path
+                      d="M8 30 C 70 8, 130 40, 196 20 S 320 6, 372 24"
+                      fill="none"
+                      stroke="#39FF14"
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                      opacity="0.9"
+                      className="tkt-stroke-green"
+                    />
+                    <path
+                      d="M20 38 C 96 22, 150 40, 214 26 S 330 14, 366 34"
+                      fill="none"
+                      stroke="#FF2D98"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      opacity="0.85"
+                      className="tkt-stroke-pink"
+                    />
+                  </svg>
+                </div>
+
+                <div className="tkt-perf" aria-hidden="true" />
+
+                <div className="tkt-stub">
+                  <div className="tkt-seat">
+                    <div className="tkt-seat-cell">
+                      <p className="tkt-seat-k">Estado</p>
+                      <p className="tkt-seat-v">{statusLabel}</p>
+                    </div>
+                    <div className="tkt-seat-cell">
+                      <p className="tkt-seat-k">Boleta</p>
+                      <p className="tkt-seat-v tnum">
+                        #{ticket?.ticket_id ?? "—"}
+                      </p>
+                    </div>
+                    <div className="tkt-seat-cell">
+                      <p className="tkt-seat-k">Invitado</p>
+                      <p className="tkt-seat-v tkt-seat-name">
+                        {ticket?.customer_name ?? "—"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="tkt-cell">
-                    <p className="tkt-cell-label">Fecha</p>
-                    <p className="tkt-cell-value">
-                      {eventDate(ticket?.starts_at) || "—"}
-                    </p>
-                  </div>
-                  <div className="tkt-cell">
-                    <p className="tkt-cell-label">Estado</p>
-                    <p className="tkt-cell-value">
-                      {redeemed ? "Usada" : "Lista"}
-                    </p>
+                  <div className="tkt-admit">
+                    <p className="tkt-admit-k">General Admission</p>
+                    <div className="tkt-brand-lock tkt-brand-lock--sm">
+                      <EntyMark className="tkt-mark" />
+                      <span>Enty</span>
+                    </div>
                   </div>
                 </div>
-                <div className="tkt-name-row">
-                  <p className="tkt-cell-label">Invitado</p>
-                  <p className="tkt-cell-value">{ticket?.customer_name ?? "—"}</p>
-                </div>
+
                 {ticket?.location && (
-                  <p
-                    className="mt-2.5 flex items-start justify-center gap-1.5 text-center text-xs font-semibold"
-                    style={{ color: "rgba(74, 47, 5, 0.8)" }}
-                  >
+                  <p className="tkt-location">
                     <Icon name="door" className="mt-px h-3.5 w-3.5 shrink-0" />
                     {ticket.location}
                   </p>
                 )}
+
+                <div className="tkt-foot">
+                  <div className="tkt-barcode" aria-hidden="true">
+                    <svg viewBox="0 0 190 40" preserveAspectRatio="none">
+                      <Barcode />
+                    </svg>
+                    <p className="tkt-barcode-cap">Enty App — Your Next Event</p>
+                  </div>
+                  <p className="tkt-sign">See You There!</p>
+                </div>
               </>
             )}
 
@@ -321,7 +476,7 @@ export default function PublicTicketPage() {
                       .
                     </p>
                     {returnError && (
-                      <p className="mt-1.5 text-xs font-bold text-red-700">
+                      <p className="mt-1.5 text-xs font-bold text-red-400">
                         {returnError}
                       </p>
                     )}

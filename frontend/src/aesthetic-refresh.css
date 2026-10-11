@@ -505,3 +505,449 @@ html[data-theme="light"] header nav a[aria-current="page"] {
     border-radius: 1rem;
   }
 }
+
+/* ===========================================================================
+   BOLETA AURORA (pase de festival) - la lamina que define el look de la boleta.
+   Papel negro mate con grano y borde rasgado, hero con orbita neon, trazos
+   gestuales verde/rosa, perforacion y talon. Va al final a proposito: gana la
+   cascada sobre las reglas .tkt de index.css y de la seccion anterior.
+   =========================================================================== */
+.tkt-stage {
+  background:
+    radial-gradient(46rem 30rem at 50% -12rem, rgba(187, 92, 246, 0.16), transparent 62%),
+    var(--tf-black, #050508);
+}
+.tkt {
+  --tkt-paper: #0a0a0d;
+  --tkt-hair: rgba(255, 255, 255, 0.14);
+  --tkt-dim: rgba(255, 255, 255, 0.55);
+  --tkt-dim-2: rgba(255, 255, 255, 0.34);
+  --tkt-green: #00e6ab;
+  --tkt-green-hot: #39ff14;
+  --tkt-pink: #ff2d98;
+  position: relative;
+  border: 0;
+  border-radius: 0.35rem;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  background:
+    radial-gradient(120% 80% at 50% -10%, #141419 0%, transparent 55%),
+    linear-gradient(180deg, #0c0c10, var(--tkt-paper));
+  box-shadow:
+    0 30px 70px -30px rgba(0, 0, 0, 0.85),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  /* Borde rasgado irregular arriba/abajo: cientos de puntos de una polilinea
+     con jitter determinista (el mismo trazo en cada render). */
+  clip-path: polygon(
+    0px 8.6px, 12px 3.1px, 24px 9.4px, 36px 4.8px, 48px 10.2px, 60px 2.6px,
+    72px 8.1px, 84px 5.5px, 96px 11.3px, 108px 3.9px, 120px 9.1px, 132px 2.2px,
+    144px 7.7px, 156px 4.4px, 168px 10.6px, 180px 3.3px, 192px 8.9px, 204px 5.1px,
+    216px 11.7px, 228px 2.9px, 240px 7.4px, 252px 4.1px, 264px 10.9px, 276px 3.6px,
+    288px 8.4px, 300px 5.8px, 312px 11.1px, 324px 2.4px, 336px 7.9px, 348px 4.7px,
+    360px 10.4px, 372px 3.2px, 384px 8.7px, 396px 5.3px, 408px 11.5px, 420px 2.7px,
+    432px 0px,
+    432px 640px,
+    420px 630.9px, 408px 637.2px, 396px 632.6px, 384px 638.4px, 372px 629.8px,
+    360px 636.1px, 348px 631.5px, 336px 637.9px, 324px 630.4px, 312px 636.6px,
+    300px 632.1px, 288px 638.7px, 276px 629.4px, 264px 635.9px, 252px 631.2px,
+    240px 637.6px, 228px 630.7px, 216px 636.9px, 204px 632.4px, 192px 638.2px,
+    180px 629.9px, 168px 636.3px, 156px 631.7px, 144px 637.8px, 132px 630.2px,
+    120px 636.8px, 108px 632.3px, 96px 638.6px, 84px 629.6px, 72px 636.4px,
+    60px 631.4px, 48px 637.4px, 36px 630.8px, 24px 636.2px, 12px 631.9px, 0px 638px
+  );
+}
+/* Grano / desgaste sutil (no ensucia la lectura). */
+.tkt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+}
+/* La onda decorativa de index.css ya no aplica en el papel negro. */
+.tkt::before {
+  content: none;
+}
+
+/* Cabecera */
+.tkt-head {
+  padding: 1.35rem 1.4rem 0;
+  align-items: flex-start;
+}
+.tkt-brand-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.tkt-brand-lock--sm {
+  font-size: 0.95rem;
+}
+.tkt-mark {
+  width: 0.9em;
+  height: 1.16em;
+  display: block;
+}
+.tkt-connect {
+  text-align: right;
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  line-height: 1.9;
+  text-transform: uppercase;
+  color: var(--tkt-dim);
+}
+.tkt-arw {
+  color: var(--tkt-green);
+  font-size: 1.25em;
+  margin-left: 0.15em;
+}
+
+/* Hero */
+.tkt-hero {
+  position: relative;
+  text-align: center;
+  margin: 1.9rem 0 1.5rem;
+  padding: 0.5rem 0;
+}
+.tkt-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 108%;
+  max-width: 27rem;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  pointer-events: none;
+}
+.tkt-orbit-star {
+  filter: drop-shadow(0 0 10px rgba(0, 230, 171, 0.9));
+}
+.tkt-kicker {
+  position: relative;
+  z-index: 2;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  color: var(--tkt-dim);
+}
+.tkt-title {
+  position: relative;
+  z-index: 2;
+  margin: 0.4rem 0 0.55rem;
+  font-family: "Anton", "Sora", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(3rem, 15vw, 4.6rem);
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  color: #fff;
+  text-transform: uppercase;
+  text-shadow: 0 0 34px rgba(0, 230, 171, 0.1);
+  overflow-wrap: anywhere;
+}
+.tkt-tags {
+  position: relative;
+  z-index: 2;
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  color: var(--tkt-dim);
+}
+.tkt-one {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.42em;
+  color: var(--tkt-dim-2);
+}
+
+/* Cuerpo: fecha/plaza + QR */
+.tkt-body {
+  padding: 0 1.4rem 1.4rem;
+  background: none;
+}
+.tkt-body-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.1rem;
+  align-items: start;
+  margin-top: 0.3rem;
+}
+.tkt-yr {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  color: var(--tkt-dim-2);
+}
+.tkt-big {
+  font-family: "Anton", "Sora", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(1.5rem, 7vw, 2.3rem);
+  line-height: 1.05;
+  color: #fff;
+  margin: 0.2rem 0 0.1rem;
+}
+.tkt-hrs {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--tkt-dim);
+}
+.tkt-place {
+  margin-top: 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+}
+.tkt-city {
+  margin-top: 0.1rem;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--tkt-dim-2);
+}
+.tkt-qr-zone {
+  gap: 0.55rem;
+}
+.tkt-qr {
+  width: 7.4rem;
+  height: 7.4rem;
+  padding: 0.5rem;
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--tkt-hair);
+  box-shadow: none;
+}
+.tkt-qr::before,
+.tkt-qr::after {
+  content: none;
+}
+.tkt-qr img,
+.tkt-qr .skeleton {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.4rem;
+}
+.tkt-qr-star {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.35rem;
+  height: 1.35rem;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 8px rgba(0, 230, 171, 0.85));
+}
+.tkt-qr-used {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 0.6rem;
+  background: rgba(5, 5, 8, 0.72);
+}
+.tkt-qr-used span {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #000;
+}
+.tkt-scan {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+/* Trazos gestuales neon */
+.tkt-strokes {
+  position: relative;
+  height: 2.6rem;
+  margin: 1.1rem -0.35rem 0.3rem;
+}
+.tkt-strokes svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.tkt-stroke-green {
+  filter: drop-shadow(0 0 8px rgba(57, 255, 20, 0.7));
+}
+.tkt-stroke-pink {
+  filter: drop-shadow(0 0 9px rgba(255, 45, 152, 0.65));
+}
+
+/* Perforacion */
+.tkt-perf {
+  position: relative;
+  height: 1.3rem;
+  margin: 0.15rem -1.4rem 1rem;
+  display: flex;
+  align-items: center;
+}
+.tkt-perf::before {
+  content: "";
+  flex: 1;
+  height: 2px;
+  margin: 0 1rem;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--tkt-hair) 0 5px,
+    transparent 5px 11px
+  );
+}
+.tkt-perf::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 0.5rem at 0 50%, var(--tf-black, #050508) 98%, transparent),
+    radial-gradient(circle 0.5rem at 100% 50%, var(--tf-black, #050508) 98%, transparent);
+}
+
+/* Talon */
+.tkt-stub {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: start;
+}
+.tkt-seat {
+  display: flex;
+}
+.tkt-seat-cell {
+  padding: 0 0.9rem;
+  border-left: 1px solid var(--tkt-hair);
+  min-width: 0;
+}
+.tkt-seat-cell:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.tkt-seat-k {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--tkt-dim-2);
+}
+.tkt-seat-v {
+  margin-top: 0.2rem;
+  font-family: "Anton", "Sora", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 1.35rem;
+  line-height: 1.1;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+.tkt-seat-name {
+  font-family: "Sora", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.tkt-admit {
+  text-align: right;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 0;
+}
+.tkt-admit-k {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.tkt-admit .tkt-brand-lock {
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+.tkt-location {
+  margin-top: 0.7rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35rem;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--tkt-dim);
+}
+
+/* Pie: codigo de barras + firma */
+.tkt-foot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: end;
+  margin-top: 1.3rem;
+}
+.tkt-barcode svg {
+  display: block;
+  width: 11.5rem;
+  max-width: 100%;
+  height: 2.5rem;
+}
+.tkt-barcode-cap {
+  margin-top: 0.4rem;
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--tkt-dim-2);
+}
+.tkt-sign {
+  font-family: "Permanent Marker", cursive;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--tkt-green-hot);
+  text-align: right;
+  transform: rotate(-4deg);
+  text-shadow: 0 0 16px rgba(57, 255, 20, 0.55);
+}
+
+/* Notas (estados no canjeables) sobre el papel negro */
+.tkt-note {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  color: #fff;
+}
+.tkt-note .tkt-note-icon {
+  background: rgba(187, 92, 246, 0.18);
+  color: #fff;
+}
+.tkt-note strong,
+.tkt-note p {
+  color: #fff;
+}
+.tkt-note p {
+  color: var(--tkt-dim);
+}
+
+@media (max-width: 420px) {
+  .tkt-big {
+    font-size: 1.5rem;
+  }
+  .tkt-qr {
+    width: 6.4rem;
+    height: 6.4rem;
+  }
+  .tkt-seat-v {
+    font-size: 1.1rem;
+  }
+}
+
