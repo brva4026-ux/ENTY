@@ -323,3 +323,23 @@ avisar.
   de `index.css` (`--color-enty-*`, fuente `Sora`).
 - El dev server sirve `frontend/dist`: **corré `npm run build`** antes de mirar
   cambios en `http://127.0.0.1:12000`.
+- **E2E: correr contra el dev server, no contra el backend.** `playwright.config.js`
+  toma `E2E_BASE_URL` (default `http://127.0.0.1:8001`), pero el 8001 sirve SOLO la
+  API (un `GET /inicio` da 404). En CI el target es `http://127.0.0.1:12000` (dev
+  server con proxy `/api`). Local:
+  `E2E_BASE_URL=http://127.0.0.1:12000 npx playwright test`. Si apuntás al 8001,
+  los specs de UI pasan el `test.skip` por "App no disponible" y parece que no corren.
+- **Los E2E de admin/puerta necesitan el seed demo**, no los datos que deja la
+  suite de pytest. `POST /seed` exige `IS_DEMO=true` en el entorno del backend;
+  credenciales `admin@bar.test` / `demo1234`. Sin seed, `puerta.spec`/`portada.spec`
+  fallan en el login (la DB queda con usuarios tipo `admin-<hex>@example.test`).
+- **App del fan (publica, sin login):** `/inicio` (vitrina, `HomePage.jsx`),
+  `/evento/:id` (detalle de compra, `EventDetailPage.jsx`), `/t` (boleto),
+  `/boletas` (mis boletas por contacto). Backend: `GET /public/events` (catalogo)
+  y `GET /public/events/{id}` (detalle; 404 si borrador/pasado/inexistente).
+- **Categorias:** el backend deriva solo 3 (`Música/Deportes/Teatro`) por texto;
+  no hay columna `category`. Las 5 del mockup (Conciertos/Festivales/Deportes/
+  Teatro/Comedia) se refinan en cliente sobre `e.category` + `e.name` (ver
+  `CATEGORY_CHIPS` en `HomePage.jsx`). Una columna real es follow-up.
+- **Sin checkout publico todavia:** el CTA "Comprar boleto" del detalle apunta a
+  `/boletas` (el fan recupera lo ya emitido por contacto).
