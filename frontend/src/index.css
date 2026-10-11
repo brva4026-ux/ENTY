@@ -3719,6 +3719,34 @@ body {
     display: inline-flex;
     align-items: center;
   }
+  /* Acciones compactas de fila (Abrir puertas, duplicar/eliminar evento):
+     a 28px quedaban por debajo del minimo tactil. En movil suben a 44px;
+     desktop conserva la densidad. */
+  .btn-mini {
+    min-height: 44px;
+  }
+  /* Iconos del topbar (tema, notificaciones, avatar): 32px visuales no
+     entran como 44px reales sin desbordar a 320px, asi que se agranda SOLO
+     el area tactil con un ::after invisible. inset -6px sobre gap-3 (12px)
+     hace que dos vecinos se toquen sin solaparse. */
+  .topbar button[aria-label^="Cambiar tema"],
+  .topbar button[aria-label^="Notificaciones"],
+  .topbar-avatar {
+    position: relative;
+  }
+  .topbar button[aria-label^="Cambiar tema"]::after,
+  .topbar button[aria-label^="Notificaciones"]::after,
+  .topbar-avatar::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+  }
+  /* Pestañas de la app (Vender / Mis boletas / Liquidaciones, filtros del
+     escáner): 33px de alto con la densidad de escritorio. En móvil suben a
+     44px, la barra conserva su scroll horizontal si no entra. */
+  .tabbar-item {
+    min-height: 44px;
+  }
 }
 /*
  * ======================================================================

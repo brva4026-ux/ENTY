@@ -32,11 +32,27 @@ const SHELL_ASSETS = [
   "/icons/icon-maskable-512.png",
 ];
 
+// Bundles con hash del build (index.js/css + chunks lazy). Los rellena
+// replace-sw-version.js en cada build: sin esto el precache no incluia el
+// JS/CSS, y una puerta que perdia la red ANTES de su segunda carga se
+// quedaba con el HTML pero sin app (pantalla vacia). Con los hashed assets
+// dentro del cache del shell, la primera carga ya deja el escaner offline.
+const BUILD_ASSETS = []; /*BUILD_ASSETS*/
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
+      .then((cache) =>
+        // add() por archivo y no addAll(): un solo asset que falle (icono
+        // ausente, CDN caida) tumbaba el install completo y con el TODA la
+        // capacidad offline. Fallar suave deja el resto del shell usable.
+        Promise.all(
+          [...SHELL_ASSETS, ...BUILD_ASSETS].map((url) =>
+            cache.add(url).catch(() => null)
+          )
+        )
+      )
       .then(() => self.skipWaiting())
   );
 });
