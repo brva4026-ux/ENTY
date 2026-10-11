@@ -10,7 +10,7 @@
 /* Capa POP (estudio de referencia Absolut/Dikshant): Gochi Hand para
    anotaciones manuscritas ("Notas del barrio"), Permanent Marker para
    subrayados de pincel. Solo decoran; la interaccion sigue siendo azul. */
-@import url("https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Permanent+Marker&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Permanent+Marker&family=Anton&display=swap");
 @import "tailwindcss";
 
 @theme {

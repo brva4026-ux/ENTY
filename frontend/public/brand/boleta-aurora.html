@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Enty — Boleta AURORA</title>
+<meta name="theme-color" content="#050506" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Anton&family=Permanent+Marker&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --field:#050506;
+    --paper:#0A0A0D;
+    --paper-2:#0C0C10;
+    --white:#FFFFFF;
+    --green:#00E6AB;
+    --green-hot:#39FF14;
+    --pink:#FF2D98;
+    --dim:rgba(255,255,255,.55);
+    --dim-2:rgba(255,255,255,.34);
+    --hair:rgba(255,255,255,.14);
+    --w:420px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--field);color:var(--white);
+    font-family:"Sora",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{min-height:100vh;display:grid;place-items:center;padding:48px 20px}
+
+  /* --- La boleta: papel negro de alto gramaje, borde rasgado ------------ */
+  .ticket{
+    position:relative;width:var(--w);max-width:100%;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #141419 0%, transparent 55%),
+      linear-gradient(180deg,var(--paper-2),var(--paper));
+    padding:26px 26px 20px;
+    box-shadow:0 30px 70px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.05);
+    overflow:hidden;
+  }
+  /* Grano / desgaste: ruido sutil en overlay, sin ensuciar la lectura. */
+  .ticket::after{
+    content:"";position:absolute;inset:0;z-index:6;pointer-events:none;
+    opacity:.16;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+  }
+  /* Raspaduras leves en los bordes. */
+  .ticket::before{
+    content:"";position:absolute;inset:0;z-index:5;pointer-events:none;opacity:.5;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,.05), transparent 6%),
+      linear-gradient(270deg, rgba(255,255,255,.05), transparent 6%);
+  }
+
+  /* --- Cabecera -------------------------------------------------------- */
+  .row-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .enty{display:flex;align-items:center;gap:7px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+  .enty .mark{width:15px;height:19px;display:block}
+  .connect{
+    text-align:right;font-size:8.5px;font-weight:600;letter-spacing:.24em;
+    line-height:1.9;color:var(--dim);text-transform:uppercase;
+  }
+  .connect .arw{color:var(--green);font-size:11px;margin-left:3px}
+
+  /* --- Héroe: AURORA con órbita y estrella ----------------------------- */
+  .hero{position:relative;text-align:center;margin:34px 0 26px;padding:8px 0}
+  .hero .orbit{position:absolute;left:50%;top:50%;width:min(108%,430px);
+    transform:translate(-50%,-50%);pointer-events:none;overflow:visible}
+  .kicker{font-size:9.5px;font-weight:700;letter-spacing:.5em;color:var(--dim);
+    text-indent:.5em;position:relative;z-index:2}
+  .title{
+    font-family:"Anton",sans-serif;font-weight:400;line-height:.9;
+    font-size:76px;letter-spacing:.01em;color:#fff;margin:8px 0 10px;
+    position:relative;z-index:2;text-shadow:0 0 34px rgba(0,230,171,.10);
+  }
+  .tags{font-size:9.5px;font-weight:600;letter-spacing:.32em;color:var(--dim);
+    position:relative;z-index:2}
+  .tags .one{display:block;margin-top:6px;font-size:8px;letter-spacing:.42em;color:var(--dim-2)}
+
+  /* --- Cuerpo: fecha/plaza + QR ---------------------------------------- */
+  .body{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;margin-top:8px}
+  .when .yr{font-size:11px;font-weight:600;letter-spacing:.3em;color:var(--dim-2)}
+  .when .big{font-family:"Anton",sans-serif;font-size:40px;line-height:1;color:#fff;margin:4px 0 2px}
+  .when .hrs{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--dim)}
+  .when .place{margin-top:12px;font-size:12px;font-weight:700;letter-spacing:.06em}
+  .when .city{font-size:10px;font-weight:500;letter-spacing:.12em;color:var(--dim-2);margin-top:2px}
+
+  .qr-wrap{text-align:center}
+  .qr{position:relative;width:118px;height:118px;border:1px solid var(--hair);
+    border-radius:10px;padding:8px;background:rgba(255,255,255,.02)}
+  .qr svg{display:block;width:100%;height:100%}
+  .qr .qstar{position:absolute;left:50%;top:50%;width:22px;height:22px;
+    transform:translate(-50%,-50%);filter:drop-shadow(0 0 8px rgba(0,230,171,.85))}
+  .scan{margin-top:9px;font-size:8.5px;font-weight:700;letter-spacing:.24em;color:#fff}
+  .scan .arw{color:var(--green)}
+
+  /* --- Trazos gestuales neón (transición) ------------------------------ */
+  .strokes{position:relative;height:44px;margin:20px -6px 6px}
+  .strokes svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+
+  /* --- Perforación ----------------------------------------------------- */
+  .perf{position:relative;height:22px;display:flex;align-items:center;gap:2px;
+    margin:2px -26px 16px}
+  .perf i{flex:1;height:2px;border-radius:2px;
+    background:repeating-linear-gradient(90deg,var(--hair) 0 5px,transparent 5px 11px)}
+  .perf::before,.perf::after{content:"";position:absolute;top:50%;width:16px;height:16px;
+    border-radius:50%;background:var(--field);transform:translateY(-50%)}
+  .perf::before{left:-8px}
+  .perf::after{right:-8px}
+
+  /* --- Talón ----------------------------------------------------------- */
+  .stub{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+  .seat{display:flex}
+  .seat .cell{padding:0 14px;border-left:1px solid var(--hair)}
+  .seat .cell:first-child{padding-left:0;border-left:0}
+  .seat .k{font-size:7.5px;font-weight:700;letter-spacing:.2em;color:var(--dim-2)}
+  .seat .v{font-family:"Anton",sans-serif;font-size:22px;line-height:1.1;color:#fff;margin-top:3px}
+  .admit{text-align:right}
+  .admit .k{font-size:8.5px;font-weight:700;letter-spacing:.2em;color:#fff}
+  .admit .enty{justify-content:flex-end;margin-top:8px;font-size:16px}
+
+  /* --- Pie: código de barras + firma ----------------------------------- */
+  .foot{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end;margin-top:22px}
+  .barcode svg{display:block;width:190px;height:40px}
+  .barcode .cap{margin-top:6px;font-size:7.5px;font-weight:600;letter-spacing:.22em;color:var(--dim-2)}
+  .sign{font-family:"Permanent Marker",cursive;font-size:24px;line-height:1;
+    color:var(--green-hot);text-align:right;transform:rotate(-4deg);
+    text-shadow:0 0 16px rgba(57,255,20,.55)}
+
+  @media (max-width:440px){
+    :root{--w:100%}
+    .title{font-size:60px}
+    .when .big{font-size:34px}
+    .qr{width:104px;height:104px}
+  }
+</style>
+</head>
+<body>
+  <article class="ticket" id="ticket">
+    <!-- Cabecera -->
+    <div class="row-top">
+      <div class="enty">
+        <svg class="mark" viewBox="0 0 64 84" aria-hidden="true">
+          <path d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z" fill="#fff"/>
+          <g fill="#0A0A0D"><rect x="20" y="24" width="26" height="6" rx="3"/><rect x="20" y="40" width="26" height="6" rx="3"/><rect x="20" y="56" width="26" height="6" rx="3"/></g>
+        </svg>
+        <span>Enty</span>
+      </div>
+      <div class="connect">
+        Music<br/>Connects<br/>Us<span class="arw">↗</span>
+      </div>
+    </div>
+
+    <!-- Héroe -->
+    <div class="hero">
+      <svg class="orbit" viewBox="0 0 430 190" aria-hidden="true">
+        <ellipse cx="215" cy="95" rx="205" ry="60" fill="none"
+                 stroke="#00E6AB" stroke-width="1.6" opacity=".85"
+                 transform="rotate(-7 215 95)"/>
+        <path d="M360 26 l6 15 15 6 -15 6 -6 15 -6 -15 -15 -6 15 -6 z"
+              fill="#00E6AB" style="filter:drop-shadow(0 0 10px rgba(0,230,171,.9))"/>
+      </svg>
+      <p class="kicker">Festival</p>
+      <h1 class="title">AURORA</h1>
+      <p class="tags">Music / Art / Nature<span class="one">One Night</span></p>
+    </div>
+
+    <!-- Cuerpo -->
+    <div class="body">
+      <div class="when">
+        <p class="yr">2026</p>
+        <p class="big">AUG 15</p>
+        <p class="hrs">SAT 17:00 - 23:00</p>
+        <p class="place">RIVERFRONT PARK</p>
+        <p class="city">LOS ANGELES, CA</p>
+      </div>
+      <div class="qr-wrap">
+        <div class="qr">
+          <svg id="qr" viewBox="0 0 29 29" shape-rendering="crispEdges"></svg>
+          <svg class="qstar" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 1 l2.6 8.4 8.4 2.6 -8.4 2.6 -2.6 8.4 -2.6 -8.4 -8.4 -2.6 8.4 -2.6 z" fill="#00E6AB"/>
+          </svg>
+        </div>
+        <p class="scan">Scan for Entry <span class="arw">↗</span></p>
+      </div>
+    </div>
+
+    <!-- Trazos gestuales neón -->
+    <div class="strokes" aria-hidden="true">
+      <svg viewBox="0 0 380 44" preserveAspectRatio="none">
+        <path d="M8 30 C 70 8, 130 40, 196 20 S 320 6, 372 24" fill="none"
+              stroke="#39FF14" stroke-width="5" stroke-linecap="round"
+              opacity=".92" style="filter:drop-shadow(0 0 8px rgba(57,255,20,.7))"/>
+        <path d="M20 38 C 96 22, 150 40, 214 26 S 330 14, 366 34" fill="none"
+              stroke="#FF2D98" stroke-width="4" stroke-linecap="round"
+              opacity=".85" style="filter:drop-shadow(0 0 9px rgba(255,45,152,.65))"/>
+      </svg>
+    </div>
+
+    <!-- Perforación -->
+    <div class="perf" aria-hidden="true"><i></i></div>
+
+    <!-- Talón -->
+    <div class="stub">
+      <div class="seat">
+        <div class="cell"><p class="k">Section</p><p class="v">GA</p></div>
+        <div class="cell"><p class="k">Row</p><p class="v">B</p></div>
+        <div class="cell"><p class="k">Seat</p><p class="v">128</p></div>
+      </div>
+      <div class="admit">
+        <p class="k">General Admission</p>
+        <div class="enty">
+          <svg class="mark" viewBox="0 0 64 84" aria-hidden="true">
+            <path d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z" fill="#fff"/>
+            <g fill="#0A0A0D"><rect x="20" y="24" width="26" height="6" rx="3"/><rect x="20" y="40" width="26" height="6" rx="3"/><rect x="20" y="56" width="26" height="6" rx="3"/></g>
+          </svg>
+          <span>Enty</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pie -->
+    <div class="foot">
+      <div class="barcode">
+        <svg id="barcode" viewBox="0 0 190 40" preserveAspectRatio="none"></svg>
+        <p class="cap">Enty App — Your Next Event</p>
+      </div>
+      <p class="sign">See You There!</p>
+    </div>
+  </article>
+
+<script>
+  // Borde rasgado irregular arriba y abajo (papel natural cortado a mano).
+  (function tornEdge(){
+    const t=document.getElementById('ticket');
+    const W=t.clientWidth, H=t.clientHeight, tear=10;
+    let seed=42; const rnd=()=>((seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff);
+    const pts=[];
+    for(let x=0;x<=W;x+=12) pts.push([x, 2+rnd()*tear]);
+    pts.push([W,0],[W,H]);
+    for(let x=W;x>=0;x-=12) pts.push([x, H-(2+rnd()*tear)]);
+    pts.push([0,H],[0,0]);
+    t.style.clipPath='polygon('+pts.map(p=>p[0].toFixed(1)+'px '+p[1].toFixed(1)+'px').join(',')+')';
+  })();
+
+  // QR de demostración: rejilla determinista con los patrones de posición.
+  (function qr(){
+    const svg=document.getElementById('qr'), N=29; let seed=7;
+    const rnd=()=>((seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff);
+    const finder=(x,y)=> (x<7&&y<7)||(x>N-8&&y<7)||(x<7&&y>N-8);
+    let rects='';
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+      let on;
+      if(finder(x,y)){ on=((x%7===0||x%7===6||y%7===0||y%7===6)||(x%7>=2&&x%7<=4&&y%7>=2&&y%7<=4)); }
+      else if(x>=12&&x<=16&&y>=12&&y<=16){ on=false; } // hueco para la estrella
+      else { on=rnd()>0.52; }
+      if(on) rects+=`<rect x="${x}" y="${y}" width="1" height="1"/>`;
+    }
+    svg.innerHTML=`<g fill="#FFFFFF">${rects}</g>`;
+  })();
+
+  // Código de barras tradicional.
+  (function barcode(){
+    const svg=document.getElementById('barcode'); let seed=99,x=0,bars='';
+    const rnd=()=>((seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff);
+    while(x<190){ const w=0.6+rnd()*2.2, on=rnd()>0.45;
+      if(on) bars+=`<rect x="${x.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="40"/>`;
+      x+=w+0.6+rnd()*1.6; }
+    svg.innerHTML=`<g fill="#FFFFFF">${bars}</g>`;
+  })();
+</script>
+</body>
+</html>
