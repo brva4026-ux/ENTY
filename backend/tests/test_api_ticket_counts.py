@@ -114,3 +114,48 @@ def test_promoter_cannot_read_counts(api, world):
     # Es un reporte de gestion: el promotor no lo necesita (minimo privilegio).
     res = api.get(f"/venues/{world['venue_a']}/events/ticket-counts", "promoter")
     assert res.status_code == 403
+
+
+def _open_night(api, name: str) -> tuple[int, int]:
+    """Evento publicado y EN PUERTA, con la ventana del QR ya abierta."""
+    venue = api.world["venue_a"]
+    ev = api.create_event("admin", venue, name=name)
+    api.publish("admin", venue, ev["id"])
+    api.run_sql(
+        f"UPDATE events SET starts_at = now() - interval '1 hour' WHERE id = {ev['id']}"
+    )
+    res = api.post(f"/venues/{venue}/events/{ev['id']}/live", "admin")
+    assert res.status_code == 200, res.text
+    return venue, ev["id"]
+
+
+def test_counts_door_health_duplicates(api, world):
+    """La franja delata el QR reenviado sin abrir el evento.
+
+    Dos boletas del mismo tipo, un solo duplicado: el conteo de duplicados es
+    de redemptions, no de tickets — no debe inflar `active` ni `revenue_cents`.
+    """
+    venue, event_id = _open_night(api, "Franja salud")
+    tipo = api.add_type(
+        "admin", venue, event_id,
+        name="General", price_cents=1000, quantity=5, is_courtesy=False,
+    )
+    t1 = api.emit("admin", venue, event_id, ticket_type_id=tipo["id"], allocation_id=None)
+    api.emit("admin", venue, event_id, ticket_type_id=tipo["id"], allocation_id=None)
+
+    api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": t1["raw_token"]},
+    )
+    api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": t1["raw_token"]},
+    )
+
+    c = api.get(f"/venues/{venue}/events/ticket-counts", "admin").json()[str(event_id)]
+    assert c["duplicates"] == 1
+    # El fan-out tickets x redemptions habría dado active=4 / revenue=4000.
+    assert c["active"] == 2
+    assert c["revenue_cents"] == 2000
+    assert c["redeemed"] == 1
+

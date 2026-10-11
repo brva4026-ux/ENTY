@@ -957,6 +957,22 @@ export default function AdminDashboard() {
                                   ? `${money(stat.revenue_cents)} · ${stat.redeemed}/${stat.active}`
                                   : "…"}
                               </span>
+                              {/* Salud de puerta: solo si hay duplicados. La
+                                franja delata el QR reenviado sin abrir el
+                                evento; un "0" permanente sería ruido. */}
+                              {stat?.duplicates > 0 && (
+                                <span
+                                  className="evx-door-alert"
+                                  data-tip={`${stat.duplicates} boleta(s) reescaneada(s): posible QR reenviado`}
+                                >
+                                  <Icon
+                                    name="alert"
+                                    className="h-3 w-3"
+                                    aria-hidden="true"
+                                  />
+                                  <span className="tnum">{stat.duplicates}</span>
+                                </span>
+                              )}
                               <span
                                 className={`evx-row-state ${live ? "is-live" : ""}`}
                               >
@@ -1125,6 +1141,27 @@ export default function AdminDashboard() {
                                         />
                                       </span>
                                     </div>
+                                    {/* Salud de puerta: solo si hay
+                                      duplicados. Un QR reenviado se delata
+                                      desde la franja, sin abrir el evento. */}
+                                    {stat?.duplicates > 0 && (
+                                      <p
+                                        className="evx-door-alert mt-2"
+                                        data-tip="Posible QR reenviado: la puerta rechazó la boleta repetida"
+                                      >
+                                        <Icon
+                                          name="alert"
+                                          className="h-3 w-3"
+                                          aria-hidden="true"
+                                        />
+                                        <span className="tnum">
+                                          {stat.duplicates}
+                                        </span>
+                                        {stat.duplicates === 1
+                                          ? "reescaneada"
+                                          : "reescaneadas"}
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
 

@@ -357,5 +357,3 @@ avisar.
   calculaba integridad de puerta (`DoorScanStats`) pero el frontend **nunca lo
   consume** (buscar `/summary` en `frontend/src`). Antes de añadir otro cálculo
   de puerta, revisar si `/summary` ya lo tiene.
-
->>>>>>> 48afe97 (docs(agents): nota de la salud de puerta del admin)
