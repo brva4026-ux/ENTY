@@ -1,4 +1,4 @@
-# Arquitectura Tickelot — Índice
+# Arquitectura Enty — Índice
 
 Documentación técnica del comité. Cada tema se ancla al código del repo.
 
