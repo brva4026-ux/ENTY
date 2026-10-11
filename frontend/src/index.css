@@ -11,6 +11,9 @@
    anotaciones manuscritas ("Notas del barrio"), Permanent Marker para
    subrayados de pincel. Solo decoran; la interaccion sigue siendo azul. */
 @import url("https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Permanent+Marker&family=Anton&display=swap");
+/* Sora: la voz editorial de la app del fan (pantalla Inicio). Titulares en
+   peso 300 con tracking negativo, UI en 500 — el look del mockup de marca. */
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {

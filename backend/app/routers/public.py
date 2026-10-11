@@ -13,7 +13,7 @@ from typing import Annotated
 from zoneinfo import ZoneInfo
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from starlette.concurrency import run_in_threadpool
 
 from app.core.db import get_db
@@ -99,6 +99,132 @@ def _starts_at_label(starts_at: datetime, tz_name: str | None) -> str:
         tz = timezone.utc
     local = starts_at.astimezone(tz)
     return f"{local.strftime('%d/%m/%Y %H:%M')} ({local.tzname()})"
+
+
+# --- Descubrimiento publico (app de consumidor) ---------------------------
+#
+# La pantalla "Inicio" del fan lista eventos sin login. El catalogo NO tiene
+# categoria ni precio en `events` (viven en `ticket_types`), asi que aqui se
+# derivan: el precio es el minimo de las localidades pagas activas y la
+# categoria se infiere del texto. Todo es best-effort: un evento sin
+# localidades igual se muestra (precio null), nunca rompe el listado.
+
+_CATEGORIES = ("Música", "Deportes", "Teatro")
+
+_CATEGORY_HINTS = (
+    ("Deportes", ("futbol", "fútbol", "liga", "copa", "deporte", "baloncesto",
+                  "estadio", "partido", "torneo", "box", "atletismo", "nba")),
+    ("Teatro", ("teatro", "obra", "teatral", "monologo", "monólogo", "danza",
+                "comedia", "musical", "stand up", "standup")),
+    ("Música", ("musica", "música", "concierto", "festival", "electronica",
+                "electrónica", "rock", "pop", "banda", "dj", "reggaeton",
+                "salsa", "vallenato", "sinfon", "orquesta", "tour", "live",
+                "jazz", "indie")),
+)
+
+
+def _category_of(name: str | None, description: str | None) -> str:
+    """Categoria inferida del texto (mejor-esfuerzo, determinista)."""
+    text = f"{name or ''} {description or ''}".lower()
+    for label, hints in _CATEGORY_HINTS:
+        if any(h in text for h in hints):
+            return label
+    return "Música"
+
+
+def _sold_pct(active: int, capacity: int | None) -> int | None:
+    """% de aforo vendido (boletas vivas / capacidad), acotado a [0, 100]."""
+    if not capacity or capacity <= 0:
+        return None
+    return max(0, min(100, round(active * 100 / capacity)))
+
+
+@router.get("/events")
+async def public_events(
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    city: str | None = Query(None, max_length=80),
+    category: str | None = Query(None, max_length=40),
+    limit: int = Query(50, ge=1, le=100),
+):
+    """Catalogo publico de eventos para la app del fan (sin autenticacion).
+
+    Devuelve solo eventos con venta abierta (`published`/`live`), con su venue,
+    precio minimo, categoria inferida y aforo vendido. `city` filtra por nombre
+    de venue o lugar (ILIKE); `category` por la categoria derivada.
+    """
+    async with db.cursor() as cur:
+        # El filtro de ciudad va en SQL (ILIKE sobre lugar + venue): si se
+        # aplicara en Python despues del LIMIT, la ventana de 50 filas se
+        # llenaria con eventos de otras ciudades y el filtro devolveria casi
+        # nada. La categoria es heuristica (no vive en la DB), asi que si se
+        # pide se traen mas filas y se recorta al final.
+        conds = ["e.status IN ('published', 'live')", "e.starts_at >= now()"]
+        params: list = []
+        if city and city.strip():
+            conds.append("(coalesce(e.location, '') || ' ' || v.name) ILIKE %s")
+            params.append(f"%{city.strip()}%")
+        fetch_limit = limit if not category else min(200, limit * 4)
+        params.append(fetch_limit)
+        await cur.execute(
+            f"""
+            SELECT e.id, e.name, e.description, e.flyer_url, e.location,
+                   e.starts_at, e.event_timezone, e.capacity, e.status,
+                   v.name AS venue_name,
+                   (SELECT min(tt.price_cents) FROM ticket_types tt
+                     WHERE tt.event_id = e.id AND tt.is_active
+                       AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price,
+                   (SELECT count(*) FROM tickets t
+                     WHERE t.event_id = e.id
+                       AND t.status IN ('issued', 'redeemed'))::int AS active
+            FROM events e
+            JOIN venues v ON v.id = e.venue_id
+            WHERE {" AND ".join(conds)}
+            ORDER BY e.starts_at ASC
+            LIMIT %s
+            """,
+            tuple(params),
+        )
+        rows = await cur.fetchall()
+
+    want_cat = (category or "").strip().lower()
+    events: list[dict] = []
+    for r in rows:
+        cat = _category_of(r["name"], r["description"])
+        if want_cat and want_cat != cat.lower():
+            continue
+        where = " · ".join(p for p in (r["location"], r["venue_name"]) if p)
+        events.append(
+            {
+                "id": r["id"],
+                "name": r["name"],
+                "venue": r["venue_name"],
+                "location": r["location"],
+                "where": where,
+                "starts_at": r["starts_at"].isoformat(),
+                "timezone": r["event_timezone"],
+                "flyer_url": r["flyer_url"],
+                "category": cat,
+                "price_cents": int(r["min_price"]) if r["min_price"] is not None else None,
+                "sold_pct": _sold_pct(r["active"], r["capacity"]),
+                "status": r["status"],
+            }
+        )
+    events = events[:limit]
+
+    # Ciudad de cabecera: la mas frecuente del catalogo (o la pedida).
+    cities: dict[str, int] = {}
+    for e in events:
+        c = (e["location"] or e["venue"] or "").split(",")[0].strip()
+        if c:
+            cities[c] = cities.get(c, 0) + 1
+    top_city = max(cities, key=cities.get) if cities else (city or "")
+    return {
+        "city": top_city,
+        "count": len(events),
+        "categories": list(_CATEGORIES),
+        "events": events,
+    }
 
 
 @router.get(

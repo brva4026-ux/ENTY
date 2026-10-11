@@ -40,6 +40,20 @@ export function fetchTicketImage(rawToken) {
   return postBlob("/tickets/image", rawToken);
 }
 
+/**
+ * Catalogo publico de eventos para la app del fan (pantalla Inicio).
+ * Sin sesion: mismo cliente que la boleta. `category`/`city` filtran del lado
+ * del servidor; el backend ya recorta el resultado.
+ */
+export function fetchPublicEvents({ category, city, limit } = {}) {
+  const qs = new URLSearchParams();
+  if (category) qs.set("category", category);
+  if (city) qs.set("city", city);
+  if (limit) qs.set("limit", String(limit));
+  const tail = qs.toString() ? `?${qs}` : "";
+  return apiFetch(`/public/events${tail}`);
+}
+
 export function listTickets(venueId, eventId, phone) {
   const q = phone ? `?phone=${encodeURIComponent(phone)}` : "";
   return apiFetch(`/venues/${venueId}/events/${eventId}/tickets${q}`).then(
