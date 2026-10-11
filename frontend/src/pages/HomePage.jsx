@@ -62,6 +62,53 @@ function Star({ size = 8, color = "#8B5CF6" }) {
   );
 }
 
+/**
+ * Trazos organicos neon (verde/rosa) que barren detras de la tarjeta de
+ * cristal. Son asimetricos y finos a proposito: rompen la rigidez de la
+ * cuadricula sin competir con el contenido (energia grafica, no interfaz).
+ */
+function NeonStrokes() {
+  return (
+    <svg
+      className="home-strokes"
+      viewBox="0 0 342 262"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="sGlow" x="-30%" y="-60%" width="160%" height="220%">
+          <feGaussianBlur stdDeviation="3.4" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {/* Pincelada verde: curva rapida y asimetrica. */}
+      <path
+        d="M-10 214 C 70 150, 150 236, 250 150 S 352 92, 356 74"
+        fill="none"
+        stroke="#00E6AB"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        filter="url(#sGlow)"
+        opacity="0.9"
+      />
+      {/* Linea orbital rosa: arco fino que cruza por detras. */}
+      <path
+        d="M-6 60 C 96 96, 150 8, 262 46"
+        fill="none"
+        stroke="#FF2D98"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeDasharray="1 7"
+        filter="url(#sGlow)"
+        opacity="0.85"
+      />
+    </svg>
+  );
+}
+
 /** Anillo de progreso: aforo vendido del evento destacado. */
 function SoldRing({ pct }) {
   const r = 42;
@@ -204,7 +251,10 @@ export default function HomePage() {
             {featured.flyer_url ? (
               <img className="home-feature-flyer" src={featured.flyer_url} alt="" />
             ) : (
-              <SoldRing pct={featured.sold_pct} />
+              <>
+                <NeonStrokes />
+                <SoldRing pct={featured.sold_pct} />
+              </>
             )}
             <div className="home-feature-body">
               <div className="home-feature-top">

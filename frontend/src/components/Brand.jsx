@@ -3,6 +3,27 @@ import { timeAgo } from "../lib/useLiveRefresh";
 
 /** Marca Enty: logotipo, indicadores vivos y cifras animadas. */
 
+/**
+ * Destello de marca: estrella de cuatro puntas asimetrica. Es la firma de
+ * Enty y se reutiliza como bullet, indicador de carga y centro del QR.
+ */
+export function Spark({ size = 12, color = "#00E6AB", className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 0.5 L15 9 L23.5 12 L15 15 L12 23.5 L9 15 L0.5 12 L9 9 Z"
+        fill={color}
+      />
+    </svg>
+  );
+}
+
 export function Logo({ size = "md", animated = true }) {
   const hero = size === "hero";
   const box = hero
