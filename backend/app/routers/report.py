@@ -383,7 +383,12 @@ _TOP_PROMOTERS_SQL = """
     SELECT u.full_name AS name,
            count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS tickets,
            coalesce(sum(t.price_cents_snapshot)
-                    FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint AS revenue_cents
+                    FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint AS revenue_cents,
+           -- En el MVP el promotor solo mueve cortesías (emit_ticket prohíbe
+           -- atar una boleta de pago a un cupo), así que la UI rankea por
+           -- boletas y este flag le dice si además hubo dinero que mostrar.
+           bool_or(t.price_cents_snapshot = 0) FILTER (
+               WHERE t.status IN ('issued','redeemed')) AS has_courtesy
     FROM tickets t
     JOIN users u ON u.id = t.sold_by_user_id
     JOIN events e ON e.id = t.event_id
@@ -410,6 +415,20 @@ _TOP_EVENTS_SQL = """
     GROUP BY e.id
     ORDER BY revenue_cents DESC, tickets DESC
     LIMIT 8
+"""
+
+# Comisiones del mes: liquidaciones de promotores generadas en el mes.
+# La comisión del promotor sale de su venta (boletas vivas), que en el MVP
+# solo puede ser cortesía — emit_ticket rechaza atar una boleta de pago a un
+# cupo. Por eso puede venir NULL: no hay liquidaciones, no "comisión cero".
+# Sin coalesce a propósito: sum() sobre cero filas es NULL y sobre filas que
+# suman 0 es 0; esa diferencia es la que la UI necesita.
+_COMMISSIONS_SQL = """
+    SELECT sum(commission_cents)::bigint AS commissions_cents
+    FROM promoter_payouts
+    WHERE venue_id = %(venue)s
+      AND date_trunc('month', created_at AT TIME ZONE %(tz)s)
+            = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
 """
 
 # El mes anterior con LA MISMA métrica (tendencia real, no impresiones).
@@ -479,6 +498,8 @@ async def venue_overview(
         top_promoters = await cur.fetchall()
         await cur.execute(_TOP_EVENTS_SQL, params)
         top_events = await cur.fetchall()
+        await cur.execute(_COMMISSIONS_SQL, params)
+        commissions = await cur.fetchone()
 
     revenue = agg["revenue_cents"]
     paid = agg["tickets_issued"] - agg["courtesy_tickets"]
@@ -496,6 +517,13 @@ async def venue_overview(
         prev_events_count=prev["events_count"],
         top_promoters=top_promoters,
         top_events=top_events,
+        # Si no hay liquidaciones, el agregado devuelve 0 filas-sumadas; se
+        # expone como null para que la UI no invente un neto.
+        commissions_cents=(
+            commissions["commissions_cents"]
+            if commissions and commissions["commissions_cents"] is not None
+            else None
+        ),
     )
 
 

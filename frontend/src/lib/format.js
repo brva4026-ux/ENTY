@@ -11,6 +11,39 @@ export function money(cents) {
   return COP.format(Math.round((cents ?? 0) / 100));
 }
 
+/**
+ * Mes "YYYY-MM" del navegador. Es solo el valor de arranque: el mes en curso
+ * de verdad lo manda el API (`month` del overview), porque el negocio opera
+ * en otra zona horaria y cerca de medianoche el navegador puede ir un día
+ * adelantado.
+ */
+export function currentYM() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** "2026-09" -> "septiembre 2026". */
+export function labelMonth(ym) {
+  const [y, m] = String(ym).split("-").map(Number);
+  if (!y || !m) return "";
+  return `${new Date(y, m - 1, 1).toLocaleString("es-CO", { month: "long" })} ${y}`;
+}
+
+/** "2026-09" -> "2026-10" (delta = ±1). Cruza el año sin depender de Date. */
+export function shiftMonth(ym, delta) {
+  let [y, m] = String(ym).split("-").map(Number);
+  m += delta;
+  if (m < 1) {
+    m = 12;
+    y -= 1;
+  }
+  if (m > 12) {
+    m = 1;
+    y += 1;
+  }
+  return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}`;
+}
+
 /** Hora corta "11:42 p.m." para el último escaneo. */
 export function timeAgo(iso) {
   if (!iso) return null;

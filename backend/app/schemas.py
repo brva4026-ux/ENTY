@@ -934,8 +934,14 @@ class VenueOverview(BaseModel):
     prev_tickets_issued: int
     prev_events_count: int
     # Rankings del mes
-    top_promoters: list[dict]   # [{name, tickets, revenue_cents}]
+    top_promoters: list[dict]   # [{name, tickets, revenue_cents, has_courtesy}]
     top_events: list[dict]      # [{id, name, starts_at, status, tickets, revenue_cents}]
+    # Comisiones del mes: liquidaciones de promotores generadas en el mes.
+    # NULL (no 0) cuando no hay ninguna: en el MVP la venta de pago es
+    # directa (allocation_id NULL) y el promotor solo mueve cortesías, así
+    # que "no hay comisión calculable" NO es lo mismo que "la comisión es
+    # cero". La UI usa ese null para decidir si mostrar el neto.
+    commissions_cents: int | None = None
 
 
 class MessageOut(BaseModel):

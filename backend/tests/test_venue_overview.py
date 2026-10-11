@@ -44,6 +44,50 @@ def test_overview_requires_admin(api):
     assert res.status_code in (401, 403)
 
 
+def test_overview_commissions_null_without_payouts(api):
+    """Sin liquidaciones, commissions_cents es None (no 0).
+
+    En el MVP la venta de pago es directa y el promotor solo mueve cortesías,
+    así que no hay comisión calculable. El neto que muestra el panel no puede
+    inventarse: null significa "no aplica", 0 significaría "la comisión fue 0".
+    """
+    s = api.scenario()
+    res = api.get(f"/venues/{s['venue']}/overview", "admin")
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert "commissions_cents" in body
+    assert body["commissions_cents"] is None
+
+
+def test_overview_commissions_sum_of_month_payouts(api):
+    """Con liquidaciones del mes, commissions_cents suma sus comisiones."""
+    s = api.scenario()
+    venue, event = s["venue"], s["event"]
+    # El cupo del scenario tiene capacidad; emitimos cortesías del promotor.
+    for _ in range(3):
+        api.emit(
+            "promoter",
+            venue,
+            event,
+            ticket_type_id=s["type"],
+            allocation_id=s["allocation"]["id"],
+        )
+    res = api.client.post(
+        f"/venues/{venue}/payouts/generate",
+        headers=api.headers("admin"),
+        json={
+            "promoter_id": s["allocation"]["promoter_id"],
+            "period_start": (datetime.now(tz=timezone.utc) - timedelta(days=1)).date().isoformat(),
+            "period_end": (datetime.now(tz=timezone.utc) + timedelta(days=1)).date().isoformat(),
+        },
+    )
+    assert res.status_code in (200, 201), res.text
+    commission = res.json()["commission_cents"]
+
+    body = api.get(f"/venues/{venue}/overview", "admin").json()
+    assert body["commissions_cents"] == commission
+
+
 def test_overview_invalid_month(api):
     s = api.scenario()
     res = api.get(f"/venues/{s['venue']}/overview?month=2026-13", "admin")
