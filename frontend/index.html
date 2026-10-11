@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0A0A0F" />
     <meta name="description" content="Enty — boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso." />
-    <!-- Preconnect a Google Fonts: la fuente empieza a bajar antes de que el
-         CSS la descubra → ahorra ~1 RTT en el first paint con Inter. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fuente self-hosted (Sora variable, public/fonts): preload para que el
+         primer paint use la voz de marca; sin terceros, sin FOUT de red. -->
+    <link rel="preload" href="/fonts/sora-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />

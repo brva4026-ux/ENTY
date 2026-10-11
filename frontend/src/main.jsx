@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import "./index.css";
 import "./aesthetic-refresh.css";
+import "./enty-system.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";
