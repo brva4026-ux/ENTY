@@ -140,7 +140,7 @@ export const STATUS_DOT_COLOR = {
   live: "#34d399",
   // "A la venta" va en crema, NO en el naranja de la CTA: si comparte color
   // con el boton de accion, la etiqueta de estado se lee como un boton.
-  published: "#f5e6c8",
+  published: "#F3E8FF",
   draft: "#71717a",
   ended: "#a1a1aa",
   cancelled: "#dc2626",
@@ -914,7 +914,7 @@ export default function AdminDashboard() {
                                       ev.status === "live"
                                         ? "#34d399"
                                         : ev.status === "published"
-                                          ? "#f5e6c8"
+                                          ? "#F3E8FF"
                                           : ev.status === "draft"
                                             ? "#71717a"
                                             : ev.status === "cancelled"

@@ -1,4 +1,4 @@
-/* Tickelot service worker — app shell offline para la puerta.
+/* Enty service worker — app shell offline para la puerta.
  *
  * Objetivo: si el venue pierde internet, el portero aún puede ABRIR el
  * escáner (la validación de boletas obviamente requiere red; eso es
@@ -64,9 +64,9 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "Tickelot", body: event.data ? event.data.text() : "" };
+    data = { title: "Enty", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "Tickelot";
+  const title = data.title || "Enty";
   const options = {
     body: data.body || "",
     tag: data.tag || "tickelot",
