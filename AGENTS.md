@@ -277,3 +277,21 @@ avisar.
   `prepare_threshold=None` (ver la trampa de psycopg más arriba).
 - Para consultar el estado de un deploy sin entrar al dashboard:
   `GET /repos/{owner}/{repo}/commits/{sha}/status` (campo `context == "Vercel"`).
+## UI / verificación visual (app del fan)
+
+- **Medir un `mask` con Playwright es engañoso.** El screenshot de un elemento
+  (`locator.screenshot`) **compone sobre el fondo del padre**: si el padre es
+  opaco, los recortes del mask no aparecen y parece que "el mask no funciona".
+  Para probarlo de verdad: forzá `background:transparent` en
+  `html/body/#root/.home` + `omitBackground:true` y **capturá página completa**,
+  o poné un fondo de alto contraste (ej. blanco) detrás del elemento. Confirmado
+  en `.fan-ticket` (bordes rasgados): el mask siempre recortó; solo era invisible
+  por falta de contraste y porque el cristal al 5% no se lee sobre negro.
+- **Chromium del sistema** (los browsers de Playwright no están instalados):
+  `chromium.launch({ executablePath: '/usr/bin/chromium' })`. Corré el script
+  desde `frontend/` (donde está `node_modules`), no desde `/tmp`.
+- El sistema visual vive en `frontend/src/aesthetic-refresh.css` (tokens del fan
+  en `.home`, estilos de la app del fan al final). Tokens globales en `@theme`
+  de `index.css` (`--color-enty-*`, fuente `Sora`).
+- El dev server sirve `frontend/dist`: **corré `npm run build`** antes de mirar
+  cambios en `http://127.0.0.1:12000`.
