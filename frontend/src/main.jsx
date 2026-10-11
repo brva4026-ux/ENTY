@@ -44,6 +44,7 @@ const PromoterDashboard = lazyPage(() => import("./pages/PromoterDashboard"));
 const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
+const HomePage = lazyPage(() => import("./pages/HomePage"));
 const WaitlistPage = lazyPage(() => import("./pages/WaitlistPage"));
 const AcceptInvitationPage = lazyPage(
   () => import("./pages/AcceptInvitationPage"),
@@ -118,6 +119,9 @@ function App() {
               {/* Boleta del invitado: publica, sin login. El token llega en el
               fragmento (#), que el navegador no envia al servidor. */}
               <Route path="/t" element={<PublicTicketPage />} />
+              {/* Inicio: la vitrina publica del fan (catalogo de eventos).
+              Sin login — es la cara de consumidor de Enty. */}
+              <Route path="/inicio" element={<HomePage />} />
               {/* Lista de espera (E2): publica, sin cuentas. La credencial del
               fan tambien viaja en el fragmento y se guarda en localStorage. */}
               <Route path="/waitlist" element={<WaitlistPage />} />

@@ -951,3 +951,340 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 
+/* ===========================================================================
+   INICIO (app del fan) - la vitrina editorial del mockup "1 · Inicio".
+   Sora en peso 300 para titulares, fondo negro nocturno, acento violeta suave.
+   Es hermana sobria de la boleta coleccionable: la boleta es el objeto, esto
+   es la vitrina.
+   =========================================================================== */
+.home {
+  --home-bg: #0a0a0b;
+  --home-surface: #101012;
+  --home-ink: #f3f1ec;
+  --home-dim: #8a8a93;
+  --home-dim-2: #9c9aa5;
+  --home-accent: #b7a3ff;
+  --home-accent-2: #8b5cf6;
+  min-height: 100vh;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: 1.6rem 1.5rem 6rem;
+  background: var(--home-bg);
+  color: var(--home-ink);
+  font-family: "Sora", system-ui, -apple-system, sans-serif;
+  position: relative;
+}
+.home a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Cabecera */
+.home-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 2.25rem;
+}
+.home-wordmark {
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+.home-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b9b7c0;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.home-avatar:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--home-ink);
+}
+
+/* Titular */
+.home-title {
+  margin-top: 1.9rem;
+}
+.home-title h1 {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 300;
+  letter-spacing: -0.075em;
+  line-height: 1.04;
+}
+.home-title p {
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
+  color: var(--home-dim);
+}
+
+/* Tabs de categoria */
+.home-tabs {
+  margin-top: 1.35rem;
+  display: flex;
+  gap: 1.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.home-tabs::-webkit-scrollbar {
+  display: none;
+}
+.home-tabs button {
+  height: 2.25rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--home-dim);
+  border-bottom: 1.5px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+.home-tabs button.is-on {
+  color: var(--home-ink);
+  font-weight: 500;
+  border-bottom-color: var(--home-ink);
+}
+
+/* Card destacada */
+.home-feature {
+  position: relative;
+  margin-top: 1.35rem;
+  height: 16.4rem;
+  border-radius: 1.6rem;
+  overflow: hidden;
+  background: var(--home-surface);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+.home-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.home-feature-flyer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+}
+.home-feature-body {
+  position: absolute;
+  left: 1.35rem;
+  right: 1.35rem;
+  bottom: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.home-eyebrow {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--home-accent);
+}
+.home-feature-top h2 {
+  margin: 0.5rem 0 0;
+  font-size: 1.8rem;
+  font-weight: 300;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+.home-feature-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.home-feature-meta {
+  font-size: 0.75rem;
+  color: var(--home-dim-2);
+  line-height: 1.5;
+}
+.home-feature-meta b {
+  display: block;
+  font-weight: 400;
+  color: var(--home-ink);
+}
+.home-cta {
+  flex: none;
+  height: 2.6rem;
+  padding: 0 1.25rem;
+  border-radius: 1.3rem;
+  background: var(--home-ink);
+  color: var(--home-bg);
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.home-cta:hover {
+  filter: brightness(0.92);
+}
+.home-cta:active {
+  transform: translateY(1px);
+}
+
+/* Sub-encabezado "Proximos" */
+.home-subhead {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.home-subhead span {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--home-dim);
+}
+.home-subhead button {
+  font-size: 0.75rem;
+  color: var(--home-accent);
+}
+
+/* Lista de proximos */
+.home-list {
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+}
+.home-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 4.1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: opacity 0.15s ease;
+}
+.home-list .home-row:last-child {
+  border-bottom: 0;
+}
+.home-row:hover {
+  opacity: 0.75;
+}
+.home-row-date {
+  flex: none;
+  width: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.home-row-date b {
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.home-row-date i {
+  font-size: 0.56rem;
+  font-style: normal;
+  letter-spacing: 0.16em;
+  color: var(--home-dim);
+}
+.home-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.home-row-info strong {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-row-info em {
+  font-size: 0.75rem;
+  font-style: normal;
+  color: var(--home-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-row-price {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Estados vacios */
+.home-empty {
+  margin-top: 3rem;
+  text-align: center;
+  color: var(--home-dim);
+}
+.home-empty p {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--home-ink);
+}
+.home-empty span {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+}
+
+/* Barra inferior */
+.home-nav {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: 26rem;
+  height: 4.9rem;
+  background: var(--home-bg);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  padding: 0.75rem 1rem 0;
+  box-sizing: border-box;
+}
+.home-nav a {
+  width: 4.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.625rem;
+  font-weight: 400;
+  color: #7c7b85;
+  transition: color 0.15s ease;
+}
+.home-nav a.is-on {
+  color: var(--home-ink);
+  font-weight: 500;
+}
+
+@media (min-width: 480px) {
+  .home {
+    min-height: 100vh;
+    padding-bottom: 7rem;
+  }
+}
+
+
