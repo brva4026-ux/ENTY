@@ -250,7 +250,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
-          ¿Nuevo en Tickelot?{" "}
+          ¿Nuevo en Enty?{" "}
           <button
             onClick={() => nav("/register")}
             className="link-underline font-semibold text-brand-300"

@@ -1,13 +1,13 @@
 {
-  "name": "Tickelot — Boletería y Aforo",
-  "short_name": "Tickelot",
+  "name": "Enty — Boletería y Aforo",
+  "short_name": "Enty",
   "description": "Boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#070c17",
-  "theme_color": "#070c17",
+  "background_color": "#0A0A0F",
+  "theme_color": "#0A0A0F",
   "categories": ["business", "events", "productivity"],
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

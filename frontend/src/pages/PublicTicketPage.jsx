@@ -180,7 +180,7 @@ export default function PublicTicketPage() {
               <p className="tkt-date">{eventDate(ticket?.starts_at) || "—"}</p>
               <p className="tkt-venue truncate">{ticket?.venue_name ?? ""}</p>
             </div>
-            <span className="tkt-brand">Tickelot</span>
+            <span className="tkt-brand">Enty</span>
           </div>
 
           <h1 className="tkt-title">{ticket?.event_name ?? "Tu boleta"}</h1>
@@ -364,7 +364,7 @@ export default function PublicTicketPage() {
 
         <div className="tkt-brandline">
           <img src="/icon.svg" alt="" aria-hidden="true" />
-          <span>Tickelot</span>
+          <span>Enty</span>
         </div>
         <p className="tkt-footer">Guarda esta página: la necesitas en la entrada</p>
       </div>

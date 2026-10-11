@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
 
-/** Marca Tickelot: logotipo, indicadores vivos y cifras animadas. */
+/** Marca Enty: logotipo, indicadores vivos y cifras animadas. */
 
 export function Logo({ size = "md", animated = true }) {
   const hero = size === "hero";
@@ -14,99 +14,108 @@ export function Logo({ size = "md", animated = true }) {
         : "h-8 w-8";
   const text =
     size === "xl"
-      ? "text-[2.6rem]"
+      ? "text-[2.4rem]"
       : size === "lg"
-        ? "text-[1.9rem]"
+        ? "text-[1.8rem]"
         : "text-[15px]";
   const radius =
     size === "md"
-      ? "rounded-[0.55rem]"
+      ? "rounded-[0.6rem]"
       : hero
-        ? "rounded-[1.1rem]"
-        : "rounded-[0.9rem]";
+        ? "rounded-[1.15rem]"
+        : "rounded-[0.95rem]";
   return (
     <span className="inline-flex items-center gap-3">
-      {/* ISOTIPO UNICO. El mismo desenho que public/icon.svg y que el
-          favicon del index.html: la criatura de fuego sobre la boleta
-          troquelada. Antes cada superficie tenia su propia version del
-          logo (y ninguna era la del usuario). Aqui los colores van planos
-          a proposito — un <defs> con id se duplicaria en cada render del
-          Logo y el segundo svg del DOM quedaria sin gradiente. */}
+      {/* ISOTIPO UNICO. La misma marca que public/icon.svg y que el favicon
+          del index.html: icono cuadrado muy redondeado, negro mate con filo
+          violeta brillante, la "E" blanca y la estrella de cuatro puntas en
+          el lateral derecho. Los colores van planos a proposito — un <defs>
+          con id se duplicaria en cada render del Logo y el segundo svg del
+          DOM quedaria sin gradiente. */}
       <span
         className={`${box} relative ${animated ? "logo-pop" : ""} grid place-items-center`}
       >
         <span
           className={`relative grid h-full w-full place-items-center overflow-hidden ${radius}`}
-          style={{ background: "#16255c" }}
+          style={{ background: "#0A0A0F" }}
         >
           <svg
             viewBox="0 0 512 512"
             className="relative h-full w-full"
             aria-hidden="true"
           >
-            {/* Rayos de cartel, al 5%: textura que se siente, no que se ve. */}
-            <g fill="#f5e6c8" opacity="0.05">
-              <path d="M256 256 96 24h92zM256 256 268 0h64zM256 256 480 128v84zM256 256 416 488h-92zM256 256 44 384v-84z" />
-            </g>
-            {/* La criatura: la llama. */}
-            <path
-              fill="#f97316"
-              d="M256 40c40 64 88 108 88 168a88 88 0 0 1-176 0c0-36 18-58 42-70-4 30 5 46 23 53-14-49-9-95 23-151Z"
+            {/* Filo violeta brillante del tile. */}
+            <rect
+              x="9"
+              y="9"
+              width="494"
+              height="494"
+              rx="118"
+              fill="none"
+              stroke="#BB5CF6"
+              strokeWidth="16"
+              strokeOpacity="0.85"
             />
-            <path
-              fill="#0b1638"
-              d="M212 206c19-29 69-29 88 0-19 29-69 29-88 0Z"
-            />
-            <circle cx="256" cy="206" r="15" fill="#f5e6c8" />
-            <circle cx="262" cy="199" r="5" fill="#0b1638" />
-            {/* La boleta, con el troquel resuelto en alpha (ver el mask del
-                icon.svg): aqui no cabe un <mask> sin id duplicado, asi que
-                el troquel se come con los dos-circulos del color del campo. */}
-            <g>
-              <rect x="112" y="292" width="288" height="132" rx="20" fill="#f5e6c8" />
-              <path
-                d="M338 312v92"
-                stroke="#0f1c46"
-                strokeOpacity="0.45"
-                strokeWidth="7"
-                strokeLinecap="round"
-                strokeDasharray="3 17"
-              />
-              <g fill="#0f1c46">
-                <rect x="360" y="316" width="24" height="84" rx="4" />
-                <rect x="360" y="316" width="7" height="84" fill="#f5e6c8" />
-                <rect x="376" y="316" width="8" height="84" rx="4" />
-              </g>
-              <circle cx="112" cy="353" r="27" fill="#16255c" />
-              <circle cx="400" cy="353" r="27" fill="#16255c" />
+            {/* La "E": asta + tres brazos redondeados. */}
+            <g
+              stroke="#FFFFFF"
+              strokeWidth="60"
+              strokeLinecap="round"
+              fill="none"
+            >
+              <path d="M186 156 H318" />
+              <path d="M186 256 H292" />
+              <path d="M186 356 H318" />
+              <path d="M186 156 V356" />
             </g>
+            {/* La estrella de cuatro puntas, integrada al lateral derecho. */}
+            <path
+              fill="#BB5CF6"
+              d="M356 196 l13 34 34 13 -34 13 -13 34 -13 -34 -34 -13 34 -13 z"
+            />
           </svg>
         </span>
       </span>
       {hero ? (
-        /* Wordmark hero (v3): tipografía pura, sin píldora ni degradados.
-           "Flow" en el azul acento — el único color interactivo del sistema. */
+        /* Wordmark hero: tipografia redondeada y futurista (Baloo 2, la voz
+           amable de la marca) — "Ent" en tinta blanca y la "y" en el violeta
+           de acento, con la estrella de cuatro puntas sobre la "t". */
         <span className="brand-chip animate-fade">
-          {/* Wordmark hero: Shrikhand (display jugosa del ticket) con el
-              sufijo en el azul acento — la misma voz del boleto. */}
           <span
             className="leading-none"
             style={{
-              fontFamily: "'Shrikhand', Georgia, serif",
-              fontSize: "2.1rem",
-              letterSpacing: "0.01em",
+              fontFamily: "'Baloo 2', 'Segoe UI', system-ui, sans-serif",
+              fontWeight: 800,
+              fontSize: "2.4rem",
+              letterSpacing: "-0.01em",
             }}
           >
-            <span className="brand-shine">Tick</span>
-            <span className="brand-suffix">elot</span>
+            <span className="brand-shine">En</span>
+            <span className="brand-star">
+              t
+              <svg
+                viewBox="0 0 24 24"
+                className="brand-star-mark"
+                aria-hidden="true"
+              >
+                <path
+                  fill="#BB5CF6"
+                  d="M12 1 l2.6 6.8 6.8 2.6 -6.8 2.6 -2.6 6.8 -2.6 -6.8 -6.8 -2.6 6.8 -2.6 z"
+                />
+              </svg>
+            </span>
+            <span className="brand-shine">y</span>
           </span>
         </span>
       ) : (
         <span
           className={`${text} brand-shine leading-none`}
-          style={{ fontFamily: "'Shrikhand', Georgia, serif" }}
+          style={{
+            fontFamily: "'Baloo 2', 'Segoe UI', system-ui, sans-serif",
+            fontWeight: 800,
+          }}
         >
-          Tickelot
+          Enty
         </span>
       )}
     </span>

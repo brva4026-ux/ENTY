@@ -167,7 +167,7 @@ export default function EventWorkbench({
     ev.status === "live"
       ? "#34d399"
       : ev.status === "published"
-        ? "#fb923c"
+        ? "#BB5CF6"
         : ev.status === "draft"
           ? "#71717a"
           : ev.status === "cancelled"

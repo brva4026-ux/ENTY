@@ -369,7 +369,7 @@ export default function PromoterDashboard() {
       <div className="reveal space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <p className="eyebrow">Tickelot</p>
+            <p className="eyebrow">Enty</p>
             <h2
               className="display text-2xl tracking-[-0.03em]"
               style={{ fontVariationSettings: '"opsz" 32' }}

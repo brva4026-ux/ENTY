@@ -6,7 +6,7 @@
  * expira y se puede revocar.
  *
  * Patrones del dueño (unicall-blue + distri-stream): acciones de icono con
- * tooltip por fila, pestañas por estado con contador, identidad dark Tickelot.
+ * tooltip por fila, pestañas por estado con contador, identidad dark Enty.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
