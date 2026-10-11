@@ -195,8 +195,9 @@ export default function MyTicketsPage() {
                         type="button"
                         className="home-cta fan-cta"
                         onClick={() => showQr(t)}
+                        disabled={!t.qr_active}
                       >
-                        Ver mi QR
+                        {t.qr_active ? "Ver mi QR" : "Aún no activo"}
                       </button>
                     )}
                   </div>
@@ -206,7 +207,7 @@ export default function MyTicketsPage() {
                   </div>
                 )}
 
-                {isOpen ? (
+                {isOpen && t.qr_active ? (
                   <div className="fan-qr">
                     {qrBusy ? (
                       <p className="fan-qr-hint">Generando tu QR…</p>
@@ -221,6 +222,10 @@ export default function MyTicketsPage() {
                       </>
                     ) : null}
                   </div>
+                ) : null}
+
+                {t.has_link && !t.qr_active ? (
+                  <p className="fan-qr-hint fan-qr-wait">{t.qr_message}</p>
                 ) : null}
               </article>
             );

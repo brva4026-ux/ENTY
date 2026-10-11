@@ -71,6 +71,13 @@ Usuarios con contraseña `demo1234`:
 | `promo2@bar.test` | promotor (cupo 3) |
 | `puerta@bar.test` | bouncer |
 
+**Fan de prueba** (sin cuenta): `fan@bar.test` / `3100000001`. El seed le emite
+dos cortesías: una al evento `Noche Electrónica` (en +7 días → QR **inactivo**,
+para ver el aviso de espera) y otra al evento `Prueba de QR` (en +20 min → QR
+**activo** y escaneable). En `/boletas` basta con escribir ese correo o
+teléfono. El seed es idempotente: `events` no tiene UNIQUE(venue_id, name), así
+que busca antes de insertar (no confíes en `ON CONFLICT` ahí).
+
 Ojo: los ids son `GENERATED ALWAYS AS IDENTITY`, así que **cambian en cada
 seed**. No los fijes en scripts; consúltalos. Además, correr `pytest` **borra
 estos datos** (el `conftest` hace `DROP TABLE`), así que después de testear hay

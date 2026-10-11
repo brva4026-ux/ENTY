@@ -256,6 +256,7 @@ _FAN_TICKETS_SQL = """
            e.location      AS location,
            e.starts_at     AS starts_at,
            e.event_timezone AS event_timezone,
+           e.qr_unlock_minutes AS qr_unlock_minutes,
            v.name          AS venue_name
       FROM tickets t
       JOIN events e ON e.id = t.event_id
@@ -279,6 +280,7 @@ def _fan_starts_at_label(starts_at: datetime, tz_name: str | None) -> str:
 def _fan_ticket_row(r: dict) -> dict:
     """Fila de DB -> FanTicketOut. `has_link`: se puede regenerar el QR."""
     live = r["status"] == "issued" and r["event_status"] not in ("ended", "cancelled")
+    qr_active, qr_message = _qr_window(r)
     return {
         "ticket_id": r["ticket_id"],
         "event_name": r["event_name"],
@@ -287,6 +289,8 @@ def _fan_ticket_row(r: dict) -> dict:
         "starts_at": _fan_starts_at_label(r["starts_at"], r["event_timezone"]),
         "status": r["status"],
         "has_link": live,
+        "qr_active": qr_active,
+        "qr_message": qr_message,
     }
 
 

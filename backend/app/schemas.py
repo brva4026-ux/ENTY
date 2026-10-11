@@ -566,6 +566,11 @@ class FanTicketOut(BaseModel):
     # para la boleta que el fan reclama. `has_link` indica si aun se puede
     # pedir (boleta viva y evento no cerrado).
     has_link: bool = False
+    # Ventana de activacion del QR (mig 013, patron DICE): el QR solo se dibuja
+    # desde starts_at - qr_unlock_minutes. Misma regla que la boleta (/t), para
+    # que el fan no vea un QR que la puerta aun no honra.
+    qr_active: bool = True
+    qr_message: str | None = None
 
 
 class FanTicketsOut(BaseModel):

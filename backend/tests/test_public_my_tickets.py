@@ -73,6 +73,18 @@ def test_unknown_contact_sees_nothing(api, api_client):
     assert body["count"] == 0 and body["tickets"] == []
 
 
+def test_qr_window_is_reported_to_the_fan(api, api_client):
+    scen = api.scenario()  # el evento del escenario empieza en +29h
+    email = f"fan-{_tag()}@example.test"
+    _emit(api, scen, email=email)
+
+    row = _lookup(api_client, email)["tickets"][0]
+    # El QR se activa 60 min antes del evento: a 29h aun no. La lista trae la
+    # ventana para que la UI no muestre un QR que la puerta todavia no honra.
+    assert row["qr_active"] is False
+    assert row["qr_message"]
+
+
 def test_fan_regenerates_qr_and_the_old_token_dies(api, api_client):
     scen = api.scenario()
     email = f"fan-{_tag()}@example.test"
