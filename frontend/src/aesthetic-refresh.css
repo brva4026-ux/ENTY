@@ -1,0 +1,350 @@
+/*
+  Aesthetic refresh layer.
+  Imported after index.css so it can tighten the global visual system without
+  rewriting the large base stylesheet. Keep selectors broad but deliberate:
+  surfaces, controls, navigation, and high-use dashboard primitives.
+*/
+
+:root {
+  --tf-ink: #f7f7fb;
+  --tf-muted: #aeb0bd;
+  --tf-subtle: #777988;
+  --tf-canvas: #09090d;
+  --tf-surface: #12131a;
+  --tf-surface-2: #171923;
+  --tf-line: rgba(255, 255, 255, 0.09);
+  --tf-brand: #bb5cf6;
+  --tf-brand-strong: #9d3de4;
+  --tf-cyan: #38bdf8;
+  --tf-mint: #34d399;
+  --tf-amber: #f59e0b;
+  --tf-radius-card: 0.5rem;
+  --tf-radius-control: 0.5rem;
+  --tf-shadow-card: 0 18px 44px -32px rgba(0, 0, 0, 0.85);
+}
+
+html[data-theme="light"] {
+  --tf-ink: #121217;
+  --tf-muted: #525462;
+  --tf-subtle: #717381;
+  --tf-canvas: #f4f5f8;
+  --tf-surface: #ffffff;
+  --tf-surface-2: #f8f8fb;
+  --tf-line: rgba(18, 18, 23, 0.1);
+  --tf-brand: #7c3aed;
+  --tf-brand-strong: #5b21b6;
+  --tf-cyan: #0284c7;
+  --tf-mint: #059669;
+  --tf-amber: #b45309;
+  --tf-shadow-card: 0 18px 40px -34px rgba(15, 23, 42, 0.42);
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(56, 189, 248, 0.035), transparent 18rem),
+    var(--tf-canvas);
+  color: var(--tf-ink);
+}
+
+.display,
+.vh-nombre-titulo,
+.auth-brand-title,
+.vh-kpi-amount {
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  color: var(--tf-cyan);
+  letter-spacing: 0.075em;
+}
+
+.text-gradient {
+  background: linear-gradient(120deg, var(--tf-ink) 0%, var(--tf-cyan) 48%, var(--tf-brand) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.card,
+.auth-card,
+.dialog-panel,
+.venue-header,
+.bizdock {
+  border-radius: var(--tf-radius-card);
+  border-color: var(--tf-line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 38%),
+    var(--tf-surface);
+  box-shadow: var(--tf-shadow-card);
+}
+
+html[data-theme="light"] .card,
+html[data-theme="light"] .auth-card,
+html[data-theme="light"] .dialog-panel,
+html[data-theme="light"] .venue-header,
+html[data-theme="light"] .bizdock {
+  background: var(--tf-surface);
+}
+
+.card-interactive:hover {
+  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.26);
+  box-shadow: 0 22px 46px -34px rgba(56, 189, 248, 0.45);
+}
+
+.field,
+select.field,
+textarea.field {
+  border-radius: var(--tf-radius-control);
+  border-color: var(--tf-line);
+  background-color: var(--tf-surface-2);
+  color: var(--tf-ink);
+}
+
+.field:hover {
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.field:focus {
+  border-color: var(--tf-cyan);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+}
+
+.btn-primary {
+  border-radius: var(--tf-radius-control);
+  background: linear-gradient(135deg, var(--tf-brand), var(--tf-cyan));
+  color: #ffffff;
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 26px -18px rgba(56, 189, 248, 0.85);
+  font-weight: 700;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--tf-brand-strong), #0ea5e9);
+}
+
+.btn-primary:focus-visible {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.28);
+}
+
+.btn-primary:active {
+  background: linear-gradient(135deg, var(--tf-brand-strong), #0284c7);
+  transform: translateY(1px);
+}
+
+.btn-ghost,
+.btn-mini,
+.opt-chip,
+.tabbar-item,
+.bizdock-item,
+.tkt-btn {
+  border-radius: var(--tf-radius-control);
+}
+
+.btn-ghost {
+  border-color: var(--tf-line);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--tf-muted);
+}
+
+.btn-ghost:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.34);
+  color: var(--tf-ink);
+}
+
+.btn-mini[data-variant="brand"],
+.tabbar-item[aria-selected="true"] .text-brand-300,
+.brand-suffix {
+  color: var(--tf-cyan);
+}
+
+.btn-mini[data-variant="brand"]:hover,
+.opt-chip[aria-pressed="true"] {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.34);
+  color: var(--tf-cyan);
+}
+
+.meter-fill,
+input[type="checkbox"].accent-brand-500:checked,
+.bizdock-item.is-active .bizdock-icon {
+  background: linear-gradient(135deg, var(--tf-brand), var(--tf-cyan));
+}
+
+input[type="checkbox"].accent-brand-500:checked {
+  border-color: var(--tf-cyan);
+}
+
+.topbar {
+  border-bottom: 1px solid var(--tf-line);
+  background: color-mix(in srgb, var(--tf-canvas) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.topnav-item {
+  border-radius: var(--tf-radius-control);
+}
+
+.topnav-item.is-active,
+html[data-theme="light"] header nav a[aria-current="page"] {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--tf-ink);
+}
+
+.topbar-avatar {
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  background: linear-gradient(135deg, rgba(187, 92, 246, 0.28), rgba(56, 189, 248, 0.18));
+  color: var(--tf-ink);
+}
+
+.bottomnav {
+  border-top: 1px solid var(--tf-line);
+  background: color-mix(in srgb, var(--tf-canvas) 86%, transparent);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.bottomnav-item {
+  border-radius: var(--tf-radius-control);
+  color: var(--tf-muted);
+}
+
+.bottomnav-item.is-active {
+  color: var(--tf-ink);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.bottomnav-item.is-active span:last-child {
+  background: var(--tf-cyan);
+}
+
+.tabbar {
+  border: 1px solid var(--tf-line);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: none;
+}
+
+.tabbar-item[aria-selected="true"] {
+  background: var(--tf-surface);
+  color: var(--tf-ink);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.18);
+}
+
+.badge {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.list-row,
+.row:hover {
+  border-radius: var(--tf-radius-card);
+}
+
+.list-row {
+  border-color: var(--tf-line);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.row:hover {
+  background: rgba(56, 189, 248, 0.055);
+}
+
+.empty-state-icon {
+  color: var(--tf-cyan);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(187, 92, 246, 0.1));
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.32);
+}
+
+.ticket-timeline::before {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.58), rgba(187, 92, 246, 0.24));
+}
+
+.ticket-step.done .ticket-step-dot {
+  background: var(--tf-cyan);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+}
+
+.vh-logo,
+.vh-logo-fallback {
+  border-radius: var(--tf-radius-card);
+}
+
+.vh-kpi::before {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.7), rgba(187, 92, 246, 0.08) 82%, transparent);
+}
+
+.bizdock-item {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.026);
+}
+
+.bizdock-item:hover {
+  background: rgba(56, 189, 248, 0.07);
+}
+
+.bizdock-item.is-active {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.bizdock-count {
+  background: var(--tf-cyan);
+  color: #07111f;
+}
+
+.toast-in {
+  border-radius: var(--tf-radius-card);
+  box-shadow: 0 16px 44px -24px rgba(0, 0, 0, 0.9);
+}
+
+.dialog-backdrop,
+.dialog-backdrop-out {
+  background: rgba(3, 6, 18, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--tf-surface) 25%, rgba(56, 189, 248, 0.12) 50%, var(--tf-surface) 75%);
+  background-size: 800px 100%;
+}
+
+.auth-shell .auth-card {
+  border-radius: var(--tf-radius-card);
+}
+
+.auth-brand {
+  background:
+    radial-gradient(40rem 28rem at 82% 4%, rgba(56, 189, 248, 0.16), transparent 58%),
+    radial-gradient(36rem 24rem at 18% 86%, rgba(187, 92, 246, 0.14), transparent 60%),
+    linear-gradient(158deg, #151324 0%, #09090d 66%, #050507 100%);
+}
+
+.auth-brand-sub,
+.auth-benefit {
+  color: #c4cada;
+}
+
+.auth-benefit-check {
+  color: var(--tf-cyan);
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.34);
+}
+
+.evx-card {
+  border-radius: var(--tf-radius-card);
+}
+
+.evx-card::after {
+  background: radial-gradient(90% 70% at 50% -10%, rgba(56, 189, 248, 0.11), transparent 62%);
+}
+
+@media (max-width: 640px) {
+  .card,
+  .auth-card,
+  .venue-header,
+  .bizdock {
+    border-radius: var(--tf-radius-card);
+  }
+}
