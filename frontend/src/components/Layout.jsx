@@ -74,7 +74,7 @@ export default function Layout({ children }) {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen">
+    <div className="app-shell min-h-screen">
       {/* A11y: primer Tab lo muestra y salta directo al contenido. */}
       <a href="#contenido" className="skip-link">
         Saltar al contenido

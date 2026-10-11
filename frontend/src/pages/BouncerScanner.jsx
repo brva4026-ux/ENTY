@@ -656,7 +656,7 @@ export default function BouncerScanner() {
   }, [offline]);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-zinc-950 pb-[env(safe-area-inset-bottom)]">
+    <div className="app-shell flex min-h-[100dvh] flex-col bg-zinc-950 pb-[env(safe-area-inset-bottom)]">
       {/* Sin red: si hay snapshot, la puerta SIGUE trabajando (valida contra
           el caché y encola); si no hay, aquí no hay magia posible — el banner
           lo dice sin inventar una validez que no se puede verificar. */}
@@ -684,9 +684,9 @@ export default function BouncerScanner() {
             : "La noche todavía no abrió: el escáner va a rechazar las boletas hasta que el admin abra puertas."}
         </div>
       )}
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
+      <header className="door-head flex flex-wrap items-center justify-between gap-2 px-4 py-3">
         <div className="min-w-0">
-          <h1 className="text-lg font-bold tracking-tight text-white">
+          <h1 className="door-title text-lg font-bold tracking-tight text-white">
             Control de puerta
           </h1>            <p className="text-xs text-zinc-500">
             {user?.full_name}

@@ -754,7 +754,7 @@ export default function AdminDashboard() {
                         búsqueda). */}
                       <div className="evx-head doodle-host">
                         {/* Doodle de fiesta junto al titular (capa POP) */}
-                        <Star4 className="-left-1 -top-1 h-3.5 w-3.5 text-[#f0f542]" />
+                        <Star4 className="-left-1 -top-1 h-3.5 w-3.5 text-[#00E6AB]" />
                         <div className="min-w-0">
                           <p className="eyebrow">Operación</p>
                           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

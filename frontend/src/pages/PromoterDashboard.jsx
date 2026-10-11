@@ -367,11 +367,11 @@ export default function PromoterDashboard() {
   return (
     <PullToRefresh onRefresh={reloadAll}>
       <div className="reveal space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="promo-hero">
           <div>
             <p className="eyebrow">Enty</p>
             <h2
-              className="display text-2xl tracking-[-0.03em]"
+              className="display promo-hero-title"
               style={{ fontVariationSettings: '"opsz" 32' }}
             >
               Panel del promotor
