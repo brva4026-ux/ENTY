@@ -4283,7 +4283,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   font-size: 0.72rem;
   color: var(--color-zinc-500);
 }
-/* Firma Tickelot centrada bajo el ticket */
+/* Firma Enty centrada bajo el ticket */
 .tkt-brandline {
   margin: 1.1rem auto 0;
   display: flex;

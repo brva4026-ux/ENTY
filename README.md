@@ -1,4 +1,4 @@
-# Tickelot — Sistema de Boletería y Control de Aforo (MVP)
+# Enty — Sistema de Boletería y Control de Aforo (MVP)
 
 Plataforma SaaS B2B2C para organizadores de eventos y discotecas: crea eventos,
 asigna cupos a promotores, emite boletas con código QR único y valida en puerta

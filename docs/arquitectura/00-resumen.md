@@ -1,4 +1,4 @@
-# Tickelot — Decisión de Arquitectura (Comité Técnico)
+# Enty — Decisión de Arquitectura (Comité Técnico)
 
 > Alcance: diseño técnico completo de una plataforma SaaS B2B2C de boletería y
 > aforo. Documento vivo; cada decisión se ancla al código real del repo

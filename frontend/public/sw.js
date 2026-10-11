@@ -69,7 +69,7 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Enty";
   const options = {
     body: data.body || "",
-    tag: data.tag || "tickelot",
+    tag: data.tag || "enty",
     renotify: true, // el tag repetido vuelve a vibrar: cada apertura importa
     vibrate: [80, 60, 80],
     badge: "/icons/icon-maskable-192.png",
