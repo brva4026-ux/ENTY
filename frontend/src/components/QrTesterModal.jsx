@@ -159,7 +159,7 @@ export default function QrTesterModal({ onClose }) {
 
           <div className="flex items-center gap-3">
             <span className="h-px flex-1 bg-zinc-800" />
-            <span className="text-[11px] uppercase tracking-wider text-zinc-600">
+            <span className="text-2xs uppercase tracking-wider text-zinc-600">
               o pegar
             </span>
             <span className="h-px flex-1 bg-zinc-800" />

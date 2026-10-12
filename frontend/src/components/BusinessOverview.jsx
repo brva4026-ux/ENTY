@@ -33,14 +33,14 @@ function trendPct(current, prev) {
 function TrendPill({ current, prev, invert = false }) {
   const pct = trendPct(current, prev);
   if (pct === null)
-    return <span className="text-[10px] text-zinc-600">sin mes anterior</span>;
+    return <span className="text-2xs text-zinc-600">sin mes anterior</span>;
   const up = pct > 0;
   const flat = pct === 0;
   // invert=true: para costes, subir es malo (aquí no aplica, pero queda por si acaso)
   const good = invert ? !up : up;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-bold ${
         flat
           ? "bg-zinc-800 text-zinc-400"
           : good
@@ -59,11 +59,11 @@ function KpiCard({ label, value, accent, children, format }) {
   const isNumber = typeof value === "number";
   return (
     <div className="card card-interactive p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+      <p className="text-2xs font-semibold uppercase tracking-wide text-zinc-500">
         {label}
       </p>
       <p
-        className={`tnum mt-1.5 text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] ${accent ?? "text-white"}`}
+        className={`tnum mt-1.5 text-3xl font-extrabold leading-none tracking-[-0.03em] ${accent ?? "text-white"}`}
         style={{ fontVariationSettings: '"opsz" 32' }}
       >
         {isNumber ? (
@@ -118,11 +118,11 @@ function RevenueBars({ events, onOpen }) {
                 style={{ height: `${h}%`, transitionDelay: `${i * 60}ms` }}
               />
             </span>
-            <span className="w-full truncate text-[9px] text-zinc-500 group-hover:text-zinc-300">
+            <span className="w-full truncate text-2xs text-zinc-500 group-hover:text-zinc-300">
               {e.name}
             </span>
             <span
-              className={`hidden shrink-0 rounded-full px-1.5 text-[8px] font-bold uppercase ring-1 sm:block ${meta.cls}`}
+              className={`hidden shrink-0 rounded-full px-1.5 text-2xs font-bold uppercase ring-1 sm:block ${meta.cls}`}
             >
               {meta.label}
             </span>
@@ -302,7 +302,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                 value={data.tickets_redeemed}
                 accent="text-brand-300"
               >
-                <span className="text-[10px] text-zinc-600">
+                <span className="text-2xs text-zinc-600">
                   {data.tickets_issued > 0
                     ? `${Math.round((data.tickets_redeemed / data.tickets_issued) * 100)}% de las vendidas`
                     : "—"}
@@ -318,7 +318,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                 format={(v) => `$${Math.round(v).toLocaleString("es-CO")}`}
                 accent="text-rose-300"
               >
-                <span className="text-[10px] text-zinc-600">
+                <span className="text-2xs text-zinc-600">
                   {data.commissions_cents !== null
                     ? "se descuentan del recaudo"
                     : "sin liquidaciones este mes"}
@@ -330,7 +330,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                   data.avg_ticket_cents ? money(data.avg_ticket_cents) : "—"
                 }
               >
-                <span className="text-[10px] text-zinc-600">
+                <span className="text-2xs text-zinc-600">
                   {data.courtesy_tickets} cortesías aparte
                 </span>
               </KpiCard>
@@ -397,7 +397,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                             {e.name}
                           </span>
                           <span
-                            className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ring-1 ${
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-bold uppercase ring-1 ${
                               (STATUS_META[e.status] ?? STATUS_META.draft).cls
                             }`}
                           >

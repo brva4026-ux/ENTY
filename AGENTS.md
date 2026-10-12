@@ -254,6 +254,12 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   override de `prefers-reduced-motion`) y el JSX ya no fija hex (el punto de
   estado usa `data-status` en CSS). Quedan 31 `no-duplicate-selectors` (F4) y
   21 `style={{}}` de geometría dinámica (no color).
+- **Estado Fase 2 (HECHA, corte de escala)**: la tipografía es **una escala
+  cerrada de 9 pasos**, compartida entre CSS (`--e-text-*` en `tokens.css`) y
+  Tailwind (`--text-*` en el `@theme`). Los 179 `font-size` de las hojas usan
+  `var(--e-text-*)`; **el piso es 11px** (2xs) — no quedan micro-tamaños ni
+  `text-[Npx]` en JSX. Display por `--e-text-display` y `tabular-nums` en
+  cifras. Falta el patrón editorial fino (eyebrow→display→lead→meta), con F3.
 - **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
   (oscuro y claro), interior (admin/promotor, + alt de imágenes) y la puerta
   (+ objetivos táctiles ≥ 44px). Corre con `E2E_BASE_URL=http://127.0.0.1:12000

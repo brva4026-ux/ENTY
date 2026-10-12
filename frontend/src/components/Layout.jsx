@@ -110,10 +110,10 @@ export default function Layout({ children }) {
             <ThemeToggle />
             <NotificationBell />
             <div className="hidden text-right sm:block">
-              <p className="text-[13px] font-medium leading-tight text-zinc-200">
+              <p className="text-sm font-medium leading-tight text-zinc-200">
                 {user?.full_name}
               </p>
-              <p className="text-[11px] leading-tight text-zinc-500">
+              <p className="text-2xs leading-tight text-zinc-500">
                 {roleLabel}
                 {venueNames && ` · ${venueNames}`}
               </p>

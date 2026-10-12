@@ -324,7 +324,7 @@ export default function PublicTicketPage() {
                 </span>
                 <strong>Tu QR aún no se activa</strong>
                 <p>{qrMessage}</p>
-                <p className="mt-2 text-[11px] font-semibold opacity-70">
+                <p className="mt-2 text-2xs font-semibold opacity-70">
                   Guarda este enlace: es tu boleta y en la puerta va a funcionar.
                 </p>
               </div>

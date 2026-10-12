@@ -71,7 +71,7 @@ export default function ReportWidget({ report }) {
         <div className="meter mb-1">
           <div className={`meter-fill ${fill}`} style={{ width: `${occupancy}%` }} />
         </div>
-        <div className="mb-5 flex justify-between text-[11px] text-zinc-600">
+        <div className="mb-5 flex justify-between text-2xs text-zinc-600">
           <span>Ocupación</span>
           <span className="tnum">{occupancy}%</span>
         </div>

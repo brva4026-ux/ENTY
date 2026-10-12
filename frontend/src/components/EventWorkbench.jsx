@@ -95,7 +95,7 @@ function Kpi({ value, label, accent }) {
       >
         {typeof value === "number" ? <CountUpNumber value={value} /> : value}
       </p>
-      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+      <p className="mt-1 text-2xs font-semibold uppercase tracking-wide text-zinc-500">
         {label}
       </p>
     </div>
@@ -336,7 +336,7 @@ export default function EventWorkbench({
         {/* Ciclo de vida: las acciones SIEMPRE visibles dentro del backstage */}
         {actions.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-800/80 pt-4">
-            <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+            <span className="mr-1 text-2xs font-bold uppercase tracking-wide text-zinc-500">
               Siguiente paso
             </span>
             {actions.map(({ action, label, danger }) => (

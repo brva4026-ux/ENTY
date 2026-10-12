@@ -1635,7 +1635,7 @@ export default function AdminDashboard() {
                           key={label}
                           className="rounded-xl bg-zinc-940 px-3 py-2"
                         >
-                          <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+                          <p className="text-2xs uppercase tracking-wide text-zinc-500">
                             {label}
                           </p>
                           <p className="tnum mt-0.5 text-lg font-bold text-zinc-100">

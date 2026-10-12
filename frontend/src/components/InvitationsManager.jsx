@@ -377,7 +377,7 @@ export default function InvitationsManager({ venueId }) {
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-zinc-200">{m.label}</p>
-                <p className="mt-0.5 text-[11px] leading-snug text-zinc-500">
+                <p className="mt-0.5 text-2xs leading-snug text-zinc-500">
                   {desc}
                 </p>
               </div>
@@ -420,7 +420,7 @@ export default function InvitationsManager({ venueId }) {
                   Ocultar
                 </button>
               </div>
-              <p className="mt-2 text-[11px] text-zinc-600">
+              <p className="mt-2 text-2xs text-zinc-600">
                 Un solo uso · expira automáticamente · revocable desde esta
                 pantalla.
               </p>
@@ -552,7 +552,7 @@ export default function InvitationsManager({ venueId }) {
                 )}
                 {t.label}
                 <span
-                  className={`tnum rounded-full px-1.5 text-[10px] ring-1 ${active ? "bg-zinc-700/80 text-zinc-200 ring-zinc-600" : "bg-zinc-800/80 text-zinc-500 ring-zinc-700/70"}`}
+                  className={`tnum rounded-full px-1.5 text-2xs ring-1 ${active ? "bg-zinc-700/80 text-zinc-200 ring-zinc-600" : "bg-zinc-800/80 text-zinc-500 ring-zinc-700/70"}`}
                 >
                   {counts[t.id]}
                 </span>
@@ -596,7 +596,7 @@ export default function InvitationsManager({ venueId }) {
                           {inv.full_name}
                         </span>
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1 ${sMeta.cls}`}
+                          className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide ring-1 ${sMeta.cls}`}
                         >
                           {st === "accepted" ? (
                             <IconCheck className="h-2.5 w-2.5" />
@@ -608,7 +608,7 @@ export default function InvitationsManager({ venueId }) {
                           {sMeta.label}
                         </span>
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${meta.chip}`}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-bold uppercase ring-1 ${meta.chip}`}
                         >
                           <IconRole role={inv.role} className="h-3 w-3" />
                           {meta.label}

@@ -170,15 +170,28 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   Cumplida. Lo único pendiente del presupuesto son 31 `no-duplicate-selectors`
   (F4, profundidad/material), no color.
 
-### Fase 2 — Tipografía y ritmo editorial
+### Fase 2 — Tipografía y ritmo editorial — **HECHA (corte de escala)**
 
-- Colapsar a la escala de §3; **eliminar micro-tamaños**; subir el piso de
-  legibilidad; `clamp()` en display; `font-variant-numeric: tabular-nums` en
-  cifras (aforo, precios, conteos).
-- Fijar el patrón editorial reutilizable: **eyebrow → display → lead → meta**,
-  con tracking y line-height por token.
-- *Aceptación*: ninguna superficie usa un tamaño fuera de la escala; el ritmo
-  vertical es constante entre páginas.
+- [x] Colapsar a la escala de §3: **44 tamaños → 9 pasos**. La escala vive
+  ahora como tokens compartidos: `--e-text-2xs..display` en `tokens.css` y
+  `--text-2xs..4xl` en el `@theme` de Tailwind (una sola fuente para CSS y
+  para las utilidades `text-*`). CSS: **179 `font-size` → todos `var(--e-text-*)`**
+  (solo queda 1 `1.25em` relativo en `.tkt-arw`, correcto por diseño).
+- [x] **Retirados los micro-tamaños**: 0.5/0.55/0.56/0.6/0.62/0.625rem (8–10px)
+  → 2xs (11px). El JSX no deja ningún `text-[Npx]`: 46×`text-[11px]` →
+  `text-2xs`, 34×`text-[10px]` + 5×`text-[9px]` + `text-[8px]` → `text-2xs`,
+  `text-[13px]` → `text-sm`, etc. **El piso de legibilidad es 11px** (medido en
+  navegador: 0 elementos por debajo en home/login, sin overflow a 320px).
+- [x] `clamp()` en display: los 6 clamps ad-hoc → `--e-text-display`
+  (`clamp(2.25rem, 6vw, 3.5rem)`); de paso el hero dejó de tener techos de
+  8.5vw (hasta 46px en móvil) y bajó a 36px, más contenido.
+- [x] `font-variant-numeric: tabular-nums` en cifras: aforo, recaudo, precio,
+  rango, conteo de pestaña y número de boleta (9 reglas; las cifras no bailan
+  al refrescar).
+- [ ] *Slice restante*: fijar el patrón editorial (eyebrow → display → lead →
+  meta) con tracking/line-height por token — es ritmo fino, va con F3.
+- *Aceptación*: ninguna superficie usa un tamaño fuera de la escala (cumplida);
+  el ritmo vertical es constante entre páginas (parcial: pendiente el patrón).
 
 ### Fase 3 — Color, tema claro y accesibilidad (incluye los 2 bugs)
 

@@ -333,6 +333,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .bizdock-count {
+  font-variant-numeric: tabular-nums;
   background: var(--tf-purple);
   /* Tinta Enty sobre el violeta brillante (oscuro): 6.2:1. En claro
      --tf-purple cambia a var(--e-violet-500) (mas oscuro), donde la tinta bajaba a
@@ -585,12 +586,12 @@ html[data-theme="light"] .bizdock-count {
   align-items: center;
   gap: 0.4rem;
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: var(--e-text-xl);
   letter-spacing: -0.02em;
   color: var(--e-white);
 }
 .tkt-brand-lock--sm {
-  font-size: 0.95rem;
+  font-size: var(--e-text-base);
 }
 .tkt-mark {
   width: 0.9em;
@@ -599,7 +600,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .tkt-connect {
   text-align: right;
-  font-size: 0.5rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.24em;
   line-height: 1.9;
@@ -635,7 +636,7 @@ html[data-theme="light"] .bizdock-count {
 .tkt-kicker {
   position: relative;
   z-index: 2;
-  font-size: 0.55rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.5em;
   text-indent: 0.5em;
@@ -647,7 +648,7 @@ html[data-theme="light"] .bizdock-count {
   margin: 0.4rem 0 0.55rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 400;
-  font-size: clamp(3rem, 15vw, 4.6rem);
+  font-size: var(--e-text-display);
   line-height: 0.9;
   letter-spacing: 0.01em;
   color: var(--e-white);
@@ -658,7 +659,7 @@ html[data-theme="light"] .bizdock-count {
 .tkt-tags {
   position: relative;
   z-index: 2;
-  font-size: 0.55rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.32em;
   color: var(--tkt-dim);
@@ -666,7 +667,7 @@ html[data-theme="light"] .bizdock-count {
 .tkt-one {
   display: block;
   margin-top: 0.35rem;
-  font-size: 0.5rem;
+  font-size: var(--e-text-2xs);
   letter-spacing: 0.42em;
   color: var(--tkt-dim-2);
 }
@@ -684,7 +685,7 @@ html[data-theme="light"] .bizdock-count {
   margin-top: 0.3rem;
 }
 .tkt-yr {
-  font-size: 0.6rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.3em;
   color: var(--tkt-dim-2);
@@ -692,27 +693,27 @@ html[data-theme="light"] .bizdock-count {
 .tkt-big {
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 400;
-  font-size: clamp(1.5rem, 7vw, 2.3rem);
+  font-size: var(--e-text-display);
   line-height: 1.05;
   color: var(--e-white);
   margin: 0.2rem 0 0.1rem;
 }
 .tkt-hrs {
-  font-size: 0.72rem;
+  font-size: var(--e-text-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--tkt-dim);
 }
 .tkt-place {
   margin-top: 0.7rem;
-  font-size: 0.72rem;
+  font-size: var(--e-text-xs);
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--e-white);
 }
 .tkt-city {
   margin-top: 0.1rem;
-  font-size: 0.6rem;
+  font-size: var(--e-text-2xs);
   font-weight: 500;
   letter-spacing: 0.12em;
   color: var(--tkt-dim-2);
@@ -760,12 +761,12 @@ html[data-theme="light"] .bizdock-count {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.95);
   padding: 0.2rem 0.6rem;
-  font-size: 0.7rem;
+  font-size: var(--e-text-xs);
   font-weight: 800;
   color: var(--e-mask);
 }
 .tkt-scan {
-  font-size: 0.5rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -840,7 +841,7 @@ html[data-theme="light"] .bizdock-count {
   border-left: 0;
 }
 .tkt-seat-k {
-  font-size: 0.5rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -850,7 +851,7 @@ html[data-theme="light"] .bizdock-count {
   margin-top: 0.2rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 400;
-  font-size: 1.35rem;
+  font-size: var(--e-text-2xl);
   line-height: 1.1;
   color: var(--e-white);
   overflow-wrap: anywhere;
@@ -858,7 +859,7 @@ html[data-theme="light"] .bizdock-count {
 .tkt-seat-name {
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: var(--e-text-base);
 }
 .tkt-admit {
   text-align: right;
@@ -868,7 +869,7 @@ html[data-theme="light"] .bizdock-count {
   border-radius: 0;
 }
 .tkt-admit-k {
-  font-size: 0.55rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -885,7 +886,7 @@ html[data-theme="light"] .bizdock-count {
   justify-content: center;
   gap: 0.35rem;
   text-align: center;
-  font-size: 0.68rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--tkt-dim);
 }
@@ -906,7 +907,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .tkt-barcode-cap {
   margin-top: 0.4rem;
-  font-size: 0.5rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -914,7 +915,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .tkt-sign {
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 1.4rem;
+  font-size: var(--e-text-2xl);
   line-height: 1;
   color: var(--tkt-green-hot);
   text-align: right;
@@ -942,14 +943,14 @@ html[data-theme="light"] .bizdock-count {
 
 @media (max-width: 420px) {
   .tkt-big {
-    font-size: 1.5rem;
+    font-size: var(--e-text-2xl);
   }
   .tkt-qr {
     width: 6.4rem;
     height: 6.4rem;
   }
   .tkt-seat-v {
-    font-size: 1.1rem;
+    font-size: var(--e-text-xl);
   }
 }
 
@@ -1041,7 +1042,7 @@ html[data-theme="light"] .bizdock-count {
   display: flex;
   align-items: flex-start;
   gap: 3px;
-  font-size: 1.25rem;
+  font-size: var(--e-text-xl);
   font-weight: 600;
   letter-spacing: -0.05em;
   line-height: 1;
@@ -1068,7 +1069,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .home-title h1 {
   margin: 0;
-  font-size: 2.55rem;
+  font-size: var(--e-text-display);
   font-weight: 800;
   letter-spacing: -0.03em;
   text-transform: uppercase;
@@ -1076,7 +1077,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .home-title p {
   margin: 0.6rem 0 0;
-  font-size: 0.8rem;
+  font-size: var(--e-text-xs);
   color: var(--home-dim);
 }
 
@@ -1095,7 +1096,7 @@ html[data-theme="light"] .bizdock-count {
 .home-tabs button {
   height: 2.75rem;
   min-height: 2.75rem;
-  font-size: 0.875rem;
+  font-size: var(--e-text-sm);
   font-weight: 400;
   color: var(--home-dim);
   border-bottom: 1.5px solid transparent;
@@ -1171,7 +1172,7 @@ html[data-theme="light"] .bizdock-count {
   gap: 0.85rem;
 }
 .home-eyebrow {
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1179,7 +1180,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .home-feature-top h2 {
   margin: 0.5rem 0 0;
-  font-size: 1.95rem;
+  font-size: var(--e-text-display);
   font-weight: 800;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -1192,7 +1193,7 @@ html[data-theme="light"] .bizdock-count {
   gap: 0.75rem;
 }
 .home-feature-meta {
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   color: var(--home-dim-2);
   line-height: 1.5;
 }
@@ -1208,7 +1209,7 @@ html[data-theme="light"] .bizdock-count {
   border-radius: 999px;
   background: var(--home-violet);
   color: var(--e-white);
-  font-size: 0.8rem;
+  font-size: var(--e-text-xs);
   font-weight: 600;
   letter-spacing: 0.01em;
   display: inline-flex;
@@ -1237,7 +1238,7 @@ html[data-theme="light"] .bizdock-count {
   justify-content: space-between;
 }
 .home-subhead span {
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1246,7 +1247,7 @@ html[data-theme="light"] .bizdock-count {
 .home-subhead button {
   min-height: 2.75rem;
   padding-inline: 0.5rem;
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--home-accent);
 }
@@ -1289,13 +1290,13 @@ html[data-theme="light"] .bizdock-count {
   gap: 2px;
 }
 .home-row-date b {
-  font-size: 1.5rem;
+  font-size: var(--e-text-2xl);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
 }
 .home-row-date i {
-  font-size: 0.56rem;
+  font-size: var(--e-text-2xs);
   font-style: normal;
   letter-spacing: 0.16em;
   color: var(--home-dim);
@@ -1308,7 +1309,7 @@ html[data-theme="light"] .bizdock-count {
   gap: 3px;
 }
 .home-row-info strong {
-  font-size: 0.9375rem;
+  font-size: var(--e-text-base);
   font-weight: 500;
   letter-spacing: -0.01em;
   overflow: hidden;
@@ -1316,7 +1317,7 @@ html[data-theme="light"] .bizdock-count {
   white-space: nowrap;
 }
 .home-row-info em {
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   font-style: normal;
   color: var(--home-dim);
   overflow: hidden;
@@ -1324,7 +1325,8 @@ html[data-theme="light"] .bizdock-count {
   white-space: nowrap;
 }
 .home-row-price {
-  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-sm);
   font-weight: 400;
   white-space: nowrap;
 }
@@ -1337,14 +1339,14 @@ html[data-theme="light"] .bizdock-count {
 }
 .home-empty p {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--e-text-base);
   font-weight: 500;
   color: var(--home-ink);
 }
 .home-empty span {
   display: block;
   margin-top: 0.4rem;
-  font-size: 0.8rem;
+  font-size: var(--e-text-xs);
 }
 
 /* Barra inferior (glassmorphism flotante) */
@@ -1375,7 +1377,7 @@ html[data-theme="light"] .bizdock-count {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 400;
   color: var(--e-neutral-650);
   transition: color 0.15s ease;
@@ -1448,7 +1450,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .home-bell-title {
   margin: 0 0 0.6rem;
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1474,17 +1476,17 @@ html[data-theme="light"] .bizdock-count {
   background: rgba(124, 58, 237, 0.14);
 }
 .home-bell-panel strong {
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
   font-weight: 600;
 }
 .home-bell-panel em {
-  font-size: 0.72rem;
+  font-size: var(--e-text-xs);
   font-style: normal;
   color: var(--home-dim);
 }
 .home-bell-empty {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--e-text-xs);
   color: var(--home-dim);
 }
 
@@ -1515,7 +1517,7 @@ html[data-theme="light"] .bizdock-count {
   outline: none;
   color: var(--home-ink);
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: var(--e-text-base);
 }
 .home-search input::placeholder {
   color: var(--home-dim);
@@ -1543,7 +1545,7 @@ html[data-theme="light"] .bizdock-count {
   flex-direction: column;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.72rem;
+  font-size: var(--e-text-xs);
   font-weight: 400;
   color: var(--home-dim);
   transition: color 0.15s ease;
@@ -1610,12 +1612,13 @@ html[data-theme="light"] .bizdock-count {
   line-height: 1;
 }
 .home-row-thumb-date b {
-  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-xl);
   font-weight: 700;
   letter-spacing: -0.03em;
 }
 .home-row-thumb-date i {
-  font-size: 0.5rem;
+  font-size: var(--e-text-2xs);
   font-style: normal;
   letter-spacing: 0.14em;
   color: var(--home-dim);
@@ -1740,7 +1743,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .evd-eyebrow {
   margin: 0;
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -1748,7 +1751,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .evd-title {
   margin: 0.5rem 0 0;
-  font-size: 2.1rem;
+  font-size: var(--e-text-display);
   font-weight: 800;
   letter-spacing: -0.03em;
   text-transform: uppercase;
@@ -1756,7 +1759,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .evd-sub {
   margin: 0.5rem 0 0;
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
   color: var(--evd-dim);
 }
 
@@ -1783,19 +1786,19 @@ html[data-theme="light"] .bizdock-count {
   margin-bottom: 0.15rem;
 }
 .evd-cell-k {
-  font-size: 0.56rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--evd-dim);
 }
 .evd-cell-v {
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
   font-weight: 600;
   line-height: 1.2;
 }
 .evd-cell-sub {
-  font-size: 0.68rem;
+  font-size: var(--e-text-2xs);
   color: var(--evd-dim);
 }
 
@@ -1810,7 +1813,7 @@ html[data-theme="light"] .bizdock-count {
   border-radius: 999px;
   background: var(--evd-violet);
   color: var(--e-white);
-  font-size: 0.95rem;
+  font-size: var(--e-text-base);
   font-weight: 700;
   letter-spacing: 0.01em;
   box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
@@ -1838,7 +1841,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .evd-tabs button {
   min-height: 2.75rem;
-  font-size: 0.875rem;
+  font-size: var(--e-text-sm);
   font-weight: 400;
   color: var(--evd-dim);
   border-bottom: 2px solid transparent;
@@ -1855,14 +1858,14 @@ html[data-theme="light"] .bizdock-count {
 }
 .evd-prose {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--e-text-base);
   line-height: 1.65;
   color: var(--e-dim-400);
   white-space: pre-line;
 }
 .evd-muted {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
   color: var(--evd-dim);
 }
 
@@ -1898,14 +1901,14 @@ html[data-theme="light"] .bizdock-count {
   gap: 0.25rem;
 }
 .evd-lineup-info strong {
-  font-size: 0.9rem;
+  font-size: var(--e-text-base);
   font-weight: 600;
 }
 .evd-lineup-info em {
   align-self: flex-start;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.6rem;
+  font-size: var(--e-text-2xs);
   font-style: normal;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -1956,7 +1959,7 @@ html[data-theme="light"] .bizdock-count {
   align-items: center;
   gap: 0.5rem;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
   color: var(--e-dim-400);
 }
 .evd-address svg {
@@ -1971,7 +1974,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .evd-empty p {
   margin: 0 0 1.2rem;
-  font-size: 0.95rem;
+  font-size: var(--e-text-base);
   color: var(--evd-ink);
 }
 .evd-copied {
@@ -1981,7 +1984,7 @@ html[data-theme="light"] .bizdock-count {
   transform: translateX(-50%);
   padding: 0.6rem 1.1rem;
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--e-white);
   background: rgba(124, 58, 237, 0.92);
@@ -2049,7 +2052,7 @@ html[data-theme="light"] .bizdock-count {
   backdrop-filter: blur(var(--home-blur));
   -webkit-backdrop-filter: blur(var(--home-blur));
   color: var(--home-ink);
-  font-size: 0.9rem;
+  font-size: var(--e-text-base);
   font-family: inherit;
 }
 .fan-lookup input::placeholder {
@@ -2067,7 +2070,7 @@ html[data-theme="light"] .bizdock-count {
   border-radius: 999px;
   background: var(--home-violet);
   color: var(--e-white);
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
   font-weight: 600;
   font-family: inherit;
   box-shadow: 0 12px 26px -12px rgba(124, 58, 237, 0.9),
@@ -2130,13 +2133,13 @@ html[data-theme="light"] .bizdock-count {
   gap: 0.3rem;
 }
 .fan-ticket-info strong {
-  font-size: 1rem;
+  font-size: var(--e-text-lg);
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.2;
 }
 .fan-ticket-info em {
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   font-style: normal;
   color: var(--home-dim);
   line-height: 1.45;
@@ -2145,7 +2148,7 @@ html[data-theme="light"] .bizdock-count {
   flex: none;
   padding: 0.3rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2171,18 +2174,19 @@ html[data-theme="light"] .bizdock-count {
   gap: 0.75rem;
 }
 .fan-ticket-num {
-  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-xs);
   color: var(--home-dim);
   letter-spacing: 0.04em;
 }
 .fan-link {
-  font-size: 0.78rem;
+  font-size: var(--e-text-xs);
   color: var(--home-accent);
 }
 .fan-cta {
   height: 2.35rem;
   padding: 0 1.1rem;
-  font-size: 0.78rem;
+  font-size: var(--e-text-xs);
 }
 .fan-cta:disabled {
   opacity: 0.5;
@@ -2227,7 +2231,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .fan-qr-hint {
   margin: 0.7rem 0 0;
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   color: var(--home-dim);
 }
 /* Carga con el destello de marca (mismo acento que el centro del QR). */
@@ -2369,7 +2373,7 @@ html[data-theme="light"] .app-shell .promo-hero {
   box-shadow: 0 18px 40px -34px rgba(15, 23, 42, 0.5);
 }
 .promo-hero-title {
-  font-size: 1.55rem;
+  font-size: var(--e-text-2xl);
   line-height: 1.12;
 }
 

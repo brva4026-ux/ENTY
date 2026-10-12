@@ -217,7 +217,7 @@ export default function WaitlistPage() {
                   className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-800 focus:ring-brand-500"
                   placeholder="Link del evento o su número"
                 />
-                <p className="mt-1 text-[11px] text-zinc-500">
+                <p className="mt-1 text-2xs text-zinc-500">
                   El organizador comparte el enlace cuando el evento se agota.
                 </p>
               </div>
@@ -276,7 +276,7 @@ export default function WaitlistPage() {
               <p className="mt-1 text-center text-xs leading-relaxed text-zinc-300">
                 Guarda este enlace: es tu entrada y funciona una sola vez.
               </p>
-              <p className="mt-3 break-all rounded-lg bg-zinc-900 p-2 text-center text-[11px] text-zinc-300">
+              <p className="mt-3 break-all rounded-lg bg-zinc-900 p-2 text-center text-2xs text-zinc-300">
                 {window.location.origin}/t#{newTicket.raw_token}
               </p>
               <a
@@ -319,7 +319,7 @@ export default function WaitlistPage() {
                     : "Reclamar mi lugar"}
               </button>
               {secondsLeft === 0 && (
-                <p className="mt-2 text-center text-[11px] text-zinc-500">
+                <p className="mt-2 text-center text-2xs text-zinc-500">
                   Si no alcanzaste, el lugar pasó al siguiente de la fila.
                 </p>
               )}

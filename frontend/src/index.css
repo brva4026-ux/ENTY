@@ -45,6 +45,28 @@
   --color-cream: #F3E8FF;
   /* Brasa: peligro y estado "en puerta". */
   --color-ember: #ef4444;
+  /* ESCALA TIPOGRÁFICA (Fase 2): fuente única para las utilidades `text-*`
+     de Tailwind y espejo de `--e-text-*` en tokens.css. Ratio 1.25; el piso
+     es 2xs (0.6875rem = 11px): se retiran los micro-tamaños. Las líneas
+     mantienen la proporción previa para no alterar el ritmo vertical. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.35;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.3333;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.4286;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.5556;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: 1.15;
 }
 /* stylelint-enable color-no-hex */
 
@@ -106,7 +128,7 @@ body {
   border: 1px solid var(--color-zinc-700);
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-sm);
   font-weight: 600;
   transition: transform 0.15s ease;
 }
@@ -143,7 +165,7 @@ body {
 /* Eyebrow: etiqueta pequeña MAYÚSCULA que encabeza secciones.
    En brand-400 (como los encabezados azul/violeta de distri-stream). */
 .eyebrow {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -207,7 +229,7 @@ body {
      select.field se repetia en cinta (el bug de los "vvvvvvv"). */
   background-color: var(--color-zinc-940);
   padding: 0.7rem 0.85rem;
-  font-size: 0.9375rem;
+  font-size: var(--e-text-base);
   color: var(--color-zinc-50);
   outline: none;
   transition:
@@ -241,7 +263,7 @@ body {
   border: 3px solid transparent;
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
   padding: 0.55rem 1rem;
-  font-size: 0.9375rem;
+  font-size: var(--e-text-base);
   font-weight: 500;
   letter-spacing: 0;
   cursor: pointer;
@@ -287,7 +309,7 @@ body {
   border: 1px solid var(--color-zinc-800);
   background: transparent;
   padding: 0.5rem 0.9rem;
-  font-size: 0.875rem;
+  font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-300);
   transition:
@@ -315,7 +337,7 @@ body {
   align-items: center;
   border-radius: 0.5rem;
   padding: 0.45rem 0.85rem;
-  font-size: 0.875rem;
+  font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--e-red-600);
   cursor: pointer;
@@ -347,7 +369,7 @@ body {
   color: var(--e-white);
   border: 1px solid rgba(248, 113, 113, 0.5);
   padding: 0.55rem 1rem;
-  font-size: 0.875rem;
+  font-size: var(--e-text-sm);
   font-weight: 600;
   transition:
     background 0.12s,
@@ -401,7 +423,7 @@ body {
   gap: 0.3rem;
   border-radius: 0.5rem;
   padding: 0.3rem 0.6rem;
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--color-zinc-400);
   cursor: pointer;
@@ -503,7 +525,7 @@ html[data-theme="light"] .btn-ghost.btn-success {
   border-radius: 999px;
   border: 1px solid var(--color-zinc-700);
   padding: 0.4rem 0.8rem;
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--color-zinc-400);
   background: transparent;
@@ -643,7 +665,7 @@ html[data-theme="light"] select.field option {
   color: var(--color-zinc-200);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.7);
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 500;
   line-height: 1.3;
   white-space: nowrap;
@@ -700,7 +722,7 @@ html[data-theme="light"] select.field option {
   gap: 0.4rem;
   border-radius: 0.55rem;
   padding: 0.42rem 0.85rem;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-400);
   white-space: nowrap;
@@ -735,7 +757,7 @@ html[data-theme="light"] select.field option {
   gap: 0.35rem;
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -851,14 +873,14 @@ html[data-theme="light"] header nav a[aria-current="page"] {
     0 0 26px -10px rgba(187, 92, 246, 0.55);
 }
 .empty-state-title {
-  font-size: 0.9375rem;
+  font-size: var(--e-text-base);
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--color-zinc-50);
 }
 .empty-state-text {
   margin-top: 0.3rem;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-sm);
   line-height: 1.55;
   color: var(--color-zinc-400);
 }
@@ -931,7 +953,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 .ticket-step-label {
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   font-weight: 500;
   color: var(--color-zinc-500);
 }
@@ -1437,7 +1459,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   min-width: 0;
 }
 .bizdock-label {
-  font-size: 0.8125rem;
+  font-size: var(--e-text-sm);
   font-weight: 600;
   color: var(--color-zinc-200);
   line-height: 1.2;
@@ -1446,7 +1468,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   color: var(--color-zinc-50);
 }
 .bizdock-desc {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   color: var(--color-zinc-500);
   line-height: 1.35;
   /* Dos lineas maximo: si crece, corta con puntos suspensivos (sin romper la fila). */
@@ -1456,11 +1478,12 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   overflow: hidden;
 }
 .bizdock-count {
+  font-variant-numeric: tabular-nums;
   margin-left: auto;
   flex-shrink: 0;
   min-width: 1.15rem;
   text-align: center;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   padding: 0.1rem 0.35rem;
   border-radius: 999px;
@@ -1482,7 +1505,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 .bizdock-pending-label {
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -1494,7 +1517,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   gap: 0.35rem;
   padding: 0.3rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--e-amber-300);
   background: rgba(251, 191, 36, 0.12);
@@ -1601,7 +1624,7 @@ html[data-theme="light"] .bizdock-desc {
 /* El nombre de la venue es una portada: escala escalonada (no fluida) y un
    paso extra en pantallas anchas, donde el KPI ya domina en tamaño. */
 .vh-nombre-titulo {
-  font-size: 1.25rem;
+  font-size: var(--e-text-xl);
   line-height: 1.14;
   letter-spacing: -0.025em;
   /* Un nombre de una sola palabra larga corta antes de desbordar el lockup
@@ -1610,12 +1633,12 @@ html[data-theme="light"] .bizdock-desc {
 }
 @media (min-width: 640px) {
   .vh-nombre-titulo {
-    font-size: 1.5rem;
+    font-size: var(--e-text-2xl);
   }
 }
 @media (min-width: 1280px) {
   .vh-nombre-titulo {
-    font-size: 1.75rem;
+    font-size: var(--e-text-3xl);
   }
 }
 /* El tile de identidad es un CHIP DE MARCA, no un rectangulo con borde: el
@@ -1648,7 +1671,7 @@ html[data-theme="light"] .bizdock-desc {
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: var(--e-text-xl);
   /* Dos iniciales pegadas se leen como una sola letra rara. */
   letter-spacing: 0.01em;
   color: var(--e-white);
@@ -1691,14 +1714,15 @@ html[data-theme="light"] .bizdock-desc {
   );
 }
 .vh-kpi-label {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-zinc-500);
 }
 .vh-kpi-amount {
-  font-size: clamp(2rem, 4.5vw, 2.8rem);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-display);
   font-weight: 800;
   letter-spacing: -0.04em;
   color: var(--color-zinc-50);
@@ -1710,7 +1734,7 @@ html[data-theme="light"] .bizdock-desc {
   align-items: baseline;
   justify-content: flex-end;
   gap: 0.6rem;
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   color: var(--color-zinc-500);
   margin-top: 0.3rem;
 }
@@ -1849,18 +1873,18 @@ html[data-theme="light"] .vh-embedded {
   align-self: flex-end;
   padding-bottom: 0.1rem;
   color: var(--color-zinc-600);
-  font-size: 0.9rem;
+  font-size: var(--e-text-base);
   font-weight: 700;
 }
 .vh-cuenta-label {
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--color-zinc-500);
 }
 .vh-cuenta-val {
-  font-size: 0.95rem;
+  font-size: var(--e-text-base);
   font-weight: 700;
   color: var(--color-zinc-100);
 }
@@ -1871,7 +1895,7 @@ html[data-theme="light"] .vh-embedded {
   color: var(--color-enty-green);
 }
 .vh-cuenta-hint {
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   color: var(--color-zinc-600);
 }
 /* El promedio se separa del bloque de la cuenta: a la derecha en pantallas
@@ -1903,11 +1927,11 @@ html[data-theme="light"] .vh-embedded {
 .vh-mesnav-label {
   min-width: 9rem;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: var(--e-text-base);
   color: var(--color-zinc-100);
 }
 .vh-mesnav-hoy {
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   font-weight: 700;
   color: var(--color-brand-300);
   padding: 0.35rem 0.5rem;
@@ -1933,7 +1957,7 @@ html[data-theme="light"] .vh-embedded {
   margin-bottom: 0.55rem;
 }
 .vh-rank-sub {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   color: var(--color-zinc-500);
 }
 .vh-rank-list {
@@ -1945,14 +1969,14 @@ html[data-theme="light"] .vh-embedded {
   grid-template-columns: 1.4rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.55rem;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-sm);
 }
 .vh-rank-pos {
   display: grid;
   place-items: center;
   height: 1.4rem;
   border-radius: 999px;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   color: var(--color-zinc-400);
   background: var(--color-zinc-800);
@@ -1971,6 +1995,7 @@ html[data-theme="light"] .vh-embedded {
   color: var(--color-zinc-200);
 }
 .vh-rank-count {
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--color-zinc-100);
 }
@@ -2087,7 +2112,7 @@ html[data-theme="light"] .vh-mesnav-hoy {
   min-width: 0;
 }
 .ec-stat-label {
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2161,7 +2186,7 @@ html[data-theme="light"] .ec-when-soon {
   min-height: 2.75rem;
   padding: 0.35rem 0.6rem;
   border-radius: 0.4rem 0.4rem 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-500);
   transition:
@@ -2178,7 +2203,8 @@ html[data-theme="light"] .ec-when-soon {
   color: var(--color-zinc-50);
 }
 .evx-tab-count {
-  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-2xs);
   /* 52525b sobre el fondo oscuro daba ~2.8:1, por debajo del minimo de
      contraste para texto; 71717a llega a ~4.6:1. */
   color: var(--color-zinc-500);
@@ -2357,7 +2383,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   gap: 0.4rem;
   min-height: 2.75rem;
   padding-inline: 0.85rem;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-sm);
 }
 /* Nuevo evento: en movil el verbo completo se partia en dos lineas y empujaba
    el contador de noches. Ahi queda el icono 44x44 con aria-label. */
@@ -2467,7 +2493,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     0 10px 32px -14px rgba(16, 185, 129, 0.35);
 }
 .evx-name {
-  font-size: 1.0625rem;
+  font-size: var(--e-text-lg);
   font-weight: 650;
   letter-spacing: -0.015em;
   color: var(--color-zinc-50);
@@ -2477,7 +2503,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-400);
   white-space: nowrap;
@@ -2542,7 +2568,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 .evx-thumb-fallback {
   display: grid;
   place-items: center;
-  font-size: 0.875rem;
+  font-size: var(--e-text-sm);
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--e-violet-150);
@@ -2567,7 +2593,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   gap: 0.3rem;
   border-radius: 0.375rem;
   padding: 0.15rem 0.45rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
 }
 
@@ -2593,7 +2619,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   border-left-color: rgba(52, 211, 153, 0.55);
 }
 .evx-stat-label {
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2612,15 +2638,15 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     padding-left: 0.4rem;
   }
   .evx-stat-label {
-    font-size: 0.5625rem;
+    font-size: var(--e-text-2xs);
     letter-spacing: 0.02em;
   }
   .evx-stat-value {
-    font-size: 1.05rem;
+    font-size: var(--e-text-lg);
   }
 }
 .evx-stat-value {
-  font-size: 1.2rem;
+  font-size: var(--e-text-xl);
   font-weight: 750;
   letter-spacing: -0.02em;
   color: var(--color-zinc-50);
@@ -2636,7 +2662,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   color: var(--color-zinc-400);
 }
 .evx-stat-denom {
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   font-weight: 500;
   color: var(--color-zinc-500);
 }
@@ -2666,7 +2692,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   margin-top: 0.85rem;
 }
 .evx-pct {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-400);
   text-align: right;
@@ -2771,7 +2797,7 @@ html[data-theme="light"] .evx-pct {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--e-violet-300);
   opacity: 0.85;
@@ -2799,7 +2825,7 @@ html[data-theme="light"] .evx-open-label {
   gap: 0.75rem;
   padding: 0.65rem 0.55rem;
   border-radius: 0.55rem;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-sm);
   transition:
     background 0.12s,
     border-color 0.12s;
@@ -2838,12 +2864,12 @@ html[data-theme="light"] .evx-open-label {
   min-width: 0;
 }
 .evx-row-when {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   color: var(--color-zinc-500);
   white-space: nowrap;
 }
 .evx-row-nums {
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   color: var(--color-zinc-400);
   white-space: nowrap;
 }
@@ -2865,7 +2891,7 @@ html[data-theme="light"] .evx-open-label {
   gap: 0.4rem;
 }
 .evx-row-state {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--color-zinc-500);
@@ -2882,7 +2908,7 @@ html[data-theme="light"] .evx-open-label {
   gap: 0.25rem;
   padding: 0.1rem 0.4rem;
   border-radius: 9999px;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   color: var(--e-amber-400);
   background: rgba(251, 191, 36, 0.12);
@@ -2925,7 +2951,7 @@ html[data-theme="light"] .evx-row-state.is-live {
   flex-wrap: wrap;
 }
 .wb-kpi-label {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2934,8 +2960,9 @@ html[data-theme="light"] .evx-row-state.is-live {
 /* El recaudo del evento manda como en la portada: cifra hero con brillo
    propio (el dinero ES el titular del backstage). */
 .wb-revenue {
+  font-variant-numeric: tabular-nums;
   margin-top: 0.15rem;
-  font-size: clamp(1.9rem, 3.5vw, 2.4rem);
+  font-size: var(--e-text-display);
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 1.05;
@@ -3087,7 +3114,7 @@ html[data-theme="light"] .topbar {
   position: relative;
   border-radius: 0.45rem;
   padding: 0.4rem 0.8rem;
-  font-size: 0.875rem;
+  font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-400);
   transition: color 0.15s ease, background 0.15s ease;
@@ -3133,7 +3160,7 @@ html[data-theme="light"] .topnav-item.is-active {
   width: 1.85rem;
   height: 1.85rem;
   border-radius: 999px;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-300);
   background: linear-gradient(140deg, rgba(187, 92, 246, 0.3), rgba(187, 92, 246, 0.1));
@@ -3271,7 +3298,7 @@ html[data-theme="light"] .list-row:hover {
   gap: 0.25rem;
   border-radius: 0.6rem;
   padding: 0.375rem 0.75rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-500);
   transition: color 0.18s ease, background 0.18s ease;
@@ -3323,7 +3350,7 @@ html[data-theme="light"] .bottomnav-item.is-active > span:first-child {
   animation: halo-breathe 3.4s ease-in-out infinite;
 }
 .empty-state-title {
-  font-size: 1.0625rem;
+  font-size: var(--e-text-lg);
   font-variation-settings: "opsz" 24;
 }
 
@@ -3943,7 +3970,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   letter-spacing: -0.01em;
 }
 .brand-wordmark-hero {
-  font-size: 2.4rem;
+  font-size: var(--e-text-display);
   line-height: 1;
 }
 /* "Flow": tinta sólida del acento — un solo color de marca, sin degradado. */
@@ -3987,7 +4014,7 @@ body {
 @media (max-width: 640px) {
   .field {
     /* 16px: umbral anti-zoom de iOS. Desktop conserva los 14px compactos. */
-    font-size: 1rem;
+    font-size: var(--e-text-lg);
     padding: 0.65rem 0.75rem;
   }
   .btn-primary,
@@ -4107,7 +4134,7 @@ html[data-theme="light"] .halftone::before {
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
-  font-size: 0.72rem;
+  font-size: var(--e-text-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -4162,7 +4189,7 @@ html[data-theme="light"] .sticker-pop {
   padding: 0.2rem 0.6rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
-  font-size: 0.66rem;
+  font-size: var(--e-text-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   opacity: 0.9;
@@ -4180,7 +4207,7 @@ html[data-theme="light"] .sticker-pop {
     0 2px 6px rgba(0, 0, 0, 0.22),
     inset 0 0 0 1px rgba(0, 0, 0, 0.05);
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
   line-height: 1.45;
 }
 .paper-note::after {
@@ -4285,7 +4312,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-date {
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--e-brasa-700);
@@ -4293,7 +4320,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-venue {
   margin-top: 0.15rem;
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 0.78rem;
+  font-size: var(--e-text-xs);
   font-weight: 700;
   color: rgba(74, 47, 5, 0.75);
 }
@@ -4307,7 +4334,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   background: rgba(22, 37, 92, 0.14);
   color: var(--e-ink-800);
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 0.68rem;
+  font-size: var(--e-text-2xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -4321,7 +4348,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   margin: 0.5rem 1.25rem 0;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
-  font-size: clamp(1.8rem, 8.5vw, 2.4rem);
+  font-size: var(--e-text-display);
   line-height: 1.02;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -4336,7 +4363,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   z-index: 1;
   margin: 0.45rem 1.25rem 0;
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 0.74rem;
+  font-size: var(--e-text-xs);
   font-weight: 800;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -4442,7 +4469,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   border: 1.5px dashed rgba(22, 37, 92, 0.45);
   color: var(--e-ink-800);
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 0.66rem;
+  font-size: var(--e-text-2xs);
   font-weight: 800;
   letter-spacing: 0.26em;
   text-transform: uppercase;
@@ -4468,7 +4495,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 .tkt-cell-label {
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 0.6rem;
+  font-size: var(--e-text-2xs);
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -4478,7 +4505,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   margin-top: 0.15rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
   color: var(--e-brasa-900);
   overflow-wrap: anywhere;
 }
@@ -4499,7 +4526,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 .tkt-name-row .tkt-cell-value {
   text-align: right;
-  font-size: 0.9375rem;
+  font-size: var(--e-text-base);
 }
 
 /* --- Estados no-canjeables: panel de aviso sobre el ambar --------------- */
@@ -4524,13 +4551,13 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-note strong {
   display: block;
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 1rem;
+  font-size: var(--e-text-lg);
   color: var(--e-brasa-900);
 }
 .tkt-note p {
   margin-top: 0.3rem;
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 0.8rem;
+  font-size: var(--e-text-xs);
   line-height: 1.5;
   color: rgba(34, 26, 6, 0.75);
 }
@@ -4553,7 +4580,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   border-radius: 0.75rem;
   padding: 0.7rem 1rem;
   font-family: "Sora", system-ui, sans-serif;
-  font-size: 0.9rem;
+  font-size: var(--e-text-base);
   font-weight: 700;
   cursor: pointer;
   border: 1px solid transparent;
@@ -4597,7 +4624,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-footer {
   margin-top: 1.1rem;
   text-align: center;
-  font-size: 0.72rem;
+  font-size: var(--e-text-xs);
   color: var(--color-zinc-500);
 }
 /* Firma Enty centrada bajo el ticket */
@@ -4624,7 +4651,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   border-radius: 0.3rem;
 }
 .tkt-brandline span {
-  font-size: 0.72rem;
+  font-size: var(--e-text-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -4988,7 +5015,7 @@ html[data-theme="light"] .evx-name {
 }
 .auth-brand-title {
   margin-top: 0.7rem;
-  font-size: clamp(2.1rem, 3.1vw, 3rem);
+  font-size: var(--e-text-display);
   line-height: 1.04;
   letter-spacing: -0.03em;
   color: var(--e-neutral-75);
@@ -4996,7 +5023,7 @@ html[data-theme="light"] .evx-name {
 .auth-brand-sub {
   margin-top: 1rem;
   max-width: 26rem;
-  font-size: 1rem;
+  font-size: var(--e-text-lg);
   line-height: 1.6;
   color: var(--e-slate-350);
 }
@@ -5009,7 +5036,7 @@ html[data-theme="light"] .evx-name {
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
-  font-size: 0.9375rem;
+  font-size: var(--e-text-base);
   line-height: 1.45;
   color: var(--e-slate-250);
 }
@@ -5055,7 +5082,7 @@ html[data-theme="light"] .evx-name {
 }
 .auth-compact-lema {
   margin-top: 0.4rem;
-  font-size: 1rem;
+  font-size: var(--e-text-lg);
   color: var(--color-zinc-400);
 }
 @media (min-width: 1024px) {

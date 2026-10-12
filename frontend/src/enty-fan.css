@@ -113,7 +113,7 @@
   .home-topnav a {
     padding: 0.5rem 0.85rem;
     border-radius: 999px;
-    font-size: 0.8125rem;
+    font-size: var(--e-text-sm);
     font-weight: 500;
     color: var(--enty-dim-2);
     transition: color var(--enty-dur) var(--enty-ease),
@@ -194,7 +194,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -298,7 +298,7 @@
     bottom: 2rem;
   }
   .home-feature-top h2 {
-    font-size: 2.6rem;
+    font-size: var(--e-text-display);
   }
 }
 
@@ -341,13 +341,14 @@
     border-radius: 0.9rem;
   }
   .home-row-thumb-date b {
-    font-size: 2.4rem;
+  font-variant-numeric: tabular-nums;
+    font-size: var(--e-text-display);
   }
   .home-row-thumb-date i {
-    font-size: 0.62rem;
+    font-size: var(--e-text-2xs);
   }
   .home-row-info strong {
-    font-size: 1rem;
+    font-size: var(--e-text-lg);
     white-space: normal;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -374,7 +375,8 @@
     background: rgba(11, 11, 15, 0.8);
   }
   .home-row-price {
-    font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+    font-size: var(--e-text-sm);
   }
 }
 
@@ -460,7 +462,7 @@
     padding-top: 0.5rem;
   }
   .evd-title {
-    font-size: 2.8rem;
+    font-size: var(--e-text-display);
   }
 }
 
@@ -507,20 +509,21 @@
   gap: 1rem;
 }
 .evd-buy-label {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--enty-dim);
 }
 .evd-buy-price {
-  font-size: 1.9rem;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-display);
   font-weight: 700;
   letter-spacing: -0.03em;
 }
 .evd-buy-note {
   margin-top: 0.35rem;
-  font-size: 0.75rem;
+  font-size: var(--e-text-xs);
   color: var(--enty-dim);
 }
 
@@ -559,9 +562,9 @@
     padding-inline: 1rem;
   }
   .home-feature-top h2 {
-    font-size: 1.5rem;
+    font-size: var(--e-text-2xl);
   }
   .evd-title {
-    font-size: 1.6rem;
+    font-size: var(--e-text-2xl);
   }
 }

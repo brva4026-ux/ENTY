@@ -114,7 +114,7 @@ export default function NotificationBell() {
       >
         <Icon name="bell" className="h-5 w-5" />
         {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-500 px-1 text-2xs font-bold text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -158,20 +158,20 @@ export default function NotificationBell() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
-                      <span className="truncate text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+                      <span className="truncate text-2xs font-bold uppercase tracking-wide text-zinc-500">
                         {KIND_LABEL[n.kind] || "Aviso"}
                       </span>
                       {!n.read_at && (
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-400" aria-hidden />
                       )}
                     </span>
-                    <span className="mt-0.5 block truncate text-[13px] font-semibold text-zinc-100">
+                    <span className="mt-0.5 block truncate text-sm font-semibold text-zinc-100">
                       {n.title}
                     </span>
                     <span className="line-clamp-2 block text-xs text-zinc-400">
                       {n.body}
                     </span>
-                    <span className="mt-1 block text-[10px] text-zinc-500">
+                    <span className="mt-1 block text-2xs text-zinc-500">
                       {timeAgo(new Date(n.created_at))}
                     </span>
                   </span>

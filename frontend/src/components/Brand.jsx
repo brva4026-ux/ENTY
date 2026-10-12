@@ -35,10 +35,10 @@ export function Logo({ size = "md", animated = true }) {
         : "h-8 w-8";
   const text =
     size === "xl"
-      ? "text-[2.4rem]"
+      ? "text-4xl"
       : size === "lg"
-        ? "text-[1.8rem]"
-        : "text-[15px]";
+        ? "text-3xl"
+        : "text-base";
   const radius =
     size === "md"
       ? "rounded-[0.6rem]"
@@ -263,7 +263,7 @@ export function QuotaMeter({ used, total, label, compact = false }) {
         <div className={`meter-fill ${fill}`} style={{ width: `${pct}%` }} />
       </div>
       {full && (
-        <p className="mt-1 text-[11px] font-medium text-red-400">
+        <p className="mt-1 text-2xs font-medium text-red-400">
           Cupo agotado
         </p>
       )}

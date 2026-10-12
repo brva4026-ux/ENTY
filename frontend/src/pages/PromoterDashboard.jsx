@@ -432,7 +432,7 @@ export default function PromoterDashboard() {
                             <p className="truncate text-sm font-semibold text-zinc-100">
                               {n.name}
                             </p>
-                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-zinc-500">
+                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-2xs text-zinc-500">
                               {new Date(n.starts_at).toLocaleString("es-CO", {
                                 weekday: "short",
                                 day: "numeric",
@@ -441,7 +441,7 @@ export default function PromoterDashboard() {
                                 minute: "2-digit",
                               })}
                               <span
-                                className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ring-1 ${meta.cls}`}
+                                className={`rounded-full px-1.5 py-0.5 text-2xs font-bold uppercase ring-1 ${meta.cls}`}
                               >
                                 {meta.label}
                               </span>
@@ -454,7 +454,7 @@ export default function PromoterDashboard() {
                                 /{n.my_capacity}
                               </span>
                             </p>
-                            <p className="text-[10px] text-zinc-500">
+                            <p className="text-2xs text-zinc-500">
                               {restantes === 0
                                 ? "cupo agotado"
                                 : `te quedan ${restantes}`}
@@ -487,7 +487,7 @@ export default function PromoterDashboard() {
                 </select>
                 {selectedEventData && (
                   <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ring-1 ${
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-2xs font-bold uppercase ring-1 ${
                       (
                         STATUS_META[selectedEventData.status] ??
                         STATUS_META.draft
@@ -600,11 +600,11 @@ export default function PromoterDashboard() {
                             rechazo de la DB. */}
                         {selectedTypeCapacity > 0 &&
                           (selectedTypeIssued >= selectedTypeCapacity ? (
-                            <p className="mt-1 text-[11px] font-semibold text-amber-300">
+                            <p className="mt-1 text-2xs font-semibold text-amber-300">
                               Sin cupo en este tipo: no podés emitir más acá.
                             </p>
                           ) : (
-                            <p className="mt-1 text-[11px] text-zinc-500">
+                            <p className="mt-1 text-2xs text-zinc-500">
                               Te quedan{" "}
                               <strong className="tnum text-zinc-300">
                                 {selectedTypeCapacity - selectedTypeIssued}
@@ -1088,14 +1088,14 @@ function StatusPill({ status, onDispute }) {
   return (
     <span className="mt-1 inline-flex items-center gap-1.5">
       <span
-        className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${cls}`}
+        className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-2xs font-bold uppercase ring-1 ${cls}`}
       >
         {label}
       </span>
       {onDispute && (
         <button
           onClick={onDispute}
-          className="text-[10px] font-bold text-zinc-500 underline hover:text-zinc-300"
+          className="text-2xs font-bold text-zinc-500 underline hover:text-zinc-300"
         >
           disputar
         </button>
@@ -1120,7 +1120,7 @@ function TicketStatusPill({ status }) {
   ];
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${cls}`}
+      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-2xs font-semibold ring-1 ${cls}`}
     >
       {label}
     </span>

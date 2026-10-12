@@ -695,10 +695,10 @@ export default function BouncerScanner() {
           {/* Contador del turno: lo que el bouncer necesita ver para saber
               quién entra y cuántos quedan, sin tocar el selector ni el bajo. */}
           {fijo && eventPulse && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-2xs">
               <span className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                <span className="text-zinc-200 font-semibold text-[11px]">
+                <span className="text-zinc-200 font-semibold text-2xs">
                   {eventPulse.redeemed}
                 </span>
                 <span className="text-zinc-500">ingresaron</span>
@@ -721,7 +721,7 @@ export default function BouncerScanner() {
           )
           }
           {!fijo && eventPulse && eventPulse.issued > 0 && (
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-zinc-500">
+            <div className="mt-2 flex items-center gap-2 text-2xs text-zinc-500">
               <span className="flex items-center gap-1.5">
                 <Icon name="ticket" className="h-3 w-3 text-zinc-600" />
                 <span className="text-zinc-200">{eventPulse.redeemed}</span>
@@ -1040,7 +1040,7 @@ export default function BouncerScanner() {
                   ))}
                 </ul>
               )}
-              <p className="mt-1 text-center text-[10px] text-zinc-600">
+              <p className="mt-1 text-center text-2xs text-zinc-600">
                 Solo en este dispositivo · sirve para aclarar en puerta
               </p>
             </div>
@@ -1075,7 +1075,7 @@ export default function BouncerScanner() {
               )}
             </div>
             {snapInfo ? (
-              <p className="tnum mt-1 text-[11px] text-zinc-500">
+              <p className="tnum mt-1 text-2xs text-zinc-500">
                 {snapInfo.count} boletas vivas · descargado{" "}
                 {new Date(snapInfo.generated_at).toLocaleTimeString("es-CO", {
                   hour: "2-digit",
@@ -1084,7 +1084,7 @@ export default function BouncerScanner() {
                 {offline && " · validando sin red"}
               </p>
             ) : (
-              <p className="mt-1 text-[11px] text-zinc-500">
+              <p className="mt-1 text-2xs text-zinc-500">
                 Baja los hashes de las boletas vigentes para validar en la fila
                 aunque el dato se caiga. Nada de tokens: solo huellas SHA-256.
               </p>
