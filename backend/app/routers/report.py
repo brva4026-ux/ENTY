@@ -11,7 +11,7 @@ Dos vistas sobre los mismos datos:
 """
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
@@ -71,7 +71,8 @@ _BY_PROMOTER_SQL = """
 
 async def _event_or_404(cur, event_id: int, venue_id: int) -> dict:
     await cur.execute(
-        "SELECT id, name, capacity FROM events WHERE id=%s AND venue_id=%s",
+        "SELECT id, name, capacity, starts_at, event_timezone "
+        "FROM events WHERE id=%s AND venue_id=%s",
         (event_id, venue_id),
     )
     ev = await cur.fetchone()
@@ -99,6 +100,52 @@ def _totals(by_status: dict[str, int], capacity: int) -> dict:
         "voided": by_status.get("voided", 0),
         "occupancy_pct": round(live / capacity * 100, 1) if capacity else 0.0,
     }
+
+
+# Ancho de la franja del ritmo de puerta. 10 min es la granularidad con la que
+# un jefe de puerta decide: una franja vacia es "se atasco"; dos seguidas al
+# tope es "abri el segundo lector".
+PULSE_BUCKET_MINUTES = 10
+
+
+async def _door_pulse(cur, event_id: int, starts_at, tz_name: str | None) -> list[dict]:
+    """Ritmo de ingresos por franjas, en la hora LOCAL del evento.
+
+    Solo cuentan los ingresos (granted): el ritmo es flujo de gente, no de
+    intentos. Se recorta a 24 h desde el inicio para que una reconciliacion
+    offline tardia (door_sync) no estire el eje de horas. Los huecos se
+    rellenan con 0: la franja vacia ES el dato (la puerta se atoro).
+    """
+    if starts_at is None:
+        return []
+    tz = ZoneInfo(tz_name or "America/Bogota")
+    await cur.execute(
+        """
+        SELECT floor(extract(epoch FROM (scanned_at - %s)) / 600)::int AS bucket,
+               count(*)::int AS count
+        FROM redemptions
+        WHERE event_id = %s
+          AND outcome IN ('granted', 'granted_forced')
+          AND scanned_at >= %s
+          AND scanned_at < %s + interval '24 hours'
+        GROUP BY bucket ORDER BY bucket
+        """,
+        (starts_at, event_id, starts_at, starts_at),
+    )
+    rows = await cur.fetchall()
+    if not rows:
+        return []
+    by_bucket = {r["bucket"]: r["count"] for r in rows}
+    lo, hi = min(by_bucket), max(by_bucket)
+
+    def _label(bucket: int) -> str:
+        local = (starts_at + timedelta(minutes=bucket * PULSE_BUCKET_MINUTES)).astimezone(tz)
+        return local.strftime("%H:%M")
+
+    return [
+        {"bucket": b, "label": _label(b), "count": by_bucket.get(b, 0)}
+        for b in range(lo, hi + 1)
+    ]
 
 
 @router.get("/events/{event_id}/report", response_model=EventReport)
@@ -206,6 +253,10 @@ async def event_report(
         )
         rd = await cur.fetchone()
 
+        door_pulse = await _door_pulse(
+            cur, event_id, ev["starts_at"], ev["event_timezone"]
+        )
+
     return EventReport(
         event_id=ev["id"],
         event_name=ev["name"],
@@ -216,6 +267,7 @@ async def event_report(
         by_promoter=by_promoter,
         door_duplicates=rd["duplicates"],
         door_rejected=rd["rejected"],
+        door_pulse=door_pulse,
     )
 
 

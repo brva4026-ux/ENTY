@@ -2955,6 +2955,118 @@ html[data-theme="light"] .wb-flyer {
   box-shadow: 0 10px 28px -14px rgba(24, 24, 27, 0.35);
 }
 
+/* ----------------------------------------------------------------------
+   DP — ritmo de la puerta. El total dice cómo va; el ritmo dice si fluye.
+   Columnas finas por franja de 10 min; la última (en vivo) se enciende en
+   verde: "ahora". Un hueco (altura 0) es el dato, no un vacío.
+   ---------------------------------------------------------------------- */
+.dp-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  height: 7rem;
+  margin-top: 1rem;
+  padding-bottom: 1.1rem; /* aire para la fila de horas */
+  overflow-x: auto;
+}
+.dp-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  min-width: 0.9rem;
+  height: 100%;
+  position: relative;
+}
+.dp-num {
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-zinc-400);
+}
+/* Columna: altura en % del contenedor; mínimo 3px para que una franja en
+   cero siga siendo visible (el hueco es información, no debe desaparecer). */
+.dp-bar {
+  width: 0.7rem;
+  min-height: 3px;
+  border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(180deg, #bb5cf6, #7c3aed);
+  box-shadow: 0 0 12px -4px rgba(124, 58, 237, 0.7);
+  transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* La franja en curso, con puertas abiertas: se enciende en verde ("ahora").
+   El resto de la noche queda en violeta: una sola columna "viva". */
+.dp-bar.is-now {
+  background: linear-gradient(180deg, #34d399, #059669);
+  box-shadow: 0 0 14px -3px rgba(52, 211, 153, 0.85);
+}
+.dp-tick {
+  position: absolute;
+  bottom: -1.1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.625rem;
+  color: var(--color-zinc-600);
+  white-space: nowrap;
+}
+.dp-live-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: #34d399;
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  animation: dp-live 1.8s ease-out infinite;
+}
+@keyframes dp-live {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 0.4rem rgba(52, 211, 153, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+  }
+}
+.dp-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  border-radius: 0.75rem;
+  background: var(--color-zinc-940);
+  padding: 0.85rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-zinc-500);
+}
+html[data-theme="light"] .dp-num {
+  color: #52525b;
+}
+html[data-theme="light"] .dp-tick {
+  color: #71717a;
+}
+html[data-theme="light"] .dp-bar {
+  background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+  box-shadow: 0 0 12px -5px rgba(109, 40, 217, 0.5);
+}
+html[data-theme="light"] .dp-bar.is-now {
+  background: linear-gradient(180deg, #10b981, #047857);
+  box-shadow: 0 0 14px -4px rgba(4, 120, 87, 0.6);
+}
+html[data-theme="light"] .dp-empty {
+  background: #f4f4f5;
+  color: #52525b;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dp-bar {
+    transition: none;
+  }
+  .dp-live-dot {
+    animation: none;
+  }
+}
+
 /* Tarjeta hero (compartida): el mismo lavado de marca de la portada para
    las cabeceras de sección principales. Se usa JUNTO a .card. */
 .card-hero {

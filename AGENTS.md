@@ -357,6 +357,22 @@ avisar.
   calculaba integridad de puerta (`DoorScanStats`) pero el frontend **nunca lo
   consume** (buscar `/summary` en `frontend/src`). Antes de añadir otro cálculo
   de puerta, revisar si `/summary` ya lo tiene.
+
+## Admin: ritmo de puerta (`door_pulse`)
+
+- `GET /events/{id}/report` expone `door_pulse`: ingresos (`granted` +
+  `granted_forced`) agrupados en **franjas de 10 min** desde `starts_at`, con
+  `label` (hora local del evento, `HH:MM`) ya formateada en el servidor.
+- Solo la vista admin lo ve: es dato operativo del negocio; el promotor recibe
+  `door_pulse: []` (igual que `door_duplicates`).
+- Las franjas vacías **se rellenan con 0**: el hueco ES el dato (la puerta se
+  atascó), por eso no se saltan. Se recorta a 24 h desde el inicio para que una
+  reconciliación offline tardía no estire el eje.
+- Se dibuja en `frontend/src/components/DoorPulse.jsx` (CSS puro, sin librería
+  de gráficos: el proyecto dibuja sus charts a mano). La última franja se
+  enciende en verde cuando el evento está `live` ("ahora").
+- El cálculo vive en `report.py::_door_pulse`; `_event_or_404` ahora también
+  devuelve `starts_at` y `event_timezone` para poder etiquetar los husos.
 - La franja de eventos (`/events/ticket-counts`) también expone `duplicates`/
   `rejected` por evento. La consulta de `redemptions` va **aparte** (agrupada
   por evento) y se fusiona en Python: meterla en el mismo `FROM` que `tickets`
