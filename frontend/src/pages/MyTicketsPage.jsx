@@ -212,16 +212,16 @@ export default function MyTicketsPage() {
                   <div className="fan-qr">
                     {qrBusy ? (
                       <p className="fan-qr-hint fan-qr-loading">
-                        <Spark size={14} color="#00E6AB" />
+                        <Spark size={14} color="var(--e-green-500)" />
                         Generando tu QR…
                       </p>
                     ) : qrError ? (
                       <p className="fan-qr-hint is-bad">{qrError}</p>
                     ) : qr ? (
                       <>
-                        <span className="fan-qr-frame">
+                        <span className="fan-qr-frame reveal-qr">
                           <img src={qr} alt="Código QR de tu boleta" />
-                          <Spark size={34} color="#00E6AB" className="fan-qr-spark" />
+                          <Spark size={34} color="var(--e-green-500)" className="fan-qr-spark" />
                         </span>
                         <p className="fan-qr-hint">
                           Presenta este QR en la puerta junto con tu documento.

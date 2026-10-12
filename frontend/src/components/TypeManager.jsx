@@ -227,12 +227,12 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
                 <span className="flex items-center gap-2 font-semibold text-zinc-200">
                   {t.name}
                   {t.is_courtesy && (
-                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-300 ring-1 ring-emerald-500/30">
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-2xs font-bold uppercase text-emerald-300 ring-1 ring-emerald-500/30">
                       cortesía
                     </span>
                   )}
                   {t.is_active === false && (
-                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-300 ring-1 ring-amber-500/30">
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-2xs font-bold uppercase text-amber-300 ring-1 ring-amber-500/30">
                       archivado
                     </span>
                   )}
@@ -305,7 +305,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
           ))}
         </div>
         {PRESETS.filter((p) => p.name === name).map((p) => (
-          <p key={p.name} className="mt-1.5 text-[11px] text-zinc-500">
+          <p key={p.name} className="mt-1.5 text-2xs text-zinc-500">
             {p.desc}
           </p>
         ))}

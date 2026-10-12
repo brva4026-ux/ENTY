@@ -172,7 +172,7 @@ export default function AcceptInvitationPage() {
                       <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
                         <div className={`h-full rounded-full transition-all ${strengthMeta.cls}`} style={{ width: strengthMeta.width }} />
                       </div>
-                      <span className="text-[10px] uppercase tracking-wide text-zinc-500">{strengthMeta.label}</span>
+                      <span className="text-2xs uppercase tracking-wide text-zinc-500">{strengthMeta.label}</span>
                     </div>
                   )}
                 </div>
@@ -191,7 +191,7 @@ export default function AcceptInvitationPage() {
                     required
                   />
                   {confirm.length > 0 && (
-                    <p className={`mt-1 text-[11px] ${match ? "text-emerald-400" : "text-red-400"}`}>
+                    <p className={`mt-1 text-2xs ${match ? "text-emerald-400" : "text-red-400"}`}>
                       {match ? "✓ Coinciden" : "No coinciden todavía"}
                     </p>
                   )}
@@ -202,7 +202,7 @@ export default function AcceptInvitationPage() {
                 <button disabled={!canSubmit} className="btn-primary w-full">
                   {busy ? "Creando tu cuenta…" : "Crear mi cuenta y entrar"}
                 </button>
-                <p className="text-center text-[11px] text-zinc-600">
+                <p className="text-center text-2xs text-zinc-600">
                   Al entrar aceptas trabajar con los datos de {preview.venue_name}. ¿Dudas? Escríbele a quien te invitó.
                 </p>
               </form>
@@ -221,7 +221,7 @@ export default function AcceptInvitationPage() {
 
               {/* Rol y destino: quién es y qué va a hacer desde ya */}
               <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-left">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+                <p className="text-2xs font-bold uppercase tracking-wide text-zinc-500">
                   Entras como
                 </p>
                 <p className="display mt-0.5 text-base text-white">

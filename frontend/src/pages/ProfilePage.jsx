@@ -329,7 +329,7 @@ export default function ProfilePage() {
                         </span>
                       </span>
                       {active && (
-                        <span className="shrink-0 rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-brand-300 ring-1 ring-brand-500/40">
+                        <span className="shrink-0 rounded-full bg-brand-500/15 px-2 py-0.5 text-2xs font-bold uppercase text-brand-300 ring-1 ring-brand-500/40">
                           Activa
                         </span>
                       )}

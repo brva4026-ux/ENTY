@@ -95,7 +95,7 @@ function Kpi({ value, label, accent }) {
       >
         {typeof value === "number" ? <CountUpNumber value={value} /> : value}
       </p>
-      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+      <p className="mt-1 text-2xs font-semibold uppercase tracking-wide text-zinc-500">
         {label}
       </p>
     </div>
@@ -159,21 +159,6 @@ export default function EventWorkbench({
     { id: "noche", label: "Equipo", icon: "users" },
   ];
 
-  // Color del punto de estado: EL MISMO mapa de la franja de eventos. Un solo
-  // vocabulario de color: que la tarjeta diga "A la venta" en azul y la
-  // cabecera del backstage lo repita en otro tono es exactamente la falta de
-  // continuidad que hace sentir la parte interna de otro sistema.
-  const dotColor =
-    ev.status === "live"
-      ? "#34d399"
-      : ev.status === "published"
-        ? "#BB5CF6"
-        : ev.status === "draft"
-          ? "#71717a"
-          : ev.status === "cancelled"
-            ? "#f87171"
-            : "#a1a1aa"; // ended
-
   return (
     <div className="space-y-4">
       {/* ====== Cabecera del evento: la MISMA gramática de la portada ======
@@ -199,8 +184,8 @@ export default function EventWorkbench({
               <span className="evx-state">
                 <span
                   className="evx-dot"
+                  data-status={ev.status}
                   aria-hidden="true"
-                  style={{ background: dotColor }}
                 />
                 {status.label}
               </span>
@@ -351,7 +336,7 @@ export default function EventWorkbench({
         {/* Ciclo de vida: las acciones SIEMPRE visibles dentro del backstage */}
         {actions.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-800/80 pt-4">
-            <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+            <span className="mr-1 text-2xs font-bold uppercase tracking-wide text-zinc-500">
               Siguiente paso
             </span>
             {actions.map(({ action, label, danger }) => (

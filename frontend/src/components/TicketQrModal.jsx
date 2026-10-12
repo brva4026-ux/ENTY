@@ -100,7 +100,7 @@ export default function TicketQrModal({ ticket, onClose }) {
           <div className="skeleton mx-auto mt-4 h-56 w-56 rounded-lg" />
         )}
 
-        <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
+        <p className="mt-3 text-2xs leading-relaxed text-zinc-500">
           Este QR es único y quedó asociado a {ticket?.customer_name}. Si se
           vuelve a emitir, este deja de funcionar.
         </p>

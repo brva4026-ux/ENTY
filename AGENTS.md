@@ -22,6 +22,31 @@ cd frontend && npm run dev                    # puerto 12000 en este entorno
 `run.py` existe porque psycopg async necesita `SelectorEventLoop` en Windows y
 el puerto es configurable con `API_PORT`.
 
+### Restaurar el entorno en un contenedor limpio (Linux)
+
+El contenedor puede llegar **sin** Postgres ni el binario de Playwright y sin
+nada corriendo. Para dejar UI + API + e2e operativos:
+
+```bash
+# 1. Postgres 17 + base + esquema + migraciones
+sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql
+sudo service postgresql start
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'devpassword';"
+sudo -u postgres psql -c "CREATE DATABASE ticketflow OWNER postgres;"
+for f in db/schema.sql db/migrations/*.sql; do PGPASSWORD=devpassword psql -h 127.0.0.1 -U postgres -d ticketflow -f "$f"; done
+
+# 2. Backend (env de backend/.env.local) y frontend
+cd backend && (set -a; . ./.env.local; set +a; nohup .venv/bin/python run.py >/tmp/backend.log 2>&1 &)
+cd frontend && (VITE_BACKEND_URL=http://127.0.0.1:8001 nohup npm run dev >/tmp/vite.log 2>&1 &)
+
+# 3. Seed + navegador de Playwright (por defecto NO viene instalado)
+curl -s -X POST http://127.0.0.1:12000/api/seed
+cd frontend && npx playwright install chromium
+```
+
+Sin el paso 3 los e2e fallan con `Executable doesn't exist ... chrome-headless-shell`.
+La home del fan vive en **`/inicio`** (`/` redirige a `/login`).
+
 ## Tests
 
 ```bash
@@ -169,6 +194,131 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
   test** (`uuid`): la suite siembra números fijos como `573001234567` y
   `3001234567` que colisionarían con una búsqueda por dígitos.
 
+## Capas de diseño (auditoría)
+
+El frontend importa **cinco** hojas en este orden (main.jsx):
+`tokens.css` → `index.css` → `aesthetic-refresh.css` → `enty-system.css` →
+`enty-fan.css`. `tokens.css` es la fuente única de color/forma/movimiento; las
+demás elevan la anterior sin reescribirla y `enty-fan.css` es la última palabra
+sobre las superficies del fan.
+
+| Capa | Alcance |
+| --- | --- |
+| `tokens.css` | **Tokens del design system Enty** (`--e-*`): primitivas, semánticas (voltean con el tema) y escalas cerradas (espacio, radio, tipo, motion, elevación). Ver "Tokens y guardarraíles". |
+| `index.css` | Base del design system (clases `.card`, `.field`, `.btn-*`), tema claro/oscuro y la vitrina del fan (`.home`, `.evd`). |
+| `aesthetic-refresh.css` | Marca aplicada: `.home` (Inicio/boletas), `.evd` (detalle), `.tkt` (boleta pública) y la capa `.app-shell` del interior. |
+| `enty-system.css` | Retoques del sistema ("eleva sin reescribir"). |
+| `enty-fan.css` | **Experiencia del fan (vitrina editorial)**: responsive real, motivo de boleto perforado, ticker cinético y estados completos. |
+
+**Clasificación del rediseño (qué se conservó y qué se rehízo):**
+
+- **Conservar**: la marca (matte black `#0B0B0F`, violeta `#7C3AED`/`#BB5CF6`,
+  verde `#00E6AB`, rosa `#FF2D98`, tinta `#F5F5F7`, Sora única voz); el
+  encuadre nocturno del interior (`.app-shell`); la boleta pública `.tkt` (ya es
+  un artefacto troquelado y la credencial de la noche — no tocar).
+- **Perfeccionar**: las superficies `.home`/`.evd` — el motivo de boleto estaba
+  regado, ahora es el sistema.
+- **Reemplazar**: el shell de "tira de teléfono" del fan (`max-width: 26rem`,
+  sin breakpoints) por una vitrina editorial responsive; los estados vacíos
+  genéricos por estados con identidad; el hero de una columna del detalle por
+  un cartel pegajoso + rail de compra.
+- **Eliminar**: la carga de decoración sin función; la duplicación de color de
+  rol (ya centralizada en `lib/roles.js` → `ROLE_VISUALS`).
+
+**Motivos exclusivos de Enty** (reconocibles sin el logotipo):
+
+1. **Boleto perforado** — `.enty-perf` (troquel de línea discontinua) y
+   `.enty-notch` (canto festoneado por máscara radial). Se usan como separador
+   editorial y canto del rail de compra. La boleta pública y `.fan-ticket` ya
+   traen su propio corte rasgado.
+2. **Ticker cinético** — `.home-ticker` en Inicio: banda de palabras de la noche
+   que se desplaza (se detiene y se reflow-ea con `prefers-reduced-motion`).
+3. **Rejilla editorial** — `.home-list` es 1 col en móvil, 2 en ≥640px y 3 en
+   ≥1024px; la fila de evento se vuelve tarjeta con la fecha como sello.
+4. **Acento con significado** — verde = disponible/validado, rosa = urgencia.
+   El violeta es la única voz interactiva.
+
+**Verificación de la vitrina** (la que falla si se rompe):
+- Cero scroll horizontal a 320/420/768/1440px en `/inicio`, `/evento/:id`,
+  `/boletas` (un elemento cuenta como desborde solo si NINGÚN ancestro lo
+  recorta).
+- Detalle: 2 columnas ≥900px (cartel pegajoso + rail de compra), 1 en móvil.
+- Contraste de texto ≥ 4.5:1 sobre `#0B0B0F`: `dim` #9a96a8 (6.83), `dim-2`
+  #b6b2c4 (9.50), violeta brillo #bb5cf6 (5.59), verde (12.07), rosa (5.69).
+
+## Tokens y guardarraíles (Fase 0–1 del plan estético)
+
+Ver `docs/estetica-plan.md`. Resumen operativo:
+
+- **`src/tokens.css` es la fuente única de color/forma/movimiento.** Prefijo
+  `--e-*`, tres niveles: primitivas (`--e-ink-1`, `--e-violet-500`…), semánticas
+  (`--e-canvas`, `--e-text-primary`, `--e-brand`…) y escalas cerradas
+  (`--e-space-*`, `--e-radius-*`, `--e-text-*`, `--e-dur-*`, `--e-ease-*`,
+  `--e-shadow-*`, `--e-elev-*`). Los componentes consumen las **semánticas**,
+  no las primitivas ni un hex suelto.
+- **Elevación**: la materia de tarjeta sale de `--e-elev-card` (reposo),
+  `--e-elev-raised` (hover) y `--e-elev-overlay` (modal/hoja/toast) + el
+  relieve `--e-highlight-inset`. Es un **par tema-aware** (oscuro = pizarra con
+  sombra, claro = papel): no se escribe un receta de sombra por componente ni
+  por tema. Los glow de marca/estado son aparte. El grano de `.home::after` usa
+  `--e-grain` y se apaga con `reduced-motion`.
+- **El tema claro es un cambio de tokens, no de componentes.** Los valores
+  claros viven en el bloque `html[data-theme="light"]` de `tokens.css`; las
+  hojas no repiten una regla por superficie. Las superficies que deben voltear
+  usan las utilidades `text-ink` / `text-dim` / `text-dim-2` / `bg-canvas` /
+  `bg-surface` en lugar de `text-white` o `bg-zinc-950` (que NO voltean: los
+  tokens zinc 500–950 son de superficie fija; el corte de inversión está en 500).
+- **Superficies insensibles al tema** (p. ej. `.auth-brand`, el panel navy de la
+  entrada) fijan sus propios tokens de tinta en `tokens.css`, para que el
+  wordmark siga legible sobre el navy también en claro.
+- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 31`
+  es un presupuesto que solo puede **bajar**. `color-no-hex` (todo `src/**/*.css`
+  menos `tokens.css`; el bloque `@theme` de `index.css` está exento con
+  `stylelint-disable` y rationale: es la fuente de los tokens Tailwind),
+  `no-duplicate-selectors` y las reglas de shorthand son `warning` durante la
+  migración; `declaration-block-no-duplicate-properties`, `color-no-invalid-hex`
+  y `block-no-empty` son `error` y deben quedar en cero. Al cerrar una fase,
+  **baja el número del presupuesto** en `package.json`.
+- **Estado Fase 1 (HECHA, corte de tokens/color)**: las 4 hojas de componente
+  están sin hex; los alias históricos `--tf-* / --home-* / --evd-* / --tkt-* /
+  --in-*` solo apuntaban a primitivas `--e-*` (retirados del todo en Fase 6);
+  `!important` bajó 11→3 (solo el override de `prefers-reduced-motion`) y el
+  JSX ya no fija hex (el punto de estado usa `data-status` en CSS). Quedan 31
+  `no-duplicate-selectors` (F4) y 21 `style={{}}` de geometría dinámica (no color).
+- **Estado Fase 2 (HECHA, corte de escala)**: la tipografía es **una escala
+  cerrada de 9 pasos**, compartida entre CSS (`--e-text-*` en `tokens.css`) y
+  Tailwind (`--text-*` en el `@theme`). Los 179 `font-size` de las hojas usan
+  `var(--e-text-*)`; **el piso es 11px** (2xs) — no quedan micro-tamaños ni
+  `text-[Npx]` en JSX. Display por `--e-text-display` y `tabular-nums` en
+  cifras. Queda pendiente el patrón editorial fino (eyebrow→display→lead→meta).
+- **Estado Fase 3 (HECHA, color/tema/a11y)**: el foco de teclado sale del token
+  `--e-focus-ring` (crema en oscuro, tinta en claro) y el anillo respeta el
+  radio del control; los objetivos táctiles suben a 44px en móvil/táctil
+  (`btn-mini`, `btn-icon`, `topnav-item` y avatar/tema/notificaciones por área
+  pseudo). `a11y.spec.js` cubre 6 rutas públicas + detalle + interior + puerta
+  + foco de teclado, **11/11 en verde** en ambos temas, contraste AA sin fallos.
+- **Estado Fase 4 (HECHA, profundidad/material)**: una sola receta de tarjeta
+  (`--e-elev-card`/`--e-elev-raised`/`--e-elev-overlay` + `--e-highlight-inset`),
+  tema-aware (oscuro pizarra / claro papel); `--tf-shadow-*` retirados. Grano
+  sutil `.home::after` (`--e-grain`) que se apaga con `reduced-motion`.
+  Verificado en navegador: 1 receta por superficie y oscuro ≠ claro.
+- **Estado Fase 6 (HECHA, cierre)**: los **namespaces legacy de tokens se
+  retiraron por completo** — `--tf-* / --home-* / --evd-* / --tkt-* / --vh-* /
+  --in-*` ya no existen en ninguna hoja; todo consume tokens `--e-*`. El bloque
+  `@layer compat` nunca llegó a existir en el árbol (se descartó durante la
+  migración). El material nuevo vive en `tokens.css`: `--e-glass-1/2`,
+  `--e-glass-line`, `--e-glass-blur`, `--e-ticket-paper/hair/dim/dim-2`; y
+  `--e-glow-brand` reemplaza a los halos `--tf-*`/`--home-*`. Nota: los
+  **nombres de CLASE** `.home-*`, `.evd-*`, `.tkt-*`, `.vh-*` se conservan —
+  son contratos que usan los E2E (renombrarlos rompería la suite). El design
+  system vive documentado en `DESIGN.md` (el análisis de Apple que ocupaba ese
+  archivo se movió a `docs/referencia-apple.md`).
+- **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
+  (oscuro y claro, 6 rutas + detalle), interior (admin/promotor, + alt de
+  imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado
+  visible y de un solo color** en ambos temas. Corre con `E2E_BASE_URL=http://127.0.0.1:12000
+  npx playwright test e2e/a11y.spec.js`.
+
 ## App interna (Enty): Admin · Promotor · Puerta
 
 El interior NO comparte el shell del fan: esas pantallas viven bajo
@@ -181,9 +331,13 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
 - La paleta interna es violeta `#7C3AED` (marca) / `#BB5CF6` (brillo), verde
   `#00E6AB` y rosa `#FF2D98`. **No** reintroducir naranja/ámbar de la marca
   anterior (`rgba(251,146,60,…)`, `#9a3412`) ni lima (`#7cff00`, `#f0f542`).
-- La tinta casi blanca (`--in-ink`) se aplica **solo en oscuro**
-  (`html:not([data-theme="light"]) .app-shell`): en claro hereda el color de
-  `body`, o quedaría texto blanco sobre blanco.
+- La tinta casi blanca (`--e-text-primary`, antes `--in-ink`) se aplica **solo
+  en oscuro** (`html:not([data-theme="light"]) .app-shell`): en claro hereda el
+  color de `body`, o quedaría texto blanco sobre blanco.
+- **Jerarquía por rol** (Fase 6): Admin = densidad y jerarquía de datos (lista
+  compacta con zebra sutil, cabecera pegajosa `.evx-toolbar`, cifras tabulares,
+  violeta solo en la acción primaria); Promotor = tinte de marca en cupos/ranking
+  y medidor `e-meter`; Puerta = contraste máximo y targets ≥ 44px.
 - Verificación: contraste de texto ≥ 4.5:1 y `scrollWidth == clientWidth` en
   ambos temas, en `/admin`, `/admin?event=1`, `/promotor`, `/bouncer`.
 

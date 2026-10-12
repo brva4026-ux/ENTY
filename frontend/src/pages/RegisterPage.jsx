@@ -170,7 +170,7 @@ export default function RegisterPage() {
                       className={`h-full ${strength.color} ${strength.width} transition-all`}
                     />
                   </div>
-                  <span className="text-[11px] font-semibold text-zinc-400">
+                  <span className="text-2xs font-semibold text-zinc-400">
                     {strength.label}
                   </span>
                 </div>

@@ -162,7 +162,7 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
               <Icon name="close" className="h-3.5 w-3.5" />
             </button>
           </div>
-          <p className="mt-2 text-[11px] text-zinc-500">
+          <p className="mt-2 text-2xs text-zinc-500">
             Se muestra una sola vez y vence el{" "}
             {new Date(linkReciente.expires_at).toLocaleString("es-CO", {
               day: "numeric",
@@ -297,7 +297,7 @@ function Roster({
               <p className="truncate text-sm font-medium text-zinc-100">
                 {p.full_name}
               </p>
-              <p className="truncate text-[11px] text-zinc-500">
+              <p className="truncate text-2xs text-zinc-500">
                 {usados.has(p.user_id) ? (
                   <span className="text-emerald-400">
                     Escáner activo: ya entró con su link

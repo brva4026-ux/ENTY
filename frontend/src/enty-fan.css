@@ -1,0 +1,598 @@
+/*
+ * ==========================================================================
+ *  ENTY · CAPA DE EXPERIENCIA DEL FAN (v3) — "vitrina editorial"
+ * --------------------------------------------------------------------------
+ *  Se importa DESPUÉS de index.css, aesthetic-refresh.css y enty-system.css:
+ *  no reescribe la marca, la lleva a su forma final.
+ *
+ *  Dirección de arte: la app del fan deja de ser una tira de teléfono y pasa
+ *  a ser una VITRINA EDITORIAL que respira en cualquier pantalla.
+ *
+ *  Motivos exclusivos de Enty (reconocibles sin el logotipo):
+ *   1. BOLETO PERFORADO — el corte troquelado de la entrada (.enty-perf) y el
+ *      borde festoneado (.enty-notch) son la firma de la casa. Nada de
+ *      separadores genéricos: el papel de la boleta está en todas partes.
+ *   2. TICKER CINÉTICO — una banda de palabras que se desplaza entre el hero
+ *      y la rejilla: la energía de la noche, no decoración (se pausa con
+ *      prefers-reduced-motion).
+ *   3. REJILLA EDITORIAL — composición asimétrica: un destacado grande y el
+ *      resto en columnas. La fecha es un SELLO (día enorme, mes diminuto).
+ *   4. ACENTO CON SIGNIFICADO — verde = disponible/validado, rosa = urgencia.
+ *      El violeta es la única voz interactiva.
+ *
+ *  Reglas no negociables:
+ *   - Sora es la única voz. Motion: solo transform/opacity.
+ *   - Texto ≥ 4.5:1 en ambos temas; cero scroll horizontal a 320px.
+ *   - prefers-reduced-motion respetado en todo lo que se mueva.
+ * ==========================================================================
+ */
+
+/* --------------------------------------------------------------------------
+ *  1. TOKENS DE LA VITRINA
+ * ------------------------------------------------------------------------- */
+.home,
+.evd {
+  --enty-bg: var(--e-ink-1);
+  --enty-ink: var(--e-paper);
+  --enty-dim: var(--e-text-muted);
+  --enty-dim-2: var(--e-text-secondary);
+  --enty-violet: var(--e-brand);
+  --enty-violet-bright: var(--e-brand-glow);
+  --enty-green: var(--e-success);
+  --enty-pink: var(--e-urgent);
+  --enty-line: rgba(255, 255, 255, 0.1);
+  --enty-line-soft: rgba(255, 255, 255, 0.07);
+  --enty-glass: rgba(255, 255, 255, 0.05);
+  --enty-glass-line: rgba(255, 255, 255, 0.12);
+  --enty-surface: rgba(23, 22, 34, 0.72);
+  --enty-radius: var(--e-radius-xl);
+  --enty-ease: var(--e-ease-standard);
+  --enty-dur: var(--e-dur-base);
+  --enty-shell: 74rem; /* el ancho máximo de la vitrina en escritorio */
+}
+
+/* --------------------------------------------------------------------------
+ *  2. EL SHELL · de tira de teléfono a lienzo editorial
+ *     Móvil: una columna, cómoda. Escritorio: lienzo ancho centrado.
+ * ------------------------------------------------------------------------- */
+.home {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 6rem;
+}
+
+@media (min-width: 768px) {
+  .home {
+    max-width: var(--enty-shell);
+    padding: 2rem 2.5rem 4rem;
+  }
+}
+
+/* La aurora de fondo sigue al lienzo (fixed, detrás de todo). */
+.home::before {
+  max-width: 100%;
+}
+@media (min-width: 768px) {
+  .home::before {
+    max-width: var(--enty-shell);
+    border-radius: 0;
+  }
+}
+
+/* Grano de atmósfera (opcional): textura fractalNoise muy tenue sobre el
+   lienzo, no sobre el contenido (z-index por debajo de `.home > *`). Se apaga
+   con reduced-motion. */
+.home::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: var(--e-grain);
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home::after {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ *  3. CABECERA · marca + navegación de escritorio
+ * ------------------------------------------------------------------------- */
+.home-head {
+  height: auto;
+  min-height: 2.75rem;
+  gap: 1rem;
+}
+.home-head-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.home-head-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Nav superior: solo escritorio (en móvil vive la barra inferior). */
+.home-topnav {
+  display: none;
+}
+@media (min-width: 768px) {
+  .home-topnav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+  }
+  .home-topnav a {
+    padding: 0.5rem 0.85rem;
+    border-radius: 999px;
+    font-size: var(--e-text-sm);
+    font-weight: 500;
+    color: var(--enty-dim-2);
+    transition: color var(--enty-dur) var(--enty-ease),
+      background-color var(--enty-dur) var(--enty-ease);
+  }
+  .home-topnav a:hover {
+    color: var(--enty-ink);
+    background: var(--enty-glass);
+  }
+  .home-topnav a[aria-current="page"] {
+    color: var(--enty-ink);
+    background: var(--enty-glass);
+  }
+}
+
+/* En táctil el nav de escritorio sube a ≥44px de alto (la barra inferior
+   sigue siendo la navegación principal del móvil). */
+@media (min-width: 768px) and (pointer: coarse) {
+  .home-topnav a {
+    padding: 0.85rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ *  4. BUSCADOR Y BANDA DE CATEGORÍAS · la tira de la boletería
+ * ------------------------------------------------------------------------- */
+.home-search {
+  margin-top: 1.5rem;
+}
+@media (min-width: 768px) {
+  .home-search {
+    max-width: 34rem;
+  }
+}
+
+/* La banda de categorías se lee como el troquel de la taquilla: una fila
+   perforada con las secciones de la noche. */
+.home-cats {
+  position: relative;
+  margin-top: 1.15rem;
+  padding-bottom: 0.35rem;
+}
+.home-cats button {
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  transition: color var(--enty-dur) var(--enty-ease),
+    background-color var(--enty-dur) var(--enty-ease),
+    border-color var(--enty-dur) var(--enty-ease);
+}
+.home-cats button.is-on {
+  border-color: color-mix(in srgb, var(--enty-violet-bright) 45%, transparent);
+  background: color-mix(in srgb, var(--enty-violet) 18%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+ *  5. TICKER CINÉTICO · la energía de la noche (se pausa sin motion)
+ * ------------------------------------------------------------------------- */
+.home-ticker {
+  position: relative;
+  margin-top: 1.35rem;
+  overflow: hidden;
+  border-top: 1px solid var(--enty-line-soft);
+  border-bottom: 1px solid var(--enty-line-soft);
+  /* El texto se apaga en los extremos: entra y sale de la nada. */
+  -webkit-mask: linear-gradient(
+    90deg,
+    transparent,
+    var(--e-mask) 8%,
+    var(--e-mask) 92%,
+    transparent
+  );
+  mask: linear-gradient(90deg, transparent, var(--e-mask) 8%, var(--e-mask) 92%, transparent);
+}
+.home-ticker-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.25rem;
+  padding: 0.7rem 0;
+  white-space: nowrap;
+  will-change: transform;
+  animation: enty-ticker 38s linear infinite;
+}
+.home-ticker-track span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--enty-dim);
+}
+.home-ticker-track span::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--enty-violet-bright);
+  opacity: 0.75;
+}
+@keyframes enty-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-ticker-track {
+    animation: none;
+    /* Sin movimiento, el ticker deja de ser una banda: se convierte en una
+       fila quieta y completa, legible de un vistazo. */
+    flex-wrap: wrap;
+    white-space: normal;
+    gap: 0.6rem 1.5rem;
+  }
+  .home-ticker-track span:nth-child(n + 9) {
+    display: none; /* sin duplicado: se oculta la segunda copia del loop */
+  }
+}
+
+/* --------------------------------------------------------------------------
+ *  6. TROQUEL Y FESTÓN · la firma del boleto (sin DOM extra)
+ * ------------------------------------------------------------------------- */
+.enty-perf {
+  height: 1px;
+  margin: 1.5rem 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--enty-line) 0 7px,
+    transparent 7px 15px
+  );
+}
+@media (min-width: 768px) {
+  .enty-perf {
+    margin: 2rem 0;
+  }
+}
+
+/* Borde festoneado: un canto troquelado para las piezas que deben leerse
+   como "boleto". Se pinta con máscara radial, cero nodos extra. */
+.enty-notch {
+  position: relative;
+}
+.enty-notch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  -webkit-mask: radial-gradient(circle 8px at 0 50%, transparent 98%, var(--e-mask))
+      left / 16px 24px repeat-y,
+    radial-gradient(circle 8px at 100% 50%, transparent 98%, var(--e-mask)) right / 16px
+      24px repeat-y;
+  mask: radial-gradient(circle 8px at 0 50%, transparent 98%, var(--e-mask)) left / 16px
+      24px repeat-y,
+    radial-gradient(circle 8px at 100% 50%, transparent 98%, var(--e-mask)) right / 16px
+      24px repeat-y;
+}
+
+/* --------------------------------------------------------------------------
+ *  7. REJILLA EDITORIAL · el destacado manda, el resto fluye en columnas
+ * ------------------------------------------------------------------------- */
+.home-grid {
+  margin-top: 1.5rem;
+}
+.home-subhead {
+  margin-top: 0;
+}
+@media (min-width: 768px) {
+  .home-subhead {
+    margin-top: 0.5rem;
+  }
+}
+
+/* El destacado: alto completo en móvil, más contenido en escritorio. */
+.home-feature {
+  margin-top: 0;
+}
+@media (min-width: 768px) {
+  .home-feature {
+    height: 22rem;
+  }
+  .home-feature-body {
+    left: 2rem;
+    right: 2rem;
+    bottom: 2rem;
+  }
+  .home-feature-top h2 {
+    font-size: var(--e-text-display);
+  }
+}
+
+/* La lista: una columna en móvil, rejilla de tarjetas en escritorio. */
+.home-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+@media (min-width: 640px) {
+  .home-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
+}
+@media (min-width: 1024px) {
+  .home-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* La fila de evento se vuelve TARJETA en escritorio: la fecha pasa a sello
+   vertical y la información se apila. */
+.home-row {
+  border-radius: var(--enty-radius);
+}
+@media (min-width: 640px) {
+  .home-row {
+    align-items: stretch;
+  }
+  .home-row-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+    padding: 1rem 1rem 1.1rem;
+  }
+  .home-row-thumb {
+    width: 100%;
+    height: 8.5rem;
+    border-radius: 0.9rem;
+  }
+  .home-row-thumb-date b {
+  font-variant-numeric: tabular-nums;
+    font-size: var(--e-text-display);
+  }
+  .home-row-thumb-date i {
+    font-size: var(--e-text-2xs);
+  }
+  .home-row-info strong {
+    font-size: var(--e-text-lg);
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  /* El favorito deja de ser una franja lateral: flota sobre la miniatura. */
+  .home-row {
+    position: relative;
+  }
+  .home-row-fav {
+    position: absolute;
+    top: 1.55rem;
+    right: 1.55rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    align-self: auto;
+    border-radius: 999px;
+    background: rgba(11, 11, 15, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--enty-glass-line);
+  }
+  .home-row-fav:hover {
+    background: rgba(11, 11, 15, 0.8);
+  }
+  .home-row-price {
+  font-variant-numeric: tabular-nums;
+    font-size: var(--e-text-sm);
+  }
+}
+
+/* --------------------------------------------------------------------------
+ *  8. ESTADOS · vacío, cargando y error con identidad (nunca un <p> suelto)
+ * ------------------------------------------------------------------------- */
+.home-empty {
+  margin: 3.5rem auto 0;
+  max-width: 26rem;
+}
+.home-empty p {
+  font-weight: 600;
+}
+.home-empty .enty-spark {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 1rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--enty-violet) 16%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--enty-violet-bright) 40%, transparent);
+}
+
+/* Esqueletos de carga con el pulso de la casa. */
+.enty-skel {
+  border-radius: var(--enty-radius);
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.05) 30%,
+    rgba(255, 255, 255, 0.11) 50%,
+    rgba(255, 255, 255, 0.05) 70%
+  );
+  background-size: 220% 100%;
+  animation: enty-skel 1.4s var(--enty-ease) infinite;
+}
+@keyframes enty-skel {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .enty-skel {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ *  9. DETALLE DEL EVENTO · de una columna a cartel + rail de compra
+ * ------------------------------------------------------------------------- */
+.evd {
+  max-width: 100%;
+}
+@media (min-width: 768px) {
+  .evd {
+    max-width: var(--enty-shell);
+  }
+}
+
+@media (min-width: 900px) {
+  /* Dos columnas: el cartel del evento a la izquierda (pegajoso), la
+     información y la compra a la derecha. La decisión no se scrollea. */
+  .evd-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 3rem;
+    align-items: start;
+    margin-top: 2rem;
+    padding: 0 2.5rem;
+  }
+  .evd-poster {
+    position: sticky;
+    top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .evd-info {
+    padding-top: 0.5rem;
+  }
+  .evd-title {
+    font-size: var(--e-text-display);
+  }
+}
+
+/* En móvil el cartel es el hero; en escritorio, una pieza de la columna. */
+.evd-poster {
+  min-width: 0;
+}
+.evd-poster-frame {
+  position: relative;
+  border-radius: var(--enty-radius);
+  overflow: hidden;
+  border: 1px solid var(--enty-glass-line);
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(160deg, var(--e-ink-4), var(--e-ink-1));
+}
+.evd-poster-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+@media (max-width: 899px) {
+  .evd-poster-frame {
+    display: none; /* en móvil manda el hero a sangre */
+  }
+}
+@media (min-width: 900px) {
+  .evd-hero {
+    display: none; /* el hero a sangre solo vive en móvil/tablet */
+  }
+}
+
+/* El rail de compra: precio + CTA, con el canto troquelado del boleto. */
+.evd-buy {
+  border-radius: var(--enty-radius);
+  border: 1px solid var(--enty-glass-line);
+  background: var(--enty-glass);
+  padding: 1.15rem 1.25rem;
+}
+.evd-buy-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.evd-buy-label {
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--enty-dim);
+}
+.evd-buy-price {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.evd-buy-note {
+  margin-top: 0.35rem;
+  font-size: var(--e-text-xs);
+  color: var(--enty-dim);
+}
+
+/* La grilla de datos (fecha/ubicación/precio) sube a 3 columnas. */
+@media (min-width: 560px) {
+  .evd-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.evd-cell {
+  border-radius: 0.9rem;
+}
+
+/* --------------------------------------------------------------------------
+ * 10. MIS BOLETAS · el archivo del fan respira en escritorio
+ * ------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  /* La entrada en dos columnas: el archivo de boletas no se estira en una
+     tira infinita; se lee como una colección. */
+  .fan-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+  }
+  .fan-lookup {
+    max-width: 34rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * 11. MÓVIL MUY ANGOSTO · que nada se corte a 320px
+ * ------------------------------------------------------------------------- */
+@media (max-width: 360px) {
+  .home {
+    padding-inline: 1rem;
+  }
+  .home-feature-top h2 {
+    font-size: var(--e-text-2xl);
+  }
+  .evd-title {
+    font-size: var(--e-text-2xl);
+  }
+}

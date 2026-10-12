@@ -388,7 +388,7 @@ export default function PaymentsPanel({ venueId, events = [] }) {
                             {p.customer_phone}
                           </span>
                         </p>
-                        <p className="tnum text-[11px] text-zinc-500">
+                        <p className="tnum text-2xs text-zinc-500">
                           {p.reference}
                           {p.ticket_id ? ` · boleta #${p.ticket_id}` : ""}
                         </p>
@@ -397,7 +397,7 @@ export default function PaymentsPanel({ venueId, events = [] }) {
                         {money(p.amount_in_cents)}
                       </span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${st.cls}`}
+                        className={`rounded-full px-2 py-0.5 text-2xs font-bold uppercase ring-1 ${st.cls}`}
                       >
                         {st.label}
                       </span>
@@ -417,7 +417,7 @@ export default function PaymentsPanel({ venueId, events = [] }) {
                                 href={href}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-emerald-300 transition hover:bg-emerald-500/10"
+                                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-2xs font-bold text-emerald-300 transition hover:bg-emerald-500/10"
                               >
                                 <Icon name="whatsapp" className="h-3.5 w-3.5" />
                                 Reenviar

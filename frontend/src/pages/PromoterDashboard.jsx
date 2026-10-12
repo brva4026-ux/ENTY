@@ -418,21 +418,31 @@ export default function PromoterDashboard() {
                     const meta = STATUS_META[n.status] ?? STATUS_META.draft;
                     const activa = n.id === selectedEvent;
                     const restantes = Math.max(0, n.my_capacity - n.my_issued);
+                    const pct = n.my_capacity > 0
+                      ? Math.min(100, Math.round((n.my_issued / n.my_capacity) * 100))
+                      : 0;
+                    const fillCls =
+                      restantes === 0
+                        ? "is-full"
+                        : restantes <= Math.ceil(n.my_capacity * 0.2)
+                          ? "is-warn"
+                          : "";
                     return (
                       <li key={n.id}>
                         <button
                           onClick={() => setSelectedEvent(n.id)}
-                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
+                          className={`flex w-full flex-col gap-2 rounded-lg px-3 py-2.5 text-left transition ${
                             activa
                               ? "bg-brand-500/10 ring-1 ring-brand-500/40"
                               : "bg-zinc-940 hover:bg-zinc-900"
                           }`}
                         >
+                          <div className="flex w-full items-center gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-zinc-100">
                               {n.name}
                             </p>
-                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-zinc-500">
+                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-2xs text-zinc-500">
                               {new Date(n.starts_at).toLocaleString("es-CO", {
                                 weekday: "short",
                                 day: "numeric",
@@ -441,7 +451,7 @@ export default function PromoterDashboard() {
                                 minute: "2-digit",
                               })}
                               <span
-                                className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ring-1 ${meta.cls}`}
+                                className={`rounded-full px-1.5 py-0.5 text-2xs font-bold uppercase ring-1 ${meta.cls}`}
                               >
                                 {meta.label}
                               </span>
@@ -454,12 +464,20 @@ export default function PromoterDashboard() {
                                 /{n.my_capacity}
                               </span>
                             </p>
-                            <p className="text-[10px] text-zinc-500">
+                            <p className="text-2xs text-zinc-500">
                               {restantes === 0
                                 ? "cupo agotado"
                                 : `te quedan ${restantes}`}
                             </p>
                           </div>
+                        </div>
+                        {/* Medidor de cupo: la proporción de la noche, viva. */}
+                        <span className="e-meter w-full" aria-hidden="true">
+                          <span
+                            className={`e-meter-fill ${fillCls}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </span>
                         </button>
                       </li>
                     );
@@ -487,7 +505,7 @@ export default function PromoterDashboard() {
                 </select>
                 {selectedEventData && (
                   <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ring-1 ${
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-2xs font-bold uppercase ring-1 ${
                       (
                         STATUS_META[selectedEventData.status] ??
                         STATUS_META.draft
@@ -600,11 +618,11 @@ export default function PromoterDashboard() {
                             rechazo de la DB. */}
                         {selectedTypeCapacity > 0 &&
                           (selectedTypeIssued >= selectedTypeCapacity ? (
-                            <p className="mt-1 text-[11px] font-semibold text-amber-300">
+                            <p className="mt-1 text-2xs font-semibold text-amber-300">
                               Sin cupo en este tipo: no podés emitir más acá.
                             </p>
                           ) : (
-                            <p className="mt-1 text-[11px] text-zinc-500">
+                            <p className="mt-1 text-2xs text-zinc-500">
                               Te quedan{" "}
                               <strong className="tnum text-zinc-300">
                                 {selectedTypeCapacity - selectedTypeIssued}
@@ -1088,14 +1106,14 @@ function StatusPill({ status, onDispute }) {
   return (
     <span className="mt-1 inline-flex items-center gap-1.5">
       <span
-        className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${cls}`}
+        className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-2xs font-bold uppercase ring-1 ${cls}`}
       >
         {label}
       </span>
       {onDispute && (
         <button
           onClick={onDispute}
-          className="text-[10px] font-bold text-zinc-500 underline hover:text-zinc-300"
+          className="text-2xs font-bold text-zinc-500 underline hover:text-zinc-300"
         >
           disputar
         </button>
@@ -1120,7 +1138,7 @@ function TicketStatusPill({ status }) {
   ];
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${cls}`}
+      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-2xs font-semibold ring-1 ${cls}`}
     >
       {label}
     </span>

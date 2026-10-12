@@ -79,10 +79,10 @@ export function PushToggle({ venueId }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-2.5">
       <div className="min-w-0">
-        <p className="text-[13px] font-semibold text-zinc-200">
+        <p className="text-sm font-semibold text-zinc-200">
           Avisarme cuando abran puertas
         </p>
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-2xs text-zinc-500">
           Notificación push, aunque la app esté cerrada
         </p>
       </div>

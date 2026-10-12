@@ -447,7 +447,7 @@ function MemberRow({
             </span>
             {/* Chip de estado con icono (patrón unicall-blue "Registrado") */}
             <span
-              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1 ${
+              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide ring-1 ${
                 m.is_active === false
                   ? "bg-zinc-800/80 text-zinc-500 ring-zinc-700"
                   : "bg-emerald-950/50 text-emerald-400 ring-emerald-900/60"
@@ -461,7 +461,7 @@ function MemberRow({
               {m.is_active === false ? "inactivo" : "activo"}
             </span>
             <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${meta.chip}`}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-bold uppercase ring-1 ${meta.chip}`}
             >
               <IconRole role={primaryRoleOf(m)} className="h-3 w-3" />
               {meta.label}
@@ -493,7 +493,7 @@ function MemberRow({
                       /{m.quota.capacity || "–"}
                     </span>
                   </p>
-                  <p className="text-[10px] uppercase tracking-wide text-zinc-600">
+                  <p className="text-2xs uppercase tracking-wide text-zinc-600">
                     vendidas
                   </p>
                 </>
@@ -503,7 +503,7 @@ function MemberRow({
                 <p className="tnum text-sm font-semibold text-zinc-200">
                   {m.door.granted}
                 </p>
-                <p className="text-[10px] uppercase tracking-wide text-zinc-600">
+                <p className="text-2xs uppercase tracking-wide text-zinc-600">
                   escaneos
                 </p>
               </>
@@ -553,7 +553,7 @@ function MemberRow({
                       }}
                     />
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-2xs text-zinc-500">
                     <span className="tnum">
                       Canjeadas:{" "}
                       <span className="text-zinc-300">{m.quota.redeemed}</span>
@@ -568,7 +568,7 @@ function MemberRow({
                 </div>
               )}
               {isBouncer && m.door && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-2xs text-zinc-500">
                   <span className="tnum">
                     Accesos concedidos:{" "}
                     <span className="text-emerald-400">{m.door.granted}</span>
@@ -612,7 +612,7 @@ function MemberRow({
               <option value="bouncer">Portero</option>
               <option value="admin">Admin</option>
             </select>
-            <span className="text-[11px] text-zinc-600">
+            <span className="text-2xs text-zinc-600">
               El cambio es inmediato en esta venue.
             </span>
           </div>
@@ -855,7 +855,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
                 )}
                 {t.label}
                 <span
-                  className={`tnum rounded-full px-1.5 text-[10px] ring-1 ${
+                  className={`tnum rounded-full px-1.5 text-2xs ring-1 ${
                     active
                       ? "bg-zinc-700/80 text-zinc-200 ring-zinc-600"
                       : "bg-zinc-800/80 text-zinc-500 ring-zinc-700/70"
@@ -895,7 +895,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
         )}
 
         {tab !== "all" && filtered.length > 0 && (
-          <p className="mt-3 text-[11px] text-zinc-600">
+          <p className="mt-3 text-2xs text-zinc-600">
             {ROLE_META[tab]?.hint} — mostrando {filtered.length} de{" "}
             {counts[tab]}.
           </p>

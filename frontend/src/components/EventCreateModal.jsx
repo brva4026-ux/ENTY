@@ -106,7 +106,7 @@ function Chip({ active, onClick, children }) {
 function Hint({ children, tone = "zinc" }) {
   return (
     <span
-      className={`mt-1 block text-[11px] leading-snug ${
+      className={`mt-1 block text-2xs leading-snug ${
         tone === "amber" ? "text-amber-300/80" : "text-zinc-500"
       }`}
     >
@@ -300,7 +300,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
             <li key={s.id} className="flex flex-1 items-center gap-1.5">
               <span
                 aria-current={i === step ? "step" : undefined}
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition ${
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-2xs font-bold transition ${
                   i < step
                     ? "bg-brand-500/20 text-brand-300"
                     : i === step
@@ -315,7 +315,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 )}
               </span>
               <span
-                className={`hidden text-[11px] font-semibold sm:block ${
+                className={`hidden text-2xs font-semibold sm:block ${
                   i === step ? "text-zinc-100" : "text-zinc-500"
                 }`}
               >
@@ -389,7 +389,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   )}
                   {flyerMode === null && !showFlyer && (
                     <div className="flex flex-wrap gap-2">
-                      <label className="btn-ghost !px-3 !py-1.5 cursor-pointer text-[11px] font-bold">
+                      <label className="btn-ghost !px-3 !py-1.5 cursor-pointer text-2xs font-bold">
                         {uploading ? "Subiendo…" : "📷 Subir imagen"}
                         <input
                           type="file"
@@ -402,7 +402,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                       <button
                         type="button"
                         onClick={() => setFlyerMode("enlace")}
-                        className="btn-ghost !px-3 !py-1.5 text-[11px] font-bold"
+                        className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
                       >
                         🔗 Pegar enlace
                       </button>
@@ -424,7 +424,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                         set({ flyer_url: "" });
                         setFlyerMode(null);
                       }}
-                      className="text-[11px] font-semibold text-zinc-500 transition hover:text-red-400"
+                      className="text-2xs font-semibold text-zinc-500 transition hover:text-red-400"
                     >
                       Quitar
                     </button>
@@ -555,7 +555,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   <button
                     type="button"
                     onClick={() => setCustomDate(true)}
-                    className="mt-2 text-[11px] font-semibold text-zinc-500 underline-offset-2 transition hover:text-zinc-300 hover:underline"
+                    className="mt-2 text-2xs font-semibold text-zinc-500 underline-offset-2 transition hover:text-zinc-300 hover:underline"
                   >
                     Otra fecha u hora…
                   </button>
@@ -648,7 +648,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </Hint>
               </label>
 
-              <p className="sm:col-span-full text-[11px] text-zinc-600">
+              <p className="sm:col-span-full text-2xs text-zinc-600">
                 La hora se guarda en tu zona (
                 {Intl.DateTimeFormat().resolvedOptions().timeZone}).
               </p>
@@ -697,7 +697,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
 
               {/* Vista previa: cómo se verá el evento en la lista y la boleta */}
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-zinc-500">
+                <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-zinc-500">
                   Así se verá
                 </p>
                 <div className="flex items-start gap-3">

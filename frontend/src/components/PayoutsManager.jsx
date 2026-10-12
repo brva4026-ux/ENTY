@@ -22,7 +22,7 @@ const STATUS_BADGE = {
 function StatusPill({ status }) {
   const [label, cls] = STATUS_BADGE[status] ?? [status, "bg-zinc-800 text-zinc-300 ring-zinc-700"];
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${cls}`}>
+    <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-2xs font-bold uppercase ring-1 ${cls}`}>
       {label}
     </span>
   );
@@ -165,7 +165,7 @@ export default function PayoutsManager({ venueId, users }) {
         <div className="mb-3 flex items-baseline justify-between gap-2">
           <h3 className="display text-base">Liquidaciones</h3>
           {pendingCount > 0 && (
-            <span className="rounded-full bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-300 ring-1 ring-amber-800/60">
+            <span className="rounded-full bg-amber-950/60 px-2 py-0.5 text-2xs font-bold uppercase text-amber-300 ring-1 ring-amber-800/60">
               {pendingCount} por revisar
             </span>
           )}
@@ -221,7 +221,7 @@ export default function PayoutsManager({ venueId, users }) {
                       </button>
                     )}
                     {p.status === "paid" && (
-                      <p className="text-[10px] uppercase tracking-wide text-emerald-500">
+                      <p className="text-2xs uppercase tracking-wide text-emerald-500">
                         pagada {p.paid_at ? new Date(p.paid_at).toLocaleDateString("es-CO") : ""}
                       </p>
                     )}

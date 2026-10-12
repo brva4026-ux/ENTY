@@ -110,14 +110,14 @@ export default function ThemeChooser() {
               >
                 {LABEL[opt]}
                 {opt === "system" && (
-                  <span className="ml-1.5 text-[11px] font-medium text-zinc-500">
+                  <span className="ml-1.5 text-2xs font-medium text-zinc-500">
                     (
                     {showsResolved === "light" ? "claro ahora" : "oscuro ahora"}
                     )
                   </span>
                 )}
               </span>
-              <span className="block truncate text-[11px] leading-tight text-zinc-500">
+              <span className="block truncate text-2xs leading-tight text-zinc-500">
                 {DESC[opt]}
               </span>
             </span>

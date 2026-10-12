@@ -76,7 +76,7 @@ export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPubl
           </button>
         )}
         <div className="flex items-center gap-2">
-          <span className="tnum rounded-full bg-zinc-800 px-2 py-0.5 text-[11px] font-semibold text-zinc-300">
+          <span className="tnum rounded-full bg-zinc-800 px-2 py-0.5 text-2xs font-semibold text-zinc-300">
             {doneCount}/{steps.length}
           </span>
           <button

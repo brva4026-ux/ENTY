@@ -166,7 +166,7 @@ export default function AllocationManager({
                 <span className="flex items-center gap-2 font-semibold text-zinc-200">
                   {u ? u.full_name : `Promotor #${a.promoter_id}`}
                   {a.is_active === false && (
-                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-300 ring-1 ring-amber-500/30">
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-2xs font-bold uppercase text-amber-300 ring-1 ring-amber-500/30">
                       archivado
                     </span>
                   )}

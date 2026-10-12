@@ -228,6 +228,23 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
             fan_email, fan_phone,
         )
 
+        # --- roster de la noche ----------------------------------------------
+        # El promotor ve su tarjeta "Mis noches" (con el medidor de cupo) solo
+        # en los eventos donde figura en event_staff; sin este roster la
+        # tarjeta no aparece en la demo. promo1/promo2 trabajan ambas noches y
+        # puerta queda asignada como bouncer.
+        for ev_id in (event_id, soon_event_id):
+            for uid, role in (
+                (promo1_id, "promotor"),
+                (promo2_id, "promotor"),
+                (user_ids["puerta@bar.test"], "bouncer"),
+            ):
+                await cur.execute(
+                    "INSERT INTO event_staff (event_id, user_id, role, assigned_by) "
+                    "VALUES (%s, %s, %s, %s) ON CONFLICT (event_id, user_id) DO NOTHING",
+                    (ev_id, uid, role, admin_id),
+                )
+
         await db.commit()
 
         return {
