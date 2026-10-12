@@ -29,6 +29,7 @@
   --e-ink-3: #171622;
   --e-ink-4: #1e1c2c;
   /* Pasos del "ticket" (superficies nobles de la boleta). */
+  --e-ink-1000: #0a0a0d; /* papel de la boleta */
   --e-ink-950: #0a0a0f;
   --e-ink-900: #14121c;
   --e-ink-800: #1c1730;
@@ -62,6 +63,101 @@
   --e-red-700: #b91c1c;
   --e-red-800: #991b1b;
   --e-red-300: #fca5a5;
+  --e-green-300: #6ee7b7;
+  --e-emerald-450: #00b98a;
+  --e-green-neon: #39ff14; /* neón de "en vivo" */
+  --e-info-500: #6f95f0; /* periwinkle: enlace/estado informativo */
+  --e-rose-700: #a82f52;
+  --e-violet-250: #b7a3ff;
+  --e-violet-350: #9f67ff;
+  --e-violet-425: #a855f7;
+  --e-violet-550: #9333ea;
+  /* Neutros (canon claro: canvas → tinta). */
+  --e-neutral-25: #f7f7fb;
+  --e-neutral-50: #fafafa;
+  --e-neutral-60: #f8f8fa;
+  --e-neutral-75: #f6f8fd;
+  --e-neutral-80: #f6f6f8;
+  --e-neutral-100: #f4f4f5;
+  --e-neutral-120: #f4f4f6;
+  --e-neutral-125: #f4f3f8;
+  --e-neutral-150: #f1f1f4;
+  --e-neutral-200: #ececee;
+  --e-neutral-250: #e9e9ec;
+  --e-neutral-300: #e4e4e7;
+  --e-neutral-400: #d4d4d8;
+  --e-neutral-450: #d0d1d2;
+  --e-neutral-500: #a1a1aa;
+  --e-neutral-600: #52525b;
+  --e-neutral-610: #52525c;
+  --e-neutral-650: #7c7b85;
+  --e-neutral-660: #63636e;
+  --e-neutral-675: #6b6b76;
+  --e-neutral-700: #6d6c76;
+  --e-neutral-800: #3f3f46;
+  --e-neutral-875: #27272a;
+  --e-neutral-900: #18181b;
+  --e-neutral-950: #171a20;
+  /* Grises "zinc" (superficies y texto del interior, cerca del neutro puro). */
+  --e-zinc-50: #f4f4f8;
+  --e-zinc-100: #e4e4ea;
+  --e-zinc-200: #d4d4dc;
+  --e-zinc-300: #b8b8c2;
+  --e-zinc-400: #a1a1ab;
+  --e-zinc-500: #8b8b97;
+  --e-zinc-600: #7e7e8a;
+  --e-zinc-700: #34343f;
+  --e-zinc-800: #22222b;
+  --e-zinc-850: #1a1a21;
+  --e-zinc-925: #111117;
+  --e-zinc-940: #0d0d13;
+  /* Cielo: estado informativo del panel de salud. */
+  --e-sky-600: #0284c7;
+  --e-sky-700: #0369a1;
+  --e-sky-800: #075985;
+  /* Grises "dim" de la vitrina. */
+  --e-dim-100: #555064; /* tinta tenue en claro */
+  --e-dim-200: #777286; /* tinta sutil en claro */
+  --e-dim-300: #c9c3d8;
+  --e-dim-400: #c9c6d4;
+  --e-dim-500: #b9b7c0;
+  --e-dim-600: #858095;
+  --e-dim-700: #8f8b9c;
+  --e-dim-800: #a9a5b8;
+  --e-dim-900: #b8b4c8;
+  /* Paneles oscuros de una sola aparición (esqueletos, chips, cabeceras). */
+  --e-panel-400: #1e1c2a;
+  --e-panel-450: #1a1a1e;
+  --e-panel-500: #16151f;
+  --e-panel-550: #15101f;
+  --e-panel-600: #141419;
+  --e-panel-650: #141417;
+  --e-panel-700: #111116;
+  --e-panel-750: #101013;
+  --e-panel-800: #0c0c10;
+  --e-panel-850: #09090b;
+  --e-panel-900: #08080b;
+  --e-panel-950: #050508;
+  /* Brasa (peligro/estado "en puerta"): ámbar quemado → tinta de fuego. */
+  --e-brasa-050: #ffcf6b;
+  --e-brasa-100: #f5edd8;
+  --e-brasa-200: #f2b23c;
+  --e-brasa-300: #e89a26;
+  --e-brasa-400: #d97706;
+  --e-brasa-500: #b45309;
+  --e-brasa-600: #92400e;
+  --e-brasa-700: #4a2f05;
+  --e-brasa-800: #2c2416;
+  --e-brasa-900: #221a06;
+  --e-brasa-950: #1a1208;
+  /* Pizarra fría (panel de salud de puerta). */
+  --e-slate-200: #d3dbec;
+  --e-slate-250: #cad4e8;
+  --e-slate-300: #c3cce0;
+  --e-slate-350: #b3bfd6;
+  --e-slate-400: #a8b3cc;
+  --e-slate-850: #0d1425;
+  --e-slate-900: #080d1a;
   --e-paper: #f5f5f7; /* tinta de marca */
   --e-white: #ffffff;
   --e-mask: #000; /* opaco para máscaras/recortes (no es un color visible) */

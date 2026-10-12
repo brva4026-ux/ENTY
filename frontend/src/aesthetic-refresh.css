@@ -6,19 +6,19 @@
 */
 
 :root {
-  --tf-black: #0b0b0f;
-  --tf-black-2: #101017;
-  --tf-black-3: #171622;
-  --tf-white: #f7f7fb;
-  --tf-muted: #b8b4c8;
-  --tf-subtle: #858095;
+  --tf-black: var(--e-ink-1);
+  --tf-black-2: var(--e-ink-2);
+  --tf-black-3: var(--e-ink-3);
+  --tf-white: var(--e-neutral-25);
+  --tf-muted: var(--e-dim-900);
+  --tf-subtle: var(--e-dim-600);
   --tf-line: rgba(255, 255, 255, 0.12);
   --tf-line-soft: rgba(255, 255, 255, 0.075);
-  --tf-purple: #bb5cf6;
-  --tf-purple-2: #7c3aed;
-  --tf-purple-3: #d9b6ff;
-  --tf-green: #00e6ab;
-  --tf-pink: #ff2d98;
+  --tf-purple: var(--e-violet-400);
+  --tf-purple-2: var(--e-violet-500);
+  --tf-purple-3: var(--e-violet-200);
+  --tf-green: var(--e-green-500);
+  --tf-pink: var(--e-pink-500);
   --tf-radius-card: 1.25rem;
   --tf-radius-control: 1rem;
   --tf-shadow-purple: 0 24px 70px -42px rgba(187, 92, 246, 0.9);
@@ -26,17 +26,17 @@
 }
 
 html[data-theme="light"] {
-  --tf-black: #f4f3f8;
-  --tf-black-2: #ffffff;
-  --tf-black-3: #f8f7fb;
-  --tf-white: #111116;
-  --tf-muted: #555064;
-  --tf-subtle: #777286;
+  --tf-black: var(--e-neutral-125);
+  --tf-black-2: var(--e-white);
+  --tf-black-3: var(--e-neutral-25);
+  --tf-white: var(--e-panel-700);
+  --tf-muted: var(--e-dim-100);
+  --tf-subtle: var(--e-dim-200);
   --tf-line: rgba(17, 17, 22, 0.12);
   --tf-line-soft: rgba(17, 17, 22, 0.075);
-  --tf-purple: #7c3aed;
-  --tf-purple-2: #5b21b6;
-  --tf-purple-3: #9f67ff;
+  --tf-purple: var(--e-violet-500);
+  --tf-purple-2: var(--e-violet-700);
+  --tf-purple-3: var(--e-violet-350);
   --tf-shadow-purple: 0 24px 60px -42px rgba(124, 58, 237, 0.72);
   --tf-shadow-card: 0 22px 48px -38px rgba(15, 23, 42, 0.45);
 }
@@ -136,7 +136,7 @@ textarea.field {
 
 .btn-primary {
   border-radius: var(--tf-radius-control);
-  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 55%, #a855f7 100%);
+  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 55%, var(--e-violet-425) 100%);
   color: var(--e-white);
   border-width: 1px;
   border-color: rgba(255, 255, 255, 0.18);
@@ -145,7 +145,7 @@ textarea.field {
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--e-violet-600) 0%, #a855f7 58%, #9333ea 100%);
+  background: linear-gradient(135deg, var(--e-violet-600) 0%, var(--e-violet-425) 58%, var(--e-violet-550) 100%);
   box-shadow: 0 20px 40px -18px rgba(187, 92, 246, 1), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
@@ -155,7 +155,7 @@ textarea.field {
 }
 
 .btn-primary:active {
-  background: linear-gradient(135deg, var(--e-violet-700), #9333ea);
+  background: linear-gradient(135deg, var(--e-violet-700), var(--e-violet-550));
   transform: translateY(1px);
 }
 
@@ -335,7 +335,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .bizdock-count {
   background: var(--tf-purple);
   /* Tinta Enty sobre el violeta brillante (oscuro): 6.2:1. En claro
-     --tf-purple cambia a #7c3aed (mas oscuro), donde la tinta bajaba a
+     --tf-purple cambia a var(--e-violet-500) (mas oscuro), donde la tinta bajaba a
      3.4:1; ahi el par correcto es blanco (5.1:1). */
   color: var(--e-ink-1);
 }
@@ -367,7 +367,7 @@ html[data-theme="light"] .bizdock-count {
   background:
     radial-gradient(38rem 28rem at 78% 0%, rgba(187, 92, 246, 0.24), transparent 58%),
     radial-gradient(34rem 22rem at 14% 86%, rgba(255, 45, 152, 0.09), transparent 60%),
-    linear-gradient(158deg, #15101f 0%, var(--e-ink-1) 64%, var(--e-ink-0) 100%);
+    linear-gradient(158deg, var(--e-panel-550) 0%, var(--e-ink-1) 64%, var(--e-ink-0) 100%);
 }
 
 .auth-brand-title {
@@ -376,7 +376,7 @@ html[data-theme="light"] .bizdock-count {
 
 .auth-brand-sub,
 .auth-benefit {
-  color: #c9c3d8;
+  color: var(--e-dim-300);
 }
 
 .auth-benefit-check {
@@ -404,7 +404,7 @@ html[data-theme="light"] .bizdock-count {
   background:
     radial-gradient(26rem 18rem at 78% 12%, rgba(187, 92, 246, 0.14), transparent 60%),
     radial-gradient(18rem 10rem at 14% 72%, rgba(255, 45, 152, 0.1), transparent 62%),
-    linear-gradient(180deg, #111116, #08080b);
+    linear-gradient(180deg, var(--e-panel-700), var(--e-panel-900));
   color: var(--e-white);
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 28px 70px -38px rgba(0, 0, 0, 1), 0 0 0 1px rgba(187, 92, 246, 0.08);
@@ -521,16 +521,16 @@ html[data-theme="light"] .bizdock-count {
 .tkt-stage {
   background:
     radial-gradient(46rem 30rem at 50% -12rem, rgba(187, 92, 246, 0.16), transparent 62%),
-    var(--tf-black, #050508);
+    var(--tf-black, var(--e-panel-950));
 }
 .tkt {
-  --tkt-paper: #0a0a0d;
+  --tkt-paper: var(--e-ink-1000);
   --tkt-hair: rgba(255, 255, 255, 0.14);
   --tkt-dim: rgba(255, 255, 255, 0.55);
   --tkt-dim-2: rgba(255, 255, 255, 0.34);
-  --tkt-green: #00e6ab;
-  --tkt-green-hot: #39ff14;
-  --tkt-pink: #ff2d98;
+  --tkt-green: var(--e-green-500);
+  --tkt-green-hot: var(--e-green-neon);
+  --tkt-pink: var(--e-pink-500);
   position: relative;
   border: 0;
   border-radius: 0.35rem;
@@ -538,8 +538,8 @@ html[data-theme="light"] .bizdock-count {
   isolation: isolate;
   color: var(--e-white);
   background:
-    radial-gradient(120% 80% at 50% -10%, #141419 0%, transparent 55%),
-    linear-gradient(180deg, #0c0c10, var(--tkt-paper));
+    radial-gradient(120% 80% at 50% -10%, var(--e-panel-600) 0%, transparent 55%),
+    linear-gradient(180deg, var(--e-panel-800), var(--tkt-paper));
   box-shadow:
     0 30px 70px -30px rgba(0, 0, 0, 0.85),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -820,8 +820,8 @@ html[data-theme="light"] .bizdock-count {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle 0.5rem at 0 50%, var(--tf-black, #050508) 98%, transparent),
-    radial-gradient(circle 0.5rem at 100% 50%, var(--tf-black, #050508) 98%, transparent);
+    radial-gradient(circle 0.5rem at 0 50%, var(--tf-black, var(--e-panel-950)) 98%, transparent),
+    radial-gradient(circle 0.5rem at 100% 50%, var(--tf-black, var(--e-panel-950)) 98%, transparent);
 }
 
 /* Talon */
@@ -966,16 +966,16 @@ html[data-theme="light"] .bizdock-count {
 .home {
   /* Sistema hibrido Enty: negro profundo, morado interactivo y dos neon
      como energia grafica (nunca como texto de interfaz). */
-  --home-bg: #0b0b0f;
-  --home-ink: #f5f5f7;
-  --home-dim: #8f8b9c;
-  --home-dim-2: #a9a5b8;
-  --home-violet: #7c3aed;
-  --home-violet-bright: #bb5cf6;
-  --home-green: #00e6ab;
-  --home-pink: #ff2d98;
-  --home-accent: #b7a3ff;
-  --home-accent-2: #7c3aed;
+  --home-bg: var(--e-ink-1);
+  --home-ink: var(--e-paper);
+  --home-dim: var(--e-dim-700);
+  --home-dim-2: var(--e-dim-800);
+  --home-violet: var(--e-violet-500);
+  --home-violet-bright: var(--e-violet-400);
+  --home-green: var(--e-green-500);
+  --home-pink: var(--e-pink-500);
+  --home-accent: var(--e-violet-250);
+  --home-accent-2: var(--e-violet-500);
   /* Glassmorphism: superficies de cristal esmerilado sobre el negro. */
   --home-glass: rgba(255, 255, 255, 0.05);
   --home-glass-strong: rgba(255, 255, 255, 0.08);
@@ -1058,7 +1058,7 @@ html[data-theme="light"] .bizdock-count {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #b9b7c0;
+  color: var(--e-dim-500);
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .home-avatar:hover {
@@ -1381,7 +1381,7 @@ html[data-theme="light"] .bizdock-count {
   gap: 5px;
   font-size: 0.625rem;
   font-weight: 400;
-  color: #7c7b85;
+  color: var(--e-neutral-650);
   transition: color 0.15s ease;
 }
 /* Icono de linea fina que se rellena de morado al estar activo. */
@@ -1425,7 +1425,7 @@ html[data-theme="light"] .bizdock-count {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #b9b7c0;
+  color: var(--e-dim-500);
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .home-bell:hover {
@@ -1648,11 +1648,11 @@ html[data-theme="light"] .bizdock-count {
    violeta como unico color interactivo.
    ---------------------------------------------------------------------- */
 .evd {
-  --evd-bg: #0b0b0f;
-  --evd-ink: #f5f5f7;
-  --evd-dim: #8f8b9c;
-  --evd-violet: #7c3aed;
-  --evd-violet-bright: #bb5cf6;
+  --evd-bg: var(--e-ink-1);
+  --evd-ink: var(--e-paper);
+  --evd-dim: var(--e-dim-700);
+  --evd-violet: var(--e-violet-500);
+  --evd-violet-bright: var(--e-violet-400);
   min-height: 100vh;
   max-width: 26rem;
   margin: 0 auto;
@@ -1861,7 +1861,7 @@ html[data-theme="light"] .bizdock-count {
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.65;
-  color: #c9c6d4;
+  color: var(--e-dim-400);
   white-space: pre-line;
 }
 .evd-muted {
@@ -1950,7 +1950,7 @@ html[data-theme="light"] .bizdock-count {
 .evd-map-skeleton {
   height: 13rem;
   border-radius: 1rem;
-  background: linear-gradient(100deg, #16151f 30%, #1e1c2a 50%, #16151f 70%);
+  background: linear-gradient(100deg, var(--e-panel-500) 30%, var(--e-panel-400) 50%, var(--e-panel-500) 70%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1961,7 +1961,7 @@ html[data-theme="light"] .bizdock-count {
   gap: 0.5rem;
   margin: 0;
   font-size: 0.85rem;
-  color: #c9c6d4;
+  color: var(--e-dim-400);
 }
 .evd-address svg {
   color: var(--evd-violet-bright);
@@ -2017,14 +2017,14 @@ html[data-theme="light"] .bizdock-count {
     0 1px 0 rgba(255, 255, 255, 0.16) inset,
     0 0 0 1px rgba(187, 92, 246, 0.1) inset;
   -webkit-mask:
-    radial-gradient(circle at 50% 0, #0000 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
+    radial-gradient(circle at 50% 0, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
       0 0 / calc(var(--notch) * 2) 100% repeat-x,
-    radial-gradient(circle at 50% 100%, #0000 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
+    radial-gradient(circle at 50% 100%, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
       0 0 / calc(var(--notch) * 2) 100% repeat-x;
   mask:
-    radial-gradient(circle at 50% 0, #0000 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
+    radial-gradient(circle at 50% 0, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
       0 0 / calc(var(--notch) * 2) 100% repeat-x,
-    radial-gradient(circle at 50% 100%, #0000 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
+    radial-gradient(circle at 50% 100%, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
       0 0 / calc(var(--notch) * 2) 100% repeat-x;
 }
 
@@ -2057,7 +2057,7 @@ html[data-theme="light"] .bizdock-count {
   font-family: inherit;
 }
 .fan-lookup input::placeholder {
-  color: #6d6c76;
+  color: var(--e-neutral-700);
 }
 .fan-lookup input:focus {
   outline: none;
@@ -2109,14 +2109,14 @@ html[data-theme="light"] .bizdock-count {
   /* Bordes superior e inferior rasgados: el corte irregular del papel.
      Mismas capas de mask en union (add) que la hoja de marca. */
   -webkit-mask:
-    radial-gradient(9px 10px at 50% 0, #0000 99%, var(--e-mask)) 0 0/22px 11px repeat-x,
-    radial-gradient(11px 11px at 50% 100%, #0000 99%, var(--e-mask)) 0 100%/26px 11px
+    radial-gradient(9px 10px at 50% 0, transparent 99%, var(--e-mask)) 0 0/22px 11px repeat-x,
+    radial-gradient(11px 11px at 50% 100%, transparent 99%, var(--e-mask)) 0 100%/26px 11px
       repeat-x,
     linear-gradient(var(--e-mask) 0 0) 0 11px/100% calc(100% - 22px) no-repeat;
   -webkit-mask-composite: source-over;
   mask:
-    radial-gradient(9px 10px at 50% 0, #0000 99%, var(--e-mask)) 0 0/22px 11px repeat-x,
-    radial-gradient(11px 11px at 50% 100%, #0000 99%, var(--e-mask)) 0 100%/26px 11px
+    radial-gradient(9px 10px at 50% 0, transparent 99%, var(--e-mask)) 0 0/22px 11px repeat-x,
+    radial-gradient(11px 11px at 50% 100%, transparent 99%, var(--e-mask)) 0 100%/26px 11px
       repeat-x,
     linear-gradient(var(--e-mask) 0 0) 0 11px/100% calc(100% - 22px) no-repeat;
   mask-composite: add;
@@ -2160,7 +2160,7 @@ html[data-theme="light"] .bizdock-count {
   background: rgba(0, 230, 171, 0.12);
 }
 .fan-badge.is-warn {
-  color: #ffcf6b;
+  color: var(--e-brasa-050);
   background: rgba(255, 207, 107, 0.12);
 }
 .fan-badge.is-bad {
@@ -2263,9 +2263,9 @@ html[data-theme="light"] .bizdock-count {
 
 .app-shell {
   --in-line-soft: rgba(255, 255, 255, 0.06);
-  --in-violet-bright: #bb5cf6;
-  --in-violet-soft: #d9b6ff;
-  --in-ink: #f5f5f7;
+  --in-violet-bright: var(--e-violet-400);
+  --in-violet-soft: var(--e-violet-200);
+  --in-ink: var(--e-paper);
   position: relative;
 }
 /* La tinta de marca (casi blanca) SOLO en oscuro: en claro heredaría un
@@ -2417,10 +2417,10 @@ html:not([data-theme="light"]) .app-shell .bottomnav-item.is-active {
     0 0 30px -14px rgba(124, 58, 237, 0.95);
 }
 .app-shell .btn-primary {
-  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 58%, #a855f7 100%);
+  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 58%, var(--e-violet-425) 100%);
 }
 .app-shell .btn-primary:hover {
-  background: linear-gradient(135deg, var(--e-violet-600) 0%, #a855f7 58%, #9333ea 100%);
+  background: linear-gradient(135deg, var(--e-violet-600) 0%, var(--e-violet-425) 58%, var(--e-violet-550) 100%);
 }
 
 /* Scrollbar con tinte de marca (solo en la casa). */
