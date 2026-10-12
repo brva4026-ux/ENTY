@@ -98,7 +98,7 @@ body {
 }
 
 ::selection {
-  background: rgba(187, 92, 246, 0.4);
+  background: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   color: var(--e-white);
 }
 
@@ -318,8 +318,8 @@ body {
     transform 0.1s ease;
 }
 .btn-ghost:hover {
-  background: rgba(187, 92, 246, 0.08);
-  border-color: rgba(187, 92, 246, 0.45);
+  background: color-mix(in srgb, var(--e-violet-400) 8%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
   color: var(--color-zinc-50);
 }
 .btn-ghost:active {
@@ -1383,7 +1383,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   border-color: rgba(187, 92, 246, 0.35);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
-    0 6px 18px -10px rgba(187, 92, 246, 0.45);
+    0 6px 18px -10px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
 }
 .bizdock-icon {
   display: grid;
@@ -1500,8 +1500,8 @@ html[data-theme="light"] .bizdock-item:hover {
   background: var(--e-neutral-250);
 }
 html[data-theme="light"] .bizdock-item.is-active {
-  background: rgba(187, 92, 246, 0.08);
-  border-color: rgba(187, 92, 246, 0.4);
+  background: color-mix(in srgb, var(--e-violet-400) 8%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   box-shadow: none;
 }
 html[data-theme="light"] .bizdock-icon {
@@ -2013,7 +2013,7 @@ html[data-theme="light"] .vh-mesnav-hoy {
       transparent 62%
     ),
     linear-gradient(180deg, var(--color-zinc-900), var(--e-panel-750));
-  border: 1px dashed rgba(187, 92, 246, 0.45);
+  border: 1px dashed color-mix(in srgb, var(--e-violet-400) 45%, transparent);
   position: relative;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
@@ -2038,8 +2038,8 @@ html[data-theme="light"] .vh-mesnav-hoy {
 }
 .event-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(187, 92, 246, 0.45);
-  box-shadow: 0 12px 32px -14px rgba(187, 92, 246, 0.45);
+  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+  box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
 }
 .event-card.is-live {
   border-color: rgba(52, 211, 153, 0.4);
@@ -2443,7 +2443,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(187, 92, 246, 0.4);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   box-shadow:
     0 14px 34px -16px rgba(0, 0, 0, 0.6),
     0 10px 32px -14px rgba(187, 92, 246, 0.35);
@@ -2672,7 +2672,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   border-radius: 999px;
   /* Venda de marca con núcleo brillante: proporción VIVA, no un rectángulo
      plano. La luz viaja hacia la punta del llenado. */
-  background: linear-gradient(90deg, rgba(187, 92, 246, 0.45), var(--e-violet-400));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--e-violet-400) 45%, transparent), var(--e-violet-400));
   box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
   transition: width 0.5s var(--e-ease-expo);
 }
@@ -3096,7 +3096,7 @@ html[data-theme="light"] .dp-empty {
   background:
     radial-gradient(
       30rem 12rem at 92% -6rem,
-      rgba(187, 92, 246, 0.08),
+      color-mix(in srgb, var(--e-violet-400) 8%, transparent),
       transparent 62%
     ),
     linear-gradient(
@@ -3172,7 +3172,7 @@ html[data-theme="light"] .dialog-panel {
   color: var(--e-violet-150);
   font-weight: 600;
   box-shadow:
-    inset 0 0 0 1px rgba(187, 92, 246, 0.4),
+    inset 0 0 0 1px color-mix(in srgb, var(--e-violet-400) 40%, transparent),
     0 2px 10px -3px rgba(187, 92, 246, 0.5);
 }
 .tabbar-item[aria-selected="true"] .text-brand-300 {
@@ -3261,7 +3261,7 @@ html[data-theme="light"] .topnav-item.is-active {
   background: linear-gradient(140deg, rgba(187, 92, 246, 0.3), rgba(187, 92, 246, 0.1));
   box-shadow:
     inset 0 0 0 1px rgba(187, 92, 246, 0.35),
-    0 2px 8px -3px rgba(187, 92, 246, 0.45);
+    0 2px 8px -3px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .topbar-avatar:hover {
@@ -3363,7 +3363,7 @@ html[data-theme="light"] .onboard-progress {
     transform 0.15s ease;
 }
 .list-row:hover {
-  border-color: rgba(187, 92, 246, 0.4);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   background: rgba(255, 255, 255, 0.05);
   transform: translateY(-1px);
 }
@@ -3474,7 +3474,7 @@ html[data-theme="light"] .evx-card {
 html[data-theme="light"] .evx-card::after {
   background: radial-gradient(
     90% 70% at 50% -10%,
-    rgba(187, 92, 246, 0.08),
+    color-mix(in srgb, var(--e-violet-400) 8%, transparent),
     transparent 62%
   );
 }
@@ -3486,7 +3486,7 @@ html[data-theme="light"] .evx-card.is-live::after {
   );
 }
 html[data-theme="light"] .evx-card:hover {
-  border-color: rgba(187, 92, 246, 0.4);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   box-shadow:
     0 14px 34px -18px rgba(24, 24, 27, 0.28),
     0 10px 32px -14px rgba(187, 92, 246, 0.22);
@@ -3507,7 +3507,7 @@ html[data-theme="light"] .evx-meter {
   background: rgba(9, 9, 11, 0.07);
 }
 html[data-theme="light"] .evx-meter-fill {
-  background: linear-gradient(90deg, rgba(187, 92, 246, 0.4), var(--e-violet-800));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--e-violet-400) 40%, transparent), var(--e-violet-800));
   box-shadow: none;
 }
 html[data-theme="light"] .is-live .evx-meter-fill { background: var(--e-emerald-500); }
@@ -3619,10 +3619,10 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(187, 92, 246, 0.95),
+    color-mix(in srgb, var(--e-violet-400) 95%, transparent),
     transparent
   );
-  box-shadow: 0 0 12px 2px rgba(187, 92, 246, 0.45);
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
   z-index: 20;
   pointer-events: none;
   animation: scan-sweep 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
@@ -3656,7 +3656,7 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   inset: 6px;
   border-radius: 1rem;
   border-style: solid;
-  border-color: rgba(187, 92, 246, 0.65);
+  border-color: color-mix(in srgb, var(--e-violet-400) 65%, transparent);
   border-width: 2px;
   animation: pulse-ring 1.1s ease-in-out infinite;
 }
@@ -3666,10 +3666,10 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
 @keyframes pulse-ring {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(187, 92, 246, 0.4);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(187, 92, 246, 0.08);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--e-violet-400) 8%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3870,7 +3870,7 @@ html[data-theme="light"] .btn-ghost {
 }
 html[data-theme="light"] .btn-ghost:hover {
   background: rgba(187, 92, 246, 0.06);
-  border-color: rgba(187, 92, 246, 0.4);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] .btn-danger-text {
@@ -3947,7 +3947,7 @@ html[data-theme="light"] .empty-state-title {
 html[data-theme="light"] .ticket-timeline::before {
   background: linear-gradient(
     180deg,
-    rgba(187, 92, 246, 0.45),
+    color-mix(in srgb, var(--e-violet-400) 45%, transparent),
     rgba(212, 212, 216, 0.9)
   );
 }
@@ -3983,7 +3983,7 @@ html[data-theme="light"] .ticket-ghost::after {
   border-color: rgba(9, 9, 11, 0.12);
 }
 html[data-theme="light"] .event-card:hover {
-  border-color: rgba(187, 92, 246, 0.45);
+  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
   box-shadow: 0 12px 32px -14px rgba(187, 92, 246, 0.3);
 }
 html[data-theme="light"] .event-card.is-live {
@@ -4044,7 +4044,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   inset: 0;
   background: radial-gradient(
     60rem 32rem at 50% -14rem,
-    rgba(187, 92, 246, 0.08),
+    color-mix(in srgb, var(--e-violet-400) 8%, transparent),
     transparent 62%
   );
 }

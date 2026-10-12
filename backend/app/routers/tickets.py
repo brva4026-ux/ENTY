@@ -344,6 +344,35 @@ async def redeem(
                 out.ticket_id = info["id"]
                 out.customer_name = info["customer_name"]
                 out.detail = f"Boleta de {info['type_name']}"
+    if code == "ALREADY_REDEEMED":
+        # La discusión clásica de puerta ("¿ya la usé?") se resuelve con el
+        # NOMBRE y la HORA del primer canje, no con un "presentada antes" seco.
+        # El ticket guarda redeemed_at; la hora se muestra en la zona del
+        # evento (misma regla que NOT_ACTIVE: "vuelve a las 22:00", no UTC).
+        async with db.cursor() as cur2:
+            await cur2.execute(
+                """
+                SELECT t.id, t.customer_name, t.redeemed_at,
+                       e.event_timezone
+                FROM tickets t JOIN events e ON e.id = t.event_id
+                WHERE t.event_id=%s
+                  AND t.token_hash = encode(digest(%s, 'sha256'), 'hex')
+                """,
+                (event_id, body.raw_token),
+            )
+            info = await cur2.fetchone()
+        if info:
+            out.ticket_id = info["id"]
+            out.customer_name = info["customer_name"]
+            if info["redeemed_at"]:
+                try:
+                    tz = ZoneInfo(info["event_timezone"])
+                except Exception:
+                    tz = ZoneInfo("UTC")
+                when = info["redeemed_at"].astimezone(tz).strftime("%H:%M")
+                out.detail = f"Ya entró a las {when}"
+            else:
+                out.detail = "Ya presentada anteriormente"
     if code == "GRANTED":
         async with db.cursor() as cur2:
             await cur2.execute(
