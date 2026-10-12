@@ -3014,14 +3014,14 @@ html[data-theme="light"] .wb-flyer {
   width: 0.7rem;
   min-height: 3px;
   border-radius: 3px 3px 1px 1px;
-  background: linear-gradient(180deg, #bb5cf6, #7c3aed);
+  background: linear-gradient(180deg, var(--e-violet-400), var(--e-violet-500));
   box-shadow: 0 0 12px -4px rgba(124, 58, 237, 0.7);
   transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 /* La franja en curso, con puertas abiertas: se enciende en verde ("ahora").
    El resto de la noche queda en violeta: una sola columna "viva". */
 .dp-bar.is-now {
-  background: linear-gradient(180deg, #34d399, #059669);
+  background: linear-gradient(180deg, var(--e-green-400), var(--e-emerald-500));
   box-shadow: 0 0 14px -3px rgba(52, 211, 153, 0.85);
 }
 .dp-tick {
@@ -3037,7 +3037,7 @@ html[data-theme="light"] .wb-flyer {
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 9999px;
-  background: #34d399;
+  background: var(--e-green-400);
   box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
   animation: dp-live 1.8s ease-out infinite;
 }
@@ -3064,22 +3064,22 @@ html[data-theme="light"] .wb-flyer {
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .dp-num {
-  color: #52525b;
+  color: var(--e-neutral-600);
 }
 html[data-theme="light"] .dp-tick {
-  color: #71717a;
+  color: var(--e-neutral-550);
 }
 html[data-theme="light"] .dp-bar {
-  background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+  background: linear-gradient(180deg, var(--e-violet-hover), var(--e-violet-600));
   box-shadow: 0 0 12px -5px rgba(109, 40, 217, 0.5);
 }
 html[data-theme="light"] .dp-bar.is-now {
-  background: linear-gradient(180deg, #10b981, #047857);
+  background: linear-gradient(180deg, var(--e-emerald-400), var(--e-emerald-600));
   box-shadow: 0 0 14px -4px rgba(4, 120, 87, 0.6);
 }
 html[data-theme="light"] .dp-empty {
-  background: #f4f4f5;
-  color: #52525b;
+  background: var(--e-neutral-100);
+  color: var(--e-neutral-600);
 }
 @media (prefers-reduced-motion: reduce) {
   .dp-bar {
@@ -4841,7 +4841,7 @@ html[data-theme="light"] {
   --color-zinc-200: var(--e-neutral-800);
   --color-zinc-300: var(--e-neutral-600);
   --color-zinc-400: var(--e-neutral-675);
-  /* #71717a daba 4.4:1 sobre el gris de la tarjeta: rozaba el limite en 96
+  /* var(--e-neutral-550) daba 4.4:1 sobre el gris de la tarjeta: rozaba el limite en 96
      rotulos (stat-label, denominador, descripcion del dock). Este gris con
      tinte navy sube a 5.2:1 sin oscurecer el resto del texto. */
   --color-zinc-500: var(--e-neutral-660);
@@ -5294,7 +5294,7 @@ html[data-theme="light"] .pf-hero {
   background:
     radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.1), transparent 62%),
     radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.09), transparent 60%),
-    #ffffff;
+    var(--e-white);
   box-shadow: 0 20px 46px -36px rgba(15, 23, 42, 0.55);
 }
 
@@ -5319,8 +5319,8 @@ html[data-theme="light"] .pf-hero {
   padding: 3px;
   background: currentColor;
   -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--e-mask) 0 0) content-box,
+    linear-gradient(var(--e-mask) 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -5337,29 +5337,29 @@ html[data-theme="light"] .pf-hero {
 /* El hero tiene su propio fondo en ambos temas, así que sus tintas no pueden
    seguir al tema por sí solas: en claro hay que bajarlas explícitamente. */
 html[data-theme="light"] .pf-name {
-  color: #18181b;
+  color: var(--e-neutral-900);
 }
 html[data-theme="light"] .pf-email {
   color: var(--color-zinc-600);
 }
 html[data-theme="light"] .pf-avatar {
-  background: #f4f4f5;
-  color: #18181b;
+  background: var(--e-neutral-100);
+  color: var(--e-neutral-900);
 }
 /* Los tintes de rol (amber/emerald/brand -300) son para fondo oscuro: en el
    hero claro pierden contraste, así que se oscurecen solo aquí. El color
    sigue siendo el del rol; cambia el paso de la escala. */
 html[data-theme="light"] .pf-hero .text-brand-300 {
-  color: #6D28D9;
+  color: var(--e-violet-600);
 }
 html[data-theme="light"] .pf-hero .text-emerald-300 {
-  color: #047857;
+  color: var(--e-emerald-600);
 }
 html[data-theme="light"] .pf-hero .text-amber-300 {
-  color: #B45309;
+  color: var(--e-brasa-500);
 }
 html[data-theme="light"] .pf-danger-title {
-  color: #b91c1c;
+  color: var(--e-red-700);
 }
 
 /* Fila de datos de cuenta: icono + valor. */
