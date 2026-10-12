@@ -2455,9 +2455,9 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     0 10px 32px -14px rgba(16, 185, 129, 0.35);
 }
 .evx-name {
-  font-size: var(--e-text-lg);
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-size: var(--e-text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-zinc-50);
   font-variation-settings: "opsz" 24;
 }
@@ -2684,8 +2684,8 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-pct {
   font-size: var(--e-text-2xs);
-  font-weight: 600;
-  color: var(--color-zinc-400);
+  font-weight: 700;
+  color: var(--color-zinc-300);
   text-align: right;
   white-space: nowrap;
 }
@@ -2779,6 +2779,16 @@ html[data-theme="light"] .evx-pct {
      dejaba los dedos peleando entre "duplicar" y "eliminar". */
   gap: 0.4rem;
   padding: 0 0.75rem 0.75rem;
+}
+/* Publicar/Abrir puertas/Duplicar/Eliminar son control de DEDO (el admin
+   opera la noche desde el celular). .btn-mini mide ~26px de alto: por debajo
+   del mínimo táctil de 44px. Aquí suben a 44 sin tocar el tamaño del icono. */
+.evx-actions .btn-mini {
+  min-height: 2.75rem;
+  padding-inline: 0.8rem;
+}
+.evx-actions .btn-icon {
+  min-width: 2.75rem;
 }
 
 /* Fila de metadatos del evento: cuándo empieza + estado + la señal de que
