@@ -137,6 +137,37 @@ def test_change_password_flow(api):
     )
 
 
+def test_profile_exposes_account_context(api):
+    """El perfil necesita contexto de cuenta: desde cuándo es miembro y cuándo
+    entró por última vez. Ambos se exponen en /auth/me y en el login."""
+    payload = {
+        "venue_name": "Teatro Contexto",
+        "full_name": "Dueño Contexto",
+        "email": "dueno-contexto@example.test",
+        "password": "ClaveContexto1",
+    }
+    reg = api.client.post("/auth/register", json=payload)
+    assert reg.status_code == 201, reg.text
+    created = reg.json()["user"]
+    assert created["created_at"], "el registro debe exponer created_at"
+
+    headers = {"Authorization": f"Bearer {reg.json()['access_token']}"}
+    me = api.client.get("/auth/me", headers=headers).json()
+    assert me["created_at"] == created["created_at"]
+    # El registro deja last_login_at NULL: aún no hubo un login explícito.
+    assert me["last_login_at"] is None
+
+    login = api.client.post(
+        "/auth/login",
+        json={"email": payload["email"], "password": payload["password"]},
+    )
+    assert login.status_code == 200, login.text
+    logged = login.json()["user"]
+    # Tras un login real, last_login_at queda registrado y es >= created_at.
+    assert logged["last_login_at"] is not None
+    assert logged["last_login_at"] >= logged["created_at"]
+
+
 def test_update_profile_name(api):
     payload = {
         "venue_name": "Teatro Perfil",

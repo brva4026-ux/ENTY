@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
+import { ROLE_VISUALS } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { missingList } from "../lib/passwordPolicy";
 import PasswordMeter from "./PasswordMeter";
@@ -182,34 +183,32 @@ function IconPlus({ className = ico }) {
 }
 
 /* ---------------------------------------------------------------------------
- * Identidad por rol: color + etiqueta (un solo lugar decide cómo se ve cada rol)
+ * Identidad por rol: color (ROLE_VISUALS, fuente única) + etiqueta de equipo.
  * ------------------------------------------------------------------------ */
-const ROLE_META = {
+const ROLE_TEXT = {
   promotor: {
     label: "Promotor",
     plural: "Promotores",
     hint: "venden boletas y cortesías",
-    chip: "bg-brand-500/15 text-brand-300 ring-brand-500/30",
-    avatar: "bg-brand-500/20 text-brand-300 ring-brand-500/40",
-    tabAccent: "text-brand-300",
   },
   bouncer: {
     label: "Portero",
     plural: "Puerta",
     hint: "escanean y validan en puerta",
-    chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
-    avatar: "bg-emerald-500/20 text-emerald-300 ring-emerald-500/40",
-    tabAccent: "text-emerald-300",
   },
   admin: {
     label: "Admin",
     plural: "Administración",
     hint: "gestionan eventos, caja y equipo",
-    chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
-    avatar: "bg-amber-500/20 text-amber-300 ring-amber-500/40",
-    tabAccent: "text-amber-300",
   },
 };
+
+const ROLE_META = Object.fromEntries(
+  Object.entries(ROLE_TEXT).map(([role, text]) => [
+    role,
+    { ...text, ...ROLE_VISUALS[role] },
+  ]),
+);
 
 function primaryRoleOf(m) {
   if (m.roles.includes("promotor")) return "promotor";

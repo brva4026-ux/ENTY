@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { haptics } from "../lib/haptics";
 import ReportWidget from "../components/ReportWidget";
+import DoorPulse from "../components/DoorPulse";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
 import { STATUS_META as EV_CHIP } from "../components/EventWorkbench";
 import { PullToRefresh } from "../components/PullToRefresh";
@@ -1603,6 +1604,14 @@ export default function AdminDashboard() {
                 ) : (
                   <StatSkeletonRow />
                 )}
+                {/* Ritmo de la puerta a ANCHO COMPLETO: una serie temporal se
+                    lee mejor ancha, y es la señal operativa de la noche
+                    (¿fluye o se atascó?), no un detalle del reporte. */}
+                {report && (
+                  <div className="lg:col-span-2">
+                    <DoorPulse pulse={report.door_pulse} isLive={isLive} />
+                  </div>
+                )}
                 {closing && (
                   <div className="card p-4 lg:col-span-2">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1675,9 +1684,24 @@ export default function AdminDashboard() {
                   el ciclo de vida (que vive siempre visible en el header). */}
                 <div className="card p-4">
                   <p className="eyebrow">Puerta</p>
-                  <p className="display mb-2 mt-0.5 text-base">
+                  <p className="display mb-3 mt-0.5 text-base">
                     Cómo va la puerta
                   </p>
+                  {/* Barra de ingreso: cuánto del aforo ya cruzó la puerta, de
+                      un vistazo. Verde = ya entraron; el resto es lo que falta. */}
+                  {(() => {
+                    const cap = selectedEventData?.capacity ?? 0;
+                    const inCount = report?.redeemed ?? 0;
+                    const pct = cap ? Math.min(100, (inCount / cap) * 100) : 0;
+                    return (
+                      <div className="meter mb-1.5">
+                        <div
+                          className="meter-fill bg-emerald-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    );
+                  })()}
                   <ul className="space-y-2 text-sm text-zinc-300">
                     <li className="flex items-center justify-between gap-2">
                       <span>Boletas pendientes de entrar</span>
@@ -1703,9 +1727,10 @@ export default function AdminDashboard() {
                     </li>
                   </ul>
                   {isLive && (
-                    <p className="mt-3 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
-                      🚪 Puertas abiertas: los escaneos actualizan estos números
-                      en vivo.
+                    <p className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
+                      <span className="dp-live-dot shrink-0" aria-hidden="true" />
+                      Puertas abiertas: los escaneos actualizan estos números en
+                      vivo.
                     </p>
                   )}
                 </div>
