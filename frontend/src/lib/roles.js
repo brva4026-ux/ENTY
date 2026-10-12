@@ -22,6 +22,32 @@ export const ROLE_LABELS = {
   bouncer: "Portero",
 };
 
+/** Identidad visual por rol: UN solo lugar decide cómo se ve cada rol.
+ *  `chip` = pastilla de etiqueta, `avatar` = iniciales/anillo, `tabAccent`
+ *  = acento de texto. El equipo (TeamManager) y el perfil consumen esto. */
+export const ROLE_VISUALS = {
+  promotor: {
+    chip: "bg-brand-500/15 text-brand-300 ring-brand-500/30",
+    avatar: "bg-brand-500/20 text-brand-300 ring-brand-500/40",
+    tabAccent: "text-brand-300",
+  },
+  bouncer: {
+    chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
+    avatar: "bg-emerald-500/20 text-emerald-300 ring-emerald-500/40",
+    tabAccent: "text-emerald-300",
+  },
+  admin: {
+    chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
+    avatar: "bg-amber-500/20 text-amber-300 ring-amber-500/40",
+    tabAccent: "text-amber-300",
+  },
+  super_admin: {
+    chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
+    avatar: "bg-amber-500/20 text-amber-300 ring-amber-500/40",
+    tabAccent: "text-amber-300",
+  },
+};
+
 /** Todos los roles presentes en el usuario (cualquier venue), como set. */
 export function roleSet(user) {
   const out = new Set();

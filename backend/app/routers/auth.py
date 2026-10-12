@@ -105,7 +105,9 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
     user: dict | None = None
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, email, full_name FROM users WHERE id=%s", (user_id,)
+            "SELECT id, email, full_name, created_at, last_login_at "
+            "FROM users WHERE id=%s",
+            (user_id,),
         )
         user = await cur.fetchone()
 
@@ -139,6 +141,8 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         full_name=user["full_name"],
         venues=list(venues.values()),
         roles=roles_by_venue,
+        created_at=user["created_at"],
+        last_login_at=user["last_login_at"],
     )
 
 
