@@ -2660,6 +2660,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   white-space: nowrap;
 }
 .evx-meter {
+  display: block;
   height: 5px;
   flex: 1;
   border-radius: 999px;

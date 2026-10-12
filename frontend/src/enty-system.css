@@ -178,6 +178,7 @@ html:not([data-theme="light"]) .app-shell .bizdock {
  *  6b. MEDIDOR DE CUPO · el promotor ve su noche de un vistazo
  * ------------------------------------------------------------------------- */
 .e-meter {
+  display: block;
   height: 5px;
   border-radius: var(--e-radius-pill);
   background: rgba(255, 255, 255, 0.06);
