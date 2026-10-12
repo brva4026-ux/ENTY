@@ -760,8 +760,16 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   Atrás
                 </button>
               )}
+              {/* key distinta por paso: sin ella React reutiliza el mismo nodo
+                  <button> y lo muta de "Continuar / type=button" a "Crear
+                  evento / type=submit". El navegador resuelve la acción por
+                  defecto del clic DESPUÉS de esa mutación, así que el último
+                  "Continuar" enviaba el formulario y creaba el evento saltándose
+                  el paso Aforo. Con keys propias React reemplaza el nodo y el
+                  clic no puede heredar el type del paso siguiente. */}
               {step < STEPS.length - 1 ? (
                 <button
+                  key="next"
                   type="button"
                   onClick={next}
                   className="btn-primary"
@@ -769,7 +777,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   Continuar
                 </button>
               ) : (
-                <button className="btn-primary" disabled={creating}>
+                <button key="submit" className="btn-primary" disabled={creating}>
                   {creating && (
                     <svg
                       className="btn-spinner"

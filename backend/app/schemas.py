@@ -77,6 +77,16 @@ class EventCreate(BaseModel):
     @classmethod
     def _flyer_public(cls, v):
         return validate_flyer_url(v) if v else v
+
+    @field_validator("name")
+    @classmethod
+    def _name_not_blank(cls, v: str) -> str:
+        # min_length=1 deja pasar "   ": hay que exigir contenido real, no solo
+        # longitud. El nombre viaja a la boleta y al og:image de WhatsApp.
+        if not v.strip():
+            raise ValueError("El nombre del evento no puede estar en blanco")
+        return v.strip()
+
     # Lugar del evento (texto libre): viaja a la boleta del invitado y al
     # og:image de WhatsApp. Opcional: no todos los eventos tienen dirección.
     location: str | None = Field(default=None, max_length=200)

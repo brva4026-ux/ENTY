@@ -5,7 +5,7 @@ La fecha es donde es fácil equivocarse en silencio: el navegador manda un
 la conversión se hace mal, el evento queda corrido varias horas y nadie se
 entera hasta la puerta.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -127,3 +127,32 @@ def test_transition_returns_the_full_event(api, world):
 )
 def test_invalid_event_payloads_are_rejected(api, world, extra):
     assert _post_event(api, world["venue_a"], **extra).status_code == 422
+
+
+@pytest.mark.parametrize("blank", ["   ", "\t", "\n  "])
+def test_blank_event_name_is_rejected(api, world, blank):
+    """min_length=1 deja pasar el espacio en blanco; el contenido real manda.
+
+    Un nombre de solo espacios viaja a la boleta y al og:image de WhatsApp como
+    un evento sin nombre."""
+    assert _post_event(api, world["venue_a"], name=blank).status_code == 422
+
+
+def test_event_cannot_start_in_the_past(api, world):
+    """La creación debe rechazar fechas pasadas como ya hace la edición.
+
+    Sin este guardia se podía crear (201) y PUBLICAR (200) un evento con
+    apertura pasada: nacía visible al público ya caducado. La edición sí lo
+    bloqueaba (`update_event` lanza `starts_at_in_past`); la creación no tenía
+    el chequeo."""
+    past = datetime.now(timezone.utc) - timedelta(days=2)
+    res = _post_event(api, world["venue_a"], starts_at=past.isoformat())
+    assert res.status_code == 400
+    assert "pasado" in res.json()["detail"].lower()
+
+
+def test_event_creation_still_allows_future_starts(api, world):
+    """El guardia no debe romper el caso normal: apertura futura -> 201."""
+    future = datetime.now(timezone.utc) + timedelta(days=3)
+    res = _post_event(api, world["venue_a"], starts_at=future.isoformat())
+    assert res.status_code == 201, res.text
