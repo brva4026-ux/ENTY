@@ -483,10 +483,6 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-white);
 }
 
-.tkt-body [style*="rgba(74, 47, 5"] {
-  color: rgba(247, 247, 251, 0.72) !important;
-}
-
 .tkt-btn-primary {
   background: linear-gradient(135deg, var(--e-violet-500), var(--e-violet-400));
   color: var(--e-white);

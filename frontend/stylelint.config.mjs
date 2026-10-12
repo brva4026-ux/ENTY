@@ -9,7 +9,8 @@
  *     hojas consume var(--e-*). Arranca como `warning` durante la migración
  *     (Fase 1) y pasa a `error` cuando la cascada queda plana.
  *   - no-duplicate-selectors / declaration-block-no-duplicate-properties:
- *     evitan la pugna de especificidad que hoy obliga a los 11 !important.
+ *     evitan la pugna de especificidad que obligaba a los !important (hoy
+ *     retirados; solo queda el override de prefers-reduced-motion).
  *   - declaration-block-no-shorthand-property-overrides: un shorthand no
  *     puede pisar una longhand ya declarada en el mismo bloque.
  *

@@ -248,10 +248,12 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   migración; `declaration-block-no-duplicate-properties`, `color-no-invalid-hex`
   y `block-no-empty` son `error` y deben quedar en cero. Al cerrar una fase,
   **baja el número del presupuesto** en `package.json`.
-- **Estado Fase 1 (casi cerrada)**: las 4 hojas de componente están sin hex;
-  los alias históricos `--tf-* / --home-* / --evd-* / --tkt-* / --in-*` ya solo
-  apuntan a primitivas `--e-*`. Lo que queda son 31 `no-duplicate-selectors`
-  (F4) y la deuda de `!important` + `style={{}}` (no de color).
+- **Estado Fase 1 (HECHA, corte de tokens/color)**: las 4 hojas de componente
+  están sin hex; los alias históricos `--tf-* / --home-* / --evd-* / --tkt-* /
+  --in-*` ya solo apuntan a primitivas `--e-*`; `!important` bajó 11→3 (solo el
+  override de `prefers-reduced-motion`) y el JSX ya no fija hex (el punto de
+  estado usa `data-status` en CSS). Quedan 31 `no-duplicate-selectors` (F4) y
+  21 `style={{}}` de geometría dinámica (no color).
 - **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
   (oscuro y claro), interior (admin/promotor, + alt de imágenes) y la puerta
   (+ objetivos táctiles ≥ 44px). Corre con `E2E_BASE_URL=http://127.0.0.1:12000

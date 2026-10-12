@@ -159,21 +159,6 @@ export default function EventWorkbench({
     { id: "noche", label: "Equipo", icon: "users" },
   ];
 
-  // Color del punto de estado: EL MISMO mapa de la franja de eventos. Un solo
-  // vocabulario de color: que la tarjeta diga "A la venta" en azul y la
-  // cabecera del backstage lo repita en otro tono es exactamente la falta de
-  // continuidad que hace sentir la parte interna de otro sistema.
-  const dotColor =
-    ev.status === "live"
-      ? "#34d399"
-      : ev.status === "published"
-        ? "#BB5CF6"
-        : ev.status === "draft"
-          ? "#71717a"
-          : ev.status === "cancelled"
-            ? "#f87171"
-            : "#a1a1aa"; // ended
-
   return (
     <div className="space-y-4">
       {/* ====== Cabecera del evento: la MISMA gramática de la portada ======
@@ -199,8 +184,8 @@ export default function EventWorkbench({
               <span className="evx-state">
                 <span
                   className="evx-dot"
+                  data-status={ev.status}
                   aria-hidden="true"
-                  style={{ background: dotColor }}
                 />
                 {status.label}
               </span>

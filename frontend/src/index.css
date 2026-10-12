@@ -617,8 +617,8 @@ html[data-theme="light"] select.field option {
     color 0.12s;
 }
 .chip-active {
-  background: var(--color-zinc-50) !important;
-  color: var(--e-panel-750) !important;
+  background: var(--color-zinc-50);
+  color: var(--e-panel-750);
   font-weight: 600;
 }
 
@@ -2424,6 +2424,9 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 .evx-card.is-published::before {
   background: linear-gradient(90deg, var(--e-violet-100), rgba(243, 232, 255, 0.25));
 }
+.evx-card.is-ended::before {
+  background: var(--e-neutral-500);
+}
 /* Halo de marca que emerge al hover (profundidad, no decoración): la
    tarjeta "se enciende" — la que vas a abrir responde. */
 .evx-card::after {
@@ -2481,13 +2484,29 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 /* El estado es UN punto de color + palabra: la información de la categoría
    sin una caja con borde por tarjeta (eran 8 cajas por pantalla). El color
-   del punto lo fija el JSX inline (mapa por estado). */
+   del punto lo fija el ciclo de vida (data-status) desde el CSS, un solo
+   vocabulario de color en toda la app. */
 .evx-dot {
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 999px;
   background: var(--color-zinc-600);
   flex-shrink: 0;
+}
+.evx-dot[data-status="live"] {
+  background: var(--e-green-400);
+}
+.evx-dot[data-status="published"] {
+  background: var(--e-violet-100);
+}
+.evx-dot[data-status="draft"] {
+  background: var(--e-neutral-550);
+}
+.evx-dot[data-status="ended"] {
+  background: var(--e-neutral-500);
+}
+.evx-dot[data-status="cancelled"] {
+  background: var(--e-red-600);
 }
 /* En puerta: el punto RESPIRA (pulso discreto) — vida sin ruido. */
 .evx-dot.is-live {
@@ -3714,8 +3733,8 @@ html[data-theme="light"] .btn-danger-text:hover {
 /* Chip activo: se invierte (superficie oscura sobre tema claro — mismo
    gesto visual que el dark: "la activa es la que contrasta"). */
 html[data-theme="light"] .chip-active {
-  background: var(--color-zinc-900) !important;
-  color: var(--color-zinc-50) !important;
+  background: var(--color-zinc-900);
+  color: var(--color-zinc-50);
 }
 
 /* Tabbar: pista hundida gris, activa = papel blanco con borde */
@@ -3851,10 +3870,9 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
 [data-theme-lock="dark"] {
   color-scheme: dark;
 }
-[data-theme-lock="dark"] body {
-  background: var(--color-zinc-950) !important;
-  color: var(--color-zinc-200) !important;
-}
+/* El candado oscuro (puerta) se aplica al FINAL del archivo: misma
+   especificidad que `html[data-theme="light"] body`, gana por orden de
+   fuente sin `!important`. Ver el bloque al cierre de la hoja. */
 
 /* ===========================================================================
    ENTRADA (v3, Tesla/Apple): showroom plano. La pantalla es el producto:
@@ -3914,6 +3932,20 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   background: none;
   box-shadow: none;
 }
+/* Tile del logotipo: tinta profunda fija (la marca no voltea con el tema). */
+.brand-tile {
+  background: var(--e-ink-950);
+}
+/* Wordmark: Sora es la voz de la marca en todo el sistema. */
+.brand-wordmark {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.brand-wordmark-hero {
+  font-size: 2.4rem;
+  line-height: 1;
+}
 /* "Flow": tinta sólida del acento — un solo color de marca, sin degradado. */
 .brand-flow {
   color: var(--e-violet-400);
@@ -3935,7 +3967,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   transition: color 0.15s;
 }
 .auth-field-has-icon {
-  padding-left: 2.6rem !important;
+  padding-left: 2.6rem;
 }
 .auth-field:focus-within .auth-field-icon {
   color: var(--e-violet-400);
@@ -5084,4 +5116,11 @@ html[data-theme="light"] .auth-shell .auth-card {
 .auth-brand .brand-shine,
 html[data-theme="light"] .auth-brand .brand-shine {
   color: var(--e-text-primary);
+}
+
+/* Candado oscuro de la puerta: va al cierre de la hoja para ganar por orden
+   de fuente (misma especificidad que `html[data-theme="light"] body`). */
+html[data-theme-lock="dark"] body {
+  background: var(--color-zinc-950);
+  color: var(--color-zinc-200);
 }

@@ -134,18 +134,6 @@ const NEXT_ACTIONS = {
  * por prioridad operativa: vivos arriba, pasados al final. Ambos viven en
  * EventWorkbench — un solo vocabulario de estados en toda la app. */
 
-/** Color del punto/estado por ciclo de vida. Un solo mapa para la franja y
- * el backstage: el mismo estado siempre representa con el mismo tono. */
-export const STATUS_DOT_COLOR = {
-  live: "#34d399",
-  // "A la venta" va en crema, NO en el naranja de la CTA: si comparte color
-  // con el boton de accion, la etiqueta de estado se lee como un boton.
-  published: "#F3E8FF",
-  draft: "#71717a",
-  ended: "#a1a1aa",
-  cancelled: "#dc2626",
-};
-
 /**
  * Espejo de la regla del backend (lifecycle.delete_event): se borra cualquier
  * evento salvo el que tiene las puertas abiertas (se está operando ahora).
@@ -929,19 +917,8 @@ export default function AdminDashboard() {
                               <span className="evx-dot-wrap">
                                 <span
                                   className="evx-dot"
+                                  data-status={ev.status}
                                   aria-hidden="true"
-                                  style={{
-                                    background:
-                                      ev.status === "live"
-                                        ? "#34d399"
-                                        : ev.status === "published"
-                                          ? "#F3E8FF"
-                                          : ev.status === "draft"
-                                            ? "#71717a"
-                                            : ev.status === "cancelled"
-                                              ? "#f87171"
-                                              : "#a1a1aa",
-                                  }}
                                 />
                               </span>
                               <span className="evx-row-name truncate">
@@ -1050,13 +1027,6 @@ export default function AdminDashboard() {
                               className={`event-card evx-card ${live ? "is-live" : ""} ${
                                 ev.status === "published" ? "is-published" : ""
                               } ${ended ? "is-ended" : ""}`}
-                              style={
-                                !live && !ended
-                                  ? undefined
-                                  : {
-                                      "--evx-bar": STATUS_DOT_COLOR[ev.status],
-                                    }
-                              }
                             >
                               {/* Link superpuesto: la TARJETA entera abre el
                             backstage y deja libres las esquinas para acciones
@@ -1121,11 +1091,8 @@ export default function AdminDashboard() {
                                       <span className="evx-state">
                                         <span
                                           className={`evx-dot ${live ? "is-live" : ""}`}
+                                          data-status={ev.status}
                                           aria-hidden="true"
-                                          style={{
-                                            background:
-                                              STATUS_DOT_COLOR[ev.status],
-                                          }}
                                         />
                                         {
                                           (EV_CHIP[ev.status] ?? EV_CHIP.draft)

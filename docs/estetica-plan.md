@@ -142,7 +142,7 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 - [ ] **Regresión visual** `toHaveScreenshot()` × breakpoints × temas — pendiente
   (la cubren los E2E de flujo + el spec de a11y mientras tanto).
 
-### Fase 1 — Tokens y aplanado de la cascada — **CASI HECHA**
+### Fase 1 — Tokens y aplanado de la cascada — **HECHA (corte de tokens/color)**
 
 - [x] Crear `src/tokens.css` (§3) e importarlo primero en `main.jsx`.
 - [x] Tokens semánticos + escalas cerradas (espacio, radio, tipo, motion,
@@ -155,11 +155,20 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   de `index.css`, exento con rationale (fuente de los tokens Tailwind).
 - [x] Colapsar la capa de alias: `--tf-* / --home-* / --evd-* / --tkt-* / --in-*`
   ya no declaran valores, solo primitivas `--e-*`.
-- [ ] Retirar `!important` (11 hoy: 7 index + 3 enty-system + 1 aesthetic) y los
-  27 `style={{}}` de color/tamaño.
+- [x] Retirar `!important`: **11 → 3** (los 3 restantes son un único override
+  legítimo de `prefers-reduced-motion`, que por norma necesita `!important`).
+  `chip-active` y `auth-field-has-icon` no lo necesitaban (sus selectores ya
+  ganaban por capa/orden); el candado oscuro de la puerta (`data-theme-lock`)
+  se movió al **cierre de la hoja** para ganar por orden de fuente sin
+  `!important` (verificado: claro → `rgb(241,241,244)`, candado → `rgb(24,24,27)`).
+- [x] Retirar el color crudo de los `style={{}}`: el punto de estado (franja y
+  backstage) y los colores del logotipo pasan a CSS por `data-status` / clases.
+  El JSX ya no fija hex; quedan 21 `style={{}}` de geometría dinámica
+  (porcentajes, `env(safe-area)`, delays) que NO son color ni violan el guard.
 - *Aceptación*: `color-no-hex` pasa en todo `src/**/*.css` menos `tokens.css`;
   cero regresión visual; un cambio de `--brand` re-viste todas las pantallas.
-  Lo que resta de la fase son `!important` + estilos en línea (no color-no-hex).
+  Cumplida. Lo único pendiente del presupuesto son 31 `no-duplicate-selectors`
+  (F4, profundidad/material), no color.
 
 ### Fase 2 — Tipografía y ritmo editorial
 

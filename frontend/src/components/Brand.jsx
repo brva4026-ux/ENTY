@@ -7,7 +7,7 @@ import { timeAgo } from "../lib/useLiveRefresh";
  * Destello de marca: estrella de cuatro puntas asimetrica. Es la firma de
  * Enty y se reutiliza como bullet, indicador de carga y centro del QR.
  */
-export function Spark({ size = 12, color = "#00E6AB", className = "" }) {
+export function Spark({ size = 12, color = "var(--e-green-500)", className = "" }) {
   return (
     <svg
       width={size}
@@ -57,8 +57,7 @@ export function Logo({ size = "md", animated = true }) {
         className={`${box} relative ${animated ? "logo-pop" : ""} grid place-items-center`}
       >
         <span
-          className={`relative grid h-full w-full place-items-center overflow-hidden ${radius}`}
-          style={{ background: "#0A0A0F" }}
+          className={`brand-tile relative grid h-full w-full place-items-center overflow-hidden ${radius}`}
         >
           <svg
             viewBox="0 0 512 512"
@@ -73,13 +72,13 @@ export function Logo({ size = "md", animated = true }) {
               height="494"
               rx="118"
               fill="none"
-              stroke="#BB5CF6"
+              stroke="var(--e-violet-400)"
               strokeWidth="16"
               strokeOpacity="0.85"
             />
             {/* La "E": asta + tres brazos redondeados. */}
             <g
-              stroke="#FFFFFF"
+              stroke="var(--e-white)"
               strokeWidth="60"
               strokeLinecap="round"
               fill="none"
@@ -91,26 +90,18 @@ export function Logo({ size = "md", animated = true }) {
             </g>
             {/* La estrella de cuatro puntas, integrada al lateral derecho. */}
             <path
-              fill="#BB5CF6"
+              fill="var(--e-violet-400)"
               d="M356 196 l13 34 34 13 -34 13 -13 34 -13 -34 -34 -13 34 -13 z"
             />
           </svg>
         </span>
       </span>
       {hero ? (
-        /* Wordmark hero: tipografia redondeada y futurista (Baloo 2, la voz
-           amable de la marca) — "Ent" en tinta blanca y la "y" en el violeta
-           de acento, con la estrella de cuatro puntas sobre la "t". */
+        /* Wordmark hero: tipografia redondeada y futurista (la voz amable de
+           la marca) — "Ent" en tinta blanca y la "y" en el violeta de acento,
+           con la estrella de cuatro puntas sobre la "t". */
         <span className="brand-chip animate-fade">
-          <span
-            className="leading-none"
-            style={{
-              fontFamily: "'Baloo 2', 'Segoe UI', system-ui, sans-serif",
-              fontWeight: 800,
-              fontSize: "2.4rem",
-              letterSpacing: "-0.01em",
-            }}
-          >
+          <span className="brand-wordmark brand-wordmark-hero">
             <span className="brand-shine">En</span>
             <span className="brand-star">
               t
@@ -120,7 +111,7 @@ export function Logo({ size = "md", animated = true }) {
                 aria-hidden="true"
               >
                 <path
-                  fill="#BB5CF6"
+                  fill="var(--e-violet-400)"
                   d="M12 1 l2.6 6.8 6.8 2.6 -6.8 2.6 -2.6 6.8 -2.6 -6.8 -6.8 -2.6 6.8 -2.6 z"
                 />
               </svg>
@@ -129,13 +120,7 @@ export function Logo({ size = "md", animated = true }) {
           </span>
         </span>
       ) : (
-        <span
-          className={`${text} brand-shine leading-none`}
-          style={{
-            fontFamily: "'Baloo 2', 'Segoe UI', system-ui, sans-serif",
-            fontWeight: 800,
-          }}
-        >
+        <span className={`${text} brand-wordmark brand-shine leading-none`}>
           Enty
         </span>
       )}
