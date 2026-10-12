@@ -7,6 +7,10 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
+// Tokens PRIMERO: la fuente única de color/forma/movimiento. Las hojas de
+// abajo consumen var(--e-*); ninguna inventa un hex de marca (stylelint lo
+// vigila). Ver docs/estetica-plan.md (Fase 1).
+import "./tokens.css";
 import "./index.css";
 import "./aesthetic-refresh.css";
 import "./enty-system.css";

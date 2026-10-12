@@ -148,7 +148,7 @@ export default function WaitlistPage() {
   // ------------------------------------------------------------------ join
   if (!token) {
     return (
-      <div className="relative min-h-screen bg-zinc-950 px-4 py-8">
+      <div className="relative min-h-screen bg-canvas px-4 py-8">
         <div className="relative mx-auto w-full max-w-sm animate-rise">
           <div className="card card-interactive p-5">
             <div className="mb-4 flex items-center gap-2">
@@ -157,7 +157,7 @@ export default function WaitlistPage() {
               </span>
               <div>
                 <p className="eyebrow">Lista de espera</p>
-                <p className="text-sm font-bold text-white">
+                <p className="text-sm font-bold text-ink">
                   Entra a la fila del evento
                 </p>
               </div>
@@ -179,7 +179,7 @@ export default function WaitlistPage() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   minLength={2}
-                  className="w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-white ring-1 ring-zinc-800 focus:ring-brand-500"
+                  className="w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-800 focus:ring-brand-500"
                   placeholder="Nombre y apellido"
                 />
               </div>
@@ -192,7 +192,7 @@ export default function WaitlistPage() {
                   onChange={(e) => setPhone(e.target.value)}
                   required
                   inputMode="tel"
-                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-white ring-1 ring-zinc-800 focus:ring-brand-500"
+                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-800 focus:ring-brand-500"
                   placeholder="300 000 0000"
                 />
               </div>
@@ -214,7 +214,7 @@ export default function WaitlistPage() {
                   }}
                   required
                   inputMode="numeric"
-                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-white ring-1 ring-zinc-800 focus:ring-brand-500"
+                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-800 focus:ring-brand-500"
                   placeholder="Link del evento o su número"
                 />
                 <p className="mt-1 text-[11px] text-zinc-500">
@@ -231,7 +231,7 @@ export default function WaitlistPage() {
             </form>
           </div>
 
-          <p className="mt-4 text-center text-xs text-zinc-600">
+          <p className="mt-4 text-center text-xs text-dim-2">
             Sin cuentas ni pagos por adelantado · Enty
           </p>
         </div>
@@ -243,7 +243,7 @@ export default function WaitlistPage() {
   const offered = state?.status === "offered";
 
   return (
-    <div className="relative min-h-screen bg-zinc-950 px-4 py-8">
+    <div className="relative min-h-screen bg-canvas px-4 py-8">
       <div className="relative mx-auto w-full max-w-sm animate-rise">
         <div className="card card-interactive p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -252,7 +252,7 @@ export default function WaitlistPage() {
               </span>
             <div className="min-w-0">
               <p className="eyebrow">Lista de espera</p>
-              <p className="truncate text-sm font-bold text-white">
+              <p className="truncate text-sm font-bold text-ink">
                 {state?.event_name ?? "Cargando…"}
               </p>
             </div>
@@ -299,7 +299,7 @@ export default function WaitlistPage() {
                 {secondsLeft !== null && (
                   <>
                     {" · "}
-                    <span className="tnum font-bold text-white">
+                    <span className="tnum font-bold text-ink">
                       {Math.floor(secondsLeft / 60)}:
                       {String(secondsLeft % 60).padStart(2, "0")}
                     </span>
@@ -330,12 +330,12 @@ export default function WaitlistPage() {
                 <Icon name="clock" className="h-7 w-7 text-brand-300" />
               </span>
               {state?.status === "claimed" ? (
-                <p className="text-sm font-bold text-white">
+                <p className="text-sm font-bold text-ink">
                   Ya reclamaste tu lugar
                 </p>
               ) : state?.status === "left" ? (
                 <>
-                  <p className="text-sm font-bold text-white">Saliste de la fila</p>
+                  <p className="text-sm font-bold text-ink">Saliste de la fila</p>
                   <p className="mt-1 text-xs text-zinc-400">
                     Puedes volver a entrar mientras el evento siga agotado.
                   </p>
@@ -352,7 +352,7 @@ export default function WaitlistPage() {
                 </>
               ) : (
                 <>
-                  <p className="text-sm font-bold text-white">
+                  <p className="text-sm font-bold text-ink">
                     Vas en la posición{" "}
                     <span className="tnum text-brand-300">
                       #{state?.position ?? "…"}
@@ -369,7 +369,7 @@ export default function WaitlistPage() {
 
           {state && !newTicket && (
             <div className="mt-4 space-y-1 rounded-xl bg-zinc-900/60 p-3 ring-1 ring-zinc-800">
-              <p className="text-xs font-bold text-white">{state.venue_name}</p>
+              <p className="text-xs font-bold text-ink">{state.venue_name}</p>
               <p className="flex items-center gap-1.5 text-xs text-zinc-400">
                 <Icon name="clock" className="h-3.5 w-3.5" />
                 {state.starts_at}
@@ -389,7 +389,7 @@ export default function WaitlistPage() {
           )}
         </div>
 
-        <p className="mt-4 text-center text-xs text-zinc-600">
+        <p className="mt-4 text-center text-xs text-dim-2">
           Tu lugar es personal: se valida por tu celular · Enty
         </p>
       </div>

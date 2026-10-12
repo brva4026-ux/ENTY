@@ -1027,7 +1027,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 /* Wordmark: tinta sólida (Tesla — el tipo se defiende solo, sin luces).
    La clase queda porque la usa el logo pequeño del header. */
 .brand-shine {
-  color: var(--color-zinc-50);
+  color: var(--e-text-primary);
   -webkit-text-fill-color: currentColor;
 }
 
@@ -3506,7 +3506,6 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
 /* Validando: anillo de marca latiendo sobre el encuadre — la petición
    está en vuelo y la pantalla no está congelada. */
 .scan-frame.is-busy::after {
-  border-width: 0;
   width: auto;
   height: auto;
   inset: 6px;
@@ -5073,4 +5072,10 @@ html[data-theme="light"] .auth-shell .auth-card {
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
     0 22px 50px -34px rgba(9, 15, 38, 0.35);
+}
+
+/* El wordmark dentro del panel navy ignora el remapeo claro de .brand-shine. */
+.auth-brand .brand-shine,
+html[data-theme="light"] .auth-brand .brand-shine {
+  color: var(--e-text-primary);
 }

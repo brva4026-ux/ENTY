@@ -171,13 +171,15 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
 
 ## Capas de diseño (auditoría)
 
-El frontend importa **cuatro** hojas en este orden (main.jsx):
-`index.css` → `aesthetic-refresh.css` → `enty-system.css` → `enty-fan.css`.
-Cada una eleva la anterior sin reescribirla; `enty-fan.css` es la última palabra
+El frontend importa **cinco** hojas en este orden (main.jsx):
+`tokens.css` → `index.css` → `aesthetic-refresh.css` → `enty-system.css` →
+`enty-fan.css`. `tokens.css` es la fuente única de color/forma/movimiento; las
+demás elevan la anterior sin reescribirla y `enty-fan.css` es la última palabra
 sobre las superficies del fan.
 
 | Capa | Alcance |
 | --- | --- |
+| `tokens.css` | **Tokens del design system Enty** (`--e-*`): primitivas, semánticas (voltean con el tema) y escalas cerradas (espacio, radio, tipo, motion, elevación). Ver "Tokens y guardarraíles". |
 | `index.css` | Base del design system (clases `.card`, `.field`, `.btn-*`), tema claro/oscuro y la vitrina del fan (`.home`, `.evd`). |
 | `aesthetic-refresh.css` | Marca aplicada: `.home` (Inicio/boletas), `.evd` (detalle), `.tkt` (boleta pública) y la capa `.app-shell` del interior. |
 | `enty-system.css` | Retoques del sistema ("eleva sin reescribir"). |
@@ -218,6 +220,36 @@ sobre las superficies del fan.
 - Detalle: 2 columnas ≥900px (cartel pegajoso + rail de compra), 1 en móvil.
 - Contraste de texto ≥ 4.5:1 sobre `#0B0B0F`: `dim` #9a96a8 (6.83), `dim-2`
   #b6b2c4 (9.50), violeta brillo #bb5cf6 (5.59), verde (12.07), rosa (5.69).
+
+## Tokens y guardarraíles (Fase 0–1 del plan estético)
+
+Ver `docs/estetica-plan.md`. Resumen operativo:
+
+- **`src/tokens.css` es la fuente única de color/forma/movimiento.** Prefijo
+  `--e-*`, tres niveles: primitivas (`--e-ink-1`, `--e-violet-500`…), semánticas
+  (`--e-canvas`, `--e-text-primary`, `--e-brand`…) y escalas cerradas
+  (`--e-space-*`, `--e-radius-*`, `--e-text-*`, `--e-dur-*`, `--e-ease-*`,
+  `--e-shadow-*`). Los componentes consumen las **semánticas**, no las
+  primitivas ni un hex suelto.
+- **El tema claro es un cambio de tokens, no de componentes.** Los valores
+  claros viven en el bloque `html[data-theme="light"]` de `tokens.css`; las
+  hojas no repiten una regla por superficie. Las superficies que deben voltear
+  usan las utilidades `text-ink` / `text-dim` / `text-dim-2` / `bg-canvas` /
+  `bg-surface` en lugar de `text-white` o `bg-zinc-950` (que NO voltean: los
+  tokens zinc 500–950 son de superficie fija; el corte de inversión está en 500).
+- **Superficies insensibles al tema** (p. ej. `.auth-brand`, el panel navy de la
+  entrada) fijan sus propios tokens de tinta en `tokens.css`, para que el
+  wordmark siga legible sobre el navy también en claro.
+- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 558`
+  es un presupuesto que solo puede **bajar**. `color-no-hex` (todo `src/**/*.css`
+  menos `tokens.css`), `no-duplicate-selectors` y las reglas de shorthand son
+  `warning` durante la migración; `declaration-block-no-duplicate-properties`,
+  `color-no-invalid-hex` y `block-no-empty` son `error` y deben quedar en cero.
+  Al cerrar una fase, **baja el número del presupuesto** en `package.json`.
+- **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
+  (oscuro y claro), interior (admin/promotor, + alt de imágenes) y la puerta
+  (+ objetivos táctiles ≥ 44px). Corre con `E2E_BASE_URL=http://127.0.0.1:12000
+  npx playwright test e2e/a11y.spec.js`.
 
 ## App interna (Enty): Admin · Promotor · Puerta
 
