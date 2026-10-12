@@ -280,6 +280,39 @@ export default function EventWorkbench({
           </div>
         </div>
 
+        {/* Salud de puerta: solo aparece cuando hay algo que mirar. Un pico de
+          duplicados es el síntoma de un QR reenviado/clonado y el admin debe
+          verlo en vivo, no al día siguiente en el CSV. Un "0" permanente solo
+          sería ruido. */}
+        {(report?.door_duplicates > 0 || report?.door_rejected > 0) && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-zinc-940 px-3 py-2 text-xs">
+            {report.door_duplicates > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden="true" />
+                <span className="tnum font-semibold text-amber-400">
+                  {report.door_duplicates}
+                </span>
+                <span className="text-amber-300/80">
+                  {report.door_duplicates === 1
+                    ? "boleta reescaneada"
+                    : "boletas reescaneadas"}
+                </span>
+              </span>
+            )}
+            {report.door_rejected > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" aria-hidden="true" />
+                <span className="tnum font-semibold text-zinc-300">
+                  {report.door_rejected}
+                </span>
+                <span className="text-zinc-500">
+                  {report.door_rejected === 1 ? "rechazada" : "rechazadas"}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Píldora de turno (tanda 3): quién está en puerta ESTA noche y si
           su escáner ya está activo. Antes `shift_start/shift_end` se guardaban
           y nadie los veía; el admin abría puertas a ciegas. */}

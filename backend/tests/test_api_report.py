@@ -193,3 +193,84 @@ def test_report_forbidden_for_other_venue(api):
     )
     # El outsider es admin de la venue B, pero el evento no existe en esa venue.
     assert res.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Salud de puerta en el reporte (duplicados / rechazos)
+# ---------------------------------------------------------------------------
+def _open_night(api, name: str) -> tuple[int, int]:
+    """Evento publicado y EN PUERTA, con la ventana del QR ya abierta."""
+    venue = api.world["venue_a"]
+    ev = api.create_event("admin", venue, name=name)
+    api.publish("admin", venue, ev["id"])
+    # El QR se activa 60 min antes de starts_at (default): al mover el evento
+    # al pasado, un canje es GRANTED y no NOT_ACTIVE.
+    api.run_sql(
+        f"UPDATE events SET starts_at = now() - interval '1 hour' WHERE id = {ev['id']}"
+    )
+    res = api.post(f"/venues/{venue}/events/{ev['id']}/live", "admin")
+    assert res.status_code == 200, res.text
+    return venue, ev["id"]
+
+
+def test_report_door_health_counts_duplicates_and_rejections(api):
+    """El admin ve, en vivo, cuántas boletas se reescanearon y cuántas se negaron.
+
+    Un pico de duplicados es el síntoma de un QR reenviado/clonado: tiene que
+    estar en el reporte del evento, no solo en el CSV del día siguiente.
+    """
+    venue, event_id = _open_night(api, "Salud de puerta")
+    tipo = api.add_type(
+        "admin", venue, event_id,
+        name="General", price_cents=0, quantity=5, is_courtesy=True,
+    )
+    ticket = api.emit(
+        "admin", venue, event_id, ticket_type_id=tipo["id"], allocation_id=None,
+    )
+
+    # Primer escaneo: ingresa. Segundo: duplicado (QR reenviado). Tercero:
+    # token que no existe (rechazo).
+    first = api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": ticket["raw_token"]},
+    )
+    assert first.status_code == 200 and first.json()["redeemed"] is True, first.text
+    dup = api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": ticket["raw_token"]},
+    )
+    assert dup.status_code == 200, dup.text
+    bad = api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": "no-existe-este-token"},
+    )
+    assert bad.status_code in (200, 404), bad.text
+
+    body = api.get(f"/venues/{venue}/events/{event_id}/report", "admin").json()
+    assert body["door_duplicates"] == 1
+    assert body["door_rejected"] == 1
+
+
+def test_report_door_health_not_leaked_to_promoter(api):
+    """El promotor NO ve la salud de puerta: es dato operativo del negocio."""
+    venue, event_id = _open_night(api, "Salud privada")
+    tipo = api.add_type(
+        "admin", venue, event_id,
+        name="General", price_cents=0, quantity=5, is_courtesy=True,
+    )
+    ticket = api.emit(
+        "admin", venue, event_id, ticket_type_id=tipo["id"], allocation_id=None,
+    )
+    api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": ticket["raw_token"]},
+    )
+    api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": ticket["raw_token"]},
+    )
+
+    body = api.get(f"/venues/{venue}/events/{event_id}/report", "promoter").json()
+    assert body["door_duplicates"] == 0
+    assert body["door_rejected"] == 0
+

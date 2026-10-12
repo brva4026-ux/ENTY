@@ -343,3 +343,21 @@ avisar.
   `CATEGORY_CHIPS` en `HomePage.jsx`). Una columna real es follow-up.
 - **Sin checkout publico todavia:** el CTA "Comprar boleto" del detalle apunta a
   `/boletas` (el fan recupera lo ya emitido por contacto).
+
+## Admin: salud de puerta (duplicados / rechazos)
+
+- `GET /events/{id}/report` (vista admin) expone `door_duplicates` (outcome
+  `already_redeemed`: síntoma de QR reenviado/clonado) y `door_rejected` (todo
+  lo demás que la puerta negó). El promotor NO los ve (la rama no-admin del
+  reporte no los calcula): es dato operativo del negocio.
+- `EventWorkbench` los pinta en el backstage, **solo si > 0** (un 0 permanente
+  sería ruido). El `/report` se refresca en vivo con `useLiveRefresh` cuando el
+  evento está en puerta, así que la alerta aparece mientras pasa la noche.
+- **Dato muerto que dejamos ahí a propósito**: `GET /events/{id}/summary` ya
+  calculaba integridad de puerta (`DoorScanStats`) pero el frontend **nunca lo
+  consume** (buscar `/summary` en `frontend/src`). Antes de añadir otro cálculo
+  de puerta, revisar si `/summary` ya lo tiene.
+- La franja de eventos (`/events/ticket-counts`) también expone `duplicates`/
+  `rejected` por evento. La consulta de `redemptions` va **aparte** (agrupada
+  por evento) y se fusiona en Python: meterla en el mismo `FROM` que `tickets`
+  multiplica filas (fan-out) y corrompe `active`/`revenue_cents`.

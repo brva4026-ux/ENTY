@@ -874,6 +874,12 @@ class EventReport(BaseModel):
     revenue_cents: int = 0
     by_type: list[ReportByType]
     by_promoter: list[ReportByPromoter]
+    # Salud de puerta (redemptions, sin dinero). Solo vista admin: un pico de
+    # duplicados es el sintoma de un QR reenviado/clonado y el admin tiene que
+    # verlo mientras el evento pasa, no al dia siguiente en el CSV. El promotor
+    # no lo ve (no es su trabajo y es dato operativo del negocio).
+    door_duplicates: int = 0
+    door_rejected: int = 0
 
 
 class DoorScanStats(BaseModel):

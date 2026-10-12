@@ -168,6 +168,13 @@ async def list_event_ticket_counts(
     N requests (un GET por franja, no por evento). "Vivas" = issued + redeemed
     (igual que el reporte de puerta); "dentro" = redeemed; el recaudo suma el
     precio de TODAS las vivas (lo que la noche cierra, no lo ya cobrado).
+
+    `duplicates`/`rejected` (salud de puerta, de redemptions): un pico de
+    duplicados es el sintoma de un QR reenviado/clonado, y la franja tiene que
+    delatarlo sin abrir el evento. Va en una consulta APARTE, agrupada por
+    evento: unirlas en el mismo FROM multiplicaria las filas de tickets por las
+    de redemptions (fan-out) y corromperia los conteos.
+
     Ruta literal ANTES de /events/{event_id} para que no se la coma el router.
     """
     ensure_roles(user, venue_id, "super_admin", "admin")
@@ -191,11 +198,30 @@ async def list_event_ticket_counts(
             (venue_id,),
         )
         rows = await cur.fetchall()
+
+        await cur.execute(
+            """
+            SELECT r.event_id,
+                   count(*) FILTER (WHERE r.outcome='already_redeemed')::int AS duplicates,
+                   count(*) FILTER
+                     (WHERE r.outcome NOT IN ('granted','granted_forced','already_redeemed'))::int
+                       AS rejected
+            FROM redemptions r
+            JOIN events e ON e.id = r.event_id
+            WHERE e.venue_id = %s
+            GROUP BY r.event_id
+            """,
+            (venue_id,),
+        )
+        door = {r["event_id"]: r for r in await cur.fetchall()}
+
     return {
         str(r["id"]): {
             "active": r["active"],
             "redeemed": r["redeemed"],
             "revenue_cents": int(r["revenue_cents"]),
+            "duplicates": (door.get(r["id"]) or {}).get("duplicates", 0),
+            "rejected": (door.get(r["id"]) or {}).get("rejected", 0),
         }
         for r in rows
     }
