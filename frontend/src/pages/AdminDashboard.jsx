@@ -235,6 +235,10 @@ export default function AdminDashboard() {
   ];
   const venueForTeam = realVenueId;
   const q = eventQuery.trim().toLowerCase();
+  // Pulso operativo de la cabecera: cuántas noches están EN PUERTA ahora. Es
+  // el único estado que exige atención en vivo, así que la cabecera lo dice
+  // sin que el admin tenga que tocar el filtro "En puerta" para descubrirlo.
+  const liveNow = (events ?? []).filter((ev) => ev.status === "live").length;
   const visibleEvents = (events ?? []).filter(
     (ev) =>
       (eventBucket === "todos" || ev.status === eventBucket) &&
@@ -775,6 +779,18 @@ export default function AdminDashboard() {
                             </h2>
                             <p className="text-xs text-zinc-500">
                               {events.length} noche{events.length === 1 ? "" : "s"} en el calendario
+                              {liveNow > 0 && (
+                                <>
+                                  <span className="text-zinc-700"> · </span>
+                                  <span className="evx-livepill">
+                                    <span
+                                      className="evx-livepill-dot"
+                                      aria-hidden="true"
+                                    />
+                                    {liveNow} en puerta ahora
+                                  </span>
+                                </>
+                              )}
                             </p>
                           </div>
                         </div>

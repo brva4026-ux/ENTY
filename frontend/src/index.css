@@ -2455,11 +2455,30 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     0 10px 32px -14px rgba(16, 185, 129, 0.35);
 }
 .evx-name {
-  font-size: var(--e-text-lg);
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-size: var(--e-text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-zinc-50);
   font-variation-settings: "opsz" 24;
+}
+/* Pulso operativo de la cabecera: cuántas noches están EN PUERTA. Es el único
+   estado que exige atención en vivo y se dice con el mismo verde del ciclo de
+   vida (verde vivo en oscuro, verde profundo sobre claro: AA en ambos). */
+.evx-livepill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+  color: var(--e-green-400);
+}
+html[data-theme="light"] .evx-livepill {
+  color: var(--e-emerald-600);
+}
+.evx-livepill-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: currentColor;
 }
 .evx-state {
   display: inline-flex;
@@ -2684,8 +2703,8 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-pct {
   font-size: var(--e-text-2xs);
-  font-weight: 600;
-  color: var(--color-zinc-400);
+  font-weight: 700;
+  color: var(--color-zinc-300);
   text-align: right;
   white-space: nowrap;
 }
@@ -2779,6 +2798,16 @@ html[data-theme="light"] .evx-pct {
      dejaba los dedos peleando entre "duplicar" y "eliminar". */
   gap: 0.4rem;
   padding: 0 0.75rem 0.75rem;
+}
+/* Publicar/Abrir puertas/Duplicar/Eliminar son control de DEDO (el admin
+   opera la noche desde el celular). .btn-mini mide ~26px de alto: por debajo
+   del mínimo táctil de 44px. Aquí suben a 44 sin tocar el tamaño del icono. */
+.evx-actions .btn-mini {
+  min-height: 2.75rem;
+  padding-inline: 0.8rem;
+}
+.evx-actions .btn-icon {
+  min-width: 2.75rem;
 }
 
 /* Fila de metadatos del evento: cuándo empieza + estado + la señal de que
