@@ -2548,6 +2548,36 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   border-color: rgba(255, 255, 255, 0.1);
   text-shadow: none;
 }
+/* Sin flyer, el fallback es una HOJA DE CALENDARIO (mes sobre día): en una
+   lista de noches el día identifica más que dos iniciales y conserva la
+   silueta cuadrada del flyer. Va DESPUÉS de .evx-thumb-fallback para ganar
+   el display:grid por orden (misma especificidad). */
+.evx-datecal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  line-height: 1;
+}
+.evx-datecal-mon {
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--e-violet-200);
+}
+.evx-datecal-day {
+  font-size: var(--e-text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--e-white);
+}
+.evx-datecal.is-ended .evx-datecal-mon {
+  color: var(--color-zinc-400);
+}
+.evx-datecal.is-ended .evx-datecal-day {
+  color: var(--color-zinc-300);
+}
 /* Píldora de apertura reutilizada (ec-when): la fecha deja de ser un
    texto gris enterrado abajo y se vuelve el segundo dato que se lee. */
 .evx-when {
@@ -2699,6 +2729,14 @@ html[data-theme="light"] .evx-thumb-fallback.is-ended {
   color: var(--color-zinc-500);
   background: linear-gradient(140deg, rgba(9, 9, 11, 0.07), rgba(9, 9, 11, 0.02));
   border-color: var(--e-neutral-300);
+}
+/* La hoja de calendario en claro: el día no puede quedar en tinta clara
+   sobre un fondo claro (medido: ratio 1.1). Mes en violeta, día en tinta. */
+html[data-theme="light"] .evx-datecal-mon {
+  color: var(--e-violet-600);
+}
+html[data-theme="light"] .evx-datecal-day {
+  color: var(--e-text-primary);
 }
 html[data-theme="light"] .evx-stat {
   border-left-color: var(--e-neutral-300);
