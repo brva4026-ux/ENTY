@@ -71,7 +71,7 @@ body {
 
 ::selection {
   background: rgba(187, 92, 246, 0.4);
-  color: #fff;
+  color: var(--e-white);
 }
 
 /* ----------------------------------------------------------------------
@@ -141,7 +141,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #D29BF9;
+  color: var(--e-violet-300);
 }
 
 /* Titulares: apretados, pesados, con tamaño óptico de la variable Inter
@@ -216,7 +216,7 @@ body {
 }
 .field:focus {
   /* Apple: el foco es un anillo limpio del acento, sin glow difuso. */
-  border-color: #BB5CF6;
+  border-color: var(--e-violet-400);
   box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.22);
 }
 
@@ -230,7 +230,7 @@ body {
   justify-content: center;
   gap: 0.45rem;
   border-radius: 0.5rem;
-  background: #BB5CF6;
+  background: var(--e-violet-400);
   color: #1a1208;
   border: 3px solid transparent;
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
@@ -247,14 +247,14 @@ body {
     transform 0.1s ease;
 }
 .btn-primary:hover {
-  background: #8B2FE0;
+  background: var(--e-violet-800);
 }
 .btn-primary:focus-visible {
   border-color: #1a1208;
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
 }
 .btn-primary:active {
-  background: #6D28D9;
+  background: var(--e-violet-600);
   transform: translateY(1px);
   box-shadow: none;
 }
@@ -311,7 +311,7 @@ body {
   padding: 0.45rem 0.85rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #dc2626;
+  color: var(--e-red-600);
   cursor: pointer;
   transition:
     background 0.12s,
@@ -319,7 +319,7 @@ body {
 }
 .btn-danger-text:hover {
   background: rgba(239, 68, 68, 0.09);
-  color: #f87171;
+  color: var(--e-red-400);
 }
 .btn-danger-text:active {
   transform: translateY(1px);
@@ -337,8 +337,8 @@ body {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 0.5rem;
-  background: #dc2626;
-  color: #ffffff;
+  background: var(--e-red-600);
+  color: var(--e-white);
   border: 1px solid rgba(248, 113, 113, 0.5);
   padding: 0.55rem 1rem;
   font-size: 0.875rem;
@@ -349,7 +349,7 @@ body {
     transform 0.1s ease;
 }
 .btn-danger:hover {
-  background: #ef4444;
+  background: var(--e-red-500);
   border-color: rgba(252, 165, 165, 0.7);
 }
 .btn-danger:active {
@@ -426,25 +426,25 @@ body {
   padding: 0;
 }
 .btn-mini[data-variant="brand"] {
-  color: #D29BF9;
+  color: var(--e-violet-300);
 }
 .btn-mini[data-variant="brand"]:hover {
   background: rgba(187, 92, 246, 0.12);
-  color: #EAD6FE;
+  color: var(--e-violet-150);
 }
 .btn-mini[data-variant="success"] {
-  color: #34d399;
+  color: var(--e-green-400);
 }
 .btn-mini[data-variant="success"]:hover {
   background: rgba(52, 211, 153, 0.12);
   color: #6ee7b7;
 }
 .btn-mini[data-variant="danger"] {
-  color: #dc2626;
+  color: var(--e-red-600);
 }
 .btn-mini[data-variant="danger"]:hover {
   background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
+  color: var(--e-red-400);
 }
 html[data-theme="light"] .btn-mini {
   color: #52525b;
@@ -454,36 +454,36 @@ html[data-theme="light"] .btn-mini:hover {
   color: #18181b;
 }
 html[data-theme="light"] .btn-mini[data-variant="brand"] {
-  color: #6D28D9;
+  color: var(--e-violet-600);
 }
 html[data-theme="light"] .btn-mini[data-variant="brand"]:hover {
   background: rgba(187, 92, 246, 0.09);
-  color: #5b21b6;
+  color: var(--e-violet-700);
 }
 html[data-theme="light"] .btn-mini[data-variant="success"] {
-  color: #047857;
+  color: var(--e-emerald-600);
 }
 html[data-theme="light"] .btn-mini[data-variant="success"]:hover {
   background: rgba(5, 150, 105, 0.09);
-  color: #065f46;
+  color: var(--e-emerald-700);
 }
 html[data-theme="light"] .btn-mini[data-variant="danger"] {
-  color: #b91c1c;
+  color: var(--e-red-700);
 }
 html[data-theme="light"] .btn-mini[data-variant="danger"]:hover {
   background: rgba(185, 28, 28, 0.08);
-  color: #991b1b;
+  color: var(--e-red-800);
 }
 
 /* Ghost en modo exito: confirmacion in situ ("Enlace copiado") sin montar
    un toast para algo que ya se ve donde ocurrio. */
 .btn-ghost.btn-success {
   border-color: rgba(52, 211, 153, 0.45);
-  color: #34d399;
+  color: var(--e-green-400);
 }
 html[data-theme="light"] .btn-ghost.btn-success {
   border-color: rgba(5, 150, 105, 0.4);
-  color: #047857;
+  color: var(--e-emerald-600);
 }
 
 /* Chip de opcion (presets de tipos, atajos del modal de evento): pill
@@ -519,7 +519,7 @@ html[data-theme="light"] .btn-ghost.btn-success {
 .opt-chip[aria-pressed="true"] {
   border-color: rgba(187, 92, 246, 0.55);
   background: rgba(187, 92, 246, 0.15);
-  color: #D29BF9;
+  color: var(--e-violet-300);
 }
 html[data-theme="light"] .opt-chip {
   border-color: #d4d4d8;
@@ -533,7 +533,7 @@ html[data-theme="light"] .opt-chip:hover {
 html[data-theme="light"] .opt-chip[aria-pressed="true"] {
   border-color: rgba(187, 92, 246, 0.55);
   background: rgba(187, 92, 246, 0.1);
-  color: #6D28D9;
+  color: var(--e-violet-600);
 }
 
 /* ===========================================================================
@@ -563,11 +563,11 @@ input[type="checkbox"].accent-brand-500::before {
   transform: scale(0);
   transition: transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
   clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
-  background: #ffffff;
+  background: var(--e-white);
 }
 input[type="checkbox"].accent-brand-500:checked {
-  background: #BB5CF6;
-  border-color: #BB5CF6;
+  background: var(--e-violet-400);
+  border-color: var(--e-violet-400);
 }
 input[type="checkbox"].accent-brand-500:checked::before {
   transform: scale(1);
@@ -576,7 +576,7 @@ input[type="checkbox"].accent-brand-500:active {
   transform: scale(0.92);
 }
 html[data-theme="light"] input[type="checkbox"].accent-brand-500 {
-  background: #ffffff;
+  background: var(--e-white);
   border-color: #a1a1aa;
 }
 
@@ -598,7 +598,7 @@ html[data-theme="light"] select.field {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2352525b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 html[data-theme="light"] select.field option {
-  background: #ffffff;
+  background: var(--e-white);
   color: var(--color-zinc-50);
 }
 
@@ -717,7 +717,7 @@ html[data-theme="light"] select.field option {
     0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: #D29BF9;
+  color: var(--e-violet-300);
 }
 /* La activa tinta de marca la pone el bloque WB (más abajo): aquí queda la
    base neutral si ese bloque no aplica (por ejemplo dentro de[data-theme-lock]). */
@@ -752,7 +752,7 @@ html[data-theme="light"] select.field option {
 .meter-fill {
   height: 100%;
   border-radius: 999px;
-  background: #BB5CF6;
+  background: var(--e-violet-400);
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -814,7 +814,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
      usada) con línea y puntos, como el timeline de reportes del original.
    =========================================================================== */
 .text-gradient {
-  background: linear-gradient(120deg, var(--color-zinc-50) 0%, #D29BF9 55%, #BB5CF6 100%);
+  background: linear-gradient(120deg, var(--color-zinc-50) 0%, var(--e-violet-300) 55%, var(--e-violet-400) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -834,7 +834,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: #D29BF9;
+  color: var(--e-violet-300);
   background: linear-gradient(
     135deg,
     rgba(187, 92, 246, 0.24),
@@ -895,13 +895,13 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   box-shadow: inset 0 0 0 2px var(--color-zinc-700);
 }
 .ticket-step.done .ticket-step-dot {
-  background: #BB5CF6;
+  background: var(--e-violet-400);
   box-shadow:
     inset 0 0 0 2px rgba(253, 186, 116, 0.9),
     0 0 10px -2px rgba(187, 92, 246, 0.8);
 }
 .ticket-step.current .ticket-step-dot {
-  background: #34d399;
+  background: var(--e-green-400);
   box-shadow:
     0 0 0 4px rgba(52, 211, 153, 0.14),
     0 0 12px -2px rgba(52, 211, 153, 0.7);
@@ -1149,7 +1149,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 .ptr-spinner {
   animation: ptr-spin 0.8s linear infinite;
-  color: #BB5CF6;
+  color: var(--e-violet-400);
 }
 
 /* Indicador En vivo: punto pulsante + anillo que se expande (radar) */
@@ -1163,7 +1163,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 .live-dot {
-  background: #34d399;
+  background: var(--e-green-400);
   animation: live-glow 2s ease-in-out infinite;
 }
 
@@ -1265,7 +1265,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: #34d399;
+  background: var(--e-green-400);
   animation: live-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
@@ -1421,8 +1421,8 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   color: var(--color-zinc-300);
 }
 .bizdock-item.is-active .bizdock-icon {
-  color: #ffffff;
-  background: #BB5CF6;
+  color: var(--e-white);
+  background: var(--e-violet-400);
   border-color: transparent;
 }
 .bizdock-text {
@@ -1461,7 +1461,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   /* Tinta, no blanco: el contador vive sobre el naranja de la marca y el
      blanco ahi daba 2.8:1. El mismo par tinta/naranja del boton primario. */
   color: #1a1208;
-  background: #BB5CF6;
+  background: var(--e-violet-400);
 }
 
 /* Fila Pendientes: una sola línea bajo la grilla, separada por hairline.
@@ -1490,7 +1490,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #fcd34d;
+  color: var(--e-amber-300);
   background: rgba(251, 191, 36, 0.12);
   box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.32);
   transition: background 0.2s;
@@ -1522,12 +1522,12 @@ html[data-theme="light"] .bizdock-item.is-active {
 }
 html[data-theme="light"] .bizdock-icon {
   color: #52525b;
-  background: #ffffff;
+  background: var(--e-white);
   border-color: #e4e4e7;
 }
 html[data-theme="light"] .bizdock-item.is-active .bizdock-icon {
-  color: #ffffff;
-  background: #BB5CF6;
+  color: var(--e-white);
+  background: var(--e-violet-400);
 }
 html[data-theme="light"] .bizdock-label {
   color: #18181b;
@@ -1645,7 +1645,7 @@ html[data-theme="light"] .bizdock-desc {
   font-size: 1.2rem;
   /* Dos iniciales pegadas se leen como una sola letra rara. */
   letter-spacing: 0.01em;
-  color: #ffffff;
+  color: var(--e-white);
   /* Navy de marca: el mismo del logo y del talon de la boleta. La identidad
      del negocio se apoya en el material de la marca en vez de un gris que se
      confundia con el fondo del card (que es lo que la hacia ver apagada). */
@@ -1717,11 +1717,11 @@ html[data-theme="light"] .bizdock-desc {
   padding: 0.05rem 0.5rem 0.05rem 0.35rem;
 }
 .vh-delta.is-up {
-  color: #34d399;
+  color: var(--e-green-400);
   background: rgba(52, 211, 153, 0.1);
 }
 .vh-delta.is-down {
-  color: #dc2626;
+  color: var(--e-red-600);
   background: rgba(248, 113, 113, 0.1);
 }
 
@@ -1733,7 +1733,7 @@ html[data-theme="light"] .venue-header {
       rgba(187, 92, 246, 0.05),
       transparent 62%
     ),
-    #ffffff;
+    var(--e-white);
 }
 html[data-theme="light"] .vh-kpi::before {
   background: linear-gradient(
@@ -1774,11 +1774,11 @@ html[data-theme="light"] .vh-kpi-meta {
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .vh-delta.is-up {
-  color: #047857;
+  color: var(--e-emerald-600);
   background: rgba(5, 150, 105, 0.08);
 }
 html[data-theme="light"] .vh-delta.is-down {
-  color: #b91c1c;
+  color: var(--e-red-700);
   background: rgba(185, 28, 28, 0.07);
 }
 
@@ -1859,7 +1859,7 @@ html[data-theme="light"] .vh-embedded {
   color: var(--color-zinc-100);
 }
 .vh-cuenta-val.is-out {
-  color: #fca5a5;
+  color: var(--e-red-300);
 }
 .vh-cuenta-val.is-net {
   color: var(--color-enty-green);
@@ -1952,7 +1952,7 @@ html[data-theme="light"] .vh-embedded {
   background: var(--color-zinc-800);
 }
 .vh-rank-pos.is-first {
-  color: #fcd34d;
+  color: var(--e-amber-300);
   background: rgba(251, 191, 36, 0.14);
   box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.4);
 }
@@ -1997,10 +1997,10 @@ html[data-theme="light"] .vh-rank {
   border-top-color: #e4e4e7;
 }
 html[data-theme="light"] .vh-cuenta-val.is-out {
-  color: #b91c1c;
+  color: var(--e-red-700);
 }
 html[data-theme="light"] .vh-cuenta-val.is-net {
-  color: #047857;
+  color: var(--e-emerald-600);
 }
 html[data-theme="light"] .vh-mesnav-hoy {
   color: var(--color-brand-700);
@@ -2103,11 +2103,11 @@ html[data-theme="light"] .ec-stat-label {
 .ec-when-today {
   border-color: rgba(187, 92, 246, 0.55);
   background: rgba(187, 92, 246, 0.15);
-  color: #D29BF9;
+  color: var(--e-violet-300);
 }
 .ec-when-soon {
   border-color: rgba(187, 92, 246, 0.35);
-  color: #EAD6FE;
+  color: var(--e-violet-150);
 }
 html[data-theme="light"] .ec-when {
   border-color: #d4d4d8;
@@ -2116,11 +2116,11 @@ html[data-theme="light"] .ec-when {
 html[data-theme="light"] .ec-when-today {
   border-color: rgba(187, 92, 246, 0.5);
   background: rgba(187, 92, 246, 0.1);
-  color: #6D28D9;
+  color: var(--e-violet-600);
 }
 html[data-theme="light"] .ec-when-soon {
   border-color: rgba(187, 92, 246, 0.3);
-  color: #6D28D9;
+  color: var(--e-violet-600);
 }
 
 /* ----------------------------------------------------------------------
@@ -2179,10 +2179,10 @@ html[data-theme="light"] .ec-when-soon {
   font-weight: 600;
 }
 .evx-tab.is-active .evx-tab-count {
-  color: #D29BF9;
+  color: var(--e-violet-300);
 }
 /* El filete del activo: UN solo acento, plano. Antes iba de naranja a azul
-   periwinkle (#BB5CF6 -> #6f95f0), que contradecia la regla de marca de este
+   periwinkle (var(--e-violet-400) -> #6f95f0), que contradecia la regla de marca de este
    mismo archivo ("un solo acento disciplinado ... Nada de arcoiris") y en
    pantalla se leia como dos pedazos de distinto color pegados, no como una
    marca. Sobre 2px de alto, el color plano es ademas lo que se ve nitido. */
@@ -2287,14 +2287,14 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   .evx-filters {
     -webkit-mask-image: linear-gradient(
       90deg,
-      #000 0,
-      #000 calc(100% - 1.75rem),
+      var(--e-mask) 0,
+      var(--e-mask) calc(100% - 1.75rem),
       transparent 100%
     );
     mask-image: linear-gradient(
       90deg,
-      #000 0,
-      #000 calc(100% - 1.75rem),
+      var(--e-mask) 0,
+      var(--e-mask) calc(100% - 1.75rem),
       transparent 100%
     );
   }
@@ -2413,10 +2413,10 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   z-index: 1;
 }
 .evx-card.is-live::before {
-  background: linear-gradient(90deg, #34d399, rgba(52, 211, 153, 0.25));
+  background: linear-gradient(90deg, var(--e-green-400), rgba(52, 211, 153, 0.25));
 }
 .evx-card.is-published::before {
-  background: linear-gradient(90deg, #F3E8FF, rgba(243, 232, 255, 0.25));
+  background: linear-gradient(90deg, var(--e-violet-100), rgba(243, 232, 255, 0.25));
 }
 /* Halo de marca que emerge al hover (profundidad, no decoración): la
    tarjeta "se enciende" — la que vas a abrir responde. */
@@ -2520,7 +2520,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #EAD6FE;
+  color: var(--e-violet-150);
   background: linear-gradient(
     140deg,
     rgba(187, 92, 246, 0.38),
@@ -2603,7 +2603,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   font-variation-settings: "opsz" 24;
 }
 .evx-stat-value.has-money {
-  color: #34d399;
+  color: var(--e-green-400);
 }
 /* Evento terminado/cancelado: el dinero pierde el protagonismo del color
    (ya no hay nada que esperar de esa noche) pero no la cifra. */
@@ -2617,7 +2617,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 /* En puerta con gente entrando: el contador de ingresos se enciende. */
 .evx-stat-value.is-counting {
-  color: #34d399;
+  color: var(--e-green-400);
 }
 /* Punto que late junto al contador de entraron (en puerta): señal de vida
    discreta, sin animar el número entero. */
@@ -2626,7 +2626,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   width: 0.375rem;
   height: 0.375rem;
   border-radius: 999px;
-  background: #34d399;
+  background: var(--e-green-400);
   margin-right: 0.3rem;
   vertical-align: 0.12em;
   animation: evx-pulse 2s ease-in-out infinite;
@@ -2659,20 +2659,20 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   border-radius: 999px;
   /* Venda de marca con núcleo brillante: proporción VIVA, no un rectángulo
      plano. La luz viaja hacia la punta del llenado. */
-  background: linear-gradient(90deg, rgba(187, 92, 246, 0.45), #BB5CF6);
+  background: linear-gradient(90deg, rgba(187, 92, 246, 0.45), var(--e-violet-400));
   box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
   transition: width 0.5s var(--ease-out-expo);
 }
-.is-live .evx-meter-fill { background: #34d399; }
-.evx-meter-fill.is-warn { background: #fbbf24; }
-.evx-meter-fill.is-full { background: #dc2626; }
+.is-live .evx-meter-fill { background: var(--e-green-400); }
+.evx-meter-fill.is-warn { background: var(--e-amber-400); }
+.evx-meter-fill.is-full { background: var(--e-red-600); }
 .is-ended .evx-meter-fill { background: var(--color-zinc-600); }
 html[data-theme="light"] .evx-thumb {
   border-color: #e4e4e7;
   background: #f4f4f5;
 }
 html[data-theme="light"] .evx-thumb-fallback {
-  color: #6D28D9;
+  color: var(--e-violet-600);
   text-shadow: none;
   background: linear-gradient(
     140deg,
@@ -2697,13 +2697,13 @@ html[data-theme="light"] .evx-card:hover .evx-stat:first-child {
   border-left-color: rgba(5, 150, 105, 0.6);
 }
 html[data-theme="light"] .evx-stat-value.has-money {
-  color: #047857;
+  color: var(--e-emerald-600);
 }
 html[data-theme="light"] .is-ended .evx-stat-value.has-money {
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .evx-stat-value.is-counting {
-  color: #047857;
+  color: var(--e-emerald-600);
 }
 html[data-theme="light"] .evx-pct {
   color: #52525b;
@@ -2748,12 +2748,12 @@ html[data-theme="light"] .evx-pct {
   gap: 0.2rem;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #D29BF9;
+  color: var(--e-violet-300);
   opacity: 0.85;
   white-space: nowrap;
 }
 html[data-theme="light"] .evx-open-label {
-  color: #6D28D9;
+  color: var(--e-violet-600);
 }
 
 /* LISTA COMPACTA: una línea por evento. Con 20+ noches la grilla de
@@ -2793,7 +2793,7 @@ html[data-theme="light"] .evx-open-label {
   background: transparent;
 }
 .evx-row:has(.evx-row-state.is-live)::before {
-  background: #34d399;
+  background: var(--e-green-400);
 }
 .evx-row:has(.evx-row-state.is-live) {
   border-left-color: rgba(52, 211, 153, 0.25);
@@ -2847,7 +2847,7 @@ html[data-theme="light"] .evx-open-label {
   white-space: nowrap;
 }
 .evx-row-state.is-live {
-  color: #34d399;
+  color: var(--e-green-400);
 }
 /* Salud de puerta en la franja: ámbar = mirar, no rojo = error. Un QR
    reenviado no es un fallo del sistema, es una señal que el admin decide. */
@@ -2859,7 +2859,7 @@ html[data-theme="light"] .evx-open-label {
   border-radius: 9999px;
   font-size: 0.6875rem;
   font-weight: 700;
-  color: #fbbf24;
+  color: var(--e-amber-400);
   background: rgba(251, 191, 36, 0.12);
   white-space: nowrap;
 }
@@ -2883,7 +2883,7 @@ html[data-theme="light"] .evx-row-nums {
   color: #52525b;
 }
 html[data-theme="light"] .evx-row-state.is-live {
-  color: #047857;
+  color: var(--e-emerald-600);
 }
 
 /* ----------------------------------------------------------------------
@@ -2914,12 +2914,12 @@ html[data-theme="light"] .evx-row-state.is-live {
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 1.05;
-  color: #34d399;
+  color: var(--e-green-400);
   font-variation-settings: "opsz" 32;
   text-shadow: 0 0 26px rgba(52, 211, 153, 0.28);
 }
 html[data-theme="light"] .wb-revenue {
-  color: #047857;
+  color: var(--e-emerald-600);
   text-shadow: none;
 }
 .wb-kpis {
@@ -2978,7 +2978,7 @@ html[data-theme="light"] .card-hero {
       rgba(187, 92, 246, 0.045),
       transparent 62%
     ),
-    #ffffff;
+    var(--e-white);
 }
 
 /* Barras de recaudo (vista Del negocio): glow de marca al hover y punta
@@ -3009,7 +3009,7 @@ html[data-theme="light"] .card-hero {
 }
 html[data-theme="light"] .dialog-panel {
   border-color: #e4e4e7;
-  background: #ffffff;
+  background: var(--e-white);
   box-shadow: 0 24px 70px -24px rgba(24, 24, 27, 0.4);
 }
 /* Toast con barra de acento por tipo: el color del mensaje se LEE (éxito
@@ -3019,13 +3019,13 @@ html[data-theme="light"] .dialog-panel {
   box-shadow: 0 18px 42px -18px rgba(0, 0, 0, 0.6);
 }
 .toast-in[data-kind="success"] {
-  border-left: 3px solid #34d399;
+  border-left: 3px solid var(--e-green-400);
 }
 .toast-in[data-kind="error"] {
-  border-left: 3px solid #dc2626;
+  border-left: 3px solid var(--e-red-600);
 }
 .toast-in[data-kind="info"] {
-  border-left: 3px solid #BB5CF6;
+  border-left: 3px solid var(--e-violet-400);
 }
 
 /* ----------------------------------------------------------------------
@@ -3034,14 +3034,14 @@ html[data-theme="light"] .dialog-panel {
    ---------------------------------------------------------------------- */
 .tabbar-item[aria-selected="true"] {
   background: linear-gradient(180deg, rgba(187, 92, 246, 0.24), rgba(187, 92, 246, 0.12));
-  color: #EAD6FE;
+  color: var(--e-violet-150);
   font-weight: 600;
   box-shadow:
     inset 0 0 0 1px rgba(187, 92, 246, 0.4),
     0 2px 10px -3px rgba(187, 92, 246, 0.5);
 }
 .tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: #EAD6FE;
+  color: var(--e-violet-150);
 }
 
 /* ----------------------------------------------------------------------
@@ -3085,7 +3085,7 @@ html[data-theme="light"] .topbar {
   bottom: -0.55rem; /* cubre el border-bottom del header */
   height: 2px;
   border-radius: 2px;
-  background: #BB5CF6;
+  background: var(--e-violet-400);
   transform: scaleX(0);
   transition: transform 0.22s var(--ease-out-expo);
 }
@@ -3124,7 +3124,7 @@ html[data-theme="light"] .topnav-item.is-active {
     0 4px 14px -4px rgba(187, 92, 246, 0.6);
 }
 html[data-theme="light"] .topbar-avatar {
-  color: #6D28D9;
+  color: var(--e-violet-600);
   background: linear-gradient(140deg, rgba(187, 92, 246, 0.16), rgba(187, 92, 246, 0.06));
   box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.35);
 }
@@ -3138,8 +3138,8 @@ html[data-theme="light"] .topbar-avatar {
   border-radius: 1.1rem;
   padding: 0.8rem;
   background:
-    linear-gradient(160deg, #ffffff, var(--color-zinc-100) 70%),
-    #ffffff;
+    linear-gradient(160deg, var(--e-white), var(--color-zinc-100) 70%),
+    var(--e-white);
   box-shadow:
     inset 0 0 0 1px rgba(9, 9, 11, 0.08),
     0 20px 50px -18px rgba(0, 0, 0, 0.65),
@@ -3151,7 +3151,7 @@ html[data-theme="light"] .topbar-avatar {
   position: absolute;
   width: 22px;
   height: 22px;
-  border-color: #BB5CF6;
+  border-color: var(--e-violet-400);
   border-style: solid;
   opacity: 0.85;
 }
@@ -3187,7 +3187,7 @@ html[data-theme="light"] .onboard-hero {
       rgba(187, 92, 246, 0.07),
       transparent 62%
     ),
-    #ffffff;
+    var(--e-white);
 }
 .onboard-progress {
   height: 4px;
@@ -3201,7 +3201,7 @@ html[data-theme="light"] .onboard-progress {
 .onboard-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(187, 92, 246, 0.5), #BB5CF6);
+  background: linear-gradient(90deg, rgba(187, 92, 246, 0.5), var(--e-violet-400));
   box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
   transition: width 0.45s var(--ease-out-expo);
 }
@@ -3222,7 +3222,7 @@ html[data-theme="light"] .onboard-progress {
 }
 html[data-theme="light"] .list-row:hover {
   border-color: rgba(187, 92, 246, 0.35);
-  background: #ffffff;
+  background: var(--e-white);
 }
 .row:hover {
   background: rgba(255, 255, 255, 0.045);
@@ -3317,7 +3317,7 @@ html[data-theme="light"] .evx-tab-count {
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .evx-tab.is-active .evx-tab-count {
-  color: #6D28D9;
+  color: var(--e-violet-600);
 }
 html[data-theme="light"] .evx-card {
   background: #f4f4f5;
@@ -3362,12 +3362,12 @@ html[data-theme="light"] .evx-meter {
   background: rgba(9, 9, 11, 0.07);
 }
 html[data-theme="light"] .evx-meter-fill {
-  background: linear-gradient(90deg, rgba(187, 92, 246, 0.4), #8B2FE0);
+  background: linear-gradient(90deg, rgba(187, 92, 246, 0.4), var(--e-violet-800));
   box-shadow: none;
 }
-html[data-theme="light"] .is-live .evx-meter-fill { background: #059669; }
+html[data-theme="light"] .is-live .evx-meter-fill { background: var(--e-emerald-500); }
 html[data-theme="light"] .evx-meter-fill.is-warn { background: #d97706; }
-html[data-theme="light"] .evx-meter-fill.is-full { background: #dc2626; }
+html[data-theme="light"] .evx-meter-fill.is-full { background: var(--e-red-600); }
 html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zinc-300); }
 /* evx-actions: SIEMPRE visible en ambos temas (antes el claro las
    re-ocultaba tras el hover: en táctil eran imposibles de encontrar). */
@@ -3428,7 +3428,7 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   position: absolute;
   width: 26px;
   height: 26px;
-  border-color: #BB5CF6;
+  border-color: var(--e-violet-400);
   border-style: solid;
   z-index: 20;
   pointer-events: none;
@@ -3616,12 +3616,12 @@ html[data-theme="light"] ::selection {
   color: #18181b;
 }
 html[data-theme="light"] .skip-link {
-  background: #ffffff;
+  background: var(--e-white);
   color: #18181b;
   border-color: #d4d4d8;
 }
 html[data-theme="light"] .eyebrow {
-  color: #7C3AED;
+  color: var(--e-violet-500);
 }
 html[data-theme="light"] .display,
 html[data-theme="light"] .text-gradient {
@@ -3635,11 +3635,11 @@ html[data-theme="light"] .text-gradient {
 html[data-theme="light"] .card {
   /* Tesla: sin sombras ni degradados — la separación la da el hairline. */
   border-color: #e4e4e7;
-  background: #ffffff;
+  background: var(--e-white);
 }
 html[data-theme="light"] .auth-card {
   border-color: #d0d1d2;
-  background: #ffffff;
+  background: var(--e-white);
 }
 /* El wordmark en claro: tinta carbono sólida, sin brillo animado */
 html[data-theme="light"] .brand-shine {
@@ -3666,7 +3666,7 @@ html[data-theme="light"] .field {
   border-color: #d4d4d8;
   /* background-color (no shorthand): ver .field — el shorthand pisaba el
      no-repeat del chevron del select y lo repetia en cinta en tema claro. */
-  background-color: #ffffff;
+  background-color: var(--e-white);
   color: var(--color-zinc-50);
 }
 /* Refuerzo especifico: el chevron del select NO se repite en ningun tema
@@ -3681,7 +3681,7 @@ html[data-theme="light"] .field:hover {
   border-color: #a1a1aa;
 }
 html[data-theme="light"] .field:focus {
-  border-color: #8B2FE0;
+  border-color: var(--e-violet-800);
   box-shadow:
     0 0 0 3px rgba(187, 92, 246, 0.14),
     0 0 18px -6px rgba(187, 92, 246, 0.3);
@@ -3699,10 +3699,10 @@ html[data-theme="light"] .btn-ghost:hover {
   color: #18181b;
 }
 html[data-theme="light"] .btn-danger-text {
-  color: #b91c1c;
+  color: var(--e-red-700);
 }
 html[data-theme="light"] .btn-danger-text:hover {
-  color: #991b1b;
+  color: var(--e-red-800);
 }
 
 /* Chip activo: se invierte (superficie oscura sobre tema claro — mismo
@@ -3728,7 +3728,7 @@ html[data-theme="light"] .tabbar-item:hover {
 }
 html[data-theme="light"] .tabbar-item[aria-selected="true"] {
   background: linear-gradient(180deg, rgba(187, 92, 246, 0.14), rgba(187, 92, 246, 0.07));
-  color: #6D28D9;
+  color: var(--e-violet-600);
   box-shadow:
     inset 0 0 0 1px rgba(187, 92, 246, 0.35),
     0 2px 10px -3px rgba(187, 92, 246, 0.35);
@@ -3736,7 +3736,7 @@ html[data-theme="light"] .tabbar-item[aria-selected="true"] {
 
 /* Tooltip, meter, skeleton: variantes de luz */
 html[data-theme="light"] [data-tip]::after {
-  background: #ffffff;
+  background: var(--e-white);
   color: #18181b;
   border-color: #e4e4e7;
   box-shadow: 0 8px 20px -8px rgba(24, 24, 27, 0.35);
@@ -3752,7 +3752,7 @@ html[data-theme="light"] .skeleton {
 
 /* Empty state: el halo violeta se atenúa pero conserva la firma */
 html[data-theme="light"] .empty-state-icon {
-  color: #6D28D9;
+  color: var(--e-violet-600);
   background: linear-gradient(
     135deg,
     rgba(187, 92, 246, 0.12),
@@ -3777,7 +3777,7 @@ html[data-theme="light"] .ticket-timeline::before {
   );
 }
 html[data-theme="light"] .ticket-step-dot {
-  background: #ffffff;
+  background: var(--e-white);
   box-shadow: inset 0 0 0 2px #d4d4d8;
 }
 html[data-theme="light"] .ticket-step-label {
@@ -3801,7 +3801,7 @@ html[data-theme="light"] .ticket-ghost {
       rgba(187, 92, 246, 0.1),
       transparent 62%
     ),
-    linear-gradient(180deg, #ffffff, var(--color-zinc-50));
+    linear-gradient(180deg, var(--e-white), var(--color-zinc-50));
   border-color: rgba(187, 92, 246, 0.35);
 }
 html[data-theme="light"] .ticket-ghost::after {
@@ -3830,14 +3830,14 @@ html[data-theme="light"] .brand-chip {
   box-shadow: none;
 }
 html[data-theme="light"] .brand-flow {
-  color: #BB5CF6;
-  -webkit-text-fill-color: #BB5CF6;
+  color: var(--e-violet-400);
+  -webkit-text-fill-color: var(--e-violet-400);
 }
 html[data-theme="light"] .auth-field-icon {
   color: var(--color-zinc-400);
 }
 html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
-  color: #BB5CF6;
+  color: var(--e-violet-400);
 }
 
 /* Puerta (escáner): SIEMPRE oscura. El flash de un fondo blanco en un
@@ -3910,8 +3910,8 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
 }
 /* "Flow": tinta sólida del acento — un solo color de marca, sin degradado. */
 .brand-flow {
-  color: #BB5CF6;
-  -webkit-text-fill-color: #BB5CF6;
+  color: var(--e-violet-400);
+  -webkit-text-fill-color: var(--e-violet-400);
 }
 
 /* Iconos de campo (correo/candado): el formulario habla el mismo idioma
@@ -3932,7 +3932,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   padding-left: 2.6rem !important;
 }
 .auth-field:focus-within .auth-field-icon {
-  color: #BB5CF6;
+  color: var(--e-violet-400);
 }
 /* Móvil: sin orbes ni blurs que abaratar el showroom; la píldora ya no
    existe, no hay padding que ajustar. */
@@ -4028,7 +4028,7 @@ body {
   z-index: -1;
   border-radius: 2px;
   transform: rotate(-0.6deg);
-  background: linear-gradient(90deg, #7C3AED, #BB5CF6);
+  background: linear-gradient(90deg, var(--e-violet-500), var(--e-violet-400));
   opacity: 0.9;
 }
 html[data-theme="light"] .brush-mark::after {
@@ -4047,8 +4047,8 @@ html[data-theme="light"] .brush-mark::after {
   pointer-events: none;
   background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1.2px, transparent 1.3px);
   background-size: 13px 13px;
-  -webkit-mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), #000 0%, transparent 72%);
-  mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), #000 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), var(--e-mask) 0%, transparent 72%);
+  mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), var(--e-mask) 0%, transparent 72%);
 }
 html[data-theme="light"] .halftone::before {
   background-image: radial-gradient(rgba(9, 9, 11, 0.14) 1.2px, transparent 1.3px);
@@ -4063,7 +4063,7 @@ html[data-theme="light"] .halftone::before {
   transform: rotate(-2.2deg);
   border-radius: 0.6rem;
   padding: 0.28rem 0.65rem;
-  background: #00E6AB;
+  background: var(--e-green-500);
   color: #101013;
   border: 2px solid var(--color-zinc-925);
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
@@ -4177,7 +4177,7 @@ html[data-theme="light"] .ribbon-divider {
 .ribbon-divider .rd-star {
   width: 0.85rem;
   height: 0.85rem;
-  color: #00E6AB;
+  color: var(--e-green-500);
   filter: drop-shadow(0 0 6px rgba(0, 230, 171, 0.5));
 }
 html[data-theme="light"] .ribbon-divider .rd-star {
@@ -4267,7 +4267,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
   background: rgba(22, 37, 92, 0.14);
-  color: #1C1730;
+  color: var(--e-ink-800);
   font-family: "Sora", system-ui, sans-serif;
   font-size: 0.68rem;
   font-weight: 800;
@@ -4287,7 +4287,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   line-height: 1.02;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: #1C1730;
+  color: var(--e-ink-800);
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.4),
     0 2px 10px rgba(255, 255, 255, 0.22);
@@ -4361,7 +4361,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   position: relative;
   padding: 0.7rem;
   border-radius: 1rem;
-  background: #ffffff;
+  background: var(--e-white);
   box-shadow:
     0 10px 24px -14px rgba(34, 26, 6, 0.65),
     0 0 0 1px rgba(22, 37, 92, 0.12);
@@ -4373,7 +4373,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   position: absolute;
   width: 1.15rem;
   height: 1.15rem;
-  border: 2.5px solid #1C1730;
+  border: 2.5px solid var(--e-ink-800);
   pointer-events: none;
 }
 .tkt-qr::before {
@@ -4402,7 +4402,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   padding: 0.3rem 0.9rem;
   border-radius: 999px;
   border: 1.5px dashed rgba(22, 37, 92, 0.45);
-  color: #1C1730;
+  color: var(--e-ink-800);
   font-family: "Sora", system-ui, sans-serif;
   font-size: 0.66rem;
   font-weight: 800;
@@ -4481,7 +4481,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   place-items: center;
   border-radius: 999px;
   background: rgba(22, 37, 92, 0.12);
-  color: #1C1730;
+  color: var(--e-ink-800);
 }
 .tkt-note strong {
   display: block;
@@ -4530,8 +4530,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 /* Primario: navy solido — la tinta de la boleta del logo */
 .tkt-btn-primary {
-  background: #1C1730;
-  color: #ffffff;
+  background: var(--e-ink-800);
+  color: var(--e-white);
   box-shadow: 0 8px 20px -10px rgba(22, 37, 92, 0.8);
 }
 .tkt-btn-primary:hover {
@@ -4540,7 +4540,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 /* Secundario: blanco translucido con la misma tinta navy */
 .tkt-btn-quiet {
   background: rgba(255, 255, 255, 0.45);
-  color: #1C1730;
+  color: var(--e-ink-800);
   border-color: rgba(22, 37, 92, 0.3);
 }
 .tkt-btn-quiet:hover {
@@ -4548,8 +4548,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 /* Peligro dentro del ticket: rojo legible sobre ambar */
 .tkt-btn-danger {
-  background: #b91c1c;
-  color: #ffffff;
+  background: var(--e-red-700);
+  color: var(--e-white);
 }
 .tkt-btn-danger:hover {
   filter: brightness(1.1);
@@ -4690,10 +4690,10 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
    de acento, no de texto. En claro se apaga al violeta profundo, el mismo
    tono que ya usa --color-brand-300 para texto de marca. */
 .brand-suffix {
-  color: #BB5CF6;
+  color: var(--e-violet-400);
 }
 html[data-theme="light"] .brand-suffix {
-  color: #7C3AED;
+  color: var(--e-violet-500);
 }
 
 /* --- La estrella de cuatro puntas del wordmark ------------------------
@@ -4733,7 +4733,7 @@ html[data-theme="light"] .rubber-stamp {
   outline-color: var(--color-cream);
 }
 html[data-theme="light"] :focus-visible {
-  outline-color: #1C1730;
+  outline-color: var(--e-ink-800);
 }
 
 /* ===========================================================================
@@ -4750,23 +4750,23 @@ html[data-theme="light"] :focus-visible {
     radial-gradient(
       circle var(--notch) at 0% 50%,
       transparent 98%,
-      #000 100%
+      var(--e-mask) 100%
     ),
     radial-gradient(
       circle var(--notch) at 100% 50%,
       transparent 98%,
-      #000 100%
+      var(--e-mask) 100%
     );
   mask:
     radial-gradient(
       circle var(--notch) at 0% 50%,
       transparent 98%,
-      #000 100%
+      var(--e-mask) 100%
     ),
     radial-gradient(
       circle var(--notch) at 100% 50%,
       transparent 98%,
-      #000 100%
+      var(--e-mask) 100%
     );
   mask-composite: add;
   -webkit-mask-composite: source-over;
@@ -4807,7 +4807,7 @@ html[data-theme="light"] .evx-card > .evx-perf {
   letter-spacing: -0.02em;
 }
 html[data-theme="light"] .evx-name {
-  color: #0A0A0F;
+  color: var(--e-ink-950);
 }
 
 /* ===========================================================================
@@ -4851,7 +4851,7 @@ html[data-theme="light"] .evx-name {
       158deg,
       var(--color-ticket-900) 0%,
       var(--color-ticket-950) 58%,
-      #0A0A0F 100%
+      var(--e-ink-950) 100%
     );
   /* El troquel: dos muescas comidas en el borde derecho del panel, a la
      altura donde arranca y termina la linea perforada. */
@@ -4859,23 +4859,23 @@ html[data-theme="light"] .evx-name {
     radial-gradient(
       circle var(--auth-notch) at 100% 12%,
       transparent 98%,
-      #000 100%
+      var(--e-mask) 100%
     ),
     radial-gradient(
       circle var(--auth-notch) at 100% 88%,
       transparent 98%,
-      #000 100%
+      var(--e-mask) 100%
     );
   mask:
     radial-gradient(
       circle var(--auth-notch) at 100% 12%,
       transparent 98%,
-      #000 100%
+      var(--e-mask) 100%
     ),
     radial-gradient(
       circle var(--auth-notch) at 100% 88%,
       transparent 98%,
-      #000 100%
+      var(--e-mask) 100%
     );
   /* INTERSECT, no add: con `add` (source-over) las dos capas se UNEN y el
      resultado queda opaco en todas partes — las muescas no se ven. Con
@@ -4982,7 +4982,7 @@ html[data-theme="light"] .evx-name {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: #D29BF9;
+  color: var(--e-violet-300);
   background: rgba(187, 92, 246, 0.15);
   border: 1px solid rgba(187, 92, 246, 0.38);
 }
@@ -5055,20 +5055,20 @@ html[data-theme="light"] .evx-name {
   color: #f6f8fd;
 }
 .auth-brand .eyebrow {
-  color: #D29BF9;
+  color: var(--e-violet-300);
 }
 html[data-theme="light"] .auth-brand .auth-brand-title {
   color: #f6f8fd;
 }
 html[data-theme="light"] .auth-brand .eyebrow {
-  color: #D29BF9;
+  color: var(--e-violet-300);
 }
 
 html[data-theme="light"] .auth-shell {
   background: #F1F1F4;
 }
 html[data-theme="light"] .auth-shell .auth-card {
-  background: #ffffff;
+  background: var(--e-white);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
     0 22px 50px -34px rgba(9, 15, 38, 0.35);

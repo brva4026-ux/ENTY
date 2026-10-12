@@ -28,20 +28,39 @@
   --e-ink-2: #101017;
   --e-ink-3: #171622;
   --e-ink-4: #1e1c2c;
+  /* Pasos del "ticket" (superficies nobles de la boleta). */
+  --e-ink-950: #0a0a0f;
+  --e-ink-900: #14121c;
+  --e-ink-800: #1c1730;
+  --e-ink-700: #241c3d;
+  --e-ink-600: #3a2b63;
   /* Violeta: interactivo canónico + brillo del logotipo. */
-  --e-violet-700: #5b21b6;
-  --e-violet-600: #6d28d9;
-  --e-violet-500: #7c3aed; /* acción (blanco encima = 5.7:1) */
-  --e-violet-hover: #8b5cf6; /* hover del CTA */
-  --e-violet-400: #bb5cf6; /* solo halo/glow */
-  --e-violet-300: #d29bf9;
+  --e-violet-100: #f3e8ff; /* pergamino del rótulo Enty */
+  --e-violet-150: #ead6fe;
   --e-violet-200: #d9b6ff; /* texto de marca sobre relleno violeta tenue */
+  --e-violet-300: #d29bf9;
+  --e-violet-400: #bb5cf6; /* solo halo/glow */
+  --e-violet-450: #a63deb;
+  --e-violet-500: #7c3aed; /* acción (blanco encima = 5.7:1) */
+  --e-violet-600: #6d28d9;
+  --e-violet-700: #5b21b6;
+  --e-violet-800: #8b2fe0;
+  --e-violet-hover: #8b5cf6; /* hover del CTA */
   /* Acentos con significado. */
   --e-green-500: #00e6ab; /* validado / disponible */
   --e-green-400: #34d399;
+  --e-emerald-600: #047857; /* verde profundo para texto sobre claro */
+  --e-emerald-700: #065f46;
+  --e-emerald-500: #059669;
   --e-pink-500: #ff2d98; /* urgencia / últimas */
   --e-amber-500: #f5a524; /* atención */
+  --e-amber-400: #fbbf24;
+  --e-amber-300: #fcd34d;
   --e-red-500: #ef4444; /* rechazo */
+  --e-red-400: #f87171;
+  --e-red-600: #dc2626;
+  --e-red-700: #b91c1c;
+  --e-red-800: #991b1b;
   --e-red-300: #fca5a5;
   --e-paper: #f5f5f7; /* tinta de marca */
   --e-white: #ffffff;
