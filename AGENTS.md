@@ -357,3 +357,7 @@ avisar.
   calculaba integridad de puerta (`DoorScanStats`) pero el frontend **nunca lo
   consume** (buscar `/summary` en `frontend/src`). Antes de añadir otro cálculo
   de puerta, revisar si `/summary` ya lo tiene.
+- La franja de eventos (`/events/ticket-counts`) también expone `duplicates`/
+  `rejected` por evento. La consulta de `redemptions` va **aparte** (agrupada
+  por evento) y se fusiona en Python: meterla en el mismo `FROM` que `tickets`
+  multiplica filas (fan-out) y corrompe `active`/`revenue_cents`.
