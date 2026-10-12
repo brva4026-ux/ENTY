@@ -1,4 +1,5 @@
 """CRUD de eventos, tipos de boleta y asignacion de cupos a promotores."""
+from datetime import datetime, timezone
 from typing import Annotated
 
 import psycopg
@@ -329,6 +330,19 @@ async def create_event(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     ensure_roles(user, venue_id, "super_admin", "admin")
+    # En creación no existe el guardia de la DB que sí protege la edición
+    # (`update_event` lanza `starts_at_in_past`). Sin esto se podía crear y
+    # PUBLICAR un evento con fecha pasada: nacía visible al público ya caducado.
+    # El chequeo va DESPUÉS de ensure_roles para que un rol sin permiso siga
+    # viendo 403 y no un 400 por los datos.
+    starts = body.starts_at
+    if starts.tzinfo is None:
+        starts = starts.replace(tzinfo=timezone.utc)
+    if starts < datetime.now(timezone.utc):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "La apertura del evento no puede estar en el pasado",
+        )
     async with db.cursor() as cur:
         await cur.execute(
             f"""

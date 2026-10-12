@@ -131,7 +131,9 @@ def test_noshow_csv_permission_promoter_forbidden(api):
 def _setup_two_rows(api) -> dict:
     """Evento EN VIVO con dos tipos y una boleta de cada uno."""
     venue = api.world["venue_a"]
-    ev = api.create_event("admin", venue, name="Dos Filas", starts_at=_live_offset())
+    # Nace con apertura FUTURA (la API ya rechaza crearlo en el pasado); la
+    # puerta se abre después y `_open_doors` corre la fecha al pasado por DB.
+    ev = api.create_event("admin", venue, name="Dos Filas", starts_at=_future_offset())
     t_vip = api.add_type("admin", venue, ev["id"], name="VIP", quantity=10)
     t_gen = api.add_type("admin", venue, ev["id"], name="General", quantity=50)
     api.publish("admin", venue, ev["id"])
