@@ -5,6 +5,7 @@ import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 /** Traduce errores técnicos del backend a mensajes que una persona entiende
  *  y sabe qué hacer después. */
@@ -52,6 +53,7 @@ function EyeIcon({ open }) {
 }
 
 export default function LoginPage() {
+  useDocumentTitle("Ingresar");
   const { login } = useAuth();
   const nav = useNavigate();
   // Guard que redirige a /login deja de dónde venía: si el usuario quería

@@ -8,6 +8,7 @@ import { missingList } from "../lib/passwordPolicy";
 import PasswordMeter from "../components/PasswordMeter";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 const STRENGTH = [
   { max: 2, label: "Débil", color: "bg-red-500", width: "w-1/4" },
@@ -17,6 +18,7 @@ const STRENGTH = [
 ];
 
 export default function RegisterPage() {
+  useDocumentTitle("Crear cuenta");
   const { register } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({

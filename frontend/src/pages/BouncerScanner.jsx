@@ -25,6 +25,7 @@ import {
 import { LiveIndicator } from "../components/Brand";
 import { PushToggle } from "../components/PushToggle";
 import Icon from "../components/Icon";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 function firstVenueId(user) {
   return activeVenueId(user);
@@ -136,6 +137,7 @@ const RETRY_COOLDOWN_MS = 20_000;
 const EXIT_HOLD_MS = 1500;
 
 export default function BouncerScanner() {
+  useDocumentTitle("Control de puerta");
   const { user, logout } = useAuth();
   const ui = useUI();
   const venueId = firstVenueId(user);

@@ -4,6 +4,7 @@ import { apiFetch } from "../lib/api";
 import { missingList } from "../lib/passwordPolicy";
 import { Logo } from "../components/Brand";
 import PasswordMeter from "../components/PasswordMeter";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
  * Reset self-service: el usuario llega desde el correo con ?token=...
@@ -12,6 +13,7 @@ import PasswordMeter from "../components/PasswordMeter";
  * Canjea el token por una contraseña nueva con la política completa.
  */
 export default function ResetPasswordPage() {
+  useDocumentTitle("Nueva contraseña");
   const [searchParams] = useSearchParams();
   const nav = useNavigate();
   const token = searchParams.get("token") || "";

@@ -6,6 +6,7 @@ import {
   waitlistStatus,
 } from "../lib/api";
 import Icon from "../components/Icon";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
  * Lista de espera del evento (E2, mig 022). Publica, sin cuentas: el fan
@@ -36,6 +37,7 @@ function readToken() {
 }
 
 export default function WaitlistPage() {
+  useDocumentTitle("Lista de espera");
   const [token, setToken] = useState(readToken);
   const [state, setState] = useState(null);
   const [error, setError] = useState("");
@@ -157,9 +159,9 @@ export default function WaitlistPage() {
               </span>
               <div>
                 <p className="eyebrow">Lista de espera</p>
-                <p className="text-sm font-bold text-ink">
+                <h1 className="text-sm font-bold text-ink">
                   Entra a la fila del evento
-                </p>
+                </h1>
               </div>
             </div>
 
@@ -252,9 +254,9 @@ export default function WaitlistPage() {
               </span>
             <div className="min-w-0">
               <p className="eyebrow">Lista de espera</p>
-              <p className="truncate text-sm font-bold text-ink">
+              <h1 className="truncate text-sm font-bold text-ink">
                 {state?.event_name ?? "Cargando…"}
-              </p>
+              </h1>
             </div>
           </div>
 

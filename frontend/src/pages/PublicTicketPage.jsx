@@ -4,6 +4,7 @@ import { fetchPublicTicket, fetchTicketImage, returnTicket } from "../lib/api";
 import { eventDate, clockTime } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import Icon from "../components/Icon";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
  * Boleta del invitado. Es la pagina publica que se comparte por WhatsApp: el
@@ -81,6 +82,7 @@ function Barcode() {
 }
 
 export default function PublicTicketPage() {
+  useDocumentTitle("Tu boleta");
   const [token] = useState(readToken);
   const [ticket, setTicket] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState(null);

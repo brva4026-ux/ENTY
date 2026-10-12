@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchPublicEventDetail } from "../lib/api";
 import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
  * Detalle del evento — la pantalla de decision de compra (mockup "2").
@@ -118,6 +119,7 @@ export default function EventDetailPage() {
   const [favPop, setFavPop] = useState(false);
   const [copied, setCopied] = useState(false);
   const [coords, setCoords] = useState(null);
+  useDocumentTitle(data?.name);
 
   /** Acciones del cartel (volver, favorito, compartir). Se renderizan dos
    *  veces — sobre el hero en móvil y sobre el cartel en escritorio — pero solo

@@ -15,12 +15,14 @@ import { LiveIndicator, QuotaMeter } from "../components/Brand";
 import { STATUS_META, sortEventsForStrip } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
 import { ticketWaMessage, waLink } from "../lib/whatsapp";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 function firstVenueId(user) {
   return activeVenueId(user);
 }
 
 export default function PromoterDashboard() {
+  useDocumentTitle("Panel del promotor");
   const { user } = useAuth();
   const venueId = firstVenueId(user);
   // Pestaña en la URL (compartible, sobrevive recargas); "vender" es el default.
@@ -370,12 +372,12 @@ export default function PromoterDashboard() {
         <div className="promo-hero">
           <div>
             <p className="eyebrow">Enty</p>
-            <h2
+            <h1
               className="display promo-hero-title"
               style={{ fontVariationSettings: '"opsz" 32' }}
             >
               Panel del promotor
-            </h2>
+            </h1>
             <p className="mt-1 text-sm text-zinc-400">
               Hola {user?.full_name}. Emite boletas dentro de tu cupo asignado.
             </p>

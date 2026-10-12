@@ -264,3 +264,86 @@ test("el foco de teclado es visible y de un solo color (ambos temas)", async ({
     ).toBe(1);
   }
 });
+
+/**
+ * Estructura de documento: cada pantalla tiene UN h1 y no salta niveles.
+ * Hallazgo de la auditoria (oct-2026): /inicio, /waitlist, /promotor y /perfil
+ * no tenian h1 (la jerarquia empezaba en h2/h3). Un h1 ausente deja al lector
+ * de pantalla sin ancla de pagina. Este test lo fija.
+ *
+ * Ademas: cero scroll horizontal a 320px (el ancho mas chico real), que es el
+ * mismo criterio que ya se exige para la vitrina.
+ */
+function headingReport() {
+  const hs = [
+    ...document.querySelectorAll("h1,h2,h3,h4,h5,h6"),
+  ].filter((h) => {
+    const cs = getComputedStyle(h);
+    return cs.display !== "none" && cs.visibility !== "hidden";
+  });
+  const levels = hs.map((h) => Number(h.tagName[1]));
+  let skip = null;
+  for (let i = 1; i < levels.length; i++) {
+    if (levels[i] - levels[i - 1] > 1) {
+      skip = `h${levels[i - 1]} -> h${levels[i]}`;
+      break;
+    }
+  }
+  const de = document.documentElement;
+  return {
+    h1: levels.filter((l) => l === 1).length,
+    skip,
+    overflow: de.scrollWidth > de.clientWidth + 1,
+  };
+}
+
+test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({ viewport: { width: 320, height: 800 } });
+  const page = await ctx.newPage();
+  const ok = await available(page, "/inicio");
+  test.skip(!ok, "App no disponible");
+
+  const eventPath = await firstEventPath(page);
+  const publicPaths = ["/inicio", "/boletas", "/login", "/register", "/reset", "/waitlist"];
+  if (eventPath) publicPaths.push(eventPath);
+
+  const fails = [];
+  const seenTitles = new Set();
+  for (const path of publicPaths) {
+    await available(page, path);
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(headingReport);
+    if (r.h1 !== 1) fails.push({ path, issue: `h1=${r.h1}` });
+    if (r.skip) fails.push({ path, issue: `salto ${r.skip}` });
+    if (r.overflow) fails.push({ path, issue: "scroll horizontal @320px" });
+    // Titulo de documento propio de la ruta: sin esto todas comparten el
+    // <title> estatico ("Enty — Boletería y Aforo") en pestanas y enlaces.
+    const title = await page.title();
+    seenTitles.add(title);
+    if (!title.endsWith("· Enty")) fails.push({ path, issue: `title generico: ${title}` });
+  }
+  // Y no puede ser el MISMO titulo en todas (dos rutas = dos titulos distintos).
+  if (seenTitles.size < 2) fails.push({ "": "publicas", issue: `todas comparten title: ${[...seenTitles][0]}` });
+
+  // El interior tambien: una pantalla de rol sin h1 rompe el ancla del lector.
+  for (const [email, path] of [
+    ["admin@bar.test", "/admin"],
+    ["promo1@bar.test", "/promotor"],
+    ["puerta@bar.test", "/bouncer"],
+  ]) {
+    await login(page, email);
+    await page.goto(path);
+    await page.waitForTimeout(700);
+    const r = await page.evaluate(headingReport);
+    if (r.h1 !== 1) fails.push({ path, issue: `h1=${r.h1}` });
+    const title = await page.title();
+    if (!title.endsWith("· Enty")) fails.push({ path, issue: `title generico: ${title}` });
+  }
+
+  await ctx.close();
+  if (fails.length) console.log("Estructura de encabezados:", JSON.stringify(fails, null, 2));
+  expect(fails, "pantallas sin h1 unico o con saltos de nivel").toEqual([]);
+});
+

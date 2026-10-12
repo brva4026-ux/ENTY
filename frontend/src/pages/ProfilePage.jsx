@@ -8,6 +8,7 @@ import { useUI } from "../lib/ui";
 import Icon from "../components/Icon";
 import PasswordMeter from "../components/PasswordMeter";
 import ThemeChooser from "../components/ThemeChooser";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 const roleLabel = (role) => ROLE_LABELS[role] ?? role;
 
@@ -51,6 +52,7 @@ function SectionHead({ eyebrow, title, hint }) {
 /** Página de perfil: identidad del usuario, cambio de contraseña y
  *  eliminación definitiva de la cuenta (zona de peligro). */
 export default function ProfilePage() {
+  useDocumentTitle("Tu perfil");
   const { user, logout, setUser } = useAuth();
   const nav = useNavigate();
   const ui = useUI();
@@ -237,9 +239,9 @@ export default function ProfilePage() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="eyebrow">Tu perfil</p>
-            <h2 className="pf-name mt-0.5 truncate">
+            <h1 className="pf-name mt-0.5 truncate">
               {user.full_name}
-            </h2>
+            </h1>
             <p className="pf-email truncate text-sm text-zinc-400">
               {user.email}
             </p>

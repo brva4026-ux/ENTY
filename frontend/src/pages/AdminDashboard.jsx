@@ -43,6 +43,7 @@ import BusinessOverview from "../components/BusinessOverview";
 import BusinessDock from "../components/BusinessDock";
 import PaymentsPanel from "../components/PaymentsPanel";
 import VenueHeader from "../components/VenueHeader";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 function firstVenueId(user) {
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
@@ -145,6 +146,7 @@ export function canDeleteEvent(ev) {
 }
 
 export default function AdminDashboard() {
+  useDocumentTitle("Panel del negocio");
   const { user } = useAuth();
   const ui = useUI();
   const venueId = firstVenueId(user);

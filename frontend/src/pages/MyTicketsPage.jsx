@@ -5,6 +5,7 @@ import { fetchMyTickets, fetchMyTicketToken } from "../lib/api";
 import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
 import { Spark } from "../components/Brand";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
  * Mis boletas — la entrada del fan (magic link, sin cuenta).
@@ -25,6 +26,7 @@ const STATUS = {
 };
 
 export default function MyTicketsPage() {
+  useDocumentTitle("Mis boletas");
   const [contact, setContact] = useState("");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
