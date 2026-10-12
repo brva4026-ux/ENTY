@@ -295,6 +295,8 @@ export default function HomePage() {
   const [cat, setCat] = useState("todos");
   const [query, setQuery] = useState("");
   const [favs, setFavs] = useState(() => new Set());
+  // Solo la última tarjeta marcada celebra (rebote): no todas al montar.
+  const [favPop, setFavPop] = useState(null);
   const [bellOpen, setBellOpen] = useState(false);
   // La vitrina es nocturna por diseno (negro + violeta). Sin el candado, un
   // visitante con tema claro veia la cartelera como una tarjeta negra sobre
@@ -366,6 +368,8 @@ export default function HomePage() {
       }
       return next;
     });
+    // Marcar celebra (rebote); desmarcar no.
+    setFavPop(favs.has(id) ? null : id);
   }
 
   const priceLabel = (c) => (c == null ? "Gratis" : money(c));
@@ -556,7 +560,7 @@ export default function HomePage() {
                   </Link>
                   <button
                     type="button"
-                    className={`home-row-fav${fav ? " is-on" : ""}`}
+                    className={`home-row-fav${fav ? " is-on" : ""}${favPop === e.id ? " is-pop" : ""}`}
                     aria-label={fav ? `Quitar ${e.name} de favoritos` : `Guardar ${e.name} en favoritos`}
                     aria-pressed={fav}
                     onClick={() => toggleFav(e.id)}

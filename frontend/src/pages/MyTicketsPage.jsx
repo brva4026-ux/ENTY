@@ -219,7 +219,7 @@ export default function MyTicketsPage() {
                       <p className="fan-qr-hint is-bad">{qrError}</p>
                     ) : qr ? (
                       <>
-                        <span className="fan-qr-frame">
+                        <span className="fan-qr-frame reveal-qr">
                           <img src={qr} alt="Código QR de tu boleta" />
                           <Spark size={34} color="var(--e-green-500)" className="fan-qr-spark" />
                         </span>

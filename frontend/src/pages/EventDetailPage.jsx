@@ -115,6 +115,7 @@ export default function EventDetailPage() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState("descripcion");
   const [fav, setFav] = useState(false);
+  const [favPop, setFavPop] = useState(false);
   const [copied, setCopied] = useState(false);
   const [coords, setCoords] = useState(null);
 
@@ -137,7 +138,7 @@ export default function EventDetailPage() {
         <div className="evd-hero-actions-right">
           <button
             type="button"
-            className={`evd-round${fav ? " is-on" : ""}`}
+            className={`evd-round${fav ? " is-on" : ""}${favPop ? " is-pop" : ""}`}
             aria-label={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
             aria-pressed={fav}
             onClick={toggleFav}
@@ -217,6 +218,7 @@ export default function EventDetailPage() {
     if (!data) return;
     const next = !fav;
     setFav(next);
+    setFavPop(next);
     try {
       const set = readFavs();
       if (next) set.add(Number(data.id));

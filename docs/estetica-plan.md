@@ -234,15 +234,33 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   ve "papel" y el oscuro "pizarra". Cumplida.
 
 
-### Fase 5 — Motion y micro-interacciones
+### Fase 5 — Motion y micro-interacciones — **HECHA**
 
-- Consolidar `@keyframes` (26 → ~12) y tokens de duración/curva; **cada**
-  animación con su bloque `prefers-reduced-motion`.
-- Momentos de alto impacto orquestados: entrada escalonada de la vitrina;
-  cross-fade esqueleto→contenido; revelado del QR; éxito/fracaso del escaneo en
-  puerta; RSVP/favorito con micro-rebote.
-- *Aceptación*: 0 animaciones sin escape de reduced-motion; solo
-  `transform`/`opacity` (nada de animar `filter`/`backdrop-filter`).
+- [x] **Consolidación de `@keyframes`**: de **26 a 19** (index 23→17, fan 2,
+  refresh 1→0 — sus animaciones ahora reusan `enter`/`logo-pop`/`shimmer`/`spin`
+  de la capa base). Fusiones reales, no alias vacíos: `toast-in`/`rise`/`scale-in`
+  /`dialog-in` → un solo `enter`; `dialog-backdrop` → `fade`; `splash-breathe`
+  /`halo-breathe` → `breathe`; `ptr-spin`/`enty-spin` → `spin`; `fav-pop` →
+  `logo-pop`; `scan-verdict-ok` → `pop`. Se eliminan keyframes muertos
+  (`ab-breathe`, `splash-breathe`, `live-glow`) y los alias de curva duplicados
+  (`--ease-out-expo`/`--ease-spring` en `:root`).
+- [x] **Tokens de movimiento**: `--e-ease-standard/expo/spring` +
+  `--e-dur-fast/base/slow` en `tokens.css` son la única fuente; toda la hoja
+  `index.css` migró de `var(--ease-*)` a `var(--e-ease-*)` (0 referencias legacy).
+- [x] **`prefers-reduced-motion` por hoja**: `aesthetic-refresh.css` pasó de **0**
+  a 1 bloque que apaga `enter`/`logo-pop`/`shimmer`/`spin` y los gestos de
+  interacción (hover/presión de la casa fan y del detalle). `index.css` amplió su
+  lista RM con la familia entera (`enter`, `reveal-qr`, `dialog-*`, `offline-in`,
+  `confetti`, `empty-state-icon`, …) y `scan-result` tiene su propio bloque.
+- [x] **Momentos de alto impacto** (solo `transform`/`opacity`): entrada escalonada
+  de la vitrina (`.reveal`), revelado del QR (`.reveal-qr` en Mis boletos y boleta
+  pública), veredicto de puerta (`scan-result[data-result]`: `pop` al entrar,
+  `scan-verdict-no` al rechazar), favorito con micro-rebote (`logo-pop`, gated a
+  `is-pop` en clic, no al montar).
+- *Aceptación*: **0 animaciones sin escape de reduced-motion** (verificado
+  programáticamente: 19 keyframes definidos = 19 usados, 0 huérfanos); solo
+  `transform`/`opacity` (nada de animar `filter`/`backdrop-filter`). Cumplida.
+  Build limpio (0 errores) y E2E **11/11 verdes**.
 
 ### Fase 6 — Elevación por rol (interior) y cierre
 
@@ -253,6 +271,25 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 - Retirar el bloque `@layer compat`; borrar los namespaces legacy.
 - Actualizar `AGENTS.md` y `DESIGN.md` (ver nota abajo).
 - *Aceptación*: E2E 6/6 verdes; regresión visual aprobada; stylelint y a11y verdes.
+
+**Hecho.** Estado final:
+
+- **Namespaces legacy retirados**: `--tf-* / --home-* / --evd-* / --tkt-* /
+  --vh-* / --in-*` ya no existen en ninguna hoja; todo consume `--e-*`. (El
+  bloque `@layer compat` nunca llegó a existir en el árbol: se descartó durante
+  la migración F1.) Los **nombres de CLASE** `.home-*`, `.evd-*`, `.tkt-*` se
+  conservan porque los E2E los usan como contrato.
+- **Admin**: `.evx-toolbar` pegajosa (`sticky; top: 3.5rem`, fondo canvas),
+  zebra sutil en `.evx-row:nth-child(even)`, lista densa con rail de estado y
+  cifras tabulares.
+- **Promotor**: la tarjeta "Mis noches" (`.e-meter` / `.e-meter-fill` con
+  `.is-warn`/`.is-full`) muestra la proporción del cupo por noche; el seed demo
+  ahora siembra `event_staff` para que la tarjeta exista en la demo.
+- **`DESIGN.md`**: sustituido por un design system real de Enty; el análisis de
+  Apple se movió a `docs/referencia-apple.md`.
+- **Verificación**: backend 354/354, E2E Playwright 11/11 (incluye a11y
+  claro/oscuro y targets ≥ 44px en puerta), stylelint 0 errores / 30 warnings,
+  build limpio.
 
 ---
 
@@ -282,10 +319,10 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 
 ## 7. Nota sobre la documentación de diseño
 
-`DESIGN.md` es hoy un **análisis de Apple** (SF Pro, azul `#0066cc`) que no
-corresponde a Enty. Propuesta: sustituirlo por un `DESIGN.md` real de Enty
-(tokens, escalas, motivos, matriz de estados) o moverlo a `docs/` como
-referencia histórica. Se decide en Fase 6.
+`DESIGN.md` **ya no es el análisis de Apple**. En Fase 6 se sustituyó por un
+design system real de Enty (identidad, paleta, tipografía, tokens, superficies
+por rol, motivos, movimiento y guardarraíles). El análisis de Apple que lo
+ocupaba se conserva como referencia histórica en `docs/referencia-apple.md`.
 
 ---
 

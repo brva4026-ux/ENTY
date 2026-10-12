@@ -418,16 +418,26 @@ export default function PromoterDashboard() {
                     const meta = STATUS_META[n.status] ?? STATUS_META.draft;
                     const activa = n.id === selectedEvent;
                     const restantes = Math.max(0, n.my_capacity - n.my_issued);
+                    const pct = n.my_capacity > 0
+                      ? Math.min(100, Math.round((n.my_issued / n.my_capacity) * 100))
+                      : 0;
+                    const fillCls =
+                      restantes === 0
+                        ? "is-full"
+                        : restantes <= Math.ceil(n.my_capacity * 0.2)
+                          ? "is-warn"
+                          : "";
                     return (
                       <li key={n.id}>
                         <button
                           onClick={() => setSelectedEvent(n.id)}
-                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
+                          className={`flex w-full flex-col gap-2 rounded-lg px-3 py-2.5 text-left transition ${
                             activa
                               ? "bg-brand-500/10 ring-1 ring-brand-500/40"
                               : "bg-zinc-940 hover:bg-zinc-900"
                           }`}
                         >
+                          <div className="flex w-full items-center gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-zinc-100">
                               {n.name}
@@ -460,6 +470,14 @@ export default function PromoterDashboard() {
                                 : `te quedan ${restantes}`}
                             </p>
                           </div>
+                        </div>
+                        {/* Medidor de cupo: la proporción de la noche, viva. */}
+                        <span className="e-meter w-full" aria-hidden="true">
+                          <span
+                            className={`e-meter-fill ${fillCls}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </span>
                         </button>
                       </li>
                     );

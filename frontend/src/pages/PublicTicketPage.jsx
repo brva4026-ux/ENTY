@@ -340,7 +340,7 @@ export default function PublicTicketPage() {
                   </div>
 
                   <div className="tkt-qr-zone">
-                    <div className="tkt-qr">
+                    <div className={`tkt-qr${qrDataUrl ? " reveal-qr" : ""}`}>
                       {qrDataUrl ? (
                         <img src={qrDataUrl} alt="QR de tu boleta" />
                       ) : (

@@ -971,23 +971,21 @@ html[data-theme="light"] header nav a[aria-current="page"] {
    cuentan hasta su valor y jerarquía animada por escalones (stagger).
    Todo se desactiva con prefers-reduced-motion.
    =========================================================================== */
-:root {
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
-}
 
-@keyframes rise {
+/* Entrada del sistema: fade + subida + un punto de escala. Un solo keyframe
+   para rise/reveal, modales y toasts; cada clase fija su duración. */
+@keyframes enter {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 .animate-rise {
-  animation: rise 0.55s var(--ease-out-expo) both;
+  animation: enter 0.55s var(--e-ease-expo) both;
 }
 
 @keyframes fade {
@@ -1002,18 +1000,10 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   animation: fade 0.3s ease-out both;
 }
 
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-.animate-scale-in {
-  animation: scale-in 0.45s var(--ease-out-expo) both;
+/* Entrada con escala para modales, tarjetas y el revelado del QR. */
+.animate-scale-in,
+.reveal-qr {
+  animation: enter 0.45s var(--e-ease-expo) both;
 }
 
 /* Pop con overshoot: para badges, chips activos y elementos que "aparecen" */
@@ -1032,10 +1022,11 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 .animate-pop {
-  animation: pop 0.4s var(--ease-out-expo) both;
+  animation: pop 0.4s var(--e-ease-expo) both;
 }
 
-/* Logo: aparece con un giro de resorte, como app nativa */
+/* Iconos de marca: aparecen con un giro de resorte, como app nativa.
+   `logo-pop` sirve al wordmark y a las micro-celebraciones (favorito). */
 @keyframes logo-pop {
   0% {
     opacity: 0;
@@ -1047,7 +1038,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 .logo-pop {
-  animation: logo-pop 0.6s var(--ease-spring) both;
+  animation: logo-pop 0.6s var(--e-ease-spring) both;
   display: inline-flex;
 }
 
@@ -1061,7 +1052,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 /* Escalonado: los hijos de .reveal entran en cascada (50ms por nivel) */
 .reveal > * {
   opacity: 0;
-  animation: rise 0.55s var(--ease-out-expo) forwards;
+  animation: enter 0.55s var(--e-ease-expo) forwards;
 }
 .reveal > :nth-child(1) {
   animation-delay: 0.02s;
@@ -1097,9 +1088,9 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 /* Tarjeta interactiva: flota 2px al pasar, se asienta al pulsar */
 .card-interactive {
   transition:
-    transform 0.25s var(--ease-out-expo),
+    transform 0.25s var(--e-ease-expo),
     border-color 0.2s,
-    box-shadow 0.25s var(--ease-out-expo);
+    box-shadow 0.25s var(--e-ease-expo);
 }
 .card-interactive:hover {
   transform: translateY(-2px);
@@ -1117,7 +1108,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   background-size: 0% 1px;
   background-repeat: no-repeat;
   background-position: left bottom;
-  transition: background-size 0.25s var(--ease-out-expo);
+  transition: background-size 0.25s var(--e-ease-expo);
 }
 .link-underline:hover {
   background-size: 100% 1px;
@@ -1140,19 +1131,8 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 
 /* Splash: pantalla de marca mientras se restaura la sesión. El logo respira
    (escala sutil) y la salida es un fundido corto, nunca un salto. */
-@keyframes splash-breathe {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.92;
-  }
-  50% {
-    transform: scale(1.04);
-    opacity: 1;
-  }
-}
 .splash-logo {
-  animation: splash-breathe 1.6s ease-in-out infinite;
+  animation: breathe 1.6s ease-in-out infinite;
 }
 
 @keyframes splash-out {
@@ -1169,18 +1149,19 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 /* Pull-to-refresh: spinner de trazo que gira mientras se carga. */
-@keyframes ptr-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 .ptr-spinner {
-  animation: ptr-spin 0.8s linear infinite;
+  animation: spin 0.8s linear infinite;
   color: var(--e-violet-400);
 }
 
 /* Indicador En vivo: punto pulsante + anillo que se expande (radar) */
-@keyframes live-glow {
+.live-dot {
+  background: var(--e-green-400);
+  animation: pulse-dim 2s ease-in-out infinite;
+}
+/* Pulso de opacidad: el punto "late" sin ser un parpadeo. Curva propia
+   (0.45 en el valle) para que el brillo caiga más que en `breathe`. */
+@keyframes pulse-dim {
   0%,
   100% {
     opacity: 1;
@@ -1189,61 +1170,29 @@ html[data-theme="light"] header nav a[aria-current="page"] {
     opacity: 0.45;
   }
 }
-.live-dot {
-  background: var(--e-green-400);
-  animation: live-glow 2s ease-in-out infinite;
-}
 
 /* ===========================================================================
    TOASTS Y DIÁLOGOS (lib/ui.jsx) — reemplazan window.confirm/prompt/alert
    =========================================================================== */
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 .toast-in {
-  animation: toast-in 0.32s var(--ease-out-expo) both;
+  animation: enter 0.32s var(--e-ease-expo) both;
 }
 
-@keyframes dialog-backdrop {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 .dialog-backdrop {
   background: rgba(0, 0, 0, 0.62);
   backdrop-filter: blur(2px);
-  animation: dialog-backdrop 0.2s ease-out both;
+  animation: fade 0.2s ease-out both;
 }
 .dialog-backdrop-out {
   background: rgba(0, 0, 0, 0.62);
-  animation: dialog-backdrop 0.15s ease-in reverse both;
+  animation: fade 0.15s ease-in reverse both;
 }
 
-@keyframes dialog-in {
-  from {
-    opacity: 0;
-    transform: translateY(18px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 .dialog-in {
-  animation: dialog-in 0.3s var(--ease-out-expo) both;
+  animation: enter 0.3s var(--e-ease-expo) both;
 }
 .dialog-out {
-  animation: dialog-in 0.14s ease-in reverse both;
+  animation: enter 0.14s ease-in reverse both;
 }
 
 /* Banner offline: baja desde arriba con easing expo */
@@ -1256,7 +1205,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 .offline-in {
-  animation: offline-in 0.35s var(--ease-out-expo) both;
+  animation: offline-in 0.35s var(--e-ease-expo) both;
 }
 
 /* Confeti del onboarding: emojis que caen y giran una sola vez */
@@ -1275,7 +1224,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 .confetti {
   top: 8px;
-  animation: confetti-fall 2.2s var(--ease-out-expo) both;
+  animation: confetti-fall 2.2s var(--e-ease-expo) both;
 }
 
 @keyframes live-ping {
@@ -1302,6 +1251,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   .animate-scale-in,
   .animate-pop,
   .logo-pop,
+  .reveal-qr,
   .brand-shine,
   .ab-aurora,
   .ab-orb,
@@ -1312,7 +1262,13 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   .splash-logo,
   .ptr-spinner,
   .toast-in,
-  .dialog-in {
+  .dialog-in,
+  .dialog-backdrop,
+  .dialog-backdrop-out,
+  .dialog-out,
+  .offline-in,
+  .confetti,
+  .empty-state-icon {
     animation: none;
   }
   .ticket-step.current .ticket-step-dot::after {
@@ -1409,7 +1365,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   transition:
     background 0.2s,
     border-color 0.2s,
-    box-shadow 0.25s var(--ease-out-expo),
+    box-shadow 0.25s var(--e-ease-expo),
     transform 0.15s ease;
 }
 .bizdock-item:hover {
@@ -1575,8 +1531,8 @@ html[data-theme="light"] .bizdock-desc {
   display: block;
   /* El KPI usa este valor para anclar su viga al borde superior del card:
      cambiar el padding acá mantiene la viga pegada. */
-  --vh-pad-y: 1.1rem;
-  padding: var(--vh-pad-y) 1.25rem;
+  --venue-pad-y: 1.1rem;
+  padding: var(--venue-pad-y) 1.25rem;
   /* Luz cenital propia del sistema (como .card) pero un punto más presente:
      la cabecera es la "portada" del panel. Un lavado de marca en la esquina
      superior derecha (detrás del KPI) le da atmósfera sin pintar nada. */
@@ -1648,14 +1604,14 @@ html[data-theme="light"] .bizdock-desc {
 .vh-logo {
   /* El aro de las fotos se compone aqui: el fallback no lo paga y el <img>
      si, sin duplicar la lista entera de sombras. */
-  --vh-logo-ring: 0 0 0 0 rgba(255, 255, 255, 0);
+  --venue-logo-ring: 0 0 0 0 rgba(255, 255, 255, 0);
   width: 3rem;
   height: 3rem;
   border-radius: 0.875rem;
   object-fit: cover;
   flex-shrink: 0;
   box-shadow:
-    var(--vh-logo-ring),
+    var(--venue-logo-ring),
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     inset 0 -1px 1px rgba(0, 0, 0, 0.3),
     0 1px 1px rgba(3, 7, 18, 0.4),
@@ -1664,7 +1620,7 @@ html[data-theme="light"] .bizdock-desc {
 /* Un flyer como logo necesita su hairline: sin aro, una imagen clara se
    derrama sobre la superficie. Va finisimo — separa, no enmarca. */
 .vh-logo-img {
-  --vh-logo-ring: 0 0 0 1px rgba(255, 255, 255, 0.09);
+  --venue-logo-ring: 0 0 0 1px rgba(255, 255, 255, 0.09);
 }
 .vh-logo-fallback {
   display: grid;
@@ -1701,10 +1657,10 @@ html[data-theme="light"] .bizdock-desc {
 .vh-kpi::before {
   content: "";
   position: absolute;
-  top: calc(-1 * var(--vh-pad-y, 1.1rem));
+  top: calc(-1 * var(--venue-pad-y, 1.1rem));
   right: 0;
   width: 1px;
-  height: calc(100% + var(--vh-pad-y, 1.1rem));
+  height: calc(100% + var(--venue-pad-y, 1.1rem));
   background: linear-gradient(
     180deg,
     rgba(187, 92, 246, 0.7),
@@ -1777,14 +1733,14 @@ html[data-theme="light"] .vh-logo {
      bajan de intensidad pero no desaparecen. El canto interior oscuro es lo
      que hace que el chip se lea como objeto y no como recorte. */
   box-shadow:
-    var(--vh-logo-ring),
+    var(--venue-logo-ring),
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     inset 0 -1px 1px rgba(9, 15, 38, 0.18),
     0 1px 1px rgba(9, 15, 38, 0.12),
     0 8px 18px -10px rgba(9, 15, 38, 0.34);
 }
 html[data-theme="light"] .vh-logo-img {
-  --vh-logo-ring: 0 0 0 1px rgba(24, 24, 27, 0.08);
+  --venue-logo-ring: 0 0 0 1px rgba(24, 24, 27, 0.08);
 }
 html[data-theme="light"] .vh-logo-fallback {
   /* Canto mas marcado: sobre blanco es lo que hace flotar al chip en vez de
@@ -2076,7 +2032,7 @@ html[data-theme="light"] .vh-mesnav-hoy {
    EN PUERTA lleva borde esmeralda vivo: se encuentra de un vistazo. */
 .event-card {
   transition:
-    transform 0.15s var(--ease-out-expo),
+    transform 0.15s var(--e-ease-expo),
     box-shadow 0.15s ease,
     border-color 0.15s ease;
 }
@@ -2230,7 +2186,7 @@ html[data-theme="light"] .ec-when-soon {
   transform: scaleX(0.4);
   transition:
     opacity 0.2s ease,
-    transform 0.25s var(--ease-out-expo);
+    transform 0.25s var(--e-ease-expo);
 }
 .evx-tab.is-active::after {
   opacity: 1;
@@ -2272,6 +2228,13 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
      sección. */
   gap: 0.35rem 0.5rem;
   padding-bottom: 0.75rem;
+  /* Cabecera pegajosa: con 20+ noches el buscador y los filtros viajan con el
+     scroll y la lista nunca queda "sin control". El fondo canvas sella las
+     filas que pasan por debajo (el toolbar es opaco, no translúcido). */
+  position: sticky;
+  top: 3.5rem; /* altura del topbar (h-14) */
+  z-index: 10;
+  background: var(--e-canvas);
 }
 .evx-search {
   position: relative;
@@ -2419,7 +2382,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   overflow: hidden;
   isolation: isolate;
   transition:
-    transform 0.18s var(--ease-out-expo),
+    transform 0.18s var(--e-ease-expo),
     border-color 0.18s ease,
     box-shadow 0.18s ease;
   /* Misma superficie sutil de los ítems del dock Del negocio: la tarjeta
@@ -2518,6 +2481,15 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   background: var(--color-zinc-600);
   flex-shrink: 0;
 }
+@keyframes evx-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0);
+  }
+}
 .evx-dot[data-status="live"] {
   background: var(--e-green-400);
 }
@@ -2535,18 +2507,8 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 /* En puerta: el punto RESPIRA (pulso discreto) — vida sin ruido. */
 .evx-dot.is-live {
-  animation: evx-pulse 2s ease-in-out infinite;
+  animation: pulse-ring 2s ease-in-out infinite;
 }
-@keyframes evx-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0);
-  }
-}
-
 /* Identidad: flyer 48x48 (o iniciales) ancla la tarjeta; nombre y fecha a
    su derecha. La imagen del evento es lo primero que reconoce el ojo —
    y si no hay flyer, las iniciales cumplen el mismo ancla sin un hueco. */
@@ -2711,7 +2673,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
      plano. La luz viaja hacia la punta del llenado. */
   background: linear-gradient(90deg, rgba(187, 92, 246, 0.45), var(--e-violet-400));
   box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
-  transition: width 0.5s var(--ease-out-expo);
+  transition: width 0.5s var(--e-ease-expo);
 }
 .is-live .evx-meter-fill { background: var(--e-green-400); }
 .evx-meter-fill.is-warn { background: var(--e-amber-400); }
@@ -2856,6 +2818,15 @@ html[data-theme="light"] .evx-open-label {
 }
 .evx-row + .evx-row {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+/* Zebra sutil: con 20+ noches el ojo pierde el renglón entre filas idénticas.
+   Las pares apenas se separan; es guía de lectura, no una tabla a rayas.
+   `:not(:hover)` para no pisar el feedback de hover (misma especificidad). */
+.evx-row:nth-child(even):not(:hover) {
+  background: rgba(255, 255, 255, 0.015);
+}
+html[data-theme="light"] .evx-row:nth-child(even):not(:hover) {
+  background: rgba(23, 26, 32, 0.025);
 }
 .evx-row-name {
   font-weight: 600;
@@ -3138,7 +3109,7 @@ html[data-theme="light"] .topbar {
   border-radius: 2px;
   background: var(--e-violet-400);
   transform: scaleX(0);
-  transition: transform 0.22s var(--ease-out-expo);
+  transition: transform 0.22s var(--e-ease-expo);
 }
 .topnav-item.is-active::after {
   transform: scaleX(1);
@@ -3266,7 +3237,7 @@ html[data-theme="light"] .onboard-progress {
   border-radius: 999px;
   background: linear-gradient(90deg, rgba(187, 92, 246, 0.5), var(--e-violet-400));
   box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
-  transition: width 0.45s var(--ease-out-expo);
+  transition: width 0.45s var(--e-ease-expo);
 }
 
 /* ----------------------------------------------------------------------
@@ -3344,21 +3315,19 @@ html[data-theme="light"] .bottomnav-item.is-active > span:first-child {
    ESTADOS VACIOS: el halo del icono RESPIRA (marca viva en el vacío, no
    un círculo muerto). Título con peso óptico de titular.
    ---------------------------------------------------------------------- */
-@keyframes halo-breathe {
+@keyframes breathe {
   0%,
   100% {
-    box-shadow:
-      inset 0 0 0 1px rgba(187, 92, 246, 0.35),
-      0 0 22px -10px rgba(187, 92, 246, 0.45);
+    opacity: 0.85;
+    transform: scale(1);
   }
   50% {
-    box-shadow:
-      inset 0 0 0 1px rgba(187, 92, 246, 0.55),
-      0 0 34px -8px rgba(187, 92, 246, 0.7);
+    opacity: 1;
+    transform: scale(1.03);
   }
 }
 .empty-state-icon {
-  animation: halo-breathe 3.4s ease-in-out infinite;
+  animation: breathe 3.4s ease-in-out infinite;
 }
 .empty-state-title {
   font-size: var(--e-text-lg);
@@ -3576,19 +3545,18 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   border-style: solid;
   border-color: rgba(187, 92, 246, 0.65);
   border-width: 2px;
-  animation: scan-pulse 1.1s ease-in-out infinite;
+  animation: pulse-ring 1.1s ease-in-out infinite;
 }
-@keyframes scan-pulse {
+/* Anillo que se expande en el sitio: un solo latido para el "en vivo"
+   (tarjeta/estado) y para el "pensando" del escáner. Solo `box-shadow`
+   (color + difusión), nada de `filter`/`backdrop-filter`. */
+@keyframes pulse-ring {
   0%,
   100% {
-    box-shadow:
-      0 0 0 0 rgba(187, 92, 246, 0.35),
-      inset 0 0 0 0 rgba(187, 92, 246, 0);
+    box-shadow: 0 0 0 0 rgba(187, 92, 246, 0.4);
   }
   50% {
-    box-shadow:
-      0 0 0 6px rgba(187, 92, 246, 0.12),
-      inset 0 0 12px -4px rgba(187, 92, 246, 0.5);
+    box-shadow: 0 0 0 6px rgba(187, 92, 246, 0.08);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3598,6 +3566,38 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
     opacity: 0.4;
   }
   .scan-frame.is-busy::after {
+    animation: none;
+  }
+}
+
+/* El veredicto de puerta: entra = asiento elástico (`pop`); no entra =
+   negación seca (sacudida). El color ya lo lleva el fondo; aquí solo se
+   refuerza la lectura del gesto. */
+@keyframes scan-verdict-no {
+  0% {
+    transform: translateX(0);
+  }
+  22% {
+    transform: translateX(-7px);
+  }
+  44% {
+    transform: translateX(6px);
+  }
+  66% {
+    transform: translateX(-4px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+.scan-result[data-result="ok"] {
+  animation: pop 0.32s var(--e-ease-spring) both;
+}
+.scan-result[data-result="no"] {
+  animation: scan-verdict-no 0.32s var(--e-ease-standard) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-result[data-result] {
     animation: none;
   }
 }
@@ -3949,16 +3949,6 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   display: none;
 }
 
-@keyframes ab-breathe {
-  0%,
-  100% {
-    opacity: 0.85;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
 /* Wordmark hero: SOLO tipografía flotante (Tesla): sin píldora, sin blur,
    sin glow. El lujo es la calma. */
 .brand-chip {
@@ -4283,7 +4273,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-wrap {
   max-width: 26rem;
   margin: 0 auto;
-  animation: rise 0.55s var(--ease-out-expo) both;
+  animation: enter 0.55s var(--e-ease-expo) both;
 }
 
 /* --- El ticket ---------------------------------------------------------- */

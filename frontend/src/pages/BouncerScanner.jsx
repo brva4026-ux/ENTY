@@ -814,7 +814,8 @@ export default function BouncerScanner() {
              de la puerta el canal de respaldo no puede ser solo visual. */
           role="status"
           aria-live="assertive"
-          className={`flex flex-1 flex-col items-center justify-center ${style.bg} p-6 transition-colors`}
+          className={`scan-result flex flex-1 flex-col items-center justify-center ${style.bg} p-6 transition-colors`}
+          data-result={result?.code === "GRANTED" || result?.code === "GRANTED_OFFLINE" ? "ok" : "no"}
         >
           {/* El icono gigante es decorado para ojo humano (ya está el color,
               el texto y el anuncio): oculto al lector para no leerlo dos veces. */}

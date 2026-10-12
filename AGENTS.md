@@ -281,10 +281,10 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   **baja el número del presupuesto** en `package.json`.
 - **Estado Fase 1 (HECHA, corte de tokens/color)**: las 4 hojas de componente
   están sin hex; los alias históricos `--tf-* / --home-* / --evd-* / --tkt-* /
-  --in-*` ya solo apuntan a primitivas `--e-*`; `!important` bajó 11→3 (solo el
-  override de `prefers-reduced-motion`) y el JSX ya no fija hex (el punto de
-  estado usa `data-status` en CSS). Quedan 31 `no-duplicate-selectors` (F4) y
-  21 `style={{}}` de geometría dinámica (no color).
+  --in-*` solo apuntaban a primitivas `--e-*` (retirados del todo en Fase 6);
+  `!important` bajó 11→3 (solo el override de `prefers-reduced-motion`) y el
+  JSX ya no fija hex (el punto de estado usa `data-status` en CSS). Quedan 31
+  `no-duplicate-selectors` (F4) y 21 `style={{}}` de geometría dinámica (no color).
 - **Estado Fase 2 (HECHA, corte de escala)**: la tipografía es **una escala
   cerrada de 9 pasos**, compartida entre CSS (`--e-text-*` en `tokens.css`) y
   Tailwind (`--text-*` en el `@theme`). Los 179 `font-size` de las hojas usan
@@ -302,6 +302,17 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   tema-aware (oscuro pizarra / claro papel); `--tf-shadow-*` retirados. Grano
   sutil `.home::after` (`--e-grain`) que se apaga con `reduced-motion`.
   Verificado en navegador: 1 receta por superficie y oscuro ≠ claro.
+- **Estado Fase 6 (HECHA, cierre)**: los **namespaces legacy de tokens se
+  retiraron por completo** — `--tf-* / --home-* / --evd-* / --tkt-* / --vh-* /
+  --in-*` ya no existen en ninguna hoja; todo consume tokens `--e-*`. El bloque
+  `@layer compat` nunca llegó a existir en el árbol (se descartó durante la
+  migración). El material nuevo vive en `tokens.css`: `--e-glass-1/2`,
+  `--e-glass-line`, `--e-glass-blur`, `--e-ticket-paper/hair/dim/dim-2`; y
+  `--e-glow-brand` reemplaza a los halos `--tf-*`/`--home-*`. Nota: los
+  **nombres de CLASE** `.home-*`, `.evd-*`, `.tkt-*`, `.vh-*` se conservan —
+  son contratos que usan los E2E (renombrarlos rompería la suite). El design
+  system vive documentado en `DESIGN.md` (el análisis de Apple que ocupaba ese
+  archivo se movió a `docs/referencia-apple.md`).
 - **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
   (oscuro y claro, 6 rutas + detalle), interior (admin/promotor, + alt de
   imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado
@@ -320,9 +331,13 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
 - La paleta interna es violeta `#7C3AED` (marca) / `#BB5CF6` (brillo), verde
   `#00E6AB` y rosa `#FF2D98`. **No** reintroducir naranja/ámbar de la marca
   anterior (`rgba(251,146,60,…)`, `#9a3412`) ni lima (`#7cff00`, `#f0f542`).
-- La tinta casi blanca (`--in-ink`) se aplica **solo en oscuro**
-  (`html:not([data-theme="light"]) .app-shell`): en claro hereda el color de
-  `body`, o quedaría texto blanco sobre blanco.
+- La tinta casi blanca (`--e-text-primary`, antes `--in-ink`) se aplica **solo
+  en oscuro** (`html:not([data-theme="light"]) .app-shell`): en claro hereda el
+  color de `body`, o quedaría texto blanco sobre blanco.
+- **Jerarquía por rol** (Fase 6): Admin = densidad y jerarquía de datos (lista
+  compacta con zebra sutil, cabecera pegajosa `.evx-toolbar`, cifras tabulares,
+  violeta solo en la acción primaria); Promotor = tinte de marca en cupos/ranking
+  y medidor `e-meter`; Puerta = contraste máximo y targets ≥ 44px.
 - Verificación: contraste de texto ≥ 4.5:1 y `scrollWidth == clientWidth` en
   ambos temas, en `/admin`, `/admin?event=1`, `/promotor`, `/bouncer`.
 

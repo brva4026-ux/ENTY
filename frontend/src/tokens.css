@@ -189,6 +189,20 @@
      tinta en claro (contrasta contra el lienzo). */
   --e-focus-ring: var(--e-neutral-75);
 
+  /* Material de las superficies de la casa fan (home/detalle/boleta): cristal
+     sobre negro, hairline y halo de marca. Mismo hueco visual en ambos temas. */
+  --e-glass-1: rgba(255, 255, 255, 0.05);
+  --e-glass-2: rgba(255, 255, 255, 0.08);
+  --e-glass-line: rgba(255, 255, 255, 0.12);
+  --e-glass-blur: 16px;
+
+  /* Material de la boleta: SIEMPRE oscuro (es la credencial de la noche y no
+     voltea con el tema). Vive solo en :root, sin override en claro. */
+  --e-ticket-paper: var(--e-ink-1000);
+  --e-ticket-hair: rgba(255, 255, 255, 0.14);
+  --e-ticket-dim: rgba(255, 255, 255, 0.55);
+  --e-ticket-dim-2: rgba(255, 255, 255, 0.34);
+
   /* ---------------------------------------------------------------- 3 · ESCALAS */
   /* Espacio (base 4px). */
   --e-space-1: 0.25rem;
@@ -223,8 +237,13 @@
   --e-text-3xl: 1.875rem;
   --e-text-display: clamp(2.25rem, 6vw, 3.5rem);
 
-  /* Movimiento: una sola curva y tres duraciones. */
+  /* Movimiento: una curva primaria y tres duraciones. Las curvas de acento
+     (expo/spring) son el mismo lenguaje, solo con más carácter. */
   --e-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Desembarco (decelera fuerte): el movimiento dominante del producto. */
+  --e-ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Rebote: solo para micro-celebraciones (favorito, logo). */
+  --e-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --e-dur-fast: 120ms;
   --e-dur-base: 200ms;
   --e-dur-slow: 320ms;

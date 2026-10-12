@@ -175,6 +175,31 @@ html:not([data-theme="light"]) .app-shell .bizdock {
 }
 
 /* --------------------------------------------------------------------------
+ *  6b. MEDIDOR DE CUPO · el promotor ve su noche de un vistazo
+ * ------------------------------------------------------------------------- */
+.e-meter {
+  height: 5px;
+  border-radius: var(--e-radius-pill);
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+html[data-theme="light"] .e-meter {
+  background: rgba(23, 26, 32, 0.08);
+}
+.e-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--e-radius-pill);
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.45), var(--e-brand-glow));
+}
+.e-meter-fill.is-warn {
+  background: var(--e-amber-400);
+}
+.e-meter-fill.is-full {
+  background: var(--e-red-500);
+}
+
+/* --------------------------------------------------------------------------
  *  7. MICRO-INTERACCIÓN · feedback táctil consistente en toda la app
  * ------------------------------------------------------------------------- */
 .app-shell .card-interactive,
