@@ -214,16 +214,25 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 - *Aceptación*: `a11y.spec.js` **11/11 en verde** en ambos temas; contraste
   ≥ 4.5:1 (≥ 3:1 en texto grande) en todas las pantallas. Cumplida.
 
-### Fase 4 — Profundidad, material y atmósfera
+### Fase 4 — Profundidad, material y atmósfera — **HECHA**
 
-- Sistema de **elevación** por tokens: relieve interno de 1px, sombra de contacto
-  y aura radial contenida; una sola receta de tarjeta.
-- **Grano/vignette** sutil opcional (pseudo-elemento con SVG noise) en canvas
-  clave; desactivado en `reduced-motion` y en móvil de gama baja.
-- Unificar superficies: una `.card` (y su variante interactiva) gobierna todas
-  las tarjetas; modales/hojas/toasts con la misma materia.
+- [x] **Sistema de elevación por tokens**: par tema-aware `--e-elev-card`
+  (reposo) · `--e-elev-raised` (hover/activa) · `--e-elev-overlay`
+  (modal/hoja/toast) más el relieve `--e-highlight-inset`. Oscuro = sombra
+  profunda sobre pizarra; claro = papel con sombras más tenues. Los
+  diferenciadores funcionales (glow de marca, estados `is-live`/`is-on`)
+  siguen aparte.
+- [x] **Una sola receta de tarjeta**: `.card`, `.auth-card`, `.auth-shell
+  .auth-card`, `.dialog-panel`, `.bizdock`, `.venue-header`, `.home-feature` y
+  `.promo-hero` beben de los mismos tokens. Auditoría en navegador: **1 receta
+  por superficie** en ambos temas y oscuro ≠ claro (pizarra vs papel). Se
+  retiraron los tokens muertos `--tf-shadow-card` / `--tf-shadow-purple`.
+- [x] **Grano de atmósfera** opcional: `.home::after` con data-URI SVG
+  fractalNoise a `opacity .045` / `overlay`, por debajo del contenido; **fuera
+  con `reduced-motion`** (verificado: `display:none`).
 - *Aceptación*: no hay dos tarjetas con recetas de sombra distintas; el claro se
-  ve "papel" y el oscuro "pizarra", no el mismo layout con colores cambiados.
+  ve "papel" y el oscuro "pizarra". Cumplida.
+
 
 ### Fase 5 — Motion y micro-interacciones
 

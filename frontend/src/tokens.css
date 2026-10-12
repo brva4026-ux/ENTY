@@ -229,15 +229,24 @@
   --e-dur-base: 200ms;
   --e-dur-slow: 320ms;
 
-  /* Elevación (contacto → flotante) + halos de marca. */
+  /* Elevación (contacto → flotante) + halos de marca. La elevación es un
+     par tema-aware: mismo hueco visual, distinta materia (oscuro = sombra,
+     claro = papel). */
   --e-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --e-shadow-2: 0 8px 20px -12px rgba(0, 0, 0, 0.55);
   --e-shadow-3: 0 18px 40px -24px rgba(0, 0, 0, 0.6);
   --e-shadow-4: 0 22px 54px -38px rgba(0, 0, 0, 0.95); /* tarjeta flotante */
+  /* Relieve interno: el filo de 1px que hace la superficie "pizarra". */
+  --e-highlight-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --e-elev-card: var(--e-shadow-4); /* tarjeta en reposo */
+  --e-elev-raised: 0 12px 30px -14px rgba(0, 0, 0, 0.65); /* hover/activa */
+  --e-elev-overlay: 0 24px 70px -22px rgba(0, 0, 0, 0.8); /* modal/hoja */
   --e-glow-brand: 0 0 0 1px rgba(187, 92, 246, 0.35), 0 8px 28px -12px rgba(187, 92, 246, 0.5);
   --e-glow-violet: 0 12px 34px -18px rgba(124, 58, 237, 0.9);
   --e-glow-green: 0 12px 34px -18px rgba(0, 230, 171, 0.75);
   --e-glow-pink: 0 12px 34px -18px rgba(255, 45, 152, 0.75);
+  /* Grano sutil de atmósfera (data-URI SVG fractalNoise). */
+  --e-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
 }
 
 /* ---------------------------------------------------------------- TEMA CLARO
@@ -262,6 +271,11 @@ html[data-theme="light"] {
   --e-shadow-1: 0 1px 2px rgba(23, 26, 32, 0.08);
   --e-shadow-2: 0 8px 20px -14px rgba(23, 26, 32, 0.22);
   --e-shadow-3: 0 18px 40px -26px rgba(23, 26, 32, 0.28);
+  /* Claro = papel: relieve blanco, sombras más tenues y difusas. */
+  --e-highlight-inset: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --e-elev-card: 0 12px 30px -20px rgba(23, 26, 32, 0.2);
+  --e-elev-raised: 0 12px 30px -16px rgba(24, 24, 27, 0.25);
+  --e-elev-overlay: 0 24px 70px -26px rgba(24, 24, 27, 0.42);
 
   --e-focus-ring: var(--e-ink-800);
 }

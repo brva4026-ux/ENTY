@@ -197,8 +197,8 @@ body {
     ),
     var(--color-zinc-925);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
-    0 10px 30px -12px rgba(0, 0, 0, 0.55);
+    var(--e-highlight-inset),
+    var(--e-elev-card);
 }
 
 /* Tarjeta de entrada (login/registro): superficie plana con hairline.
@@ -1104,7 +1104,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .card-interactive:hover {
   transform: translateY(-2px);
   border-color: var(--color-zinc-800);
-  box-shadow: 0 10px 28px -14px rgba(0, 0, 0, 0.65);
+  box-shadow: var(--e-elev-raised);
 }
 .card-interactive:active {
   transform: translateY(0);
@@ -3055,19 +3055,19 @@ html[data-theme="light"] .card-hero {
     var(--e-panel-650);
   border-radius: 1.15rem;
   box-shadow:
-    0 24px 70px -20px rgba(0, 0, 0, 0.75),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    var(--e-elev-overlay),
+    var(--e-highlight-inset);
 }
 html[data-theme="light"] .dialog-panel {
   border-color: var(--e-neutral-300);
   background: var(--e-white);
-  box-shadow: 0 24px 70px -24px rgba(24, 24, 27, 0.4);
+  box-shadow: var(--e-elev-overlay);
 }
 /* Toast con barra de acento por tipo: el color del mensaje se LEE (éxito
    verde, error rojo) sin depender de leer el texto completo. */
 .toast-in {
   backdrop-filter: blur(10px);
-  box-shadow: 0 18px 42px -18px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--e-elev-overlay);
 }
 .toast-in[data-kind="success"] {
   border-left: 3px solid var(--e-green-400);
@@ -3715,7 +3715,6 @@ html[data-theme="light"] .brand-shine {
 }
 html[data-theme="light"] .card-interactive:hover {
   border-color: var(--e-neutral-400);
-  box-shadow: 0 12px 30px -16px rgba(24, 24, 27, 0.25);
 }
 html[data-theme="light"] .divide-list > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--e-neutral-300);
@@ -5116,8 +5115,8 @@ html[data-theme="light"] .evx-name {
     ),
     var(--color-zinc-925);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
-    0 22px 50px -30px rgba(0, 0, 0, 0.9);
+    var(--e-highlight-inset),
+    var(--e-elev-card);
 }
 @media (prefers-reduced-motion: reduce) {
   .auth-compact {
@@ -5148,8 +5147,8 @@ html[data-theme="light"] .auth-shell {
 html[data-theme="light"] .auth-shell .auth-card {
   background: var(--e-white);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
-    0 22px 50px -34px rgba(9, 15, 38, 0.35);
+    var(--e-highlight-inset),
+    var(--e-elev-card);
 }
 
 /* El wordmark dentro del panel navy ignora el remapeo claro de .brand-shine. */

@@ -229,8 +229,14 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   `--e-*`, tres niveles: primitivas (`--e-ink-1`, `--e-violet-500`…), semánticas
   (`--e-canvas`, `--e-text-primary`, `--e-brand`…) y escalas cerradas
   (`--e-space-*`, `--e-radius-*`, `--e-text-*`, `--e-dur-*`, `--e-ease-*`,
-  `--e-shadow-*`). Los componentes consumen las **semánticas**, no las
-  primitivas ni un hex suelto.
+  `--e-shadow-*`, `--e-elev-*`). Los componentes consumen las **semánticas**,
+  no las primitivas ni un hex suelto.
+- **Elevación**: la materia de tarjeta sale de `--e-elev-card` (reposo),
+  `--e-elev-raised` (hover) y `--e-elev-overlay` (modal/hoja/toast) + el
+  relieve `--e-highlight-inset`. Es un **par tema-aware** (oscuro = pizarra con
+  sombra, claro = papel): no se escribe un receta de sombra por componente ni
+  por tema. Los glow de marca/estado son aparte. El grano de `.home::after` usa
+  `--e-grain` y se apaga con `reduced-motion`.
 - **El tema claro es un cambio de tokens, no de componentes.** Los valores
   claros viven en el bloque `html[data-theme="light"]` de `tokens.css`; las
   hojas no repiten una regla por superficie. Las superficies que deben voltear
@@ -259,13 +265,18 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   Tailwind (`--text-*` en el `@theme`). Los 179 `font-size` de las hojas usan
   `var(--e-text-*)`; **el piso es 11px** (2xs) — no quedan micro-tamaños ni
   `text-[Npx]` en JSX. Display por `--e-text-display` y `tabular-nums` en
-  cifras. Falta el patrón editorial fino (eyebrow→display→lead→meta), con F3.
+  cifras. Queda pendiente el patrón editorial fino (eyebrow→display→lead→meta).
 - **Estado Fase 3 (HECHA, color/tema/a11y)**: el foco de teclado sale del token
   `--e-focus-ring` (crema en oscuro, tinta en claro) y el anillo respeta el
   radio del control; los objetivos táctiles suben a 44px en móvil/táctil
   (`btn-mini`, `btn-icon`, `topnav-item` y avatar/tema/notificaciones por área
   pseudo). `a11y.spec.js` cubre 6 rutas públicas + detalle + interior + puerta
   + foco de teclado, **11/11 en verde** en ambos temas, contraste AA sin fallos.
+- **Estado Fase 4 (HECHA, profundidad/material)**: una sola receta de tarjeta
+  (`--e-elev-card`/`--e-elev-raised`/`--e-elev-overlay` + `--e-highlight-inset`),
+  tema-aware (oscuro pizarra / claro papel); `--tf-shadow-*` retirados. Grano
+  sutil `.home::after` (`--e-grain`) que se apaga con `reduced-motion`.
+  Verificado en navegador: 1 receta por superficie y oscuro ≠ claro.
 - **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
   (oscuro y claro, 6 rutas + detalle), interior (admin/promotor, + alt de
   imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado

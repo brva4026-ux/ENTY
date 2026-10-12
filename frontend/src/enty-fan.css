@@ -79,6 +79,26 @@
   }
 }
 
+/* Grano de atmósfera (opcional): textura fractalNoise muy tenue sobre el
+   lienzo, no sobre el contenido (z-index por debajo de `.home > *`). Se apaga
+   con reduced-motion. */
+.home::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: var(--e-grain);
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home::after {
+    display: none;
+  }
+}
+
 /* --------------------------------------------------------------------------
  *  3. CABECERA · marca + navegación de escritorio
  * ------------------------------------------------------------------------- */
