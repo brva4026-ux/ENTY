@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Logo } from "../components/Brand";
 import { apiFetch } from "../lib/api";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 const ROLE_LABEL = { promotor: "Promotor", bouncer: "Portero", admin: "Administrador" };
 
@@ -37,6 +38,7 @@ function passStrength(p) {
 }
 
 export default function AcceptInvitationPage() {
+  useDocumentTitle("Invitación");
   const [params] = useSearchParams();
   const token = params.get("token") || "";
 

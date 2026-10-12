@@ -1119,7 +1119,7 @@ html[data-theme="light"] .bizdock-count {
   text-transform: uppercase;
   color: var(--e-violet-250);
 }
-.home-feature-top h2 {
+.home-feature-top h1 {
   margin: 0.5rem 0 0;
   font-size: var(--e-text-display);
   font-weight: 800;

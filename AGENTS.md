@@ -296,7 +296,23 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   radio del control; los objetivos táctiles suben a 44px en móvil/táctil
   (`btn-mini`, `btn-icon`, `topnav-item` y avatar/tema/notificaciones por área
   pseudo). `a11y.spec.js` cubre 6 rutas públicas + detalle + interior + puerta
-  + foco de teclado, **11/11 en verde** en ambos temas, contraste AA sin fallos.
+  + foco de teclado + **estructura de encabezados**, **12/12 en verde** en
+  ambos temas, contraste AA sin fallos.
+- **Estructura de documento (auditoría oct-2026)**: cada pantalla tiene **un
+  solo `h1`** y la jerarquía no salta niveles, y **cada ruta tiene su propio
+  `<title>`** (no el genérico de `index.html`). El test
+  `a11y.spec.js › estructura: un h1 por pantalla…` lo exige en las 7 rutas
+  públicas + las 3 de rol, y además cero scroll horizontal a 320px. El `h1`
+  es el ancla del lector de pantalla: `/inicio`, `/waitlist`, `/promotor` y
+  `/perfil` **no lo tenían** (empezaban en `h2`/`h3`). Al tocar una pantalla,
+  el título visible va en `h1`; un `sr-only` solo es aceptable si de verdad
+  no hay texto titular. La vitrina pone `h1` en el evento destacado
+  (`.home-feature-top h1`), no en el wordmark (que reevalúa el logo).
+- **`lib/useDocumentTitle.js`**: hook de título por ruta (`"<algo> · Enty"`).
+  Toda página nueva lo llama (título fijo o dato dinámico, p. ej.
+  `useDocumentTitle(data?.name)` en el detalle; `null` mientras carga deja el
+  título anterior, sin parpadear a un texto genérico). Sin esto, una pestaña
+  en un evento y un enlace compartido mostraban todos el mismo título.
 - **Estado Fase 4 (HECHA, profundidad/material)**: una sola receta de tarjeta
   (`--e-elev-card`/`--e-elev-raised`/`--e-elev-overlay` + `--e-highlight-inset`),
   tema-aware (oscuro pizarra / claro papel); `--tf-shadow-*` retirados. Grano

@@ -4,6 +4,7 @@ import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
  * Inicio — la cara publica de Enty para el fan (mockup "1 · Inicio").
@@ -290,6 +291,7 @@ function readFavs() {
 }
 
 export default function HomePage() {
+  useDocumentTitle("Inicio");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [cat, setCat] = useState("todos");
@@ -509,7 +511,10 @@ export default function HomePage() {
             <div className="home-feature-body">
               <div className="home-feature-top">
                 <span className="home-eyebrow">Featured</span>
-                <h2>{featured.name}</h2>
+                {/* h1 único de la vitrina (jerarquía de documento): el destacado
+                    ES el titular de la pagina; "Proximos"/categorias cuelgan de
+                    el. Visualmente no cambia (la regla es .home-feature-top h1). */}
+                <h1>{featured.name}</h1>
               </div>
               <div className="home-feature-bottom">
                 <span className="home-feature-meta">
