@@ -5074,3 +5074,158 @@ html[data-theme="light"] .auth-shell .auth-card {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
     0 22px 50px -34px rgba(9, 15, 38, 0.35);
 }
+
+/* ======================================================================
+   PERFIL — Identidad Enty
+   El perfil deja de ser un formulario y pasa a ser la ficha de la persona:
+   quién es, con qué rol, en qué negocios y desde cuándo. El hero habla el
+   idioma del hero del promotor (aurora violeta) con el mint de la marca como
+   segunda luz: es el único lugar donde la persona es el sujeto.
+   ====================================================================== */
+.pf-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.4rem;
+  border: 1px solid var(--in-line-soft, rgba(255, 255, 255, 0.06));
+  padding: 1.4rem 1.5rem;
+  background:
+    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.22), transparent 62%),
+    radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 48%),
+    rgba(16, 16, 22, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 22px 52px -34px rgba(0, 0, 0, 0.95);
+}
+html[data-theme="light"] .pf-hero {
+  border: 1px solid rgba(17, 17, 22, 0.09);
+  background:
+    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.1), transparent 62%),
+    radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.09), transparent 60%),
+    #ffffff;
+  box-shadow: 0 20px 46px -36px rgba(15, 23, 42, 0.55);
+}
+
+.pf-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 999px;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+/* Anillo de rol: el color del rol rodea el avatar. Un admin se ve distinto
+   de un portero de un vistazo, sin leer la etiqueta. */
+.pf-avatar-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  padding: 3px;
+  background: currentColor;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Nombre del hero: grande, con la voz display de la marca. */
+.pf-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-zinc-50);
+}
+/* El hero tiene su propio fondo en ambos temas, así que sus tintas no pueden
+   seguir al tema por sí solas: en claro hay que bajarlas explícitamente. */
+html[data-theme="light"] .pf-name {
+  color: #18181b;
+}
+html[data-theme="light"] .pf-email {
+  color: var(--color-zinc-600);
+}
+html[data-theme="light"] .pf-avatar {
+  background: #f4f4f5;
+  color: #18181b;
+}
+/* Los tintes de rol (amber/emerald/brand -300) son para fondo oscuro: en el
+   hero claro pierden contraste, así que se oscurecen solo aquí. El color
+   sigue siendo el del rol; cambia el paso de la escala. */
+html[data-theme="light"] .pf-hero .text-brand-300 {
+  color: #6D28D9;
+}
+html[data-theme="light"] .pf-hero .text-emerald-300 {
+  color: #047857;
+}
+html[data-theme="light"] .pf-hero .text-amber-300 {
+  color: #B45309;
+}
+html[data-theme="light"] .pf-danger-title {
+  color: #b91c1c;
+}
+
+/* Fila de datos de cuenta: icono + valor. */
+.pf-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--color-zinc-400);
+}
+html[data-theme="light"] .pf-meta {
+  color: var(--color-zinc-600);
+}
+.pf-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.pf-meta-item svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+/* Chip de rol por negocio. El color lo pone la clase de texto (tabAccent de
+   ROLE_VISUALS); aquí se deriva fondo y borde de ese mismo currentColor para
+   que rol y color no puedan desincronizarse. */
+.pf-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+/* Dos columnas en desktop: la cuenta a la izquierda, el negocio a la derecha.
+   En móvil, una sola columna en orden natural. */
+.pf-grid {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (min-width: 960px) {
+  .pf-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.pf-section-head {
+  margin-bottom: 1rem;
+}
+.pf-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}

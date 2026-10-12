@@ -34,6 +34,10 @@ class UserSummary(BaseModel):
     full_name: str
     venues: list["VenueSummary"] = []
     roles: dict[str, list[str]] = {}  # {"<venue_id>": ["admin", ...]}
+    # Contexto de cuenta para el perfil: desde cuándo es parte y cuándo entró
+    # por última vez. `last_login_at` es None hasta el primer login.
+    created_at: datetime | None = None
+    last_login_at: datetime | None = None
 
 
 class VenueSummary(BaseModel):
