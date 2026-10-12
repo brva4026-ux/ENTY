@@ -260,9 +260,16 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   `var(--e-text-*)`; **el piso es 11px** (2xs) — no quedan micro-tamaños ni
   `text-[Npx]` en JSX. Display por `--e-text-display` y `tabular-nums` en
   cifras. Falta el patrón editorial fino (eyebrow→display→lead→meta), con F3.
+- **Estado Fase 3 (HECHA, color/tema/a11y)**: el foco de teclado sale del token
+  `--e-focus-ring` (crema en oscuro, tinta en claro) y el anillo respeta el
+  radio del control; los objetivos táctiles suben a 44px en móvil/táctil
+  (`btn-mini`, `btn-icon`, `topnav-item` y avatar/tema/notificaciones por área
+  pseudo). `a11y.spec.js` cubre 6 rutas públicas + detalle + interior + puerta
+  + foco de teclado, **11/11 en verde** en ambos temas, contraste AA sin fallos.
 - **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
-  (oscuro y claro), interior (admin/promotor, + alt de imágenes) y la puerta
-  (+ objetivos táctiles ≥ 44px). Corre con `E2E_BASE_URL=http://127.0.0.1:12000
+  (oscuro y claro, 6 rutas + detalle), interior (admin/promotor, + alt de
+  imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado
+  visible y de un solo color** en ambos temas. Corre con `E2E_BASE_URL=http://127.0.0.1:12000
   npx playwright test e2e/a11y.spec.js`.
 
 ## App interna (Enty): Admin · Promotor · Puerta

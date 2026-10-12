@@ -111,9 +111,8 @@ body {
   outline: none;
 }
 :focus-visible {
-  outline: 2px solid var(--color-brand-400);
+  outline: 2px solid var(--e-focus-ring);
   outline-offset: 2px;
-  border-radius: 0.375rem;
 }
 
 /* Skip link: primer Tab del sitio lo muestra; es invisible al mouse. */
@@ -3154,6 +3153,18 @@ html[data-theme="light"] .topnav-item:hover {
 html[data-theme="light"] .topnav-item.is-active {
   color: var(--color-zinc-50);
 }
+/* En pantallas táctiles el topnav (md+) crece a 44px de alto solo en el área
+   pulsable: el subrayado ::after sigue anclado al texto, no a la caja. */
+@media (pointer: coarse) {
+  .topnav-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -0.4rem;
+    bottom: -0.4rem;
+  }
+}
 .topbar-avatar {
   display: grid;
   place-items: center;
@@ -4033,6 +4044,12 @@ body {
   .btn-mini {
     min-height: 44px;
   }
+  /* Los btn-icon (p. ej. navegación del calendario) también a 44px de ancho:
+     a 40px el error de pulsación con el dedo es real. */
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
   /* Iconos del topbar (tema, notificaciones, avatar): 32px visuales no
      entran como 44px reales sin desbordar a 320px, asi que se agranda SOLO
      el area tactil con un ::after invisible. inset -6px sobre gap-3 (12px)
@@ -4791,14 +4808,10 @@ html[data-theme="light"] .rubber-stamp {
    resuelto en :root (arriba): no necesita parche propio. */
 
 /* --- PASO 6: el anillo de foco no puede ser del color del boton ----------
-   Con el acento en naranja, un foco naranja DENTRO de un boton naranja
-   desaparecia. El foco va en crema (contrasta contra el lienzo navy y
-   contra el propio boton) y en tema claro, en navy. */
+   El color del anillo vive en el token --e-focus-ring (crema en oscuro,
+   tinta en claro): aquí ya no hace falta parche por tema. */
 :focus-visible {
-  outline-color: var(--color-cream);
-}
-html[data-theme="light"] :focus-visible {
-  outline-color: var(--e-ink-800);
+  outline-color: var(--e-focus-ring);
 }
 
 /* ===========================================================================

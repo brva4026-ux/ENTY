@@ -201,9 +201,10 @@ html:not([data-theme="light"]) .app-shell .bizdock {
   transform: scale(0.97);
 }
 
-/* Foco de marca unificado: un anillo violeta, jamás outline gris. */
+/* Foco de marca unificado: el anillo sale de --e-focus-ring (crema en
+   oscuro, tinta en claro), nunca un outline gris ni del color del botón. */
 .app-shell :is(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--e-brand-glow);
+  outline: 2px solid var(--e-focus-ring);
   outline-offset: 2px;
 }
 

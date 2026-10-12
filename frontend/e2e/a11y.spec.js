@@ -139,7 +139,7 @@ async function audit(page) {
   return page.evaluate(auditInPage);
 }
 
-const PUBLIC = ["/inicio", "/boletas", "/login", "/waitlist"];
+const PUBLIC = ["/inicio", "/boletas", "/login", "/waitlist", "/register", "/reset"];
 
 /** Ruta de detalle de un evento real del catálogo (los ids derivan con el
  *  seed: no se puede clavar un /evento/N). Devuelve null si no hay ninguno. */
@@ -215,4 +215,52 @@ test("la puerta: contraste AA y objetivos táctiles ≥ 44px", async ({ browser 
   // La puerta es crítica: todo control debe ser cómodo de pulsar a una mano.
   if (r.tapSmall.length) console.log("Objetivos pequeños (puerta):", JSON.stringify(r.tapSmall, null, 2));
   expect(r.tapSmall, "objetivos táctiles < 44px en la puerta").toEqual([]);
+});
+
+test("el foco de teclado es visible y de un solo color (ambos temas)", async ({
+  browser,
+}) => {
+  const ok = await available(await browser.newPage(), "/login");
+  test.skip(!ok, "App no disponible");
+
+  for (const scheme of ["dark", "light"]) {
+    const ctx = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+      colorScheme: scheme,
+    });
+    const page = await ctx.newPage();
+    await page.goto("/login");
+
+    const rings = [];
+    for (let i = 0; i < 14; i++) {
+      await page.keyboard.press("Tab");
+      // El `transition` de Tailwind incluye outline-color: se espera a que
+      // asiente para no leer un color a medio animar.
+      await page.waitForTimeout(220);
+      const info = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body) return null;
+        const cs = getComputedStyle(el);
+        return {
+          outlineStyle: cs.outlineStyle,
+          outlineWidth: parseFloat(cs.outlineWidth),
+          outlineColor: cs.outlineColor,
+        };
+      });
+      if (info && info.outlineStyle !== "none" && info.outlineWidth >= 2) {
+        rings.push(info);
+      }
+    }
+    await ctx.close();
+
+    expect(
+      rings.length,
+      `[${scheme}] ningún control mostró anillo de foco al tabular`
+    ).toBeGreaterThan(0);
+    const colors = [...new Set(rings.map((r) => r.outlineColor))];
+    expect(
+      colors.length,
+      `[${scheme}] anillos de distinto color: ${colors.join(", ")}`
+    ).toBe(1);
+  }
 });

@@ -193,16 +193,26 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 - *Aceptación*: ninguna superficie usa un tamaño fuera de la escala (cumplida);
   el ritmo vertical es constante entre páginas (parcial: pendiente el patrón).
 
-### Fase 3 — Color, tema claro y accesibilidad (incluye los 2 bugs)
+### Fase 3 — Color, tema claro y accesibilidad (incluye los 2 bugs) — **HECHA**
 
-- Corregir: `/waitlist` `text-white` sobre `.card` (usar `--text-primary`) y el
-  título de marca de `/login` en claro (tokens propios del panel navy).
-- Repasar **todo** el claro con la matriz de contraste; añadir estados
-  `:focus-visible` con `--focus-ring` que respeta el radio del control.
-- Subir a 44px: avatar, tema, notificaciones, `btn-mini`/`btn-icon` (área táctil
-  mínima sin agrandar el ícono visual), `topnav-item`.
-- *Aceptación*: `a11y.spec.js` en verde en ambos temas; contraste ≥ 4.5:1
-  (≥ 3:1 en texto grande) en todas las pantallas.
+- [x] Bugs de color: el título de marca de `/login` en claro ya usa tokens
+  propios del panel navy (`tokens.css` `.auth-brand`). En `/waitlist` la
+  auditoría no encontró `text-white` sobre `.card`: ya usa `.eyebrow` /
+  `text-ink` / `text-dim`. Verificado con matriz de contraste ampliada.
+- [x] Repaso del claro con la matriz de contraste: **0 fallos AA** en las 7
+  rutas públicas + detalle de evento + admin/promotor/puerta, en oscuro y
+  claro (`/tmp` de auditoría contra el navegador real).
+- [x] Foco de teclado unificado: nuevo token `--e-focus-ring` (crema en oscuro,
+  tinta en claro) del que beben `:focus-visible`, el override de `index.css` y
+  el `:focus-visible` del app-shell. Se retiró el `border-radius` que el foco
+  imponía al control (el anillo respeta el radio propio). Nueva prueba
+  `a11y.spec.js` «foco visible y de un solo color» en ambos temas.
+- [x] Objetivos táctiles ≥ 44px: avatar/tema/notificaciones (área `::after` en
+  móvil), `btn-mini` (44px alto en móvil), `btn-icon` (44px ancho+alto en móvil)
+  y `topnav-item` (área `::before` en puntero coarse, ≥44px). Sin overflow a
+  320/360/390/420px.
+- *Aceptación*: `a11y.spec.js` **11/11 en verde** en ambos temas; contraste
+  ≥ 4.5:1 (≥ 3:1 en texto grande) en todas las pantallas. Cumplida.
 
 ### Fase 4 — Profundidad, material y atmósfera
 
