@@ -83,3 +83,69 @@ test("el clic en una tarjeta de evento abre su backstage", async ({
   await expect(page).toHaveURL(/\/admin$/, { timeout: 10_000 });
   await expect(page.locator(".evx-card").first()).toBeVisible();
 });
+
+/**
+ * Operación de eventos: la ficha dice la verdad y el fallback sin flyer
+ * identifica la noche.
+ *
+ *  1. Filtrar por un estado sin eventos NO debe decir "no coincide con la
+ *     búsqueda": ese texto mentía (no había búsqueda) y no daba salida.
+ *  2. Sin flyer, la miniatura es una hoja de calendario (mes + día), no dos
+ *     iniciales: en una lista de noches el día identifica más.
+ *
+ * Corre contra el seed demo; se salta sola si el estado elegido no está
+ * vacío (el seed cambia, la aserción no debe volverse frágil).
+ */
+test("el estado vacío dice el motivo y la miniatura sin flyer es una fecha", async ({
+  page,
+}) => {
+  const loginOk = await page
+    .goto("/login")
+    .then(() => true)
+    .catch(() => false);
+  test.skip(!loginOk, "App no disponible");
+
+  await page.locator("#login-email").fill(ADMIN.email);
+  await page.locator("#login-password").fill(ADMIN.password);
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
+  await page.waitForURL(/admin/, { timeout: 10_000 });
+  await expect(page.locator(".evx-card").first()).toBeVisible({
+    timeout: 10_000,
+  });
+
+  // --- 1. Fallback sin flyer = hoja de calendario -----------------------
+  const fallback = await page.evaluate(() => {
+    const card = [...document.querySelectorAll(".evx-card")].find(
+      (c) => !c.querySelector("img.evx-thumb"),
+    );
+    if (!card) return "no-flyerless-card";
+    return card.querySelector(".evx-datecal") ? "date" : "other";
+  });
+  // Si el seed trae flyer en todas las noches, no hay fallback que probar.
+  if (fallback !== "no-flyerless-card") {
+    expect(
+      fallback,
+      "la miniatura sin flyer debe ser una hoja de calendario (.evx-datecal)",
+    ).toBe("date");
+  }
+
+  // --- 2. Estado vacío honesto ------------------------------------------
+  // Un bucket sin contador = sin eventos. Se elige el primero que exista.
+  const emptyTab = await page.evaluate(() => {
+    const tabs = [...document.querySelectorAll(".evx-tab")];
+    const empty = tabs.find(
+      (t) =>
+        !t.querySelector(".evx-tab-count") &&
+        /Cancelad|Borrador|Terminad|En puerta|venta/.test(t.textContent),
+    );
+    return empty ? empty.textContent.trim().replace(/\s+/g, " ") : null;
+  });
+  test.skip(!emptyTab, "el seed no tiene ningún estado vacío");
+
+  await page.getByRole("tab", { name: new RegExp(emptyTab) }).click();
+  await expect(page.getByText("No hay eventos en este estado")).toBeVisible({
+    timeout: 5_000,
+  });
+  await expect(page.getByRole("button", { name: "Ver todos" })).toBeVisible();
+});
+

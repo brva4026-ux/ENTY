@@ -894,8 +894,22 @@ export default function AdminDashboard() {
                 events.length > 0 && (
                   <section className="events-strip">
                     {visibleEvents.length === 0 ? (
+                      /* El vacío dice la verdad del motivo: sin búsqueda, un
+                         filtro de estado sin eventos NO es "no coincide una
+                         búsqueda". Antes el texto mentía y encima no había
+                         salida; aquí se ofrece volver a "Todos". */
                       <p className="mt-4 text-pretty text-sm text-zinc-500">
-                        Ningún evento coincide con la búsqueda.
+                        {q
+                          ? "Ningún evento coincide con la búsqueda."
+                          : "No hay eventos en este estado."}{" "}
+                        {eventBucket !== "todos" && (
+                          <button
+                            onClick={() => setEventBucket("todos")}
+                            className="font-semibold text-violet-300 underline-offset-2 hover:underline"
+                          >
+                            Ver todos
+                          </button>
+                        )}
                       </p>
                     ) : compactView ? (
                       /* VISTA COMPACTA: una línea por evento. Con 20+ noches la
@@ -1022,6 +1036,20 @@ export default function AdminDashboard() {
                             .map((w) => w[0])
                             .join("")
                             .toUpperCase();
+                          // Hoja de calendario (fallback sin flyer): para una
+                          // lista de NOCHES, el día identifica más que dos
+                          // letras. Si la fecha no es válida, quedan iniciales.
+                          const thumbDate = (() => {
+                            const d = new Date(ev.starts_at);
+                            if (Number.isNaN(d.getTime())) return null;
+                            return {
+                              day: String(d.getDate()),
+                              mon: d
+                                .toLocaleDateString("es-CO", { month: "short" })
+                                .replace(".", "")
+                                .toUpperCase(),
+                            };
+                          })();
                           return (
                             <div
                               key={ev.id}
@@ -1058,6 +1086,20 @@ export default function AdminDashboard() {
                                       }
                                       className="evx-thumb"
                                     />
+                                  ) : thumbDate ? (
+                                    <span
+                                      className={`evx-thumb evx-thumb-fallback evx-datecal ${
+                                        ended ? "is-ended" : ""
+                                      }`}
+                                      aria-hidden="true"
+                                    >
+                                      <span className="evx-datecal-mon">
+                                        {thumbDate.mon}
+                                      </span>
+                                      <span className="evx-datecal-day tnum">
+                                        {thumbDate.day}
+                                      </span>
+                                    </span>
                                   ) : (
                                     <span
                                       className={`evx-thumb evx-thumb-fallback ${
