@@ -142,18 +142,24 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 - [ ] **Regresión visual** `toHaveScreenshot()` × breakpoints × temas — pendiente
   (la cubren los E2E de flujo + el spec de a11y mientras tanto).
 
-### Fase 1 — Tokens y aplanado de la cascada — **EN CURSO**
+### Fase 1 — Tokens y aplanado de la cascada — **CASI HECHA**
 
 - [x] Crear `src/tokens.css` (§3) e importarlo primero en `main.jsx`.
 - [x] Tokens semánticos + escalas cerradas (espacio, radio, tipo, motion,
   elevación) y el tema claro como reescritura de tokens, no de componentes.
 - [x] Utilidades semánticas `text-ink` / `text-dim` / `text-dim-2` / `bg-canvas`
   y el bloque de componentes insensibles al tema (`.auth-brand`).
-- [ ] Reapuntar las 4 hojas a los tokens semánticos (mecánico, por área): el
-  presupuesto de `color-no-hex` baja de 558 hacia 0.
-- [ ] Retirar `!important` (index 7 → 0–2) y los 27 `style={{}}` de color/tamaño.
+- [x] Reapuntar las 5 hojas a los tokens (mecánico, por área): `color-no-hex`
+  bajó de **558 a 31** (todas por valor exacto → cero regresión). Las 4 hojas
+  de componente quedan sin hex; el único hex crudo vive en el bloque `@theme`
+  de `index.css`, exento con rationale (fuente de los tokens Tailwind).
+- [x] Colapsar la capa de alias: `--tf-* / --home-* / --evd-* / --tkt-* / --in-*`
+  ya no declaran valores, solo primitivas `--e-*`.
+- [ ] Retirar `!important` (11 hoy: 7 index + 3 enty-system + 1 aesthetic) y los
+  27 `style={{}}` de color/tamaño.
 - *Aceptación*: `color-no-hex` pasa en todo `src/**/*.css` menos `tokens.css`;
   cero regresión visual; un cambio de `--brand` re-viste todas las pantallas.
+  Lo que resta de la fase son `!important` + estilos en línea (no color-no-hex).
 
 ### Fase 2 — Tipografía y ritmo editorial
 

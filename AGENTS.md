@@ -240,12 +240,18 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
 - **Superficies insensibles al tema** (p. ej. `.auth-brand`, el panel navy de la
   entrada) fijan sus propios tokens de tinta en `tokens.css`, para que el
   wordmark siga legible sobre el navy también en claro.
-- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 558`
+- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 31`
   es un presupuesto que solo puede **bajar**. `color-no-hex` (todo `src/**/*.css`
-  menos `tokens.css`), `no-duplicate-selectors` y las reglas de shorthand son
-  `warning` durante la migración; `declaration-block-no-duplicate-properties`,
-  `color-no-invalid-hex` y `block-no-empty` son `error` y deben quedar en cero.
-  Al cerrar una fase, **baja el número del presupuesto** en `package.json`.
+  menos `tokens.css`; el bloque `@theme` de `index.css` está exento con
+  `stylelint-disable` y rationale: es la fuente de los tokens Tailwind),
+  `no-duplicate-selectors` y las reglas de shorthand son `warning` durante la
+  migración; `declaration-block-no-duplicate-properties`, `color-no-invalid-hex`
+  y `block-no-empty` son `error` y deben quedar en cero. Al cerrar una fase,
+  **baja el número del presupuesto** en `package.json`.
+- **Estado Fase 1 (casi cerrada)**: las 4 hojas de componente están sin hex;
+  los alias históricos `--tf-* / --home-* / --evd-* / --tkt-* / --in-*` ya solo
+  apuntan a primitivas `--e-*`. Lo que queda son 31 `no-duplicate-selectors`
+  (F4) y la deuda de `!important` + `style={{}}` (no de color).
 - **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
   (oscuro y claro), interior (admin/promotor, + alt de imágenes) y la puerta
   (+ objetivos táctiles ≥ 44px). Corre con `E2E_BASE_URL=http://127.0.0.1:12000
