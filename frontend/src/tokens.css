@@ -21,17 +21,21 @@
 
 :root {
   /* ---------------------------------------------------------------- 1 · PRIMITIVAS */
-  /* Tinta: el negro del logotipo y sus pasos de superficie. */
+  /* Tinta: el negro del logotipo y sus pasos de superficie (canon de producto:
+     los mismos pasos mate que usaba enty-system.css). */
   --e-ink-0: #050507;
   --e-ink-1: #0b0b0f; /* matte black de marca */
-  --e-ink-2: #14121c;
-  --e-ink-3: #1c1730;
-  --e-ink-4: #241c3d;
+  --e-ink-2: #101017;
+  --e-ink-3: #171622;
+  --e-ink-4: #1e1c2c;
   /* Violeta: interactivo canónico + brillo del logotipo. */
+  --e-violet-700: #5b21b6;
   --e-violet-600: #6d28d9;
   --e-violet-500: #7c3aed; /* acción (blanco encima = 5.7:1) */
+  --e-violet-hover: #8b5cf6; /* hover del CTA */
   --e-violet-400: #bb5cf6; /* solo halo/glow */
   --e-violet-300: #d29bf9;
+  --e-violet-200: #d9b6ff; /* texto de marca sobre relleno violeta tenue */
   /* Acentos con significado. */
   --e-green-500: #00e6ab; /* validado / disponible */
   --e-green-400: #34d399;
@@ -41,6 +45,7 @@
   --e-red-300: #fca5a5;
   --e-paper: #f5f5f7; /* tinta de marca */
   --e-white: #ffffff;
+  --e-mask: #000; /* opaco para máscaras/recortes (no es un color visible) */
 
   /* ---------------------------------------------------------------- 2 · SEMÁNTICAS (oscuro = default) */
   --e-canvas: var(--e-ink-1);
@@ -106,11 +111,15 @@
   --e-dur-base: 200ms;
   --e-dur-slow: 320ms;
 
-  /* Elevación (contacto → flotante) + halo de marca. */
+  /* Elevación (contacto → flotante) + halos de marca. */
   --e-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --e-shadow-2: 0 8px 20px -12px rgba(0, 0, 0, 0.55);
   --e-shadow-3: 0 18px 40px -24px rgba(0, 0, 0, 0.6);
+  --e-shadow-4: 0 22px 54px -38px rgba(0, 0, 0, 0.95); /* tarjeta flotante */
   --e-glow-brand: 0 0 0 1px rgba(187, 92, 246, 0.35), 0 8px 28px -12px rgba(187, 92, 246, 0.5);
+  --e-glow-violet: 0 12px 34px -18px rgba(124, 58, 237, 0.9);
+  --e-glow-green: 0 12px 34px -18px rgba(0, 230, 171, 0.75);
+  --e-glow-pink: 0 12px 34px -18px rgba(255, 45, 152, 0.75);
 }
 
 /* ---------------------------------------------------------------- TEMA CLARO

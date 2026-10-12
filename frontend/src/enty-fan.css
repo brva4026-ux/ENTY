@@ -32,22 +32,22 @@
  * ------------------------------------------------------------------------- */
 .home,
 .evd {
-  --enty-bg: #0b0b0f;
-  --enty-ink: #f5f5f7;
-  --enty-dim: #9a96a8;
-  --enty-dim-2: #b6b2c4;
-  --enty-violet: #7c3aed;
-  --enty-violet-bright: #bb5cf6;
-  --enty-green: #00e6ab;
-  --enty-pink: #ff2d98;
+  --enty-bg: var(--e-ink-1);
+  --enty-ink: var(--e-paper);
+  --enty-dim: var(--e-text-muted);
+  --enty-dim-2: var(--e-text-secondary);
+  --enty-violet: var(--e-brand);
+  --enty-violet-bright: var(--e-brand-glow);
+  --enty-green: var(--e-success);
+  --enty-pink: var(--e-urgent);
   --enty-line: rgba(255, 255, 255, 0.1);
   --enty-line-soft: rgba(255, 255, 255, 0.07);
   --enty-glass: rgba(255, 255, 255, 0.05);
   --enty-glass-line: rgba(255, 255, 255, 0.12);
   --enty-surface: rgba(23, 22, 34, 0.72);
-  --enty-radius: 1.25rem;
-  --enty-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --enty-dur: 200ms;
+  --enty-radius: var(--e-radius-xl);
+  --enty-ease: var(--e-ease-standard);
+  --enty-dur: var(--e-dur-base);
   --enty-shell: 74rem; /* el ancho máximo de la vitrina en escritorio */
 }
 
@@ -175,11 +175,11 @@
   -webkit-mask: linear-gradient(
     90deg,
     transparent,
-    #000 8%,
-    #000 92%,
+    var(--e-mask) 8%,
+    var(--e-mask) 92%,
     transparent
   );
-  mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask: linear-gradient(90deg, transparent, var(--e-mask) 8%, var(--e-mask) 92%, transparent);
 }
 .home-ticker-track {
   display: inline-flex;
@@ -259,13 +259,13 @@
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  -webkit-mask: radial-gradient(circle 8px at 0 50%, transparent 98%, #000)
+  -webkit-mask: radial-gradient(circle 8px at 0 50%, transparent 98%, var(--e-mask))
       left / 16px 24px repeat-y,
-    radial-gradient(circle 8px at 100% 50%, transparent 98%, #000) right / 16px
+    radial-gradient(circle 8px at 100% 50%, transparent 98%, var(--e-mask)) right / 16px
       24px repeat-y;
-  mask: radial-gradient(circle 8px at 0 50%, transparent 98%, #000) left / 16px
+  mask: radial-gradient(circle 8px at 0 50%, transparent 98%, var(--e-mask)) left / 16px
       24px repeat-y,
-    radial-gradient(circle 8px at 100% 50%, transparent 98%, #000) right / 16px
+    radial-gradient(circle 8px at 100% 50%, transparent 98%, var(--e-mask)) right / 16px
       24px repeat-y;
 }
 
@@ -474,7 +474,7 @@
   overflow: hidden;
   border: 1px solid var(--enty-glass-line);
   aspect-ratio: 4 / 3;
-  background: linear-gradient(160deg, #241c3d, #0b0b0f);
+  background: linear-gradient(160deg, var(--e-ink-4), var(--e-ink-1));
 }
 .evd-poster-frame img {
   width: 100%;

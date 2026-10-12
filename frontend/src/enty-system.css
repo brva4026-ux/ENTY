@@ -43,68 +43,12 @@
 }
 
 /* --------------------------------------------------------------------------
- *  2. TOKENS DE PRODUCTO · una sola fuente de verdad
+ *  2. TOKENS DE PRODUCTO
+ *  Los tokens viven en UN solo lugar: src/tokens.css (--e-*), importado
+ *  primero. Antes esta hoja redefinía --e-bg/--e-surface/--e-violet… y
+ *  colisionaba con tokens.css; se retiró el bloque duplicado (Fase 1 del
+ *  plan estético). Aquí solo se CONSUMEN los tokens semánticos.
  * ------------------------------------------------------------------------- */
-:root {
-  /* Superficies (negro profundo → elevación) */
-  --e-bg: #0b0b0f;
-  --e-surface: #101017;
-  --e-surface-2: #171622;
-  --e-surface-3: #1e1c2c;
-
-  /* Tinta */
-  --e-ink: #f5f5f7;
-  --e-muted: #b8b4c8;
-  --e-subtle: #8f8b9c;
-
-  /* Marca */
-  --e-violet: #7c3aed;      /* relleno con texto */
-  --e-violet-glow: #bb5cf6; /* solo halo/hover */
-  --e-green: #00e6ab;
-  --e-pink: #ff2d98;
-
-  /* Líneas y cristal */
-  --e-line: rgba(255, 255, 255, 0.1);
-  --e-line-soft: rgba(255, 255, 255, 0.07);
-  --e-glass: rgba(255, 255, 255, 0.045);
-  --e-glass-strong: rgba(255, 255, 255, 0.075);
-  --e-glass-blur: 16px;
-
-  /* Geometría */
-  --e-r-card: 1.25rem;
-  --e-r-control: 0.875rem;
-  --e-r-pill: 999px;
-
-  /* Elevación */
-  --e-shadow-card: 0 22px 54px -38px rgba(0, 0, 0, 0.95);
-  --e-glow-violet: 0 12px 34px -18px rgba(124, 58, 237, 0.9);
-  --e-glow-green: 0 12px 34px -18px rgba(0, 230, 171, 0.75);
-  --e-glow-pink: 0 12px 34px -18px rgba(255, 45, 152, 0.75);
-
-  /* Movimiento: una curva, tres duraciones */
-  --e-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --e-dur-tap: 120ms;
-  --e-dur-ui: 200ms;
-  --e-dur-enter: 320ms;
-}
-
-html[data-theme="light"] {
-  --e-bg: #f4f3f8;
-  --e-surface: #ffffff;
-  --e-surface-2: #f8f7fb;
-  --e-surface-3: #f1eef9;
-  --e-ink: #111116;
-  --e-muted: #555064;
-  --e-subtle: #777286;
-  --e-violet: #6d28d9; /* un paso más oscuro: sostiene blanco en claro */
-  --e-violet-glow: #7c3aed;
-  --e-line: rgba(17, 17, 22, 0.12);
-  --e-line-soft: rgba(17, 17, 22, 0.08);
-  --e-glass: rgba(255, 255, 255, 0.7);
-  --e-glass-strong: rgba(255, 255, 255, 0.85);
-  --e-shadow-card: 0 22px 48px -38px rgba(15, 23, 42, 0.45);
-  --e-glow-violet: 0 12px 30px -18px rgba(109, 40, 217, 0.55);
-}
 
 /* --------------------------------------------------------------------------
  *  3. ESCALA TIPOGRÁFICA · Sora con jerarquía por peso, no por tamaño
@@ -139,7 +83,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--e-subtle);
+  color: var(--e-text-muted);
 }
 
 /* La casa habla en titulares cerrados y con más peso óptico. */
@@ -161,10 +105,10 @@ html:not([data-theme="light"]) .app-shell .bizdock {
     radial-gradient(30rem 18rem at 88% -8rem, rgba(124, 58, 237, 0.11), transparent 66%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 44%),
     rgba(17, 17, 23, 0.88);
-  border-color: var(--e-line-soft);
+  border-color: var(--e-border-soft);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.055),
-    var(--e-shadow-card);
+    var(--e-shadow-4);
 }
 
 /* --------------------------------------------------------------------------
@@ -172,25 +116,25 @@ html:not([data-theme="light"]) .app-shell .bizdock {
  * ------------------------------------------------------------------------- */
 .app-shell .btn-primary,
 .btn-primary {
-  border-radius: var(--e-r-pill);
+  border-radius: var(--e-radius-pill);
   min-height: 3.25rem; /* 52px: premium, no solo el mínimo táctil */
   padding-inline: 1.5rem;
   font-weight: 600;
   letter-spacing: -0.005em;
-  background: var(--e-violet);
-  color: #ffffff;
+  background: var(--e-brand);
+  color: var(--e-text-on-accent);
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     var(--e-glow-violet);
   transition:
-    transform var(--e-dur-tap) var(--e-ease),
-    box-shadow var(--e-dur-ui) var(--e-ease),
-    background-color var(--e-dur-ui) var(--e-ease);
+    transform var(--e-dur-fast) var(--e-ease-standard),
+    box-shadow var(--e-dur-base) var(--e-ease-standard),
+    background-color var(--e-dur-base) var(--e-ease-standard);
 }
 .app-shell .btn-primary:hover,
 .btn-primary:hover {
-  background: #8b5cf6;
+  background: var(--e-violet-hover);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 16px 40px -18px rgba(124, 58, 237, 1);
@@ -207,7 +151,7 @@ html:not([data-theme="light"]) .app-shell .bizdock {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  border-radius: var(--e-r-pill);
+  border-radius: var(--e-radius-pill);
   padding: 0.25rem 0.625rem;
   font-size: 0.75rem;
   font-weight: 600;
@@ -215,17 +159,17 @@ html:not([data-theme="light"]) .app-shell .bizdock {
   border: 1px solid transparent;
 }
 .e-pill--ok {
-  color: var(--e-green);
+  color: var(--e-success);
   background: rgba(0, 230, 171, 0.12);
   border-color: rgba(0, 230, 171, 0.3);
 }
 .e-pill--hot {
-  color: var(--e-pink);
+  color: var(--e-urgent);
   background: rgba(255, 45, 152, 0.12);
   border-color: rgba(255, 45, 152, 0.3);
 }
 .e-pill--brand {
-  color: #d9b6ff;
+  color: var(--e-violet-200);
   background: rgba(124, 58, 237, 0.16);
   border-color: rgba(124, 58, 237, 0.34);
 }
@@ -241,11 +185,11 @@ html:not([data-theme="light"]) .app-shell .bizdock {
 .app-shell .btn-ghost,
 .app-shell .btn-mini {
   transition:
-    transform var(--e-dur-tap) var(--e-ease),
-    background-color var(--e-dur-ui) var(--e-ease),
-    border-color var(--e-dur-ui) var(--e-ease),
-    box-shadow var(--e-dur-ui) var(--e-ease),
-    color var(--e-dur-ui) var(--e-ease);
+    transform var(--e-dur-fast) var(--e-ease-standard),
+    background-color var(--e-dur-base) var(--e-ease-standard),
+    border-color var(--e-dur-base) var(--e-ease-standard),
+    box-shadow var(--e-dur-base) var(--e-ease-standard),
+    color var(--e-dur-base) var(--e-ease-standard);
 }
 .app-shell .bizdock-item:active,
 .app-shell .tabbar-item:active,
@@ -259,7 +203,7 @@ html:not([data-theme="light"]) .app-shell .bizdock {
 
 /* Foco de marca unificado: un anillo violeta, jamás outline gris. */
 .app-shell :is(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--e-violet-glow);
+  outline: 2px solid var(--e-brand-glow);
   outline-offset: 2px;
 }
 
@@ -272,13 +216,13 @@ html:not([data-theme="light"]) .app-shell .topbar {
   background: rgba(11, 11, 15, 0.72);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--e-line-soft);
+  border-bottom: 1px solid var(--e-border-soft);
 }
 html:not([data-theme="light"]) .app-shell .bottomnav {
   background: rgba(11, 11, 15, 0.78);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid var(--e-line-soft);
+  border-top: 1px solid var(--e-border-soft);
 }
 
 /* --------------------------------------------------------------------------
