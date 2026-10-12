@@ -268,6 +268,13 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   cabeceras pegajosas, cifras tabulares, violeta solo en la acción primaria.
 - **Promotor**: tinte de marca en cupos/ranking; estados de comisión claros.
 - **Puerta**: contraste máximo, targets grandes, feedback de escaneo inconfundible.
+  En el cierre, el veredicto `ALREADY_REDEEMED` ("YA USADA") dejó de ser un
+  rechazo mudo: el endpoint `redeem` devuelve ahora el **nombre del titular y la
+  hora del primer canje** (zona del evento), y el escáner lo muestra — la
+  discusión clásica "¿ya la usé?" se resuelve con datos, igual que `NOT_ACTIVE`
+  (hora de apertura del QR) y `WRONG_TYPE` (fila real). La retícula del escáner
+  pasó sus literales de marca a `color-mix(var(--e-violet-400))`: la única hoja
+  con violeta crudo era la de la puerta.
 - Retirar el bloque `@layer compat`; borrar los namespaces legacy.
 - Actualizar `AGENTS.md` y `DESIGN.md` (ver nota abajo).
 - *Aceptación*: E2E 6/6 verdes; regresión visual aprobada; stylelint y a11y verdes.

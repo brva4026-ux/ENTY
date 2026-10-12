@@ -78,6 +78,26 @@ def test_redemptions_detail_records_every_attempt(api, dbcur):
     assert "token" not in str(d).lower(), "nunca exponer tokens ni hashes"
 
 
+def test_already_redeemed_dice_quien_y_cuando(api, dbcur):
+    """El veredicto ALREADY_REDEEMED debe decir QUIÉN y CUÁNDO entró.
+
+    En la puerta, "presentada anteriormente" a secas abre una discusión sin
+    datos ("¿ya la usé?"). El segundo escaneo trae el nombre del titular y la
+    hora del primer canje (zona del evento), como ya hacían NOT_ACTIVE y
+    WRONG_TYPE con su detalle.
+    """
+    scen = api.scenario()
+    v, e, tt = scen["venue"], scen["event"], scen["type"]
+    _open_doors(api, v, e)
+    _emit(dbcur, e, tt, "tok-dup-con-detalle-9", "Nico Repetido")
+    assert _scan(api, v, e, "tok-dup-con-detalle-9").json()["code"] == "GRANTED"
+
+    dup = _scan(api, v, e, "tok-dup-con-detalle-9").json()
+    assert dup["code"] == "ALREADY_REDEEMED"
+    assert dup["customer_name"] == "Nico Repetido"
+    assert dup["detail"] and "Ya entró a las" in dup["detail"], dup["detail"]
+
+
 def test_redemptions_filters(api, dbcur):
     """Filtro por resultado y busqueda por invitado."""
     scen = api.scenario()

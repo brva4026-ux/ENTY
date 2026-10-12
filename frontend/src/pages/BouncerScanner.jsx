@@ -831,6 +831,7 @@ export default function BouncerScanner() {
           <span className="animate-fade mt-2 text-lg font-semibold text-white/90">
             {(result?.code === "SCAN_ERROR" ||
               result?.code === "WRONG_TYPE" ||
+              result?.code === "ALREADY_REDEEMED" ||
               result?.code === "NOT_ACTIVE") &&
             result.detail
               ? result.detail
