@@ -22,6 +22,31 @@ cd frontend && npm run dev                    # puerto 12000 en este entorno
 `run.py` existe porque psycopg async necesita `SelectorEventLoop` en Windows y
 el puerto es configurable con `API_PORT`.
 
+### Restaurar el entorno en un contenedor limpio (Linux)
+
+El contenedor puede llegar **sin** Postgres ni el binario de Playwright y sin
+nada corriendo. Para dejar UI + API + e2e operativos:
+
+```bash
+# 1. Postgres 17 + base + esquema + migraciones
+sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql
+sudo service postgresql start
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'devpassword';"
+sudo -u postgres psql -c "CREATE DATABASE ticketflow OWNER postgres;"
+for f in db/schema.sql db/migrations/*.sql; do PGPASSWORD=devpassword psql -h 127.0.0.1 -U postgres -d ticketflow -f "$f"; done
+
+# 2. Backend (env de backend/.env.local) y frontend
+cd backend && (set -a; . ./.env.local; set +a; nohup .venv/bin/python run.py >/tmp/backend.log 2>&1 &)
+cd frontend && (VITE_BACKEND_URL=http://127.0.0.1:8001 nohup npm run dev >/tmp/vite.log 2>&1 &)
+
+# 3. Seed + navegador de Playwright (por defecto NO viene instalado)
+curl -s -X POST http://127.0.0.1:12000/api/seed
+cd frontend && npx playwright install chromium
+```
+
+Sin el paso 3 los e2e fallan con `Executable doesn't exist ... chrome-headless-shell`.
+La home del fan vive en **`/inicio`** (`/` redirige a `/login`).
+
 ## Tests
 
 ```bash
