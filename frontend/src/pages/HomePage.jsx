@@ -25,6 +25,19 @@ import FanNav from "../components/FanNav";
 const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
 const FAVS_KEY = "tf_fan_favs";
 
+/** Palabras del ticker cinético: el vocabulario de la noche de Enty. Se
+ *  duplica en el render para un loop continuo (el keyframe mueve -50%). */
+const TICKER = [
+  "Conciertos",
+  "Festivales",
+  "Deportes",
+  "Teatro",
+  "Comedia",
+  "Cortesías",
+  "Aforo en vivo",
+  "Entrada con QR",
+];
+
 /** Fecha corta del evento, en su zona horaria: "Vie 24 oct". */
 function shortDate(iso, tz) {
   const d = new Date(iso);
@@ -360,20 +373,31 @@ export default function HomePage() {
   return (
     <div className="home">
       <header className="home-head">
-        <div className="home-wordmark">
-          <span>Enty</span>
-          <Star />
+        <div className="home-head-left">
+          <Link to="/inicio" className="home-wordmark" aria-label="Enty, inicio">
+            <span>Enty</span>
+            <Star />
+          </Link>
+          {/* Nav de escritorio: en móvil vive la barra inferior (FanNav). */}
+          <nav className="home-topnav" aria-label="Secciones">
+            <Link to="/inicio" aria-current="page">
+              Inicio
+            </Link>
+            <Link to="/boletas">Mis boletos</Link>
+          </nav>
         </div>
-        <button
-          type="button"
-          className="home-bell"
-          aria-label="Notificaciones"
-          aria-expanded={bellOpen}
-          onClick={() => setBellOpen((v) => !v)}
-        >
-          <BellIcon />
-          {soon.length > 0 && <i className="home-bell-dot" aria-hidden="true" />}
-        </button>
+        <div className="home-head-right">
+          <button
+            type="button"
+            className="home-bell"
+            aria-label="Notificaciones"
+            aria-expanded={bellOpen}
+            onClick={() => setBellOpen((v) => !v)}
+          >
+            <BellIcon />
+            {soon.length > 0 && <i className="home-bell-dot" aria-hidden="true" />}
+          </button>
+        </div>
       </header>
 
       {bellOpen && (
@@ -427,17 +451,39 @@ export default function HomePage() {
         ))}
       </div>
 
+      {/* Ticker cinético: la energía de la noche entre el troquel y la rejilla.
+          Decorativo (aria-hidden): repite la marca, no aporta datos. La lista
+          va duplicada para que el loop sea continuo (el keyframe mueve -50%). */}
+      <div className="home-ticker" aria-hidden="true">
+        <div className="home-ticker-track">
+          {TICKER.concat(TICKER).map((w, i) => (
+            <span key={`${w}-${i}`}>{w}</span>
+          ))}
+        </div>
+      </div>
+
       {error ? (
         <div className="home-empty">
-          <p>No pudimos cargar los eventos</p>
+          <span className="enty-spark" aria-hidden="true">
+            <Star size={20} color="#BB5CF6" />
+          </span>
+          <p>No pudimos cargar la cartelera</p>
           <span>{error}</span>
         </div>
       ) : !data ? (
-        <div className="home-empty">
-          <p>Cargando cartelera…</p>
+        <div className="home-grid">
+          <div className="enty-skel" style={{ height: "16.4rem" }} />
+          <div className="home-list">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="enty-skel" style={{ height: "5.4rem" }} />
+            ))}
+          </div>
         </div>
       ) : !featured ? (
         <div className="home-empty">
+          <span className="enty-spark" aria-hidden="true">
+            <Star size={20} color="#00E6AB" />
+          </span>
           <p>{query ? "Sin resultados" : "No hay eventos próximos"}</p>
           <span>
             {query
@@ -446,7 +492,7 @@ export default function HomePage() {
           </span>
         </div>
       ) : (
-        <>
+        <div className="home-grid">
           <Link to={`/evento/${featured.id}`} className="home-feature">
             {featured.flyer_url ? (
               <img className="home-feature-flyer" src={featured.flyer_url} alt="" />
@@ -475,6 +521,10 @@ export default function HomePage() {
               </div>
             </div>
           </Link>
+
+          {/* El troquel: la línea perforada de la boletería separa el
+              destacado de la lista — el mismo corte que la entrada. */}
+          <span className="enty-perf" aria-hidden="true" />
 
           <div className="home-subhead">
             <span>Próximos</span>
@@ -517,7 +567,7 @@ export default function HomePage() {
               );
             })}
           </div>
-        </>
+        </div>
       )}
 
       <FanNav active="inicio" />

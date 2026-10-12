@@ -118,6 +118,45 @@ export default function EventDetailPage() {
   const [copied, setCopied] = useState(false);
   const [coords, setCoords] = useState(null);
 
+  /** Acciones del cartel (volver, favorito, compartir). Se renderizan dos
+   *  veces — sobre el hero en móvil y sobre el cartel en escritorio — pero solo
+   *  una es visible según el breakpoint (la otra queda display:none). Es una
+   *  función de render, no un componente anidado: así no se remonta en cada
+   *  render ni pierde el foco. */
+  function posterActions() {
+    return (
+      <>
+        <button
+          type="button"
+          className="evd-round"
+          aria-label="Volver"
+          onClick={() => navigate(-1)}
+        >
+          <Icon name="back" className="h-5 w-5" />
+        </button>
+        <div className="evd-hero-actions-right">
+          <button
+            type="button"
+            className={`evd-round${fav ? " is-on" : ""}`}
+            aria-label={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
+            aria-pressed={fav}
+            onClick={toggleFav}
+          >
+            <Icon name="heart" className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            className="evd-round"
+            aria-label="Compartir"
+            onClick={share}
+          >
+            <Icon name="share" className="h-5 w-5" />
+          </button>
+        </div>
+      </>
+    );
+  }
+
   useEffect(() => {
     const restore = forceDarkOnce();
     return restore;
@@ -214,6 +253,8 @@ export default function EventDetailPage() {
 
   return (
     <div className="evd">
+      {/* Hero a sangre: solo en móvil/tablet. En escritorio el cartel pasa a
+          la columna izquierda (ver .evd-poster). */}
       <div className="evd-hero">
         {data?.flyer_url ? (
           <img src={data.flyer_url} alt="" />
@@ -221,23 +262,7 @@ export default function EventDetailPage() {
           <div className="evd-hero-fallback" aria-hidden="true" />
         )}
         <div className="evd-hero-actions">
-          <button type="button" className="evd-round" aria-label="Volver" onClick={() => navigate(-1)}>
-            <Icon name="back" className="h-5 w-5" />
-          </button>
-          <div className="evd-hero-actions-right">
-            <button
-              type="button"
-              className={`evd-round${fav ? " is-on" : ""}`}
-              aria-label={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
-              aria-pressed={fav}
-              onClick={toggleFav}
-            >
-              <Icon name="heart" className="h-5 w-5" />
-            </button>
-            <button type="button" className="evd-round" aria-label="Compartir" onClick={share}>
-              <Icon name="share" className="h-5 w-5" />
-            </button>
-          </div>
+          {posterActions()}
         </div>
       </div>
 
@@ -252,119 +277,151 @@ export default function EventDetailPage() {
         </div>
       ) : (
         <div className="evd-body">
-          <p className="evd-eyebrow">{data.category}</p>
-          <h1 className="evd-title">{data.name}</h1>
-          <p className="evd-sub">{data.where}</p>
-
-          <div className="evd-grid">
-            <div className="evd-cell">
-              <Icon name="calendar" className="evd-cell-icon" />
-              <span className="evd-cell-k">Fecha</span>
-              <span className="evd-cell-v">{when.date}</span>
-              {when.time && <span className="evd-cell-sub">{when.time}</span>}
+          {/* Columna izquierda (escritorio): el cartel del evento, pegajoso. */}
+          <div className="evd-poster">
+            <div className="evd-poster-frame">
+              {data.flyer_url ? (
+                <img src={data.flyer_url} alt="" />
+              ) : (
+                <div className="evd-hero-fallback" aria-hidden="true" />
+              )}
+              <div className="evd-hero-actions">
+                {posterActions()}
+              </div>
             </div>
-            <div className="evd-cell">
-              <Icon name="pin" className="evd-cell-icon" />
-              <span className="evd-cell-k">Ubicación</span>
-              <span className="evd-cell-v">{data.venue || data.location || "—"}</span>
-              {data.location && data.venue && (
-                <span className="evd-cell-sub">{data.location}</span>
+          </div>
+
+          {/* Columna derecha: identidad, datos, compra y pestañas. */}
+          <div className="evd-info">
+            <p className="evd-eyebrow">{data.category}</p>
+            <h1 className="evd-title">{data.name}</h1>
+            <p className="evd-sub">{data.where}</p>
+
+            <div className="evd-grid">
+              <div className="evd-cell">
+                <Icon name="calendar" className="evd-cell-icon" />
+                <span className="evd-cell-k">Fecha</span>
+                <span className="evd-cell-v">{when.date}</span>
+                {when.time && <span className="evd-cell-sub">{when.time}</span>}
+              </div>
+              <div className="evd-cell">
+                <Icon name="pin" className="evd-cell-icon" />
+                <span className="evd-cell-k">Ubicación</span>
+                <span className="evd-cell-v">{data.venue || data.location || "—"}</span>
+                {data.location && data.venue && (
+                  <span className="evd-cell-sub">{data.location}</span>
+                )}
+              </div>
+              <div className="evd-cell">
+                <Icon name="tag" className="evd-cell-icon" />
+                <span className="evd-cell-k">Precio</span>
+                <span className="evd-cell-v">
+                  {data.price_cents == null ? "Gratis" : money(data.price_cents)}
+                </span>
+                <span className="evd-cell-sub">desde</span>
+              </div>
+            </div>
+
+            {/* Rail de compra: el canto troquelado del boleto. El precio se
+                repite aquí en grande — la decisión no obliga a scrollear. */}
+            <div className="evd-buy enty-notch">
+              <div className="evd-buy-row">
+                <span className="evd-buy-label">Entrada desde</span>
+                <span className="evd-buy-price tnum">
+                  {data.price_cents == null ? "Gratis" : money(data.price_cents)}
+                </span>
+              </div>
+              <p className="evd-buy-note">
+                {data.price_cents == null
+                  ? "Cortesía: el acceso se valida con QR en la puerta."
+                  : "Reserva y recibe tu boleta con QR para la puerta."}
+              </p>
+              <Link to="/boletas" className="evd-cta evd-cta--wide">
+                Comprar boleto
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 12h13M13 6l6 6-6 6" />
+                </svg>
+              </Link>
+            </div>
+
+            <div role="tablist" aria-label="Detalles" className="evd-tabs">
+              {[
+                ["descripcion", "Descripción"],
+                ["lineup", "Lineup"],
+                ["ubicacion", "Ubicación"],
+              ].map(([k, label]) => (
+                <button
+                  key={k}
+                  role="tab"
+                  aria-selected={tab === k}
+                  className={tab === k ? "is-on" : ""}
+                  onClick={() => setTab(k)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="evd-tabbody">
+              {tab === "descripcion" &&
+                (data.description ? (
+                  <p className="evd-prose">{data.description}</p>
+                ) : (
+                  <p className="evd-muted">El organizador todavía no publicó la descripción.</p>
+                ))}
+
+              {tab === "lineup" &&
+                (data.lineup?.length ? (
+                  <ul className="evd-lineup">
+                    {data.lineup.map((a) => (
+                      <li key={a.name}>
+                        <span className="evd-lineup-avatar" aria-hidden="true">
+                          {a.name.charAt(0)}
+                        </span>
+                        <span className="evd-lineup-info">
+                          <strong>{a.name}</strong>
+                          {a.role && <em>{a.role}</em>}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="evd-muted">Lineup por anunciar.</p>
+                ))}
+
+              {tab === "ubicacion" && (
+                <div className="evd-map-wrap">
+                  {mapSrc ? (
+                    <div className="evd-map-frame">
+                      <iframe
+                        className="evd-map"
+                        title={`Mapa de ${data.venue || data.name}`}
+                        src={mapSrc}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                      <span className="evd-map-pin" aria-hidden="true">
+                        <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M12 22s7.5-6.6 7.5-11.7A7.5 7.5 0 1 0 4.5 10.3C4.5 15.4 12 22 12 22z" fill="#7C3AED" stroke="#fff" strokeWidth="1.4" />
+                          <circle cx="12" cy="10" r="2.7" fill="#fff" />
+                        </svg>
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="evd-map-skeleton" aria-hidden="true" />
+                  )}
+                  <p className="evd-address">
+                    <Icon name="pin" className="h-4 w-4" />
+                    {[data.venue, data.location].filter(Boolean).join(" · ") || "Ubicación por confirmar"}
+                  </p>
+                </div>
               )}
             </div>
-            <div className="evd-cell">
-              <Icon name="tag" className="evd-cell-icon" />
-              <span className="evd-cell-k">Precio</span>
-              <span className="evd-cell-v">
-                {data.price_cents == null ? "Gratis" : money(data.price_cents)}
-              </span>
-              <span className="evd-cell-sub">desde</span>
-            </div>
           </div>
-
-          <Link to="/boletas" className="evd-cta evd-cta--wide">
-            Comprar boleto
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M5 12h13M13 6l6 6-6 6" />
-            </svg>
-          </Link>
-
-          <div role="tablist" aria-label="Detalles" className="evd-tabs">
-            {[
-              ["descripcion", "Descripción"],
-              ["lineup", "Lineup"],
-              ["ubicacion", "Ubicación"],
-            ].map(([k, label]) => (
-              <button
-                key={k}
-                role="tab"
-                aria-selected={tab === k}
-                className={tab === k ? "is-on" : ""}
-                onClick={() => setTab(k)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div className="evd-tabbody">
-            {tab === "descripcion" &&
-              (data.description ? (
-                <p className="evd-prose">{data.description}</p>
-              ) : (
-                <p className="evd-muted">El organizador todavía no publicó la descripción.</p>
-              ))}
-
-            {tab === "lineup" &&
-              (data.lineup?.length ? (
-                <ul className="evd-lineup">
-                  {data.lineup.map((a) => (
-                    <li key={a.name}>
-                      <span className="evd-lineup-avatar" aria-hidden="true">
-                        {a.name.charAt(0)}
-                      </span>
-                      <span className="evd-lineup-info">
-                        <strong>{a.name}</strong>
-                        {a.role && <em>{a.role}</em>}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="evd-muted">Lineup por anunciar.</p>
-              ))}
-
-            {tab === "ubicacion" && (
-              <div className="evd-map-wrap">
-                {mapSrc ? (
-                  <div className="evd-map-frame">
-                    <iframe
-                      className="evd-map"
-                      title={`Mapa de ${data.venue || data.name}`}
-                      src={mapSrc}
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
-                    <span className="evd-map-pin" aria-hidden="true">
-                      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 22s7.5-6.6 7.5-11.7A7.5 7.5 0 1 0 4.5 10.3C4.5 15.4 12 22 12 22z" fill="#7C3AED" stroke="#fff" strokeWidth="1.4" />
-                        <circle cx="12" cy="10" r="2.7" fill="#fff" />
-                      </svg>
-                    </span>
-                  </div>
-                ) : (
-                  <div className="evd-map-skeleton" aria-hidden="true" />
-                )}
-                <p className="evd-address">
-                  <Icon name="pin" className="h-4 w-4" />
-                  {[data.venue, data.location].filter(Boolean).join(" · ") || "Ubicación por confirmar"}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {copied && <p className="evd-copied">Enlace copiado</p>}
         </div>
       )}
+
+      {copied && <p className="evd-copied">Enlace copiado</p>}
     </div>
   );
 }

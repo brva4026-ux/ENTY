@@ -10,6 +10,9 @@ import {
 import "./index.css";
 import "./aesthetic-refresh.css";
 import "./enty-system.css";
+// Capa de experiencia del fan (vitrina editorial responsive): se importa al
+// final para llevar la marca a su forma definitiva sin reescribir el sistema.
+import "./enty-fan.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";

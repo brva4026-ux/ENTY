@@ -169,6 +169,56 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
   test** (`uuid`): la suite siembra números fijos como `573001234567` y
   `3001234567` que colisionarían con una búsqueda por dígitos.
 
+## Capas de diseño (auditoría)
+
+El frontend importa **cuatro** hojas en este orden (main.jsx):
+`index.css` → `aesthetic-refresh.css` → `enty-system.css` → `enty-fan.css`.
+Cada una eleva la anterior sin reescribirla; `enty-fan.css` es la última palabra
+sobre las superficies del fan.
+
+| Capa | Alcance |
+| --- | --- |
+| `index.css` | Base del design system (clases `.card`, `.field`, `.btn-*`), tema claro/oscuro y la vitrina del fan (`.home`, `.evd`). |
+| `aesthetic-refresh.css` | Marca aplicada: `.home` (Inicio/boletas), `.evd` (detalle), `.tkt` (boleta pública) y la capa `.app-shell` del interior. |
+| `enty-system.css` | Retoques del sistema ("eleva sin reescribir"). |
+| `enty-fan.css` | **Experiencia del fan (vitrina editorial)**: responsive real, motivo de boleto perforado, ticker cinético y estados completos. |
+
+**Clasificación del rediseño (qué se conservó y qué se rehízo):**
+
+- **Conservar**: la marca (matte black `#0B0B0F`, violeta `#7C3AED`/`#BB5CF6`,
+  verde `#00E6AB`, rosa `#FF2D98`, tinta `#F5F5F7`, Sora única voz); el
+  encuadre nocturno del interior (`.app-shell`); la boleta pública `.tkt` (ya es
+  un artefacto troquelado y la credencial de la noche — no tocar).
+- **Perfeccionar**: las superficies `.home`/`.evd` — el motivo de boleto estaba
+  regado, ahora es el sistema.
+- **Reemplazar**: el shell de "tira de teléfono" del fan (`max-width: 26rem`,
+  sin breakpoints) por una vitrina editorial responsive; los estados vacíos
+  genéricos por estados con identidad; el hero de una columna del detalle por
+  un cartel pegajoso + rail de compra.
+- **Eliminar**: la carga de decoración sin función; la duplicación de color de
+  rol (ya centralizada en `lib/roles.js` → `ROLE_VISUALS`).
+
+**Motivos exclusivos de Enty** (reconocibles sin el logotipo):
+
+1. **Boleto perforado** — `.enty-perf` (troquel de línea discontinua) y
+   `.enty-notch` (canto festoneado por máscara radial). Se usan como separador
+   editorial y canto del rail de compra. La boleta pública y `.fan-ticket` ya
+   traen su propio corte rasgado.
+2. **Ticker cinético** — `.home-ticker` en Inicio: banda de palabras de la noche
+   que se desplaza (se detiene y se reflow-ea con `prefers-reduced-motion`).
+3. **Rejilla editorial** — `.home-list` es 1 col en móvil, 2 en ≥640px y 3 en
+   ≥1024px; la fila de evento se vuelve tarjeta con la fecha como sello.
+4. **Acento con significado** — verde = disponible/validado, rosa = urgencia.
+   El violeta es la única voz interactiva.
+
+**Verificación de la vitrina** (la que falla si se rompe):
+- Cero scroll horizontal a 320/420/768/1440px en `/inicio`, `/evento/:id`,
+  `/boletas` (un elemento cuenta como desborde solo si NINGÚN ancestro lo
+  recorta).
+- Detalle: 2 columnas ≥900px (cartel pegajoso + rail de compra), 1 en móvil.
+- Contraste de texto ≥ 4.5:1 sobre `#0B0B0F`: `dim` #9a96a8 (6.83), `dim-2`
+  #b6b2c4 (9.50), violeta brillo #bb5cf6 (5.59), verde (12.07), rosa (5.69).
+
 ## App interna (Enty): Admin · Promotor · Puerta
 
 El interior NO comparte el shell del fan: esas pantallas viven bajo
