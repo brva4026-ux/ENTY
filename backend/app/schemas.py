@@ -860,6 +860,19 @@ class ReportByPromoter(BaseModel):
     redeemed: int = 0
 
 
+class EventDoorPulse(BaseModel):
+    """Una franja del ritmo de puerta: cuantos ingresos cayeron en 10 min.
+
+    `bucket` = minutos desde el inicio de la noche (0, 10, 20, …); `count` =
+    ingresos (granted) en esa franja; `label` = hora LOCAL del evento ("21:40"),
+    ya formateada en el servidor para no repetir el manejo de husos en el front.
+    """
+
+    bucket: int
+    count: int = 0
+    label: str = ""
+
+
 class EventReport(BaseModel):
     event_id: int
     event_name: str
@@ -880,6 +893,11 @@ class EventReport(BaseModel):
     # no lo ve (no es su trabajo y es dato operativo del negocio).
     door_duplicates: int = 0
     door_rejected: int = 0
+    # Ritmo de la puerta: ingresos por franja de 10 min, con la hora LOCAL del
+    # evento. `count` por entrada; `bucket` = minutos desde el inicio de la
+    # noche. Es la señal que faltaba para OPERAR: el total dice cómo va, pero
+    # no si la puerta esta fluyendo o atascada. Solo vista admin.
+    door_pulse: list[EventDoorPulse] = []
 
 
 class DoorScanStats(BaseModel):

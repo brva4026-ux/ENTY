@@ -274,3 +274,129 @@ def test_report_door_health_not_leaked_to_promoter(api):
     assert body["door_duplicates"] == 0
     assert body["door_rejected"] == 0
 
+
+def test_report_door_pulse_buckets_ingresos_por_franja(api):
+    """El ritmo de puerta: ingresos agrupados en franjas de 10 min.
+
+    El total dice CÓMO VA la puerta; el ritmo dice si está FLUYENDO o
+    atascada. Es la señal que el admin necesita para reaccionar mientras el
+    evento pasa (abrir otro lector), no al día siguiente.
+    """
+    venue, event_id = _open_night(api, "Ritmo de puerta")
+    tipo = api.add_type(
+        "admin", venue, event_id,
+        name="General", price_cents=0, quantity=20, is_courtesy=True,
+    )
+
+    # 3 boletas canjeadas + 1 duplicado (que NO es ingreso: no infla el ritmo).
+    tokens = []
+    for i in range(3):
+        t = api.emit(
+            "admin", venue, event_id,
+            ticket_type_id=tipo["id"], allocation_id=None,
+            customer_name=f"Asistente {i}",
+        )
+        tokens.append(t["raw_token"])
+    for tok in tokens:
+        res = api.post(
+            f"/venues/{venue}/events/{event_id}/redeem",
+            "bouncer", {"raw_token": tok},
+        )
+        assert res.status_code == 200 and res.json()["redeemed"] is True, res.text
+    api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": tokens[0]},
+    )
+
+    body = api.get(f"/venues/{venue}/events/{event_id}/report", "admin").json()
+    pulse = body["door_pulse"]
+    assert pulse, "hay ingresos: el ritmo no puede venir vacío"
+    # Todos los escaneos cayeron en la misma franja (el test corre en ms), así
+    # que la serie es una sola barra. El bucket NO es 0: _open_night arranca el
+    # evento 1 h atrás y la puerta abre ~60 min después del inicio.
+    assert len(pulse) == 1
+    assert pulse[0]["count"] == 3  # el duplicado no cuenta
+    assert sum(p["count"] for p in pulse) == 3
+    # La hora local del evento viaja formateada (HH:MM), sin husos en el front.
+    assert len(pulse[0]["label"]) == 5 and pulse[0]["label"][2] == ":"
+
+
+def test_report_door_pulse_rellena_franjas_vacias(api):
+    """Una franja SIN ingresos es el dato (la puerta se atoró): no se salta.
+
+    Si solo devolviéramos las franjas con datos, el eje del gráfico mentiría:
+    dos franjas contiguas se verían igual que dos separadas por media hora.
+    """
+    venue, event_id = _open_night(api, "Ritmo con hueco")
+    tipo = api.add_type(
+        "admin", venue, event_id,
+        name="General", price_cents=0, quantity=20, is_courtesy=True,
+    )
+    t1 = api.emit(
+        "admin", venue, event_id,
+        ticket_type_id=tipo["id"], allocation_id=None,
+    )
+    t2 = api.emit(
+        "admin", venue, event_id,
+        ticket_type_id=tipo["id"], allocation_id=None,
+        customer_name="Tarde",
+    )
+    api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": t1["raw_token"]},
+    )
+    # El segundo ingreso llega 25 min DESPUÉS del primero (hueco de 2 franjas
+    # vacías en medio). No se mueve el primero hacia atrás: cruzaría `starts_at`
+    # y la fila quedaría fuera de la serie.
+    api.run_sql(
+        f"UPDATE redemptions SET scanned_at = scanned_at + interval '25 minutes' "
+        f"WHERE event_id = {event_id}"
+    )
+    api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": t2["raw_token"]},
+    )
+
+    pulse = api.get(
+        f"/venues/{venue}/events/{event_id}/report", "admin"
+    ).json()["door_pulse"]
+    counts = [p["count"] for p in pulse]
+    # Los dos ingresos en los extremos, con AL MENOS una franja vacía en medio:
+    # el hueco se rellena (si se saltara, la serie tendría largo 2 y el eje
+    # mentiría). El número exacto de huecos depende de la fase de los 10 min.
+    assert counts[0] == 1 and counts[-1] == 1
+    assert counts.count(0) >= 1
+    assert sum(counts) == 2
+    # Sin saltos: una franja por cada 10 min entre la primera y la última.
+    assert len(pulse) == pulse[-1]["bucket"] - pulse[0]["bucket"] + 1
+
+
+def test_report_door_pulse_sin_ingresos_es_vacio(api):
+    """Sin ningún ingreso no hay serie: el front dibuja su propio vacío."""
+    venue, event_id = _open_night(api, "Puerta sin abrir")
+    api.add_type(
+        "admin", venue, event_id,
+        name="General", price_cents=0, quantity=5, is_courtesy=True,
+    )
+    body = api.get(f"/venues/{venue}/events/{event_id}/report", "admin").json()
+    assert body["door_pulse"] == []
+
+
+def test_report_door_pulse_not_leaked_to_promoter(api):
+    """El ritmo de puerta es operativo del negocio: el promotor no lo ve."""
+    venue, event_id = _open_night(api, "Ritmo privado")
+    tipo = api.add_type(
+        "admin", venue, event_id,
+        name="General", price_cents=0, quantity=5, is_courtesy=True,
+    )
+    t = api.emit(
+        "admin", venue, event_id,
+        ticket_type_id=tipo["id"], allocation_id=None,
+    )
+    api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "bouncer", {"raw_token": t["raw_token"]},
+    )
+    body = api.get(f"/venues/{venue}/events/{event_id}/report", "promoter").json()
+    assert body["door_pulse"] == []
+
