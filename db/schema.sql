@@ -733,6 +733,54 @@ CREATE FUNCTION public.login_locked(p_email text, p_ip text, p_max_failures inte
 $$;
 
 --
+-- Name: notify_door_anomaly(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_door_anomaly() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+    v_n        int;
+    v_venue_id bigint;
+    v_name     text;
+    v_window    constant int := 5;
+    v_threshold constant int := 3;
+BEGIN
+    IF NEW.outcome <> 'already_redeemed' OR NEW.ticket_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT e.venue_id, e.name INTO v_venue_id, v_name
+    FROM events e WHERE e.id = NEW.event_id;
+    IF v_venue_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT count(*) INTO v_n
+    FROM redemptions
+    WHERE ticket_id = NEW.ticket_id
+      AND outcome = 'already_redeemed'
+      AND scanned_at >= now() - (v_window * INTERVAL '1 minute');
+
+    -- Se avisa al CRUZAR el umbral, una sola vez por rafaga.
+    IF v_n = v_threshold THEN
+        PERFORM notify_venue_admins(
+            v_venue_id, 'door_anomaly',
+            'Duplicados en puerta',
+            'La misma boleta se escaneo ' || v_n || ' veces en los ultimos '
+              || v_window || ' minutos'
+              || CASE WHEN v_name IS NOT NULL AND v_name <> ''
+                      THEN ' (' || v_name || ')' ELSE '' END
+              || '. Posible QR reenviado: revisa la puerta.',
+            '/admin'
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+--
 -- Name: notify_invitation_accepted(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1619,7 +1667,7 @@ CREATE TABLE public.notifications (
     link text,
     read_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text, 'event_autoclosed'::text])))
+    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text, 'event_autoclosed'::text, 'door_anomaly'::text])))
 );
 
 --
@@ -2663,6 +2711,12 @@ CREATE TRIGGER trg_invitation_accepted_notify AFTER UPDATE OF accepted_user_id O
 --
 
 CREATE TRIGGER trg_payout_lifecycle_notify AFTER INSERT OR UPDATE OF status ON public.promoter_payouts FOR EACH ROW EXECUTE FUNCTION public.notify_payout_lifecycle();
+
+--
+-- Name: redemptions trg_redemptions_door_anomaly; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_redemptions_door_anomaly AFTER INSERT ON public.redemptions FOR EACH ROW EXECUTE FUNCTION public.notify_door_anomaly();
 
 --
 -- Name: ticket_reissues trg_ticket_reissued_notify; Type: TRIGGER; Schema: public; Owner: -

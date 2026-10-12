@@ -361,3 +361,9 @@ avisar.
   `rejected` por evento. La consulta de `redemptions` va **aparte** (agrupada
   por evento) y se fusiona en Python: meterla en el mismo `FROM` que `tickets`
   multiplica filas (fan-out) y corrompe `active`/`revenue_cents`.
+- **Aviso proactivo (mig 026):** un trigger sobre `redemptions` (outcome
+  `already_redeemed`) avisa a los admins con kind `door_anomaly` cuando el
+  MISMO ticket se reescanea 3+ veces en 5 min (rafaga = firma de QR reenviado).
+  Es umbral por **tasa**, no acumulado, y avisa al **cruzar** el umbral una
+  sola vez por rafaga. Vive en la DB (como el resto de notificaciones), así que
+  cubre el scan en línea y la reconciliación offline (door_sync).

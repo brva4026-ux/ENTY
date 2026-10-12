@@ -28,6 +28,7 @@ const KIND_TILE = {
   invitation_accepted: { icon: "users", tile: "bg-sky-500/15 text-sky-400" },
   ticket_reissued: { icon: "qr", tile: "bg-violet-500/15 text-violet-300" },
   event_autoclosed: { icon: "clock", tile: "bg-amber-500/15 text-amber-400" },
+  door_anomaly: { icon: "shield", tile: "bg-rose-500/15 text-rose-400" },
 };
 
 const KIND_LABEL = {
@@ -37,6 +38,7 @@ const KIND_LABEL = {
   invitation_accepted: "Equipo",
   ticket_reissued: "Boleta",
   event_autoclosed: "Evento",
+  door_anomaly: "Puerta",
 };
 
 export default function NotificationBell() {
