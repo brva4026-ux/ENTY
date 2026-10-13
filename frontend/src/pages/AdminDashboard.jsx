@@ -245,6 +245,14 @@ export default function AdminDashboard() {
       (!q || ev.name.toLowerCase().includes(q)),
   );
 
+  // Onboarding del primer evento: el más reciente (la lista viene ordenada
+  // starts_at DESC) mientras siga en borrador. Publicarlo apaga la guía para
+  // siempre — y como el paso de "publicar" solo existe mientras haya borrador,
+  // la guía no puede reaparecer en un negocio que ya está vendiendo.
+  const newestEvent = events && events.length ? events[0] : null;
+  const showOnboarding =
+    events !== null && (!newestEvent || newestEvent.status === "draft");
+
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
     const data = await apiFetch(`/venues/${venueId}/events`);
@@ -343,6 +351,16 @@ export default function AdminDashboard() {
     flyToEvent(selectedEvent, tab);
   }
 
+  /** Atajo de la guía de primeros pasos: abre el borrador en la pestaña donde
+   *  se resuelve el paso pendiente. Sin evento, solo "Crear evento" aplica. */
+  function onboardingGo(step) {
+    if (!newestEvent) {
+      setCreateOpen(true);
+      return;
+    }
+    flyToEvent(newestEvent.id, step === "evento" ? undefined : step);
+  }
+
   // Usuarios de la venue: para asignar cupos con nombres reales
   const reloadUsers = useCallback(() => {
     if (!venueId) return Promise.resolve();
@@ -369,6 +387,21 @@ export default function AdminDashboard() {
     // y filtrado. Pedir el completo era una request muerta (nadie lee el
     // estado `tickets`) que además traía TODAS las boletas del evento.
   }, [selectedEvent, venueId]);
+
+  // Progreso del primer evento SIN abrir su backstage: la guía de primeros
+  // pasos necesita saber si el borrador ya tiene tipos y cupos. Con un evento
+  // abierto manda el suyo (el efecto de arriba ya llenó types/allocations);
+  // solo se precarga el borrador cuando NO hay backstage abierto, para no
+  // pisar los datos del evento que el admin está editando en ese momento.
+  useEffect(() => {
+    if (selectedEvent || !showOnboarding || !newestEvent || !venueId) return;
+    apiFetch(`/venues/${venueId}/events/${newestEvent.id}/types`)
+      .then(setTypes)
+      .catch(() => {});
+    apiFetch(`/venues/${venueId}/events/${newestEvent.id}/allocations`)
+      .then(setAllocations)
+      .catch(() => {});
+  }, [selectedEvent, showOnboarding, newestEvent, venueId]);
 
   // Memoizado: es dependencia de reloadAll (PTR) y de useLiveRefresh; sin
   // memo, ambas corren con una closure vieja cuando cambia el evento elegido.
@@ -722,16 +755,20 @@ export default function AdminDashboard() {
       <div className="reveal space-y-5">
         {/* En móvil: invita a instalar la PWA (se oculta sola si ya está instalada) */}
         <InstallPrompt />
-        {/* Guía del admin primerizo: SOLO mientras la venue es nueva (sin
-          eventos). Con negocio operando era ruido permanente: un checklist
-          "Crea tu primer evento" sobre una lista llena de eventos. */}
-        {events !== null && events.length === 0 && (
+        {/* Guía del admin primerizo: acompaña hasta que el PRIMER evento está
+          realmente a la venta. Antes solo vivía con la venue vacía, así que
+          al crear el evento desaparecía y los pasos 2–4 (tipos, cupos,
+          publicar) nunca se veían. Ahora se muestra mientras el evento más
+          reciente siga en borrador y mide el progreso REAL. Al publicarlo
+          (o descartarla) se calla para siempre. */}
+        {events !== null && showOnboarding && (
           <OnboardingChecklist
-            hasEvent={false}
+            hasEvent={events.length > 0}
             hasTypes={types.length > 0}
             hasAllocations={allocations.length > 0}
-            isPublished={false}
+            isPublished={newestEvent ? newestEvent.status !== "draft" : false}
             onStart={() => setCreateOpen(true)}
+            onGo={onboardingGo}
           />
         )}{" "}
         {error && (
