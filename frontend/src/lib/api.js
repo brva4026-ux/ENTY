@@ -63,6 +63,27 @@ export function fetchPublicEventDetail(eventId) {
 }
 
 /**
+ * Checkout publico del fan (sin cuenta). Crea el cobro en Wompi y devuelve la
+ * URL a la que hay que mandar al comprador. El monto lo pone el SERVIDOR
+ * (precio de la localidad); el cuerpo solo lleva localidad + contacto.
+ */
+export function startPublicCheckout(eventId, payload) {
+  return apiFetch(`/public/events/${encodeURIComponent(eventId)}/checkout`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Estado de un checkout propio. La `reference` (128 bits) es la capability:
+ * el fan la recibe al comprar y la conserva para el polling tras volver de
+ * Wompi. No devuelve el token del QR (eso se reclama en /boletas).
+ */
+export function fetchPublicCheckoutStatus(reference) {
+  return apiFetch(`/public/checkout/${encodeURIComponent(reference)}`);
+}
+
+/**
  * App del fan: "mis boletas" por contacto (magic link, sin cuenta).
  * El correo o telefono con que le emitieron las boletas es la identidad.
  * No devuelve tokens: para el QR se pide `fetchMyTicketToken`.

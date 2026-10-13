@@ -110,10 +110,31 @@ uno nuevo (no se reutiliza: evita reutilizar referencias).
 |---|---|---|
 | `POST /venues/{v}/events/{e}/payments` | admin | Crea el cobro: llama a Wompi, guarda `pending` + `provider_ref`, devuelve `payment_url` |
 | `GET /venues/{v}/events/{e}/payments` | admin | Lista los cobros del evento (estado, enlace, boleta emitida) |
+| `POST /public/events/{e}/checkout` | pública | Checkout del fan (sin cuenta): valida la localidad, crea el cobro con el precio del SERVIDOR y devuelve la URL de Wompi |
+| `GET /public/checkout/{reference}` | pública | Estado del checkout propio (para el polling tras volver de Wompi). La `reference` es la capability |
 | `POST /payments/wompi/webhook` | pública | Valida firma, llama a `approve_ticket_payment`, responde 200 |
 
-Entrega de la boleta: **sin cambios** — cuando el pago se aprueba, la boletaes una emisión normal: el admin la ve en el listado y reenvía el enlace `/t#<token>`
+Entrega de la boleta: **sin cambios** — cuando el pago se aprueba, la boleta es una emisión normal: el admin la ve en el listado y reenvía el enlace `/t#<token>`
 por el flujo estándar `wa.me`.
+
+### Checkout público del fan (fase siguiente, ya implementado)
+
+El fan compra solo, sin login, desde el detalle del evento (`/evento/:id`). El
+flujo **reutiliza entero** el ciclo de la mig 023: crea el link de Wompi y el
+webhook emite la boleta al aprobar. Lo único distinto es que no hay sesión:
+
+- `ticket_payments.created_by_user_id` queda **NULL** (no hay usuario).
+- La `reference` (`TF-<evento>-<32 hex>`, 128 bits) es la **capability** con la
+  que el fan consulta el estado; no se enumeran cobros (una inventada es 404).
+- El **contacto** (teléfono obligatorio, correo opcional) es la identidad con
+  la que el fan reclama su QR en `/boletas` — el mismo camino auditado de
+  siempre. El token del QR **nunca** sale del checkout.
+- El monto sale de `ticket_types.price_cents`, **nunca** del cliente; no se
+  cobra una cortesía, una localidad inactiva ni un evento en borrador/pasado.
+- Rate limit propio y más duro que el del catálogo (20/hora por IP): cada POST
+  crea una fila y llama a Wompi con dinero real.
+- Tras pagar, Wompi vuelve a `/evento/:id?pago=<reference>`; el modal sondea
+  `GET /public/checkout/{reference}` hasta que el webhook resuelva.
 
 ## Seguridad
 
@@ -130,7 +151,6 @@ por el flujo estándar `wa.me`.
 
 ## Fuera de alcance: lo que NO hace este MVP
 
-- Sin página pública de compra (el fan no paga él mismo: fase siguiente).
 - Sin reembolsos vía API (anulación sigue siendo void + devolución en puerta).
 - Sin webhooks de dispersión/payouts a terceros (los payouts del promotor
   siguen por el flujo de mig 010).

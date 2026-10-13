@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPublicEventDetail } from "../lib/api";
+import FanCheckoutModal from "../components/FanCheckoutModal";
 import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import useDocumentTitle from "../lib/useDocumentTitle";
@@ -18,9 +19,10 @@ import useDocumentTitle from "../lib/useDocumentTitle";
  * (el modelo no tiene artistas): muestra un estado "por anunciar" honesto en
  * vez de inventar cabezas de cartel.
  *
- * Compra: no hay checkout publico aun. El CTA lleva a Mis boletos, donde el
- * fan recupera lo que ya le emitieron por contacto; cuando exista checkout,
- * apunta ahi (mismo criterio que Inicio).
+ * Compra: el CTA abre el checkout público (sin cuenta). El fan elige
+ * localidad, deja su contacto y paga en Wompi; al volver, `?pago=<reference>`
+ * reabre el modal en modo confirmación (sondeo del estado) y la boleta se
+ * reclama por contacto en Mis boletos.
  */
 
 const FAVS_KEY = "tf_fan_favs";
@@ -112,6 +114,7 @@ function readFavs() {
 export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("descripcion");
@@ -119,7 +122,11 @@ export default function EventDetailPage() {
   const [favPop, setFavPop] = useState(false);
   const [copied, setCopied] = useState(false);
   const [coords, setCoords] = useState(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   useDocumentTitle(data?.name);
+
+  // Referencia del checkout al volver de Wompi (redirect_url del cobro).
+  const payRef = searchParams.get("pago");
 
   /** Acciones del cartel (volver, favorito, compartir). Se renderizan dos
    *  veces — sobre el hero en móvil y sobre el cartel en escritorio — pero solo
@@ -255,6 +262,18 @@ export default function EventDetailPage() {
       )}&layer=mapnik&marker=${encodeURIComponent(`${coords.lat},${coords.lon}`)}`
     : "";
 
+  // Cierra el checkout. Si venimos de Wompi con ?pago=, limpia ese parametro
+  // de la URL (replace: sin dejar historial) para no reabrir el modal al
+  // recargar.
+  function closeCheckout() {
+    setCheckoutOpen(false);
+    if (payRef) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("pago");
+      setSearchParams(next, { replace: true });
+    }
+  }
+
   return (
     <div className="evd">
       {/* Hero a sangre: solo en móvil/tablet. En escritorio el cartel pasa a
@@ -338,14 +357,27 @@ export default function EventDetailPage() {
               <p className="evd-buy-note">
                 {data.price_cents == null
                   ? "Cortesía: el acceso se valida con QR en la puerta."
-                  : "Reserva y recibe tu boleta con QR para la puerta."}
+                  : "Compra en línea y recibe tu QR para la puerta."}
               </p>
-              <Link to="/boletas" className="evd-cta evd-cta--wide">
-                Comprar boleto
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M5 12h13M13 6l6 6-6 6" />
-                </svg>
-              </Link>
+              {data.price_cents == null ? (
+                <Link to="/boletas" className="evd-cta evd-cta--wide">
+                  Ver mis boletas
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h13M13 6l6 6-6 6" />
+                  </svg>
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="evd-cta evd-cta--wide"
+                  onClick={() => setCheckoutOpen(true)}
+                >
+                  Comprar boleto
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h13M13 6l6 6-6 6" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             <div role="tablist" aria-label="Detalles" className="evd-tabs">
@@ -426,6 +458,18 @@ export default function EventDetailPage() {
       )}
 
       {copied && <p className="evd-copied">Enlace copiado</p>}
+
+      {(checkoutOpen || payRef) && data && (
+        <FanCheckoutModal
+          event={data}
+          reference={payRef}
+          onClose={closeCheckout}
+          onPaid={() => {
+            closeCheckout();
+            navigate("/boletas");
+          }}
+        />
+      )}
     </div>
   );
 }
