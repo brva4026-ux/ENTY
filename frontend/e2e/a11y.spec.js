@@ -139,7 +139,16 @@ async function audit(page) {
   return page.evaluate(auditInPage);
 }
 
-const PUBLIC = ["/inicio", "/boletas", "/login", "/waitlist", "/register", "/reset"];
+const PUBLIC = [
+  "/inicio",
+  "/boletas",
+  "/login",
+  "/waitlist",
+  "/register",
+  "/reset",
+  "/terminos",
+  "/privacidad",
+];
 
 /** Ruta de detalle de un evento real del catálogo (los ids derivan con el
  *  seed: no se puede clavar un /evento/N). Devuelve null si no hay ninguno. */
@@ -306,7 +315,16 @@ test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", 
   test.skip(!ok, "App no disponible");
 
   const eventPath = await firstEventPath(page);
-  const publicPaths = ["/inicio", "/boletas", "/login", "/register", "/reset", "/waitlist"];
+  const publicPaths = [
+    "/inicio",
+    "/boletas",
+    "/login",
+    "/register",
+    "/reset",
+    "/waitlist",
+    "/terminos",
+    "/privacidad",
+  ];
   if (eventPath) publicPaths.push(eventPath);
 
   const fails = [];

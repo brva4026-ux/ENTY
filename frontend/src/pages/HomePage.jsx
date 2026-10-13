@@ -579,6 +579,17 @@ export default function HomePage() {
         </div>
       )}
 
+      <footer className="home-foot">
+        <p className="home-foot-brand">
+          <span>Enty</span>
+          <i aria-hidden="true" />
+        </p>
+        <nav className="home-foot-links" aria-label="Enlaces legales">
+          <Link to="/terminos">Términos</Link>
+          <Link to="/privacidad">Privacidad</Link>
+        </nav>
+      </footer>
+
       <FanNav active="inicio" />
     </div>
   );

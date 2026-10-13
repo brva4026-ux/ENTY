@@ -596,3 +596,240 @@
     font-size: var(--e-text-2xl);
   }
 }
+
+/* --------------------------------------------------------------------------
+ * 12. PÁGINAS LEGALES · prosa, no producto
+ * -------------------------------------------------------------------------
+ *  Términos y Privacidad son públicas y su contenido es texto largo. Comparten
+ *  un layout mínimo con la firma de la casa: el wordmark con su destello y un
+ *  filete troquelado bajo la cabecera (el mismo gesto del boleto). La medida
+ *  de línea se limita a ~68ch para que se lea, y el texto sale de tokens
+ *  semánticos: pasa AA en oscuro y claro (lo exige a11y.spec.js).
+ * ------------------------------------------------------------------------- */
+.legal {
+  min-height: 100vh;
+  background: var(--e-canvas);
+  color: var(--e-text-primary);
+  padding: 0 var(--e-space-5) var(--e-space-20);
+}
+
+.legal-top {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: var(--e-space-6) 0 var(--e-space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-space-4);
+}
+
+.legal-brand {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 3px;
+  font-size: var(--e-text-xl);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--e-text-primary);
+  text-decoration: none;
+}
+/* Destello del rótulo: el mismo rombo de la vitrina, aquí en miniatura. */
+.legal-brand i {
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: 0.1rem;
+  border-radius: 1px;
+  background: var(--e-brand-glow);
+  box-shadow: 0 0 10px var(--e-brand-glow);
+}
+
+.legal-back {
+  font-size: var(--e-text-sm);
+  font-weight: 600;
+  color: var(--e-text-secondary);
+  text-decoration: none;
+  padding: var(--e-space-2) var(--e-space-3);
+  border-radius: var(--e-radius-pill);
+  border: 1px solid var(--e-border-hairline);
+  transition: color var(--e-dur-fast) var(--e-ease-standard),
+    border-color var(--e-dur-fast) var(--e-ease-standard);
+}
+.legal-back:hover {
+  color: var(--e-text-primary);
+  border-color: var(--e-border-strong);
+}
+
+.legal-wrap {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding-top: var(--e-space-4);
+}
+
+/* Filete troquelado: la firma del boleto como separador de cabecera. */
+.legal-wrap::before {
+  content: "";
+  display: block;
+  height: 1px;
+  margin-bottom: var(--e-space-10);
+  background-image: linear-gradient(
+    90deg,
+    var(--e-border-strong) 0 6px,
+    transparent 6px 12px
+  );
+  background-size: 12px 1px;
+  background-repeat: repeat-x;
+}
+
+.legal-title {
+  font-size: var(--e-text-3xl);
+  margin-top: var(--e-space-2);
+  max-width: 24ch;
+}
+
+.legal-updated {
+  margin-top: var(--e-space-3);
+  font-size: var(--e-text-xs);
+  color: var(--e-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.legal-intro {
+  margin-top: var(--e-space-6);
+  max-width: 62ch;
+  font-size: var(--e-text-lg);
+  line-height: 1.6;
+  color: var(--e-text-secondary);
+}
+
+.legal-body {
+  margin-top: var(--e-space-12);
+  max-width: 62ch;
+}
+
+.legal-body section + section {
+  margin-top: var(--e-space-8);
+}
+
+.legal-body h2 {
+  font-size: var(--e-text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--e-text-primary);
+}
+
+.legal-body p,
+.legal-body li {
+  margin-top: var(--e-space-3);
+  font-size: var(--e-text-base);
+  line-height: 1.7;
+  color: var(--e-text-secondary);
+}
+
+.legal-body ul {
+  margin-top: var(--e-space-2);
+  padding-left: var(--e-space-5);
+  list-style: disc;
+}
+.legal-body li::marker {
+  color: var(--e-brand-glow);
+}
+.legal-body strong {
+  color: var(--e-text-primary);
+  font-weight: 600;
+}
+
+.legal-link {
+  color: var(--e-brand-glow);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+html[data-theme="light"] .legal-link {
+  /* Violeta profundo: --e-brand-glow no alcanza AA sobre papel claro. */
+  color: var(--e-violet-700);
+}
+
+.legal-foot {
+  margin-top: var(--e-space-16);
+  padding-top: var(--e-space-6);
+  border-top: 1px solid var(--e-border-hairline);
+  max-width: 62ch;
+}
+.legal-foot p {
+  font-size: var(--e-text-sm);
+  line-height: 1.6;
+  color: var(--e-text-muted);
+}
+
+.legal-nav {
+  margin-top: var(--e-space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-space-2) var(--e-space-5);
+}
+.legal-nav a {
+  font-size: var(--e-text-sm);
+  font-weight: 600;
+  color: var(--e-text-secondary);
+  text-decoration: none;
+}
+.legal-nav a:hover {
+  color: var(--e-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .legal-title {
+    font-size: var(--e-text-2xl);
+  }
+  .legal-intro {
+    font-size: var(--e-text-base);
+  }
+}
+
+/* Pie de la vitrina: el acceso a lo legal desde la cara pública del fan.
+   Discreto — el producto es la fiesta, no el documento — pero siempre a mano.
+   Filete superior tenue y el rótulo en miniatura para no competir con el hero. */
+.home-foot {
+  margin-top: var(--e-space-16);
+  padding: var(--e-space-6) 0 var(--e-space-4);
+  border-top: 1px solid var(--e-border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e-space-3) var(--e-space-6);
+}
+.home-foot-brand {
+  margin: 0;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 3px;
+  font-size: var(--e-text-base);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  color: var(--e-text-secondary);
+}
+.home-foot-brand i {
+  width: 0.35rem;
+  height: 0.35rem;
+  margin-top: 0.1rem;
+  border-radius: 1px;
+  background: var(--e-brand-glow);
+}
+.home-foot-links {
+  display: flex;
+  gap: var(--e-space-5);
+}
+.home-foot-links a {
+  font-size: var(--e-text-sm);
+  font-weight: 600;
+  color: var(--e-text-muted);
+  text-decoration: none;
+  transition: color var(--e-dur-fast) var(--e-ease-standard);
+}
+.home-foot-links a:hover {
+  color: var(--e-text-primary);
+}
+
