@@ -35,23 +35,51 @@ const MIME = {
   ".map": "application/json",
 };
 
+// Cabeceras de seguridad del origen estatico. La CSP es la misma que
+// vercel.json (los hashes sha256 son de los dos <script> inline de
+// index.html: anti-flash de tema y registro del service worker). Si cambia
+// ese HTML hay que recalcularlos con scripts/csp-hashes.mjs.
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(self), geolocation=(self)",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "Content-Security-Policy":
+    "default-src 'self'; base-uri 'self'; object-src 'none'; " +
+    "frame-ancestors 'none'; form-action 'self'; " +
+    "script-src 'self' 'sha256-0l/m51pGomBc9sAh6V/9Ij3EC4bHWhmvkRMaQb3acaw=' " +
+    "'sha256-tOpkJ3KK+PB+F2LbcSWD0tBsbOYYGl6C5JFOnnqBVPk='; " +
+    "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
+    "font-src 'self'; connect-src 'self' https://*.sentry.io " +
+    "https://*.ingest.sentry.io https://*.ingest.us.sentry.io " +
+    "https://nominatim.openstreetmap.org; manifest-src 'self'; " +
+    "worker-src 'self' blob:",
+};
+
 async function serveStatic(req, res, pathname) {
   let filePath = normalize(join(DIST, pathname));
   if (!filePath.startsWith(DIST)) {
-    res.writeHead(403);
+    res.writeHead(403, SECURITY_HEADERS);
     res.end("forbidden");
     return;
   }
   try {
     const data = await readFile(filePath);
     const ext = extname(filePath).toLowerCase();
-    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+    res.writeHead(200, {
+      ...SECURITY_HEADERS,
+      "Content-Type": MIME[ext] || "application/octet-stream",
+    });
     res.end(data);
   } catch {
     // SPA fallback: cualquier ruta que no sea archivo devuelve index.html
     try {
       const data = await readFile(join(DIST, "index.html"));
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.writeHead(200, {
+        ...SECURITY_HEADERS,
+        "Content-Type": "text/html; charset=utf-8",
+      });
       res.end(data);
     } catch {
       res.writeHead(500);

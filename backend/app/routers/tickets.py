@@ -727,8 +727,10 @@ async def door_sync(
     # debería traer más de lo que una fila humana generó, pero el límite
     # protege el log de redemptions de un cliente desbocado.
     if len(body) > 200:
+        # 413 literal: ver media.py — el nombre nuevo de Starlette no existe
+        # en todas las versiones soportadas y el viejo está deprecado.
         raise HTTPException(
-            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            413,
             "Demasiados escaneos en una sola sincronización (máx 200)",
         )
 

@@ -63,8 +63,11 @@ async def upload_media(
     if not raw:
         raise HTTPException(422, "La imagen llega vacía.")
     if len(raw) > MAX_BYTES:
+        # 413 literal (no status.HTTP_413_*): el nombre nuevo de Starlette no
+        # existe en las versiones que permite fastapi>=0.111, y el viejo
+        # emite un DeprecationWarning. El código numérico es estable en todas.
         raise HTTPException(
-            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            413,
             "La imagen supera los 600 KB después de decodificar.",
         )
 
