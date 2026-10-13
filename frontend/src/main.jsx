@@ -61,6 +61,9 @@ const AcceptInvitationPage = lazyPage(
 );
 const ResetPasswordPage = lazyPage(() => import("./pages/ResetPasswordPage"));
 const DoorLinkPage = lazyPage(() => import("./pages/DoorLinkPage"));
+// Legales: públicas, sin login. Lazy como el resto (no pesan en el arranque).
+const TerminosPage = lazyPage(() => import("./pages/TerminosPage"));
+const PrivacidadPage = lazyPage(() => import("./pages/PrivacidadPage"));
 import Layout from "./components/Layout";
 import { SplashScreen } from "./components/SplashScreen";
 
@@ -136,6 +139,10 @@ function App() {
               vitrina. Se llega tocando un evento del catalogo. */}
               <Route path="/evento/:id" element={<EventDetailPage />} />
               <Route path="/boletas" element={<MyTicketsPage />} />
+              {/* Legales: públicas, sin login. Cierran el bloqueante de operar
+              con cobros reales (no había dónde asentar términos ni privacidad). */}
+              <Route path="/terminos" element={<TerminosPage />} />
+              <Route path="/privacidad" element={<PrivacidadPage />} />
               {/* Lista de espera (E2): publica, sin cuentas. La credencial del
               fan tambien viaja en el fragmento y se guarda en localStorage. */}
               <Route path="/waitlist" element={<WaitlistPage />} />

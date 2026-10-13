@@ -3,6 +3,12 @@
  * su primer evento. Se oculta solo (queda completado + descartado) para no
  * estorbar a quien ya sabe lo que hace. Micro-confeti de emojis al completar
  * todo — un momento especial medido, sin saturar.
+ *
+ * Antes solo aparecía con la venue VACÍA: al crear el primer evento
+ * desaparecía y los pasos 2–4 nunca se veían. Ahora se muestra mientras el
+ * evento más reciente sigue en borrador y mide el progreso REAL (tipos,
+ * cupos, publicado) que el padre le pasa. Cada paso pendiente es un atajo
+ * que lleva a la pestaña donde se resuelve.
  */
 import { useEffect, useState } from "react";
 import { haptics } from "../lib/haptics";
@@ -11,17 +17,24 @@ const DISMISS_KEY = "tf_onboarding_done";
 
 const CONFETTI = ["🎉", "🎟️", "✨", "🎊", "🥳"];
 
-export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPublished, onStart }) {
+export function OnboardingChecklist({
+  hasEvent,
+  hasTypes,
+  hasAllocations,
+  isPublished,
+  onStart,
+  onGo,
+}) {
   const [dismissed, setDismissed] = useState(
     () => localStorage.getItem(DISMISS_KEY) === "1"
   );
   const [celebrate, setCelebrate] = useState(false);
 
   const steps = [
-    { done: hasEvent, label: "Crea tu primer evento", hint: "Nombre, fecha y aforo" },
-    { done: hasTypes, label: "Define tipos de boleta", hint: "General, VIP, cortesías…" },
-    { done: hasAllocations, label: "Asigna cupos a tu equipo", hint: "Cada promotor vende dentro de su cupo" },
-    { done: isPublished, label: "Publica y abre puertas", hint: "Publica para vender; en puerta, escanea QR" },
+    { done: hasEvent, label: "Crea tu primer evento", hint: "Nombre, fecha y aforo", go: "evento" },
+    { done: hasTypes, label: "Define tipos de boleta", hint: "General, VIP, cortesías…", go: "entradas" },
+    { done: hasAllocations, label: "Asigna cupos a tu equipo", hint: "Cada promotor vende dentro de su cupo", go: "cupos" },
+    { done: isPublished, label: "Publica y abre puertas", hint: "Publica para vender; en puerta, escanea QR", go: "resumen" },
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const allDone = doneCount === steps.length;
@@ -69,10 +82,19 @@ export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPubl
           </h3>
         </div>
         {/* CTA del primer paso: la guía no solo informa, EJECUTA. Sin esto el
-          admin primerizo lee "crea tu primer evento" y sale a buscar el botón. */}
-        {!allDone && onStart && (
-          <button onClick={onStart} className="btn-primary !px-3 !py-1.5 text-xs">
-            {hasEvent ? "Continuar" : "Crear evento"}
+          admin primerizo lee "crea tu primer evento" y sale a buscar el botón.
+          Una vez hay evento, el botón lleva al paso pendiente más temprano. */}
+        {!allDone && (onStart || onGo) && (
+          <button
+            onClick={() => {
+              const next = steps.find((s) => !s.done);
+              if (!hasEvent && onStart) return onStart();
+              if (next?.go && onGo) return onGo(next.go);
+              if (onStart) onStart();
+            }}
+            className="btn-primary !px-3 !py-1.5 text-xs"
+          >
+            {hasEvent ? "Siguiente paso" : "Crear evento"}
           </button>
         )}
         <div className="flex items-center gap-2">
@@ -101,31 +123,51 @@ export function OnboardingChecklist({ hasEvent, hasTypes, hasAllocations, isPubl
       </div>
 
       <ol className="mt-3 space-y-2.5">
-        {steps.map((s, i) => (
-          <li key={i} className="flex items-center gap-3">
-            <span
-              className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold transition-all duration-300 ${
-                s.done
-                  ? "scale-110 bg-emerald-500 text-white"
-                  : "bg-zinc-800 text-zinc-500 ring-1 ring-zinc-700"
-              }`}
-            >
-              {s.done ? (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
+        {steps.map((s, i) => {
+          // Paso pendiente = atajo a su pestaña. El hecho (hecho) no navega:
+          // no hay nada que arreglar ahí.
+          const actionable = !s.done && s.go && onGo;
+          const body = (
+            <>
+              <span
+                className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold transition-all duration-300 ${
+                  s.done
+                    ? "scale-110 bg-emerald-500 text-white"
+                    : "bg-zinc-800 text-zinc-500 ring-1 ring-zinc-700"
+                }`}
+              >
+                {s.done ? (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                ) : (
+                  i + 1
+                )}
+              </span>
+              <div className="min-w-0 text-left">
+                <p className={`text-sm font-medium ${s.done ? "text-zinc-500 line-through decoration-zinc-700" : "text-zinc-200"}`}>
+                  {s.label}
+                </p>
+                <p className="text-xs text-zinc-600">{s.hint}</p>
+              </div>
+            </>
+          );
+          return (
+            <li key={i}>
+              {actionable ? (
+                <button
+                  type="button"
+                  onClick={() => onGo(s.go)}
+                  className="flex w-full items-center gap-3 rounded-lg transition hover:bg-zinc-800/50"
+                >
+                  {body}
+                </button>
               ) : (
-                i + 1
+                <div className="flex items-center gap-3">{body}</div>
               )}
-            </span>
-            <div className="min-w-0">
-              <p className={`text-sm font-medium ${s.done ? "text-zinc-500 line-through decoration-zinc-700" : "text-zinc-200"}`}>
-                {s.label}
-              </p>
-              <p className="text-xs text-zinc-600">{s.hint}</p>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ol>
     </div>
   );

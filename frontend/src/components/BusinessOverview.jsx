@@ -206,6 +206,141 @@ function PromoterBars({ promoters }) {
 }
 
 /**
+ * Ritmo de venta: CUÁNDO se vendió el mes, no cuánto. El total (recaudo,
+ * boletas) ya está arriba; esto responde "¿vendí por impulso la última noche
+ * o con semanas de anticipación?", que es lo que decide cuándo empujar la
+ * preventa. Barras horizontales (magnitud proporcional, como el ranking de
+ * promotores): una serie de anticipación se lee de arriba (lejano) abajo
+ * (últimos días), que es el orden natural de una línea de tiempo.
+ */
+const ANTICIPATION_LABELS = {
+  "30+": "30+ días antes",
+  "15-29": "15–29 días",
+  "8-14": "8–14 días",
+  "2-7": "2–7 días",
+  "0-1": "Últimos 2 días",
+};
+
+function SalesCurve({ curve }) {
+  const total = curve.reduce((n, b) => n + b.tickets, 0);
+  if (total === 0) {
+    return (
+      <div className="card p-5">
+        <p className="display mb-3 text-base">Ritmo de venta</p>
+        <p className="text-sm text-zinc-500">
+          Aún no hay boletas vendidas este mes para medir con cuánta
+          anticipación se compran.
+        </p>
+      </div>
+    );
+  }
+  const max = Math.max(...curve.map((b) => b.tickets), 1);
+  return (
+    <div className="card p-5">
+      <p className="display text-base">Ritmo de venta</p>
+      <p className="mb-3 mt-1 text-xs text-zinc-500">
+        Con cuánta anticipación se vendieron las {total} boletas del mes.
+      </p>
+      <ul
+        className="space-y-2.5"
+        role="img"
+        aria-label={`Ritmo de venta: ${curve
+          .map((b) => `${ANTICIPATION_LABELS[b.bucket] ?? b.bucket} ${b.tickets}`)
+          .join(", ")}`}
+      >
+        {curve.map((b, i) => {
+          const w = Math.max(b.tickets > 0 ? 4 : 0, Math.round((b.tickets / max) * 100));
+          return (
+            <li key={b.bucket} className="text-sm">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-zinc-300">
+                  {ANTICIPATION_LABELS[b.bucket] ?? b.bucket}
+                </span>
+                <span className="tnum shrink-0 text-xs font-semibold text-zinc-200">
+                  {b.tickets}{" "}
+                  {b.tickets === 1 ? "boleta" : "boletas"}
+                  {b.revenue_cents > 0 && (
+                    <span className="ml-2 font-normal text-emerald-300">
+                      {money(b.revenue_cents)}
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-brand-700/70 to-brand-500 transition-all duration-500"
+                  style={{ width: `${w}%`, transitionDelay: `${i * 60}ms` }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * Retención: de los compradores del mes, cuántos ya habían comprado aquí
+ * antes. Es la métrica que distingue "crecí porque traje gente nueva" de
+ * "crecí porque la gente volvió" — dos negocios distintos. Solo cuenta a
+ * quien dejó teléfono (el backend excluye al resto), por eso el copy aclara
+ * la base: no inflamos "nuevos" con datos que no existen.
+ */
+function RetentionCard({ buyers, returning }) {
+  if (buyers === 0) {
+    return (
+      <div className="card p-5">
+        <p className="display mb-3 text-base">Clientes que vuelven</p>
+        <p className="text-sm text-zinc-500">
+          Sin compradores con teléfono este mes no se puede medir la
+          recurrencia (un cliente solo cuenta si dejó su teléfono).
+        </p>
+      </div>
+    );
+  }
+  const fresh = buyers - returning;
+  const pct = Math.round((returning / buyers) * 100);
+  return (
+    <div className="card p-5">
+      <p className="display text-base">Clientes que vuelven</p>
+      <p className="mb-3 mt-1 text-xs text-zinc-500">
+        De {buyers} {buyers === 1 ? "comprador" : "compradores"} con teléfono
+        este mes.
+      </p>
+      {/* Barra partida: recurrente (violeta, el valor que se quiere crecer)
+          vs nuevo (gris). Una cifra sola no dice la PROPORCIÓN. */}
+      <div
+        className="flex h-3 overflow-hidden rounded-full bg-zinc-800"
+        role="img"
+        aria-label={`${returning} recurrentes y ${fresh} nuevos de ${buyers} compradores`}
+      >
+        <div
+          className="h-full bg-gradient-to-r from-brand-700 to-brand-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-1">
+        <div>
+          <p className="tnum text-2xl font-extrabold text-brand-300">
+            <CountUpNumber value={pct} format={(v) => `${Math.round(v)}%`} />
+          </p>
+          <p className="text-2xs text-zinc-500">vuelven</p>
+        </div>
+        <div>
+          <p className="tnum text-lg font-bold text-zinc-200">{returning}</p>
+          <p className="text-2xs text-zinc-500">recurrentes</p>
+        </div>
+        <div>
+          <p className="tnum text-lg font-bold text-zinc-200">{fresh}</p>
+          <p className="text-2xs text-zinc-500">nuevos</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Vista del NEGOCIO entre eventos: la que faltaba. Todo por mes natural
  * (zona del venue), criterio contable idéntico al reporte por evento:
  * boletas vivas facturan; anuladas/reembolsadas no.
@@ -343,6 +478,17 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                 <RevenueBars events={data.top_events} onOpen={onOpenEvent} />
               </div>
             )}
+
+            {/* Dos preguntas del negocio que el TOTAL no responde: CUÁNDO se
+                vendió (ritmo) y QUIÉN volvió (retención). Van juntas por ser
+                las dos de "comportamiento del cliente", no de caja. */}
+            <div className="grid gap-5 lg:grid-cols-2">
+              <SalesCurve curve={data.sales_curve ?? []} />
+              <RetentionCard
+                buyers={data.retention_buyers ?? 0}
+                returning={data.retention_returning ?? 0}
+              />
+            </div>
 
             {data.events_count === 0 ? (
               <div className="card p-5">

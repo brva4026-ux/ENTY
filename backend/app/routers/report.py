@@ -512,6 +512,72 @@ _PREV_SQL = """
                          AT TIME ZONE %(tz)s)
 """
 
+# Curva de venta del mes: cuánto tiempo ANTES de la noche se vendió cada
+# boleta viva. Es la métrica que ninguna otra vista responde: el total dice
+# CUÁNTO se vendió; esto dice CUÁNDO. Una boleta emitida después del inicio
+# (venta de puerta) cae en '0-1': la resta da negativo y el ELSE la recoge.
+# La escala es en días de anticipación, del más lejano al más cercano.
+_SALES_CURVE_SQL = """
+    WITH month_events AS (
+        SELECT id, starts_at FROM events
+        WHERE venue_id = %(venue)s
+          AND date_trunc('month', starts_at AT TIME ZONE %(tz)s)
+                = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
+    )
+    SELECT CASE
+             WHEN extract(epoch FROM (e.starts_at - t.issued_at)) >= 30*86400 THEN '30+'
+             WHEN extract(epoch FROM (e.starts_at - t.issued_at)) >= 15*86400 THEN '15-29'
+             WHEN extract(epoch FROM (e.starts_at - t.issued_at)) >= 8*86400  THEN '8-14'
+             WHEN extract(epoch FROM (e.starts_at - t.issued_at)) >= 2*86400  THEN '2-7'
+             ELSE '0-1' END AS bucket,
+           count(*)::int AS tickets,
+           coalesce(sum(t.price_cents_snapshot), 0)::bigint AS revenue_cents
+    FROM month_events e
+    JOIN tickets t ON t.event_id = e.id
+    WHERE t.status IN ('issued','redeemed')
+    GROUP BY bucket
+"""
+
+# Retención: de los compradores del mes (identificados por teléfono, el único
+# dato que se captura siempre), cuántos ya le habían comprado a ESTE venue
+# antes. El teléfono se normaliza a sus últimos 10 dígitos para que
+# '3001234567' y '573001234567' sean el mismo cliente (los dos formatos
+# conviven en la tabla). Los compradores sin teléfono quedan fuera del
+# denominador: no se puede saber si repiten, y contarlos como nuevos
+# inflaría la cifra de "nuevos" con datos que no existen.
+_RETENTION_SQL = r"""
+    WITH month_buyers AS (
+        SELECT right(regexp_replace(t.customer_phone, '\D', '', 'g'), 10) AS phone,
+               min(t.issued_at) AS first_at
+        FROM tickets t
+        JOIN events e ON e.id = t.event_id
+        WHERE e.venue_id = %(venue)s
+          AND t.status IN ('issued','redeemed')
+          AND t.customer_phone IS NOT NULL
+          AND btrim(t.customer_phone) <> ''
+          AND date_trunc('month', e.starts_at AT TIME ZONE %(tz)s)
+                = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
+        GROUP BY phone
+    )
+    SELECT count(*)::int AS buyers,
+           count(*) FILTER (WHERE EXISTS (
+               SELECT 1
+               FROM tickets t2
+               JOIN events e2 ON e2.id = t2.event_id
+               WHERE e2.venue_id = %(venue)s
+                 AND t2.status IN ('issued','redeemed')
+                 AND right(regexp_replace(t2.customer_phone, '\D', '', 'g'), 10)
+                     = month_buyers.phone
+                 AND t2.issued_at < month_buyers.first_at
+           ))::int AS returning_buyers
+    FROM month_buyers
+"""
+
+# Orden de presentación de la curva: del más anticipado al más tardío. El
+# backend devuelve SIEMPRE los 5 tramos (rellenando con 0) para que la UI no
+# tenga que inventar el eje ni reordenar filas.
+_SALES_CURVE_ORDER = ["30+", "15-29", "8-14", "2-7", "0-1"]
+
 
 def _resolve_month(month: str | None, tz: str) -> tuple[str, datetime]:
     """Valida `?month=YYYY-MM` y devuelve (etiqueta, month_start con zona).
@@ -567,6 +633,23 @@ async def venue_overview(
         top_events = await cur.fetchall()
         await cur.execute(_COMMISSIONS_SQL, params)
         commissions = await cur.fetchone()
+        await cur.execute(_SALES_CURVE_SQL, params)
+        curve_rows = await cur.fetchall()
+        await cur.execute(_RETENTION_SQL, params)
+        retention = await cur.fetchone()
+
+    # La curva viaja con sus 5 tramos SIEMPRE, rellenos con 0 donde no hubo
+    # venta: el tramo vacío es el dato (nadie compró con 30 días de
+    # anticipación), no una fila que la UI deba inventar.
+    curve_by_bucket = {r["bucket"]: r for r in curve_rows}
+    sales_curve = [
+        {
+            "bucket": b,
+            "tickets": curve_by_bucket.get(b, {}).get("tickets", 0),
+            "revenue_cents": curve_by_bucket.get(b, {}).get("revenue_cents", 0),
+        }
+        for b in _SALES_CURVE_ORDER
+    ]
 
     revenue = agg["revenue_cents"]
     paid = agg["tickets_issued"] - agg["courtesy_tickets"]
@@ -591,6 +674,9 @@ async def venue_overview(
             if commissions and commissions["commissions_cents"] is not None
             else None
         ),
+        sales_curve=sales_curve,
+        retention_buyers=retention["buyers"] if retention else 0,
+        retention_returning=retention["returning_buyers"] if retention else 0,
     )
 
 
@@ -620,6 +706,8 @@ async def venue_overview_csv(
         prev = await cur.fetchone()
         await cur.execute(_TOP_EVENTS_SQL, params)
         events = await cur.fetchall()
+        await cur.execute(_SALES_CURVE_SQL, params)
+        curve_rows = await cur.fetchall()
         # Auditoria (mig 019): el resumen mensual es lo que se lleva el
         # contador — queda registrado quien lo exporto.
         await write_audit(
@@ -627,6 +715,8 @@ async def venue_overview_csv(
             {"mes": month, "eventos": len(events)},
         )
         await db.commit()
+
+    curve_by_bucket = {r["bucket"]: r for r in curve_rows}
 
     def money(cents) -> float:
         return round((cents or 0) / 100, 2)
@@ -646,6 +736,14 @@ async def venue_overview_csv(
     if (prev["revenue_cents"] or 0) > 0:
         trend = round((agg["revenue_cents"] - prev["revenue_cents"]) / prev["revenue_cents"] * 100)
         w.writerow(["Tendencia vs mes anterior (%)", trend])
+    w.writerow([])
+    # Ritmo de venta: cuándo se vendió, no cuánto. Una sección aparte porque
+    # es una serie, no un escalar; el contador la lee fila a fila.
+    w.writerow(["Ritmo de venta (días antes del evento)"])
+    w.writerow(["Anticipacion", "Boletas", "Recaudo (COP)"])
+    for b in _SALES_CURVE_ORDER:
+        row = curve_by_bucket.get(b, {})
+        w.writerow([b, row.get("tickets", 0), money(row.get("revenue_cents", 0))])
     w.writerow([])
     w.writerow(["Eventos del mes"])
     w.writerow(["Evento", "Fecha", "Estado", "Boletas", "Recaudo (COP)"])

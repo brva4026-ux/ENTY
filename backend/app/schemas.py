@@ -980,6 +980,15 @@ class VenueOverview(BaseModel):
     # que "no hay comisión calculable" NO es lo mismo que "la comisión es
     # cero". La UI usa ese null para decidir si mostrar el neto.
     commissions_cents: int | None = None
+    # Curva de venta del mes: SIEMPRE los 5 tramos de anticipación (de "30+"
+    # a "0-1"), rellenados con 0 donde no hubo venta. El tramo vacío es el
+    # dato, no una fila ausente. Mide CUÁNDO se vendió, no cuánto.
+    sales_curve: list[dict] = []   # [{bucket, tickets, revenue_cents}]
+    # Retención: compradores del mes identificados por teléfono y cuántos ya
+    # le compraron a este venue antes. `buyers` excluye a quien no dejó
+    # teléfono (no se puede saber si repite; contarlo como nuevo mentiría).
+    retention_buyers: int = 0
+    retention_returning: int = 0
 
 
 class MessageOut(BaseModel):

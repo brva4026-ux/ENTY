@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useAuth } from "../lib/auth";
 // El registro siempre crea un admin de venue: el mismo criterio de redirect
@@ -210,6 +211,18 @@ export default function RegisterPage() {
               {filled < 4
                 ? "Serás el administrador: podrás invitar a tu equipo después."
                 : "Todo listo: al crear entrarás directo como administrador."}
+            </p>
+
+            <p className="mt-2 text-center text-2xs leading-relaxed text-zinc-500">
+              Al crear tu cuenta aceptas los{" "}
+              <Link to="/terminos" className="font-semibold text-brand-300">
+                Términos
+              </Link>{" "}
+              y la{" "}
+              <Link to="/privacidad" className="font-semibold text-brand-300">
+                Política de privacidad
+              </Link>
+              .
             </p>
           </form>
         </div>
