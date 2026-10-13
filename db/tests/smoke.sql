@@ -36,32 +36,32 @@ ON CONFLICT DO NOTHING;
 -- GRANTED. Con +7 dias (como estaba) el QR aun no activa y el smoke moria en
 -- el paso 3 con NOT_ACTIVE.
 INSERT INTO events (venue_id, name, starts_at, capacity, status)
-SELECT id, 'Noche Electrónica', now() + interval '5 minutes', 100, 'published' FROM venues WHERE slug='bar-esquina'
+SELECT id, 'SMOKE-TEST: Noche Electrónica', now() + interval '5 minutes', 100, 'published' FROM venues WHERE slug='bar-esquina'
 ON CONFLICT DO NOTHING;
 
 -- Tipos: General (pago) y Cortesía (cupo: 5 de Promo1 + 3 de Promo2 = 8).
 INSERT INTO ticket_types (event_id, name, price_cents, quantity, is_courtesy)
-SELECT id, 'General', 30000, 80, FALSE FROM events WHERE name='Noche Electrónica'
+SELECT id, 'General', 30000, 80, FALSE FROM events WHERE name='SMOKE-TEST: Noche Electrónica'
 ON CONFLICT (event_id, name) DO NOTHING;
 INSERT INTO ticket_types (event_id, name, price_cents, quantity, is_courtesy)
-SELECT id, 'Cortesia', 0, 8, TRUE FROM events WHERE name='Noche Electrónica'
+SELECT id, 'Cortesia', 0, 8, TRUE FROM events WHERE name='SMOKE-TEST: Noche Electrónica'
 ON CONFLICT (event_id, name) DO NOTHING;
 
 -- Cupos: Promo1 tiene 5 cortesias, Promo2 tiene 3, y 10 venta directa maximos.
 INSERT INTO promoter_allocations (event_id, ticket_type_id, promoter_id, capacity)
 SELECT e.id, tt.id, p.id, 5
 FROM events e, ticket_types tt, users p
-WHERE e.name='Noche Electrónica' AND tt.name='Cortesia' AND p.email='promotor1@bar.test'
+WHERE e.name='SMOKE-TEST: Noche Electrónica' AND tt.name='Cortesia' AND p.email='promotor1@bar.test'
 ON CONFLICT DO NOTHING;
 INSERT INTO promoter_allocations (event_id, ticket_type_id, promoter_id, capacity)
 SELECT e.id, tt.id, p.id, 3
 FROM events e, ticket_types tt, users p
-WHERE e.name='Noche Electrónica' AND tt.name='Cortesia' AND p.email='promotor2@bar.test'
+WHERE e.name='SMOKE-TEST: Noche Electrónica' AND tt.name='Cortesia' AND p.email='promotor2@bar.test'
 ON CONFLICT DO NOTHING;
 INSERT INTO promoter_allocations (event_id, ticket_type_id, promoter_id, capacity)
 SELECT e.id, tt.id, p.id, 10
 FROM events e, ticket_types tt, users p
-WHERE e.name='Noche Electrónica' AND tt.name='General' AND p.email='promotor1@bar.test'
+WHERE e.name='SMOKE-TEST: Noche Electrónica' AND tt.name='General' AND p.email='promotor1@bar.test'
 ON CONFLICT DO NOTHING;
 
 -- 1) Emite 5/5 del cupo de Promo1 (Cortesia) ---------------------------------
@@ -69,7 +69,7 @@ DO $$
 DECLARE
     v_ev bigint; v_tt bigint; v_prom bigint; v_alloc bigint;
 BEGIN
-    SELECT id INTO v_ev FROM events WHERE name='Noche Electrónica';
+    SELECT id INTO v_ev FROM events WHERE name='SMOKE-TEST: Noche Electrónica';
     SELECT id INTO v_tt FROM ticket_types WHERE name='Cortesia' AND event_id=v_ev;
     SELECT id INTO v_prom FROM users WHERE email='promotor1@bar.test';
     SELECT id INTO v_alloc FROM promoter_allocations WHERE promoter_id=v_prom AND ticket_type_id=v_tt;
@@ -85,7 +85,7 @@ DO $$
 DECLARE
     v_ev bigint; v_tt bigint; v_alloc bigint; v_prom bigint;
 BEGIN
-    SELECT id INTO v_ev FROM events WHERE name='Noche Electrónica';
+    SELECT id INTO v_ev FROM events WHERE name='SMOKE-TEST: Noche Electrónica';
     SELECT id INTO v_tt FROM ticket_types WHERE name='Cortesia';
     SELECT promoter_allocations.id INTO v_alloc FROM promoter_allocations
       JOIN users u ON u.id=promoter_allocations.promoter_id
@@ -108,7 +108,7 @@ $$;
 DO $$
 DECLARE v_ev bigint; v_tt bigint; v_prom bigint;
 BEGIN
-    SELECT id INTO v_ev FROM events WHERE name='Noche Electrónica';
+    SELECT id INTO v_ev FROM events WHERE name='SMOKE-TEST: Noche Electrónica';
     SELECT id INTO v_tt FROM ticket_types WHERE name='General';
     SELECT id INTO v_prom FROM users WHERE email='promotor1@bar.test';
     FOR i IN 1..10 LOOP
@@ -122,7 +122,7 @@ $$;
 DO $$
 DECLARE v_ev bigint; v_tt bigint;
 BEGIN
-    SELECT id INTO v_ev FROM events WHERE name='Noche Electrónica';
+    SELECT id INTO v_ev FROM events WHERE name='SMOKE-TEST: Noche Electrónica';
     SELECT id INTO v_tt FROM ticket_types WHERE name='Cortesia';
     BEGIN
         PERFORM emit_ticket(
@@ -144,7 +144,7 @@ $$;
 DO $$
 DECLARE v_ev bigint; v_tok text; v_first text; v_second text;
 BEGIN
-    SELECT id INTO v_ev FROM events WHERE name='Noche Electrónica';
+    SELECT id INTO v_ev FROM events WHERE name='SMOKE-TEST: Noche Electrónica';
     v_tok := 'venta-token-1';
     v_first  := redeem_ticket(v_ev, v_tok, (SELECT id FROM users WHERE email='bouncer@bar.test'));
     v_second := redeem_ticket(v_ev, v_tok, (SELECT id FROM users WHERE email='bouncer@bar.test'));
@@ -160,7 +160,7 @@ DO $$
 DECLARE v_res text;
 BEGIN
     v_res := redeem_ticket(
-        (SELECT id FROM events WHERE name='Noche Electrónica'),
+        (SELECT id FROM events WHERE name='SMOKE-TEST: Noche Electrónica'),
         'token-inexistente-xyz', (SELECT id FROM users WHERE email='bouncer@bar.test'));
     IF v_res <> 'NOT_FOUND' THEN RAISE EXCEPTION 'TEST_FAIL: Token inexistente deberia NOT_FOUND (era %)', v_res; END IF;
     RAISE NOTICE 'OK: token inexistente -> NOT_FOUND';
@@ -181,7 +181,7 @@ $$;
 DO $$
 BEGIN
     BEGIN
-        UPDATE events SET capacity=1 WHERE name='Noche Electrónica';
+        UPDATE events SET capacity=1 WHERE name='SMOKE-TEST: Noche Electrónica';
         RAISE EXCEPTION 'TEST_FAIL: Esperaba capacity_cannot_be_below_issued';
     EXCEPTION WHEN OTHERS THEN
         IF SQLSTATE = 'P0001' AND SQLERRM LIKE '%capacity_cannot_be_below_issued%' THEN

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
@@ -233,6 +233,7 @@ async def list_events(
     venue_id: int,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=500)] = 200,
 ):
     _event_ctx(venue_id, user)
     async with db.cursor() as cur:
@@ -255,8 +256,8 @@ async def list_events(
             capture_exception(e, context={"kind": "watchdog_auto_close", "venue_id": venue_id})
         await cur.execute(
             f"SELECT {EVENT_COLUMNS} FROM events "
-            "WHERE venue_id=%s ORDER BY starts_at DESC",
-            (venue_id,),
+            "WHERE venue_id=%s ORDER BY starts_at DESC LIMIT %s",
+            (venue_id, limit),
         )
         rows = await cur.fetchall()
 

@@ -156,3 +156,16 @@ def test_event_creation_still_allows_future_starts(api, world):
     future = datetime.now(timezone.utc) + timedelta(days=3)
     res = _post_event(api, world["venue_a"], starts_at=future.isoformat())
     assert res.status_code == 201, res.text
+
+
+def test_list_events_respects_limit(api, world):
+    """El listado tiene un techo (le=500): una venue con cientos de eventos no
+    puede pedir la tabla entera en una sola respuesta."""
+    venue = world["venue_a"]
+    for i in range(3):
+        _post_event(api, venue, name=f"Evento {i}")
+    # limit=2 devuelve 2; el default (200) devuelve los 3 creados.
+    assert len(api.get(f"/venues/{venue}/events?limit=2", "admin").json()) == 2
+    assert len(api.get(f"/venues/{venue}/events", "admin").json()) >= 3
+    # Por encima del techo -> 422 (validación de Query), no una consulta sin tope.
+    assert api.get(f"/venues/{venue}/events?limit=99999", "admin").status_code == 422
