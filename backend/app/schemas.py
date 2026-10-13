@@ -931,11 +931,16 @@ class DoorScanStats(BaseModel):
 class ReportSummary(BaseModel):
     """KPIs de caja del evento. `revenue_cents` cuenta boletas vivas
     (issued + redeemed); anuladas y reembolsadas no facturan.
+
+    `since`/`until` reflejan la ventana pedida (null = todo el evento): la
+    caja de un periodo, no solo "ahora".
     """
 
     event_id: int
     event_name: str
     capacity: int
+    since: datetime | None = None
+    until: datetime | None = None
     issued: int
     redeemed: int
     pending: int

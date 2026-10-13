@@ -553,9 +553,15 @@ avisar.
 - `EventWorkbench` los pinta en el backstage, **solo si > 0** (un 0 permanente
   sería ruido). El `/report` se refresca en vivo con `useLiveRefresh` cuando el
   evento está en puerta, así que la alerta aparece mientras pasa la noche.
-- **Dato muerto que dejamos ahí a propósito**: `GET /events/{id}/summary` ya
-  calculaba integridad de puerta (`DoorScanStats`) pero el frontend **nunca lo
-  consume** (buscar `/summary` en `frontend/src`). Antes de añadir otro cálculo
+- **Caja con rango de fechas**: `GET /events/{id}/summary` acepta
+  `?since`/`?until` (ISO 8601, rango semiabierto [since, until) sobre
+  `issued_at`/`scanned_at`) y `GET /events/{id}/summary.csv` baja el mismo
+  cierre como archivo (auditado). Un datetime SIN zona se interpreta en la
+  zona del EVENTO, no en UTC (misma leccion de `_resolve_month`): asi la UI
+  puede mandar fechas sueltas "YYYY-MM-DD" del `<input type="date">` y
+  "2026-10-01" significa medianoche en Bogota. Sin rango, la caja es la de
+  siempre (todo el evento). El backstage pinta un rango Desde/Hasta con boton
+  "Caja (CSV)" en la tarjeta "Cierre de noche". Antes de añadir otro calculo
   de puerta, revisar si `/summary` ya lo tiene.
 
 ## Admin: ritmo de puerta (`door_pulse`)

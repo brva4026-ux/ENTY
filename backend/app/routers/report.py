@@ -7,7 +7,10 @@ Dos vistas sobre los mismos datos:
   vista recortada (ocupacion del evento + sus propios numeros, sin dinero
   global ni ventas de colegas). El bouncer no tiene acceso.
 - `ReportSummary` (`/summary`): solo admin/super_admin. Agrega ingresos y
-  la integridad de la puerta (que escaneos no cuadraron).
+  la integridad de la puerta (que escaneos no cuadraron). Acepta
+  `?since`/`?until` (ISO 8601) para cerrar la caja de un periodo —el mismo
+  rango que ya tenia el registro de puerta— y `GET .../summary.csv` baja el
+  mismo cierre como archivo, para el contador.
 """
 import csv
 import io
@@ -16,7 +19,7 @@ from typing import Annotated
 from zoneinfo import ZoneInfo
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
@@ -34,8 +37,10 @@ _BY_TYPE_SQL = """
                     FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint
              AS revenue_cents
     FROM ticket_types tt
-    LEFT JOIN tickets t ON t.ticket_type_id = tt.id AND t.event_id = %s
-    WHERE tt.event_id = %s
+    LEFT JOIN tickets t ON t.ticket_type_id = tt.id AND t.event_id = %(ev)s
+      AND (%(since)s::timestamptz IS NULL OR t.issued_at >= %(since)s::timestamptz)
+      AND (%(until)s::timestamptz IS NULL OR t.issued_at <  %(until)s::timestamptz)
+    WHERE tt.event_id = %(ev)s
     GROUP BY tt.id
     ORDER BY tt.id
 """
@@ -63,7 +68,9 @@ _BY_PROMOTER_SQL = """
     FROM promoter_allocations a
     JOIN users u ON u.id = a.promoter_id
     LEFT JOIN tickets t ON t.allocation_id = a.id
-    WHERE a.event_id = %s
+      AND (%(since)s::timestamptz IS NULL OR t.issued_at >= %(since)s::timestamptz)
+      AND (%(until)s::timestamptz IS NULL OR t.issued_at <  %(until)s::timestamptz)
+    WHERE a.event_id = %(ev)s
     GROUP BY u.id, u.full_name, a.capacity
     ORDER BY u.full_name
 """
@@ -81,10 +88,17 @@ async def _event_or_404(cur, event_id: int, venue_id: int) -> dict:
     return ev
 
 
-async def _by_status(cur, event_id: int) -> dict[str, int]:
+async def _by_status(
+    cur, event_id: int, since: datetime | None = None, until: datetime | None = None
+) -> dict[str, int]:
     await cur.execute(
-        "SELECT status, count(*)::int AS n FROM tickets WHERE event_id=%s GROUP BY status",
-        (event_id,),
+        """
+        SELECT status, count(*)::int AS n FROM tickets WHERE event_id=%(ev)s
+          AND (%(since)s::timestamptz IS NULL OR issued_at >= %(since)s::timestamptz)
+          AND (%(until)s::timestamptz IS NULL OR issued_at <  %(until)s::timestamptz)
+        GROUP BY status
+        """,
+        {"ev": event_id, "since": since, "until": until},
     )
     return {r["status"]: r["n"] for r in await cur.fetchall()}
 
@@ -224,10 +238,10 @@ async def event_report(
         ev = await _event_or_404(cur, event_id, venue_id)
         by_status = await _by_status(cur, event_id)
 
-        await cur.execute(_BY_TYPE_SQL, (event_id, event_id))
+        await cur.execute(_BY_TYPE_SQL, {"ev": event_id, "since": None, "until": None})
         by_type = await cur.fetchall()
 
-        await cur.execute(_BY_PROMOTER_SQL, (event_id,))
+        await cur.execute(_BY_PROMOTER_SQL, {"ev": event_id, "since": None, "until": None})
         by_promoter = await cur.fetchall()
 
         # Recaudo vivo: suma de snapshots de boletas activas (criterio local,
@@ -329,13 +343,24 @@ async def event_summary(
     event_id: int,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    since: Annotated[datetime | None, Query()] = None,
+    until: Annotated[datetime | None, Query()] = None,
 ):
-    """Caja + integridad de puerta. Solo admin: expone los ingresos."""
+    """Caja + integridad de puerta. Solo admin: expone los ingresos.
+
+    `?since`/`?until` (ISO 8601) cierran la caja de un PERIODO, no solo de
+    "ahora": mismo rango semiabierto que el registro de puerta. Sin rango,
+    la caja es la de siempre (todo el evento).
+    """
     ensure_roles(user, venue_id, "super_admin", "admin")
 
     async with db.cursor() as cur:
         ev = await _event_or_404(cur, event_id, venue_id)
-        by_status = await _by_status(cur, event_id)
+        w = _caja_window(since, until, ev["event_timezone"])
+        t_params = {"since": w["since"], "until": w["until"]}
+        by_type_params = {**t_params, "ev": event_id}
+        by_promoter_params = {**t_params, "ev": event_id}
+        by_status = await _by_status(cur, event_id, w["since"], w["until"])
 
         await cur.execute(
             """
@@ -346,16 +371,18 @@ async def event_summary(
                                       AND price_cents_snapshot > 0)::int AS paid_tickets,
                    count(*) FILTER (WHERE status IN ('issued','redeemed')
                                       AND price_cents_snapshot = 0)::int AS courtesy_tickets
-            FROM tickets WHERE event_id=%s
+            FROM tickets WHERE event_id=%(ev)s
+              AND (%(since)s::timestamptz IS NULL OR issued_at >= %(since)s::timestamptz)
+              AND (%(until)s::timestamptz IS NULL OR issued_at <  %(until)s::timestamptz)
             """,
-            (event_id,),
+            t_params | {"ev": event_id},
         )
         money = await cur.fetchone()
 
-        await cur.execute(_BY_TYPE_SQL, (event_id, event_id))
+        await cur.execute(_BY_TYPE_SQL, by_type_params)
         by_type = await cur.fetchall()
 
-        await cur.execute(_BY_PROMOTER_SQL, (event_id,))
+        await cur.execute(_BY_PROMOTER_SQL, by_promoter_params)
         by_promoter = await cur.fetchall()
 
         await cur.execute(
@@ -366,9 +393,11 @@ async def event_summary(
                    count(*)::int                                           AS total,
                    max(scanned_at)                                         AS last_scan_at,
                    max(scanned_at) FILTER (WHERE outcome IN ('granted','granted_forced')) AS last_granted_at
-            FROM redemptions WHERE event_id=%s
+            FROM redemptions WHERE event_id=%(ev)s
+              AND (%(since)s::timestamptz IS NULL OR scanned_at >= %(since)s::timestamptz)
+              AND (%(until)s::timestamptz IS NULL OR scanned_at <  %(until)s::timestamptz)
             """,
-            (event_id,),
+            t_params | {"ev": event_id},
         )
         door = await cur.fetchone()
 
@@ -380,10 +409,12 @@ async def event_summary(
                    count(*)::int                                    AS total
             FROM redemptions r
             LEFT JOIN users u ON u.id = r.scanned_by_user_id
-            WHERE r.event_id=%s
+            WHERE r.event_id=%(ev)s
+              AND (%(since)s::timestamptz IS NULL OR r.scanned_at >= %(since)s::timestamptz)
+              AND (%(until)s::timestamptz IS NULL OR r.scanned_at <  %(until)s::timestamptz)
             GROUP BY u.full_name ORDER BY total DESC
             """,
-            (event_id,),
+            t_params | {"ev": event_id},
         )
         scanned_by = await cur.fetchall()
 
@@ -396,6 +427,8 @@ async def event_summary(
         event_id=ev["id"],
         event_name=ev["name"],
         capacity=ev["capacity"],
+        since=w["since"],
+        until=w["until"],
         **_totals(by_status, ev["capacity"]),
         revenue_cents=revenue,
         # Solo cortesias => 0 pagas: el promedio queda en 0, no divide por cero.
@@ -416,6 +449,125 @@ async def event_summary(
         },
         by_type=by_type,
         by_promoter=by_promoter,
+    )
+
+
+@router.get("/events/{event_id}/summary.csv")
+async def event_summary_csv(
+    venue_id: int,
+    event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    since: Annotated[datetime | None, Query()] = None,
+    until: Annotated[datetime | None, Query()] = None,
+):
+    """Cierre de caja del evento en CSV, con el mismo rango que `/summary`.
+
+    Es la version "papel" del resumen: la pantalla se pierde con el refresh,
+    el contador abre el archivo. Mismos criterios contables (boletas vivas
+    facturan) y misma integridad de puerta del JSON.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+
+    async with db.cursor() as cur:
+        ev = await _event_or_404(cur, event_id, venue_id)
+        w = _caja_window(since, until, ev["event_timezone"])
+        params = {"ev": event_id, "since": w["since"], "until": w["until"]}
+        by_status = await _by_status(cur, event_id, w["since"], w["until"])
+        await cur.execute(
+            """
+            SELECT coalesce(sum(price_cents_snapshot)
+                            FILTER (WHERE status IN ('issued','redeemed')), 0)::bigint AS revenue_cents,
+                   count(*) FILTER (WHERE status IN ('issued','redeemed')
+                                      AND price_cents_snapshot > 0)::int AS paid,
+                   count(*) FILTER (WHERE status IN ('issued','redeemed')
+                                      AND price_cents_snapshot = 0)::int AS courtesy
+            FROM tickets WHERE event_id=%(ev)s
+              AND (%(since)s::timestamptz IS NULL OR issued_at >= %(since)s::timestamptz)
+              AND (%(until)s::timestamptz IS NULL OR issued_at <  %(until)s::timestamptz)
+            """,
+            params,
+        )
+        money = await cur.fetchone()
+        await cur.execute(_BY_TYPE_SQL, params)
+        by_type = await cur.fetchall()
+        await cur.execute(_BY_PROMOTER_SQL, params)
+        by_promoter = await cur.fetchall()
+        await cur.execute(
+            """
+            SELECT count(*) FILTER (WHERE outcome IN ('granted','granted_forced'))::int AS granted,
+                   count(*) FILTER (WHERE outcome='already_redeemed')::int AS already_redeemed,
+                   count(*) FILTER (WHERE outcome='not_found')::int        AS not_found,
+                   count(*)::int                                           AS total
+            FROM redemptions WHERE event_id=%(ev)s
+              AND (%(since)s::timestamptz IS NULL OR scanned_at >= %(since)s::timestamptz)
+              AND (%(until)s::timestamptz IS NULL OR scanned_at <  %(until)s::timestamptz)
+            """,
+            params,
+        )
+        door = await cur.fetchone()
+        # Auditoria (mig 019): el cierre de caja es dato financiero; queda
+        # registrado quien lo exporto y con que rango.
+        await write_audit(
+            cur, venue_id, user["id"], "export", "summary_csv", event_id,
+            {
+                "evento": ev["name"],
+                "desde": w["since"].isoformat() if w["since"] else None,
+                "hasta": w["until"].isoformat() if w["until"] else None,
+            },
+        )
+        await db.commit()
+
+    tz = ZoneInfo(ev["event_timezone"] or "America/Bogota")
+
+    def _local(dt: datetime | None) -> str:
+        return dt.astimezone(tz).strftime("%d/%m/%Y %H:%M") if dt else ""
+
+    def money_cop(cents: int) -> float:
+        return round((cents or 0) / 100, 2)
+
+    live = by_status.get("issued", 0) + by_status.get("redeemed", 0)
+    paid = money["paid"]
+    revenue = money["revenue_cents"]
+
+    buf = io.StringIO()
+    wtr = csv.writer(buf)
+    wtr.writerow([f"Cierre de caja - {ev['name']}"])
+    if w["since"] or w["until"]:
+        wtr.writerow(["Periodo", _local(w["since"]) or "(inicio)", _local(w["until"]) or "(ahora)"])
+    wtr.writerow([])
+    wtr.writerow(["Caja", ""])
+    wtr.writerow(["Recaudo (COP)", money_cop(revenue)])
+    wtr.writerow(["Boletas vivas", live])
+    wtr.writerow(["Ingresaron", by_status.get("redeemed", 0)])
+    wtr.writerow(["Pendientes", live - by_status.get("redeemed", 0)])
+    wtr.writerow(["Boletas pagas", paid])
+    wtr.writerow(["Cortesias", money["courtesy"]])
+    wtr.writerow(["Anuladas", by_status.get("voided", 0)])
+    wtr.writerow(["Promedio por boleta paga (COP)", money_cop(round(revenue / paid)) if paid else 0])
+    wtr.writerow([])
+    wtr.writerow(["Puerta", "Entras", "Rechazadas", "Total escaneos"])
+    granted = door["granted"]
+    wtr.writerow(["(todas)", granted, door["total"] - granted, door["total"]])
+    wtr.writerow(["  Duplicadas", "", door["already_redeemed"], ""])
+    wtr.writerow(["  No encontradas", "", door["not_found"], ""])
+    wtr.writerow([])
+    wtr.writerow(["Por tipo", "Vendidas", "Ingresaron", "Recaudo (COP)"])
+    for t in by_type:
+        wtr.writerow([t["name"], t["issued"], t["redeemed"], money_cop(t["revenue_cents"])])
+    wtr.writerow([])
+    wtr.writerow(["Por promotor", "Cupo", "Vendidas", "Ingresaron", "Anuladas"])
+    for p in by_promoter:
+        wtr.writerow([p["full_name"], p["capacity"], p["issued"], p["redeemed"], p["voided"]])
+
+    content = "\ufeff" + buf.getvalue()  # BOM: Excel/Sheets lo abren bien
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="caja-evento-{event_id}.csv"',
+            "Cache-Control": "no-store",
+        },
     )
 
 
@@ -577,6 +729,30 @@ _RETENTION_SQL = r"""
 # backend devuelve SIEMPRE los 5 tramos (rellenando con 0) para que la UI no
 # tenga que inventar el eje ni reordenar filas.
 _SALES_CURVE_ORDER = ["30+", "15-29", "8-14", "2-7", "0-1"]
+
+
+def _caja_window(
+    since: datetime | None, until: datetime | None, tz_name: str | None
+) -> dict:
+    """Ventana de caja: `{since, until}` para el `WHERE` (None = sin limite).
+
+    Mismo contrato que el registro de puerta (`/redemptions`): un rango
+    semiabierto [since, until) sobre `issued_at`/`scanned_at`. Un datetime
+    SIN zona se interpreta en la zona del negocio, no en UTC (la misma
+    leccion de `_resolve_month`: "2026-10-01" es medianoche en Bogota, no
+    en Greenwich). Sin parametros la caja es la de SIEMPRE (todo el evento).
+    """
+    tz = ZoneInfo(tz_name or "America/Bogota")
+
+    def _fix(dt: datetime | None) -> datetime | None:
+        if dt is None:
+            return None
+        return dt.replace(tzinfo=tz) if dt.tzinfo is None else dt
+
+    since, until = _fix(since), _fix(until)
+    if since is not None and until is not None and until < since:
+        raise HTTPException(422, "El fin del periodo no puede ser anterior al inicio")
+    return {"since": since, "until": until}
 
 
 def _resolve_month(month: str | None, tz: str) -> tuple[str, datetime]:
