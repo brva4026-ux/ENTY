@@ -475,6 +475,36 @@ avisar.
   `prepare_threshold=None` (ver la trampa de psycopg más arriba).
 - Para consultar el estado de un deploy sin entrar al dashboard:
   `GET /repos/{owner}/{repo}/commits/{sha}/status` (campo `context == "Vercel"`).
+## Seguridad del origen y smoke SQL (Fase 0)
+
+- **CSP por hash, no `unsafe-inline`.** La cabecera `Content-Security-Policy`
+  vive duplicada en `vercel.json` (producción) y en `frontend/server.mjs`
+  (ruta Docker/Render), junto con HSTS (`max-age=31536000; includeSubDomains`).
+  Autoriza los dos `<script>` inline de `index.html` (anti-flash de tema y
+  registro del SW) por `sha256`, no con `unsafe-inline`. Si cambia el HTML
+  inline hay que **recalcular los hashes**: `node scripts/csp-hashes.mjs`
+  (requiere build previo). Un hash que no coincide no rompe la app, pero
+  pierde el anti-flash y el SW. `style-src 'unsafe-inline'` es necesario por
+  los `style={{}}` de geometría dinámica; `img-src` permite `data:`/`blob:`/
+  `https:` (flyers y blobs de QR); `connect-src` incluye Sentry y Nominatim
+  (geocodificación del detalle del evento).
+- **Probar la CSP en navegador real, no solo `curl`**: un test Playwright
+  escuchando `console` por "Content Security Policy"/"Refused to", con login +
+  visita pública, debe dar 0 violaciones. Repetir ese patrón al tocar cabeceras.
+- **`db/tests/smoke.sql` es idempotente en DB sucia.** Usa el evento centinela
+  `SMOKE-TEST: Noche Electrónica` (NO el `Noche Electrónica` del seed): como
+  `events.name` no es único, el `ON CONFLICT DO NOTHING` del INSERT no
+  insertaba y los `SELECT ... WHERE name=` tomaban el evento ajeno (fallaba con
+  `event_not_open_for_sales`). No volver a usar el nombre del seed.
+- **413 literal, no `status.HTTP_413_*`**: `HTTP_413_CONTENT_TOO_LARGE` no
+  existe en todas las versiones de Starlette que permite FastAPI y
+  `HTTP_413_REQUEST_ENTITY_TOO_LARGE` está deprecado. Usar `413`.
+- **Techo de listados**: `GET /events` acepta `?limit=` (`le=500`, default
+  200). Boletas (`lifecycle.list_tickets`, 50/200) y redenciones ya paginaban.
+- **Correr pytest VACÍA la base demo** (comparten DSN): tras la suite hay que
+  re-sembrar (`curl -X POST http://127.0.0.1:8001/seed`) antes de correr E2E,
+  o el login demo falla.
+
 ## UI / verificación visual (app del fan)
 
 - **Medir un `mask` con Playwright es engañoso.** El screenshot de un elemento
