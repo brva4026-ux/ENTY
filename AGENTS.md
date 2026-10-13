@@ -577,9 +577,23 @@ avisar.
   `rejected` por evento. La consulta de `redemptions` va **aparte** (agrupada
   por evento) y se fusiona en Python: meterla en el mismo `FROM` que `tickets`
   multiplica filas (fan-out) y corrompe `active`/`revenue_cents`.
-- **Aviso proactivo (mig 026):** un trigger sobre `redemptions` (outcome
+- **Aviso proactivo (mig 026/027):** un trigger sobre `redemptions` (outcome
   `already_redeemed`) avisa a los admins con kind `door_anomaly` cuando el
   MISMO ticket se reescanea 3+ veces en 5 min (rafaga = firma de QR reenviado).
   Es umbral por **tasa**, no acumulado, y avisa al **cruzar** el umbral una
   sola vez por rafaga. Vive en la DB (como el resto de notificaciones), así que
-  cubre el scan en línea y la reconciliación offline (door_sync).
+  cubre el scan en línea y la reconciliación offline (door_sync). El `link`
+  apunta a `/admin?event=<id>` (mig 027): un toque abre el backstage de ESA
+  noche, no el panel a secas.
+- **Alerta EN VIVO (no solo la campana):** el aviso `door_anomaly` no espera a
+  que el admin abra la campana. `NotificationBell` ya polea el feed (15 s);
+  cuando ve un `door_anomaly` **sin leer y nuevo** (el primer poll siembra los
+  existentes para no alertar por historial) monta `DoorAlertBanner`, un banner
+  rosa fijo bajo el topbar con acción "Ver la noche". Es presentacional y se
+  pinta por **portal a `document.body`** (el topbar lleva `backdrop-filter`, que
+  lo vuelve containing block de sus `fixed` y lo atraparía en la cabecera).
+  Solo aparece en pantallas de admin (`hasRole`). Descartarlo lo marca leído
+  (no vuelve a alertar). No hay segunda petición: el feed ya trae el dato.
+  E2E: `frontend/e2e/door-alert-live.spec.js` (dispara la rafaga por API).
+- **`/admin?event=<id>` sin `tab`** cae en "Resumen" del backstage (whitelist
+  de `AdminDashboard`): es donde vive la salud de puerta que el aviso señala.

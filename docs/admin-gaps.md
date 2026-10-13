@@ -157,7 +157,7 @@ WhatsApp vivía dentro del panel del promotor. Se extrajo a
 | 2 | ~~No hay UI para emitir boletas de pago desde el admin~~ **CORREGIDO** | La venta directa solo existía por API; ahora hay formulario en `/admin` |
 | 3 | ~~No hay endpoint de `redemptions` con detalle~~ **CORREGIDO (sep-2026)** | `GET .../redemptions` (JSON paginado, filtros outcome/q/fechas) y `GET .../redemptions.csv` (export completo, auditado) — el registro escaneo por escaneo ya existe |
 | 4 | Sin rango de fechas ni exportación | ~~El reporte es "ahora", no cierre de caja~~ parcial: el cierre de la PUERTA ya exporta con rango de fechas; falta el mismo rango para la caja (`/summary`) |
-| 5 | Sin alerta en vivo al detectar duplicados | Hoy se descubre al mirar el panel |
+| 5 | ~~Sin alerta en vivo al detectar duplicados~~ **CORREGIDO (oct-2026)** | La rafaga (mismo ticket reescaneado 3+ veces en 5 min) ya dispara aviso in-app + push (mig 026) y ahora ademas un **banner en vivo** que se planta encima del panel y enlaza a la noche exacta (mig 027), sin esperar a que el admin abra la campana |
 
 El punto 1 es el de mayor riesgo y el más barato de cerrar.
 

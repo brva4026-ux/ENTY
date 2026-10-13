@@ -1208,6 +1208,22 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   animation: offline-in 0.35s var(--e-ease-expo) both;
 }
 
+/* Aviso en vivo de duplicados en puerta (mig 026/027): baja y hace un pulso
+   de borde una sola vez para atraer la mirada sin ser molesto. */
+@keyframes door-alert-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.door-alert-in {
+  animation: door-alert-in 0.4s var(--e-ease-expo) both;
+}
+
 /* Confeti del onboarding: emojis que caen y giran una sola vez */
 @keyframes confetti-fall {
   0% {
@@ -1267,6 +1283,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   .dialog-backdrop-out,
   .dialog-out,
   .offline-in,
+  .door-alert-in,
   .confetti,
   .empty-state-icon {
     animation: none;

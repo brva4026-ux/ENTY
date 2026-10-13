@@ -763,7 +763,8 @@ BEGIN
       AND outcome = 'already_redeemed'
       AND scanned_at >= now() - (v_window * INTERVAL '1 minute');
 
-    -- Se avisa al CRUZAR el umbral, una sola vez por rafaga.
+    -- Se avisa al CRUZAR el umbral, una sola vez por rafaga. El link apunta a
+    -- la noche del escaneo para que un toque abra su backstage.
     IF v_n = v_threshold THEN
         PERFORM notify_venue_admins(
             v_venue_id, 'door_anomaly',
@@ -773,7 +774,7 @@ BEGIN
               || CASE WHEN v_name IS NOT NULL AND v_name <> ''
                       THEN ' (' || v_name || ')' ELSE '' END
               || '. Posible QR reenviado: revisa la puerta.',
-            '/admin'
+            '/admin?event=' || NEW.event_id
         );
     END IF;
     RETURN NEW;

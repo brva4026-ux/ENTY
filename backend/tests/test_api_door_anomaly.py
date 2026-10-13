@@ -63,12 +63,14 @@ def test_door_anomaly_alerts_admin_on_burst(api):
     assert _scan(api, venue, event_id, token).status_code == 200
     assert _door_anomalies(api, "admin") == []
 
-    # Duplicado 3: cruza el umbral -> un aviso, con link al panel.
+    # Duplicado 3: cruza el umbral -> un aviso, con link a la noche exacta.
     assert _scan(api, venue, event_id, token).status_code == 200
     alerts = _door_anomalies(api, "admin")
     assert len(alerts) == 1, alerts
     assert alerts[0]["title"] == "Duplicados en puerta"
-    assert alerts[0]["link"] == "/admin"
+    # El link no es el panel a secas: abre el backstage de ESTA noche, que es
+    # donde la salud de puerta se ve en vivo (mig 027).
+    assert alerts[0]["link"] == f"/admin?event={event_id}"
     assert "3 veces" in alerts[0]["body"]
 
     # Duplicado 4: la rafaga ya avisada NO vuelve a sonar.

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "./Icon";
+import DoorAlertBanner from "./DoorAlertBanner";
+import { useAuth } from "../lib/auth";
+import { hasRole } from "../lib/roles";
 import {
   fetchUnreadCount,
   listNotifications,
@@ -43,9 +46,17 @@ const KIND_LABEL = {
 
 export default function NotificationBell() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
+  // Aviso EN VIVO de duplicados en puerta (mig 026/027). Solo el admin lo
+  // recibe; el feed ya lo trae, así que no hay una segunda petición.
+  const [doorAlert, setDoorAlert] = useState(null);
+  // Ids de door_anomaly ya "vistos" en esta sesión. El primer poll no alerta
+  // por avisos viejos: solo los que llegan DESPUÉS de montar el panel.
+  const seenDoorIds = useRef(null);
+  const isAdmin = hasRole(user, "admin");
   const rootRef = useRef(null);
 
   const refresh = useCallback(async () => {
@@ -56,9 +67,43 @@ export default function NotificationBell() {
       ]);
       setItems(feed);
       setUnread(count.count);
+
+      // Detección del aviso en vivo: primer poll siembra el set (no alerta
+      // por el historial); a partir de ahí, un door_anomaly sin leer y NUEVO
+      // se levanta como banner. Un aviso ya leído nunca vuelve a alertar.
+      const doorIds = feed
+        .filter((n) => n.kind === "door_anomaly")
+        .map((n) => n.id);
+      if (seenDoorIds.current === null) {
+        seenDoorIds.current = new Set(doorIds);
+      } else {
+        const fresh = feed.find(
+          (n) =>
+            n.kind === "door_anomaly" &&
+            !n.read_at &&
+            !seenDoorIds.current.has(n.id),
+        );
+        doorIds.forEach((id) => seenDoorIds.current.add(id));
+        if (fresh) setDoorAlert(fresh);
+      }
     } catch {
       // Silencio: la campana nunca debe romper la app (401 redirige solo).
     }
+  }, []);
+
+  // No alertar en pantallas de otros roles: la campana vive en el Layout, que
+  // también sirve a promotor/bouncer. El aviso es operativo del negocio.
+  useEffect(() => {
+    if (!isAdmin && doorAlert) setDoorAlert(null);
+  }, [isAdmin, doorAlert]);
+
+  const dismissDoorAlert = useCallback(async (n) => {
+    setDoorAlert(null);
+    setItems((prev) =>
+      prev.map((x) => (x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x)),
+    );
+    setUnread((u) => Math.max(0, u - 1));
+    markNotificationsRead([n.id]).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -105,7 +150,8 @@ export default function NotificationBell() {
   };
 
   return (
-    <div className="relative" ref={rootRef}>
+    <>
+      <div className="relative" ref={rootRef}>
       <button
         onClick={() => {
           setOpen((o) => !o);
@@ -183,6 +229,14 @@ export default function NotificationBell() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      {isAdmin && (
+        <DoorAlertBanner
+          alert={doorAlert}
+          onOpen={dismissDoorAlert}
+          onDismiss={dismissDoorAlert}
+        />
+      )}
+    </>
   );
 }
