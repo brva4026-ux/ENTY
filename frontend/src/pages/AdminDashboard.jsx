@@ -225,6 +225,11 @@ export default function AdminDashboard() {
   // iniciales en lugar de un img roto. Estado unificado para toda la franja.
   const [badFlyers, setBadFlyers] = useState({});
 
+  // Rango de caja del cierre (opcional): vacío = todo el evento. Fechas
+  // sueltas "YYYY-MM-DD" que el backend interpreta en la zona del evento.
+  const [cajaRange, setCajaRange] = useState({ desde: "", hasta: "" });
+  const [cajaBusy, setCajaBusy] = useState(false);
+
   const BUCKETS = [
     ["todos", "Todos"],
     ["live", "En puerta"],
@@ -739,6 +744,44 @@ export default function AdminDashboard() {
       ui.success("Cierre descargado");
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  // Caja con rango: el cierre por defecto es "todo el evento"; el contador a
+  // veces quiere solo un periodo (p.ej. los dias 1-15). El rango se pasa como
+  // fechas sueltas; el backend las ancla a la zona del evento.
+  async function closeCaja() {
+    setError("");
+    setCajaBusy(true);
+    try {
+      const token = localStorage.getItem("tf_token");
+      const qs = new URLSearchParams();
+      if (cajaRange.desde) qs.set("since", cajaRange.desde);
+      // El API cierra el rango en forma semiabierta [since, until), pero el
+      // input "Hasta" es inclusivo: si el contador elige el 15, quiere TODO
+      // el 15. Mandamos el dia siguiente (en UTC, solo aritmetica de fecha).
+      if (cajaRange.hasta) {
+        const next = new Date(`${cajaRange.hasta}T00:00:00Z`);
+        next.setUTCDate(next.getUTCDate() + 1);
+        qs.set("until", next.toISOString().slice(0, 10));
+      }
+      const suffix = qs.toString() ? `?${qs}` : "";
+      const res = await fetch(
+        `/api/venues/${venueId}/events/${selectedEvent}/summary.csv${suffix}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      );
+      if (!res.ok) throw new Error("No se pudo exportar la caja");
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `caja-evento-${selectedEvent}.csv`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      ui.success("Caja descargada");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCajaBusy(false);
     }
   }
 
@@ -1715,8 +1758,9 @@ export default function AdminDashboard() {
                       <div>
                         <p className="eyebrow">Cierre de noche</p>
                         <p className="mt-0.5 text-sm text-zinc-400">
-                          Caja + puerta + equipo de ESTA noche en un CSV para el
-                          contador. Se descarga con los datos de ahora.
+                          Caja + puerta + equipo en un CSV para el contador. El
+                          cierre trae toda la noche; la caja se puede acotar a
+                          un rango de fechas.
                         </p>
                       </div>
                       <button
@@ -1725,6 +1769,43 @@ export default function AdminDashboard() {
                       >
                         <Icon name="download" className="h-4 w-4" />
                         Cerrar noche
+                      </button>
+                    </div>
+                    {/* Caja por periodo: el cierre trae TODO el evento; si el
+                        contador solo quiere unos dias, se acota aqui. Las
+                        fechas van en la zona del evento (lo resuelve el API). */}
+                    <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-zinc-800 pt-3">
+                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide text-zinc-500">
+                        Desde
+                        <input
+                          type="date"
+                          value={cajaRange.desde}
+                          onChange={(e) =>
+                            setCajaRange({ ...cajaRange, desde: e.target.value })
+                          }
+                          className="field"
+                          aria-label="Caja desde"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide text-zinc-500">
+                        Hasta
+                        <input
+                          type="date"
+                          value={cajaRange.hasta}
+                          onChange={(e) =>
+                            setCajaRange({ ...cajaRange, hasta: e.target.value })
+                          }
+                          className="field"
+                          aria-label="Caja hasta"
+                        />
+                      </label>
+                      <button
+                        onClick={closeCaja}
+                        disabled={cajaBusy}
+                        className="btn-ghost shrink-0"
+                      >
+                        <Icon name="download" className="h-4 w-4" />
+                        {cajaBusy ? "Preparando…" : "Caja (CSV)"}
                       </button>
                     </div>
                     {/* Las cifras EN PANTALLA antes de descargar: el CSV es
