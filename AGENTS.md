@@ -597,3 +597,18 @@ avisar.
   E2E: `frontend/e2e/door-alert-live.spec.js` (dispara la rafaga por API).
 - **`/admin?event=<id>` sin `tab`** cae en "Resumen" del backstage (whitelist
   de `AdminDashboard`): es donde vive la salud de puerta que el aviso señala.
+- **Checkout público del fan (sin cuenta):** `POST /public/events/{id}/checkout`
+  y `GET /public/checkout/{reference}` en `public.py`. Reutiliza ENTERO el ciclo
+  de la mig 023 (link de Wompi + webhook `approve_ticket_payment`): lo único
+  distinto es que no hay sesión, así que `created_by_user_id` queda NULL. La
+  `reference` (`TF-<evento>-<32 hex>`, 128 bits, `app/core/refs.py`) es la
+  *capability* del fan: no se enumeran cobros (inventada -> 404) y el token del
+  QR **nunca** sale de estos endpoints (se reclama por contacto en `/boletas`).
+  El monto sale de `ticket_types`, jamás del cliente; teléfono obligatorio
+  (NOT NULL en `ticket_payments`), correo opcional. Rate limit propio 20/h/IP
+  (cada POST llama a Wompi con dinero). Frontend: `FanCheckoutModal` +
+  `?pago=<reference>` para el polling tras volver de Wompi.
+- **Dos tokens distintos:** `git` empuja con `GITHUB_TOKEN` (scoped a git: el
+  REST API le da 404 al repo), pero para llamar la API de GitHub (crear PR,
+  leer actions) hay que usar `GITHUB_PERSONAL_ACCESS_TOKEN`. `gh` usa el token
+  scoped-a-git, así que `gh api`/`gh pr` fallan con "Not Found".
