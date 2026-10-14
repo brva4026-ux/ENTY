@@ -159,6 +159,12 @@ def api_client(db):
     # login de TODO test posterior responde 429. Cada test arranca con los
     # cubos limpios (los tests específicos del lockout siembran lo suyo).
     db.execute("DELETE FROM login_attempts")
+    # El checkout publico rate-limitea por IP en memoria del proceso; el
+    # TestClient siempre sale de la misma IP, asi que una rafaga de tests de
+    # compra envenenaria el cubo y el siguiente responderia 429. Se limpia por
+    # test (igual criterio que login_attempts).
+    from app.routers import public as _public_mod
+    _public_mod._checkout_bucket.clear()
 
     from fastapi.testclient import TestClient
 

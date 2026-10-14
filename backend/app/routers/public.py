@@ -18,9 +18,19 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from starlette.concurrency import run_in_threadpool
 
+from app.core.config import get_settings
 from app.core.db import get_db
-from app.schemas import FanLookupRequest, FanTicketTokenOut
+from app.core.refs import payment_reference
+from app.schemas import (
+    FanLookupRequest,
+    FanTicketTokenOut,
+    PublicCheckoutOut,
+    PublicCheckoutRequest,
+    PublicCheckoutStatusOut,
+)
+from app.services import wompi
 from app.services.ticket_image import build_ticket_image
+from app.services.wompi import WompiError
 
 router = APIRouter(prefix="/public", tags=["publico"])
 
@@ -266,10 +276,13 @@ async def public_event_detail(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Evento no encontrado")
         await cur.execute(
             """
-            SELECT name, price_cents, quantity
-            FROM ticket_types
-            WHERE event_id = %s AND is_active
-            ORDER BY price_cents NULLS LAST, name
+            SELECT t.id, t.name, t.price_cents, t.quantity, t.is_courtesy,
+                   (SELECT count(*) FROM tickets tk
+                     WHERE tk.ticket_type_id = t.id
+                       AND tk.status NOT IN ('voided', 'refunded'))::int AS sold
+            FROM ticket_types t
+            WHERE t.event_id = %s AND t.is_active
+            ORDER BY t.price_cents NULLS LAST, t.name
             """,
             (event_id,),
         )
@@ -302,16 +315,184 @@ async def public_event_detail(
         "status": row["status"],
         "ticket_types": [
             {
+                "id": t["id"],
                 "name": t["name"],
                 "price_cents": int(t["price_cents"])
                 if t["price_cents"] is not None
                 else None,
                 "quantity": t["quantity"],
+                "is_courtesy": t["is_courtesy"],
+                # Vendidas del tipo (boletas vivas): permite deshabilitar la
+                # localidad agotada en el checkout. Best-effort: el aforo real
+                # lo decide emit_ticket dentro de la transaccion.
+                "sold_out": t["sold"] >= t["quantity"],
             }
             for t in types
         ],
         "lineup": [],
     }
+
+
+# --- Checkout publico del fan (sin cuenta, dinero primero) ----------------
+#
+# El fan compra solo, sin login. El flujo reutiliza ENTERO el ciclo de la
+# mig 023 (el mismo del cobro del admin): se crea el link de Wompi aqui y el
+# WEBHOOK emite la boleta cuando el pago se aprueba. Lo unico distinto es que
+# no hay sesion: la `reference` (128 bits) es la capability con la que el fan
+# vuelve a consultar, y el CONTACTO es la identidad con la que despues reclama
+# su QR en /boletas. El token del QR jamas sale de este endpoint.
+
+# Rate limit propio y mas duro que el del catalogo: cada POST crea una fila y
+# llama a Wompi (dinero real). 20/hora por IP frena el abuso sin molestar a un
+# fan legitimo que compra dos o tres boletas.
+_CHECKOUT_RATE_LIMIT = 20
+_CHECKOUT_WINDOW = 3600.0
+_checkout_bucket: dict[str, list[float]] = {}
+
+
+async def _checkout_rate_limit(request: Request) -> None:
+    ip = _rate_key(request)
+    now = time.monotonic()
+    bucket = [t for t in _checkout_bucket.get(ip, []) if now - t < _CHECKOUT_WINDOW]
+    if len(bucket) >= _CHECKOUT_RATE_LIMIT:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Demasiados intentos de compra. Espera unos minutos.",
+        )
+    bucket.append(now)
+    _checkout_bucket[ip] = bucket
+
+
+@router.post(
+    "/events/{event_id}/checkout",
+    response_model=PublicCheckoutOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def public_checkout(
+    event_id: int,
+    body: PublicCheckoutRequest,
+    request: Annotated[None, Depends(_checkout_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """El fan inicia la compra: se crea el cobro y se devuelve la URL de Wompi.
+
+    El MONTO sale de `ticket_types.price_cents`, nunca del cliente. Solo se
+    cobra una localidad de pago activa de un evento con venta abierta (mismas
+    condiciones que el detalle publico). La boleta se emite DESPUES, cuando el
+    webhook confirme el pago: el dinero entra primero, el QR despues.
+    """
+    s = get_settings()
+    if not s.wompi_enabled:
+        raise HTTPException(503, "Pagos online no configurados en este entorno")
+
+    async with db.cursor() as cur:
+        # Localidad pagada del evento, con la misma guardia de venta que el
+        # detalle publico: un borrador/pasado/cerrado no vende (404 uniforme).
+        await cur.execute(
+            """
+            SELECT t.id AS type_id, t.price_cents, t.quantity, t.is_active,
+                   e.id AS event_id, e.venue_id, e.name AS event_name,
+                   e.status,
+                   COALESCE(e.ends_at, e.starts_at + INTERVAL '12 hours') AS end_at
+            FROM ticket_types t
+            JOIN events e ON e.id = t.event_id
+            WHERE t.id = %s AND e.id = %s
+              AND e.status IN ('published', 'live')
+              AND e.starts_at >= now()
+            """,
+            (body.ticket_type_id, event_id),
+        )
+        row = await cur.fetchone()
+        if (
+            not row
+            or not row["is_active"]
+            or row["price_cents"] <= 0
+        ):
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                "Esa localidad no esta disponible para compra",
+            )
+
+        now = datetime.now(timezone.utc)
+        expires_at = min(row["end_at"], now + timedelta(days=7))
+        if expires_at <= now:
+            raise HTTPException(409, "El evento ya termino: no se puede comprar")
+
+        reference = payment_reference(event_id)
+        email = (body.customer_email or "").strip() or None
+        try:
+            link = await wompi.create_payment_link(
+                name=f"Boleta - {row['event_name']}",
+                description=f"Compra del fan ({row['event_name']})",
+                amount_in_cents=row["price_cents"],
+                expires_at_iso=expires_at.isoformat(),
+                # Vuelve al detalle con la referencia para el polling de estado.
+                redirect_url=f"{s.app_public_url}/evento/{event_id}?pago={reference}",
+            )
+        except WompiError as e:
+            raise HTTPException(502, f"Wompi rechazo el cobro: {e}")
+
+        # created_by_user_id NULL: no hay usuario; el cobro es del fan.
+        await cur.execute(
+            """
+            INSERT INTO ticket_payments
+                (venue_id, event_id, ticket_type_id, reference, provider,
+                 provider_ref, amount_in_cents, customer_name, customer_phone,
+                 customer_email, created_by_user_id)
+            VALUES (%s, %s, %s, %s, 'wompi', %s, %s, %s, %s, %s, NULL)
+            RETURNING id
+            """,
+            (
+                row["venue_id"], event_id, body.ticket_type_id, reference,
+                str(link.get("id")), row["price_cents"], body.customer_name,
+                body.customer_phone, email,
+            ),
+        )
+        await db.commit()
+
+    return PublicCheckoutOut(
+        reference=reference,
+        payment_url=wompi.link_public_url(link),
+        amount_in_cents=row["price_cents"],
+        event_id=event_id,
+        event_name=row["event_name"],
+    )
+
+
+@router.get("/checkout/{reference}", response_model=PublicCheckoutStatusOut)
+async def public_checkout_status(
+    reference: str,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Estado del checkout para el polling tras volver de Wompi.
+
+    La `reference` (128 bits aleatorios) es el secreto; no se enumeran cobros.
+    No se devuelve el token del QR: si `approved`, la boleta se reclama por
+    contacto en /boletas. La respuesta solo confirma si el dinero entro.
+    """
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT p.reference, p.status, p.event_id, p.ticket_id,
+                   e.name AS event_name
+              FROM ticket_payments p
+              JOIN events e ON e.id = p.event_id
+             WHERE p.reference = %s
+            """,
+            (reference,),
+        )
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Cobro no encontrado")
+    return PublicCheckoutStatusOut(
+        reference=row["reference"],
+        status=row["status"],
+        event_id=row["event_id"],
+        event_name=row["event_name"],
+        ticket_id=row["ticket_id"],
+        approved=row["status"] == "approved",
+    )
 
 
 # --- App del fan: "mis boletas" (magic link) ------------------------------

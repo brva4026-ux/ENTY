@@ -7,7 +7,8 @@
  *  2. /evento/:id muestra el detalle publico (fecha, ubicacion, precio, CTA
  *     y pestanas). Un id inexistente cae al estado "no disponible", no a un
  *     crash.
- *  3. El CTA de compra lleva a /boletas (checkout publico todavia no existe).
+ *  3. El CTA de compra se resuelve por tipo de evento: con localidad de pago
+ *     abre el checkout publico; sin ella (gratis) lleva a /boletas.
  *
  * Corre contra backend REAL con seed demo (E2E_BASE_URL, default
  * http://127.0.0.1:8001). Sin app disponible, se salta solo.
@@ -44,10 +45,18 @@ test("Inicio -> detalle -> Mis boletos", async ({ page }) => {
   await page.getByRole("tab", { name: "Lineup" }).click();
   await expect(page.getByText("Lineup por anunciar.")).toBeVisible();
 
-  // El CTA de compra (aun sin checkout publico) lleva a Mis boletos.
-  await page.getByRole("link", { name: /Comprar boleto/ }).click();
-  await expect(page).toHaveURL(/\/boletas$/);
-  await expect(page.getByRole("heading", { name: "Mis boletas" })).toBeVisible();
+  // El CTA de compra se resuelve por tipo de evento. Con localidad de pago,
+  // abre el checkout publico (modal); sin ella, lleva a Mis boletos.
+  const buyLink = page.getByRole("link", { name: /Comprar boleto|Ver mis boletas/ });
+  if (await buyLink.count()) {
+    await buyLink.click();
+    await expect(page).toHaveURL(/\/boletas$/);
+    await expect(page.getByRole("heading", { name: "Mis boletas" })).toBeVisible();
+  } else {
+    await page.getByRole("button", { name: /Comprar boleto/ }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByLabel("Localidad")).toBeVisible();
+  }
 });
 
 test("un evento inexistente muestra el estado no disponible", async ({ page }) => {

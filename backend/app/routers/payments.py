@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.refs import payment_reference
 from app.deps import ensure_roles, get_current_user
 from app.schemas import (
     PaymentCreateOut,
@@ -36,11 +37,6 @@ from app.services import wompi
 from app.services.wompi import WompiError
 
 router = APIRouter(tags=["payments"])
-
-
-def _reference(event_id: int) -> str:
-    """Referencia de la app: legible y unica ("TF-<evento>-<aleatorio>")."""
-    return f"TF-{event_id}-{secrets.token_hex(6)}"
 
 
 def _check_signature(payload: dict, checksum: str) -> bool:
@@ -128,7 +124,7 @@ async def create_payment(
         if expires_at <= now:
             raise HTTPException(409, "El evento ya termino: no se pueden crear cobros")
 
-        reference = _reference(event_id)
+        reference = payment_reference(event_id)
         try:
             link = await wompi.create_payment_link(
                 name=f"Boleta - {ev['event_name']}",

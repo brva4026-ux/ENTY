@@ -620,6 +620,54 @@ class PaymentCreateOut(BaseModel):
     status: str = "pending"
 
 
+# --- Checkout publico del fan (sin cuenta) ---------------------------------
+#
+# El fan compra solo: elige localidad, deja su contacto y paga en Wompi. El
+# monto NUNCA viene del cliente (se lee de ticket_types); el contacto ES la
+# identidad con la que despues reclama su QR en /boletas. La `reference` es la
+# capability con la que consulta el estado: por eso tiene 128 bits.
+
+
+class PublicCheckoutRequest(BaseModel):
+    """Compra del fan: localidad + contacto. El nombre es para la puerta.
+
+    El teléfono es obligatorio (el modelo de pago lo exige y es el canal de
+    entrega); el correo es opcional.
+    """
+
+    ticket_type_id: int
+    customer_name: str = Field(min_length=1, max_length=200)
+    customer_phone: str = Field(min_length=5, max_length=30)
+    customer_email: str | None = Field(default=None, max_length=200)
+
+
+class PublicCheckoutOut(BaseModel):
+    """Cobro creado para el fan: a donde ir a pagar + como consultar luego."""
+
+    reference: str
+    payment_url: str
+    amount_in_cents: int
+    event_id: int
+    event_name: str
+    status: str = "pending"
+
+
+class PublicCheckoutStatusOut(BaseModel):
+    """Estado de un checkout del fan (para el polling tras volver de Wompi).
+
+    Deliberadamente NO expone el token del QR: si el pago quedo aprobado, la
+    boleta se reclama por contacto en /boletas (el mismo camino de siempre,
+    que ya rota tokens y audita). Aqui solo se dice si el dinero entro.
+    """
+
+    reference: str
+    status: str  # pending | approved | declined | voided | expired
+    event_id: int
+    event_name: str
+    ticket_id: int | None = None
+    approved: bool = False
+
+
 class PaymentOut(BaseModel):
     """Cobro para el listado del dashboard (con la boleta emitida, si la hay)."""
 
