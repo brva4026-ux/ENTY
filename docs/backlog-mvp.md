@@ -193,3 +193,16 @@ reclama, pasa al siguiente.
 La pasarela de pagos (Etapa 2) NO es bloqueante: el reclamo se comporta
 como cortesía/cupo liberado y el cobro sigue siendo puerta o transferencia,
 como hoy.
+
+### Cierre del ciclo (oct-2026)
+
+La lista de espera dejó de ser una pantalla sin puerta de entrada: el detalle
+público ahora decide la acción según el aforo. `GET /public/events/{id}` expone
+`sold_out`, calculado con **exactamente** el mismo gate que `join_waitlist`
+(`active >= min(SUM(quantity), capacity)`), de modo que el CTA y el join nunca
+discrepan: agotado → "Entrar a la lista de espera" (`/waitlist?event=<id>`, el
+evento ya precargado); con lugar → "Comprar boleto". La localidad agotada queda
+deshabilitada en el checkout. E2-2 (unirse desde el link público) queda así
+cerrado; E2-1/3/4 (modelo, oferta con ventana y reclamo) ya existían en
+mig 022. Regresión: `backend/tests/test_public_waitlist.py` (5) y
+`frontend/e2e/fan-waitlist.spec.js` (2).

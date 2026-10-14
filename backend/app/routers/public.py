@@ -287,6 +287,15 @@ async def public_event_detail(
             (event_id,),
         )
         types = await cur.fetchall()
+        # Cupo total para el gate de agotado: SUM de TODAS las localidades,
+        # igual que `join_waitlist` (que no filtra por is_active). Consultarlo
+        # aparte evita que una localidad desactivada desincronice el CTA.
+        await cur.execute(
+            "SELECT COALESCE(SUM(quantity), 0)::int AS quota "
+            "FROM ticket_types WHERE event_id = %s",
+            (event_id,),
+        )
+        quota = (await cur.fetchone())["quota"]
 
     prices = [
         int(t["price_cents"])
@@ -296,6 +305,12 @@ async def public_event_detail(
     min_price = min(prices) if prices else None
     cat = _category_of(row["name"], row["description"])
     where = " · ".join(p for p in (row["location"], row["venue_name"]) if p)
+
+    # Agotado: mismo gate que `join_waitlist` (la lista existe solo cuando NO
+    # hay boletas). El cupo es SUM(quantity) de TODAS las localidades, acotado
+    # por el aforo del evento; el publico ve la lista de espera en vez de
+    # "comprar".
+    sold_out = row["active"] >= min(int(quota), int(row["capacity"]))
 
     # Lineup: el modelo no tiene artistas todavia. Se devuelve la lista vacia
     # en vez de inventar cabezas de cartel; la UI muestra "por anunciar".
@@ -312,6 +327,7 @@ async def public_event_detail(
         "category": cat,
         "price_cents": min_price,
         "sold_pct": _sold_pct(row["active"], row["capacity"]),
+        "sold_out": sold_out,
         "status": row["status"],
         "ticket_types": [
             {
