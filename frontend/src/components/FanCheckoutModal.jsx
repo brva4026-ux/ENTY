@@ -21,7 +21,9 @@ function paidTypes(types) {
 
 export default function FanCheckoutModal({ event, reference, onClose, onPaid }) {
   const types = paidTypes(event?.ticket_types);
-  const [typeId, setTypeId] = useState(() => types[0]?.id ?? null);
+  const [typeId, setTypeId] = useState(
+    () => (types.find((t) => !t.sold_out) ?? types[0])?.id ?? null,
+  );
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");

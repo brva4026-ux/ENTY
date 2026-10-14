@@ -45,7 +45,12 @@ export default function WaitlistPage() {
   const [joining, setJoining] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [eventId, setEventId] = useState("");
+  // El CTA del detalle agotado llega con ?event=<id>: el fan no teclea el
+  // numero de un evento que ya esta viendo. Sin query, el campo queda vacio.
+  const [eventId, setEventId] = useState(() => {
+    const q = new URLSearchParams(window.location.search).get("event");
+    return q && /^\d+$/.test(q) ? q : "";
+  });
   const [secondsLeft, setSecondsLeft] = useState(null);
   const [newTicket, setNewTicket] = useState(null);
   const pollRef = useRef(null);

@@ -355,11 +355,23 @@ export default function EventDetailPage() {
                 </span>
               </div>
               <p className="evd-buy-note">
-                {data.price_cents == null
-                  ? "Cortesía: el acceso se valida con QR en la puerta."
-                  : "Compra en línea y recibe tu QR para la puerta."}
+                {data.sold_out
+                  ? "Agotado. Entra a la lista de espera: si alguien devuelve su boleta, te avisamos."
+                  : data.price_cents == null
+                    ? "Cortesía: el acceso se valida con QR en la puerta."
+                    : "Compra en línea y recibe tu QR para la puerta."}
               </p>
-              {data.price_cents == null ? (
+              {data.sold_out ? (
+                <Link
+                  to={`/waitlist?event=${data.id}`}
+                  className="evd-cta evd-cta--wide"
+                >
+                  Entrar a la lista de espera
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h13M13 6l6 6-6 6" />
+                  </svg>
+                </Link>
+              ) : data.price_cents == null ? (
                 <Link to="/boletas" className="evd-cta evd-cta--wide">
                   Ver mis boletas
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -618,3 +618,18 @@ avisar.
   REST API le da 404 al repo), pero para llamar la API de GitHub (crear PR,
   leer actions) hay que usar `GITHUB_PERSONAL_ACCESS_TOKEN`. `gh` usa el token
   scoped-a-git, así que `gh api`/`gh pr` fallan con "Not Found".
+- **CTA segun aforo en el detalle publico (E2-2, oct-2026):** `GET
+  /public/events/{id}` expone `sold_out`, con EXACTAMENTE el gate de
+  `join_waitlist` (`active >= min(SUM(quantity de TODAS las localidades),
+  capacity)`). Si el CTA y el join discrepan, el fan ve un boton que la API
+  rechaza con 409; por eso el cupo se consulta aparte (sin filtrar
+  `is_active`) y no se reusa la lista de localidades activas del detalle.
+  Agotado -> "Entrar a la lista de espera" (`/waitlist?event=<id>`); con lugar
+  -> "Comprar boleto". La localidad agotada se deshabilita en el checkout y la
+  seleccion inicial salta a la primera con cupo.
+- **Correr los E2E en local:** el backend de dev (run.py, :8001) usa la DB
+  `localhost:5432/ticketflow` y NO se siembra solo. Tras reiniciarlo, sembrar
+  con `seed_demo_data` (el endpoint `/seed` exige `IS_DEMO=true`, que el
+  proceso de dev no tiene). Los E2E corren contra `vite preview :12000` con
+  `VITE_BACKEND_URL=http://127.0.0.1:8001` (proxy `/api` -> backend), igual
+  que el job `e2e` de CI.
