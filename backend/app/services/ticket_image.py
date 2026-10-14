@@ -33,6 +33,24 @@ _CONFETI = [(239, 108, 138), (52, 211, 153), (125, 153, 236), (255, 255, 255)]
 
 _ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "fonts")
 
+# Baloo2-Subset: la fuente variable completa pesaba 683 KB y viajaba en el
+# bundle de la funcion serverless (includeFiles) en CADA deploy. El subset
+# conserva los ejes variables (render pixel-identico, verificado) y pesa
+# 107 KB. OJO: NO instanciar a estatica (varLib.instancer wght=400): cambio
+# el render (~29k pixeles distintos), FreeType si aplica los deltas gvar.
+# Shrikhand (el wordmark y el titular) paso por lo mismo: 220 KB -> 44 KB,
+# tambien render pixel-identico. Regenerar desde las fuentes originales
+# (google/fonts, licencia OFL):
+#   pyftsubset Baloo2-Variable-full.ttf \
+#     --unicodes="U+0020-024F,U+2000-206F,U+20AC" \
+#     --output-file=Baloo2-Variable.ttf
+#   pyftsubset Shrikhand-Regular-full.ttf \
+#     --unicodes="U+0020-024F,U+2000-206F,U+20AC" \
+#     --output-file=Shrikhand-Regular.ttf
+# Cubre Latin-1 (acentos, enye, ¿¡) + Latin Extended-A + puntuacion/€.
+# OJO: el titulo va en .upper() y el nombre es del usuario: el subset tiene
+# que cubrir mayusculas acentuadas (Á É Í Ó Ú Ü Ñ) y no solo el wordmark.
+
 
 def _load_font(size: int) -> ImageFont.FreeTypeFont:
     """Elige la fuente. Prefiere las display del ticket (Shrikhand/Baloo 2,
