@@ -47,11 +47,12 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      // PWA: el service worker solo en producción (https) o localhost para QA.
-      if (
-        "serviceWorker" in navigator &&
-        (location.protocol === "https:" || location.hostname === "localhost")
-      ) {
+      // PWA: el service worker solo en contexto seguro. isSecureContext cubre
+      // https, localhost Y 127.0.0.1 (los tres son contextos seguros por spec);
+      // el check anterior por hostname dejaba fuera 127.0.0.1, que es el host
+      // que usa el E2E, asi que el SW nunca se registraba ahi y el modo
+      // offline de la puerta quedaba sin cobertura.
+      if ("serviceWorker" in navigator && window.isSecureContext) {
         window.addEventListener("load", () => {
           navigator.serviceWorker.register("/sw.js").catch(() => {});
         });
