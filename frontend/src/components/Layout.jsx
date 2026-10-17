@@ -158,7 +158,7 @@ export default function Layout({ children }) {
           Cada navegación re-monta contenido → .reveal coreografía la entrada. */}
       <main
         id="contenido"
-        className="mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8"
+        className="app-main mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8"
       >
         <div key={pathname} className="reveal">
           {children}

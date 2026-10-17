@@ -924,9 +924,16 @@ html[data-theme="light"] .bizdock-count {
    =========================================================================== */
 .home {
   min-height: 100vh;
+  min-height: 100dvh;
   max-width: 26rem;
   margin: 0 auto;
-  padding: 1.6rem 1.5rem 6rem;
+  /* Insets del notch/home indicator: con viewport-fit=cover el contenido
+     llega al borde fisico; sin esto el wordmark cae bajo la isla dinamica
+     y la nav inferior bajo la barra de gestos. max() conserva el padding
+     de diseno cuando no hay inset (Android/desktop). */
+  padding:
+    max(1.6rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right))
+    calc(6rem + env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left));
   background: var(--e-canvas);
   color: var(--e-text-primary);
   font-family: "Sora", system-ui, -apple-system, sans-serif;
@@ -1298,7 +1305,7 @@ html[data-theme="light"] .bizdock-count {
   bottom: 0;
   width: 100%;
   max-width: 26rem;
-  height: 4.9rem;
+  height: calc(4.9rem + env(safe-area-inset-bottom));
   background: rgba(11, 11, 15, 0.66);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -1307,6 +1314,10 @@ html[data-theme="light"] .bizdock-count {
   align-items: flex-start;
   justify-content: space-around;
   padding: 0.75rem 1rem 0;
+  /* El home indicator flota sobre la nav: se reserva su alto para que los
+     iconos no queden debajo del gesto. Va DESPUES del shorthand para
+     ganarle (stylelint: no-shorthand-property-overrides). */
+  padding-bottom: env(safe-area-inset-bottom);
   box-sizing: border-box;
   z-index: 5;
 }
@@ -1344,7 +1355,8 @@ html[data-theme="light"] .bizdock-count {
 @media (min-width: 480px) {
   .home {
     min-height: 100vh;
-    padding-bottom: 7rem;
+    min-height: 100dvh;
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
   }
 }
 
@@ -1594,9 +1606,10 @@ html[data-theme="light"] .bizdock-count {
    ---------------------------------------------------------------------- */
 .evd {
   min-height: 100vh;
+  min-height: 100dvh;
   max-width: 26rem;
   margin: 0 auto;
-  padding-bottom: 3rem;
+  padding-bottom: calc(3rem + env(safe-area-inset-bottom));
   background: var(--e-canvas);
   color: var(--e-text-primary);
   font-family: "Sora", system-ui, -apple-system, sans-serif;
@@ -1641,9 +1654,11 @@ html[data-theme="light"] .bizdock-count {
 }
 .evd-hero-actions {
   position: absolute;
-  top: 0.9rem;
-  left: 0.9rem;
-  right: 0.9rem;
+  /* Los botones de volver/compartir son lo primero que toca el pulgar y con
+     viewport-fit=cover caian bajo la isla dinamica. Se les suma el inset. */
+  top: calc(0.9rem + env(safe-area-inset-top));
+  left: calc(0.9rem + env(safe-area-inset-left));
+  right: calc(0.9rem + env(safe-area-inset-right));
   z-index: 2;
   display: flex;
   align-items: center;

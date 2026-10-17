@@ -3272,6 +3272,9 @@ html[data-theme="light"] .dialog-panel {
   background: rgba(12, 12, 14, 0.82);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  /* Sticky a top:0: con viewport-fit=cover la barra arranca bajo la isla
+     dinamica y la marca queda tapada. El inset la empuja al area segura. */
+  padding-top: env(safe-area-inset-top);
 }
 html[data-theme="light"] .topbar {
   border-bottom-color: var(--e-neutral-300);
@@ -3494,6 +3497,15 @@ html[data-theme="light"] .list-row:hover {
 html[data-theme="light"] .bottomnav {
   border-top-color: var(--e-neutral-300);
   background: rgba(255, 255, 255, 0.94);
+}
+/* pb-28 (7rem) del <main> despeja la bottomnav. Con viewport-fit=cover la
+   barra crece el alto del home indicator y ese colchon se comia el ultimo
+   item, asi que se suma el inset. Solo en movil: desde md la barra no
+   existe y manda pb-8 de Tailwind (mismo corte que md:pb-8). */
+@media (max-width: 767px) {
+  .app-main {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+  }
 }
 html[data-theme="light"] .bottomnav-item {
   color: var(--color-zinc-500);
@@ -4462,7 +4474,14 @@ html[data-theme="light"] .ribbon-divider .rd-star {
    =========================================================================== */
 .tkt-stage {
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 2rem 1rem 3rem;
+  /* La credencial es la pantalla que el fan muestra en la puerta: no puede
+     quedar bajo el notch. Se respeta el inset en los cuatro bordes. */
+  padding-top: max(2rem, env(safe-area-inset-top));
+  padding-bottom: calc(3rem + env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
   background:
     radial-gradient(46rem 30rem at 50% -10rem, rgba(187, 92, 246, 0.16), transparent 62%),
     var(--color-zinc-950);
@@ -5087,6 +5106,7 @@ html[data-theme="light"] .evx-name {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 @media (min-width: 1024px) {
   .auth-shell {
@@ -5263,7 +5283,15 @@ html[data-theme="light"] .evx-name {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 2rem 1.25rem;
+  /* En vertical el contenido va centrado, pero en horizontal (notch al
+     costado) la tarjeta llegaba al borde fisico. Los insets son el minimo
+     de seguridad; el padding de diseno manda cuando no hay notch. */
+  padding-top: max(2rem, env(safe-area-inset-top));
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
 }
 .auth-panel-inner {
   width: 100%;
