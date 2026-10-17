@@ -1,30 +1,40 @@
 #!/usr/bin/env bash
 # Deploy de TicketFlow a produccion (Supabase + Vercel) en un solo comando.
 #
-# El ORDEN importa: la migracion 004 crea las funciones que usan los endpoints
-# de editar/eliminar tipos de boleta y cupos de promotor. Si se despliega sin
-# migrar, esos botones del panel devuelven 500 ("function ... does not exist").
+# Orden: primero el schema consolidado, luego TODAS las migraciones.
+#   * db/schema.sql es el esquema completo (tablas, enums, extensiones y
+#     funciones de negocio). Lo genera pg_dump --schema-only y
+#     backend/tests/test_schema_drift.py falla si alguien agrega una migracion
+#     sin consolidarla.
+#   * Las migraciones de db/migrations/ son no-ops sobre el schema consolidado
+#     (todas IF NOT EXISTS / OR REPLACE), pero se aplican igual porque una base
+#     vieja puede no tenerlas. Antes este script aplicaba SOLO 003 y 004 con una
+#     lista hardcodeada: una base reconstruida desde aqui quedaba sin las 23
+#     migraciones restantes y sin nada que lo avisara.
 #
 # Uso:
 #   npx vercel login                            # una sola vez
 #   export SUPABASE_ACCESS_TOKEN=sbp_...        # https://supabase.com/dashboard/account/tokens
 #   bash scripts/deploy.sh
 #
-# La migracion es idempotente (safe re-run): se puede correr las veces que haga
-# falta sin duplicar nada.
+# Todo es idempotente (safe re-run): se puede correr las veces que haga falta.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PROJECT_REF="${SUPABASE_PROJECT_REF:-wjknwlrcacalilfrfqyq}"
-MIGRATIONS=(
-  db/migrations/003_ops_hardening.sql
-  db/migrations/004_edit_and_delete.sql
-)
+SCHEMA="db/schema.sql"
 
-echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"
+# Glob ordenado: 003_..., 004_..., ..., 027_.... El orden importa (cada
+# migracion asume las anteriores); el prefijo numerico lo garantiza.
+MIGRATIONS=("$SCHEMA")
+for f in db/migrations/*.sql; do
+  MIGRATIONS+=("$f")
+done
+
+echo "==> 1/3 Esquema + migraciones en Supabase (ref: $PROJECT_REF)"
 if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
-  echo "    AVISO: falta SUPABASE_ACCESS_TOKEN -> se saltan las migraciones."
-  echo "    OJO: sin la 004, editar/eliminar tipos y cupos fallara en produccion."
+  echo "    AVISO: falta SUPABASE_ACCESS_TOKEN -> se saltan schema y migraciones."
+  echo "    OJO: la app fallara en produccion si la base no tiene las funciones."
 else
   for f in "${MIGRATIONS[@]}"; do
     echo "    aplicando $f"
