@@ -6,7 +6,8 @@
  * Qué protege (lo que AGENTS.md exige y hoy nadie verifica):
  *   1. Contraste de texto ≥ 4.5:1 (≥ 3:1 en texto grande) en las superficies
  *      públicas y del interior, en tema oscuro y claro.
- *   2. Objetivos táctiles ≥ 44px en la puerta (superficie crítica de uso).
+ *   2. Objetivos táctiles ≥ 44px en la puerta (superficie crítica de uso) y
+ *      ≥ 24px (AA, SC 2.5.8) en el resto de las superficies públicas.
  *   3. Imágenes con alt.
  *
  * El contraste se calcula sobre el color COMPUTADO real: se toma el primer
@@ -150,16 +151,43 @@ const PUBLIC = [
   "/privacidad",
 ];
 
-/** Ruta de detalle de un evento real del catálogo (los ids derivan con el
- *  seed: no se puede clavar un /evento/N). Devuelve null si no hay ninguno. */
+/**
+ * Espera a que una pantalla asiente: sin spinner de carga visible y con un
+ * h1 presente si la pantalla lleva uno. Evita sleeps fijos, que bajo la suite
+ * en paralelo leen un estado intermedio y reportan fallos que no existen.
+ */
+async function settled(page) {
+  await page
+    .locator("text=Cargando…")
+    .first()
+    .waitFor({ state: "detached", timeout: 5_000 })
+    .catch(() => {});
+  await page.waitForLoadState("networkidle").catch(() => {});
+  // El <title> por ruta lo setea un useEffect: se espera a que deje de ser el
+  // estatico de index.html antes de medirlo.
+  await page
+    .waitForFunction(() => document.title.includes("· Enty"), null, { timeout: 5_000 })
+    .catch(() => {});
+  await page.waitForTimeout(120);
+}
+
+/**
+ * Ruta de detalle de un evento real del catálogo (los ids derivan con el
+ * seed: no se puede clavar un /evento/N). Devuelve null si no hay ninguno.
+ *
+ * Prefiere un evento con nombre humano del seed sobre uno creado por otro
+ * spec en paralelo (door-alert-live crea "E2E-DOOR-…" y, al ser el mas
+ * reciente, encabezaba la lista): esos nacen y se publican en medio de la
+ * corrida, asi que medir su detalle es medir un evento a medio sembrar.
+ */
 async function firstEventPath(page) {
   await available(page, "/inicio");
-  const href = await page
+  const hrefs = await page
     .locator('a[href^="/evento/"]')
-    .first()
-    .getAttribute("href")
-    .catch(() => null);
-  return href;
+    .evaluateAll((els) => els.map((e) => e.getAttribute("href")).filter(Boolean))
+    .catch(() => []);
+  const estable = hrefs.find((h) => !h.includes("E2E-"));
+  return estable || hrefs[0] || null;
 }
 
 for (const scheme of ["dark", "light"]) {
@@ -222,9 +250,110 @@ test("la puerta: contraste AA y objetivos táctiles ≥ 44px", async ({ browser 
   if (r.contrastFails.length) console.log("Contraste (puerta):", JSON.stringify(r.contrastFails, null, 2));
   expect(r.contrastFails, "texto por debajo de AA en la puerta").toEqual([]);
   // La puerta es crítica: todo control debe ser cómodo de pulsar a una mano.
+  // 44px es el objetivo AAA (SC 2.5.5) que este producto se impone aquí.
   if (r.tapSmall.length) console.log("Objetivos pequeños (puerta):", JSON.stringify(r.tapSmall, null, 2));
   expect(r.tapSmall, "objetivos táctiles < 44px en la puerta").toEqual([]);
 });
+
+/**
+ * Objetivos táctiles en las superficies públicas, al criterio AA (SC 2.5.8,
+ * 24px). La puerta exige 44px porque se usa de pie, a una mano y con prisa;
+ * el catálogo y lo legal no: ahí 44px marcaría enlaces dentro de un párrafo,
+ * que la norma exime. Este test cierra el hueco de que nadie medía el móvil
+ * fuera de la puerta.
+ */
+test("objetivos táctiles AA (24px) en las superficies públicas", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 800 } });
+  const page = await ctx.newPage();
+  const ok = await available(page, PUBLIC[0]);
+  test.skip(!ok, "App no disponible");
+
+  const fails = [];
+  for (const path of PUBLIC) {
+    await available(page, path);
+    await settled(page);
+    const found = await page.evaluate(tapTargetFails);
+    for (const f of found) fails.push({ path, ...f });
+  }
+  await ctx.close();
+  if (fails.length) console.log("Objetivos AA:", JSON.stringify(fails, null, 2));
+  expect(fails, `${fails.length} objetivos por debajo del minimo AA`).toEqual([]);
+});
+
+/**
+ * WCAG 2.2 SC 2.5.8 (AA): todo objetivo mide ≥ 24x24 CSS px, salvo dos
+ * exenciones que se aplican aquí:
+ *   - "inline": el enlace vive dentro de una frase de texto.
+ *   - "spacing": el círculo de 24px centrado en el objetivo no toca otro
+ *     objetivo (ni el de otro objetivo pequeño).
+ * Sin estas dos, el test marcaría enlaces legítimos dentro de un párrafo.
+ */
+function tapTargetFails() {
+  const SEL = "a,button,input,select,textarea,[role=button]";
+  const isInlineText = (el) => {
+    if (getComputedStyle(el).display !== "inline") return false;
+    let p = el.parentElement;
+    while (p && p !== document.body) {
+      const pcs = getComputedStyle(p);
+      if (pcs.display === "block" || pcs.display === "flex" || pcs.display === "grid") {
+        const full = (p.textContent || "").trim();
+        const own = (el.textContent || "").trim();
+        return full.length > own.length + 2;
+      }
+      p = p.parentElement;
+    }
+    return false;
+  };
+
+  const targets = [];
+  document.querySelectorAll(SEL).forEach((el) => {
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden") return;
+    if (parseFloat(cs.opacity) < 0.5) return;
+    if (el.disabled || cs.pointerEvents === "none") return;
+    if (el.getAttribute("aria-hidden") === "true") return;
+    if (el.tagName === "INPUT" && el.type === "hidden") return;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return;
+    if (r.width <= 1 && r.height <= 1) return; // oculto a la vista (skip link)
+    targets.push({ el, r, small: r.width < 24 || r.height < 24 });
+  });
+
+  const circleHitsRect = (cx, cy, rect) => {
+    const nx = Math.max(rect.left, Math.min(cx, rect.right));
+    const ny = Math.max(rect.top, Math.min(cy, rect.bottom));
+    return Math.hypot(cx - nx, cy - ny) <= 12;
+  };
+  const spacingOk = (t) => {
+    const cx = t.r.left + t.r.width / 2;
+    const cy = t.r.top + t.r.height / 2;
+    for (const o of targets) {
+      if (o.el === t.el) continue;
+      if (o.small) {
+        const ox = o.r.left + o.r.width / 2;
+        const oy = o.r.top + o.r.height / 2;
+        if (Math.hypot(cx - ox, cy - oy) <= 24) return false;
+      } else if (circleHitsRect(cx, cy, o.r)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const fails = [];
+  for (const t of targets) {
+    if (!t.small) continue;
+    if (isInlineText(t.el)) continue;
+    if (spacingOk(t)) continue;
+    fails.push({
+      target: (t.el.getAttribute("aria-label") || t.el.textContent || t.el.tagName)
+        .trim()
+        .slice(0, 30),
+      size: `${Math.round(t.r.width)}x${Math.round(t.r.height)}`,
+    });
+  }
+  return fails;
+}
 
 test("el foco de teclado es visible y de un solo color (ambos temas)", async ({
   browser,
@@ -331,7 +460,13 @@ test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", 
   const seenTitles = new Set();
   for (const path of publicPaths) {
     await available(page, path);
-    await page.waitForTimeout(500);
+    // Espera a que la pantalla asiente en vez de un sleep fijo: el detalle del
+    // evento pinta el h1 y el <title> recien cuando llega la respuesta de la
+    // API, y con la suite en paralelo ese fetch puede tardar mas de 500ms.
+    // Con el sleep fijo, el spec tomaba el estado "Cargando…" (h1=0, title
+    // generico) y fallaba por una carrera con door-alert-live, que crea
+    // eventos E2E-DOOR-* que pasan a encabezar la lista publica.
+    await settled(page);
     const r = await page.evaluate(headingReport);
     if (r.h1 !== 1) fails.push({ path, issue: `h1=${r.h1}` });
     if (r.skip) fails.push({ path, issue: `salto ${r.skip}` });
@@ -353,7 +488,7 @@ test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", 
   ]) {
     await login(page, email);
     await page.goto(path);
-    await page.waitForTimeout(700);
+    await settled(page);
     const r = await page.evaluate(headingReport);
     if (r.h1 !== 1) fails.push({ path, issue: `h1=${r.h1}` });
     const title = await page.title();

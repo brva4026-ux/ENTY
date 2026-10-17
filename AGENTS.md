@@ -543,6 +543,18 @@ avisar.
   `CATEGORY_CHIPS` en `HomePage.jsx`). Una columna real es follow-up.
 - **Sin checkout publico todavia:** el CTA "Comprar boleto" del detalle apunta a
   `/boletas` (el fan recupera lo ya emitido por contacto).
+- **Accesibilidad: qué exige cada superficie.** La puerta exige 44px de objetivo
+  táctil (SC 2.5.5, AAA) porque se usa de pie y a una mano; el resto de lo público
+  exige 24px (SC 2.5.8, AA). **No midas el catálogo con la regla de 44px**: marcaría
+  enlaces dentro de un párrafo y el wordmark, que la norma exime por "inline" y por
+  "spacing". `a11y.spec.js` ya aplica ambas exenciones en `tapTargetFails`; el test
+  de 44px solo corre en `/bouncer`. Medido a 375px: 0 violaciones AA.
+- **Los E2E de a11y no deben esperar con sleeps fijos.** `settled(page)` espera a
+  que desaparezca "Cargando…", a `networkidle` y a que el `<title>` por ruta deje
+  de ser el estático. Con `waitForTimeout(500)` el detalle del evento se medía a
+  medio cargar y el spec fallaba por carrera con `door-alert-live.spec.js` (que crea
+  eventos `E2E-DOOR-*` en paralelo). `firstEventPath` además salta los `E2E-*` para
+  no medir un evento que otro spec está sembrando.
 
 ## Admin: salud de puerta (duplicados / rechazos)
 
