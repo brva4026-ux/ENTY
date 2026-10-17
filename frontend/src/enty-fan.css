@@ -768,6 +768,9 @@ html[data-theme="light"] .legal-link {
   gap: var(--e-space-2) var(--e-space-5);
 }
 .legal-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   font-size: var(--e-text-sm);
   font-weight: 600;
   color: var(--e-text-secondary);
@@ -822,7 +825,14 @@ html[data-theme="light"] .legal-link {
   display: flex;
   gap: var(--e-space-5);
 }
+/* 20px de alto dejaba el enlace justo por debajo del minimo AA (24px) y solo
+   lo salvaba la exencion de espaciado: al crecer la pagina, el pie se corria y
+   el test caia de forma intermitente. El padding da area tactil real sin
+   mover una letra de sitio. */
 .home-foot-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   font-size: var(--e-text-sm);
   font-weight: 600;
   color: var(--e-text-muted);

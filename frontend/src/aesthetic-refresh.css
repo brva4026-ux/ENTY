@@ -1916,6 +1916,13 @@ html[data-theme="light"] .bizdock-count {
   text-align: center;
   color: var(--e-text-secondary);
 }
+.evd-empty-title {
+  margin: 0 0 0.75rem;
+  font-size: var(--e-text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--e-text-primary);
+}
 .evd-empty p {
   margin: 0 0 1.2rem;
   font-size: var(--e-text-base);

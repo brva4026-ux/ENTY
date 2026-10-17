@@ -500,3 +500,35 @@ test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", 
   expect(fails, "pantallas sin h1 unico o con saltos de nivel").toEqual([]);
 });
 
+/**
+ * Los estados de ERROR tambien son pantallas: si el detalle de un evento cae
+ * (404 de un enlace viejo compartido por WhatsApp), el lector de pantalla
+ * necesita su h1 y la pestana su titulo, igual que en el caso feliz. Este
+ * test nacio de un hallazgo real: /evento/:id respondia 200 con la pantalla
+ * de error y h1=0, y el spec de arriba no lo veia porque solo medía un
+ * evento valido del seed.
+ */
+test("estados de error: h1 y title propios", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  const ok = await available(page, "/inicio");
+  test.skip(!ok, "App no disponible");
+
+  const fails = [];
+  // Un id inexistente fuerza el 404 del API y la rama de error de la pagina.
+  for (const path of ["/evento/999999999", "/evento/0"]) {
+    await available(page, path);
+    await settled(page);
+    const r = await page.evaluate(headingReport);
+    const title = await page.title();
+    if (r.h1 !== 1) fails.push({ path, issue: `h1=${r.h1}` });
+    if (r.skip) fails.push({ path, issue: `salto ${r.skip}` });
+    if (r.overflow) fails.push({ path, issue: "scroll horizontal" });
+    if (!title.endsWith("· Enty")) fails.push({ path, issue: `title generico: ${title}` });
+  }
+
+  await ctx.close();
+  if (fails.length) console.log("Estados de error:", JSON.stringify(fails, null, 2));
+  expect(fails, "estados de error sin h1 o con title generico").toEqual([]);
+});
+

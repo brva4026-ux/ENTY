@@ -86,6 +86,9 @@ export function PushToggle({ venueId }) {
           Notificación push, aunque la app esté cerrada
         </p>
       </div>
+      {/* El area tactil es el boton (44px, minimo AAA que se impone la
+          puerta); el riel visual de 28px se centra dentro. Medir el riel
+          dejaba un control de 48x28, imposible de pulsar de pie y con prisa. */}
       <button
         type="button"
         role="switch"
@@ -93,15 +96,21 @@ export function PushToggle({ venueId }) {
         aria-label="Avisarme cuando abran puertas"
         onClick={toggle}
         disabled={busy}
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
-          on ? "bg-emerald-600" : "bg-zinc-700"
-        } ${busy ? "opacity-60" : ""}`}
+        className={`flex h-11 w-14 shrink-0 items-center justify-center ${
+          busy ? "opacity-60" : ""
+        }`}
       >
         <span
-          className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
-            on ? "translate-x-6" : "translate-x-1"
+          className={`relative h-7 w-12 rounded-full transition-colors duration-200 ${
+            on ? "bg-emerald-600" : "bg-zinc-700"
           }`}
-        />
+        >
+          <span
+            className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
+              on ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </span>
       </button>
     </div>
   );

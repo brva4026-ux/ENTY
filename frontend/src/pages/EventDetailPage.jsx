@@ -123,7 +123,9 @@ export default function EventDetailPage() {
   const [copied, setCopied] = useState(false);
   const [coords, setCoords] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  useDocumentTitle(data?.name);
+  // En error el nombre del evento no existe: sin un titulo explicito la
+  // pestana y el enlace compartido se quedaban con el estatico de index.html.
+  useDocumentTitle(error ? "Evento no disponible" : data?.name);
 
   // Referencia del checkout al volver de Wompi (redirect_url del cobro).
   const payRef = searchParams.get("pago");
@@ -291,11 +293,16 @@ export default function EventDetailPage() {
 
       {error ? (
         <div className="evd-empty">
+          {/* El h1 no es decorativo: es el ancla de pagina del lector de
+              pantalla. Sin el, un enlace a un evento caido (404) dejaba la
+              pantalla sin encabezado y sin titulo propio. */}
+          <h1 className="evd-empty-title">Evento no disponible</h1>
           <p>{error}</p>
           <Link to="/inicio" className="evd-cta">Volver al inicio</Link>
         </div>
       ) : !data ? (
         <div className="evd-empty">
+          <h1 className="evd-empty-title">Cargando el evento…</h1>
           <p>Cargando…</p>
         </div>
       ) : (
