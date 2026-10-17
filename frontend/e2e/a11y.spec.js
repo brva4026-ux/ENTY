@@ -532,3 +532,123 @@ test("estados de error: h1 y title propios", async ({ browser }) => {
   expect(fails, "estados de error sin h1 o con title generico").toEqual([]);
 });
 
+/**
+ * Safe-area / viewport movil. Dos cosas que se rompen en silencio:
+ *
+ *   1. `viewport-fit=cover` en el meta viewport. Sin el, `env(safe-area-inset-*)`
+ *      resuelve a 0 en iOS: todo el CSS que ya reserva notch / home indicator
+ *      queda escrito pero INERTE. El sintoma (contenido bajo la isla dinamica)
+ *      solo aparece en un iPhone real, nunca en el navegador de escritorio.
+ *   2. Que la declaracion sobreviva a la cascada. `.home-nav` declaraba el
+ *      inset y un shorthand `padding` posterior lo pisaba.
+ *
+ * Headless Chromium no emula insets (env() = 0), asi que no se puede medir el
+ * notch. Lo que SI se verifica es que la regla existe, llega al layout y no
+ * fue pisada: con inset 0 el padding computado debe ser el valor de diseno.
+ * Si alguien borra `viewport-fit=cover` o el inset, esto falla.
+ */
+  test("movil: viewport-fit=cover y los insets de safe-area sobreviven la cascada", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  const ok = await available(page, "/inicio");
+  test.skip(!ok, "App no disponible");
+
+  const fails = [];
+
+  // 1. El meta: sin viewport-fit=cover todo lo demas es decorativo.
+  const meta = await page
+    .locator('meta[name="viewport"]')
+    .getAttribute("content");
+  if (!meta?.includes("viewport-fit=cover")) {
+    fails.push({ where: "meta viewport", issue: `sin viewport-fit=cover: ${meta}` });
+  }
+
+  // 2. Las declaraciones de inset tienen que existir en las hojas cargadas.
+  //    Se inspecciona la CSSOM, no el pixel: headless resuelve env() a 0, asi
+  //    que un padding correcto por casualidad no distingue "tiene el inset"
+  //    de "lo perdio". Esto si: si alguien borra la declaracion, desaparece
+  //    del cssText y el test cae.
+  const insetReport = await page.evaluate(() => {
+    // El navegador a veces conserva el shorthand (`padding: ...`) y a veces lo
+    // expande a longhands; se aceptan ambos, pero siempre exigiendo que el
+    // valor de ESA declaracion contenga el env() (no cualquier env del bloque:
+    // `.home-nav` tiene el inset tambien en `height` y eso no basta).
+    const want = [
+      { sel: ".home", props: ["padding-bottom", "padding"] },
+      { sel: ".home-nav", props: ["padding-bottom", "padding"] },
+      { sel: ".evd-hero-actions", props: ["top"] },
+      { sel: ".topbar", props: ["padding-top", "padding"] },
+      { sel: ".auth-panel", props: ["padding-top", "padding"] },
+      { sel: ".app-main", props: ["padding-bottom", "padding"] },
+    ];
+    const found = {};
+
+    const declValue = (cssText, prop) => {
+      const m = cssText.match(
+        new RegExp(`(?:^|[;{\\s])${prop}\\s*:([^;}]*)`, "i"),
+      );
+      return m ? m[1] : null;
+    };
+
+    const walk = (rules) => {
+      for (const rule of rules) {
+        // Las @media/@supports anidan reglas y hay que bajarlas. Ojo: en
+        // Chrome moderno CSSStyleRule tambien expone cssRules (vacio salvo
+        // nesting), asi que se filtra por length o el walker se mete en una
+        // lista vacia y nunca mira el selectorText.
+        if (rule.cssRules?.length) walk(rule.cssRules);
+        if (!rule.selectorText) continue;
+        const selectors = rule.selectorText.split(",").map((s) => s.trim());
+        for (const { sel, props } of want) {
+          if (!selectors.includes(sel)) continue;
+          for (const prop of props) {
+            const value = declValue(rule.cssText, prop);
+            if (value && value.includes("env(safe-area-inset")) {
+              found[`${sel} ${prop}`] = true;
+            }
+          }
+        }
+      }
+    };
+    for (const sheet of document.styleSheets) {
+      try {
+        walk(sheet.cssRules);
+      } catch {
+        // hoja de otro origen: no es la nuestra
+      }
+    }
+    return found;
+  });
+  for (const { sel, props } of [
+    { sel: ".home", props: ["padding-bottom", "padding"] },
+    { sel: ".home-nav", props: ["padding-bottom", "padding"] },
+    { sel: ".evd-hero-actions", props: ["top"] },
+    { sel: ".topbar", props: ["padding-top", "padding"] },
+    { sel: ".auth-panel", props: ["padding-top", "padding"] },
+    { sel: ".app-main", props: ["padding-bottom", "padding"] },
+  ]) {
+    if (!props.some((p) => insetReport[`${sel} ${p}`])) {
+      fails.push({
+        where: sel,
+        issue: `sin env(safe-area-inset-*) en ${props.join("/")}`,
+      });
+    }
+  }
+
+  // 3. La credencial del fan no puede desbordar a lo ancho.
+  const ticketPath = await firstEventPath(page);
+  if (ticketPath) {
+    await available(page, ticketPath);
+    await settled(page);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    if (overflow) fails.push({ where: ticketPath, issue: "scroll horizontal" });
+  }
+
+  await ctx.close();
+  if (fails.length) console.log("Safe-area movil:", JSON.stringify(fails, null, 2));
+  expect(fails, "viewport-fit o insets de safe-area rotos").toEqual([]);
+});

@@ -2,7 +2,10 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: sin esto, env(safe-area-inset-*) resuelve a 0 en
+         iOS y todo el codigo que ya reserva el notch / home indicator
+         (Layout.jsx, BouncerScanner, AdminDashboard) queda inerte. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0A0A0F" />
     <meta name="description" content="Enty — boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso." />
     <!-- Fuente self-hosted (Sora variable, public/fonts): preload para que el
