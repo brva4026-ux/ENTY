@@ -29,19 +29,19 @@ stylelint `color-no-hex` prohíbe cualquier hex en el resto de hojas.
 
 | Rol | Token | Hex | Uso |
 |---|---|---|---|
-| Negro mate | `--e-ink-1` | `#0B0B0F` | Lienzo de la marca (tema oscuro por defecto) |
-| Violeta eléctrico | `--e-violet-500` | `#7C3AED` | La única acción primaria |
-| Verde eléctrico | `--e-green-500` | `#00E6AB` | Validado / disponible / en vivo |
-| Rosa eléctrico | `--e-pink-500` | `#FF2D98` | Urgencia / últimas / rechazo crítico |
-| Tinta | `--e-paper` / `#F5F5F7` | | Texto principal sobre negro |
+| Negro mate | `--e-ink-950` | `#0c0a09` | Lienzo de la marca (tema oscuro por defecto) |
+| Ultramar eléctrico | `--e-brand-500` | `#4356e8` | La única acción primaria |
+| Verde eléctrico | `--e-green-500` | `#00e6ab` | Validado / disponible / en vivo |
+| Rosa eléctrico | `--e-pink-500` | `#ff2d98` | Urgencia / últimas / rechazo crítico |
+| Tinta | `--e-paper` | `#f6f5f2` | Texto principal sobre negro |
 
 Reglas de color:
 
-- **Un solo acento interactivo**: el violeta `#7C3AED` (`--e-brand`). Todo
+- **Un solo acento interactivo**: el ultramar `#4356e8` (`--e-brand-500`). Todo
   botón/estado primario lo usa; nada más.
 - **El verde y el rosa significan, no decoran**. Verde = validado/disponible/en
   vivo; rosa = urgencia/últimas. Nunca son color de interfaz ni de marca.
-- **Un violeta más brillante** (`--e-violet-400` `#BB5CF6`) es solo
+- **Un ultramar más claro** (`--e-brand-400` `#7b87ff`) es solo
   halo/glow, nunca relleno interactivo.
 - Oscuro por defecto; la **puerta es siempre oscura** (el flash blanco en un
   recinto a oscuras ciega al portero), aunque el tema del dispositivo sea claro.
@@ -78,7 +78,7 @@ Cifras **siempre tabulares** en datos de negocio: `.tnum` o
 `tokens.css` tiene tres niveles:
 
 1. **Primitivas** `--e-<familia>-<paso>`: el valor crudo (`--e-ink-1`,
-   `--e-violet-500`). No se consumen en componentes.
+   `--e-brand-500`). No se consumen en componentes.
 2. **Semánticas** `--e-<rol>`: lo que usan las hojas (`--e-canvas`,
    `--e-surface`, `--e-text-primary`, `--e-border-hairline`, `--e-brand`,
    `--e-success`, `--e-urgent`). **Voltean con el tema**.
@@ -99,7 +99,8 @@ Cifras **siempre tabulares** en datos de negocio: `.tnum` o
   La elevación es un par tema-aware: **mismo hueco visual, distinta materia**
   (oscuro = sombra; claro = papel).
 - `--e-highlight-inset`: el filo de 1px que hace la superficie "pizarra".
-- `--e-glow-brand`, `--e-glow-violet/green/pink`: halos de marca.
+- `--e-glow-brand`, `--e-glow-violet` (nombre historico del halo ultramar),
+  `--e-glow-green/pink`: halos de marca.
 - `--e-glass-1/2`, `--e-glass-line`, `--e-glass-blur`: material de cristal de la
   casa fan (vitrina, detalle, boleta).
 - `--e-ticket-*`: material de la **boleta pública**, siempre oscuro (no voltea).
@@ -119,7 +120,7 @@ Cada rol es un "volumen" distinto del mismo lenguaje.
 ### Admin (densidad y jerarquía de datos)
 
 - Lista compacta (`evx-*`): filas densas con **zebra sutil**, cabecera
-  **pegajosa**, **cifras tabulares** y **violeta solo en la acción primaria**.
+  **pegajosa**, **cifras tabulares** y **ultramar solo en la acción primaria**.
 - El ciclo de vida de cada noche se lee como un rail de estado (verde vivo = en
   puerta), no como una tabla fría.
 - Las acciones de fila son **control, no decoración**: siempre visibles (el
@@ -128,7 +129,7 @@ Cada rol es un "volumen" distinto del mismo lenguaje.
 ### Promotor (cupos y comisión)
 
 - **Tinte de marca** en el hero y en los cupos; el medidor (`e-meter`) muestra
-  la proporción de la noche con el violeta de marca.
+  la proporción de la noche con el ultramar de marca.
 - Estados de comisión/pago **explícitos** (pendiente / disputada / pagada /
   rechazada) con su color semántico, nunca solo un número.
 
@@ -143,7 +144,7 @@ Cada rol es un "volumen" distinto del mismo lenguaje.
 ## 5. Píldoras semánticas y motivos
 
 - `.e-pill--ok` = verde (validado). `.e-pill--hot` = rosa (urgencia).
-  `.e-pill--brand` = violeta tenue (estado de marca).
+  `.e-pill--brand` = ultramar tenue (estado de marca).
 - `.e-meter` / `.e-meter-fill` (+ `.is-warn`, `.is-full`): medidor de cupo.
 - El **troquel** (`.enty-perf`) es el corte perforado de la boletería: separa
   bloques como el corte de una entrada.
@@ -156,7 +157,7 @@ Cada rol es un "volumen" distinto del mismo lenguaje.
 
 - El movimiento dominante es `transform`/`opacity`; **nunca** se anima
   `filter`/`backdrop-filter`.
-- 19 keyframes, todos usados; 0 huérfanos.
+- 21 keyframes, todos usados; 0 huérfanos.
 - **Todo movimiento respeta `prefers-reduced-motion`** (único uso legítimo de
   `!important` en el repo).
 
@@ -166,7 +167,7 @@ Cada rol es un "volumen" distinto del mismo lenguaje.
 
 1. Ningún hex de marca fuera de `tokens.css` (stylelint `color-no-hex`).
 2. Ninguna página inventa un radio o tamaño fuera de escala.
-3. Un solo acento interactivo (violeta).
+3. Un solo acento interactivo (ultramar).
 4. Sin `@layer compat`, sin namespaces legacy (`--tf-*`, `--home-*`, `--evd-*`,
    `--tkt-*`, `--vh-*`): retirados en Fase 6.
 5. Contraste AA, tap ≥ 44px, alt en imágenes, un solo `h1` por vista, foco

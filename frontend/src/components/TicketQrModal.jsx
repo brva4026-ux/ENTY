@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { publicTicketPageUrl } from "../lib/api";
 import { ticketWaMessage, waLink } from "../lib/whatsapp";
 import Icon from "./Icon";
+import { QR_COLORS } from "../lib/qr";
 
 /**
  * QR de una boleta vista desde el admin.
@@ -26,7 +27,7 @@ export default function TicketQrModal({ ticket, onClose }) {
       width: 640,
       margin: 1,
       errorCorrectionLevel: "M",
-      color: { dark: "#0f172a", light: "#ffffff" },
+      color: QR_COLORS,
     })
       .then(setQr)
       .catch(() => setError("No se pudo generar el QR"));

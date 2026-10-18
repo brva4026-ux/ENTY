@@ -10,14 +10,14 @@
 
 body {
   background:
-    radial-gradient(70rem 42rem at 50% -18rem, rgba(187, 92, 246, 0.16), transparent 62%),
-    radial-gradient(34rem 24rem at 103% 18rem, rgba(187, 92, 246, 0.08), transparent 64%),
+    radial-gradient(70rem 42rem at 50% -18rem, color-mix(in srgb, var(--e-brand-400) 16%, transparent), transparent 62%),
+    radial-gradient(34rem 24rem at 103% 18rem, color-mix(in srgb, var(--e-brand-400) 8%, transparent), transparent 64%),
     var(--e-canvas);
   color: var(--e-text-primary);
 }
 
 ::selection {
-  background: rgba(187, 92, 246, 0.48);
+  background: color-mix(in srgb, var(--e-brand-400) 48%, transparent);
   color: var(--e-white);
 }
 
@@ -40,11 +40,11 @@ body {
 .brand-suffix,
 .btn-mini[data-variant="brand"],
 .tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: var(--e-violet-200);
+  color: var(--e-brand-200);
 }
 
 .text-gradient {
-  background: linear-gradient(120deg, var(--e-white) 0%, var(--e-white) 36%, var(--e-violet-200) 72%, var(--e-brand) 100%);
+  background: linear-gradient(120deg, var(--e-white) 0%, var(--e-white) 36%, var(--e-brand-200) 72%, var(--e-brand) 100%);
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -57,7 +57,7 @@ body {
   border-radius: var(--e-radius-xl);
   border-color: var(--e-border-hairline);
   background:
-    radial-gradient(34rem 20rem at 84% -10rem, rgba(187, 92, 246, 0.12), transparent 68%),
+    radial-gradient(34rem 20rem at 84% -10rem, color-mix(in srgb, var(--e-brand-400) 12%, transparent), transparent 68%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 42%),
     var(--e-surface);
   box-shadow:
@@ -71,13 +71,13 @@ html[data-theme="light"] .dialog-panel,
 html[data-theme="light"] .venue-header,
 html[data-theme="light"] .bizdock {
   background:
-    radial-gradient(30rem 18rem at 84% -10rem, rgba(187, 92, 246, 0.06), transparent 70%),
+    radial-gradient(30rem 18rem at 84% -10rem, color-mix(in srgb, var(--e-brand-400) 6%, transparent), transparent 70%),
     var(--e-surface);
 }
 
 .card-interactive:hover {
   transform: translateY(-2px);
-  border-color: rgba(187, 92, 246, 0.36);
+  border-color: color-mix(in srgb, var(--e-brand-400) 36%, transparent);
   box-shadow: var(--e-elev-raised);
 }
 
@@ -85,8 +85,8 @@ html[data-theme="light"] .bizdock {
 select.field,
 textarea.field {
   border-radius: var(--e-radius-lg);
-  border-color: rgba(187, 92, 246, 0.22);
-  background-color: rgba(187, 92, 246, 0.075);
+  border-color: color-mix(in srgb, var(--e-brand-400) 22%, transparent);
+  background-color: color-mix(in srgb, var(--e-brand-400) 7.5%, transparent);
   color: var(--e-text-primary);
 }
 
@@ -95,36 +95,36 @@ textarea.field {
 }
 
 .field:hover {
-  border-color: rgba(187, 92, 246, 0.42);
+  border-color: color-mix(in srgb, var(--e-brand-400) 42%, transparent);
 }
 
 .field:focus {
   border-color: var(--e-brand);
-  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.24), 0 0 28px -16px rgba(187, 92, 246, 0.95);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-400) 24%, transparent), 0 0 28px -16px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .btn-primary {
   border-radius: var(--e-radius-lg);
-  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 55%, var(--e-violet-425) 100%);
+  background: linear-gradient(135deg, var(--e-brand-500) 0%, var(--e-brand-400) 55%, var(--e-brand-425) 100%);
   color: var(--e-white);
   border-width: 1px;
   border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 18px 34px -20px rgba(187, 92, 246, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  box-shadow: 0 18px 34px -20px color-mix(in srgb, var(--e-brand-400) 95%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.24);
   font-weight: 800;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--e-violet-600) 0%, var(--e-violet-425) 58%, var(--e-violet-550) 100%);
-  box-shadow: 0 20px 40px -18px rgba(187, 92, 246, 1), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  background: linear-gradient(135deg, var(--e-brand-600) 0%, var(--e-brand-425) 58%, var(--e-brand-550) 100%);
+  box-shadow: 0 20px 40px -18px var(--e-brand-400), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .btn-primary:focus-visible {
   border-color: var(--e-white);
-  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.35), 0 18px 34px -20px rgba(187, 92, 246, 0.95);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-400) 35%, transparent), 0 18px 34px -20px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .btn-primary:active {
-  background: linear-gradient(135deg, var(--e-violet-700), var(--e-violet-550));
+  background: linear-gradient(135deg, var(--e-brand-700), var(--e-brand-550));
   transform: translateY(1px);
 }
 
@@ -145,16 +145,16 @@ textarea.field {
 }
 
 .btn-ghost:hover {
-  background: rgba(187, 92, 246, 0.11);
-  border-color: rgba(187, 92, 246, 0.44);
+  background: color-mix(in srgb, var(--e-brand-400) 11%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 44%, transparent);
   color: var(--e-text-primary);
 }
 
 .btn-mini[data-variant="brand"]:hover,
 .opt-chip[aria-pressed="true"] {
-  background: rgba(187, 92, 246, 0.14);
-  border-color: rgba(187, 92, 246, 0.46);
-  color: var(--e-violet-200);
+  background: color-mix(in srgb, var(--e-brand-400) 14%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 46%, transparent);
+  color: var(--e-brand-200);
 }
 
 .btn-mini[data-variant="success"] {
@@ -168,7 +168,7 @@ textarea.field {
 .meter-fill,
 input[type="checkbox"].accent-brand-500:checked,
 .bizdock-item.is-active .bizdock-icon {
-  background: linear-gradient(135deg, var(--e-violet-500), var(--e-violet-400));
+  background: linear-gradient(135deg, var(--e-brand-500), var(--e-brand-400));
 }
 
 input[type="checkbox"].accent-brand-500:checked {
@@ -187,22 +187,22 @@ input[type="checkbox"].accent-brand-500:checked {
 }
 
 .topnav-item:hover {
-  background: rgba(187, 92, 246, 0.1);
+  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
   color: var(--e-text-primary);
 }
 
 .topnav-item.is-active,
 html[data-theme="light"] header nav a[aria-current="page"] {
-  background: rgba(187, 92, 246, 0.16);
+  background: color-mix(in srgb, var(--e-brand-400) 16%, transparent);
   color: var(--e-text-primary);
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.28);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 28%, transparent);
 }
 
 .topbar-avatar {
-  border: 1px solid rgba(187, 92, 246, 0.44);
-  background: radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.28), transparent 24%), linear-gradient(135deg, var(--e-violet-700), var(--e-violet-400));
+  border: 1px solid color-mix(in srgb, var(--e-brand-400) 44%, transparent);
+  background: radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.28), transparent 24%), linear-gradient(135deg, var(--e-brand-700), var(--e-brand-400));
   color: var(--e-white);
-  box-shadow: 0 0 26px -14px rgba(187, 92, 246, 0.95);
+  box-shadow: 0 0 26px -14px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .bottomnav {
@@ -217,30 +217,30 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .bottomnav-item.is-active {
-  color: var(--e-violet-200);
-  background: rgba(187, 92, 246, 0.12);
+  color: var(--e-brand-200);
+  background: color-mix(in srgb, var(--e-brand-400) 12%, transparent);
 }
 
 .bottomnav-item.is-active span:last-child {
   background: var(--e-brand);
-  box-shadow: 0 0 16px rgba(187, 92, 246, 0.65);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--e-brand-400) 65%, transparent);
 }
 
 .tabbar {
   border: 1px solid var(--e-border-hairline);
   background: rgba(255, 255, 255, 0.035);
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.06);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 6%, transparent);
 }
 
 .tabbar-item[aria-selected="true"] {
-  background: rgba(187, 92, 246, 0.14);
+  background: color-mix(in srgb, var(--e-brand-400) 14%, transparent);
   color: var(--e-text-primary);
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.3), 0 10px 26px -20px rgba(187, 92, 246, 0.9);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 30%, transparent), 0 10px 26px -20px color-mix(in srgb, var(--e-brand-400) 90%, transparent);
 }
 
 .badge {
-  border: 1px solid rgba(187, 92, 246, 0.22);
-  background: rgba(187, 92, 246, 0.09);
+  border: 1px solid color-mix(in srgb, var(--e-brand-400) 22%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 9%, transparent);
 }
 
 .list-row,
@@ -254,22 +254,22 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .row:hover {
-  background: rgba(187, 92, 246, 0.075);
+  background: color-mix(in srgb, var(--e-brand-400) 7.5%, transparent);
 }
 
 .empty-state-icon {
-  color: var(--e-violet-200);
-  background: radial-gradient(circle, rgba(187, 92, 246, 0.24), rgba(187, 92, 246, 0.07));
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.4), 0 0 34px -18px rgba(187, 92, 246, 0.95);
+  color: var(--e-brand-200);
+  background: radial-gradient(circle, color-mix(in srgb, var(--e-brand-400) 24%, transparent), color-mix(in srgb, var(--e-brand-400) 7%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 40%, transparent), 0 0 34px -18px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .ticket-timeline::before {
-  background: linear-gradient(180deg, rgba(187, 92, 246, 0.66), rgba(0, 230, 171, 0.32));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-400) 66%, transparent), rgba(0, 230, 171, 0.32));
 }
 
 .ticket-step.done .ticket-step-dot {
   background: var(--e-brand);
-  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.18), 0 0 16px -4px rgba(187, 92, 246, 0.9);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-400) 18%, transparent), 0 0 16px -4px color-mix(in srgb, var(--e-brand-400) 90%, transparent);
 }
 
 .ticket-step.current .ticket-step-dot {
@@ -283,7 +283,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .vh-kpi::before {
-  background: linear-gradient(180deg, rgba(187, 92, 246, 0.8), rgba(187, 92, 246, 0.08) 82%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-400) 80%, transparent), color-mix(in srgb, var(--e-brand-400) 8%, transparent) 82%, transparent);
 }
 
 .bizdock-item {
@@ -292,20 +292,20 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .bizdock-item:hover {
-  background: rgba(187, 92, 246, 0.095);
+  background: color-mix(in srgb, var(--e-brand-400) 9.5%, transparent);
 }
 
 .bizdock-item.is-active {
-  background: rgba(187, 92, 246, 0.14);
-  border-color: rgba(187, 92, 246, 0.38);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 36px -28px rgba(187, 92, 246, 0.9);
+  background: color-mix(in srgb, var(--e-brand-400) 14%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 38%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 36px -28px color-mix(in srgb, var(--e-brand-400) 90%, transparent);
 }
 
 .bizdock-count {
   font-variant-numeric: tabular-nums;
   background: var(--e-brand);
-  /* Tinta Enty sobre el violeta brillante (oscuro): 6.2:1. En claro
-     --tf-purple cambia a var(--e-violet-500) (mas oscuro), donde la tinta bajaba a
+  /* Tinta Enty sobre el ultramar brillante (oscuro): 6.2:1. En claro
+     --tf-purple cambia a var(--e-brand-500) (mas oscuro), donde la tinta bajaba a
      3.4:1; ahi el par correcto es blanco (5.1:1). */
   color: var(--e-ink-1);
 }
@@ -325,7 +325,7 @@ html[data-theme="light"] .bizdock-count {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--e-surface) 25%, rgba(187, 92, 246, 0.16) 50%, var(--e-surface) 75%);
+  background: linear-gradient(90deg, var(--e-surface) 25%, color-mix(in srgb, var(--e-brand-400) 16%, transparent) 50%, var(--e-surface) 75%);
   background-size: 800px 100%;
 }
 
@@ -335,7 +335,7 @@ html[data-theme="light"] .bizdock-count {
 
 .auth-brand {
   background:
-    radial-gradient(38rem 28rem at 78% 0%, rgba(187, 92, 246, 0.24), transparent 58%),
+    radial-gradient(38rem 28rem at 78% 0%, color-mix(in srgb, var(--e-brand-400) 24%, transparent), transparent 58%),
     radial-gradient(34rem 22rem at 14% 86%, rgba(255, 45, 152, 0.09), transparent 60%),
     linear-gradient(158deg, var(--e-panel-550) 0%, var(--e-ink-1) 64%, var(--e-ink-0) 100%);
 }
@@ -350,9 +350,9 @@ html[data-theme="light"] .bizdock-count {
 }
 
 .auth-benefit-check {
-  color: var(--e-violet-200);
-  background: rgba(187, 92, 246, 0.15);
-  border-color: rgba(187, 92, 246, 0.42);
+  color: var(--e-brand-200);
+  background: color-mix(in srgb, var(--e-brand-400) 15%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 42%, transparent);
 }
 
 .evx-card {
@@ -360,7 +360,7 @@ html[data-theme="light"] .bizdock-count {
 }
 
 .evx-card::after {
-  background: radial-gradient(90% 70% at 50% -10%, rgba(187, 92, 246, 0.16), transparent 62%);
+  background: radial-gradient(90% 70% at 50% -10%, color-mix(in srgb, var(--e-brand-400) 16%, transparent), transparent 62%);
 }
 
 /* Public digital ticket: black paper, hard white type, QR priority, neon marks. */
@@ -372,12 +372,12 @@ html[data-theme="light"] .bizdock-count {
 .tkt {
   border-radius: 1.25rem;
   background:
-    radial-gradient(26rem 18rem at 78% 12%, rgba(187, 92, 246, 0.14), transparent 60%),
+    radial-gradient(26rem 18rem at 78% 12%, color-mix(in srgb, var(--e-brand-400) 14%, transparent), transparent 60%),
     radial-gradient(18rem 10rem at 14% 72%, rgba(255, 45, 152, 0.1), transparent 62%),
     linear-gradient(180deg, var(--e-panel-700), var(--e-panel-900));
   color: var(--e-white);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 28px 70px -38px rgba(0, 0, 0, 1), 0 0 0 1px rgba(187, 92, 246, 0.08);
+  box-shadow: 0 28px 70px -38px rgba(0, 0, 0, 1), 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 8%, transparent);
 }
 
 .tkt::before {
@@ -405,9 +405,9 @@ html[data-theme="light"] .bizdock-count {
 
 .tkt-brand,
 .tkt-admit {
-  background: rgba(187, 92, 246, 0.16);
+  background: color-mix(in srgb, var(--e-brand-400) 16%, transparent);
   color: var(--e-white);
-  border-color: rgba(187, 92, 246, 0.42);
+  border-color: color-mix(in srgb, var(--e-brand-400) 42%, transparent);
 }
 
 .tkt-tear::after {
@@ -454,9 +454,9 @@ html[data-theme="light"] .bizdock-count {
 }
 
 .tkt-btn-primary {
-  background: linear-gradient(135deg, var(--e-violet-500), var(--e-violet-400));
+  background: linear-gradient(135deg, var(--e-brand-500), var(--e-brand-400));
   color: var(--e-white);
-  box-shadow: 0 16px 34px -18px rgba(187, 92, 246, 0.95);
+  box-shadow: 0 16px 34px -18px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .tkt-btn-quiet {
@@ -486,7 +486,7 @@ html[data-theme="light"] .bizdock-count {
    =========================================================================== */
 .tkt-stage {
   background:
-    radial-gradient(46rem 30rem at 50% -12rem, rgba(187, 92, 246, 0.16), transparent 62%),
+    radial-gradient(46rem 30rem at 50% -12rem, color-mix(in srgb, var(--e-brand-400) 16%, transparent), transparent 62%),
     var(--e-panel-950);
 }
 .tkt {
@@ -892,7 +892,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-white);
 }
 .tkt-note .tkt-note-icon {
-  background: rgba(187, 92, 246, 0.18);
+  background: color-mix(in srgb, var(--e-brand-400) 18%, transparent);
   color: var(--e-white);
 }
 .tkt-note strong,
@@ -918,7 +918,7 @@ html[data-theme="light"] .bizdock-count {
 
 /* ===========================================================================
    INICIO (app del fan) - la vitrina editorial del mockup "1 · Inicio".
-   Sora en peso 300 para titulares, fondo negro nocturno, acento violeta suave.
+   Sora en peso 300 para titulares, tinta calida, acento ultramar.
    Es hermana sobria de la boleta coleccionable: la boleta es el objeto, esto
    es la vitrina.
    =========================================================================== */
@@ -949,7 +949,7 @@ html[data-theme="light"] .bizdock-count {
   background:
     radial-gradient(
       42rem 30rem at 88% -6%,
-      rgba(124, 58, 237, 0.28),
+      color-mix(in srgb, var(--e-brand-500) 28%, transparent),
       transparent 62%
     ),
     radial-gradient(
@@ -1073,8 +1073,8 @@ html[data-theme="light"] .bizdock-count {
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(11, 11, 15, 0) 34%,
-    rgba(11, 11, 15, 0.72) 78%,
+    rgba(13, 11, 9, 0) 34%,
+    rgba(13, 11, 9, 0.72) 78%,
     var(--e-ink-1) 100%
   );
 }
@@ -1117,7 +1117,7 @@ html[data-theme="light"] .bizdock-count {
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--e-violet-250);
+  color: var(--e-brand-250);
 }
 .home-feature-top h1 {
   margin: 0.5rem 0 0;
@@ -1156,16 +1156,16 @@ html[data-theme="light"] .bizdock-count {
   display: inline-flex;
   align-items: center;
   /* Resplandor exterior del mismo color: el boton emite luz. */
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
-    0 14px 30px -12px rgba(124, 58, 237, 0.9),
-    0 0 22px -4px rgba(124, 58, 237, 0.65);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 50%, transparent),
+    0 14px 30px -12px color-mix(in srgb, var(--e-brand-500) 90%, transparent),
+    0 0 22px -4px color-mix(in srgb, var(--e-brand-500) 65%, transparent);
   transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.2s ease;
 }
 .home-cta:hover {
   filter: brightness(1.08);
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.6),
-    0 18px 38px -12px rgba(124, 58, 237, 1),
-    0 0 30px -2px rgba(124, 58, 237, 0.8);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 60%, transparent),
+    0 18px 38px -12px var(--e-brand-500),
+    0 0 30px -2px color-mix(in srgb, var(--e-brand-500) 80%, transparent);
 }
 .home-cta:active {
   transform: translateY(1px);
@@ -1190,7 +1190,7 @@ html[data-theme="light"] .bizdock-count {
   padding-inline: 0.5rem;
   font-size: var(--e-text-xs);
   font-weight: 600;
-  color: var(--e-violet-250);
+  color: var(--e-brand-250);
 }
 
 /* Lista de proximos (tarjetas de cristal) */
@@ -1210,7 +1210,7 @@ html[data-theme="light"] .bizdock-count {
   /* Superficie sólida, no cristal: una lista que scrollea con backdrop-filter
      fuerza al compositor a recomponer el blur en cada frame (iOS sobre todo).
      El cristal queda para lo fijo (nav) y el hero; acá manda el rendimiento. */
-  background: rgba(23, 22, 34, 0.72);
+  background: rgba(25, 23, 19, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.2s ease;
 }
@@ -1218,9 +1218,9 @@ html[data-theme="light"] .bizdock-count {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .home-row:hover {
-  border-color: rgba(124, 58, 237, 0.5);
+  border-color: color-mix(in srgb, var(--e-brand-500) 50%, transparent);
   transform: translateY(-1px);
-  box-shadow: 0 16px 34px -26px rgba(124, 58, 237, 0.9);
+  box-shadow: 0 16px 34px -26px color-mix(in srgb, var(--e-brand-500) 90%, transparent);
 }
 .home-row-date {
   flex: none;
@@ -1299,7 +1299,7 @@ html[data-theme="light"] .bizdock-count {
   width: 100%;
   max-width: 26rem;
   height: 4.9rem;
-  background: rgba(11, 11, 15, 0.66);
+  background: rgba(13, 11, 9, 0.66);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--e-glass-line);
@@ -1323,7 +1323,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-neutral-650);
   transition: color 0.15s ease;
 }
-/* Icono de linea fina que se rellena de morado al estar activo. */
+/* Icono de linea fina que se rellena de ultramar al estar activo. */
 .home-nav a svg path,
 .home-nav a svg circle {
   transition: fill 0.15s ease, stroke 0.15s ease;
@@ -1338,7 +1338,7 @@ html[data-theme="light"] .bizdock-count {
   stroke: var(--e-brand);
 }
 .home-nav a.is-on svg {
-  filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.75));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--e-brand-500) 75%, transparent));
 }
 
 @media (min-width: 480px) {
@@ -1350,7 +1350,7 @@ html[data-theme="light"] .bizdock-count {
 
 /* ----------------------------------------------------------------------
    INICIO (pasada 2): campana, buscador, carrusel de categorias, fila con
-   favorito. Mismo lenguaje que la base: cristal sobre negro, violeta como
+   favorito. Mismo lenguaje que la base: cristal sobre tinta, ultramar como
    unico color interactivo, neon solo como energia grafica.
    ---------------------------------------------------------------------- */
 
@@ -1379,13 +1379,13 @@ html[data-theme="light"] .bizdock-count {
   height: 0.4rem;
   border-radius: 50%;
   background: var(--e-brand-glow);
-  box-shadow: 0 0 8px rgba(187, 92, 246, 0.9);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--e-brand-400) 90%, transparent);
 }
 .home-bell-panel {
   margin-top: 0.9rem;
   padding: 1rem 1.1rem;
   border-radius: 1.1rem;
-  background: rgba(23, 22, 34, 0.92);
+  background: rgba(25, 23, 19, 0.92);
   border: 1px solid var(--e-glass-line);
   animation: enter 0.28s var(--e-ease-expo, ease) both;
 }
@@ -1414,7 +1414,7 @@ html[data-theme="light"] .bizdock-count {
   transition: background 0.15s ease;
 }
 .home-bell-panel li a:hover {
-  background: rgba(124, 58, 237, 0.14);
+  background: color-mix(in srgb, var(--e-brand-500) 14%, transparent);
 }
 .home-bell-panel strong {
   font-size: var(--e-text-sm);
@@ -1446,8 +1446,8 @@ html[data-theme="light"] .bizdock-count {
   transition: border-color 0.15s ease, box-shadow 0.2s ease;
 }
 .home-search:focus-within {
-  border-color: rgba(124, 58, 237, 0.6);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+  border-color: color-mix(in srgb, var(--e-brand-500) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-500) 18%, transparent);
 }
 .home-search input {
   flex: 1;
@@ -1511,9 +1511,9 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-white);
   background: var(--e-brand);
   border-color: transparent;
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.6),
-    0 12px 26px -12px rgba(124, 58, 237, 0.95),
-    0 0 22px -6px rgba(124, 58, 237, 0.8);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 60%, transparent),
+    0 12px 26px -12px color-mix(in srgb, var(--e-brand-500) 95%, transparent),
+    0 0 22px -6px color-mix(in srgb, var(--e-brand-500) 80%, transparent);
 }
 
 /* La fila ahora envuelve un enlace (main) + boton de favorito. */
@@ -1590,7 +1590,7 @@ html[data-theme="light"] .bizdock-count {
 
 /* ----------------------------------------------------------------------
    DETALLE DEL EVENTO (pantalla 2). Mismo negro, hero que se funde y
-   violeta como unico color interactivo.
+   ultramar como unico color interactivo.
    ---------------------------------------------------------------------- */
 .evd {
   min-height: 100vh;
@@ -1621,7 +1621,7 @@ html[data-theme="light"] .bizdock-count {
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(30rem 22rem at 80% 10%, rgba(124, 58, 237, 0.5), transparent 60%),
+    radial-gradient(30rem 22rem at 80% 10%, color-mix(in srgb, var(--e-brand-500) 50%, transparent), transparent 60%),
     radial-gradient(24rem 20rem at 0% 90%, rgba(0, 230, 171, 0.22), transparent 60%),
     linear-gradient(160deg, var(--e-ink-700), var(--e-ink-1));
 }
@@ -1634,8 +1634,8 @@ html[data-theme="light"] .bizdock-count {
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(11, 11, 15, 0) 30%,
-    rgba(11, 11, 15, 0.55) 68%,
+    rgba(13, 11, 9, 0) 30%,
+    rgba(13, 11, 9, 0.55) 68%,
     var(--e-ink-1) 100%
   );
 }
@@ -1660,20 +1660,20 @@ html[data-theme="light"] .bizdock-count {
   display: grid;
   place-items: center;
   color: var(--e-text-primary);
-  background: rgba(11, 11, 15, 0.5);
+  background: rgba(13, 11, 9, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .evd-round:hover {
-  background: rgba(11, 11, 15, 0.75);
+  background: rgba(13, 11, 9, 0.75);
 }
 .evd-round.is-on {
   color: var(--e-white);
   border-color: transparent;
   background: var(--e-brand);
-  box-shadow: 0 0 18px -4px rgba(124, 58, 237, 0.9);
+  box-shadow: 0 0 18px -4px color-mix(in srgb, var(--e-brand-500) 90%, transparent);
 }
 .evd-round.is-pop {
   animation: logo-pop 0.4s var(--e-ease-spring);
@@ -1746,7 +1746,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-text-secondary);
 }
 
-/* CTA principal: pildora violeta que emite luz (mismo idioma que .home-cta) */
+/* CTA principal: pildora ultramar que emite luz (mismo idioma que .home-cta) */
 .evd-cta {
   display: inline-flex;
   align-items: center;
@@ -1760,9 +1760,9 @@ html[data-theme="light"] .bizdock-count {
   font-size: var(--e-text-base);
   font-weight: 700;
   letter-spacing: 0.01em;
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
-    0 16px 34px -14px rgba(124, 58, 237, 0.95),
-    0 0 26px -6px rgba(124, 58, 237, 0.7);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 50%, transparent),
+    0 16px 34px -14px color-mix(in srgb, var(--e-brand-500) 95%, transparent),
+    0 0 26px -6px color-mix(in srgb, var(--e-brand-500) 70%, transparent);
   transition: filter 0.15s ease, transform 0.1s ease;
 }
 .evd-cta:hover {
@@ -1776,7 +1776,7 @@ html[data-theme="light"] .bizdock-count {
   width: 100%;
 }
 
-/* Pestanas con subrayado violeta */
+/* Pestanas con subrayado ultramar */
 .evd-tabs {
   margin-top: 1.5rem;
   display: flex;
@@ -1813,7 +1813,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-text-secondary);
 }
 
-/* Lineup (cuando exista): avatar circular + rol en etiqueta violeta */
+/* Lineup (cuando exista): avatar circular + rol en etiqueta ultramar */
 .evd-lineup {
   margin: 0;
   padding: 0;
@@ -1836,7 +1836,7 @@ html[data-theme="light"] .bizdock-count {
   place-items: center;
   font-weight: 700;
   color: var(--e-white);
-  background: linear-gradient(135deg, var(--e-violet-500), var(--e-ink-700));
+  background: linear-gradient(135deg, var(--e-brand-500), var(--e-ink-700));
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .evd-lineup-info {
@@ -1858,7 +1858,7 @@ html[data-theme="light"] .bizdock-count {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--e-brand-glow);
-  background: rgba(124, 58, 237, 0.16);
+  background: color-mix(in srgb, var(--e-brand-500) 16%, transparent);
 }
 
 /* Mapa (OSM embebido, tenido oscuro) + pin de marca encima */
@@ -1931,8 +1931,8 @@ html[data-theme="light"] .bizdock-count {
   font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--e-white);
-  background: rgba(124, 58, 237, 0.92);
-  box-shadow: 0 12px 30px -12px rgba(124, 58, 237, 0.95);
+  background: color-mix(in srgb, var(--e-brand-500) 92%, transparent);
+  box-shadow: 0 12px 30px -12px color-mix(in srgb, var(--e-brand-500) 95%, transparent);
   animation: enter 0.25s ease both;
   z-index: 20;
 }
@@ -1958,7 +1958,7 @@ html[data-theme="light"] .bizdock-count {
   --notch: 0.5rem;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.16) inset,
-    0 0 0 1px rgba(187, 92, 246, 0.1) inset;
+    0 0 0 1px color-mix(in srgb, var(--e-brand-400) 10%, transparent) inset;
   -webkit-mask:
     radial-gradient(circle at 50% 0, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
       0 0 / calc(var(--notch) * 2) 100% repeat-x,
@@ -2005,7 +2005,7 @@ html[data-theme="light"] .bizdock-count {
 .fan-lookup input:focus {
   outline: none;
   border-color: var(--e-brand);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-500) 22%, transparent);
 }
 .fan-lookup button {
   flex: none;
@@ -2017,8 +2017,8 @@ html[data-theme="light"] .bizdock-count {
   font-size: var(--e-text-sm);
   font-weight: 600;
   font-family: inherit;
-  box-shadow: 0 12px 26px -12px rgba(124, 58, 237, 0.9),
-    0 0 20px -6px rgba(124, 58, 237, 0.6);
+  box-shadow: 0 12px 26px -12px color-mix(in srgb, var(--e-brand-500) 90%, transparent),
+    0 0 20px -6px color-mix(in srgb, var(--e-brand-500) 60%, transparent);
   transition: filter 0.15s ease, box-shadow 0.2s ease;
 }
 .fan-lookup button:hover:not(:disabled) {
@@ -2125,7 +2125,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .fan-link {
   font-size: var(--e-text-xs);
-  color: var(--e-violet-250);
+  color: var(--e-brand-250);
 }
 .fan-cta {
   height: 2.35rem;
@@ -2215,7 +2215,7 @@ html:not([data-theme="light"]) .app-shell {
    intercepta el puntero. */
 html:not([data-theme="light"]) .app-shell {
   background-image:
-    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.16), transparent 62%),
+    radial-gradient(52rem 34rem at 104% -10%, color-mix(in srgb, var(--e-brand-500) 16%, transparent), transparent 62%),
     radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.07), transparent 62%),
     radial-gradient(34rem 26rem at 108% 96%, rgba(255, 45, 152, 0.06), transparent 62%);
   background-attachment: fixed;
@@ -2223,7 +2223,7 @@ html:not([data-theme="light"]) .app-shell {
 }
 html[data-theme="light"] .app-shell {
   background-image:
-    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.06), transparent 62%),
+    radial-gradient(52rem 34rem at 104% -10%, color-mix(in srgb, var(--e-brand-500) 6%, transparent), transparent 62%),
     radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.05), transparent 62%);
   background-attachment: fixed;
   background-repeat: no-repeat;
@@ -2246,7 +2246,7 @@ html:not([data-theme="light"]) .app-shell .venue-header,
 html:not([data-theme="light"]) .app-shell .bizdock {
   border-color: var(--e-border-hairline);
   background:
-    radial-gradient(30rem 18rem at 88% -8rem, rgba(124, 58, 237, 0.1), transparent 66%),
+    radial-gradient(30rem 18rem at 88% -8rem, color-mix(in srgb, var(--e-brand-500) 10%, transparent), transparent 66%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 44%),
     rgba(17, 17, 23, 0.86);
   box-shadow:
@@ -2260,10 +2260,10 @@ html:not([data-theme="light"]) .app-shell .venue-header {
   padding: var(--venue-pad-y) 1.4rem;
   border-radius: 1.5rem;
   background:
-    radial-gradient(38rem 18rem at 90% -8rem, rgba(124, 58, 237, 0.17), transparent 64%),
+    radial-gradient(38rem 18rem at 90% -8rem, color-mix(in srgb, var(--e-brand-500) 17%, transparent), transparent 64%),
     radial-gradient(26rem 14rem at 6% 118%, rgba(0, 230, 171, 0.06), transparent 60%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 48%),
-    rgba(16, 16, 22, 0.9);
+    rgba(18, 16, 14, 0.9);
 }
 .app-shell .vh-logo,
 .app-shell .vh-logo-fallback {
@@ -2278,8 +2278,8 @@ html:not([data-theme="light"]) .app-shell .venue-header {
 .app-shell .vh-kpi::before {
   background: linear-gradient(
     180deg,
-    rgba(124, 58, 237, 0.85),
-    rgba(124, 58, 237, 0.08) 80%,
+    color-mix(in srgb, var(--e-brand-500) 85%, transparent),
+    color-mix(in srgb, var(--e-brand-500) 8%, transparent) 80%,
     transparent
   );
 }
@@ -2295,9 +2295,9 @@ html:not([data-theme="light"]) .app-shell .promo-hero {
   padding: 1.15rem 1.25rem;
   border: 1px solid var(--e-border-hairline);
   background:
-    radial-gradient(30rem 14rem at 94% -8rem, rgba(124, 58, 237, 0.16), transparent 64%),
+    radial-gradient(30rem 14rem at 94% -8rem, color-mix(in srgb, var(--e-brand-500) 16%, transparent), transparent 64%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 46%),
-    rgba(16, 16, 22, 0.9);
+    rgba(18, 16, 14, 0.9);
   box-shadow:
     var(--e-highlight-inset),
     var(--e-elev-card);
@@ -2315,15 +2315,15 @@ html[data-theme="light"] .app-shell .promo-hero {
 /* --- Puerta: cabecera de servicio ------------------------------------- */
 .app-shell .door-head {
   border-bottom: 1px solid var(--e-border-hairline);
-  background: linear-gradient(180deg, rgba(124, 58, 237, 0.12), transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-500) 12%, transparent), transparent);
 }
 .app-shell .door-title {
   letter-spacing: -0.02em;
 }
-/* El marco del escáner es la pieza de marca de la puerta: un halo violeta
+/* El marco del escáner es la pieza de marca de la puerta: un halo ultramar
    alrededor del visor dice "acá apuntá" sin una etiqueta. */
 .app-shell .scan-frame {
-  filter: drop-shadow(0 0 26px rgba(124, 58, 237, 0.35));
+  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--e-brand-500) 35%, transparent));
 }
 
 /* --- Segmentado (tabbar) y navegación inferior ------------------------ */
@@ -2334,36 +2334,36 @@ html[data-theme="light"] .app-shell .promo-hero {
   backdrop-filter: blur(14px) saturate(1.2);
 }
 .app-shell .tabbar-item[aria-selected="true"] {
-  background: linear-gradient(180deg, rgba(124, 58, 237, 0.28), rgba(124, 58, 237, 0.14));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-500) 28%, transparent), color-mix(in srgb, var(--e-brand-500) 14%, transparent));
   color: var(--e-text-primary);
   box-shadow:
-    inset 0 0 0 1px rgba(124, 58, 237, 0.34),
-    0 12px 28px -20px rgba(124, 58, 237, 0.95);
+    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 34%, transparent),
+    0 12px 28px -20px color-mix(in srgb, var(--e-brand-500) 95%, transparent);
 }
 html:not([data-theme="light"]) .app-shell .bottomnav-item.is-active {
-  color: var(--e-violet-200);
+  color: var(--e-brand-200);
 }
 
 /* --- Controles: foco y presión con firma de marca --------------------- */
 .app-shell .field:focus {
   border-color: var(--e-brand-glow);
   box-shadow:
-    0 0 0 3px rgba(124, 58, 237, 0.26),
-    0 0 30px -14px rgba(124, 58, 237, 0.95);
+    0 0 0 3px color-mix(in srgb, var(--e-brand-500) 26%, transparent),
+    0 0 30px -14px color-mix(in srgb, var(--e-brand-500) 95%, transparent);
 }
 .app-shell .btn-primary {
-  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 58%, var(--e-violet-425) 100%);
+  background: linear-gradient(135deg, var(--e-brand-500) 0%, var(--e-brand-400) 58%, var(--e-brand-425) 100%);
 }
 .app-shell .btn-primary:hover {
-  background: linear-gradient(135deg, var(--e-violet-600) 0%, var(--e-violet-425) 58%, var(--e-violet-550) 100%);
+  background: linear-gradient(135deg, var(--e-brand-600) 0%, var(--e-brand-425) 58%, var(--e-brand-550) 100%);
 }
 
 /* Scrollbar con tinte de marca (solo en la casa). */
 html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb {
-  background: rgba(124, 58, 237, 0.4);
+  background: color-mix(in srgb, var(--e-brand-500) 40%, transparent);
 }
 html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
-  background: rgba(124, 58, 237, 0.6);
+  background: color-mix(in srgb, var(--e-brand-500) 60%, transparent);
 }
 
 

@@ -177,7 +177,7 @@ muere en el acto.
 ## App del fan (Enty)
 
 El fan **no tiene cuenta**: su correo o teléfono ES la identidad. Las pantallas
-públicas viven bajo `.home` (shell nocturno: negro + violeta, Sora 300) y se
+públicas viven bajo `.home` (shell nocturno: negro + ultramar, Sora 300) y se
 fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO.
 
 - `/inicio` — vitrina pública (`HomePage`): catálogo de `/public/events`.
@@ -220,8 +220,8 @@ sobre las superficies del fan.
 
 **Clasificación del rediseño (qué se conservó y qué se rehízo):**
 
-- **Conservar**: la marca (matte black `#0B0B0F`, violeta `#7C3AED`/`#BB5CF6`,
-  verde `#00E6AB`, rosa `#FF2D98`, tinta `#F5F5F7`, Sora única voz); el
+- **Conservar**: la marca (matte black `#0c0a09`, ultramar `#4356e8`/`#7b87ff`,
+  verde `#00E6AB`, rosa `#FF2D98`, tinta `#f6f5f2`, Sora única voz); el
   encuadre nocturno del interior (`.app-shell`); la boleta pública `.tkt` (ya es
   un artefacto troquelado y la credencial de la noche — no tocar).
 - **Perfeccionar**: las superficies `.home`/`.evd` — el motivo de boleto estaba
@@ -244,15 +244,15 @@ sobre las superficies del fan.
 3. **Rejilla editorial** — `.home-list` es 1 col en móvil, 2 en ≥640px y 3 en
    ≥1024px; la fila de evento se vuelve tarjeta con la fecha como sello.
 4. **Acento con significado** — verde = disponible/validado, rosa = urgencia.
-   El violeta es la única voz interactiva.
+   El ultramar es la única voz interactiva.
 
 **Verificación de la vitrina** (la que falla si se rompe):
 - Cero scroll horizontal a 320/420/768/1440px en `/inicio`, `/evento/:id`,
   `/boletas` (un elemento cuenta como desborde solo si NINGÚN ancestro lo
   recorta).
 - Detalle: 2 columnas ≥900px (cartel pegajoso + rail de compra), 1 en móvil.
-- Contraste de texto ≥ 4.5:1 sobre `#0B0B0F`: `dim` #9a96a8 (6.83), `dim-2`
-  #b6b2c4 (9.50), violeta brillo #bb5cf6 (5.59), verde (12.07), rosa (5.69).
+- Contraste de texto ≥ 4.5:1 sobre `#0c0a09`: `dim` #9a96a8 (6.87), `dim-2`
+  #b6b2c4 (9.55), ultramar brillo #7b87ff (6.35), verde (12.14), rosa (5.72).
 
 ## Tokens y guardarraíles (Fase 0–1 del plan estético)
 
@@ -352,7 +352,7 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
 
 - **Regla al agregar una pantalla interna**: ponele `app-shell` al root o no
   recibe el encuadre nocturno, las superficies de cristal ni la tinta de marca.
-- La paleta interna es violeta `#7C3AED` (marca) / `#BB5CF6` (brillo), verde
+- La paleta interna es ultramar `#4356e8` (marca) / `#7b87ff` (brillo), verde
   `#00E6AB` y rosa `#FF2D98`. **No** reintroducir naranja/ámbar de la marca
   anterior (`rgba(251,146,60,…)`, `#9a3412`) ni lima (`#7cff00`, `#f0f542`).
 - La tinta casi blanca (`--e-text-primary`, antes `--in-ink`) se aplica **solo
@@ -360,7 +360,7 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
   color de `body`, o quedaría texto blanco sobre blanco.
 - **Jerarquía por rol** (Fase 6): Admin = densidad y jerarquía de datos (lista
   compacta con zebra sutil, cabecera pegajosa `.evx-toolbar`, cifras tabulares,
-  violeta solo en la acción primaria); Promotor = tinte de marca en cupos/ranking
+  ultramar solo en la acción primaria); Promotor = tinte de marca en cupos/ranking
   y medidor `e-meter`; Puerta = contraste máximo y targets ≥ 44px.
 - Verificación: contraste de texto ≥ 4.5:1 y `scrollWidth == clientWidth` en
   ambos temas, en `/admin`, `/admin?event=1`, `/promotor`, `/bouncer`.
@@ -657,3 +657,19 @@ avisar.
   `document.title` (a11y.spec.js exige uno por pantalla; el `# título` del
   markdown se descarta); el banner de alerta de puerta debe quedar por ENCIMA
   del aviso de cookies (z-45 vs z-40) o el botón queda inclickeable.
+- **Los E2E contaminan la DB de dev y se auto-envenenan.** Specs como
+  `fan.spec.js` y `audit-event-create.spec.js` crean eventos `E2E-*` que NO
+  borran. Como la portada ordena por fecha y esos eventos quedan en el futuro,
+  la "primera fila" deja de ser el evento demo y pasa a ser un `E2E-WAIT-*`
+  agotado: `fan.spec.js` y `fan-checkout.spec.js` fallan por datos, no por
+  código (confirmado con `git stash` + rebuild: fallan igual en el baseline).
+  Antes de culpar a un cambio de UI, mirar
+  `select name from events where name like 'E2E-%'` (llegó a haber 24 de 26).
+- **Identidad de marca Enty (regla dura):** una sola voz tipográfica, Sora
+  self-hosted en `public/fonts/*.woff2` — PROHIBIDO Google Fonts o fuentes
+  decorativas (Anton, Permanent Marker) en cualquier HTML, incluidos los
+  estáticos de `public/brand/`. Isotipo = "E troquelada" + sello de registro
+  (anillo con punto); NUNCA la estrella de 4 puntas (genérica "de IA"). La
+  estrella de 5 puntas (`Star5`) sí vale como acento de fiesta. Paleta: negro
+  mate cálido (`--e-ink-*`, canvas `#0c0a09`), no el navy azulado viejo.
+  Verificar: `grep -rn "googleapis\|Anton\|Permanent" frontend/public frontend/src`.

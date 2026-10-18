@@ -19,30 +19,24 @@
     "Sora", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, sans-serif;
   /* MARCA ENTY (sistema hibrido brutalismo fisico + futurismo digital).
-     Negro profundo, morado vibrante y dos neon como energia grafica. */
-  --color-enty-bg: #0B0B0F;
-  --color-enty-violet: #7C3AED;
+     Tinta calida, ultramar de sello y dos acentos con significado. */
+  --color-enty-bg: #0c0a09;
+  --color-enty-brand: #4356e8;
   --color-enty-green: #00E6AB;
   --color-enty-pink: #FF2D98;
-  --color-enty-white: #F5F5F7;
-  /* El violeta del logotipo (#BB5CF6) sigue vivo como brillo/glow; el
-     morado interactivo canonico es #7C3AED (--color-enty-violet). */
-  --color-brand-200: #EAD6FE;
-  --color-brand-300: #D29BF9;
-  --color-brand-400: #BB5CF6;
-  --color-brand-500: #BB5CF6;
-  --color-brand-600: #A63DEB;
-  --color-brand-700: #8B2FE0;
-  --color-accent-400: #D29BF9;
-  --color-accent-500: #BB5CF6;
-  /* Superficies nobles de la marca: negro del logotipo y sus pasos. */
-  --color-ticket-950: #0A0A0F;
-  --color-ticket-900: #14121C;
-  --color-ticket-800: #1C1730;
-  --color-ticket-700: #241C3D;
-  --color-ticket-600: #3A2B63;
-  /* Pergamino/violeta claro: el rotulo "Enty". */
-  --color-cream: #F3E8FF;
+  --color-enty-white: #f6f5f2;
+  /* El ultramar claro (--color-brand-400) es el brillo/glow del logotipo;
+     el ultramar profundo (--color-brand-500) es la accion. */
+  --color-brand-200: #c3c9ff;
+  --color-brand-300: #98a2ff;
+  --color-brand-400: #7b87ff;
+  --color-brand-500: #4356e8;
+  --color-brand-600: #3444c9;
+  --color-brand-700: #2a379f;
+  --color-accent-400: #7b87ff;
+  --color-accent-500: #4356e8;
+  /* Papel hueso: el rotulo "Enty". */
+  --color-cream: #f3eee4;
   /* Brasa: peligro y estado "en puerta". */
   --color-ember: #ef4444;
   /* ESCALA TIPOGRÁFICA (Fase 2): fuente única para las utilidades `text-*`
@@ -98,7 +92,7 @@ body {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
   color: var(--e-white);
 }
 
@@ -162,13 +156,13 @@ body {
 }
 
 /* Eyebrow: etiqueta pequeña MAYÚSCULA que encabeza secciones.
-   En brand-400 (como los encabezados azul/violeta de distri-stream). */
+   En brand-400 (el filo de registro del isotipo). */
 .eyebrow {
   font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
 }
 
 /* Titulares: apretados, pesados, con tamaño óptico de la variable Inter
@@ -243,8 +237,8 @@ body {
 }
 .field:focus {
   /* Apple: el foco es un anillo limpio del acento, sin glow difuso. */
-  border-color: var(--e-violet-400);
-  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.22);
+  border-color: var(--e-brand-400);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-400) 22%, transparent);
 }
 
 /* Botón primario (Tesla CTA): azul eléctrico plano, radio 8px (token de
@@ -257,7 +251,7 @@ body {
   justify-content: center;
   gap: 0.45rem;
   border-radius: 0.5rem;
-  background: var(--e-violet-400);
+  background: var(--e-brand-400);
   color: var(--e-brasa-950);
   border: 3px solid transparent;
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
@@ -274,14 +268,14 @@ body {
     transform 0.1s ease;
 }
 .btn-primary:hover {
-  background: var(--e-violet-800);
+  background: var(--e-brand-800);
 }
 .btn-primary:focus-visible {
   border-color: var(--e-brasa-950);
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
 }
 .btn-primary:active {
-  background: var(--e-violet-600);
+  background: var(--e-brand-600);
   transform: translateY(1px);
   box-shadow: none;
 }
@@ -318,8 +312,8 @@ body {
     transform 0.1s ease;
 }
 .btn-ghost:hover {
-  background: color-mix(in srgb, var(--e-violet-400) 8%, transparent);
-  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 8%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 45%, transparent);
   color: var(--color-zinc-50);
 }
 .btn-ghost:active {
@@ -453,11 +447,11 @@ body {
   padding: 0;
 }
 .btn-mini[data-variant="brand"] {
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
 }
 .btn-mini[data-variant="brand"]:hover {
-  background: rgba(187, 92, 246, 0.12);
-  color: var(--e-violet-150);
+  background: color-mix(in srgb, var(--e-brand-400) 12%, transparent);
+  color: var(--e-brand-150);
 }
 .btn-mini[data-variant="success"] {
   color: var(--e-green-400);
@@ -477,15 +471,15 @@ html[data-theme="light"] .btn-mini {
   color: var(--e-neutral-600);
 }
 html[data-theme="light"] .btn-mini:hover {
-  background: rgba(24, 24, 27, 0.06);
+  background: rgba(26, 24, 21, 0.06);
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] .btn-mini[data-variant="brand"] {
-  color: var(--e-violet-600);
+  color: var(--e-brand-600);
 }
 html[data-theme="light"] .btn-mini[data-variant="brand"]:hover {
-  background: rgba(187, 92, 246, 0.09);
-  color: var(--e-violet-700);
+  background: color-mix(in srgb, var(--e-brand-400) 9%, transparent);
+  color: var(--e-brand-700);
 }
 html[data-theme="light"] .btn-mini[data-variant="success"] {
   color: var(--e-emerald-600);
@@ -544,9 +538,9 @@ html[data-theme="light"] .btn-ghost.btn-success {
   transform: translateY(0);
 }
 .opt-chip[aria-pressed="true"] {
-  border-color: rgba(187, 92, 246, 0.55);
-  background: rgba(187, 92, 246, 0.15);
-  color: var(--e-violet-300);
+  border-color: color-mix(in srgb, var(--e-brand-400) 55%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 15%, transparent);
+  color: var(--e-brand-300);
 }
 html[data-theme="light"] .opt-chip {
   border-color: var(--e-neutral-400);
@@ -558,9 +552,9 @@ html[data-theme="light"] .opt-chip:hover {
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] .opt-chip[aria-pressed="true"] {
-  border-color: rgba(187, 92, 246, 0.55);
-  background: rgba(187, 92, 246, 0.1);
-  color: var(--e-violet-600);
+  border-color: color-mix(in srgb, var(--e-brand-400) 55%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
+  color: var(--e-brand-600);
 }
 
 /* ===========================================================================
@@ -593,8 +587,8 @@ input[type="checkbox"].accent-brand-500::before {
   background: var(--e-white);
 }
 input[type="checkbox"].accent-brand-500:checked {
-  background: var(--e-violet-400);
-  border-color: var(--e-violet-400);
+  background: var(--e-brand-400);
+  border-color: var(--e-brand-400);
 }
 input[type="checkbox"].accent-brand-500:checked::before {
   transform: scale(1);
@@ -744,7 +738,7 @@ html[data-theme="light"] select.field option {
     0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
 }
 /* La activa tinta de marca la pone el bloque WB (más abajo): aquí queda la
    base neutral si ese bloque no aplica (por ejemplo dentro de[data-theme-lock]). */
@@ -779,7 +773,7 @@ html[data-theme="light"] select.field option {
 .meter-fill {
   height: 100%;
   border-radius: 999px;
-  background: var(--e-violet-400);
+  background: var(--e-brand-400);
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -833,15 +827,15 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 
 /* ===========================================================================
    FIRMA VISUAL (segunda ola, de distri-stream)
-   - .text-gradient: titular con degradado blanco → violeta (la firma más
+   - .text-gradient: titular con degradado papel → ultramar (la firma más
      reconocible de distri-stream, en nuestro acento único).
-   - .empty-state: lista vacía con icono en halo violeta en vez de un <p>
+   - .empty-state: lista vacía con icono en halo ultramar en vez de un <p>
      suelto — la lista vacía es la primera impresión de un panel nuevo.
    - .ticket-timeline: ciclo de vida de la boleta (emitida → en puerta →
      usada) con línea y puntos, como el timeline de reportes del original.
    =========================================================================== */
 .text-gradient {
-  background: linear-gradient(120deg, var(--color-zinc-50) 0%, var(--e-violet-300) 55%, var(--e-violet-400) 100%);
+  background: linear-gradient(120deg, var(--color-zinc-50) 0%, var(--e-brand-300) 55%, var(--e-brand-400) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -861,15 +855,15 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
   background: linear-gradient(
     135deg,
-    rgba(187, 92, 246, 0.24),
-    rgba(187, 92, 246, 0.07)
+    color-mix(in srgb, var(--e-brand-400) 24%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 7%, transparent)
   );
   box-shadow:
-    inset 0 0 0 1px rgba(187, 92, 246, 0.35),
-    0 0 26px -10px rgba(187, 92, 246, 0.55);
+    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent),
+    0 0 26px -10px color-mix(in srgb, var(--e-brand-400) 55%, transparent);
 }
 .empty-state-title {
   font-size: var(--e-text-base);
@@ -900,7 +894,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   border-radius: 2px;
   background: linear-gradient(
     180deg,
-    rgba(187, 92, 246, 0.55),
+    color-mix(in srgb, var(--e-brand-400) 55%, transparent),
     rgba(63, 63, 70, 0.5)
   );
 }
@@ -922,10 +916,10 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   box-shadow: inset 0 0 0 2px var(--color-zinc-700);
 }
 .ticket-step.done .ticket-step-dot {
-  background: var(--e-violet-400);
+  background: var(--e-brand-400);
   box-shadow:
     inset 0 0 0 2px rgba(253, 186, 116, 0.9),
-    0 0 10px -2px rgba(187, 92, 246, 0.8);
+    0 0 10px -2px color-mix(in srgb, var(--e-brand-400) 80%, transparent);
 }
 .ticket-step.current .ticket-step-dot {
   background: var(--e-green-400);
@@ -1151,7 +1145,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 /* Pull-to-refresh: spinner de trazo que gira mientras se carga. */
 .ptr-spinner {
   animation: spin 0.8s linear infinite;
-  color: var(--e-violet-400);
+  color: var(--e-brand-400);
 }
 
 /* Indicador En vivo: punto pulsante + anillo que se expande (radar) */
@@ -1396,11 +1390,11 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   /* Activo: superficie teñida de marca + hairline de marca. Nada de un
      fondo plano de un solo tono: cambiar DOS propiedades a la vez es lo
      que se percibe "de app pagada". */
-  background: rgba(187, 92, 246, 0.1);
-  border-color: rgba(187, 92, 246, 0.35);
+  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 35%, transparent);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
-    0 6px 18px -10px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+    0 6px 18px -10px color-mix(in srgb, var(--e-brand-400) 45%, transparent);
 }
 .bizdock-icon {
   display: grid;
@@ -1422,7 +1416,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 .bizdock-item.is-active .bizdock-icon {
   color: var(--e-white);
-  background: var(--e-violet-400);
+  background: var(--e-brand-400);
   border-color: transparent;
 }
 .bizdock-text {
@@ -1462,7 +1456,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   /* Tinta, no blanco: el contador vive sobre el naranja de la marca y el
      blanco ahi daba 2.8:1. El mismo par tinta/naranja del boton primario. */
   color: var(--e-brasa-950);
-  background: var(--e-violet-400);
+  background: var(--e-brand-400);
 }
 
 /* Fila Pendientes: una sola línea bajo la grilla, separada por hairline.
@@ -1517,8 +1511,8 @@ html[data-theme="light"] .bizdock-item:hover {
   background: var(--e-neutral-250);
 }
 html[data-theme="light"] .bizdock-item.is-active {
-  background: color-mix(in srgb, var(--e-violet-400) 8%, transparent);
-  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 8%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
   box-shadow: none;
 }
 html[data-theme="light"] .bizdock-icon {
@@ -1528,7 +1522,7 @@ html[data-theme="light"] .bizdock-icon {
 }
 html[data-theme="light"] .bizdock-item.is-active .bizdock-icon {
   color: var(--e-white);
-  background: var(--e-violet-400);
+  background: var(--e-brand-400);
 }
 html[data-theme="light"] .bizdock-label {
   color: var(--e-neutral-900);
@@ -1556,7 +1550,7 @@ html[data-theme="light"] .bizdock-desc {
   background:
     radial-gradient(
       34rem 14rem at 88% -6rem,
-      rgba(187, 92, 246, 0.09),
+      color-mix(in srgb, var(--e-brand-400) 9%, transparent),
       transparent 62%
     ),
     linear-gradient(
@@ -1631,8 +1625,8 @@ html[data-theme="light"] .bizdock-desc {
     var(--venue-logo-ring),
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     inset 0 -1px 1px rgba(0, 0, 0, 0.3),
-    0 1px 1px rgba(3, 7, 18, 0.4),
-    0 10px 22px -12px rgba(3, 7, 18, 0.75);
+    0 1px 1px rgba(8, 7, 5, 0.4),
+    0 10px 22px -12px rgba(8, 7, 5, 0.75);
 }
 /* Un flyer como logo necesita su hairline: sin aro, una imagen clara se
    derrama sobre la superficie. Va finisimo — separa, no enmarca. */
@@ -1647,21 +1641,21 @@ html[data-theme="light"] .bizdock-desc {
   /* Dos iniciales pegadas se leen como una sola letra rara. */
   letter-spacing: 0.01em;
   color: var(--e-white);
-  /* Navy de marca: el mismo del logo y del talon de la boleta. La identidad
+  /* Tinta de marca: el mismo negro del logo y del talon de la boleta. La identidad
      del negocio se apoya en el material de la marca en vez de un gris que se
      confundia con el fondo del card (que es lo que la hacia ver apagada). */
   background: linear-gradient(
     160deg,
-    var(--color-ticket-600),
-    var(--color-ticket-900)
+    var(--e-brand-600),
+    var(--e-brand-700)
   );
   /* Canto del chip: la luz entra por arriba, el borde inferior se redondea
      con la media sombra interior. */
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     inset 0 -1px 1px rgba(0, 0, 0, 0.35),
-    0 1px 1px rgba(3, 7, 18, 0.4),
-    0 10px 22px -12px rgba(3, 7, 18, 0.75);
+    0 1px 1px rgba(8, 7, 5, 0.4),
+    0 10px 22px -12px rgba(8, 7, 5, 0.75);
 }
 .vh-kpi {
   min-width: 0;
@@ -1680,8 +1674,8 @@ html[data-theme="light"] .bizdock-desc {
   height: calc(100% + var(--venue-pad-y, 1.1rem));
   background: linear-gradient(
     180deg,
-    rgba(187, 92, 246, 0.7),
-    rgba(187, 92, 246, 0.06) 82%,
+    color-mix(in srgb, var(--e-brand-400) 70%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 6%, transparent) 82%,
     transparent
   );
 }
@@ -1732,7 +1726,7 @@ html[data-theme="light"] .venue-header {
   background:
     radial-gradient(
       34rem 14rem at 88% -6rem,
-      rgba(187, 92, 246, 0.05),
+      color-mix(in srgb, var(--e-brand-400) 5%, transparent),
       transparent 62%
     ),
     var(--e-white);
@@ -1740,8 +1734,8 @@ html[data-theme="light"] .venue-header {
 html[data-theme="light"] .vh-kpi::before {
   background: linear-gradient(
     180deg,
-    rgba(187, 92, 246, 0.55),
-    rgba(187, 92, 246, 0.05) 82%,
+    color-mix(in srgb, var(--e-brand-400) 55%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 5%, transparent) 82%,
     transparent
   );
 }
@@ -1752,21 +1746,21 @@ html[data-theme="light"] .vh-logo {
   box-shadow:
     var(--venue-logo-ring),
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 1px rgba(9, 15, 38, 0.18),
-    0 1px 1px rgba(9, 15, 38, 0.12),
-    0 8px 18px -10px rgba(9, 15, 38, 0.34);
+    inset 0 -1px 1px rgba(23, 15, 9, 0.18),
+    0 1px 1px rgba(23, 15, 9, 0.12),
+    0 8px 18px -10px rgba(23, 15, 9, 0.34);
 }
 html[data-theme="light"] .vh-logo-img {
-  --venue-logo-ring: 0 0 0 1px rgba(24, 24, 27, 0.08);
+  --venue-logo-ring: 0 0 0 1px rgba(26, 24, 21, 0.08);
 }
 html[data-theme="light"] .vh-logo-fallback {
   /* Canto mas marcado: sobre blanco es lo que hace flotar al chip en vez de
-     recortarlo. El relleno navy ya viene del bloque base (mismos tokens). */
+     recortarlo. El relleno ya viene del bloque base (mismos tokens). */
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -1px 1px rgba(9, 15, 38, 0.25),
-    0 1px 1px rgba(9, 15, 38, 0.14),
-    0 8px 18px -10px rgba(9, 15, 38, 0.34);
+    inset 0 -1px 1px rgba(23, 15, 9, 0.25),
+    0 1px 1px rgba(23, 15, 9, 0.14),
+    0 8px 18px -10px rgba(23, 15, 9, 0.34);
 }
 html[data-theme="light"] .vh-kpi-amount {
   color: var(--color-zinc-50);
@@ -1911,7 +1905,7 @@ html[data-theme="light"] .vh-embedded {
 }
 .vh-mesnav-hoy:hover {
   color: var(--color-brand-200);
-  background: rgba(187, 92, 246, 0.1);
+  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
 }
 
 /* Rankings: "quién mueve la noche". Barras finas, misma gramática de
@@ -2026,15 +2020,15 @@ html[data-theme="light"] .vh-mesnav-hoy {
   background:
     radial-gradient(
       120% 90% at 50% 0%,
-      rgba(187, 92, 246, 0.28),
+      color-mix(in srgb, var(--e-brand-400) 28%, transparent),
       transparent 62%
     ),
     linear-gradient(180deg, var(--color-zinc-900), var(--e-panel-750));
-  border: 1px dashed color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--e-brand-400) 45%, transparent);
   position: relative;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 10px 30px -16px rgba(187, 92, 246, 0.5);
+    0 10px 30px -16px color-mix(in srgb, var(--e-brand-400) 50%, transparent);
 }
 .ticket-ghost::after {
   content: "";
@@ -2055,8 +2049,8 @@ html[data-theme="light"] .vh-mesnav-hoy {
 }
 .event-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
-  box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 45%, transparent);
+  box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--e-brand-400) 45%, transparent);
 }
 .event-card.is-live {
   border-color: rgba(52, 211, 153, 0.4);
@@ -2104,26 +2098,26 @@ html[data-theme="light"] .ec-stat-label {
   color: var(--color-zinc-400);
 }
 .ec-when-today {
-  border-color: rgba(187, 92, 246, 0.55);
-  background: rgba(187, 92, 246, 0.15);
-  color: var(--e-violet-300);
+  border-color: color-mix(in srgb, var(--e-brand-400) 55%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 15%, transparent);
+  color: var(--e-brand-300);
 }
 .ec-when-soon {
-  border-color: rgba(187, 92, 246, 0.35);
-  color: var(--e-violet-150);
+  border-color: color-mix(in srgb, var(--e-brand-400) 35%, transparent);
+  color: var(--e-brand-150);
 }
 html[data-theme="light"] .ec-when {
   border-color: var(--e-neutral-400);
   color: var(--e-neutral-600);
 }
 html[data-theme="light"] .ec-when-today {
-  border-color: rgba(187, 92, 246, 0.5);
-  background: rgba(187, 92, 246, 0.1);
-  color: var(--e-violet-600);
+  border-color: color-mix(in srgb, var(--e-brand-400) 50%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
+  color: var(--e-brand-600);
 }
 html[data-theme="light"] .ec-when-soon {
-  border-color: rgba(187, 92, 246, 0.3);
-  color: var(--e-violet-600);
+  border-color: color-mix(in srgb, var(--e-brand-400) 30%, transparent);
+  color: var(--e-brand-600);
 }
 
 /* ----------------------------------------------------------------------
@@ -2183,10 +2177,10 @@ html[data-theme="light"] .ec-when-soon {
   font-weight: 600;
 }
 .evx-tab.is-active .evx-tab-count {
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
 }
 /* El filete del activo: UN solo acento, plano. Antes iba de naranja a azul
-   periwinkle (var(--e-violet-400) -> var(--e-info-500)), que contradecia la regla de marca de este
+   periwinkle (var(--e-brand-400) -> var(--e-info-500)), que contradecia la regla de marca de este
    mismo archivo ("un solo acento disciplinado ... Nada de arcoiris") y en
    pantalla se leia como dos pedazos de distinto color pegados, no como una
    marca. Sobre 2px de alto, el color plano es ademas lo que se ve nitido. */
@@ -2442,7 +2436,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   background: linear-gradient(90deg, var(--e-green-400), rgba(52, 211, 153, 0.25));
 }
 .evx-card.is-published::before {
-  background: linear-gradient(90deg, var(--e-violet-100), rgba(243, 232, 255, 0.25));
+  background: linear-gradient(90deg, var(--e-brand-100), rgba(240, 236, 227, 0.25));
 }
 .evx-card.is-ended::before {
   background: var(--e-neutral-500);
@@ -2455,7 +2449,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   inset: 0;
   background: radial-gradient(
     90% 70% at 50% -10%,
-    rgba(187, 92, 246, 0.13),
+    color-mix(in srgb, var(--e-brand-400) 13%, transparent),
     transparent 62%
   );
   opacity: 0;
@@ -2485,10 +2479,10 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
   box-shadow:
     0 14px 34px -16px rgba(0, 0, 0, 0.6),
-    0 10px 32px -14px rgba(187, 92, 246, 0.35);
+    0 10px 32px -14px color-mix(in srgb, var(--e-brand-400) 35%, transparent);
 }
 .evx-card.is-live:hover {
   border-color: rgba(52, 211, 153, 0.5);
@@ -2573,7 +2567,7 @@ html[data-theme="light"] .evx-livepill {
   background: var(--e-green-400);
 }
 .evx-dot[data-status="published"] {
-  background: var(--e-violet-100);
+  background: var(--e-brand-100);
 }
 .evx-dot[data-status="draft"] {
   background: var(--e-neutral-550);
@@ -2611,15 +2605,15 @@ html[data-theme="light"] .evx-livepill {
   font-size: var(--e-text-sm);
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--e-violet-150);
+  color: var(--e-brand-150);
   background: linear-gradient(
     140deg,
-    rgba(187, 92, 246, 0.38),
-    rgba(187, 92, 246, 0.1) 60%,
-    rgba(9, 9, 11, 0.4)
+    color-mix(in srgb, var(--e-brand-400) 38%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 10%, transparent) 60%,
+    rgba(10, 9, 8, 0.4)
   );
-  border-color: rgba(187, 92, 246, 0.3);
-  text-shadow: 0 1px 2px rgba(9, 9, 11, 0.4);
+  border-color: color-mix(in srgb, var(--e-brand-400) 30%, transparent);
+  text-shadow: 0 1px 2px rgba(10, 9, 8, 0.4);
 }
 .evx-thumb-fallback.is-ended {
   color: var(--color-zinc-300);
@@ -2643,7 +2637,7 @@ html[data-theme="light"] .evx-livepill {
   font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--e-violet-200);
+  color: var(--e-brand-200);
 }
 .evx-datecal-day {
   font-size: var(--e-text-xl);
@@ -2784,8 +2778,8 @@ html[data-theme="light"] .evx-livepill {
   border-radius: 999px;
   /* Venda de marca con núcleo brillante: proporción VIVA, no un rectángulo
      plano. La luz viaja hacia la punta del llenado. */
-  background: linear-gradient(90deg, color-mix(in srgb, var(--e-violet-400) 45%, transparent), var(--e-violet-400));
-  box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--e-brand-400) 45%, transparent), var(--e-brand-400));
+  box-shadow: 0 0 8px -1px color-mix(in srgb, var(--e-brand-400) 55%, transparent);
   transition: width 0.5s var(--e-ease-expo);
 }
 .is-live .evx-meter-fill { background: var(--e-green-400); }
@@ -2797,25 +2791,25 @@ html[data-theme="light"] .evx-thumb {
   background: var(--e-neutral-100);
 }
 html[data-theme="light"] .evx-thumb-fallback {
-  color: var(--e-violet-600);
+  color: var(--e-brand-600);
   text-shadow: none;
   background: linear-gradient(
     140deg,
-    rgba(187, 92, 246, 0.2),
-    rgba(187, 92, 246, 0.06) 60%,
+    color-mix(in srgb, var(--e-brand-400) 20%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 6%, transparent) 60%,
     rgba(255, 255, 255, 0.5)
   );
-  border-color: rgba(187, 92, 246, 0.25);
+  border-color: color-mix(in srgb, var(--e-brand-400) 25%, transparent);
 }
 html[data-theme="light"] .evx-thumb-fallback.is-ended {
   color: var(--color-zinc-500);
-  background: linear-gradient(140deg, rgba(9, 9, 11, 0.07), rgba(9, 9, 11, 0.02));
+  background: linear-gradient(140deg, rgba(10, 9, 8, 0.07), rgba(10, 9, 8, 0.02));
   border-color: var(--e-neutral-300);
 }
 /* La hoja de calendario en claro: el día no puede quedar en tinta clara
-   sobre un fondo claro (medido: ratio 1.1). Mes en violeta, día en tinta. */
+   sobre un fondo claro (medido: ratio 1.1). Mes en ultramar, día en tinta. */
 html[data-theme="light"] .evx-datecal-mon {
-  color: var(--e-violet-600);
+  color: var(--e-brand-600);
 }
 html[data-theme="light"] .evx-datecal-day {
   color: var(--e-text-primary);
@@ -2891,12 +2885,12 @@ html[data-theme="light"] .evx-pct {
   gap: 0.2rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
   opacity: 0.85;
   white-space: nowrap;
 }
 html[data-theme="light"] .evx-open-label {
-  color: var(--e-violet-600);
+  color: var(--e-brand-600);
 }
 
 /* LISTA COMPACTA: una línea por evento. Con 20+ noches la grilla de
@@ -2957,7 +2951,7 @@ html[data-theme="light"] .evx-open-label {
   background: rgba(255, 255, 255, 0.015);
 }
 html[data-theme="light"] .evx-row:nth-child(even):not(:hover) {
-  background: rgba(23, 26, 32, 0.025);
+  background: rgba(28, 26, 22, 0.025);
 }
 .evx-row-name {
   font-weight: 600;
@@ -3020,7 +3014,7 @@ html[data-theme="light"] .evx-door-alert {
   background: rgba(180, 83, 9, 0.1);
 }
 html[data-theme="light"] .evx-row:hover {
-  background: rgba(9, 9, 11, 0.03);
+  background: rgba(10, 9, 8, 0.03);
 }
 html[data-theme="light"] .evx-row:has(.evx-row-state.is-live):hover {
   background: rgba(5, 150, 105, 0.04);
@@ -3105,7 +3099,7 @@ html[data-theme="light"] .wb-kpis > * + * {
 }
 html[data-theme="light"] .wb-flyer {
   border-color: var(--e-neutral-300);
-  box-shadow: 0 10px 28px -14px rgba(24, 24, 27, 0.35);
+  box-shadow: 0 10px 28px -14px rgba(26, 24, 21, 0.35);
 }
 
 /* ----------------------------------------------------------------------
@@ -3144,12 +3138,12 @@ html[data-theme="light"] .wb-flyer {
   width: 0.7rem;
   min-height: 3px;
   border-radius: 3px 3px 1px 1px;
-  background: linear-gradient(180deg, var(--e-violet-400), var(--e-violet-500));
-  box-shadow: 0 0 12px -4px rgba(124, 58, 237, 0.7);
+  background: linear-gradient(180deg, var(--e-brand-400), var(--e-brand-500));
+  box-shadow: 0 0 12px -4px color-mix(in srgb, var(--e-brand-500) 70%, transparent);
   transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 /* La franja en curso, con puertas abiertas: se enciende en verde ("ahora").
-   El resto de la noche queda en violeta: una sola columna "viva". */
+   El resto de la noche queda en ultramar: una sola columna "viva". */
 .dp-bar.is-now {
   background: linear-gradient(180deg, var(--e-green-400), var(--e-emerald-500));
   box-shadow: 0 0 14px -3px rgba(52, 211, 153, 0.85);
@@ -3200,7 +3194,7 @@ html[data-theme="light"] .dp-tick {
   color: var(--e-neutral-550);
 }
 html[data-theme="light"] .dp-bar {
-  background: linear-gradient(180deg, var(--e-violet-hover), var(--e-violet-600));
+  background: linear-gradient(180deg, var(--e-brand-hover), var(--e-brand-600));
   box-shadow: 0 0 12px -5px rgba(109, 40, 217, 0.5);
 }
 html[data-theme="light"] .dp-bar.is-now {
@@ -3226,7 +3220,7 @@ html[data-theme="light"] .dp-empty {
   background:
     radial-gradient(
       30rem 12rem at 92% -6rem,
-      color-mix(in srgb, var(--e-violet-400) 8%, transparent),
+      color-mix(in srgb, var(--e-brand-400) 8%, transparent),
       transparent 62%
     ),
     linear-gradient(
@@ -3240,7 +3234,7 @@ html[data-theme="light"] .card-hero {
   background:
     radial-gradient(
       30rem 12rem at 92% -6rem,
-      rgba(187, 92, 246, 0.045),
+      color-mix(in srgb, var(--e-brand-400) 4.5%, transparent),
       transparent 62%
     ),
     var(--e-white);
@@ -3249,7 +3243,7 @@ html[data-theme="light"] .card-hero {
 /* Barras de recaudo (vista Del negocio): glow de marca al hover y punta
    luminosa — el gráfico deja de ser un bloque plano. */
 .revbar {
-  box-shadow: 0 0 12px -4px rgba(187, 92, 246, 0.5);
+  box-shadow: 0 0 12px -4px color-mix(in srgb, var(--e-brand-400) 50%, transparent);
 }
 .revbar.is-live {
   box-shadow: 0 0 12px -4px rgba(52, 211, 153, 0.55);
@@ -3290,7 +3284,7 @@ html[data-theme="light"] .dialog-panel {
   border-left: 3px solid var(--e-red-600);
 }
 .toast-in[data-kind="info"] {
-  border-left: 3px solid var(--e-violet-400);
+  border-left: 3px solid var(--e-brand-400);
 }
 
 /* ----------------------------------------------------------------------
@@ -3298,15 +3292,15 @@ html[data-theme="light"] .dialog-panel {
    gradiente gris neutro) — consistente con el dock Del negocio.
    ---------------------------------------------------------------------- */
 .tabbar-item[aria-selected="true"] {
-  background: linear-gradient(180deg, rgba(187, 92, 246, 0.24), rgba(187, 92, 246, 0.12));
-  color: var(--e-violet-150);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-400) 24%, transparent), color-mix(in srgb, var(--e-brand-400) 12%, transparent));
+  color: var(--e-brand-150);
   font-weight: 600;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--e-violet-400) 40%, transparent),
-    0 2px 10px -3px rgba(187, 92, 246, 0.5);
+    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 40%, transparent),
+    0 2px 10px -3px color-mix(in srgb, var(--e-brand-400) 50%, transparent);
 }
 .tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: var(--e-violet-150);
+  color: var(--e-brand-150);
 }
 
 /* ----------------------------------------------------------------------
@@ -3350,7 +3344,7 @@ html[data-theme="light"] .topbar {
   bottom: -0.55rem; /* cubre el border-bottom del header */
   height: 2px;
   border-radius: 2px;
-  background: var(--e-violet-400);
+  background: var(--e-brand-400);
   transform: scaleX(0);
   transition: transform 0.22s var(--e-ease-expo);
 }
@@ -3362,7 +3356,7 @@ html[data-theme="light"] .topnav-item {
 }
 html[data-theme="light"] .topnav-item:hover {
   color: var(--e-neutral-900);
-  background: rgba(9, 9, 11, 0.04);
+  background: rgba(10, 9, 8, 0.04);
 }
 html[data-theme="light"] .topnav-item.is-active {
   color: var(--color-zinc-50);
@@ -3388,22 +3382,22 @@ html[data-theme="light"] .topnav-item.is-active {
   font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-300);
-  background: linear-gradient(140deg, rgba(187, 92, 246, 0.3), rgba(187, 92, 246, 0.1));
+  background: linear-gradient(140deg, color-mix(in srgb, var(--e-brand-400) 30%, transparent), color-mix(in srgb, var(--e-brand-400) 10%, transparent));
   box-shadow:
-    inset 0 0 0 1px rgba(187, 92, 246, 0.35),
-    0 2px 8px -3px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent),
+    0 2px 8px -3px color-mix(in srgb, var(--e-brand-400) 45%, transparent);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .topbar-avatar:hover {
   transform: scale(1.08);
   box-shadow:
-    inset 0 0 0 1px rgba(187, 92, 246, 0.6),
-    0 4px 14px -4px rgba(187, 92, 246, 0.6);
+    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 60%, transparent),
+    0 4px 14px -4px color-mix(in srgb, var(--e-brand-400) 60%, transparent);
 }
 html[data-theme="light"] .topbar-avatar {
-  color: var(--e-violet-600);
-  background: linear-gradient(140deg, rgba(187, 92, 246, 0.16), rgba(187, 92, 246, 0.06));
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.35);
+  color: var(--e-brand-600);
+  background: linear-gradient(140deg, color-mix(in srgb, var(--e-brand-400) 16%, transparent), color-mix(in srgb, var(--e-brand-400) 6%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent);
 }
 
 /* ----------------------------------------------------------------------
@@ -3418,9 +3412,9 @@ html[data-theme="light"] .topbar-avatar {
     linear-gradient(160deg, var(--e-white), var(--color-zinc-100) 70%),
     var(--e-white);
   box-shadow:
-    inset 0 0 0 1px rgba(9, 9, 11, 0.08),
+    inset 0 0 0 1px rgba(10, 9, 8, 0.08),
     0 20px 50px -18px rgba(0, 0, 0, 0.65),
-    0 0 40px -12px rgba(187, 92, 246, 0.35);
+    0 0 40px -12px color-mix(in srgb, var(--e-brand-400) 35%, transparent);
 }
 .ticket-qr-frame::before,
 .ticket-qr-frame::after {
@@ -3428,7 +3422,7 @@ html[data-theme="light"] .topbar-avatar {
   position: absolute;
   width: 22px;
   height: 22px;
-  border-color: var(--e-violet-400);
+  border-color: var(--e-brand-400);
   border-style: solid;
   opacity: 0.85;
 }
@@ -3452,7 +3446,7 @@ html[data-theme="light"] .topbar-avatar {
   background:
     radial-gradient(
       26rem 12rem at 8% -6rem,
-      rgba(187, 92, 246, 0.14),
+      color-mix(in srgb, var(--e-brand-400) 14%, transparent),
       transparent 62%
     ),
     var(--color-zinc-925);
@@ -3461,7 +3455,7 @@ html[data-theme="light"] .onboard-hero {
   background:
     radial-gradient(
       26rem 12rem at 8% -6rem,
-      rgba(187, 92, 246, 0.07),
+      color-mix(in srgb, var(--e-brand-400) 7%, transparent),
       transparent 62%
     ),
     var(--e-white);
@@ -3478,8 +3472,8 @@ html[data-theme="light"] .onboard-progress {
 .onboard-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(187, 92, 246, 0.5), var(--e-violet-400));
-  box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--e-brand-400) 50%, transparent), var(--e-brand-400));
+  box-shadow: 0 0 8px -1px color-mix(in srgb, var(--e-brand-400) 55%, transparent);
   transition: width 0.45s var(--e-ease-expo);
 }
 
@@ -3493,12 +3487,12 @@ html[data-theme="light"] .onboard-progress {
     transform 0.15s ease;
 }
 .list-row:hover {
-  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
   background: rgba(255, 255, 255, 0.05);
   transform: translateY(-1px);
 }
 html[data-theme="light"] .list-row:hover {
-  border-color: rgba(187, 92, 246, 0.35);
+  border-color: color-mix(in srgb, var(--e-brand-400) 35%, transparent);
   background: var(--e-white);
 }
 .row:hover {
@@ -3535,7 +3529,7 @@ html[data-theme="light"] .list-row:hover {
   color: var(--color-zinc-50);
 }
 .bottomnav-item.is-active > span:first-child {
-  filter: drop-shadow(0 0 10px rgba(187, 92, 246, 0.55));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--e-brand-400) 55%, transparent));
 }
 html[data-theme="light"] .bottomnav {
   border-top-color: var(--e-neutral-300);
@@ -3545,7 +3539,7 @@ html[data-theme="light"] .bottomnav-item {
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .bottomnav-item:active {
-  background: rgba(9, 9, 11, 0.04);
+  background: rgba(10, 9, 8, 0.04);
 }
 html[data-theme="light"] .bottomnav-item.is-active {
   color: var(--color-zinc-50);
@@ -3592,7 +3586,7 @@ html[data-theme="light"] .evx-tab-count {
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .evx-tab.is-active .evx-tab-count {
-  color: var(--e-violet-600);
+  color: var(--e-brand-600);
 }
 html[data-theme="light"] .evx-card {
   /* El material de la casa, pero SIN el blanco de .card: la franja de eventos
@@ -3610,7 +3604,7 @@ html[data-theme="light"] .evx-card {
   /* #ececee sobre #e9ecf5 era un borde invisible: la tarjeta no se separaba
      del lienzo y la grilla se leia como un solo bloque. El hairline tiene
      que notarse. */
-  border-color: var(--e-slate-200);
+  border-color: var(--e-neutral-400);
   box-shadow:
     var(--e-highlight-inset),
     var(--e-elev-card);
@@ -3618,7 +3612,7 @@ html[data-theme="light"] .evx-card {
 html[data-theme="light"] .evx-card::after {
   background: radial-gradient(
     90% 70% at 50% -10%,
-    color-mix(in srgb, var(--e-violet-400) 8%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 8%, transparent),
     transparent 62%
   );
 }
@@ -3630,15 +3624,15 @@ html[data-theme="light"] .evx-card.is-live::after {
   );
 }
 html[data-theme="light"] .evx-card:hover {
-  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
   box-shadow:
-    0 14px 34px -18px rgba(24, 24, 27, 0.28),
-    0 10px 32px -14px rgba(187, 92, 246, 0.22);
+    0 14px 34px -18px rgba(26, 24, 21, 0.28),
+    0 10px 32px -14px color-mix(in srgb, var(--e-brand-400) 22%, transparent);
 }
 html[data-theme="light"] .evx-card.is-live:hover {
   border-color: rgba(5, 150, 105, 0.5);
   box-shadow:
-    0 14px 34px -18px rgba(24, 24, 27, 0.28),
+    0 14px 34px -18px rgba(26, 24, 21, 0.28),
     0 10px 32px -14px rgba(5, 150, 105, 0.22);
 }
 html[data-theme="light"] .evx-name {
@@ -3648,10 +3642,10 @@ html[data-theme="light"] .evx-state {
   color: var(--e-neutral-600);
 }
 html[data-theme="light"] .evx-meter {
-  background: rgba(9, 9, 11, 0.07);
+  background: rgba(10, 9, 8, 0.07);
 }
 html[data-theme="light"] .evx-meter-fill {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--e-violet-400) 40%, transparent), var(--e-violet-800));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--e-brand-400) 40%, transparent), var(--e-brand-800));
   box-shadow: none;
 }
 html[data-theme="light"] .is-live .evx-meter-fill { background: var(--e-emerald-500); }
@@ -3717,7 +3711,7 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   position: absolute;
   width: 26px;
   height: 26px;
-  border-color: var(--e-violet-400);
+  border-color: var(--e-brand-400);
   border-style: solid;
   z-index: 20;
   pointer-events: none;
@@ -3763,10 +3757,10 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--e-violet-400) 95%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 95%, transparent),
     transparent
   );
-  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--e-brand-400) 45%, transparent);
   z-index: 20;
   pointer-events: none;
   animation: scan-sweep 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
@@ -3800,7 +3794,7 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   inset: 6px;
   border-radius: 1rem;
   border-style: solid;
-  border-color: color-mix(in srgb, var(--e-violet-400) 65%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 65%, transparent);
   border-width: 2px;
   animation: pulse-ring 1.1s ease-in-out infinite;
 }
@@ -3810,10 +3804,10 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
 @keyframes pulse-ring {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--e-violet-400) 40%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--e-brand-400) 40%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--e-violet-400) 8%, transparent);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--e-brand-400) 8%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3913,11 +3907,11 @@ html[data-theme="light"] {
   --color-sky-200: var(--e-sky-800);
   --color-sky-300: var(--e-sky-700);
   --color-sky-400: var(--e-sky-600);
-  --color-violet-300: var(--e-violet-600);
+  --color-violet-300: var(--e-brand-600);
 
-  /* --- texto de marca sobre claro: violeta profundo (legible en AA) --- */
-  --color-brand-300: var(--e-violet-600);
-  --color-brand-400: var(--e-violet-800);
+  /* --- texto de marca sobre claro: ultramar profundo (legible en AA) --- */
+  --color-brand-300: var(--e-brand-600);
+  --color-brand-400: var(--e-brand-800);
 
   color-scheme: light;
 }
@@ -3928,11 +3922,11 @@ html[data-theme="light"] {
    ---------------------------------------------------------------------- */
 html[data-theme="light"] body {
   /* Canvas claro plano (Tesla): un solo tono, sin lavados. */
-  background: var(--e-neutral-150);
+  background: var(--e-canvas);
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] ::selection {
-  background: rgba(187, 92, 246, 0.18);
+  background: color-mix(in srgb, var(--e-brand-400) 18%, transparent);
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] .skip-link {
@@ -3941,7 +3935,7 @@ html[data-theme="light"] .skip-link {
   border-color: var(--e-neutral-400);
 }
 html[data-theme="light"] .eyebrow {
-  color: var(--e-violet-500);
+  color: var(--e-brand-500);
 }
 html[data-theme="light"] .display,
 html[data-theme="light"] .text-gradient {
@@ -3980,7 +3974,7 @@ html[data-theme="light"] .row:hover {
   background: var(--e-neutral-100);
 }
 
-/* Inputs: superficie blanca, borde visible, foco con halo violeta */
+/* Inputs: superficie blanca, borde visible, foco con halo ultramar */
 html[data-theme="light"] .field {
   border-color: var(--e-neutral-400);
   /* background-color (no shorthand): ver .field — el shorthand pisaba el
@@ -4000,21 +3994,21 @@ html[data-theme="light"] .field:hover {
   border-color: var(--e-neutral-500);
 }
 html[data-theme="light"] .field:focus {
-  border-color: var(--e-violet-800);
+  border-color: var(--e-brand-800);
   box-shadow:
-    0 0 0 3px rgba(187, 92, 246, 0.14),
-    0 0 18px -6px rgba(187, 92, 246, 0.3);
+    0 0 0 3px color-mix(in srgb, var(--e-brand-400) 14%, transparent),
+    0 0 18px -6px color-mix(in srgb, var(--e-brand-400) 30%, transparent);
 }
 
-/* Botones: primario intacto (violeta sobre blanco ya es premium); ghost y
+/* Botones: primario intacto (ultramar sobre blanco ya es premium); ghost y
    danger-text ganan contraste de tinta. */
 html[data-theme="light"] .btn-ghost {
   border-color: var(--e-neutral-400);
   color: var(--e-neutral-800);
 }
 html[data-theme="light"] .btn-ghost:hover {
-  background: rgba(187, 92, 246, 0.06);
-  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 6%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] .btn-danger-text {
@@ -4035,22 +4029,22 @@ html[data-theme="light"] .chip-active {
 html[data-theme="light"] .tabbar {
   background: var(--e-neutral-300);
   box-shadow:
-    inset 0 1px 3px rgba(24, 24, 27, 0.12),
-    inset 0 0 0 1px rgba(24, 24, 27, 0.03);
+    inset 0 1px 3px rgba(26, 24, 21, 0.12),
+    inset 0 0 0 1px rgba(26, 24, 21, 0.03);
 }
 html[data-theme="light"] .tabbar-item {
   color: var(--e-neutral-600);
 }
 html[data-theme="light"] .tabbar-item:hover {
   color: var(--e-neutral-900);
-  background: rgba(24, 24, 27, 0.05);
+  background: rgba(26, 24, 21, 0.05);
 }
 html[data-theme="light"] .tabbar-item[aria-selected="true"] {
-  background: linear-gradient(180deg, rgba(187, 92, 246, 0.14), rgba(187, 92, 246, 0.07));
-  color: var(--e-violet-600);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-400) 14%, transparent), color-mix(in srgb, var(--e-brand-400) 7%, transparent));
+  color: var(--e-brand-600);
   box-shadow:
-    inset 0 0 0 1px rgba(187, 92, 246, 0.35),
-    0 2px 10px -3px rgba(187, 92, 246, 0.35);
+    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent),
+    0 2px 10px -3px color-mix(in srgb, var(--e-brand-400) 35%, transparent);
 }
 
 /* Tooltip, meter, skeleton: variantes de luz */
@@ -4058,26 +4052,26 @@ html[data-theme="light"] [data-tip]::after {
   background: var(--e-white);
   color: var(--e-neutral-900);
   border-color: var(--e-neutral-300);
-  box-shadow: 0 8px 20px -8px rgba(24, 24, 27, 0.35);
+  box-shadow: 0 8px 20px -8px rgba(26, 24, 21, 0.35);
 }
 html[data-theme="light"] .meter {
   background: var(--e-neutral-300);
-  box-shadow: inset 0 1px 2px rgba(24, 24, 27, 0.15);
+  box-shadow: inset 0 1px 2px rgba(26, 24, 21, 0.15);
 }
 html[data-theme="light"] .skeleton {
   background: linear-gradient(90deg, var(--e-neutral-200) 25%, var(--e-neutral-100) 50%, var(--e-neutral-200) 75%);
   background-size: 800px 100%;
 }
 
-/* Empty state: el halo violeta se atenúa pero conserva la firma */
+/* Empty state: el halo ultramar se atenúa pero conserva la firma */
 html[data-theme="light"] .empty-state-icon {
-  color: var(--e-violet-600);
+  color: var(--e-brand-600);
   background: linear-gradient(
     135deg,
-    rgba(187, 92, 246, 0.12),
-    rgba(187, 92, 246, 0.04)
+    color-mix(in srgb, var(--e-brand-400) 12%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 4%, transparent)
   );
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.25);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 25%, transparent);
 }
 html[data-theme="light"] .empty-state-title,
 html[data-theme="light"] .empty-state-text {
@@ -4091,7 +4085,7 @@ html[data-theme="light"] .empty-state-title {
 html[data-theme="light"] .ticket-timeline::before {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--e-violet-400) 45%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 45%, transparent),
     rgba(212, 212, 216, 0.9)
   );
 }
@@ -4109,7 +4103,7 @@ html[data-theme="light"] .ticket-step.done .ticket-step-label {
 /* Diálogos: velo claro, el contenido flota sobre papel */
 html[data-theme="light"] .dialog-backdrop,
 html[data-theme="light"] .dialog-backdrop-out {
-  background: rgba(24, 24, 27, 0.32);
+  background: rgba(26, 24, 21, 0.32);
 }
 
 /* Firma visual: ticket-ghost y event-card ganan versión de luz */
@@ -4117,18 +4111,18 @@ html[data-theme="light"] .ticket-ghost {
   background:
     radial-gradient(
       120% 90% at 50% 0%,
-      rgba(187, 92, 246, 0.1),
+      color-mix(in srgb, var(--e-brand-400) 10%, transparent),
       transparent 62%
     ),
     linear-gradient(180deg, var(--e-white), var(--color-zinc-50));
-  border-color: rgba(187, 92, 246, 0.35);
+  border-color: color-mix(in srgb, var(--e-brand-400) 35%, transparent);
 }
 html[data-theme="light"] .ticket-ghost::after {
-  border-color: rgba(9, 9, 11, 0.12);
+  border-color: rgba(10, 9, 8, 0.12);
 }
 html[data-theme="light"] .event-card:hover {
-  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
-  box-shadow: 0 12px 32px -14px rgba(187, 92, 246, 0.3);
+  border-color: color-mix(in srgb, var(--e-brand-400) 45%, transparent);
+  box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--e-brand-400) 30%, transparent);
 }
 html[data-theme="light"] .event-card.is-live {
   border-color: rgba(5, 150, 105, 0.45);
@@ -4139,7 +4133,7 @@ html[data-theme="light"] .event-card.is-live {
 html[data-theme="light"] .ab-aurora {
   background: radial-gradient(
     60rem 32rem at 50% -14rem,
-    rgba(187, 92, 246, 0.05),
+    color-mix(in srgb, var(--e-brand-400) 5%, transparent),
     transparent 62%
   );
 }
@@ -4148,15 +4142,11 @@ html[data-theme="light"] .brand-chip {
   background: none;
   box-shadow: none;
 }
-html[data-theme="light"] .brand-flow {
-  color: var(--e-violet-400);
-  -webkit-text-fill-color: var(--e-violet-400);
-}
 html[data-theme="light"] .auth-field-icon {
   color: var(--color-zinc-400);
 }
 html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
-  color: var(--e-violet-400);
+  color: var(--e-brand-400);
 }
 
 /* Puerta (escáner): SIEMPRE oscura. El flash de un fondo blanco en un
@@ -4188,7 +4178,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   inset: 0;
   background: radial-gradient(
     60rem 32rem at 50% -14rem,
-    color-mix(in srgb, var(--e-violet-400) 8%, transparent),
+    color-mix(in srgb, var(--e-brand-400) 8%, transparent),
     transparent 62%
   );
 }
@@ -4230,12 +4220,6 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   font-size: var(--e-text-display);
   line-height: 1;
 }
-/* "Flow": tinta sólida del acento — un solo color de marca, sin degradado. */
-.brand-flow {
-  color: var(--e-violet-400);
-  -webkit-text-fill-color: var(--e-violet-400);
-}
-
 /* Iconos de campo (correo/candado): el formulario habla el mismo idioma
    visual que el resto del sistema. El wrapper .auth-field enciende el
    icono cuando el campo recibe foco. */
@@ -4254,7 +4238,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   padding-left: 2.6rem;
 }
 .auth-field:focus-within .auth-field-icon {
-  color: var(--e-violet-400);
+  color: var(--e-brand-400);
 }
 /* Móvil: sin orbes ni blurs que abaratar el showroom; la píldora ya no
    existe, no hay padding que ajustar. */
@@ -4327,7 +4311,7 @@ body {
  *
  *  Reglas de la casa:
  *   - Los colores pop SOLO adornan (doodles, halftone, stickers, marcas
- *     de pincel). Todo lo clicable sigue siendo brand-500 #BB5CF6.
+ *     de pincel). Todo lo clicable sigue siendo brand-500 #4356E8.
  *   - La fuente manuscrita nunca lleva datos serios: anotaciones y
  *     firmas, no cifras ni estados.
  *   - Nada de esto aparece con prefers-reduced-motion en animacion.
@@ -4356,7 +4340,7 @@ body {
   z-index: -1;
   border-radius: 2px;
   transform: rotate(-0.6deg);
-  background: linear-gradient(90deg, var(--e-violet-500), var(--e-violet-400));
+  background: linear-gradient(90deg, var(--e-brand-500), var(--e-brand-400));
   opacity: 0.9;
 }
 html[data-theme="light"] .brush-mark::after {
@@ -4379,7 +4363,7 @@ html[data-theme="light"] .brush-mark::after {
   mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), var(--e-mask) 0%, transparent 72%);
 }
 html[data-theme="light"] .halftone::before {
-  background-image: radial-gradient(rgba(9, 9, 11, 0.14) 1.2px, transparent 1.3px);
+  background-image: radial-gradient(rgba(10, 9, 8, 0.14) 1.2px, transparent 1.3px);
 }
 
 /* Sticker: chip amarillo rotado con borde de tinta, como los stickers del
@@ -4402,7 +4386,7 @@ html[data-theme="light"] .halftone::before {
   text-transform: uppercase;
 }
 html[data-theme="light"] .sticker-pop {
-  box-shadow: 3px 3px 0 rgba(9, 9, 11, 0.18);
+  box-shadow: 3px 3px 0 rgba(10, 9, 8, 0.18);
 }
 
 /* Doodle flotante: los garabatos del portfolio neon (corona, rayo,
@@ -4430,7 +4414,7 @@ html[data-theme="light"] .sticker-pop {
   position: absolute;
   width: 5.5rem;
   height: 1.6rem;
-  background: rgba(124, 58, 237, 0.4);
+  background: color-mix(in srgb, var(--e-brand-500) 40%, transparent);
   backdrop-filter: blur(1px);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   clip-path: polygon(3% 0, 97% 6%, 100% 94%, 0 100%);
@@ -4500,7 +4484,7 @@ html[data-theme="light"] .sticker-pop {
   background: linear-gradient(90deg, transparent, currentColor 20%, currentColor 80%, transparent);
 }
 html[data-theme="light"] .ribbon-divider {
-  color: rgba(9, 9, 11, 0.2);
+  color: rgba(10, 9, 8, 0.2);
 }
 .ribbon-divider .rd-star {
   width: 0.85rem;
@@ -4524,7 +4508,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   min-height: 100vh;
   padding: 2rem 1rem 3rem;
   background:
-    radial-gradient(46rem 30rem at 50% -10rem, rgba(187, 92, 246, 0.16), transparent 62%),
+    radial-gradient(46rem 30rem at 50% -10rem, color-mix(in srgb, var(--e-brand-400) 16%, transparent), transparent 62%),
     var(--color-zinc-950);
 }
 .tkt-wrap {
@@ -4543,7 +4527,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   /* Cartuchera de festival: ambar con luz cenital y tinte indigo abajo */
   background:
     radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.22), transparent 55%),
-    radial-gradient(140% 60% at 50% 115%, rgba(22, 37, 92, 0.28), transparent 60%),
+    radial-gradient(140% 60% at 50% 115%, rgba(55, 38, 23, 0.28), transparent 60%),
     linear-gradient(180deg, var(--e-brasa-200), var(--e-brasa-300));
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
@@ -4558,7 +4542,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   right: -10%;
   bottom: -2.2rem;
   height: 4.5rem;
-  background: radial-gradient(60% 100% at 50% 100%, rgba(22, 37, 92, 0.3), transparent 70%);
+  background: radial-gradient(60% 100% at 50% 100%, rgba(55, 38, 23, 0.3), transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -4594,7 +4578,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   flex-shrink: 0;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: rgba(22, 37, 92, 0.14);
+  background: rgba(55, 38, 23, 0.14);
   color: var(--e-ink-800);
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-2xs);
@@ -4675,7 +4659,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   position: relative;
   z-index: 1;
   padding: 1.1rem 1.25rem 1.25rem;
-  background: linear-gradient(180deg, rgba(22, 37, 92, 0.06), rgba(22, 37, 92, 0.12));
+  background: linear-gradient(180deg, rgba(55, 38, 23, 0.06), rgba(55, 38, 23, 0.12));
 }
 
 /* --- Zona del QR: panel blanco sobre el ambar --------------------------- */
@@ -4692,7 +4676,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   background: var(--e-white);
   box-shadow:
     0 10px 24px -14px rgba(34, 26, 6, 0.65),
-    0 0 0 1px rgba(22, 37, 92, 0.12);
+    0 0 0 1px rgba(55, 38, 23, 0.12);
 }
 /* Esquinas de encuadre (credencial escaneable) */
 .tkt-qr::before,
@@ -4729,7 +4713,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-admit {
   padding: 0.3rem 0.9rem;
   border-radius: 999px;
-  border: 1.5px dashed rgba(22, 37, 92, 0.45);
+  border: 1.5px dashed rgba(55, 38, 23, 0.45);
   color: var(--e-ink-800);
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-2xs);
@@ -4744,7 +4728,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   margin-top: 1.1rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border: 1.5px solid rgba(22, 37, 92, 0.35);
+  border: 1.5px solid rgba(55, 38, 23, 0.35);
   border-radius: 0.75rem;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.4);
@@ -4754,7 +4738,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   text-align: center;
 }
 .tkt-cell + .tkt-cell {
-  border-left: 1.5px dashed rgba(22, 37, 92, 0.3);
+  border-left: 1.5px dashed rgba(55, 38, 23, 0.3);
 }
 .tkt-cell-label {
   font-family: "Sora", system-ui, sans-serif;
@@ -4781,8 +4765,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   gap: 0.75rem;
   padding: 0.55rem 0.75rem;
   border-radius: 0.75rem;
-  background: rgba(22, 37, 92, 0.1);
-  border: 1.5px solid rgba(22, 37, 92, 0.25);
+  background: rgba(55, 38, 23, 0.1);
+  border: 1.5px solid rgba(55, 38, 23, 0.25);
 }
 .tkt-name-row .tkt-cell-label {
   flex-shrink: 0;
@@ -4798,7 +4782,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   padding: 1.1rem 1rem;
   text-align: center;
   background: rgba(255, 255, 255, 0.55);
-  border: 1.5px dashed rgba(22, 37, 92, 0.4);
+  border: 1.5px dashed rgba(55, 38, 23, 0.4);
   color: var(--e-brasa-900);
 }
 .tkt-note .tkt-note-icon {
@@ -4808,7 +4792,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: rgba(22, 37, 92, 0.12);
+  background: rgba(55, 38, 23, 0.12);
   color: var(--e-ink-800);
 }
 .tkt-note strong {
@@ -4856,20 +4840,20 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   opacity: 0.55;
   pointer-events: none;
 }
-/* Primario: navy solido — la tinta de la boleta del logo */
+/* Primario: negro mate solido — la tinta de la boleta del logo */
 .tkt-btn-primary {
   background: var(--e-ink-800);
   color: var(--e-white);
-  box-shadow: 0 8px 20px -10px rgba(22, 37, 92, 0.8);
+  box-shadow: 0 8px 20px -10px rgba(55, 38, 23, 0.8);
 }
 .tkt-btn-primary:hover {
   filter: brightness(1.12);
 }
-/* Secundario: blanco translucido con la misma tinta navy */
+/* Secundario: blanco translucido con la misma tinta de la boleta */
 .tkt-btn-quiet {
   background: rgba(255, 255, 255, 0.45);
   color: var(--e-ink-800);
-  border-color: rgba(22, 37, 92, 0.3);
+  border-color: rgba(55, 38, 23, 0.3);
 }
 .tkt-btn-quiet:hover {
   background: rgba(255, 255, 255, 0.65);
@@ -4927,21 +4911,21 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 
 /* ===========================================================================
-   AJUSTES DE MARCA (2026-10): navy de superficie, rampa de estados y foco.
+   AJUSTES DE MARCA (2026-10): negro mate de superficie, rampa de estados y foco.
    Se anaden al final a proposito: sobrescriben por cascada lo que quedo en
    la marca azul anterior, sin reescribir 4000 lineas a ciegas.
    =========================================================================== */
 
-/* --- PASO 4: la superficie es la boleta navy, no gris zinc ---------------
-   Los tokens --color-ticket-* ya existian pero no se usaban: la app leia
-   "naranja sobre gris". Ahora la rampa zinc COMPLETA esta teñida de navy —
-   no solo el lienzo: tambien los neutros de texto y de borde, para que el
-   gris-azulado de la app sea el mismo azul de la tinta del logo.
+/* --- PASO 4: la superficie es la boleta, no gris zinc --------------------
+   La app leia "naranja sobre gris". Ahora la rampa zinc COMPLETA es de
+   negro mate calido — no solo el lienzo: tambien los neutros de texto y de
+   borde, para que el gris de la app sea el mismo material de la boleta.
 
    Los pasos 925/850/940 no existian en Tailwind: hacen falta porque el
-   lienzo (var(--e-slate-900)) y la tarjeta (var(--e-slate-850)) estan separados por varios pasos y
-   sin intermedios el degradado se ve a bandas. Tailwind v4 genera la
-   utilidad bg-zinc-925 a partir del token, asi que no hay caja suelta. */
+   lienzo (--e-zinc-925) y la tarjeta (--e-zinc-850) estan separados por
+   varios pasos y sin intermedios el degradado se ve a bandas. Tailwind v4
+   genera la utilidad bg-zinc-925 a partir del token, asi que no hay caja
+   suelta. */
 :root {
   /* DOS RAMPAS, UN NOMBRE. Este es el problema de fondo que arrastraba la
      app: `zinc` se usaba como rampa de TEXTO (200/300/400, casi 200 usos en
@@ -4955,8 +4939,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
      borde en todo src/), 500–950 es superficie/borde. Cada tema invierte su
      mitad de texto; la superficie se queda como esta. */
   /* Lienzo -> tarjeta: pasos de negro mate Enty, del mas profundo al mas
-     alto. Un susurro violeta en los altos, para casar con el filo del logo. */
-  --color-zinc-950: var(--e-ink-950);
+     alto. Un susurro ultramar en los altos, para casar con el filo del logo. */
+  --color-zinc-950: var(--e-canvas);
   --color-zinc-940: var(--e-zinc-940);
   --color-zinc-925: var(--e-zinc-925);
   --color-zinc-900: var(--e-panel-600);
@@ -4987,7 +4971,7 @@ html[data-theme="light"] {
   --color-zinc-400: var(--e-neutral-675);
   /* var(--e-neutral-550) daba 4.4:1 sobre el gris de la tarjeta: rozaba el limite en 96
      rotulos (stat-label, denominador, descripcion del dock). Este gris con
-     tinte navy sube a 5.2:1 sin oscurecer el resto del texto. */
+     tinte de marca sube a 5.2:1 sin oscurecer el resto del texto. */
   --color-zinc-500: var(--e-neutral-660);
   --color-zinc-600: var(--e-neutral-610);
   /* Intermedios del lienzo claro (no existen en Tailwind, igual que en dark) */
@@ -4999,29 +4983,29 @@ html:not([data-theme="light"]) body {
   background: var(--color-zinc-950);
 }
 html[data-theme="light"] body {
-  background: var(--e-neutral-150);
+  background: var(--e-canvas);
 }
 /* El scrollbar tomaba el token de superficie, que en claro vale blanco:
    sobre el lienzo claro se volvía invisible. Lleva su propio par. */
 html[data-theme="light"] * {
-  scrollbar-color: var(--e-slate-300) transparent;
+  scrollbar-color: var(--e-neutral-400) transparent;
 }
 html[data-theme="light"] *::-webkit-scrollbar-thumb {
-  background: var(--e-slate-300);
+  background: var(--e-neutral-400);
 }
 html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
-  background: var(--e-slate-400);
+  background: var(--e-neutral-500);
 }
 
 /* --- El sufijo del wordmark necesita su propio color por tema ----------
-   El violeta de marca sobre el lienzo claro daba bajo contraste: es un color
-   de acento, no de texto. En claro se apaga al violeta profundo, el mismo
+   El ultramar de marca sobre el lienzo claro daba bajo contraste: es un color
+   de acento, no de texto. En claro se apaga al ultramar profundo, el mismo
    tono que ya usa --color-brand-300 para texto de marca. */
 .brand-suffix {
-  color: var(--e-violet-400);
+  color: var(--e-brand-400);
 }
 html[data-theme="light"] .brand-suffix {
-  color: var(--e-violet-500);
+  color: var(--e-brand-500);
 }
 
 /* --- La estrella de cuatro puntas del wordmark ------------------------
@@ -5066,7 +5050,7 @@ html[data-theme="light"] .rubber-stamp {
    app usaba border-radius uniforme y se leia "tarjeta generica".
    Aqui el troquel es REAL (mascara, no un parche del color del fondo): se
    puncha un semiojo con alpha 0, asi que funciona igual sobre el lienzo
-   navy, sobre el claro y sobre cualquier superficie que cambie despues.
+   negro mate, sobre el claro y sobre cualquier superficie que cambie despues.
    =========================================================================== */
 .evx-card {
   --notch: 7px;
@@ -5100,7 +5084,7 @@ html[data-theme="light"] .rubber-stamp {
 .evx-card::after {
   background: radial-gradient(
     90% 70% at 50% -10%,
-    rgba(187, 92, 246, 0.13),
+    color-mix(in srgb, var(--e-brand-400) 13%, transparent),
     transparent 62%
   );
 }
@@ -5110,7 +5094,7 @@ html[data-theme="light"] .rubber-stamp {
   bottom: 12%;
   right: 52px;
   width: 0;
-  border-left: 1px dashed rgba(243, 232, 255, 0.16);
+  border-left: 1px dashed rgba(240, 236, 227, 0.16);
   pointer-events: none;
   z-index: 0;
 }
@@ -5154,7 +5138,7 @@ html[data-theme="light"] .evx-name {
   }
 }
 
-/* --- Panel de marca (solo desktop). Superficie = navy de la boleta, el
+/* --- Panel de marca (solo desktop). Superficie = negro mate de la boleta, el
        mismo material del logo y del talon. No sigue el tema: la marca es
        oscura por definicion. --- */
 .auth-brand {
@@ -5168,13 +5152,13 @@ html[data-theme="light"] .evx-name {
   background:
     radial-gradient(
       44rem 34rem at 76% -14%,
-      rgba(187, 92, 246, 0.16),
+      color-mix(in srgb, var(--e-brand-400) 16%, transparent),
       transparent 58%
     ),
     linear-gradient(
       158deg,
-      var(--color-ticket-900) 0%,
-      var(--color-ticket-950) 58%,
+      var(--e-ink-2) 0%,
+      var(--e-ink-1) 58%,
       var(--e-ink-950) 100%
     );
   /* El troquel: dos muescas comidas en el borde derecho del panel, a la
@@ -5220,7 +5204,7 @@ html[data-theme="light"] .evx-name {
   bottom: 12%;
   right: 0;
   width: 0;
-  border-left: 1px dashed rgba(243, 232, 255, 0.18);
+  border-left: 1px dashed rgba(240, 236, 227, 0.18);
   pointer-events: none;
   z-index: 1;
 }
@@ -5233,7 +5217,7 @@ html[data-theme="light"] .evx-name {
   pointer-events: none;
   background: radial-gradient(
     40rem 30rem at 84% 6%,
-    rgba(187, 92, 246, 0.18),
+    color-mix(in srgb, var(--e-brand-400) 18%, transparent),
     transparent 60%
   );
 }
@@ -5284,7 +5268,7 @@ html[data-theme="light"] .evx-name {
   max-width: 26rem;
   font-size: var(--e-text-lg);
   line-height: 1.6;
-  color: var(--e-slate-350);
+  color: var(--e-text-secondary);
 }
 .auth-benefits {
   margin-top: 2rem;
@@ -5297,7 +5281,7 @@ html[data-theme="light"] .evx-name {
   gap: 0.65rem;
   font-size: var(--e-text-base);
   line-height: 1.45;
-  color: var(--e-slate-250);
+  color: var(--e-text-muted);
 }
 .auth-benefit-check {
   flex-shrink: 0;
@@ -5306,9 +5290,9 @@ html[data-theme="light"] .evx-name {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: var(--e-violet-300);
-  background: rgba(187, 92, 246, 0.15);
-  border: 1px solid rgba(187, 92, 246, 0.38);
+  color: var(--e-brand-300);
+  background: color-mix(in srgb, var(--e-brand-400) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--e-brand-400) 38%, transparent);
 }
 .auth-benefit-check svg {
   width: 0.8rem;
@@ -5371,21 +5355,21 @@ html[data-theme="light"] .evx-name {
   }
 }
 
-/* El panel de marca es navy en AMBOS temas: sus tintas no pueden seguir al
+/* El panel de marca es negro mate en AMBOS temas: sus tintas no pueden seguir al
    tema. En claro, `html[data-theme="light"] .display` y `.eyebrow` tienen
    mas especificidad (0,2,1) que un selector de dos clases, asi que voltean
-   el titular a tinta oscura sobre el navy. Se repiten con la misma forma. */
+   el titular a tinta oscura sobre el negro mate. Se repiten con la misma forma. */
 .auth-brand .auth-brand-title {
   color: var(--e-neutral-75);
 }
 .auth-brand .eyebrow {
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
 }
 html[data-theme="light"] .auth-brand .auth-brand-title {
   color: var(--e-neutral-75);
 }
 html[data-theme="light"] .auth-brand .eyebrow {
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
 }
 
 html[data-theme="light"] .auth-shell {
@@ -5398,7 +5382,7 @@ html[data-theme="light"] .auth-shell .auth-card {
     var(--e-elev-card);
 }
 
-/* El wordmark dentro del panel navy ignora el remapeo claro de .brand-shine. */
+/* El wordmark dentro del panel oscuro ignora el remapeo claro de .brand-shine. */
 .auth-brand .brand-shine,
 html[data-theme="light"] .auth-brand .brand-shine {
   color: var(--e-text-primary);
@@ -5425,7 +5409,7 @@ html[data-theme-lock="dark"] body {
   background: var(--e-ink-1);
   color: var(--e-paper);
   /* Escala oscura del design system, la misma que el tema por defecto. */
-  --color-zinc-950: var(--e-ink-950);
+  --color-zinc-950: var(--e-canvas);
   --color-zinc-900: var(--e-panel-600);
   --color-zinc-800: var(--e-zinc-800);
   --color-zinc-600: var(--e-zinc-600);
@@ -5437,13 +5421,13 @@ html[data-theme-lock="dark"] body {
   --color-zinc-50: var(--e-zinc-50);
 }
 .legal-island .eyebrow {
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
 }
 .legal-island .display {
   color: var(--e-paper);
 }
 html[data-theme="light"] .legal-island .eyebrow {
-  color: var(--e-violet-300);
+  color: var(--e-brand-300);
 }
 html[data-theme="light"] .legal-island .display {
   color: var(--e-paper);
@@ -5455,7 +5439,7 @@ html[data-theme="light"] .legal-island .display {
    PERFIL — Identidad Enty
    El perfil deja de ser un formulario y pasa a ser la ficha de la persona:
    quién es, con qué rol, en qué negocios y desde cuándo. El hero habla el
-   idioma del hero del promotor (aurora violeta) con el mint de la marca como
+   idioma del hero del promotor (aurora ultramar) con el mint de la marca como
    segunda luz: es el único lugar donde la persona es el sujeto.
    ====================================================================== */
 .pf-hero {
@@ -5465,10 +5449,10 @@ html[data-theme="light"] .legal-island .display {
   border: 1px solid var(--in-line-soft, rgba(255, 255, 255, 0.06));
   padding: 1.4rem 1.5rem;
   background:
-    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.22), transparent 62%),
+    radial-gradient(34rem 16rem at 6% -10rem, color-mix(in srgb, var(--e-brand-500) 22%, transparent), transparent 62%),
     radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.12), transparent 60%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 48%),
-    rgba(16, 16, 22, 0.92);
+    rgba(18, 16, 14, 0.92);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 22px 52px -34px rgba(0, 0, 0, 0.95);
@@ -5476,7 +5460,7 @@ html[data-theme="light"] .legal-island .display {
 html[data-theme="light"] .pf-hero {
   border: 1px solid rgba(17, 17, 22, 0.09);
   background:
-    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.1), transparent 62%),
+    radial-gradient(34rem 16rem at 6% -10rem, color-mix(in srgb, var(--e-brand-500) 10%, transparent), transparent 62%),
     radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.09), transparent 60%),
     var(--e-white);
   box-shadow: 0 20px 46px -36px rgba(15, 23, 42, 0.55);
@@ -5534,7 +5518,7 @@ html[data-theme="light"] .pf-avatar {
    hero claro pierden contraste, así que se oscurecen solo aquí. El color
    sigue siendo el del rol; cambia el paso de la escala. */
 html[data-theme="light"] .pf-hero .text-brand-300 {
-  color: var(--e-violet-600);
+  color: var(--e-brand-600);
 }
 html[data-theme="light"] .pf-hero .text-emerald-300 {
   color: var(--e-emerald-600);

@@ -18,7 +18,7 @@
  *   3. REJILLA EDITORIAL — composición asimétrica: un destacado grande y el
  *      resto en columnas. La fecha es un SELLO (día enorme, mes diminuto).
  *   4. ACENTO CON SIGNIFICADO — verde = disponible/validado, rosa = urgencia.
- *      El violeta es la única voz interactiva.
+ *      El ultramar es la única voz interactiva.
  *
  *  Reglas no negociables:
  *   - Sora es la única voz. Motion: solo transform/opacity.
@@ -44,7 +44,7 @@
   --enty-line-soft: rgba(255, 255, 255, 0.07);
   --enty-glass: rgba(255, 255, 255, 0.05);
   --enty-glass-line: rgba(255, 255, 255, 0.12);
-  --enty-surface: rgba(23, 22, 34, 0.72);
+  --enty-surface: rgba(25, 23, 19, 0.72);
   --enty-radius: var(--e-radius-xl);
   --enty-ease: var(--e-ease-standard);
   --enty-dur: var(--e-dur-base);
@@ -394,13 +394,13 @@
     height: 2.25rem;
     align-self: auto;
     border-radius: 999px;
-    background: rgba(11, 11, 15, 0.55);
+    background: rgba(13, 11, 9, 0.55);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--enty-glass-line);
   }
   .home-row-fav:hover {
-    background: rgba(11, 11, 15, 0.8);
+    background: rgba(13, 11, 9, 0.8);
   }
   .home-row-price {
   font-variant-numeric: tabular-nums;
@@ -745,8 +745,8 @@
   text-underline-offset: 2px;
 }
 html[data-theme="light"] .legal-link {
-  /* Violeta profundo: --e-brand-glow no alcanza AA sobre papel claro. */
-  color: var(--e-violet-700);
+  /* Ultramar profundo: --e-brand-glow no alcanza AA sobre papel claro. */
+  color: var(--e-brand-700);
 }
 
 .legal-foot {
