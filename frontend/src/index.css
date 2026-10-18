@@ -5351,6 +5351,46 @@ html[data-theme-lock="dark"] body {
   color: var(--color-zinc-200);
 }
 
+/* ----------------------------------------------------------------------
+   ISLA OSCURA (gate legal). El overlay de aceptaciones es una superficie
+   SIEMPRE oscura: en tema claro, el remapeo de `--color-zinc-*` y de
+   `.display`/`.eyebrow` volteaba su tinta a oscuro SOBRE el negro (1.11:1:
+   texto ilegible). Se repinta la isla con los tokens de la boleta —que
+   tampoco voltean— y se restauran los colores del texto con la misma
+   especificidad `html[data-theme="light"] <sel>` para ganar en ambos temas.
+   Los `--color-zinc-*` se redefinen en la isla: las utilidades de Tailwind
+   los consumen por herencia, así el texto vuelve a la escala oscura.
+   ---------------------------------------------------------------------- */
+.legal-island {
+  background: var(--e-ink-1);
+  color: var(--e-paper);
+  /* Escala oscura del design system, la misma que el tema por defecto. */
+  --color-zinc-950: var(--e-ink-950);
+  --color-zinc-900: var(--e-panel-600);
+  --color-zinc-800: var(--e-zinc-800);
+  --color-zinc-600: var(--e-zinc-600);
+  --color-zinc-500: var(--e-zinc-500);
+  --color-zinc-400: var(--e-zinc-400);
+  --color-zinc-300: var(--e-zinc-300);
+  --color-zinc-200: var(--e-zinc-200);
+  --color-zinc-100: var(--e-zinc-100);
+  --color-zinc-50: var(--e-zinc-50);
+}
+.legal-island .eyebrow {
+  color: var(--e-violet-300);
+}
+.legal-island .display {
+  color: var(--e-paper);
+}
+html[data-theme="light"] .legal-island .eyebrow {
+  color: var(--e-violet-300);
+}
+html[data-theme="light"] .legal-island .display {
+  color: var(--e-paper);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
 /* ======================================================================
    PERFIL — Identidad Enty
    El perfil deja de ser un formulario y pasa a ser la ficha de la persona:
@@ -5514,40 +5554,32 @@ html[data-theme="light"] .pf-meta {
    son documentos que se LEEN, y una linea de 120 caracteres no se lee.
    ---------------------------------------------------------------------- */
 .legal-page {
-  background: var(--color-zinc-950);
-  color: var(--color-zinc-200);
-}
-html[data-theme="light"] .legal-page {
-  background: var(--color-cream);
-  color: #27272a;
+  background: var(--e-canvas);
+  color: var(--e-text-secondary);
 }
 
+/* Cabecera de cristal: el mismo material de la casa fan (hairline + blur)
+   sobre el lienzo, en ambos temas. */
 .legal-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(11, 11, 15, 0.9);
+  border-bottom: 1px solid var(--e-border-hairline);
+  background: color-mix(in srgb, var(--e-canvas) 88%, transparent);
   backdrop-filter: blur(8px);
-}
-html[data-theme="light"] .legal-header {
-  border-bottom-color: rgba(0, 0, 0, 0.1);
-  background: rgba(245, 245, 247, 0.9);
 }
 
 .legal-muted {
-  color: #a1a1aa;
-}
-html[data-theme="light"] .legal-muted {
-  color: #52525b;
+  color: var(--e-text-muted);
 }
 
+/* Aviso de versión: ámbar de atención con contraste AA en ambos temas. */
 .legal-note {
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  background: rgba(120, 53, 15, 0.18);
-  color: #fcd34d;
+  border: 1px solid color-mix(in srgb, var(--e-warn) 38%, transparent);
+  background: color-mix(in srgb, var(--e-warn) 13%, transparent);
+  color: var(--e-amber-300);
 }
 html[data-theme="light"] .legal-note {
-  border-color: rgba(180, 83, 9, 0.35);
-  background: rgba(254, 243, 199, 0.6);
-  color: #92400e;
+  border-color: color-mix(in srgb, var(--e-brasa-500) 42%, transparent);
+  background: color-mix(in srgb, var(--e-brasa-200) 30%, transparent);
+  color: var(--e-brasa-600);
 }
 
 .legal-doc {
@@ -5591,17 +5623,14 @@ html[data-theme="light"] .legal-note {
 .legal-doc blockquote {
   margin: 1rem 0;
   padding: 0.25rem 0 0.25rem 1rem;
-  border-left: 3px solid #7c3aed;
+  border-left: 3px solid var(--e-brand);
   font-style: italic;
   opacity: 0.88;
 }
 .legal-doc hr {
   margin: 2rem 0;
   border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-html[data-theme="light"] .legal-doc hr {
-  border-top-color: rgba(0, 0, 0, 0.12);
+  border-top: 1px solid var(--e-border-hairline);
 }
 .legal-table-wrap {
   margin: 1rem 0;
@@ -5616,12 +5645,8 @@ html[data-theme="light"] .legal-doc hr {
 .legal-table td {
   text-align: left;
   padding: 0.5rem 0.65rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--e-border-hairline);
   vertical-align: top;
-}
-html[data-theme="light"] .legal-table th,
-html[data-theme="light"] .legal-table td {
-  border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 .legal-table th {
   font-weight: 600;
