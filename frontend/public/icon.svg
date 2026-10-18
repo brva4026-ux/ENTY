@@ -7,7 +7,7 @@
     perforado del talon. Se retira la estrella de cuatro puntas (el icono
     generico de "producto con IA", que no dice nada de Enty) y se sustituye
     por el sello de registro del impresor.
-    Material: tinta ultramar sobre negro mate calido.
+    Material: tinta violeta sobre negro mate calido.
   -->
 
   <defs>
@@ -16,11 +16,11 @@
       <stop offset="0" stop-color="#17130e"/>
       <stop offset="1" stop-color="#0c0a09"/>
     </linearGradient>
-    <!-- Filo de registro: ultramar de marca, no neon. -->
+    <!-- Filo de registro: violeta de marca, no neon. -->
     <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#98a2ff"/>
-      <stop offset="0.55" stop-color="#7b87ff"/>
-      <stop offset="1" stop-color="#4356e8"/>
+      <stop offset="0" stop-color="#D29BF9"/>
+      <stop offset="0.55" stop-color="#BB5CF6"/>
+      <stop offset="1" stop-color="#7C3AED"/>
     </linearGradient>
     <!-- Troquel: los agujeros del perforado cortan el asta. -->
     <mask id="perf">
@@ -51,6 +51,6 @@
     <path d="M186 256 H304"/>
     <path d="M186 402 H336"/>
   </g>
-  <!-- SELLO: marca de registro del impresor, en ultramar de marca. -->
-  <circle cx="336" cy="110" r="17" fill="#7b87ff"/>
+  <!-- SELLO: marca de registro del impresor, en violeta de marca. -->
+  <circle cx="336" cy="110" r="17" fill="#BB5CF6"/>
 </svg>

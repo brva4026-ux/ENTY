@@ -1,6 +1,6 @@
 /**
  * Doodles de marca: trazos gestuales que solo adornan, nunca portan datos
- * ni acciones. Paleta de fiesta usada con cuentagotas: ultramar #4356E8,
+ * ni acciones. Paleta de fiesta usada con cuentagotas: violeta #7C3AED,
  * verde #00E6AB, rosa #FF2D98, papel #F6F5F2.
  */
 

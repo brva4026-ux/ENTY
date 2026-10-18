@@ -35,17 +35,17 @@
   --e-ink-800: #1e1a16;
   --e-ink-700: #25211b;
   --e-ink-600: #3b332b;
-  /* Ultramar: interactivo canónico + brillo del logotipo. */
-  --e-brand-100: #e8eaff; /* pergamino del rótulo Enty */
-  --e-brand-150: #dce0ff;
-  --e-brand-200: #c3c9ff; /* texto de marca sobre relleno ultramar tenue */
-  --e-brand-300: #98a2ff;
-  --e-brand-400: #7b87ff; /* solo halo/glow */
-  --e-brand-500: #4356e8; /* acción (blanco encima = 5.7:1) */
-  --e-brand-600: #3444c9;
-  --e-brand-700: #2a379f;
-  --e-brand-800: #1f2a78;
-  --e-brand-hover: #5666f0; /* hover del CTA */
+  /* Violeta: interactivo canónico + brillo del logotipo. */
+  --e-brand-100: #f3e8ff; /* pergamino del rótulo Enty */
+  --e-brand-150: #ead6fe;
+  --e-brand-200: #d9b6ff; /* texto de marca sobre relleno violeta tenue */
+  --e-brand-300: #d29bf9;
+  --e-brand-400: #bb5cf6; /* solo halo/glow */
+  --e-brand-500: #7c3aed; /* acción (blanco encima = 5.7:1) */
+  --e-brand-600: #6d28d9;
+  --e-brand-700: #5b21b6;
+  --e-brand-800: #8b2fe0;
+  --e-brand-hover: #8b5cf6; /* hover del CTA */
   /* Acentos con significado. */
   --e-green-500: #00e6ab; /* validado / disponible */
   --e-green-400: #34d399;
@@ -68,9 +68,9 @@
   --e-green-neon: #39ff14; /* neón de "en vivo" */
   --e-info-500: #6f95f0; /* periwinkle: enlace/estado informativo */
   --e-rose-700: #a82f52;
-  --e-brand-250: #aab2ff;
-  --e-brand-425: #6673f5;
-  --e-brand-550: #3c4cdb;
+  --e-brand-250: #b7a3ff;
+  --e-brand-425: #a855f7;
+  --e-brand-550: #9333ea;
   /* Neutros (canon claro: canvas → tinta). */
   --e-neutral-25: #f8f7f7;
   --e-neutral-50: #fafafa;
@@ -176,7 +176,7 @@
   --e-urgent: var(--e-pink-500);
   --e-warn: var(--e-amber-500);
   --e-danger: var(--e-red-500);
-  /* Anillo de foco: papel en oscuro (contrasta contra el ultramar del botón),
+  /* Anillo de foco: papel en oscuro (contrasta contra el violeta del botón),
      tinta en claro (contrasta contra el lienzo). */
   --e-focus-ring: var(--e-neutral-75);
 

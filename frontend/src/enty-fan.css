@@ -18,7 +18,7 @@
  *   3. REJILLA EDITORIAL — composición asimétrica: un destacado grande y el
  *      resto en columnas. La fecha es un SELLO (día enorme, mes diminuto).
  *   4. ACENTO CON SIGNIFICADO — verde = disponible/validado, rosa = urgencia.
- *      El ultramar es la única voz interactiva.
+ *      El violeta es la única voz interactiva.
  *
  *  Reglas no negociables:
  *   - Sora es la única voz. Motion: solo transform/opacity.
@@ -745,7 +745,7 @@
   text-underline-offset: 2px;
 }
 html[data-theme="light"] .legal-link {
-  /* Ultramar profundo: --e-brand-glow no alcanza AA sobre papel claro. */
+  /* Violeta profundo: --e-brand-glow no alcanza AA sobre papel claro. */
   color: var(--e-brand-700);
 }
 

@@ -301,7 +301,7 @@ export default function HomePage() {
   // Solo la última tarjeta marcada celebra (rebote): no todas al montar.
   const [favPop, setFavPop] = useState(null);
   const [bellOpen, setBellOpen] = useState(false);
-  // La vitrina es nocturna por diseno (tinta + ultramar). Sin el candado, un
+  // La vitrina es nocturna por diseno (tinta + violeta). Sin el candado, un
   // visitante con tema claro veia la cartelera como una tarjeta negra sobre
   // blanco: el tema del sistema no aplica a una pantalla publica de marca.
   useEffect(() => forceDarkOnce(), []);

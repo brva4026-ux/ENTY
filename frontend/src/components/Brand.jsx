@@ -101,7 +101,7 @@ export function Logo({ size = "md", animated = true }) {
         </span>
       </span>
       {hero ? (
-        /* Wordmark hero: "Ent" en tinta de papel y la "y" en el ultramar de
+        /* Wordmark hero: "Ent" en tinta de papel y la "y" en el violeta de
            marca, con el sello de registro sobre la "t". */
         <span className="brand-chip animate-fade">
           <span className="brand-wordmark brand-wordmark-hero">

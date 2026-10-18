@@ -304,7 +304,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .bizdock-count {
   font-variant-numeric: tabular-nums;
   background: var(--e-brand);
-  /* Tinta Enty sobre el ultramar brillante (oscuro): 6.2:1. En claro
+  /* Tinta Enty sobre el violeta brillante (oscuro): 6.2:1. En claro
      --tf-purple cambia a var(--e-brand-500) (mas oscuro), donde la tinta bajaba a
      3.4:1; ahi el par correcto es blanco (5.1:1). */
   color: var(--e-ink-1);
@@ -918,7 +918,7 @@ html[data-theme="light"] .bizdock-count {
 
 /* ===========================================================================
    INICIO (app del fan) - la vitrina editorial del mockup "1 · Inicio".
-   Sora en peso 300 para titulares, tinta calida, acento ultramar.
+   Sora en peso 300 para titulares, tinta calida, acento violeta.
    Es hermana sobria de la boleta coleccionable: la boleta es el objeto, esto
    es la vitrina.
    =========================================================================== */
@@ -1323,7 +1323,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-neutral-650);
   transition: color 0.15s ease;
 }
-/* Icono de linea fina que se rellena de ultramar al estar activo. */
+/* Icono de linea fina que se rellena de violeta al estar activo. */
 .home-nav a svg path,
 .home-nav a svg circle {
   transition: fill 0.15s ease, stroke 0.15s ease;
@@ -1350,7 +1350,7 @@ html[data-theme="light"] .bizdock-count {
 
 /* ----------------------------------------------------------------------
    INICIO (pasada 2): campana, buscador, carrusel de categorias, fila con
-   favorito. Mismo lenguaje que la base: cristal sobre tinta, ultramar como
+   favorito. Mismo lenguaje que la base: cristal sobre tinta, violeta como
    unico color interactivo, neon solo como energia grafica.
    ---------------------------------------------------------------------- */
 
@@ -1590,7 +1590,7 @@ html[data-theme="light"] .bizdock-count {
 
 /* ----------------------------------------------------------------------
    DETALLE DEL EVENTO (pantalla 2). Mismo negro, hero que se funde y
-   ultramar como unico color interactivo.
+   violeta como unico color interactivo.
    ---------------------------------------------------------------------- */
 .evd {
   min-height: 100vh;
@@ -1746,7 +1746,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-text-secondary);
 }
 
-/* CTA principal: pildora ultramar que emite luz (mismo idioma que .home-cta) */
+/* CTA principal: pildora violeta que emite luz (mismo idioma que .home-cta) */
 .evd-cta {
   display: inline-flex;
   align-items: center;
@@ -1776,7 +1776,7 @@ html[data-theme="light"] .bizdock-count {
   width: 100%;
 }
 
-/* Pestanas con subrayado ultramar */
+/* Pestanas con subrayado violeta */
 .evd-tabs {
   margin-top: 1.5rem;
   display: flex;
@@ -1813,7 +1813,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-text-secondary);
 }
 
-/* Lineup (cuando exista): avatar circular + rol en etiqueta ultramar */
+/* Lineup (cuando exista): avatar circular + rol en etiqueta violeta */
 .evd-lineup {
   margin: 0;
   padding: 0;
@@ -2320,7 +2320,7 @@ html[data-theme="light"] .app-shell .promo-hero {
 .app-shell .door-title {
   letter-spacing: -0.02em;
 }
-/* El marco del escáner es la pieza de marca de la puerta: un halo ultramar
+/* El marco del escáner es la pieza de marca de la puerta: un halo violeta
    alrededor del visor dice "acá apuntá" sin una etiqueta. */
 .app-shell .scan-frame {
   filter: drop-shadow(0 0 26px color-mix(in srgb, var(--e-brand-500) 35%, transparent));
