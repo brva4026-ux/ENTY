@@ -52,34 +52,36 @@ export function CookieNotice() {
   };
 
   return (
-    <div
-      role="note"
-      aria-label="Aviso de cookies"
-      className="cookie-notice fixed inset-x-3 top-3 z-40 mx-auto flex max-w-3xl flex-col gap-2 rounded-xl border border-zinc-700/60 bg-zinc-900/95 px-4 py-3 text-xs leading-relaxed text-zinc-200 shadow-lg sm:flex-row sm:items-center sm:gap-3"
-    >
-      <p className="min-w-0 flex-1">
-        Esta app guarda en tu navegador lo necesario para la sesión y el modo
-        sin conexión de la puerta. No hay cookies de publicidad ni de
-        analítica; por eso no pedimos consentimiento: lo informamos.
-      </p>
-      <div className="flex shrink-0 items-center gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            close();
-            nav("/cookies");
-          }}
-          className="underline decoration-zinc-600 underline-offset-2 hover:text-white"
-        >
-          Aviso de cookies
-        </button>
-        <button
-          type="button"
-          onClick={close}
-          className="btn-ghost !px-3 !py-1.5 text-xs"
-        >
-          Entendido
-        </button>
+    <div className="px-3 pt-3">
+      <div
+        role="note"
+        aria-label="Aviso de cookies"
+        className="cookie-notice mx-auto flex max-w-3xl flex-col gap-2 rounded-xl border border-zinc-700/60 bg-zinc-900/95 px-4 py-3 text-xs leading-relaxed text-zinc-200 shadow-lg sm:flex-row sm:items-center sm:gap-3"
+      >
+        <p className="min-w-0 flex-1">
+          Esta app guarda en tu navegador lo necesario para la sesión y el modo
+          sin conexión de la puerta. No hay cookies de publicidad ni de
+          analítica; por eso no pedimos consentimiento: lo informamos.
+        </p>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              close();
+              nav("/cookies");
+            }}
+            className="underline decoration-zinc-600 underline-offset-2 hover:text-white"
+          >
+            Aviso de cookies
+          </button>
+          <button
+            type="button"
+            onClick={close}
+            className="btn-ghost !px-3 !py-1.5 text-xs"
+          >
+            Entendido
+          </button>
+        </div>
       </div>
     </div>
   );
