@@ -99,8 +99,10 @@ y reemplazá el archivo) o el test falla.
   `http://127.0.0.1:12000` sirve la UI con datos demo reales. Para Playwright,
   el Chromium empaquetado no está descargado: pasa
   `launchOptions.executablePath = '/usr/bin/chromium'` y `E2E_BASE_URL=http://127.0.0.1:12000`.
-  Ojo: el aviso de cookies intercepta clics en `/admin` (falla conocida de
-  `portada.spec.js:82`, no es una regresión de CSS).
+  El aviso de cookies es un banner EN FLUJO (no `fixed`): va antes de las
+  rutas en `main.jsx` y empuja el contenido hacia abajo. Antes era `fixed
+  top-3 z-40` y tapaba la cabecera y las acciones del backstage en móvil
+  (`portada.spec.js` fallaba de forma intermitente).
 
 ## Datos demo
 
@@ -655,8 +657,8 @@ avisar.
   (`onCleared(true)` — pasar `true`, no `undefined`, o el guard queda abierto y
   la app se pinta en negro); `LegalPage` es dueña del `<h1>` y del
   `document.title` (a11y.spec.js exige uno por pantalla; el `# título` del
-  markdown se descarta); el banner de alerta de puerta debe quedar por ENCIMA
-  del aviso de cookies (z-45 vs z-40) o el botón queda inclickeable.
+  markdown se descarta); el aviso de cookies ya no es un overlay `z-40`: es un
+  banner en flujo antes de las rutas, así que no compite en z-index con nada.
 - **Los E2E contaminan la DB de dev y se auto-envenenan.** Specs como
   `fan.spec.js` y `audit-event-create.spec.js` crean eventos `E2E-*` que NO
   borran. Como la portada ordena por fecha y esos eventos quedan en el futuro,
