@@ -26,3 +26,6 @@ httpx>=0.27
 # Observabilidad: error tracking (backend/app/core/observability.py). Sin
 # SENTRY_DSN en el entorno el import es no-op: la API funciona igual.
 sentry-sdk>=2.0
+
+# Rate limiting (slowapi): el registro de aceptaciones legales lo usa.
+slowapi>=0.1.9

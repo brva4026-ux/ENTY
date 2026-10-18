@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { hasRole, navTabsFor, topRoleLabel } from "../lib/roles";
@@ -6,6 +7,8 @@ import { Logo } from "./Brand";
 import Icon from "./Icon";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
+import { LegalLinks } from "./LegalLinks";
+import { LegalGate } from "./LegalGate";
 
 /** Iconos de pestaña (trazo 1.8, 20px): mismo lenguaje visual en toda la app. */
 const TAB_ICONS = {
@@ -72,6 +75,15 @@ export default function Layout({ children }) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+  // Aceptación legal de cuentas existentes (mig 028/029): si /legal/status
+  // lista pendientes, se bloquea el contenido con LegalGate. El gate vive
+  // DENTRO de Layout (no en una ruta aparte) para que valga en todos los
+  // paneles por igual y sobreviva a la navegación.
+  const [legalCleared, setLegalCleared] = useState(false);
+  if (!legalCleared) {
+    return <LegalGate onCleared={setLegalCleared} />;
+  }
 
   return (
     <div className="app-shell min-h-screen">
@@ -164,6 +176,15 @@ export default function Layout({ children }) {
           {children}
         </div>
       </main>
+
+      {/* Pie de la app: enlaces a los documentos legales. Los tres sitios que
+          exige el aviso de cookies la citan de un modo exigible: registro
+          (AuthShell), boleta pública y este pie, presente en todas las
+          pantallas autenticadas. pb alto en móvil para no pisarse con la
+          barra de pestañas inferior. */}
+      <footer className="mx-auto max-w-5xl px-4 pb-24 md:pb-6">
+        <LegalLinks className="legal-links mx-auto w-max" />
+      </footer>
 
       {/* Barra de pestañas inferior (solo móvil): iconos + etiqueta, indicador
           que aparece con pop, haptic al tocar — patrón iOS/Android. */}

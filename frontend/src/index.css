@@ -5379,6 +5379,46 @@ html[data-theme-lock="dark"] body {
   color: var(--color-zinc-200);
 }
 
+/* ----------------------------------------------------------------------
+   ISLA OSCURA (gate legal). El overlay de aceptaciones es una superficie
+   SIEMPRE oscura: en tema claro, el remapeo de `--color-zinc-*` y de
+   `.display`/`.eyebrow` volteaba su tinta a oscuro SOBRE el negro (1.11:1:
+   texto ilegible). Se repinta la isla con los tokens de la boleta —que
+   tampoco voltean— y se restauran los colores del texto con la misma
+   especificidad `html[data-theme="light"] <sel>` para ganar en ambos temas.
+   Los `--color-zinc-*` se redefinen en la isla: las utilidades de Tailwind
+   los consumen por herencia, así el texto vuelve a la escala oscura.
+   ---------------------------------------------------------------------- */
+.legal-island {
+  background: var(--e-ink-1);
+  color: var(--e-paper);
+  /* Escala oscura del design system, la misma que el tema por defecto. */
+  --color-zinc-950: var(--e-ink-950);
+  --color-zinc-900: var(--e-panel-600);
+  --color-zinc-800: var(--e-zinc-800);
+  --color-zinc-600: var(--e-zinc-600);
+  --color-zinc-500: var(--e-zinc-500);
+  --color-zinc-400: var(--e-zinc-400);
+  --color-zinc-300: var(--e-zinc-300);
+  --color-zinc-200: var(--e-zinc-200);
+  --color-zinc-100: var(--e-zinc-100);
+  --color-zinc-50: var(--e-zinc-50);
+}
+.legal-island .eyebrow {
+  color: var(--e-violet-300);
+}
+.legal-island .display {
+  color: var(--e-paper);
+}
+html[data-theme="light"] .legal-island .eyebrow {
+  color: var(--e-violet-300);
+}
+html[data-theme="light"] .legal-island .display {
+  color: var(--e-paper);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
 /* ======================================================================
    PERFIL — Identidad Enty
    El perfil deja de ser un formulario y pasa a ser la ficha de la persona:
@@ -5532,4 +5572,145 @@ html[data-theme="light"] .pf-meta {
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.2;
+}
+
+
+/* ----------------------------------------------------------------------
+   DOCUMENTOS LEGALES (paginas publicas /terminos, /privacidad, ...)
+   El texto llega en markdown desde la API (backend/app/assets/legal/*.md);
+   estas reglas solo lo tipografian. La medida de linea se acota a ~68ch:
+   son documentos que se LEEN, y una linea de 120 caracteres no se lee.
+   ---------------------------------------------------------------------- */
+.legal-page {
+  background: var(--e-canvas);
+  color: var(--e-text-secondary);
+}
+
+/* Cabecera de cristal: el mismo material de la casa fan (hairline + blur)
+   sobre el lienzo, en ambos temas. */
+.legal-header {
+  border-bottom: 1px solid var(--e-border-hairline);
+  background: color-mix(in srgb, var(--e-canvas) 88%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.legal-muted {
+  color: var(--e-text-muted);
+}
+
+/* Aviso de versión: ámbar de atención con contraste AA en ambos temas. */
+.legal-note {
+  border: 1px solid color-mix(in srgb, var(--e-warn) 38%, transparent);
+  background: color-mix(in srgb, var(--e-warn) 13%, transparent);
+  color: var(--e-amber-300);
+}
+html[data-theme="light"] .legal-note {
+  border-color: color-mix(in srgb, var(--e-brasa-500) 42%, transparent);
+  background: color-mix(in srgb, var(--e-brasa-200) 30%, transparent);
+  color: var(--e-brasa-600);
+}
+
+.legal-doc {
+  max-width: 68ch;
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+.legal-doc p {
+  margin: 0.75rem 0;
+}
+.legal-doc .legal-h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 1rem;
+}
+.legal-doc .legal-h2 {
+  font-size: 1.15rem;
+  font-weight: 650;
+  margin: 2rem 0 0.75rem;
+}
+.legal-doc .legal-h3 {
+  font-size: 1rem;
+  font-weight: 650;
+  margin: 1.5rem 0 0.5rem;
+}
+.legal-doc ul,
+.legal-doc ol {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+}
+.legal-doc ul {
+  list-style: disc;
+}
+.legal-doc ol {
+  list-style: decimal;
+}
+.legal-doc li {
+  margin: 0.35rem 0;
+}
+.legal-doc blockquote {
+  margin: 1rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 3px solid var(--e-brand);
+  font-style: italic;
+  opacity: 0.88;
+}
+.legal-doc hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid var(--e-border-hairline);
+}
+.legal-table-wrap {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--e-border-hairline);
+  vertical-align: top;
+}
+.legal-table th {
+  font-weight: 600;
+}
+.legal-doc code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1em 0.35em;
+  border-radius: 0.35rem;
+}
+html[data-theme="light"] .legal-doc code {
+  background: rgba(0, 0, 0, 0.06);
+}
+.legal-doc strong {
+  font-weight: 650;
+}
+
+/* Pie legal de las pantallas de entrada (login/registro). */
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.9rem;
+  font-size: 0.72rem;
+}
+.legal-links a,
+.legal-links button {
+  color: inherit;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
+.legal-links a:hover,
+.legal-links button:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
