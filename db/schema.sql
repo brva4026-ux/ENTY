@@ -712,6 +712,33 @@ END;
 $$;
 
 --
+-- Name: legal_missing_acceptances(bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.legal_missing_acceptances(p_user_id bigint) RETURNS TABLE(slug text, version text, title text, url text)
+    LANGUAGE sql STABLE
+    AS $$
+    SELECT d.slug, d.version, d.title, d.url
+      FROM legal_documents d
+     WHERE d.requires_acceptance
+       -- Solo la version MAS RECIENTE de cada documento: la que rige hoy. Se
+       -- compara por created_at y no por texto de version ('10.0' < '9.0' en
+       -- orden alfabetico) ni por effective_date (una version futura ya
+       -- cargada pediria aceptacion antes de regir).
+       AND d.created_at = (
+             SELECT max(d2.created_at) FROM legal_documents d2 WHERE d2.slug = d.slug
+           )
+       AND NOT EXISTS (
+             SELECT 1 FROM legal_acceptances a
+              WHERE a.user_id = p_user_id
+                AND a.document_slug = d.slug
+                AND a.document_version = d.version
+           )
+     ORDER BY d.slug
+$$;
+
+
+--
 -- Name: login_locked(text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -994,6 +1021,30 @@ CREATE FUNCTION public.prune_login_attempts(p_window_minutes integer DEFAULT 60)
     DELETE FROM login_attempts
      WHERE at < now() - make_interval(mins => p_window_minutes);
 $$;
+
+--
+-- Name: record_legal_acceptance(bigint, bigint, text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.record_legal_acceptance(p_user_id bigint, p_venue_id bigint, p_slug text, p_version text, p_email text DEFAULT NULL::text, p_phone text DEFAULT NULL::text, p_ip text DEFAULT 'unknown'::text, p_user_agent text DEFAULT NULL::text) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted int := 0;
+BEGIN
+    INSERT INTO legal_acceptances
+        (user_id, venue_id, document_slug, document_version,
+         subject_email, subject_phone, ip, user_agent)
+    VALUES
+        (p_user_id, p_venue_id, p_slug, p_version,
+         p_email, p_phone, COALESCE(p_ip, 'unknown'), p_user_agent)
+    ON CONFLICT DO NOTHING;
+
+    GET DIAGNOSTICS inserted = ROW_COUNT;
+    RETURN inserted;
+END;
+$$;
+
 
 --
 -- Name: redeem_ticket(bigint, text, bigint, bigint); Type: FUNCTION; Schema: public; Owner: -
@@ -1600,6 +1651,71 @@ ALTER TABLE public.events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MAXVALUE
     CACHE 1
 );
+
+--
+-- Name: legal_acceptances; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.legal_acceptances (
+    id bigint NOT NULL,
+    user_id bigint,
+    venue_id bigint,
+    document_slug text NOT NULL,
+    document_version text NOT NULL,
+    subject_email text,
+    subject_phone text,
+    ip text DEFAULT 'unknown'::text NOT NULL,
+    user_agent text,
+    accepted_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT legal_acceptances_subject_check CHECK (((user_id IS NOT NULL) OR (subject_email IS NOT NULL) OR (subject_phone IS NOT NULL)))
+);
+
+
+--
+-- Name: legal_acceptances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.legal_acceptances ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.legal_acceptances_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: legal_documents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.legal_documents (
+    id bigint NOT NULL,
+    slug text NOT NULL,
+    version text NOT NULL,
+    title text NOT NULL,
+    url text NOT NULL,
+    requires_acceptance boolean DEFAULT true NOT NULL,
+    effective_date date NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT legal_documents_slug_check CHECK ((slug ~ '^[a-z0-9-]+$'::text)),
+    CONSTRAINT legal_documents_version_check CHECK ((version ~ '^[0-9]+\.[0-9]+$'::text))
+);
+
+
+--
+-- Name: legal_documents_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.legal_documents ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.legal_documents_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
 
 --
 -- Name: login_attempts; Type: TABLE; Schema: public; Owner: -
@@ -2249,6 +2365,38 @@ ALTER TABLE ONLY public.events
     ADD CONSTRAINT events_pkey PRIMARY KEY (id);
 
 --
+-- Name: legal_acceptances legal_acceptances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_acceptances
+    ADD CONSTRAINT legal_acceptances_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: legal_acceptances legal_acceptances_user_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_acceptances
+    ADD CONSTRAINT legal_acceptances_user_unique UNIQUE (user_id, document_slug, document_version);
+
+
+--
+-- Name: legal_documents legal_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_documents
+    ADD CONSTRAINT legal_documents_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: legal_documents legal_documents_slug_version_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_documents
+    ADD CONSTRAINT legal_documents_slug_version_unique UNIQUE (slug, version);
+
+
+--
 -- Name: login_attempts login_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2534,6 +2682,27 @@ CREATE UNIQUE INDEX idx_event_tokens_active ON public.event_access_tokens USING 
 CREATE INDEX idx_invitations_venue_open ON public.staff_invitations USING btree (venue_id) WHERE ((accepted_at IS NULL) AND (revoked_at IS NULL));
 
 --
+-- Name: idx_legal_acceptances_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_legal_acceptances_phone ON public.legal_acceptances USING btree (subject_phone) WHERE (subject_phone IS NOT NULL);
+
+
+--
+-- Name: idx_legal_acceptances_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_legal_acceptances_user ON public.legal_acceptances USING btree (user_id);
+
+
+--
+-- Name: idx_legal_acceptances_venue; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_legal_acceptances_venue ON public.legal_acceptances USING btree (venue_id, document_slug);
+
+
+--
 -- Name: idx_login_attempts_email; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2779,6 +2948,30 @@ ALTER TABLE ONLY public.event_waitlist
 
 ALTER TABLE ONLY public.events
     ADD CONSTRAINT events_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+--
+-- Name: legal_acceptances legal_acceptances_document_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_acceptances
+    ADD CONSTRAINT legal_acceptances_document_fk FOREIGN KEY (document_slug, document_version) REFERENCES public.legal_documents(slug, version);
+
+
+--
+-- Name: legal_acceptances legal_acceptances_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_acceptances
+    ADD CONSTRAINT legal_acceptances_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: legal_acceptances legal_acceptances_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_acceptances
+    ADD CONSTRAINT legal_acceptances_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE SET NULL;
+
 
 --
 -- Name: media media_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

@@ -37,7 +37,7 @@ export default function DoorAlertBanner({ alert, onOpen, onDismiss }) {
     <div
       role="alert"
       data-door-alert
-      className="door-alert-in fixed inset-x-0 top-14 z-30 mx-auto flex max-w-5xl items-start gap-3 px-4"
+      className="door-alert-in fixed inset-x-0 top-14 z-[45] mx-auto flex max-w-5xl items-start gap-3 px-4"
     >
       <div className="flex w-full items-start gap-3 rounded-xl border border-rose-500/40 bg-rose-950/95 px-4 py-3 text-rose-100 shadow-lg shadow-rose-950/40 backdrop-blur">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-500/20 text-rose-300">

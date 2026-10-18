@@ -5505,3 +5505,159 @@ html[data-theme="light"] .pf-meta {
   font-weight: 700;
   line-height: 1.2;
 }
+
+
+/* ----------------------------------------------------------------------
+   DOCUMENTOS LEGALES (paginas publicas /terminos, /privacidad, ...)
+   El texto llega en markdown desde la API (backend/app/assets/legal/*.md);
+   estas reglas solo lo tipografian. La medida de linea se acota a ~68ch:
+   son documentos que se LEEN, y una linea de 120 caracteres no se lee.
+   ---------------------------------------------------------------------- */
+.legal-page {
+  background: var(--color-zinc-950);
+  color: var(--color-zinc-200);
+}
+html[data-theme="light"] .legal-page {
+  background: var(--color-cream);
+  color: #27272a;
+}
+
+.legal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 11, 15, 0.9);
+  backdrop-filter: blur(8px);
+}
+html[data-theme="light"] .legal-header {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+  background: rgba(245, 245, 247, 0.9);
+}
+
+.legal-muted {
+  color: #a1a1aa;
+}
+html[data-theme="light"] .legal-muted {
+  color: #52525b;
+}
+
+.legal-note {
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(120, 53, 15, 0.18);
+  color: #fcd34d;
+}
+html[data-theme="light"] .legal-note {
+  border-color: rgba(180, 83, 9, 0.35);
+  background: rgba(254, 243, 199, 0.6);
+  color: #92400e;
+}
+
+.legal-doc {
+  max-width: 68ch;
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+.legal-doc p {
+  margin: 0.75rem 0;
+}
+.legal-doc .legal-h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 1rem;
+}
+.legal-doc .legal-h2 {
+  font-size: 1.15rem;
+  font-weight: 650;
+  margin: 2rem 0 0.75rem;
+}
+.legal-doc .legal-h3 {
+  font-size: 1rem;
+  font-weight: 650;
+  margin: 1.5rem 0 0.5rem;
+}
+.legal-doc ul,
+.legal-doc ol {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+}
+.legal-doc ul {
+  list-style: disc;
+}
+.legal-doc ol {
+  list-style: decimal;
+}
+.legal-doc li {
+  margin: 0.35rem 0;
+}
+.legal-doc blockquote {
+  margin: 1rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 3px solid #7c3aed;
+  font-style: italic;
+  opacity: 0.88;
+}
+.legal-doc hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+html[data-theme="light"] .legal-doc hr {
+  border-top-color: rgba(0, 0, 0, 0.12);
+}
+.legal-table-wrap {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: top;
+}
+html[data-theme="light"] .legal-table th,
+html[data-theme="light"] .legal-table td {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+.legal-table th {
+  font-weight: 600;
+}
+.legal-doc code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1em 0.35em;
+  border-radius: 0.35rem;
+}
+html[data-theme="light"] .legal-doc code {
+  background: rgba(0, 0, 0, 0.06);
+}
+.legal-doc strong {
+  font-weight: 650;
+}
+
+/* Pie legal de las pantallas de entrada (login/registro). */
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.9rem;
+  font-size: 0.72rem;
+}
+.legal-links a,
+.legal-links button {
+  color: inherit;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
+.legal-links a:hover,
+.legal-links button:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

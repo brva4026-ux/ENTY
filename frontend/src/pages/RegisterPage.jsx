@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../lib/auth";
 // El registro siempre crea un admin de venue: el mismo criterio de redirect
 // que el login (lib/roles.js), sin re-hacerlo a mano.
 import { homeForRole } from "../lib/roles";
 import { missingList } from "../lib/passwordPolicy";
+import { fetchLegalDocuments } from "../lib/legal";
 import PasswordMeter from "../components/PasswordMeter";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
@@ -31,6 +31,30 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Aceptación de los términos (mig 028). El checkbox NO viene marcado por
+  // defecto: un consentimiento premarcado no es un consentimiento.
+  const [accepted, setAccepted] = useState(false);
+  const [termsVersion, setTermsVersion] = useState("");
+  const [termsStale, setTermsStale] = useState(false);
+
+  // La huella de las versiones vigentes la entrega el backend; se devuelve tal
+  // cual al registrar. Si mientras se llena el formulario se publica una versión
+  // nueva, el registro responde 409 y aquí se avisa (nunca se guarda la
+  // aceptación de un texto que la persona no vio).
+  useEffect(() => {
+    let alive = true;
+    fetchLegalDocuments()
+      .then((d) => {
+        if (alive) setTermsVersion(d.terms_version);
+      })
+      .catch(() => {
+        // Sin catálogo no se puede aceptar nada: el submit queda bloqueado y el
+        // mensaje de error del backend explica por qué.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Misma política que el backend (lib compartida): el submit no pasa con
   // requisitos pendientes y la checklist en vivo explica cuáles.
@@ -48,16 +72,34 @@ export default function RegisterPage() {
       setError(`A la contraseña le falta: ${issues.join(", ")}.`);
       return;
     }
+    if (!accepted) {
+      setError(
+        "Para crear tu cuenta tienes que aceptar los Términos y Condiciones y la Política de Tratamiento de Datos.",
+      );
+      return;
+    }
     setError("");
     setBusy(true);
     try {
-      const user = await register(form);
+      // El payload se arma explícito: lo que se manda al backend es exactamente
+      // lo que el registro declara, sin campos de UI que se cuelen.
+      const user = await register({
+        ...form,
+        accepted_terms: true,
+        terms_version: termsVersion || null,
+      });
       // La cuenta nueva es admin de su venue: el mismo criterio de redirect
       // que el login (lib/roles.js) decide a dónde aterriza.
       nav(homeForRole(user), { replace: true });
     } catch (err) {
       const raw = (err?.message || "").toLowerCase();
-      if (err?.status === 409 || raw.includes("ya tiene una cuenta")) {
+      if (raw.includes("terminos") || raw.includes("términos")) {
+        // Los términos cambiaron entre que se abrió la página y el submit.
+        setTermsStale(true);
+        setError(
+          err?.message || "Los términos se actualizaron. Recarga la página.",
+        );
+      } else if (err?.status === 409 || raw.includes("ya tiene una cuenta")) {
         setError("Ese correo ya está registrado. Inicia sesión en su lugar.");
       } else if (raw.includes("demasiados") || err?.status === 429) {
         setError("Demasiados intentos. Espera unos minutos.");
@@ -181,6 +223,51 @@ export default function RegisterPage() {
               </div>
             )}
 
+            {/* Aceptación de términos: bloqueante. Sin marcar, el submit está
+                deshabilitado y el backend además responde 422 — la UI no es la
+                cerradura, solo la explicación. */}
+            <label className="mb-4 flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-zinc-400">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={(e) => {
+                  setAccepted(e.target.checked);
+                  if (e.target.checked) setError("");
+                }}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-brand-500"
+                aria-describedby="terminos-aviso"
+              />
+              <span id="terminos-aviso">
+                Acepto los{" "}
+                <button
+                  type="button"
+                  onClick={() => nav("/terminos")}
+                  className="font-semibold text-brand-300 underline decoration-brand-300/40 underline-offset-2 transition hover:text-brand-200"
+                >
+                  Términos y Condiciones
+                </button>{" "}
+                y autorizo el tratamiento de mis datos personales conforme a la{" "}
+                <button
+                  type="button"
+                  onClick={() => nav("/privacidad")}
+                  className="font-semibold text-brand-300 underline decoration-brand-300/40 underline-offset-2 transition hover:text-brand-200"
+                >
+                  Política de Tratamiento de Datos Personales
+                </button>
+                .
+              </span>
+            </label>
+
+            {termsStale && (
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="btn-mini mb-3 w-full"
+              >
+                Recargar y ver los términos actualizados
+              </button>
+            )}
+
             {error && (
               <div
                 role="alert"
@@ -192,7 +279,7 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={busy || issues.length > 0}
+              disabled={busy || issues.length > 0 || !accepted}
               className="btn-primary w-full"
             >
               {busy && (
@@ -211,18 +298,6 @@ export default function RegisterPage() {
               {filled < 4
                 ? "Serás el administrador: podrás invitar a tu equipo después."
                 : "Todo listo: al crear entrarás directo como administrador."}
-            </p>
-
-            <p className="mt-2 text-center text-2xs leading-relaxed text-zinc-500">
-              Al crear tu cuenta aceptas los{" "}
-              <Link to="/terminos" className="font-semibold text-brand-300">
-                Términos
-              </Link>{" "}
-              y la{" "}
-              <Link to="/privacidad" className="font-semibold text-brand-300">
-                Política de privacidad
-              </Link>
-              .
             </p>
           </form>
         </div>

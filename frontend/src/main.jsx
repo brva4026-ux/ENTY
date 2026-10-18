@@ -61,10 +61,14 @@ const AcceptInvitationPage = lazyPage(
 );
 const ResetPasswordPage = lazyPage(() => import("./pages/ResetPasswordPage"));
 const DoorLinkPage = lazyPage(() => import("./pages/DoorLinkPage"));
-// Legales: públicas, sin login. Lazy como el resto (no pesan en el arranque).
-const TerminosPage = lazyPage(() => import("./pages/TerminosPage"));
-const PrivacidadPage = lazyPage(() => import("./pages/PrivacidadPage"));
+// Documentos legales: públicos y compartibles (un abogado, un aliado o el
+// propio usuario pueden abrirlos sin sesión). El texto lo sirve la API desde
+// backend/app/assets/legal/*.md, que es la MISMA copia que la base versiona:
+// si el texto viviera también en el bundle, la persona aceptaría una versión
+// distinta de la que legal_documents considera vigente.
+const LegalPage = lazyPage(() => import("./pages/LegalPage"));
 import Layout from "./components/Layout";
+import { CookieNotice } from "./components/CookieNotice";
 import { SplashScreen } from "./components/SplashScreen";
 
 function RequireRole({ role, children }) {
@@ -140,9 +144,25 @@ function App() {
               <Route path="/evento/:id" element={<EventDetailPage />} />
               <Route path="/boletas" element={<MyTicketsPage />} />
               {/* Legales: públicas, sin login. Cierran el bloqueante de operar
-              con cobros reales (no había dónde asentar términos ni privacidad). */}
-              <Route path="/terminos" element={<TerminosPage />} />
-              <Route path="/privacidad" element={<PrivacidadPage />} />
+              con cobros reales (no había dónde asentar términos ni privacidad).
+              La URL de cada una coincide con legal_documents.url en la base. */}
+              <Route
+                path="/terminos"
+                element={<LegalPage slug="terminos-plataforma" />}
+              />
+              <Route
+                path="/terminos-boleta"
+                element={<LegalPage slug="terminos-boleta" />}
+              />
+              <Route
+                path="/privacidad"
+                element={<LegalPage slug="privacidad" />}
+              />
+              <Route path="/cookies" element={<LegalPage slug="cookies" />} />
+              <Route
+                path="/encargo-datos"
+                element={<LegalPage slug="encargo-datos" />}
+              />
               {/* Lista de espera (E2): publica, sin cuentas. La credencial del
               fan tambien viaja en el fragmento y se guarda en localStorage. */}
               <Route path="/waitlist" element={<WaitlistPage />} />
@@ -183,6 +203,9 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
+          {/* Aviso de cookies: necesita router hooks (navega a /cookies), por
+              eso vive DENTRO de BrowserRouter y no junto a OfflineBanner. */}
+          <CookieNotice />
         </BrowserRouter>
       </UIProvider>
     </AuthProvider>

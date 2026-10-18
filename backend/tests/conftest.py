@@ -43,6 +43,9 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "025_event_staff.sql",
     ROOT / "db" / "migrations" / "026_door_anomaly_alert.sql",
     ROOT / "db" / "migrations" / "027_door_anomaly_event_link.sql",
+    ROOT / "db" / "migrations" / "028_legal_acceptances.sql",
+    ROOT / "db" / "migrations" / "029_legal_documents_v11.sql",
+    ROOT / "db" / "migrations" / "030_legal_plazos.sql",
 ]
 
 
@@ -68,7 +71,12 @@ def db():
         DROP TABLE IF EXISTS notifications, push_outbox, staff_invitations, push_subscriptions, ticket_reissues,
             ticket_returns, event_waitlist, ticket_contact_edits, login_attempts, password_reset_tokens, media, audit_log,
             redemptions, promoter_payouts, tickets, promoter_allocations, ticket_types, events,
-            venue_user_roles, venues, users, ticket_payments CASCADE;
+            venue_user_roles, venues, users, ticket_payments,
+            -- Aceptaciones legales (mig 028): legal_acceptances referencia
+            -- legal_documents, y ambas a users/venues. CASCADE resuelve el
+            -- orden; se listan para que una corrida previa no deje las tablas
+            -- y schema.sql choque con DuplicateTable.
+            legal_acceptances, legal_documents CASCADE;
         -- event_staff / event_access_tokens (mig 025) referencian users y events:
         -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
         -- el orden de borrado no dependa de las FK.
