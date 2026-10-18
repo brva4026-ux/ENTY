@@ -41,6 +41,7 @@ def test_forgot_password_same_answer_for_unknown_and_known(api):
         "full_name": "Dueno Reset",
         "email": "reset-ok@example.test",
         "password": "ClaveReset1",
+        "accepted_terms": True,
     }
     api.client.post("/auth/register", json=payload)
     r_known = api.client.post(
@@ -57,6 +58,7 @@ def test_forgot_creates_token_row(api, db):
         "full_name": "Dueno Token",
         "email": "reset-token@example.test",
         "password": "ClaveToken1",
+        "accepted_terms": True,
     }
     api.client.post("/auth/register", json=payload)
     api.client.post("/auth/forgot-password", json={"email": payload["email"]})
@@ -79,6 +81,7 @@ def test_full_reset_flow_changes_credentials(api, db):
         "full_name": "Dueno Flujo",
         "email": "reset-flujo@example.test",
         "password": "ClaveVieja1",
+        "accepted_terms": True,
     }
     api.client.post("/auth/register", json=payload)
 

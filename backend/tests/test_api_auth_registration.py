@@ -21,6 +21,7 @@ def test_register_creates_venue_and_admin(api):
         "full_name": "Dueño Registro",
         "email": "dueno-registro@example.test",
         "password": "ClaveRegistro1",
+        "accepted_terms": True,
     }
     res = api.client.post("/auth/register", json=payload)
     assert res.status_code == 201, res.text
@@ -44,6 +45,7 @@ def test_register_duplicate_email_conflict(api):
         "full_name": "Dueño Dup",
         "email": "dueno-dup@example.test",
         "password": "ClaveDup1234",
+        "accepted_terms": True,
     }
     assert api.client.post("/auth/register", json=payload).status_code == 201
     res = api.client.post("/auth/register", json=payload)
@@ -94,6 +96,7 @@ def test_change_password_flow(api):
         "full_name": "Dueño Pass",
         "email": "dueno-pass@example.test",
         "password": "ClaveVieja1",
+        "accepted_terms": True,
     }
     reg = api.client.post("/auth/register", json=payload)
     assert reg.status_code == 201
@@ -145,6 +148,7 @@ def test_profile_exposes_account_context(api):
         "full_name": "Dueño Contexto",
         "email": "dueno-contexto@example.test",
         "password": "ClaveContexto1",
+        "accepted_terms": True,
     }
     reg = api.client.post("/auth/register", json=payload)
     assert reg.status_code == 201, reg.text
@@ -174,6 +178,7 @@ def test_update_profile_name(api):
         "full_name": "Dueño Original",
         "email": "dueno-perfil@example.test",
         "password": "ClavePerfil1",
+        "accepted_terms": True,
     }
     reg = api.client.post("/auth/register", json=payload)
     headers = {"Authorization": f"Bearer {reg.json()['access_token']}"}
@@ -198,6 +203,7 @@ def test_update_venue_name_and_logo(api):
         "full_name": "Dueño Venue",
         "email": "dueno-venue@example.test",
         "password": "ClaveVenue1",
+        "accepted_terms": True,
     }
     reg = api.client.post("/auth/register", json=payload)
     body = reg.json()

@@ -633,3 +633,19 @@ avisar.
   proceso de dev no tiene). Los E2E corren contra `vite preview :12000` con
   `VITE_BACKEND_URL=http://127.0.0.1:8001` (proxy `/api` -> backend), igual
   que el job `e2e` de CI.
+- **El sandbox se reinicia y borra Postgres, deps de Python y Chromium**
+  (sobreviven `node_modules/` y `dist/`). Rearmar todo con
+  `bash /workspace/work/setup_env.sh` (idempotente): levanta Postgres, aplica
+  `schema.sql` + migraciones, instala el backend, arranca :8001 y el dev
+  server :12000 y siembra. `psql` no queda en PATH: usar
+  `/usr/lib/postgresql/17/bin/psql` con `PGPASSWORD=devpassword`.
+- **El CI solo aplica `db/schema.sql`**, que NO trae las filas de
+  `legal_documents` (viven en migraciones). Por eso el gate legal no se activa
+  en CI: cualquier spec que asuma aceptaciones pendientes debe saltarse si la
+  cuenta no las tiene (`test.skip`), o fallará en verde solo en local.
+- **Puntos que toca el gate legal (no romperlos):** `LegalGate` en `Layout.jsx`
+  (`onCleared(true)` — pasar `true`, no `undefined`, o el guard queda abierto y
+  la app se pinta en negro); `LegalPage` es dueña del `<h1>` y del
+  `document.title` (a11y.spec.js exige uno por pantalla; el `# título` del
+  markdown se descarta); el banner de alerta de puerta debe quedar por ENCIMA
+  del aviso de cookies (z-45 vs z-40) o el botón queda inclickeable.

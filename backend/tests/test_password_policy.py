@@ -16,6 +16,7 @@ def _register(api, password, email="pol@example.test"):
             "full_name": "Dueno Politica",
             "email": email,
             "password": password,
+            "accepted_terms": True,
         },
     )
 

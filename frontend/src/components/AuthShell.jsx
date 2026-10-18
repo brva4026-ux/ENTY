@@ -1,5 +1,6 @@
 import { AuthBackdrop } from "./AuthBackdrop";
 import { Logo } from "./Brand";
+import { LegalLinks } from "./LegalLinks";
 
 /**
  * Escenografía de la entrada (login/registro) en dos paneles.
@@ -105,6 +106,13 @@ export function AuthShell({ children }) {
           </div>
 
           {children}
+
+          {/* Pie legal: aceptar unos términos exige poder leerlos ANTES de
+              marcarlos, y el login también los enlaza (quien ya tiene cuenta
+              puede necesitar consultarlos o pedir sus datos). */}
+          <div className="legal-muted mt-8 border-t border-zinc-800/60 pt-4">
+            <LegalLinks />
+          </div>
         </div>
       </main>
     </div>

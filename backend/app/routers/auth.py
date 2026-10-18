@@ -25,6 +25,13 @@ from app.core.db import get_db
 from app.core.mailer import Mailer
 from app.core.security import create_access_token, hash_password, verify_password
 from app.deps import ensure_roles, get_current_user
+# El catalogo y el registro de aceptaciones legales (mig 026) viven en el
+# router legal: se importan las funciones, no se duplica el SQL.
+from app.routers.legal import (
+    current_documents,
+    record_acceptances,
+    terms_fingerprint,
+)
 from app.schemas import (
     ChangePasswordRequest,
     DeleteAccountRequest,
@@ -251,6 +258,28 @@ async def register(
                 "Ese email ya tiene una cuenta. Inicia sesión o usa otro.",
             )
 
+        # Documentos que exigen aceptación HOY. Se leen de la DB y no del
+        # request: el cliente no elige qué versión aceptó.
+        legal_docs = await current_documents(cur)
+        fingerprint = terms_fingerprint(legal_docs)
+        if body.terms_version and body.terms_version != fingerprint:
+            # Los términos cambiaron mientras se llenaba el formulario: es
+            # mejor pedir que recargue que guardar la aceptación de un texto
+            # que nunca vio.
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Los Términos y Condiciones se actualizaron. Recarga la página "
+                "y vuelve a aceptarlos.",
+            )
+        if not body.accepted_terms:
+            # Sin aceptación explícita no se crea la cuenta: publicar los
+            # términos sin poder probar quién los aceptó es lo mismo que no
+            # tenerlos.
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Debes aceptar los Términos y la Política de Datos para crear la cuenta.",
+            )
+
         # Venue con slug único (colisión -> sufijo corto aleatorio)
         base_slug = _slugify(body.venue_name)
         slug = base_slug
@@ -275,6 +304,18 @@ async def register(
         await cur.execute(
             "INSERT INTO venue_user_roles (venue_id, user_id, role) VALUES (%s, %s, 'admin')",
             (venue_id, user_id),
+        )
+
+        # Prueba del consentimiento: quién, cuándo, qué versión, desde qué IP.
+        await record_acceptances(
+            cur,
+            docs=legal_docs,
+            user_id=user_id,
+            venue_id=venue_id,
+            email=body.email,
+            phone=None,
+            ip=ip,
+            user_agent=(request.headers.get("user-agent") or "")[:400] or None,
         )
         await db.commit()
 

@@ -22,6 +22,10 @@ dependencies = [
     "tzdata>=2024.1",
     # Cliente HTTP async para Web Push (envio a los endpoints de los browsers)
     "httpx>=0.27",
+    # Rate limiting de auth y endpoints publicos (app/core/limiter.py). CI lo
+    # instala via pyproject: sin esta linea toda la recoleccion de tests muere
+    # con ModuleNotFoundError (app.main y app.routers.auth importan limiter).
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]

@@ -378,6 +378,12 @@ class RegisterRequest(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
     email: str = Field(min_length=5, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
     password: PasswordStr
+    # Aceptacion de los terminos (mig 026). El default es False a proposito: un
+    # cliente viejo que no manda el campo NO registra a nadie sin aceptar. La
+    # huella `terms_version` la entrega GET /legal/documents y debe volver tal
+    # cual; si no coincide con la vigente, el registro responde 409.
+    accepted_terms: bool = False
+    terms_version: str | None = Field(default=None, max_length=80)
 
     @field_validator("password")
     @classmethod
@@ -1046,6 +1052,78 @@ class VenueOverview(BaseModel):
 
 class MessageOut(BaseModel):
     detail: str
+
+
+# --------------------------------------------------------------------------
+# Documentos legales y aceptaciones versionadas (mig 026)
+# --------------------------------------------------------------------------
+class LegalDocumentOut(BaseModel):
+    """Un documento legal con su version vigente."""
+    slug: str
+    version: str
+    title: str
+    url: str
+    requires_acceptance: bool
+    effective_date: date
+
+
+class LegalDocumentsOut(BaseModel):
+    """Catalogo vigente + la huella agregada de versiones.
+
+    `terms_version` es la huella de TODAS las versiones vigentes de los
+    documentos que exigen aceptacion. El registro la devuelve tal cual: si
+    mientras alguien llenaba el formulario se publico una version nueva, el
+    registro falla con 409 en vez de guardar la aceptacion de un texto que la
+    persona nunca vio.
+    """
+    terms_version: str
+    documents: list[LegalDocumentOut]
+
+
+class LegalAcceptanceCreate(BaseModel):
+    """Aceptacion de un documento concreto.
+
+    El sujeto lo aporta el contexto, no el cuerpo: una cuenta autenticada
+    (header Authorization) o un invitado sin cuenta (telefono + token de su
+    boleta, que resuelve a que venue pertenece la aceptacion).
+    """
+    slug: str = Field(min_length=3, max_length=60, pattern=r"^[a-z0-9-]+$")
+    version: str = Field(max_length=20, pattern=r"^[0-9]+\.[0-9]+$")
+    subject_email: str | None = Field(default=None, max_length=200)
+    subject_phone: str | None = Field(default=None, max_length=40)
+    # El token crudo de la boleta: viaja en el CUERPO (nunca en la URL), igual
+    # que en /tickets/preview. Solo sirve para ubicar la boleta y su venue.
+    ticket_token: str | None = Field(default=None, min_length=16, max_length=200)
+
+    @field_validator("subject_email")
+    @classmethod
+    def _email_ok(cls, v: str | None) -> str | None:
+        if v is None or not v.strip():
+            return None
+        v = v.strip()
+        if not _EMAIL_RE.match(v):
+            raise ValueError("Email invalido")
+        return v
+
+    @field_validator("subject_phone")
+    @classmethod
+    def _phone_ok(cls, v: str | None) -> str | None:
+        if v is None or not v.strip():
+            return None
+        return v.strip()
+
+
+class LegalAcceptanceOut(BaseModel):
+    slug: str
+    version: str
+    accepted_at: datetime
+
+
+class LegalStatusOut(BaseModel):
+    """Lo que esta persona ya acepto y lo que le falta aceptar hoy."""
+    accepted: list[LegalAcceptanceOut]
+    pending: list[LegalDocumentOut]
+
 
 # --------------------------------------------------------------------------
 # Liquidaciones de promotores (mig 010)

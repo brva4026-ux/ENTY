@@ -15,10 +15,40 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# NOTA: la lista DEBE acompanar las migraciones nuevas (todas idempotentes,
+# safe re-run); si se deja desfasada, un cambio de esquema despliega codigo
+# que usa objetos que la base todavia no tiene (500 en rutas nuevas).
 PROJECT_REF="${SUPABASE_PROJECT_REF:-wjknwlrcacalilfrfqyq}"
 MIGRATIONS=(
   db/migrations/003_ops_hardening.sql
   db/migrations/004_edit_and_delete.sql
+  db/migrations/004_ticket_reissue.sql
+  db/migrations/005_event_edit_and_cancel.sql
+  db/migrations/006_redeem_event_guard.sql
+  db/migrations/007_push_subscriptions.sql
+  db/migrations/008_redeem_type_filter.sql
+  db/migrations/009_team_stats.sql
+  db/migrations/010_promoter_payouts.sql
+  db/migrations/011_staff_invitations.sql
+  db/migrations/012_in_app_notifications.sql
+  db/migrations/013_qr_activation.sql
+  db/migrations/014_push_outbox_and_location.sql
+  db/migrations/015_ticket_contact_audit.sql
+  db/migrations/016_login_lockout.sql
+  db/migrations/017_password_reset.sql
+  db/migrations/018_media.sql
+  db/migrations/019_security_p0.sql
+  db/migrations/020_auto_close_events.sql
+  db/migrations/021_ticket_return.sql
+  db/migrations/022_event_waitlist.sql
+  db/migrations/023_ticket_payments.sql
+  db/migrations/024_notify_autoclose_kind.sql
+  db/migrations/025_event_staff.sql
+  db/migrations/026_door_anomaly_alert.sql
+  db/migrations/027_door_anomaly_event_link.sql
+  db/migrations/028_legal_acceptances.sql
+  db/migrations/029_legal_documents_v11.sql
+  db/migrations/030_legal_plazos.sql
 )
 
 echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"
