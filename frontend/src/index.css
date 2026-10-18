@@ -221,7 +221,7 @@ body {
      background: resetea background-repeat a initial y el chevron del
      select.field se repetia en cinta (el bug de los "vvvvvvv"). */
   background-color: var(--color-zinc-940);
-  padding: 0.7rem 0.85rem;
+  padding: 0.75rem 0.875rem;
   font-size: var(--e-text-base);
   color: var(--color-zinc-50);
   outline: none;
@@ -249,13 +249,13 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   border-radius: 0.5rem;
   background: var(--e-brand-400);
   color: var(--e-brasa-950);
   border: 3px solid transparent;
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
-  padding: 0.55rem 1rem;
+  padding: 0.5rem 1rem;
   font-size: var(--e-text-base);
   font-weight: 500;
   letter-spacing: 0;
@@ -289,7 +289,7 @@ body {
   cursor: progress;
 }
 .btn-primary.is-busy .btn-spinner {
-  margin-left: -0.1rem;
+  margin-left: -0.125rem;
 }
 
 /* Botón secundario: outline zinc */
@@ -297,11 +297,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.375rem;
   border-radius: 0.5rem;
   border: 1px solid var(--color-zinc-800);
   background: transparent;
-  padding: 0.5rem 0.9rem;
+  padding: 0.5rem 0.875rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-300);
@@ -329,7 +329,7 @@ body {
   display: inline-flex;
   align-items: center;
   border-radius: 0.5rem;
-  padding: 0.45rem 0.85rem;
+  padding: 0.5rem 0.875rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--e-red-600);
@@ -361,7 +361,7 @@ body {
   background: var(--e-red-600);
   color: var(--e-white);
   border: 1px solid rgba(248, 113, 113, 0.5);
-  padding: 0.55rem 1rem;
+  padding: 0.5rem 1rem;
   font-size: var(--e-text-sm);
   font-weight: 600;
   transition:
@@ -413,9 +413,9 @@ body {
 .btn-mini {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.25rem;
   border-radius: 0.5rem;
-  padding: 0.3rem 0.6rem;
+  padding: 0.25rem 0.625rem;
   font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--color-zinc-400);
@@ -514,10 +514,10 @@ html[data-theme="light"] .btn-ghost.btn-success {
 .opt-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.375rem;
   border-radius: 999px;
   border: 1px solid var(--color-zinc-700);
-  padding: 0.4rem 0.8rem;
+  padding: 0.375rem 0.75rem;
   font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--color-zinc-400);
@@ -609,7 +609,7 @@ select.field {
   background-repeat: no-repeat;
   background-position: right 0.65rem center;
   background-size: 1rem;
-  padding-right: 2.1rem;
+  padding-right: 2.125rem;
 }
 select.field option {
   background: var(--color-zinc-925);
@@ -652,8 +652,8 @@ html[data-theme="light"] select.field option {
   bottom: calc(100% + 7px);
   left: 50%;
   transform: translateX(-50%) translateY(3px);
-  padding: 0.3rem 0.55rem;
-  border-radius: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
   background: var(--color-zinc-900);
   color: var(--color-zinc-200);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -712,9 +712,9 @@ html[data-theme="light"] select.field option {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  border-radius: 0.55rem;
-  padding: 0.42rem 0.85rem;
+  gap: 0.375rem;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.875rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-400);
@@ -747,9 +747,9 @@ html[data-theme="light"] select.field option {
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.375rem;
   border-radius: 999px;
-  padding: 0.15rem 0.55rem;
+  padding: 0.125rem 0.5rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -872,7 +872,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   color: var(--color-zinc-50);
 }
 .empty-state-text {
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
   font-size: var(--e-text-sm);
   line-height: 1.55;
   color: var(--color-zinc-400);
@@ -902,8 +902,8 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.3rem 0;
+  gap: 0.625rem;
+  padding: 0.25rem 0;
 }
 .ticket-step-dot {
   position: relative;
@@ -1348,14 +1348,14 @@ html[data-theme="light"] header nav a[aria-current="page"] {
    un badge en cero es ruido, no informacion.
    ---------------------------------------------------------------------- */
 .bizdock {
-  padding: 1rem 1.25rem 1.1rem;
+  padding: 1rem 1.25rem 1.125rem;
 }
 .bizdock-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.875rem;
 }
 .bizdock-grid {
   display: grid;
@@ -1366,9 +1366,9 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.625rem;
   text-align: left;
-  padding: 0.6rem 0.7rem;
+  padding: 0.625rem 0.75rem;
   border-radius: 0.75rem;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.02);
@@ -1402,7 +1402,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   flex-shrink: 0;
   width: 2.1rem;
   height: 2.1rem;
-  border-radius: 0.6rem;
+  border-radius: 0.625rem;
   color: var(--color-zinc-400);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -1451,7 +1451,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   text-align: center;
   font-size: var(--e-text-2xs);
   font-weight: 700;
-  padding: 0.1rem 0.35rem;
+  padding: 0.125rem 0.375rem;
   border-radius: 999px;
   /* Tinta, no blanco: el contador vive sobre el naranja de la marca y el
      blanco ahi daba 2.8:1. El mismo par tinta/naranja del boton primario. */
@@ -1466,7 +1466,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 0.75rem;
-  margin-top: 0.85rem;
+  margin-top: 0.875rem;
   padding-top: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
@@ -1480,8 +1480,8 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .bizdock-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.65rem;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
   border-radius: 999px;
   font-size: var(--e-text-xs);
   font-weight: 600;
@@ -1577,7 +1577,7 @@ html[data-theme="light"] .bizdock-desc {
 .vh-identidad {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.75rem;
   min-width: 0;
 }
 /* Bloque de texto: el eyebrow flota arriba del nombre con su propio aire (no
@@ -1699,18 +1699,18 @@ html[data-theme="light"] .bizdock-desc {
   display: flex;
   align-items: baseline;
   justify-content: flex-end;
-  gap: 0.6rem;
+  gap: 0.625rem;
   font-size: var(--e-text-xs);
   color: var(--color-zinc-500);
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
 }
 .vh-delta {
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.125rem;
   font-weight: 700;
   border-radius: 999px;
-  padding: 0.05rem 0.5rem 0.05rem 0.35rem;
+  padding: 0.05rem 0.5rem 0.05rem 0.375rem;
 }
 .vh-delta.is-up {
   color: var(--e-green-400);
@@ -1782,12 +1782,12 @@ html[data-theme="light"] .vh-delta.is-down {
   .vh-top {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.9rem;
+    gap: 0.875rem;
   }
   .vh-kpi {
     text-align: left;
     width: 100%;
-    padding-top: 0.85rem;
+    padding-top: 0.875rem;
     padding-right: 0;
     /* El separador vertical se vuelve horizontal (hairline del sistema). */
     border-top: 1px solid rgba(255, 255, 255, 0.07);
@@ -1807,7 +1807,7 @@ html[data-theme="light"] .vh-delta.is-down {
 .vh-embedded {
   width: 100%;
   margin-top: 1rem;
-  padding-top: 0.9rem;
+  padding-top: 0.875rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 html[data-theme="light"] .vh-embedded {
@@ -1825,19 +1825,19 @@ html[data-theme="light"] .vh-embedded {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.35rem 0.9rem;
-  margin-top: 0.95rem;
-  padding-top: 0.8rem;
+  gap: 0.375rem 0.875rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 .vh-cuenta-item {
   display: grid;
-  gap: 0.1rem;
+  gap: 0.125rem;
   min-width: 0;
 }
 .vh-cuenta-op {
   align-self: flex-end;
-  padding-bottom: 0.1rem;
+  padding-bottom: 0.125rem;
   color: var(--color-zinc-600);
   font-size: var(--e-text-base);
   font-weight: 700;
@@ -1882,13 +1882,13 @@ html[data-theme="light"] .vh-embedded {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.625rem;
   margin-top: 0.75rem;
 }
 .vh-mesnav-ctrl {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.375rem;
 }
 .vh-mesnav-label {
   min-width: 9rem;
@@ -1900,7 +1900,7 @@ html[data-theme="light"] .vh-embedded {
   font-size: var(--e-text-xs);
   font-weight: 700;
   color: var(--color-brand-300);
-  padding: 0.35rem 0.5rem;
+  padding: 0.375rem 0.5rem;
   border-radius: 0.5rem;
 }
 .vh-mesnav-hoy:hover {
@@ -1911,8 +1911,8 @@ html[data-theme="light"] .vh-embedded {
 /* Rankings: "quién mueve la noche". Barras finas, misma gramática de
    RevenueBars (brand-500) sin SVG nuevo. */
 .vh-rank {
-  margin-top: 0.95rem;
-  padding-top: 0.8rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 .vh-rank-head {
@@ -1920,7 +1920,7 @@ html[data-theme="light"] .vh-embedded {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.5rem;
 }
 .vh-rank-sub {
   font-size: var(--e-text-2xs);
@@ -1928,13 +1928,13 @@ html[data-theme="light"] .vh-embedded {
 }
 .vh-rank-list {
   display: grid;
-  gap: 0.4rem;
+  gap: 0.375rem;
 }
 .vh-rank-row {
   display: grid;
   grid-template-columns: 1.4rem minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.5rem;
   font-size: var(--e-text-sm);
 }
 .vh-rank-pos {
@@ -2016,7 +2016,7 @@ html[data-theme="light"] .vh-mesnav-hoy {
    perforación punteada y halo de marca. Invita a emitir — nunca un rectángulo
    gris muerto. */
 .ticket-ghost {
-  border-radius: 1.1rem;
+  border-radius: 1.125rem;
   background:
     radial-gradient(
       120% 90% at 50% 0%,
@@ -2072,9 +2072,9 @@ html[data-theme="light"] .vh-mesnav-hoy {
 .ec-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
   border-left: 2px solid rgba(255, 255, 255, 0.07);
-  padding-left: 0.55rem;
+  padding-left: 0.5rem;
   min-width: 0;
 }
 .ec-stat-label {
@@ -2128,7 +2128,7 @@ html[data-theme="light"] .ec-when-soon {
    de color (no una caja), y el ruido solo aparece al hover.
    ---------------------------------------------------------------------- */
 .events-strip {
-  padding: 0.35rem 0 0.2rem;
+  padding: 0.375rem 0 0.25rem;
   counter-reset: evx;
 }
 .evx-head {
@@ -2136,7 +2136,7 @@ html[data-theme="light"] .ec-when-soon {
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.5rem;
 }
 /* .evx-toolbar (dos filas en móvil, una desde 640px) está definido más abajo,
    junto al bloque que explica por qué. */
@@ -2144,14 +2144,14 @@ html[data-theme="light"] .ec-when-soon {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.25rem;
   white-space: nowrap;
   /* min-height alinea la fila de pestañas con el buscador: antes la pestaña
      media 30px y media renglón, se leia como texto suelto. 2.75rem (44px) es
      el minimo de tap target con el dedo; el buscador tambien mide eso. */
   min-height: 2.75rem;
-  padding: 0.35rem 0.6rem;
-  border-radius: 0.4rem 0.4rem 0 0;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.375rem 0.375rem 0 0;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-500);
@@ -2209,7 +2209,7 @@ html[data-theme="light"] .ec-when-soon {
   margin-left: auto;
   border-left: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 0.5rem;
-  padding-left: 0.65rem;
+  padding-left: 0.625rem;
 }
 html[data-theme="light"] .evx-toolbar > .btn-icon {
   border-left-color: var(--e-neutral-300);
@@ -2237,7 +2237,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   /* row-gap chico: son dos filas pegadas, no dos bloques. Con 0.5rem la fila
      de filtros quedaba a medio centimetro del buscador y se leia como otra
      sección. */
-  gap: 0.35rem 0.5rem;
+  gap: 0.375rem 0.5rem;
   padding-bottom: 0.75rem;
   /* Cabecera pegajosa: con 20+ noches el buscador y los filtros viajan con el
      scroll y la lista nunca queda "sin control". El fondo canvas sella las
@@ -2328,7 +2328,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-filters-row .evx-tab {
   scroll-snap-align: start;
-  padding-inline: 0.7rem;
+  padding-inline: 0.75rem;
 }
 /* Fila única recién a 1024px: con los 6 estados (573px de contenido) mas el
    buscador a 16rem, a 768px la fila se iba a 86px de scroll de PAGINA (medido).
@@ -2349,7 +2349,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     overflow-x: visible;
   }
   .evx-filters-row .evx-tab {
-    padding-inline: 0.6rem;
+    padding-inline: 0.625rem;
   }
 }
 /* Nuevo evento: en movil el verbo completo se partia en dos lineas y
@@ -2358,9 +2358,9 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.375rem;
   min-height: 2.75rem;
-  padding-inline: 0.85rem;
+  padding-inline: 0.875rem;
   font-size: var(--e-text-sm);
 }
 /* Nuevo evento: en movil el verbo completo se partia en dos lineas y empujaba
@@ -2377,7 +2377,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-grid {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.875rem;
   margin-top: 1rem;
 }
 @media (min-width: 640px) {
@@ -2406,7 +2406,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
      2% de blanco sin sombra: a la par del card de la venue se leía como un
      rectángulo "básico" (borde y nada más). El material la vuelve una
      tarjeta real sin competir con la portada. */
-  border-radius: 0.9rem;
+  border-radius: 0.875rem;
   border: 1px solid var(--e-border-hairline);
   background:
     linear-gradient(
@@ -2531,13 +2531,13 @@ html[data-theme="light"] .evx-livepill {
 .evx-livepill-dot {
   width: 0.375rem;
   height: 0.375rem;
-  border-radius: 9999px;
+  border-radius: 10000px;
   background: currentColor;
 }
 .evx-state {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.375rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-400);
@@ -2588,13 +2588,13 @@ html[data-theme="light"] .evx-livepill {
 .evx-idrow {
   display: flex;
   align-items: flex-start;
-  gap: 0.7rem;
+  gap: 0.75rem;
 }
 .evx-thumb {
   width: 3.5rem;
   height: 3.5rem;
   flex-shrink: 0;
-  border-radius: 0.7rem;
+  border-radius: 0.75rem;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--color-zinc-940);
@@ -2654,9 +2654,9 @@ html[data-theme="light"] .evx-livepill {
 /* Píldora de apertura reutilizada (ec-when): la fecha deja de ser un
    texto gris enterrado abajo y se vuelve el segundo dato que se lee. */
 .evx-when {
-  gap: 0.3rem;
+  gap: 0.25rem;
   border-radius: 0.375rem;
-  padding: 0.15rem 0.45rem;
+  padding: 0.125rem 0.5rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
 }
@@ -2668,14 +2668,14 @@ html[data-theme="light"] .evx-livepill {
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
   gap: 0.5rem;
-  margin-top: 0.95rem;
+  margin-top: 1rem;
 }
 .evx-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
   border-left: 2px solid rgba(255, 255, 255, 0.07);
-  padding-left: 0.55rem;
+  padding-left: 0.5rem;
   min-width: 0;
   transition: border-color 0.2s ease;
 }
@@ -2699,7 +2699,7 @@ html[data-theme="light"] .evx-livepill {
 @media (max-width: 400px) {
   .evx-stats {
     grid-template-columns: 1fr 1fr;
-    gap: 0.55rem 0.4rem;
+    gap: 0.5rem 0.375rem;
   }
   /* El dinero primero y a lo ancho: es la cifra que el dueño mira. */
   .evx-stat:first-child {
@@ -2745,7 +2745,7 @@ html[data-theme="light"] .evx-livepill {
   height: 0.375rem;
   border-radius: 999px;
   background: var(--e-green-400);
-  margin-right: 0.3rem;
+  margin-right: 0.25rem;
   vertical-align: 0.12em;
   animation: evx-pulse 2s ease-in-out infinite;
 }
@@ -2755,8 +2755,8 @@ html[data-theme="light"] .evx-livepill {
 .evx-meterrow {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  margin-top: 0.85rem;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
 }
 .evx-pct {
   font-size: var(--e-text-2xs);
@@ -2853,7 +2853,7 @@ html[data-theme="light"] .evx-pct {
   justify-content: flex-end;
   /* Separacion real entre vecinos: con areas tactiles de 40px, 0.15rem
      dejaba los dedos peleando entre "duplicar" y "eliminar". */
-  gap: 0.4rem;
+  gap: 0.375rem;
   padding: 0 0.75rem 0.75rem;
 }
 /* Publicar/Abrir puertas/Duplicar/Eliminar son control de DEDO (el admin
@@ -2861,7 +2861,7 @@ html[data-theme="light"] .evx-pct {
    del mínimo táctil de 44px. Aquí suben a 44 sin tocar el tamaño del icono. */
 .evx-actions .btn-mini {
   min-height: 2.75rem;
-  padding-inline: 0.8rem;
+  padding-inline: 0.75rem;
 }
 .evx-actions .btn-icon {
   min-width: 2.75rem;
@@ -2875,14 +2875,14 @@ html[data-theme="light"] .evx-pct {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.4rem 0.5rem;
+  gap: 0.375rem 0.5rem;
   margin-top: 0.5rem;
 }
 .evx-open-label {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--e-brand-300);
@@ -2898,7 +2898,7 @@ html[data-theme="light"] .evx-open-label {
    en una pantalla. Grid de columnas fijas alineadas: punto · nombre ·
    cuándo · cifras · estado. */
 .evx-list {
-  margin-top: 0.85rem;
+  margin-top: 0.875rem;
   display: flex;
   flex-direction: column;
 }
@@ -2909,8 +2909,8 @@ html[data-theme="light"] .evx-open-label {
   grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.65rem 0.55rem;
-  border-radius: 0.55rem;
+  padding: 0.625rem 0.5rem;
+  border-radius: 0.5rem;
   font-size: var(--e-text-sm);
   transition:
     background 0.12s,
@@ -2983,7 +2983,7 @@ html[data-theme="light"] .evx-row:nth-child(even):not(:hover) {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.4rem;
+  gap: 0.375rem;
 }
 .evx-row-state {
   font-size: var(--e-text-2xs);
@@ -3001,8 +3001,8 @@ html[data-theme="light"] .evx-row:nth-child(even):not(:hover) {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: 9999px;
+  padding: 0.125rem 0.375rem;
+  border-radius: 10000px;
   font-size: var(--e-text-2xs);
   font-weight: 700;
   color: var(--e-amber-400);
@@ -3056,7 +3056,7 @@ html[data-theme="light"] .evx-row-state.is-live {
    propio (el dinero ES el titular del backstage). */
 .wb-revenue {
   font-variant-numeric: tabular-nums;
-  margin-top: 0.15rem;
+  margin-top: 0.125rem;
   font-size: var(--e-text-display);
   font-weight: 800;
   letter-spacing: -0.035em;
@@ -3090,7 +3090,7 @@ html[data-theme="light"] .wb-kpis > * + * {
 /* Flyer del backstage: marco con sombra propia — la imagen del evento es
    contenido, no un adorno suelto con ring genérico. */
 .wb-flyer {
-  border-radius: 0.9rem;
+  border-radius: 0.875rem;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
@@ -3110,10 +3110,10 @@ html[data-theme="light"] .wb-flyer {
 .dp-chart {
   display: flex;
   align-items: flex-end;
-  gap: 0.35rem;
+  gap: 0.375rem;
   height: 7rem;
   margin-top: 1rem;
-  padding-bottom: 1.1rem; /* aire para la fila de horas */
+  padding-bottom: 1.125rem; /* aire para la fila de horas */
   overflow-x: auto;
 }
 .dp-col {
@@ -3121,7 +3121,7 @@ html[data-theme="light"] .wb-flyer {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.2rem;
+  gap: 0.25rem;
   min-width: 0.9rem;
   height: 100%;
   position: relative;
@@ -3137,7 +3137,7 @@ html[data-theme="light"] .wb-flyer {
 .dp-bar {
   width: 0.7rem;
   min-height: 3px;
-  border-radius: 3px 3px 1px 1px;
+  border-radius: 4px 4px 1px 1px;
   background: linear-gradient(180deg, var(--e-brand-400), var(--e-brand-500));
   box-shadow: 0 0 12px -4px color-mix(in srgb, var(--e-brand-500) 70%, transparent);
   transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
@@ -3160,7 +3160,7 @@ html[data-theme="light"] .wb-flyer {
 .dp-live-dot {
   width: 0.4rem;
   height: 0.4rem;
-  border-radius: 9999px;
+  border-radius: 10000px;
   background: var(--e-green-400);
   box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
   animation: dp-live 1.8s ease-out infinite;
@@ -3183,8 +3183,8 @@ html[data-theme="light"] .wb-flyer {
   margin-top: 1rem;
   border-radius: 0.75rem;
   background: var(--color-zinc-940);
-  padding: 0.85rem 1rem;
-  font-size: 0.8125rem;
+  padding: 0.875rem 1rem;
+  font-size: 0.75rem;
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .dp-num {
@@ -3261,7 +3261,7 @@ html[data-theme="light"] .card-hero {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 40%),
     var(--e-panel-650);
-  border-radius: 1.15rem;
+  border-radius: 1.125rem;
   box-shadow:
     var(--e-elev-overlay),
     var(--e-highlight-inset);
@@ -3319,8 +3319,8 @@ html[data-theme="light"] .topbar {
 }
 .topnav-item {
   position: relative;
-  border-radius: 0.45rem;
-  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-400);
@@ -3406,8 +3406,8 @@ html[data-theme="light"] .topbar-avatar {
    ---------------------------------------------------------------------- */
 .ticket-qr-frame {
   position: relative;
-  border-radius: 1.1rem;
-  padding: 0.8rem;
+  border-radius: 1.125rem;
+  padding: 0.75rem;
   background:
     linear-gradient(160deg, var(--e-white), var(--color-zinc-100) 70%),
     var(--e-white);
@@ -3515,7 +3515,7 @@ html[data-theme="light"] .list-row:hover {
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  border-radius: 0.6rem;
+  border-radius: 0.625rem;
   padding: 0.375rem 0.75rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
@@ -3902,8 +3902,12 @@ html[data-theme="light"] {
   --color-amber-300: var(--e-brasa-500);
   --color-amber-400: var(--e-brasa-400);
   --color-red-200: var(--e-red-800);
-  --color-red-300: var(--e-red-700);
-  --color-red-400: var(--e-red-600);
+  --color-red-300: var(--e-red-800);
+  --color-red-400: var(--e-red-700);
+  /* Superficie de error en claro: bg-red-950/* debe ser un lavado claro. En
+     oscuro es rojo profundo; reutilizarlo en claro daba rojo oscuro sobre
+     rojo oscuro (medido 2.35:1, ilegible). */
+  --color-red-950: var(--e-red-50);
   --color-sky-200: var(--e-sky-800);
   --color-sky-300: var(--e-sky-700);
   --color-sky-400: var(--e-sky-600);
@@ -4235,7 +4239,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   transition: color 0.15s;
 }
 .auth-field-has-icon {
-  padding-left: 2.6rem;
+  padding-left: 2.625rem;
 }
 .auth-field:focus-within .auth-field-icon {
   color: var(--e-brand-400);
@@ -4256,7 +4260,7 @@ body {
   .field {
     /* 16px: umbral anti-zoom de iOS. Desktop conserva los 14px compactos. */
     font-size: var(--e-text-lg);
-    padding: 0.65rem 0.75rem;
+    padding: 0.625rem 0.75rem;
   }
   .btn-primary,
   .btn-ghost,
@@ -4371,10 +4375,10 @@ html[data-theme="light"] .halftone::before {
 .sticker-pop {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.375rem;
   transform: rotate(-2.2deg);
-  border-radius: 0.6rem;
-  padding: 0.28rem 0.65rem;
+  border-radius: 0.625rem;
+  padding: 0.25rem 0.625rem;
   background: var(--e-green-500);
   color: var(--e-panel-750);
   border: 2px solid var(--color-zinc-925);
@@ -4428,12 +4432,12 @@ html[data-theme="light"] .sticker-pop {
 .rubber-stamp {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.25rem;
   transform: rotate(3deg);
   border: 2px solid currentColor;
   border-radius: 999px;
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
-  padding: 0.2rem 0.6rem;
+  padding: 0.25rem 0.625rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   font-size: var(--e-text-2xs);
@@ -4446,7 +4450,7 @@ html[data-theme="light"] .sticker-pop {
    Para tips y micro-copy: nunca para datos serios. */
 .paper-note {
   position: relative;
-  border-radius: 0.6rem;
+  border-radius: 0.625rem;
   background: var(--e-brasa-100);
   color: var(--e-brasa-800);
   padding: 0.75rem 1rem;
@@ -4473,7 +4477,7 @@ html[data-theme="light"] .sticker-pop {
 .ribbon-divider {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.625rem;
   color: rgba(255, 255, 255, 0.25);
 }
 .ribbon-divider::before,
@@ -4550,7 +4554,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-head {
   position: relative;
   z-index: 1;
-  padding: 1.05rem 1.25rem 0.35rem;
+  padding: 1rem 1.25rem 0.375rem;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -4565,7 +4569,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   color: var(--e-brasa-700);
 }
 .tkt-venue {
-  margin-top: 0.15rem;
+  margin-top: 0.125rem;
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-xs);
   font-weight: 700;
@@ -4574,9 +4578,9 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.25rem;
   flex-shrink: 0;
-  padding: 0.2rem 0.6rem;
+  padding: 0.25rem 0.625rem;
   border-radius: 999px;
   background: rgba(55, 38, 23, 0.14);
   color: var(--e-ink-800);
@@ -4608,7 +4612,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-sub {
   position: relative;
   z-index: 1;
-  margin: 0.45rem 1.25rem 0;
+  margin: 0.5rem 1.25rem 0;
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-xs);
   font-weight: 800;
@@ -4658,7 +4662,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-body {
   position: relative;
   z-index: 1;
-  padding: 1.1rem 1.25rem 1.25rem;
+  padding: 1.125rem 1.25rem 1.25rem;
   background: linear-gradient(180deg, rgba(55, 38, 23, 0.06), rgba(55, 38, 23, 0.12));
 }
 
@@ -4667,11 +4671,11 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.625rem;
 }
 .tkt-qr {
   position: relative;
-  padding: 0.7rem;
+  padding: 0.75rem;
   border-radius: 1rem;
   background: var(--e-white);
   box-shadow:
@@ -4693,25 +4697,25 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   left: -0.45rem;
   border-right: 0;
   border-bottom: 0;
-  border-top-left-radius: 0.7rem;
+  border-top-left-radius: 0.75rem;
 }
 .tkt-qr::after {
   bottom: -0.45rem;
   right: -0.45rem;
   border-left: 0;
   border-top: 0;
-  border-bottom-right-radius: 0.7rem;
+  border-bottom-right-radius: 0.75rem;
 }
 .tkt-qr img,
 .tkt-qr .skeleton {
   display: block;
   width: 12.5rem;
   height: 12.5rem;
-  border-radius: 0.6rem;
+  border-radius: 0.625rem;
 }
 /* Sello "ADMIT ONE" bajo el QR */
 .tkt-admit {
-  padding: 0.3rem 0.9rem;
+  padding: 0.25rem 0.875rem;
   border-radius: 999px;
   border: 1.5px dashed rgba(55, 38, 23, 0.45);
   color: var(--e-ink-800);
@@ -4725,7 +4729,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 
 /* --- Datos del asistente (fila tipo talon ROW/SEAT/GATE) ---------------- */
 .tkt-grid {
-  margin-top: 1.1rem;
+  margin-top: 1.125rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   border: 1.5px solid rgba(55, 38, 23, 0.35);
@@ -4734,7 +4738,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   background: rgba(255, 255, 255, 0.4);
 }
 .tkt-cell {
-  padding: 0.55rem 0.5rem;
+  padding: 0.5rem 0.5rem;
   text-align: center;
 }
 .tkt-cell + .tkt-cell {
@@ -4749,7 +4753,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   color: rgba(74, 47, 5, 0.7);
 }
 .tkt-cell-value {
-  margin-top: 0.15rem;
+  margin-top: 0.125rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   font-size: var(--e-text-sm);
@@ -4758,12 +4762,12 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 /* Celda de nombre a lo ancho (debajo de la fila de 3) */
 .tkt-name-row {
-  margin-top: 0.6rem;
+  margin-top: 0.625rem;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 0.75rem;
   background: rgba(55, 38, 23, 0.1);
   border: 1.5px solid rgba(55, 38, 23, 0.25);
@@ -4778,15 +4782,15 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 
 /* --- Estados no-canjeables: panel de aviso sobre el ambar --------------- */
 .tkt-note {
-  border-radius: 0.9rem;
-  padding: 1.1rem 1rem;
+  border-radius: 0.875rem;
+  padding: 1.125rem 1rem;
   text-align: center;
   background: rgba(255, 255, 255, 0.55);
   border: 1.5px dashed rgba(55, 38, 23, 0.4);
   color: var(--e-brasa-900);
 }
 .tkt-note .tkt-note-icon {
-  margin: 0 auto 0.6rem;
+  margin: 0 auto 0.625rem;
   width: 3rem;
   height: 3rem;
   display: grid;
@@ -4802,7 +4806,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   color: var(--e-brasa-900);
 }
 .tkt-note p {
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-xs);
   line-height: 1.5;
@@ -4822,10 +4826,10 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   width: 100%;
   border-radius: 0.75rem;
-  padding: 0.7rem 1rem;
+  padding: 0.75rem 1rem;
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-base);
   font-weight: 700;
@@ -4869,18 +4873,18 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 
 /* --- Pie de la pagina (fuera del ticket) --------------------------------- */
 .tkt-footer {
-  margin-top: 1.1rem;
+  margin-top: 1.125rem;
   text-align: center;
   font-size: var(--e-text-xs);
   color: var(--color-zinc-500);
 }
 /* Firma Enty centrada bajo el ticket */
 .tkt-brandline {
-  margin: 1.1rem auto 0;
+  margin: 1.125rem auto 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   width: fit-content;
   color: var(--color-zinc-400);
 }
@@ -4895,7 +4899,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-brandline img {
   width: 1.15rem;
   height: 1.15rem;
-  border-radius: 0.3rem;
+  border-radius: 0.25rem;
 }
 .tkt-brandline span {
   font-size: var(--e-text-xs);
@@ -5257,7 +5261,7 @@ html[data-theme="light"] .evx-name {
   max-width: 30rem;
 }
 .auth-brand-title {
-  margin-top: 0.7rem;
+  margin-top: 0.75rem;
   font-size: var(--e-text-display);
   line-height: 1.04;
   letter-spacing: -0.03em;
@@ -5273,12 +5277,12 @@ html[data-theme="light"] .evx-name {
 .auth-benefits {
   margin-top: 2rem;
   display: grid;
-  gap: 0.7rem;
+  gap: 0.75rem;
 }
 .auth-benefit {
   display: flex;
   align-items: flex-start;
-  gap: 0.65rem;
+  gap: 0.625rem;
   font-size: var(--e-text-base);
   line-height: 1.45;
   color: var(--e-text-muted);
@@ -5324,7 +5328,7 @@ html[data-theme="light"] .evx-name {
   animation: fade 0.4s ease-out both;
 }
 .auth-compact-lema {
-  margin-top: 0.4rem;
+  margin-top: 0.375rem;
   font-size: var(--e-text-lg);
   color: var(--color-zinc-400);
 }
@@ -5445,9 +5449,9 @@ html[data-theme="light"] .legal-island .display {
 .pf-hero {
   position: relative;
   overflow: hidden;
-  border-radius: 1.4rem;
+  border-radius: 1.375rem;
   border: 1px solid var(--in-line-soft, rgba(255, 255, 255, 0.06));
-  padding: 1.4rem 1.5rem;
+  padding: 1.375rem 1.5rem;
   background:
     radial-gradient(34rem 16rem at 6% -10rem, color-mix(in srgb, var(--e-brand-500) 22%, transparent), transparent 62%),
     radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.12), transparent 60%),
@@ -5474,7 +5478,7 @@ html[data-theme="light"] .pf-hero {
   width: 4.5rem;
   height: 4.5rem;
   border-radius: 999px;
-  font-size: 1.6rem;
+  font-size: 1.625rem;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
@@ -5484,7 +5488,7 @@ html[data-theme="light"] .pf-hero {
   position: absolute;
   inset: -3px;
   border-radius: 999px;
-  padding: 3px;
+  padding: 4px;
   background: currentColor;
   -webkit-mask:
     linear-gradient(var(--e-mask) 0 0) content-box,
@@ -5534,8 +5538,8 @@ html[data-theme="light"] .pf-danger-title {
 .pf-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem 1.25rem;
-  font-size: 0.8125rem;
+  gap: 0.25rem 1.25rem;
+  font-size: 0.75rem;
   color: var(--color-zinc-400);
 }
 html[data-theme="light"] .pf-meta {
@@ -5544,7 +5548,7 @@ html[data-theme="light"] .pf-meta {
 .pf-meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.375rem;
   min-width: 0;
 }
 .pf-meta-item svg {
@@ -5558,10 +5562,10 @@ html[data-theme="light"] .pf-meta {
 .pf-role-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.375rem;
   border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.6875rem;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   background: color-mix(in srgb, currentColor 14%, transparent);
@@ -5628,20 +5632,20 @@ html[data-theme="light"] .legal-note {
 
 .legal-doc {
   max-width: 68ch;
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.75;
 }
 .legal-doc p {
   margin: 0.75rem 0;
 }
 .legal-doc .legal-h1 {
-  font-size: 1.6rem;
+  font-size: 1.625rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 0 0 1rem;
 }
 .legal-doc .legal-h2 {
-  font-size: 1.15rem;
+  font-size: 1.125rem;
   font-weight: 650;
   margin: 2rem 0 0.75rem;
 }
@@ -5662,7 +5666,7 @@ html[data-theme="light"] .legal-note {
   list-style: decimal;
 }
 .legal-doc li {
-  margin: 0.35rem 0;
+  margin: 0.375rem 0;
 }
 .legal-doc blockquote {
   margin: 1rem 0;
@@ -5683,12 +5687,12 @@ html[data-theme="light"] .legal-note {
 .legal-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .legal-table th,
 .legal-table td {
   text-align: left;
-  padding: 0.5rem 0.65rem;
+  padding: 0.5rem 0.625rem;
   border-bottom: 1px solid var(--e-border-hairline);
   vertical-align: top;
 }
@@ -5700,7 +5704,7 @@ html[data-theme="light"] .legal-note {
   font-size: 0.85em;
   background: rgba(255, 255, 255, 0.08);
   padding: 0.1em 0.35em;
-  border-radius: 0.35rem;
+  border-radius: 0.375rem;
 }
 html[data-theme="light"] .legal-doc code {
   background: rgba(0, 0, 0, 0.06);
@@ -5715,14 +5719,18 @@ html[data-theme="light"] .legal-doc code {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem 0.9rem;
-  font-size: 0.72rem;
+  gap: 0.5rem 0.875rem;
+  font-size: var(--e-text-2xs);
 }
 .legal-links a,
 .legal-links button {
   color: inherit;
   opacity: 0.75;
   transition: opacity 0.2s;
+  /* Objetivo tactil AA (WCAG 2.5.8): el renglon de 11px no llega a 24px.
+     El padding da area sin agrandar el texto ni romper el renglon. */
+  padding: 0.25rem 0;
+  min-height: 1.5rem;
 }
 .legal-links a:hover,
 .legal-links button:hover {

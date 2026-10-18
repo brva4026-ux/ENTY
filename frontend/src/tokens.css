@@ -63,6 +63,9 @@
   --e-red-700: #b91c1c;
   --e-red-800: #991b1b;
   --e-red-300: #fca5a5;
+  /* Lavado de superficie de error para tema claro (el rojo profundo de 950
+     sobre papel no se lee: medido 2.35:1). */
+  --e-red-50: #fde8e8;
   --e-green-300: #6ee7b7;
   --e-emerald-450: #00b98a;
   --e-green-neon: #39ff14; /* neón de "en vivo" */

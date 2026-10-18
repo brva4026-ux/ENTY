@@ -553,6 +553,33 @@ avisar.
   `CATEGORY_CHIPS` en `HomePage.jsx`). Una columna real es follow-up.
 - **Sin checkout publico todavia:** el CTA "Comprar boleto" del detalle apunta a
   `/boletas` (el fan recupera lo ya emitido por contacto).
+- **El aviso de cookies va EN FLUJO, no `fixed`.** Es un banner informativo
+  montado antes de las rutas en `main.jsx`: empuja el contenido hacia abajo en
+  vez de superponerse, asi que no puede tapar nada (ver la nota de la seccion
+  de verificacion visual). No lo vuelvas a `fixed`: como overlay tapaba la
+  cabecera de `AuthShell` y las acciones del backstage.
+- **AA en tema claro: `bg-red-950/*` + `text-red-3xx` era ilegible.** En oscuro
+  `red-950` es rojo profundo; en claro NO se remapeaba, asi que todo estado de
+  error daba ~2.35:1 (medido en pixeles, no con `getComputedStyle`). Arreglado
+  remapeando `--color-red-950` a un lavado claro (`--e-red-50`) en el bloque
+  `html[data-theme="light"]`. Al verificar contraste, **medí los pixeles reales
+  del render**: elegir mal el "color de fondo" mas frecuente da un ratio falso
+  (me paso: reporte 5.74 cuando el real era 2.35).
+- **Hex solo en `tokens.css`.** `stylelint color-no-hex` vigila el resto de
+  hojas: un `#rrggbb` en `index.css` rompe `npm run lint:css`. Las primitivas de
+  color van a `tokens.css` y se consumen por `var()`.
+- **Objetivo tactil AA (WCAG 2.5.8, minimo 24px).** `.legal-links` (11px) usaba
+  renglones de 17px: se les da area con `padding: 0.25rem 0; min-height: 1.5rem`.
+  Ojo: el repo ya cubre varios controles con `::after { inset: -4px }` dentro de
+  `@media (max-width: 640px)`, asi que **medir la caja visual da falsos
+  positivos**: hay que medir el hit area real o mirar el `::after`.
+- **Escala visual: el sistema existia pero se ignoraba.** `--e-space-1..24`
+  (rejilla 4px), `--e-radius-*`, `--e-text-*` estaban definidos y sin usar (28
+  usos de `--e-space-*` frente a 653 valores crudos). Habia 50 espaciados, 27
+  radios y 9 tamanos distintos, casi todos inventados regla por regla (5.6, 9.6,
+  13.6, 4.48, 6.72px...). Se normalizo todo a rejilla de 2px (desvio <=1px).
+  Al tocar la escala, **respetar `999px`** en las pills (no es un paso de
+  rejilla; el snapping lo convertia en `1000px` sin motivo).
 
 ## Admin: salud de puerta (duplicados / rechazos)
 
