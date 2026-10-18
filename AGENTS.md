@@ -93,6 +93,14 @@ y reemplazá el archivo) o el test falla.
   datos demo; no hay endpoint de borrado.
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
+- **Verificación visual en el sandbox**: no hace falta levantar Postgres ni el
+  backend. El dev server de Vite proxya `/api` al backend demo de Vercel
+  (`VITE_BACKEND_URL` en el entorno del proceso `vite`), así que
+  `http://127.0.0.1:12000` sirve la UI con datos demo reales. Para Playwright,
+  el Chromium empaquetado no está descargado: pasa
+  `launchOptions.executablePath = '/usr/bin/chromium'` y `E2E_BASE_URL=http://127.0.0.1:12000`.
+  Ojo: el aviso de cookies intercepta clics en `/admin` (falla conocida de
+  `portada.spec.js:82`, no es una regresión de CSS).
 
 ## Datos demo
 

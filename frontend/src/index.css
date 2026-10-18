@@ -2255,10 +2255,15 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-search {
   position: relative;
-  /* Crece hasta llenar la fila; el unico que compite por ese ancho es el
-     toggle de densidad (40px fijos). Los filtros van aparte (abajo), asi que
-     el buscador ya no puede quedar estrangulado como antes. */
-  flex: 1 1 auto;
+  /* El buscador crece hasta llenar la fila; el toggle de densidad (44px) es
+     el unico que compite por ese ancho. Base explicita (8rem) y NO `auto`:
+     con `auto` la base era el ancho intrinseco del input (~269px, su size
+     por defecto) y a 360-390px no dejaba hueco para el toggle, que caia a su
+     propia fila — el toolbar medía 153px (TRES filas) justo en el celular mas
+     comun, contra las dos filas que documenta este bloque. Con base chica el
+     toggle entra al lado y el toolbar baja a 106px: 47px menos de cabecera
+     pegajosa en cada scroll. min-width:0 permite encogerse sin desbordar. */
+  flex: 1 1 8rem;
   min-width: 0;
 }
 /* Desde 1024px el buscador comparte fila con la tablist, y media 39.4px
@@ -2402,13 +2407,23 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     transform 0.18s var(--e-ease-expo),
     border-color 0.18s ease,
     box-shadow 0.18s ease;
-  /* Misma superficie sutil de los ítems del dock Del negocio: la tarjeta
-     se lee como tarjeta sin competir con el card de la portada. */
+  /* Superficie de la casa (mismo material que .card): lavado cenital de 1px,
+     cuerpo zinc-925 y el filo interior de pizarra. Antes era un relleno de
+     2% de blanco sin sombra: a la par del card de la venue se leía como un
+     rectángulo "básico" (borde y nada más). El material la vuelve una
+     tarjeta real sin competir con la portada. */
   border-radius: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--e-border-hairline);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0) 42%),
-    rgba(255, 255, 255, 0.02);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(255, 255, 255, 0) 42%
+    ),
+    var(--color-zinc-925);
+  box-shadow:
+    var(--e-highlight-inset),
+    var(--e-elev-card);
 }
 /* Barra superior: la única línea de color por tarjeta la dice el ESTADO
    (verde = en puerta, brand = a la venta; cancelado/finalizado usan su
@@ -2458,6 +2473,16 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     transparent 62%
   );
 }
+/* En táctil NO hay hover: el halo nace en opacity 0 y sólo el puntero lo
+   encendía, así que la noche EN PUERTA —la que importa— se veía igual de
+   plana que una terminada, y la franja se leía "básica" justo en el celular.
+   El halo queda tenue pero permanente en la tarjeta viva: distingue el estado
+   en vivo sin depender del mouse. */
+@media (hover: none) {
+  .evx-card.is-live::after {
+    opacity: 1;
+  }
+}
 .evx-card:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
@@ -2477,6 +2502,24 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   letter-spacing: -0.02em;
   color: var(--color-zinc-50);
   font-variation-settings: "opsz" 24;
+}
+/* El nombre de la noche es CÓMO el admin la reconoce. A 24px y una sola
+   línea no entraba: a 320px "Noche Electronica" perdía 85px y a 390px 20px,
+   así que la tarjeta decía "Noche Electronic…" justo en el celular. En
+   pantallas angostas baja a 20px y se permite una segunda línea: la noche se
+   lee completa. Un nombre corto ("sasgaga") queda MÁS compacto que antes
+   (25px de línea contra 36px), así que no se paga alto extra salvo cuando el
+   nombre de verdad lo necesita. */
+@media (max-width: 400px) {
+  .evx-name {
+    font-size: var(--e-text-xl);
+    line-height: 1.25;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
 }
 /* Pulso operativo de la cabecera: cuántas noches están EN PUERTA. Es el único
    estado que exige atención en vivo y se dice con el mismo verde del ciclo de
@@ -2653,23 +2696,26 @@ html[data-theme="light"] .evx-livepill {
   color: var(--color-zinc-500);
   white-space: nowrap;
 }
-/* Moviles angostos (320-380px): los tres rotulos en mayusculas no cabian en su
-   columna y empujaban la tarjeta, lo que SCAneaba la pagina en horizontal.
-   Afinar tracking y cuerpo de la rotulo deja las tres cifras en su carril. */
+/* Moviles angostos (320-400px): en tres columnas la cifra del RECAUDO no
+   cabía — "$ 30.000" necesita 88px y la columna ofrecía 58-81px, así que el
+   dato que manda se cortaba (medido a 320/360/390px: se perdían 32/18/8px).
+   El recaudo pasa a su PROPIA fila a lo ancho y "Vendidas/Entraron" comparten
+   la de abajo: la cifra más importante se lee entera y los dos contadores
+   cortos (1/100, 0) no se aprietan. Los rótulos en mayúscula también caben. */
 @media (max-width: 400px) {
   .evx-stats {
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.4rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem 0.4rem;
+  }
+  /* El dinero primero y a lo ancho: es la cifra que el dueño mira. */
+  .evx-stat:first-child {
+    grid-column: 1 / -1;
   }
   .evx-stat {
-    padding-left: 0.4rem;
+    padding-left: 0.5rem;
   }
   .evx-stat-label {
-    font-size: var(--e-text-2xs);
-    letter-spacing: 0.02em;
-  }
-  .evx-stat-value {
-    font-size: var(--e-text-lg);
+    letter-spacing: 0.04em;
   }
 }
 .evx-stat-value {
@@ -3549,11 +3595,25 @@ html[data-theme="light"] .evx-tab.is-active .evx-tab-count {
   color: var(--e-violet-600);
 }
 html[data-theme="light"] .evx-card {
-  background: var(--e-neutral-100);
+  /* El material de la casa, pero SIN el blanco de .card: la franja de eventos
+     vive DENTRO del card de la venue (vh-embedded), que en claro ya es blanco.
+     Una tarjeta blanca sobre blanco se fusiona con la cabecera (medido: 255,255,255
+     sobre 255,255,255, solo el hairline las separaba). Se conserva el relleno
+     gris de papel y se le suma el filo de contacto y la sombra de la casa. */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.7),
+      rgba(255, 255, 255, 0) 42%
+    ),
+    var(--e-neutral-100);
   /* #ececee sobre #e9ecf5 era un borde invisible: la tarjeta no se separaba
      del lienzo y la grilla se leia como un solo bloque. El hairline tiene
      que notarse. */
   border-color: var(--e-slate-200);
+  box-shadow:
+    var(--e-highlight-inset),
+    var(--e-elev-card);
 }
 html[data-theme="light"] .evx-card::after {
   background: radial-gradient(
