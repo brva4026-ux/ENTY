@@ -14,7 +14,11 @@
 import { expect, test } from "@playwright/test";
 
 const BASE = process.env.E2E_BASE_URL || "http://127.0.0.1:8001";
-const ADMIN = { email: "admin@bar.test", password: "demo1234" };
+// Cuenta dedicada del seed: es la unica que NO queda pre-aceptada, justo para
+// que este spec siempre tenga documentos pendientes. Las demas cuentas demo
+// (admin@bar.test, etc.) se siembran ya aceptadas para no romper el resto de
+// la suite, que no sabe manejar el gate.
+const ADMIN = { email: "gate@bar.test", password: "demo1234" };
 
 async function backendDisponible() {
   try {

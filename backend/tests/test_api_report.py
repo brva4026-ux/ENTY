@@ -251,6 +251,48 @@ def test_report_door_health_counts_duplicates_and_rejections(api):
     assert body["door_rejected"] == 1
 
 
+def test_report_door_per_porter_counts_forced_entry_as_granted(api):
+    """Un ingreso forzado por staff es ENTRADA, no rechazo — tambien por portero.
+
+    El desglose por portero usaba `outcome <> 'granted'` como "rechazado", asi
+    que un `granted_forced` (staff dejo pasar fuera de la ventana del QR) se
+    contaba como fallo: la suma por portero no cuadraba con el total del evento
+    y el bouncer que mas trabaja aparecia con rechazos que nunca hizo.
+    """
+    venue, event_id = _open_night(api, "Forzado por portero")
+    tipo = api.add_type(
+        "admin", venue, event_id,
+        name="General", price_cents=0, quantity=5, is_courtesy=True,
+    )
+    ticket = api.emit(
+        "admin", venue, event_id, ticket_type_id=tipo["id"], allocation_id=None,
+    )
+    # Fuera de la ventana el canje es NOT_ACTIVE; el admin lo fuerza y queda
+    # auditado como granted_forced (mismo camino que la puerta real).
+    api.run_sql(
+        f"UPDATE events SET starts_at = now() + interval '10 days' WHERE id = {event_id}"
+    )
+    forced = api.post(
+        f"/venues/{venue}/events/{event_id}/redeem",
+        "admin",
+        {"raw_token": ticket["raw_token"], "force": True},
+    )
+    assert forced.status_code == 200, forced.text
+
+    body = api.get(f"/venues/{venue}/events/{event_id}/summary", "admin").json()
+    door = body["door"]
+    # Dos filas: el escaneo NOT_ACTIVE (rechazo real, queda auditado) y el
+    # canje forzado. El forzado es ENTRADA; el rechazo previo sigue contando.
+    assert door["granted"] == 1, door
+    assert door["failed"] == 1, door
+    # La suma del desglose por portero tiene que dar el total del evento. Con
+    # el bug, `granted_forced` caia en `failed`: la suma por portero daba 2
+    # rechazos donde el evento contaba 1 (y 0 ingresos donde hubo 1).
+    assert sum(p["granted"] for p in door["scanned_by"]) == door["granted"]
+    assert sum(p["failed"] for p in door["scanned_by"]) == door["failed"]
+    assert sum(p["total"] for p in door["scanned_by"]) == door["total"]
+
+
 def test_report_door_health_not_leaked_to_promoter(api):
     """El promotor NO ve la salud de puerta: es dato operativo del negocio."""
     venue, event_id = _open_night(api, "Salud privada")

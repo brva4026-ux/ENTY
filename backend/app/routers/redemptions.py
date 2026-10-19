@@ -60,7 +60,8 @@ def _filters(
 ) -> dict:
     if outcome is not None and outcome not in (
         "granted", "granted_forced", "already_redeemed", "not_found",
-        "invalid_event", "event_not_live", "wrong_type", "not_valid",
+        "invalid_event", "event_not_live", "not_active", "wrong_type",
+        "not_valid",
     ):
         raise HTTPException(422, "outcome invalido")
     like = f"%{q}%" if q else None
@@ -203,6 +204,7 @@ async def export_redemptions_csv(
         "not_found": "QR DESCONOCIDO",
         "invalid_event": "BOLETA DE OTRO EVENTO",
         "event_not_live": "EVENTO NO ABIERTO",
+        "not_active": "QR AUN NO ACTIVO",
         "wrong_type": "TIPO EQUIVOCADO",
         "not_valid": "ANULADA / REEMBOLSADA",
     }
