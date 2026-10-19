@@ -1,6 +1,6 @@
 fastapi>=0.111
 psycopg>=3.2
-psycopg2-binary>=3.2
+psycopg2-binary>=3.1
 pydantic>=2.7
 pydantic-settings>=2.3
 email-validator>=2.2
