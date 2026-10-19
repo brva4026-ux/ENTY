@@ -1,5 +1,6 @@
 fastapi>=0.111
 psycopg>=3.2
+psycopg-pool>=3.2
 pydantic>=2.7
 pydantic-settings>=2.3
 email-validator>=2.2
@@ -11,3 +12,12 @@ qrcode>=7.4
 Pillow>=10.3
 tzdata>=2024.1
 httpx>=0.27
+# cryptography: python-jose la trae de paso, pero app/core/pusher.py la importa
+# directo (VAPID ES256 + aes128gcm). El test serverless la exige explicita.
+cryptography>=42.0
+# starlette: app/routers/{public,auth}.py importan run_in_threadpool directo.
+starlette>=0.37
+# Observabilidad: backend/app/core/observability.py. Sin SENTRY_DSN es no-op.
+sentry-sdk>=2.0
+# Rate limiting: app/core/limiter.py y app/main.py importan slowapi.
+slowapi>=0.1.9
