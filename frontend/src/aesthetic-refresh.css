@@ -304,12 +304,9 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .bizdock-count {
   font-variant-numeric: tabular-nums;
   background: var(--e-brand);
-  /* Tinta Enty sobre el violeta brillante (oscuro): 6.2:1. En claro
-     --tf-purple cambia a var(--e-brand-500) (mas oscuro), donde la tinta bajaba a
-     3.4:1; ahi el par correcto es blanco (5.1:1). */
-  color: var(--e-ink-1);
-}
-html[data-theme="light"] .bizdock-count {
+  /* Blanco sobre --e-brand-500 (#7c3aed) = 5.70:1. La tinta oscura daba
+     3.45:1: el token --e-brand apunta hoy al violeta 500 en ambos temas, no
+     al violeta brillante que justificaba la tinta. */
   color: var(--e-white);
 }
 
