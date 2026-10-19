@@ -23,30 +23,29 @@
   /* ---------------------------------------------------------------- 1 · PRIMITIVAS */
   /* Tinta: el negro del logotipo y sus pasos de superficie (canon de producto:
      los mismos pasos mate que usaba enty-system.css). */
-  --e-ink-0: #050507;
-  --e-ink-1: #0b0b0f; /* matte black de marca */
-  --e-ink-2: #101017;
-  --e-ink-3: #171622;
-  --e-ink-4: #1e1c2c;
+  --e-ink-0: #060505;
+  --e-ink-1: #0d0b09; /* matte black de marca */
+  --e-ink-2: #13110e;
+  --e-ink-3: #1a1713;
+  --e-ink-4: #221d19;
   /* Pasos del "ticket" (superficies nobles de la boleta). */
-  --e-ink-1000: #0a0a0d; /* papel de la boleta */
-  --e-ink-950: #0a0a0f;
-  --e-ink-900: #14121c;
-  --e-ink-800: #1c1730;
-  --e-ink-700: #241c3d;
-  --e-ink-600: #3a2b63;
+  --e-ink-1000: #0c0a08; /* papel de la boleta */
+  --e-ink-950: #0c0a09;
+  --e-ink-900: #151310;
+  --e-ink-800: #1e1a16;
+  --e-ink-700: #25211b;
+  --e-ink-600: #3b332b;
   /* Violeta: interactivo canónico + brillo del logotipo. */
-  --e-violet-100: #f3e8ff; /* pergamino del rótulo Enty */
-  --e-violet-150: #ead6fe;
-  --e-violet-200: #d9b6ff; /* texto de marca sobre relleno violeta tenue */
-  --e-violet-300: #d29bf9;
-  --e-violet-400: #bb5cf6; /* solo halo/glow */
-  --e-violet-450: #a63deb;
-  --e-violet-500: #7c3aed; /* acción (blanco encima = 5.7:1) */
-  --e-violet-600: #6d28d9;
-  --e-violet-700: #5b21b6;
-  --e-violet-800: #8b2fe0;
-  --e-violet-hover: #8b5cf6; /* hover del CTA */
+  --e-brand-100: #f3e8ff; /* pergamino del rótulo Enty */
+  --e-brand-150: #ead6fe;
+  --e-brand-200: #d9b6ff; /* texto de marca sobre relleno violeta tenue */
+  --e-brand-300: #d29bf9;
+  --e-brand-400: #bb5cf6; /* solo halo/glow */
+  --e-brand-500: #7c3aed; /* acción (blanco encima = 5.7:1) */
+  --e-brand-600: #6d28d9;
+  --e-brand-700: #5b21b6;
+  --e-brand-800: #8b2fe0;
+  --e-brand-hover: #8b5cf6; /* hover del CTA */
   /* Acentos con significado. */
   --e-green-500: #00e6ab; /* validado / disponible */
   --e-green-400: #34d399;
@@ -64,82 +63,84 @@
   --e-red-700: #b91c1c;
   --e-red-800: #991b1b;
   --e-red-300: #fca5a5;
+  /* Lavado de superficie de error para tema claro (el rojo profundo de 950
+     sobre papel no se lee: medido 2.35:1). */
+  --e-red-50: #fde8e8;
   --e-green-300: #6ee7b7;
   --e-emerald-450: #00b98a;
   --e-green-neon: #39ff14; /* neón de "en vivo" */
   --e-info-500: #6f95f0; /* periwinkle: enlace/estado informativo */
   --e-rose-700: #a82f52;
-  --e-violet-250: #b7a3ff;
-  --e-violet-350: #9f67ff;
-  --e-violet-425: #a855f7;
-  --e-violet-550: #9333ea;
+  --e-brand-250: #b7a3ff;
+  --e-brand-425: #a855f7;
+  --e-brand-550: #9333ea;
   /* Neutros (canon claro: canvas → tinta). */
-  --e-neutral-25: #f7f7fb;
+  --e-neutral-25: #f8f7f7;
   --e-neutral-50: #fafafa;
-  --e-neutral-60: #f8f8fa;
-  --e-neutral-75: #f6f8fd;
-  --e-neutral-80: #f6f6f8;
-  --e-neutral-100: #f4f4f5;
-  --e-neutral-120: #f4f4f6;
-  --e-neutral-125: #f4f3f8;
-  --e-neutral-150: #f1f1f4;
-  --e-neutral-200: #ececee;
-  --e-neutral-250: #e9e9ec;
-  --e-neutral-300: #e4e4e7;
-  --e-neutral-400: #d4d4d8;
-  --e-neutral-450: #d0d1d2;
-  --e-neutral-500: #a1a1aa;
-  --e-neutral-550: #71717a;
-  --e-neutral-600: #52525b;
-  --e-neutral-610: #52525c;
-  --e-neutral-650: #7c7b85;
-  --e-neutral-660: #63636e;
-  --e-neutral-675: #6b6b76;
-  --e-neutral-700: #6d6c76;
-  --e-neutral-800: #3f3f46;
-  --e-neutral-875: #27272a;
-  --e-neutral-900: #18181b;
-  --e-neutral-950: #171a20;
+  --e-neutral-60: #f9f8f8;
+  --e-neutral-75: #f9f8f7;
+  --e-neutral-80: #f7f6f5;
+  --e-neutral-100: #f5f4f3;
+  --e-neutral-120: #f5f4f3;
+  --e-neutral-125: #f4f3f2;
+  --e-neutral-150: #f2f1f0;
+  --e-neutral-200: #edecea;
+  --e-neutral-250: #eae9e7;
+  --e-neutral-300: #e6e4e1;
+  --e-neutral-400: #d7d3d0;
+  --e-neutral-450: #d4d1cc;
+  --e-neutral-500: #a7a098;
+  --e-neutral-550: #787166;
+  --e-neutral-600: #58524b;
+  --e-neutral-610: #58524b;
+  --e-neutral-650: #837b70;
+  --e-neutral-660: #6a635a;
+  --e-neutral-675: #726b61;
+  --e-neutral-700: #736c62;
+  --e-neutral-800: #443f3a;
+  --e-neutral-875: #292723;
+  --e-neutral-900: #191816;
+  --e-neutral-950: #1b1917;
   /* Grises "zinc" (superficies y texto del interior, cerca del neutro puro). */
-  --e-zinc-50: #f4f4f8;
-  --e-zinc-100: #e4e4ea;
-  --e-zinc-200: #d4d4dc;
-  --e-zinc-300: #b8b8c2;
-  --e-zinc-400: #a1a1ab;
-  --e-zinc-500: #8b8b97;
-  --e-zinc-600: #7e7e8a;
-  --e-zinc-700: #34343f;
-  --e-zinc-800: #22222b;
-  --e-zinc-850: #1a1a21;
-  --e-zinc-925: #111117;
-  --e-zinc-940: #0d0d13;
+  --e-zinc-50: #f5f4f3;
+  --e-zinc-100: #e7e5e1;
+  --e-zinc-200: #d8d5d0;
+  --e-zinc-300: #bfb8b0;
+  --e-zinc-400: #a9a096;
+  --e-zinc-500: #958b7d;
+  --e-zinc-600: #887d6f;
+  --e-zinc-700: #39352f;
+  --e-zinc-800: #25231f;
+  --e-zinc-850: #1d1b18;
+  --e-zinc-925: #131210;
+  --e-zinc-940: #0f0e0c;
   /* Cielo: estado informativo del panel de salud. */
   --e-sky-600: #0284c7;
   --e-sky-700: #0369a1;
   --e-sky-800: #075985;
   /* Grises "dim" de la vitrina. */
-  --e-dim-100: #555064; /* tinta tenue en claro */
-  --e-dim-200: #777286; /* tinta sutil en claro */
-  --e-dim-300: #c9c3d8;
-  --e-dim-400: #c9c6d4;
-  --e-dim-500: #b9b7c0;
-  --e-dim-600: #858095;
-  --e-dim-700: #8f8b9c;
-  --e-dim-800: #a9a5b8;
-  --e-dim-900: #b8b4c8;
+  --e-dim-100: #5b5147; /* tinta tenue en claro */
+  --e-dim-200: #7f7264; /* tinta sutil en claro */
+  --e-dim-300: #cbc5bd;
+  --e-dim-400: #cdc7bf;
+  --e-dim-500: #bfb7ae;
+  --e-dim-600: #8f8070;
+  --e-dim-700: #988b7d;
+  --e-dim-800: #b0a59a;
+  --e-dim-900: #beb5ac;
   /* Paneles oscuros de una sola aparición (esqueletos, chips, cabeceras). */
-  --e-panel-400: #1e1c2a;
-  --e-panel-450: #1a1a1e;
-  --e-panel-500: #16151f;
-  --e-panel-550: #15101f;
-  --e-panel-600: #141419;
-  --e-panel-650: #141417;
-  --e-panel-700: #111116;
-  --e-panel-750: #101013;
-  --e-panel-800: #0c0c10;
-  --e-panel-850: #09090b;
-  --e-panel-900: #08080b;
-  --e-panel-950: #050508;
+  --e-panel-400: #211d19;
+  --e-panel-450: #1d1a15;
+  --e-panel-500: #181612;
+  --e-panel-550: #15120f;
+  --e-panel-600: #161411;
+  --e-panel-650: #161411;
+  --e-panel-700: #14110e;
+  --e-panel-750: #120f0d;
+  --e-panel-800: #0e0c0b;
+  --e-panel-850: #0a0908;
+  --e-panel-900: #0a0807;
+  --e-panel-950: #060605;
   /* Brasa (peligro/estado "en puerta"): ámbar quemado → tinta de fuego. */
   --e-brasa-050: #ffcf6b;
   --e-brasa-100: #f5edd8;
@@ -152,20 +153,12 @@
   --e-brasa-800: #2c2416;
   --e-brasa-900: #221a06;
   --e-brasa-950: #1a1208;
-  /* Pizarra fría (panel de salud de puerta). */
-  --e-slate-200: #d3dbec;
-  --e-slate-250: #cad4e8;
-  --e-slate-300: #c3cce0;
-  --e-slate-350: #b3bfd6;
-  --e-slate-400: #a8b3cc;
-  --e-slate-850: #0d1425;
-  --e-slate-900: #080d1a;
-  --e-paper: #f5f5f7; /* tinta de marca */
+  --e-paper: #f6f5f2; /* tinta de marca */
   --e-white: #ffffff;
   --e-mask: #000; /* opaco para máscaras/recortes (no es un color visible) */
 
   /* ---------------------------------------------------------------- 2 · SEMÁNTICAS (oscuro = default) */
-  --e-canvas: var(--e-ink-1);
+  --e-canvas: var(--e-ink-950);
   --e-surface: var(--e-ink-2);
   --e-surface-2: var(--e-ink-3);
   --e-surface-3: var(--e-ink-4);
@@ -180,13 +173,13 @@
   --e-border-soft: rgba(245, 245, 247, 0.16);
   --e-border-strong: rgba(245, 245, 247, 0.28);
 
-  --e-brand: var(--e-violet-500);
-  --e-brand-glow: var(--e-violet-400);
+  --e-brand: var(--e-brand-500);
+  --e-brand-glow: var(--e-brand-400);
   --e-success: var(--e-green-500);
   --e-urgent: var(--e-pink-500);
   --e-warn: var(--e-amber-500);
   --e-danger: var(--e-red-500);
-  /* Anillo de foco: crema en oscuro (contrasta contra el violeta del botón),
+  /* Anillo de foco: papel en oscuro (contrasta contra el violeta del botón),
      tinta en claro (contrasta contra el lienzo). */
   --e-focus-ring: var(--e-neutral-75);
 
@@ -261,8 +254,8 @@
   --e-elev-card: var(--e-shadow-4); /* tarjeta en reposo */
   --e-elev-raised: 0 12px 30px -14px rgba(0, 0, 0, 0.65); /* hover/activa */
   --e-elev-overlay: 0 24px 70px -22px rgba(0, 0, 0, 0.8); /* modal/hoja */
-  --e-glow-brand: 0 0 0 1px rgba(187, 92, 246, 0.35), 0 8px 28px -12px rgba(187, 92, 246, 0.5);
-  --e-glow-violet: 0 12px 34px -18px rgba(124, 58, 237, 0.9);
+  --e-glow-brand: 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent), 0 8px 28px -12px color-mix(in srgb, var(--e-brand-400) 50%, transparent);
+  --e-glow-violet: 0 12px 34px -18px color-mix(in srgb, var(--e-brand-500) 90%, transparent);
   --e-glow-green: 0 12px 34px -18px rgba(0, 230, 171, 0.75);
   --e-glow-pink: 0 12px 34px -18px rgba(255, 45, 152, 0.75);
   /* Grano sutil de atmósfera (data-URI SVG fractalNoise). */
@@ -274,28 +267,28 @@
    por componente. Este bloque reemplaza, con el tiempo, las ~430 líneas de
    remapeo dispersas en index.css. */
 html[data-theme="light"] {
-  --e-canvas: #f1f1f4;
+  --e-canvas: var(--e-neutral-150);
   --e-surface: var(--e-white);
   --e-surface-2: var(--e-white);
-  --e-surface-3: #f7f7fa;
-  --e-overlay: rgba(23, 26, 32, 0.4);
+  --e-surface-3: #f7f5f0;
+  --e-overlay: rgba(25, 23, 19, 0.4);
 
-  --e-text-primary: #171a20; /* ~16:1 sobre superficie */
-  --e-text-secondary: #4a4a55; /* ~8:1 */
-  --e-text-muted: #5a5a66; /* ~6.6:1 */
+  --e-text-primary: #191713; /* ~16:1 sobre superficie */
+  --e-text-secondary: #4c4943; /* ~8:1 */
+  --e-text-muted: #5c5952; /* ~6.6:1 */
 
-  --e-border-hairline: rgba(23, 26, 32, 0.1);
-  --e-border-soft: rgba(23, 26, 32, 0.16);
-  --e-border-strong: rgba(23, 26, 32, 0.28);
+  --e-border-hairline: rgba(25, 23, 19, 0.1);
+  --e-border-soft: rgba(25, 23, 19, 0.16);
+  --e-border-strong: rgba(25, 23, 19, 0.28);
 
-  --e-shadow-1: 0 1px 2px rgba(23, 26, 32, 0.08);
-  --e-shadow-2: 0 8px 20px -14px rgba(23, 26, 32, 0.22);
-  --e-shadow-3: 0 18px 40px -26px rgba(23, 26, 32, 0.28);
+  --e-shadow-1: 0 1px 2px rgba(25, 23, 19, 0.08);
+  --e-shadow-2: 0 8px 20px -14px rgba(25, 23, 19, 0.22);
+  --e-shadow-3: 0 18px 40px -26px rgba(25, 23, 19, 0.28);
   /* Claro = papel: relieve blanco, sombras más tenues y difusas. */
   --e-highlight-inset: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  --e-elev-card: 0 12px 30px -20px rgba(23, 26, 32, 0.2);
-  --e-elev-raised: 0 12px 30px -16px rgba(24, 24, 27, 0.25);
-  --e-elev-overlay: 0 24px 70px -26px rgba(24, 24, 27, 0.42);
+  --e-elev-card: 0 12px 30px -20px rgba(25, 23, 19, 0.2);
+  --e-elev-raised: 0 12px 30px -16px rgba(26, 24, 20, 0.25);
+  --e-elev-overlay: 0 24px 70px -26px rgba(26, 24, 20, 0.42);
 
   --e-focus-ring: var(--e-ink-800);
 }
@@ -316,18 +309,18 @@ html[data-theme="light"] {
 
 /* ----------------------------------------------------------------------
    COMPONENTES INSENSIBLES AL TEMA.
-   El panel de marca de la entrada es navy SIEMPRE (el material de la
-   boleta). Al fijar aquí los tokens de tinta como oscuros, todo texto que
+   El panel de marca de la entrada es negro mate SIEMPRE (el material de
+   la boleta). Al fijar aquí los tokens de tinta como oscuros, todo texto que
    consuma var(--e-text-*) — el wordmark incluido — queda legible sobre el
-   navy también en tema claro. Antes, en claro el titular heredaba tinta
-   oscura sobre el navy: 1.07:1.
+   negro mate también en tema claro. Antes, en claro el titular heredaba tinta
+   oscura sobre el negro mate: 1.07:1.
    ---------------------------------------------------------------------- */
 .auth-brand {
   --e-text-primary: var(--e-paper);
-  --e-text-secondary: #c9c3d8;
-  --e-text-muted: #b3bfd6;
-  --e-border-hairline: rgba(245, 245, 247, 0.12);
-  --e-border-soft: rgba(245, 245, 247, 0.2);
+  --e-text-secondary: var(--e-neutral-400);
+  --e-text-muted: var(--e-neutral-500);
+  --e-border-hairline: rgba(246, 245, 242, 0.12);
+  --e-border-soft: rgba(246, 245, 242, 0.2);
 }
 
 /* Superficies semánticas: voltean con el tema. Sustituyen a `bg-zinc-950`

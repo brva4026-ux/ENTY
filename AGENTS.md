@@ -93,6 +93,21 @@ y reemplazá el archivo) o el test falla.
   datos demo; no hay endpoint de borrado.
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
+- **Verificación visual en el sandbox**: no hace falta levantar Postgres ni el
+  backend. El dev server de Vite proxya `/api` al backend demo de Vercel
+  (`VITE_BACKEND_URL` en el entorno del proceso `vite`), así que
+  `http://127.0.0.1:12000` sirve la UI con datos demo reales. Para Playwright,
+  el Chromium empaquetado no está descargado: pasa
+  `launchOptions.executablePath = '/usr/bin/chromium'` y `E2E_BASE_URL=http://127.0.0.1:12000`.
+  El aviso de cookies es un banner EN FLUJO (no `fixed`): va antes de las
+  rutas en `main.jsx` y empuja el contenido hacia abajo. Antes era `fixed
+  top-3 z-40` y tapaba la cabecera y las acciones del backstage en móvil
+  (`portada.spec.js` fallaba de forma intermitente).
+- **E2E contaminados por datos demo**: `fan.spec.js` ("Inicio -> detalle ->
+  Mis boletos") y `fan-checkout.spec.js` fallan cuando los E2E anteriores ya
+  crearon eventos; eligen el PRIMER evento del catálogo y ese puede no tener
+  CTA de compra. Falla también sobre `master` limpio, así que no lo causa un
+  cambio puntual: antes de culpar al diff, re-correlo con `git stash`.
 
 ## Datos demo
 
@@ -212,8 +227,8 @@ sobre las superficies del fan.
 
 **Clasificación del rediseño (qué se conservó y qué se rehízo):**
 
-- **Conservar**: la marca (matte black `#0B0B0F`, violeta `#7C3AED`/`#BB5CF6`,
-  verde `#00E6AB`, rosa `#FF2D98`, tinta `#F5F5F7`, Sora única voz); el
+- **Conservar**: la marca (matte black `#0c0a09`, violeta `#7C3AED`/`#BB5CF6`,
+  verde `#00E6AB`, rosa `#FF2D98`, tinta `#f6f5f2`, Sora única voz); el
   encuadre nocturno del interior (`.app-shell`); la boleta pública `.tkt` (ya es
   un artefacto troquelado y la credencial de la noche — no tocar).
 - **Perfeccionar**: las superficies `.home`/`.evd` — el motivo de boleto estaba
@@ -243,8 +258,8 @@ sobre las superficies del fan.
   `/boletas` (un elemento cuenta como desborde solo si NINGÚN ancestro lo
   recorta).
 - Detalle: 2 columnas ≥900px (cartel pegajoso + rail de compra), 1 en móvil.
-- Contraste de texto ≥ 4.5:1 sobre `#0B0B0F`: `dim` #9a96a8 (6.83), `dim-2`
-  #b6b2c4 (9.50), violeta brillo #bb5cf6 (5.59), verde (12.07), rosa (5.69).
+- Contraste de texto ≥ 4.5:1 sobre `#0c0a09`: `dim` #9a96a8 (6.87), `dim-2`
+  #b6b2c4 (9.55), violeta brillo #BB5CF6 (5.62), verde (12.14), rosa (5.72).
 
 ## Tokens y guardarraíles (Fase 0–1 del plan estético)
 
@@ -577,6 +592,33 @@ avisar.
   medio cargar y el spec fallaba por carrera con `door-alert-live.spec.js` (que crea
   eventos `E2E-DOOR-*` en paralelo). `firstEventPath` además salta los `E2E-*` para
   no medir un evento que otro spec está sembrando.
+- **El aviso de cookies va EN FLUJO, no `fixed`.** Es un banner informativo
+  montado antes de las rutas en `main.jsx`: empuja el contenido hacia abajo en
+  vez de superponerse, asi que no puede tapar nada (ver la nota de la seccion
+  de verificacion visual). No lo vuelvas a `fixed`: como overlay tapaba la
+  cabecera de `AuthShell` y las acciones del backstage.
+- **AA en tema claro: `bg-red-950/*` + `text-red-3xx` era ilegible.** En oscuro
+  `red-950` es rojo profundo; en claro NO se remapeaba, asi que todo estado de
+  error daba ~2.35:1 (medido en pixeles, no con `getComputedStyle`). Arreglado
+  remapeando `--color-red-950` a un lavado claro (`--e-red-50`) en el bloque
+  `html[data-theme="light"]`. Al verificar contraste, **medí los pixeles reales
+  del render**: elegir mal el "color de fondo" mas frecuente da un ratio falso
+  (me paso: reporte 5.74 cuando el real era 2.35).
+- **Hex solo en `tokens.css`.** `stylelint color-no-hex` vigila el resto de
+  hojas: un `#rrggbb` en `index.css` rompe `npm run lint:css`. Las primitivas de
+  color van a `tokens.css` y se consumen por `var()`.
+- **Objetivo tactil AA (WCAG 2.5.8, minimo 24px).** `.legal-links` (11px) usaba
+  renglones de 17px: se les da area con `padding: 0.25rem 0; min-height: 1.5rem`.
+  Ojo: el repo ya cubre varios controles con `::after { inset: -4px }` dentro de
+  `@media (max-width: 640px)`, asi que **medir la caja visual da falsos
+  positivos**: hay que medir el hit area real o mirar el `::after`.
+- **Escala visual: el sistema existia pero se ignoraba.** `--e-space-1..24`
+  (rejilla 4px), `--e-radius-*`, `--e-text-*` estaban definidos y sin usar (28
+  usos de `--e-space-*` frente a 653 valores crudos). Habia 50 espaciados, 27
+  radios y 9 tamanos distintos, casi todos inventados regla por regla (5.6, 9.6,
+  13.6, 4.48, 6.72px...). Se normalizo todo a rejilla de 2px (desvio <=1px).
+  Al tocar la escala, **respetar `999px`** en las pills (no es un paso de
+  rejilla; el snapping lo convertia en `1000px` sin motivo).
 
 ## Admin: salud de puerta (duplicados / rechazos)
 
@@ -681,5 +723,21 @@ avisar.
   (`onCleared(true)` — pasar `true`, no `undefined`, o el guard queda abierto y
   la app se pinta en negro); `LegalPage` es dueña del `<h1>` y del
   `document.title` (a11y.spec.js exige uno por pantalla; el `# título` del
-  markdown se descarta); el banner de alerta de puerta debe quedar por ENCIMA
-  del aviso de cookies (z-45 vs z-40) o el botón queda inclickeable.
+  markdown se descarta); el aviso de cookies ya no es un overlay `z-40`: es un
+  banner en flujo antes de las rutas, así que no compite en z-index con nada.
+- **Los E2E contaminan la DB de dev y se auto-envenenan.** Specs como
+  `fan.spec.js` y `audit-event-create.spec.js` crean eventos `E2E-*` que NO
+  borran. Como la portada ordena por fecha y esos eventos quedan en el futuro,
+  la "primera fila" deja de ser el evento demo y pasa a ser un `E2E-WAIT-*`
+  agotado: `fan.spec.js` y `fan-checkout.spec.js` fallan por datos, no por
+  código (confirmado con `git stash` + rebuild: fallan igual en el baseline).
+  Antes de culpar a un cambio de UI, mirar
+  `select name from events where name like 'E2E-%'` (llegó a haber 24 de 26).
+- **Identidad de marca Enty (regla dura):** una sola voz tipográfica, Sora
+  self-hosted en `public/fonts/*.woff2` — PROHIBIDO Google Fonts o fuentes
+  decorativas (Anton, Permanent Marker) en cualquier HTML, incluidos los
+  estáticos de `public/brand/`. Isotipo = "E troquelada" + sello de registro
+  (anillo con punto); NUNCA la estrella de 4 puntas (genérica "de IA"). La
+  estrella de 5 puntas (`Star5`) sí vale como acento de fiesta. Paleta: negro
+  mate cálido (`--e-ink-*`, canvas `#0c0a09`), no el navy azulado viejo.
+  Verificar: `grep -rn "googleapis\|Anton\|Permanent" frontend/public frontend/src`.

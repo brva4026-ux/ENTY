@@ -29,7 +29,7 @@ import EventWorkbench, {
   sortEventsForStrip,
 } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
-import { Star4, Bolt, RibbonDivider } from "../components/Doodles";
+import { Sello, Bolt, RibbonDivider } from "../components/Doodles";
 import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
 import PayoutsManager from "../components/PayoutsManager";
@@ -850,7 +850,7 @@ export default function AdminDashboard() {
                         búsqueda). */}
                       <div className="evx-head doodle-host">
                         {/* Doodle de fiesta junto al titular (capa POP) */}
-                        <Star4 className="-left-1 -top-1 h-3.5 w-3.5 text-[#00E6AB]" />
+                        <Sello className="-left-1 -top-1 h-3.5 w-3.5 text-[var(--e-green-500)]" />
                         <div className="min-w-0">
                           <p className="eyebrow">Operación</p>
                           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

@@ -5,6 +5,7 @@ import { eventDate, clockTime } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import Icon from "../components/Icon";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { QR_COLORS } from "../lib/qr";
 
 /**
  * Boleta del invitado. Es la pagina publica que se comparte por WhatsApp: el
@@ -33,9 +34,9 @@ function EntyMark({ className }) {
     <svg viewBox="0 0 64 84" className={className} aria-hidden="true">
       <path
         d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z"
-        fill="#FFFFFF"
+        fill="var(--e-white)"
       />
-      <g fill="#0A0A0D">
+      <g fill="var(--e-ink-1000)">
         <rect x="20" y="24" width="26" height="6" rx="3" />
         <rect x="20" y="40" width="26" height="6" rx="3" />
         <rect x="20" y="56" width="26" height="6" rx="3" />
@@ -44,14 +45,14 @@ function EntyMark({ className }) {
   );
 }
 
-/** Estrella de cuatro puntas (acento de marca). */
-function Star({ className, color = "#00E6AB" }) {
+/* Sello de registro sobre el centro del QR. La boleta (.tkt) conserva su
+   forma; solo cambia el glifo decorativo, que antes era una estrella de
+   cuatro puntas (el icono generico de "producto con IA"). */
+function Star({ className, color = "var(--e-green-500)" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path
-        fill={color}
-        d="M12 1 l2.6 8.4 8.4 2.6 -8.4 2.6 -2.6 8.4 -2.6 -8.4 -8.4 -2.6 8.4 -2.6 z"
-      />
+      <circle cx="12" cy="12" r="8.5" fill="none" stroke={color} strokeWidth="3.6" />
+      <circle cx="12" cy="12" r="2.6" fill={color} />
     </svg>
   );
 }
@@ -78,7 +79,7 @@ function Barcode() {
     }
     x += w + 0.6 + rnd() * 1.6;
   }
-  return <g fill="#FFFFFF">{bars}</g>;
+  return <g fill="var(--e-white)">{bars}</g>;
 }
 
 export default function PublicTicketPage() {
@@ -122,7 +123,7 @@ export default function PublicTicketPage() {
       // muestra con brillo bajo o llega por WhatsApp; con correccion H (30%)
       // el escaneo en la puerta falla mucho menos que con M.
       errorCorrectionLevel: "H",
-      color: { dark: "#0f172a", light: "#ffffff" },
+      color: QR_COLORS,
     })
       .then((url) => {
         if (alive) setQrDataUrl(url);
@@ -279,16 +280,15 @@ export default function PublicTicketPage() {
                 rx="205"
                 ry="58"
                 fill="none"
-                stroke="#00E6AB"
+                stroke="var(--e-green-500)"
                 strokeWidth="1.6"
                 opacity="0.8"
                 transform="rotate(-7 215 95)"
               />
-              <path
-                d="M360 24 l6 15 15 6 -15 6 -6 15 -6 -15 -15 -6 15 -6 z"
-                fill="#00E6AB"
-                className="tkt-orbit-star"
-              />
+              <g className="tkt-orbit-star">
+                <circle cx="375" cy="45" r="11" fill="none" stroke="var(--e-green-500)" strokeWidth="4.5" />
+                <circle cx="375" cy="45" r="3.4" fill="var(--e-green-500)" />
+              </g>
             </svg>
             <p className="tkt-kicker">Festival</p>
             <h1 className="tkt-title">{ticket?.event_name ?? "Tu boleta"}</h1>
@@ -366,7 +366,7 @@ export default function PublicTicketPage() {
                     <path
                       d="M8 30 C 70 8, 130 40, 196 20 S 320 6, 372 24"
                       fill="none"
-                      stroke="#39FF14"
+                      stroke="var(--e-green-neon)"
                       strokeWidth="5"
                       strokeLinecap="round"
                       opacity="0.9"
@@ -375,7 +375,7 @@ export default function PublicTicketPage() {
                     <path
                       d="M20 38 C 96 22, 150 40, 214 26 S 330 14, 366 34"
                       fill="none"
-                      stroke="#FF2D98"
+                      stroke="var(--e-pink-500)"
                       strokeWidth="4"
                       strokeLinecap="round"
                       opacity="0.85"

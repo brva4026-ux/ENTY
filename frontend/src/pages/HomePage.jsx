@@ -70,11 +70,12 @@ function dayBadge(iso, tz) {
   return { day, month: MONTHS[monthNum - 1] ?? "---" };
 }
 
-/** Estrella de cuatro puntas (acento de marca). */
-function Star({ size = 8, color = "#8B5CF6" }) {
+/** Sello de registro: anillo con punto de tinta (la firma del isotipo). */
+function Star({ size = 8, color = "var(--e-brand-400)" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 0 L14.6 9.4 L24 12 L14.6 14.6 L12 24 L9.4 14.6 L0 12 L9.4 9.4 Z" fill={color} />
+      <circle cx="12" cy="12" r="8.5" fill="none" stroke={color} strokeWidth="3.6" />
+      <circle cx="12" cy="12" r="2.6" fill={color} />
     </svg>
   );
 }
@@ -104,7 +105,7 @@ function NeonStrokes() {
       <path
         d="M-10 214 C 70 150, 150 236, 250 150 S 352 92, 356 74"
         fill="none"
-        stroke="#00E6AB"
+        stroke="var(--e-green-500)"
         strokeWidth="2.4"
         strokeLinecap="round"
         filter="url(#sGlow)"
@@ -113,7 +114,7 @@ function NeonStrokes() {
       <path
         d="M-6 60 C 96 96, 150 8, 262 46"
         fill="none"
-        stroke="#FF2D98"
+        stroke="var(--e-pink-500)"
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeDasharray="1 7"
@@ -133,12 +134,12 @@ function SoldRing({ pct }) {
     <svg className="home-ring" viewBox="0 0 342 262" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
         <radialGradient id="hGlow" cx="0.82" cy="0.18" r="0.7">
-          <stop offset="0" stopColor="#8B5CF6" stopOpacity="0.34" />
-          <stop offset="1" stopColor="#8B5CF6" stopOpacity="0" />
+          <stop offset="0" stopColor="var(--e-brand-400)" stopOpacity="0.34" />
+          <stop offset="1" stopColor="var(--e-brand-400)" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="hFade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0.35" stopColor="#101012" stopOpacity="0" />
-          <stop offset="1" stopColor="#101012" stopOpacity="0.9" />
+          <stop offset="0.35" stopColor="var(--e-ink-1000)" stopOpacity="0" />
+          <stop offset="1" stopColor="var(--e-ink-1000)" stopOpacity="0.9" />
         </linearGradient>
       </defs>
       <rect width="342" height="262" fill="url(#hGlow)" />
@@ -152,16 +153,16 @@ function SoldRing({ pct }) {
         cy="86"
         r={r}
         fill="none"
-        stroke="#B7A3FF"
+        stroke="var(--e-brand-300)"
         strokeWidth="2"
         strokeLinecap="round"
         strokeDasharray={`${(shown / 100) * c} ${c}`}
         transform="rotate(-90 266 86)"
       />
-      <text x="266" y="92" textAnchor="middle" fontSize="22" fontWeight="300" fill="#F3F1EC" letterSpacing="-1">
+      <text x="266" y="92" textAnchor="middle" fontSize="22" fontWeight="300" fill="var(--e-paper)" letterSpacing="-1">
         {shown}%
       </text>
-      <text x="266" y="108" textAnchor="middle" fontSize="7.5" fill="#8A8A93" letterSpacing="1.6">
+      <text x="266" y="108" textAnchor="middle" fontSize="7.5" fill="var(--e-text-muted)" letterSpacing="1.6">
         VENDIDO
       </text>
       <rect width="342" height="262" fill="url(#hFade)" />
@@ -261,8 +262,8 @@ function Heart({ filled }) {
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M12 20s-7-4.6-7-9.5A3.9 3.9 0 0 1 12 7a3.9 3.9 0 0 1 7 3.5C19 15.4 12 20 12 20z"
-        fill={filled ? "#7C3AED" : "none"}
-        stroke={filled ? "#7C3AED" : "currentColor"}
+        fill={filled ? "var(--e-brand-500)" : "none"}
+        stroke={filled ? "var(--e-brand-500)" : "currentColor"}
         strokeWidth="1.6"
         strokeLinejoin="round"
       />
@@ -300,7 +301,7 @@ export default function HomePage() {
   // Solo la última tarjeta marcada celebra (rebote): no todas al montar.
   const [favPop, setFavPop] = useState(null);
   const [bellOpen, setBellOpen] = useState(false);
-  // La vitrina es nocturna por diseno (negro + violeta). Sin el candado, un
+  // La vitrina es nocturna por diseno (tinta + violeta). Sin el candado, un
   // visitante con tema claro veia la cartelera como una tarjeta negra sobre
   // blanco: el tema del sistema no aplica a una pantalla publica de marca.
   useEffect(() => forceDarkOnce(), []);
@@ -471,7 +472,7 @@ export default function HomePage() {
       {error ? (
         <div className="home-empty">
           <span className="enty-spark" aria-hidden="true">
-            <Star size={20} color="#BB5CF6" />
+            <Star size={20} color="var(--e-brand-400)" />
           </span>
           <p>No pudimos cargar la cartelera</p>
           <span>{error}</span>
@@ -488,7 +489,7 @@ export default function HomePage() {
       ) : !featured ? (
         <div className="home-empty">
           <span className="enty-spark" aria-hidden="true">
-            <Star size={20} color="#00E6AB" />
+            <Star size={20} color="var(--e-green-500)" />
           </span>
           <p>{query ? "Sin resultados" : "No hay eventos próximos"}</p>
           <span>

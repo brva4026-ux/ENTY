@@ -29,19 +29,19 @@ stylelint `color-no-hex` prohíbe cualquier hex en el resto de hojas.
 
 | Rol | Token | Hex | Uso |
 |---|---|---|---|
-| Negro mate | `--e-ink-1` | `#0B0B0F` | Lienzo de la marca (tema oscuro por defecto) |
-| Violeta eléctrico | `--e-violet-500` | `#7C3AED` | La única acción primaria |
-| Verde eléctrico | `--e-green-500` | `#00E6AB` | Validado / disponible / en vivo |
-| Rosa eléctrico | `--e-pink-500` | `#FF2D98` | Urgencia / últimas / rechazo crítico |
-| Tinta | `--e-paper` / `#F5F5F7` | | Texto principal sobre negro |
+| Negro mate | `--e-ink-950` | `#0c0a09` | Lienzo de la marca (tema oscuro por defecto) |
+| Violeta eléctrico | `--e-brand-500` | `#7c3aed` | La única acción primaria |
+| Verde eléctrico | `--e-green-500` | `#00e6ab` | Validado / disponible / en vivo |
+| Rosa eléctrico | `--e-pink-500` | `#ff2d98` | Urgencia / últimas / rechazo crítico |
+| Tinta | `--e-paper` | `#f6f5f2` | Texto principal sobre negro |
 
 Reglas de color:
 
-- **Un solo acento interactivo**: el violeta `#7C3AED` (`--e-brand`). Todo
+- **Un solo acento interactivo**: el violeta `#7c3aed` (`--e-brand-500`). Todo
   botón/estado primario lo usa; nada más.
 - **El verde y el rosa significan, no decoran**. Verde = validado/disponible/en
   vivo; rosa = urgencia/últimas. Nunca son color de interfaz ni de marca.
-- **Un violeta más brillante** (`--e-violet-400` `#BB5CF6`) es solo
+- **Un violeta más brillante** (`--e-brand-400` `#bb5cf6`) es solo
   halo/glow, nunca relleno interactivo.
 - Oscuro por defecto; la **puerta es siempre oscura** (el flash blanco en un
   recinto a oscuras ciega al portero), aunque el tema del dispositivo sea claro.
@@ -78,7 +78,7 @@ Cifras **siempre tabulares** en datos de negocio: `.tnum` o
 `tokens.css` tiene tres niveles:
 
 1. **Primitivas** `--e-<familia>-<paso>`: el valor crudo (`--e-ink-1`,
-   `--e-violet-500`). No se consumen en componentes.
+   `--e-brand-500`). No se consumen en componentes.
 2. **Semánticas** `--e-<rol>`: lo que usan las hojas (`--e-canvas`,
    `--e-surface`, `--e-text-primary`, `--e-border-hairline`, `--e-brand`,
    `--e-success`, `--e-urgent`). **Voltean con el tema**.
@@ -99,7 +99,8 @@ Cifras **siempre tabulares** en datos de negocio: `.tnum` o
   La elevación es un par tema-aware: **mismo hueco visual, distinta materia**
   (oscuro = sombra; claro = papel).
 - `--e-highlight-inset`: el filo de 1px que hace la superficie "pizarra".
-- `--e-glow-brand`, `--e-glow-violet/green/pink`: halos de marca.
+- `--e-glow-brand`, `--e-glow-violet` (nombre historico del halo violeta),
+  `--e-glow-green/pink`: halos de marca.
 - `--e-glass-1/2`, `--e-glass-line`, `--e-glass-blur`: material de cristal de la
   casa fan (vitrina, detalle, boleta).
 - `--e-ticket-*`: material de la **boleta pública**, siempre oscuro (no voltea).
@@ -156,7 +157,7 @@ Cada rol es un "volumen" distinto del mismo lenguaje.
 
 - El movimiento dominante es `transform`/`opacity`; **nunca** se anima
   `filter`/`backdrop-filter`.
-- 19 keyframes, todos usados; 0 huérfanos.
+- 21 keyframes, todos usados; 0 huérfanos.
 - **Todo movimiento respeta `prefers-reduced-motion`** (único uso legítimo de
   `!important` en el repo).
 

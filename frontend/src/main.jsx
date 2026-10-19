@@ -116,6 +116,13 @@ function App() {
       <UIProvider>
         <OfflineBanner />
         <BrowserRouter>
+          {/* Aviso de cookies: necesita router hooks (navega a /cookies), por
+              eso vive DENTRO de BrowserRouter. Va ANTES de las rutas y en
+              flujo normal (no `fixed`): como banner informativo no debe tapar
+              la cabecera pegajosa ni las acciones del backstage, que quedaban
+              inclickeables tras el aviso. Al estar en el flujo, empuja el
+              contenido hacia abajo en vez de superponerse. */}
+          <CookieNotice />
           <Suspense fallback={<SplashScreen />}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
@@ -203,9 +210,6 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-          {/* Aviso de cookies: necesita router hooks (navega a /cookies), por
-              eso vive DENTRO de BrowserRouter y no junto a OfflineBanner. */}
-          <CookieNotice />
         </BrowserRouter>
       </UIProvider>
     </AuthProvider>

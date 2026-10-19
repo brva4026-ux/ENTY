@@ -10,14 +10,14 @@
 
 body {
   background:
-    radial-gradient(70rem 42rem at 50% -18rem, rgba(187, 92, 246, 0.16), transparent 62%),
-    radial-gradient(34rem 24rem at 103% 18rem, rgba(187, 92, 246, 0.08), transparent 64%),
+    radial-gradient(70rem 42rem at 50% -18rem, color-mix(in srgb, var(--e-brand-400) 16%, transparent), transparent 62%),
+    radial-gradient(34rem 24rem at 103% 18rem, color-mix(in srgb, var(--e-brand-400) 8%, transparent), transparent 64%),
     var(--e-canvas);
   color: var(--e-text-primary);
 }
 
 ::selection {
-  background: rgba(187, 92, 246, 0.48);
+  background: color-mix(in srgb, var(--e-brand-400) 48%, transparent);
   color: var(--e-white);
 }
 
@@ -40,11 +40,11 @@ body {
 .brand-suffix,
 .btn-mini[data-variant="brand"],
 .tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: var(--e-violet-200);
+  color: var(--e-brand-200);
 }
 
 .text-gradient {
-  background: linear-gradient(120deg, var(--e-white) 0%, var(--e-white) 36%, var(--e-violet-200) 72%, var(--e-brand) 100%);
+  background: linear-gradient(120deg, var(--e-white) 0%, var(--e-white) 36%, var(--e-brand-200) 72%, var(--e-brand) 100%);
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -57,7 +57,7 @@ body {
   border-radius: var(--e-radius-xl);
   border-color: var(--e-border-hairline);
   background:
-    radial-gradient(34rem 20rem at 84% -10rem, rgba(187, 92, 246, 0.12), transparent 68%),
+    radial-gradient(34rem 20rem at 84% -10rem, color-mix(in srgb, var(--e-brand-400) 12%, transparent), transparent 68%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 42%),
     var(--e-surface);
   box-shadow:
@@ -71,13 +71,13 @@ html[data-theme="light"] .dialog-panel,
 html[data-theme="light"] .venue-header,
 html[data-theme="light"] .bizdock {
   background:
-    radial-gradient(30rem 18rem at 84% -10rem, rgba(187, 92, 246, 0.06), transparent 70%),
+    radial-gradient(30rem 18rem at 84% -10rem, color-mix(in srgb, var(--e-brand-400) 6%, transparent), transparent 70%),
     var(--e-surface);
 }
 
 .card-interactive:hover {
   transform: translateY(-2px);
-  border-color: rgba(187, 92, 246, 0.36);
+  border-color: color-mix(in srgb, var(--e-brand-400) 36%, transparent);
   box-shadow: var(--e-elev-raised);
 }
 
@@ -85,8 +85,8 @@ html[data-theme="light"] .bizdock {
 select.field,
 textarea.field {
   border-radius: var(--e-radius-lg);
-  border-color: rgba(187, 92, 246, 0.22);
-  background-color: rgba(187, 92, 246, 0.075);
+  border-color: color-mix(in srgb, var(--e-brand-400) 22%, transparent);
+  background-color: color-mix(in srgb, var(--e-brand-400) 7.5%, transparent);
   color: var(--e-text-primary);
 }
 
@@ -95,36 +95,36 @@ textarea.field {
 }
 
 .field:hover {
-  border-color: rgba(187, 92, 246, 0.42);
+  border-color: color-mix(in srgb, var(--e-brand-400) 42%, transparent);
 }
 
 .field:focus {
   border-color: var(--e-brand);
-  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.24), 0 0 28px -16px rgba(187, 92, 246, 0.95);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-400) 24%, transparent), 0 0 28px -16px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .btn-primary {
   border-radius: var(--e-radius-lg);
-  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 55%, var(--e-violet-425) 100%);
+  background: linear-gradient(135deg, var(--e-brand-500) 0%, var(--e-brand-400) 55%, var(--e-brand-425) 100%);
   color: var(--e-white);
   border-width: 1px;
   border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 18px 34px -20px rgba(187, 92, 246, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  box-shadow: 0 18px 34px -20px color-mix(in srgb, var(--e-brand-400) 95%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.24);
   font-weight: 800;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--e-violet-600) 0%, var(--e-violet-425) 58%, var(--e-violet-550) 100%);
-  box-shadow: 0 20px 40px -18px rgba(187, 92, 246, 1), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  background: linear-gradient(135deg, var(--e-brand-600) 0%, var(--e-brand-425) 58%, var(--e-brand-550) 100%);
+  box-shadow: 0 20px 40px -18px var(--e-brand-400), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .btn-primary:focus-visible {
   border-color: var(--e-white);
-  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.35), 0 18px 34px -20px rgba(187, 92, 246, 0.95);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-400) 35%, transparent), 0 18px 34px -20px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .btn-primary:active {
-  background: linear-gradient(135deg, var(--e-violet-700), var(--e-violet-550));
+  background: linear-gradient(135deg, var(--e-brand-700), var(--e-brand-550));
   transform: translateY(1px);
 }
 
@@ -145,16 +145,16 @@ textarea.field {
 }
 
 .btn-ghost:hover {
-  background: rgba(187, 92, 246, 0.11);
-  border-color: rgba(187, 92, 246, 0.44);
+  background: color-mix(in srgb, var(--e-brand-400) 11%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 44%, transparent);
   color: var(--e-text-primary);
 }
 
 .btn-mini[data-variant="brand"]:hover,
 .opt-chip[aria-pressed="true"] {
-  background: rgba(187, 92, 246, 0.14);
-  border-color: rgba(187, 92, 246, 0.46);
-  color: var(--e-violet-200);
+  background: color-mix(in srgb, var(--e-brand-400) 14%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 46%, transparent);
+  color: var(--e-brand-200);
 }
 
 .btn-mini[data-variant="success"] {
@@ -168,7 +168,7 @@ textarea.field {
 .meter-fill,
 input[type="checkbox"].accent-brand-500:checked,
 .bizdock-item.is-active .bizdock-icon {
-  background: linear-gradient(135deg, var(--e-violet-500), var(--e-violet-400));
+  background: linear-gradient(135deg, var(--e-brand-500), var(--e-brand-400));
 }
 
 input[type="checkbox"].accent-brand-500:checked {
@@ -187,22 +187,22 @@ input[type="checkbox"].accent-brand-500:checked {
 }
 
 .topnav-item:hover {
-  background: rgba(187, 92, 246, 0.1);
+  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
   color: var(--e-text-primary);
 }
 
 .topnav-item.is-active,
 html[data-theme="light"] header nav a[aria-current="page"] {
-  background: rgba(187, 92, 246, 0.16);
+  background: color-mix(in srgb, var(--e-brand-400) 16%, transparent);
   color: var(--e-text-primary);
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.28);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 28%, transparent);
 }
 
 .topbar-avatar {
-  border: 1px solid rgba(187, 92, 246, 0.44);
-  background: radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.28), transparent 24%), linear-gradient(135deg, var(--e-violet-700), var(--e-violet-400));
+  border: 1px solid color-mix(in srgb, var(--e-brand-400) 44%, transparent);
+  background: radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.28), transparent 24%), linear-gradient(135deg, var(--e-brand-700), var(--e-brand-400));
   color: var(--e-white);
-  box-shadow: 0 0 26px -14px rgba(187, 92, 246, 0.95);
+  box-shadow: 0 0 26px -14px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .bottomnav {
@@ -217,30 +217,30 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .bottomnav-item.is-active {
-  color: var(--e-violet-200);
-  background: rgba(187, 92, 246, 0.12);
+  color: var(--e-brand-200);
+  background: color-mix(in srgb, var(--e-brand-400) 12%, transparent);
 }
 
 .bottomnav-item.is-active span:last-child {
   background: var(--e-brand);
-  box-shadow: 0 0 16px rgba(187, 92, 246, 0.65);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--e-brand-400) 65%, transparent);
 }
 
 .tabbar {
   border: 1px solid var(--e-border-hairline);
   background: rgba(255, 255, 255, 0.035);
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.06);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 6%, transparent);
 }
 
 .tabbar-item[aria-selected="true"] {
-  background: rgba(187, 92, 246, 0.14);
+  background: color-mix(in srgb, var(--e-brand-400) 14%, transparent);
   color: var(--e-text-primary);
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.3), 0 10px 26px -20px rgba(187, 92, 246, 0.9);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 30%, transparent), 0 10px 26px -20px color-mix(in srgb, var(--e-brand-400) 90%, transparent);
 }
 
 .badge {
-  border: 1px solid rgba(187, 92, 246, 0.22);
-  background: rgba(187, 92, 246, 0.09);
+  border: 1px solid color-mix(in srgb, var(--e-brand-400) 22%, transparent);
+  background: color-mix(in srgb, var(--e-brand-400) 9%, transparent);
 }
 
 .list-row,
@@ -254,22 +254,22 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .row:hover {
-  background: rgba(187, 92, 246, 0.075);
+  background: color-mix(in srgb, var(--e-brand-400) 7.5%, transparent);
 }
 
 .empty-state-icon {
-  color: var(--e-violet-200);
-  background: radial-gradient(circle, rgba(187, 92, 246, 0.24), rgba(187, 92, 246, 0.07));
-  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.4), 0 0 34px -18px rgba(187, 92, 246, 0.95);
+  color: var(--e-brand-200);
+  background: radial-gradient(circle, color-mix(in srgb, var(--e-brand-400) 24%, transparent), color-mix(in srgb, var(--e-brand-400) 7%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 40%, transparent), 0 0 34px -18px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .ticket-timeline::before {
-  background: linear-gradient(180deg, rgba(187, 92, 246, 0.66), rgba(0, 230, 171, 0.32));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-400) 66%, transparent), rgba(0, 230, 171, 0.32));
 }
 
 .ticket-step.done .ticket-step-dot {
   background: var(--e-brand);
-  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.18), 0 0 16px -4px rgba(187, 92, 246, 0.9);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-400) 18%, transparent), 0 0 16px -4px color-mix(in srgb, var(--e-brand-400) 90%, transparent);
 }
 
 .ticket-step.current .ticket-step-dot {
@@ -283,7 +283,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .vh-kpi::before {
-  background: linear-gradient(180deg, rgba(187, 92, 246, 0.8), rgba(187, 92, 246, 0.08) 82%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-400) 80%, transparent), color-mix(in srgb, var(--e-brand-400) 8%, transparent) 82%, transparent);
 }
 
 .bizdock-item {
@@ -292,24 +292,21 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 .bizdock-item:hover {
-  background: rgba(187, 92, 246, 0.095);
+  background: color-mix(in srgb, var(--e-brand-400) 9.5%, transparent);
 }
 
 .bizdock-item.is-active {
-  background: rgba(187, 92, 246, 0.14);
-  border-color: rgba(187, 92, 246, 0.38);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 36px -28px rgba(187, 92, 246, 0.9);
+  background: color-mix(in srgb, var(--e-brand-400) 14%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 38%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 36px -28px color-mix(in srgb, var(--e-brand-400) 90%, transparent);
 }
 
 .bizdock-count {
   font-variant-numeric: tabular-nums;
   background: var(--e-brand);
-  /* Tinta Enty sobre el violeta brillante (oscuro): 6.2:1. En claro
-     --tf-purple cambia a var(--e-violet-500) (mas oscuro), donde la tinta bajaba a
-     3.4:1; ahi el par correcto es blanco (5.1:1). */
-  color: var(--e-ink-1);
-}
-html[data-theme="light"] .bizdock-count {
+  /* Blanco sobre --e-brand-500 (#7c3aed) = 5.70:1. La tinta oscura daba
+     3.45:1: el token --e-brand apunta hoy al violeta 500 en ambos temas, no
+     al violeta brillante que justificaba la tinta. */
   color: var(--e-white);
 }
 
@@ -325,7 +322,7 @@ html[data-theme="light"] .bizdock-count {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--e-surface) 25%, rgba(187, 92, 246, 0.16) 50%, var(--e-surface) 75%);
+  background: linear-gradient(90deg, var(--e-surface) 25%, color-mix(in srgb, var(--e-brand-400) 16%, transparent) 50%, var(--e-surface) 75%);
   background-size: 800px 100%;
 }
 
@@ -335,7 +332,7 @@ html[data-theme="light"] .bizdock-count {
 
 .auth-brand {
   background:
-    radial-gradient(38rem 28rem at 78% 0%, rgba(187, 92, 246, 0.24), transparent 58%),
+    radial-gradient(38rem 28rem at 78% 0%, color-mix(in srgb, var(--e-brand-400) 24%, transparent), transparent 58%),
     radial-gradient(34rem 22rem at 14% 86%, rgba(255, 45, 152, 0.09), transparent 60%),
     linear-gradient(158deg, var(--e-panel-550) 0%, var(--e-ink-1) 64%, var(--e-ink-0) 100%);
 }
@@ -350,17 +347,17 @@ html[data-theme="light"] .bizdock-count {
 }
 
 .auth-benefit-check {
-  color: var(--e-violet-200);
-  background: rgba(187, 92, 246, 0.15);
-  border-color: rgba(187, 92, 246, 0.42);
+  color: var(--e-brand-200);
+  background: color-mix(in srgb, var(--e-brand-400) 15%, transparent);
+  border-color: color-mix(in srgb, var(--e-brand-400) 42%, transparent);
 }
 
 .evx-card {
-  border-radius: 1.1rem;
+  border-radius: 1.125rem;
 }
 
 .evx-card::after {
-  background: radial-gradient(90% 70% at 50% -10%, rgba(187, 92, 246, 0.16), transparent 62%);
+  background: radial-gradient(90% 70% at 50% -10%, color-mix(in srgb, var(--e-brand-400) 16%, transparent), transparent 62%);
 }
 
 /* Public digital ticket: black paper, hard white type, QR priority, neon marks. */
@@ -372,12 +369,12 @@ html[data-theme="light"] .bizdock-count {
 .tkt {
   border-radius: 1.25rem;
   background:
-    radial-gradient(26rem 18rem at 78% 12%, rgba(187, 92, 246, 0.14), transparent 60%),
+    radial-gradient(26rem 18rem at 78% 12%, color-mix(in srgb, var(--e-brand-400) 14%, transparent), transparent 60%),
     radial-gradient(18rem 10rem at 14% 72%, rgba(255, 45, 152, 0.1), transparent 62%),
     linear-gradient(180deg, var(--e-panel-700), var(--e-panel-900));
   color: var(--e-white);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 28px 70px -38px rgba(0, 0, 0, 1), 0 0 0 1px rgba(187, 92, 246, 0.08);
+  box-shadow: 0 28px 70px -38px rgba(0, 0, 0, 1), 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 8%, transparent);
 }
 
 .tkt::before {
@@ -405,9 +402,9 @@ html[data-theme="light"] .bizdock-count {
 
 .tkt-brand,
 .tkt-admit {
-  background: rgba(187, 92, 246, 0.16);
+  background: color-mix(in srgb, var(--e-brand-400) 16%, transparent);
   color: var(--e-white);
-  border-color: rgba(187, 92, 246, 0.42);
+  border-color: color-mix(in srgb, var(--e-brand-400) 42%, transparent);
 }
 
 .tkt-tear::after {
@@ -454,9 +451,9 @@ html[data-theme="light"] .bizdock-count {
 }
 
 .tkt-btn-primary {
-  background: linear-gradient(135deg, var(--e-violet-500), var(--e-violet-400));
+  background: linear-gradient(135deg, var(--e-brand-500), var(--e-brand-400));
   color: var(--e-white);
-  box-shadow: 0 16px 34px -18px rgba(187, 92, 246, 0.95);
+  box-shadow: 0 16px 34px -18px color-mix(in srgb, var(--e-brand-400) 95%, transparent);
 }
 
 .tkt-btn-quiet {
@@ -486,13 +483,13 @@ html[data-theme="light"] .bizdock-count {
    =========================================================================== */
 .tkt-stage {
   background:
-    radial-gradient(46rem 30rem at 50% -12rem, rgba(187, 92, 246, 0.16), transparent 62%),
+    radial-gradient(46rem 30rem at 50% -12rem, color-mix(in srgb, var(--e-brand-400) 16%, transparent), transparent 62%),
     var(--e-panel-950);
 }
 .tkt {
   position: relative;
   border: 0;
-  border-radius: 0.35rem;
+  border-radius: 0.375rem;
   overflow: hidden;
   isolation: isolate;
   color: var(--e-white);
@@ -540,13 +537,13 @@ html[data-theme="light"] .bizdock-count {
 
 /* Cabecera */
 .tkt-head {
-  padding: 1.35rem 1.4rem 0;
+  padding: 1.375rem 1.375rem 0;
   align-items: flex-start;
 }
 .tkt-brand-lock {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.375rem;
   font-weight: 700;
   font-size: var(--e-text-xl);
   letter-spacing: -0.02em;
@@ -579,7 +576,7 @@ html[data-theme="light"] .bizdock-count {
 .tkt-hero {
   position: relative;
   text-align: center;
-  margin: 1.9rem 0 1.5rem;
+  margin: 1.875rem 0 1.5rem;
   padding: 0.5rem 0;
 }
 .tkt-orbit {
@@ -607,7 +604,7 @@ html[data-theme="light"] .bizdock-count {
 .tkt-title {
   position: relative;
   z-index: 2;
-  margin: 0.4rem 0 0.55rem;
+  margin: 0.375rem 0 0.5rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 400;
   font-size: var(--e-text-display);
@@ -628,7 +625,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .tkt-one {
   display: block;
-  margin-top: 0.35rem;
+  margin-top: 0.375rem;
   font-size: var(--e-text-2xs);
   letter-spacing: 0.42em;
   color: var(--e-ticket-dim-2);
@@ -636,15 +633,15 @@ html[data-theme="light"] .bizdock-count {
 
 /* Cuerpo: fecha/plaza + QR */
 .tkt-body {
-  padding: 0 1.4rem 1.4rem;
+  padding: 0 1.375rem 1.375rem;
   background: none;
 }
 .tkt-body-grid {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 1.1rem;
+  gap: 1.125rem;
   align-items: start;
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
 }
 .tkt-yr {
   font-size: var(--e-text-2xs);
@@ -658,7 +655,7 @@ html[data-theme="light"] .bizdock-count {
   font-size: var(--e-text-display);
   line-height: 1.05;
   color: var(--e-white);
-  margin: 0.2rem 0 0.1rem;
+  margin: 0.25rem 0 0.125rem;
 }
 .tkt-hrs {
   font-size: var(--e-text-xs);
@@ -667,27 +664,27 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-ticket-dim);
 }
 .tkt-place {
-  margin-top: 0.7rem;
+  margin-top: 0.75rem;
   font-size: var(--e-text-xs);
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--e-white);
 }
 .tkt-city {
-  margin-top: 0.1rem;
+  margin-top: 0.125rem;
   font-size: var(--e-text-2xs);
   font-weight: 500;
   letter-spacing: 0.12em;
   color: var(--e-ticket-dim-2);
 }
 .tkt-qr-zone {
-  gap: 0.55rem;
+  gap: 0.5rem;
 }
 .tkt-qr {
   width: 7.4rem;
   height: 7.4rem;
   padding: 0.5rem;
-  border-radius: 0.6rem;
+  border-radius: 0.625rem;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--e-ticket-hair);
   box-shadow: none;
@@ -700,7 +697,7 @@ html[data-theme="light"] .bizdock-count {
 .tkt-qr .skeleton {
   width: 100%;
   height: 100%;
-  border-radius: 0.4rem;
+  border-radius: 0.375rem;
 }
 .tkt-qr-star {
   position: absolute;
@@ -716,13 +713,13 @@ html[data-theme="light"] .bizdock-count {
   inset: 0;
   display: grid;
   place-items: center;
-  border-radius: 0.6rem;
+  border-radius: 0.625rem;
   background: rgba(5, 5, 8, 0.72);
 }
 .tkt-qr-used span {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.95);
-  padding: 0.2rem 0.6rem;
+  padding: 0.25rem 0.625rem;
   font-size: var(--e-text-xs);
   font-weight: 800;
   color: var(--e-mask);
@@ -739,7 +736,7 @@ html[data-theme="light"] .bizdock-count {
 .tkt-strokes {
   position: relative;
   height: 2.6rem;
-  margin: 1.1rem -0.35rem 0.3rem;
+  margin: 1.125rem -0.375rem 0.25rem;
 }
 .tkt-strokes svg {
   position: absolute;
@@ -759,7 +756,7 @@ html[data-theme="light"] .bizdock-count {
 .tkt-perf {
   position: relative;
   height: 1.3rem;
-  margin: 0.15rem -1.4rem 1rem;
+  margin: 0.125rem -1.375rem 1rem;
   display: flex;
   align-items: center;
 }
@@ -794,7 +791,7 @@ html[data-theme="light"] .bizdock-count {
   display: flex;
 }
 .tkt-seat-cell {
-  padding: 0 0.9rem;
+  padding: 0 0.875rem;
   border-left: 1px solid var(--e-ticket-hair);
   min-width: 0;
 }
@@ -810,7 +807,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-ticket-dim-2);
 }
 .tkt-seat-v {
-  margin-top: 0.2rem;
+  margin-top: 0.25rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 400;
   font-size: var(--e-text-2xl);
@@ -842,11 +839,11 @@ html[data-theme="light"] .bizdock-count {
   margin-top: 0.5rem;
 }
 .tkt-location {
-  margin-top: 0.7rem;
+  margin-top: 0.75rem;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  gap: 0.35rem;
+  gap: 0.375rem;
   text-align: center;
   font-size: var(--e-text-2xs);
   font-weight: 600;
@@ -859,7 +856,7 @@ html[data-theme="light"] .bizdock-count {
   grid-template-columns: 1fr auto;
   gap: 1rem;
   align-items: end;
-  margin-top: 1.3rem;
+  margin-top: 1.25rem;
 }
 .tkt-barcode svg {
   display: block;
@@ -868,7 +865,7 @@ html[data-theme="light"] .bizdock-count {
   height: 2.5rem;
 }
 .tkt-barcode-cap {
-  margin-top: 0.4rem;
+  margin-top: 0.375rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.2em;
@@ -892,7 +889,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-white);
 }
 .tkt-note .tkt-note-icon {
-  background: rgba(187, 92, 246, 0.18);
+  background: color-mix(in srgb, var(--e-brand-400) 18%, transparent);
   color: var(--e-white);
 }
 .tkt-note strong,
@@ -918,7 +915,7 @@ html[data-theme="light"] .bizdock-count {
 
 /* ===========================================================================
    INICIO (app del fan) - la vitrina editorial del mockup "1 · Inicio".
-   Sora en peso 300 para titulares, fondo negro nocturno, acento violeta suave.
+   Sora en peso 300 para titulares, tinta calida, acento violeta.
    Es hermana sobria de la boleta coleccionable: la boleta es el objeto, esto
    es la vitrina.
    =========================================================================== */
@@ -932,7 +929,7 @@ html[data-theme="light"] .bizdock-count {
      y la nav inferior bajo la barra de gestos. max() conserva el padding
      de diseno cuando no hay inset (Android/desktop). */
   padding:
-    max(1.6rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right))
+    max(1.625rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right))
     calc(6rem + env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left));
   background: var(--e-canvas);
   color: var(--e-text-primary);
@@ -956,7 +953,7 @@ html[data-theme="light"] .bizdock-count {
   background:
     radial-gradient(
       42rem 30rem at 88% -6%,
-      rgba(124, 58, 237, 0.28),
+      color-mix(in srgb, var(--e-brand-500) 28%, transparent),
       transparent 62%
     ),
     radial-gradient(
@@ -989,7 +986,7 @@ html[data-theme="light"] .bizdock-count {
 .home-wordmark {
   display: flex;
   align-items: flex-start;
-  gap: 3px;
+  gap: 4px;
   font-size: var(--e-text-xl);
   font-weight: 600;
   letter-spacing: -0.05em;
@@ -1013,7 +1010,7 @@ html[data-theme="light"] .bizdock-count {
 
 /* Titular */
 .home-title {
-  margin-top: 1.9rem;
+  margin-top: 1.875rem;
 }
 .home-title h1 {
   margin: 0;
@@ -1024,16 +1021,16 @@ html[data-theme="light"] .bizdock-count {
   line-height: 0.98;
 }
 .home-title p {
-  margin: 0.6rem 0 0;
+  margin: 0.625rem 0 0;
   font-size: var(--e-text-xs);
   color: var(--e-text-secondary);
 }
 
 /* Tabs de categoria */
 .home-tabs {
-  margin-top: 1.35rem;
+  margin-top: 1.375rem;
   display: flex;
-  gap: 1.6rem;
+  gap: 1.625rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   overflow-x: auto;
   scrollbar-width: none;
@@ -1061,7 +1058,7 @@ html[data-theme="light"] .bizdock-count {
 /* Card destacada (glassmorphism sobre el hero) */
 .home-feature {
   position: relative;
-  margin-top: 1.35rem;
+  margin-top: 1.375rem;
   height: 16.4rem;
   border-radius: var(--e-radius-2xl);
   overflow: hidden;
@@ -1080,8 +1077,8 @@ html[data-theme="light"] .bizdock-count {
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(11, 11, 15, 0) 34%,
-    rgba(11, 11, 15, 0.72) 78%,
+    rgba(13, 11, 9, 0) 34%,
+    rgba(13, 11, 9, 0.72) 78%,
     var(--e-ink-1) 100%
   );
 }
@@ -1117,14 +1114,14 @@ html[data-theme="light"] .bizdock-count {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.875rem;
 }
 .home-eyebrow {
   font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--e-violet-250);
+  color: var(--e-brand-250);
 }
 .home-feature-top h1 {
   margin: 0.5rem 0 0;
@@ -1153,7 +1150,7 @@ html[data-theme="light"] .bizdock-count {
 .home-cta {
   flex: none;
   height: 2.6rem;
-  padding: 0 1.35rem;
+  padding: 0 1.375rem;
   border-radius: 999px;
   background: var(--e-brand);
   color: var(--e-white);
@@ -1163,16 +1160,16 @@ html[data-theme="light"] .bizdock-count {
   display: inline-flex;
   align-items: center;
   /* Resplandor exterior del mismo color: el boton emite luz. */
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
-    0 14px 30px -12px rgba(124, 58, 237, 0.9),
-    0 0 22px -4px rgba(124, 58, 237, 0.65);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 50%, transparent),
+    0 14px 30px -12px color-mix(in srgb, var(--e-brand-500) 90%, transparent),
+    0 0 22px -4px color-mix(in srgb, var(--e-brand-500) 65%, transparent);
   transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.2s ease;
 }
 .home-cta:hover {
   filter: brightness(1.08);
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.6),
-    0 18px 38px -12px rgba(124, 58, 237, 1),
-    0 0 30px -2px rgba(124, 58, 237, 0.8);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 60%, transparent),
+    0 18px 38px -12px var(--e-brand-500),
+    0 0 30px -2px color-mix(in srgb, var(--e-brand-500) 80%, transparent);
 }
 .home-cta:active {
   transform: translateY(1px);
@@ -1197,27 +1194,27 @@ html[data-theme="light"] .bizdock-count {
   padding-inline: 0.5rem;
   font-size: var(--e-text-xs);
   font-weight: 600;
-  color: var(--e-violet-250);
+  color: var(--e-brand-250);
 }
 
 /* Lista de proximos (tarjetas de cristal) */
 .home-list {
-  margin-top: 0.85rem;
+  margin-top: 0.875rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.625rem;
 }
 .home-row {
   display: flex;
   align-items: center;
   gap: 1rem;
   min-height: 4.1rem;
-  padding: 0.7rem 1rem;
-  border-radius: 1.1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1.125rem;
   /* Superficie sólida, no cristal: una lista que scrollea con backdrop-filter
      fuerza al compositor a recomponer el blur en cada frame (iOS sobre todo).
      El cristal queda para lo fijo (nav) y el hero; acá manda el rendimiento. */
-  background: rgba(23, 22, 34, 0.72);
+  background: rgba(25, 23, 19, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.2s ease;
 }
@@ -1225,9 +1222,9 @@ html[data-theme="light"] .bizdock-count {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .home-row:hover {
-  border-color: rgba(124, 58, 237, 0.5);
+  border-color: color-mix(in srgb, var(--e-brand-500) 50%, transparent);
   transform: translateY(-1px);
-  box-shadow: 0 16px 34px -26px rgba(124, 58, 237, 0.9);
+  box-shadow: 0 16px 34px -26px color-mix(in srgb, var(--e-brand-500) 90%, transparent);
 }
 .home-row-date {
   flex: none;
@@ -1254,7 +1251,7 @@ html[data-theme="light"] .bizdock-count {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 .home-row-info strong {
   font-size: var(--e-text-base);
@@ -1281,7 +1278,6 @@ html[data-theme="light"] .bizdock-count {
 
 /* Estados vacios */
 .home-empty {
-  margin-top: 3rem;
   text-align: center;
   color: var(--e-text-secondary);
 }
@@ -1293,7 +1289,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .home-empty span {
   display: block;
-  margin-top: 0.4rem;
+  margin-top: 0.375rem;
   font-size: var(--e-text-xs);
 }
 
@@ -1306,7 +1302,7 @@ html[data-theme="light"] .bizdock-count {
   width: 100%;
   max-width: 26rem;
   height: calc(4.9rem + env(safe-area-inset-bottom));
-  background: rgba(11, 11, 15, 0.66);
+  background: rgba(13, 11, 9, 0.66);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--e-glass-line);
@@ -1321,6 +1317,9 @@ html[data-theme="light"] .bizdock-count {
   box-sizing: border-box;
   z-index: 5;
 }
+/* El aviso de cookies vive en el flujo normal (antes de las rutas en main.jsx),
+   asi que no necesita compensacion de posicion: empuja el contenido hacia
+   abajo en vez de superponerse. Ver AGENTS.md. */
 .home-nav a {
   width: 4.4rem;
   min-height: 2.75rem;
@@ -1328,13 +1327,13 @@ html[data-theme="light"] .bizdock-count {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   font-size: var(--e-text-2xs);
   font-weight: 400;
   color: var(--e-neutral-650);
   transition: color 0.15s ease;
 }
-/* Icono de linea fina que se rellena de morado al estar activo. */
+/* Icono de linea fina que se rellena de violeta al estar activo. */
 .home-nav a svg path,
 .home-nav a svg circle {
   transition: fill 0.15s ease, stroke 0.15s ease;
@@ -1349,7 +1348,7 @@ html[data-theme="light"] .bizdock-count {
   stroke: var(--e-brand);
 }
 .home-nav a.is-on svg {
-  filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.75));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--e-brand-500) 75%, transparent));
 }
 
 @media (min-width: 480px) {
@@ -1362,7 +1361,7 @@ html[data-theme="light"] .bizdock-count {
 
 /* ----------------------------------------------------------------------
    INICIO (pasada 2): campana, buscador, carrusel de categorias, fila con
-   favorito. Mismo lenguaje que la base: cristal sobre negro, violeta como
+   favorito. Mismo lenguaje que la base: cristal sobre tinta, violeta como
    unico color interactivo, neon solo como energia grafica.
    ---------------------------------------------------------------------- */
 
@@ -1391,18 +1390,18 @@ html[data-theme="light"] .bizdock-count {
   height: 0.4rem;
   border-radius: 50%;
   background: var(--e-brand-glow);
-  box-shadow: 0 0 8px rgba(187, 92, 246, 0.9);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--e-brand-400) 90%, transparent);
 }
 .home-bell-panel {
-  margin-top: 0.9rem;
-  padding: 1rem 1.1rem;
-  border-radius: 1.1rem;
-  background: rgba(23, 22, 34, 0.92);
+  margin-top: 0.875rem;
+  padding: 1rem 1.125rem;
+  border-radius: 1.125rem;
+  background: rgba(25, 23, 19, 0.92);
   border: 1px solid var(--e-glass-line);
   animation: enter 0.28s var(--e-ease-expo, ease) both;
 }
 .home-bell-title {
-  margin: 0 0 0.6rem;
+  margin: 0 0 0.625rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.22em;
@@ -1421,12 +1420,12 @@ html[data-theme="light"] .bizdock-count {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0.5rem 0.6rem;
-  border-radius: 0.7rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.75rem;
   transition: background 0.15s ease;
 }
 .home-bell-panel li a:hover {
-  background: rgba(124, 58, 237, 0.14);
+  background: color-mix(in srgb, var(--e-brand-500) 14%, transparent);
 }
 .home-bell-panel strong {
   font-size: var(--e-text-sm);
@@ -1445,10 +1444,9 @@ html[data-theme="light"] .bizdock-count {
 
 /* Buscador de ancho completo */
 .home-search {
-  margin-top: 1.35rem;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.75rem;
   height: 3rem;
   padding: 0 1rem;
   border-radius: 1rem;
@@ -1458,8 +1456,8 @@ html[data-theme="light"] .bizdock-count {
   transition: border-color 0.15s ease, box-shadow 0.2s ease;
 }
 .home-search:focus-within {
-  border-color: rgba(124, 58, 237, 0.6);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+  border-color: color-mix(in srgb, var(--e-brand-500) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-500) 18%, transparent);
 }
 .home-search input {
   flex: 1;
@@ -1482,9 +1480,8 @@ html[data-theme="light"] .bizdock-count {
 
 /* Carrusel de categorias (circulos con etiqueta) */
 .home-cats {
-  margin-top: 1.35rem;
   display: flex;
-  gap: 1.1rem;
+  gap: 1.125rem;
   overflow-x: auto;
   scrollbar-width: none;
   padding-bottom: 0.25rem;
@@ -1497,7 +1494,7 @@ html[data-theme="light"] .bizdock-count {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   font-size: var(--e-text-xs);
   font-weight: 400;
   color: var(--e-text-secondary);
@@ -1523,9 +1520,9 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-white);
   background: var(--e-brand);
   border-color: transparent;
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.6),
-    0 12px 26px -12px rgba(124, 58, 237, 0.95),
-    0 0 22px -6px rgba(124, 58, 237, 0.8);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 60%, transparent),
+    0 12px 26px -12px color-mix(in srgb, var(--e-brand-500) 95%, transparent),
+    0 0 22px -6px color-mix(in srgb, var(--e-brand-500) 80%, transparent);
 }
 
 /* La fila ahora envuelve un enlace (main) + boton de favorito. */
@@ -1539,14 +1536,14 @@ html[data-theme="light"] .bizdock-count {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  padding: 0.7rem 0.25rem 0.7rem 0.7rem;
+  gap: 0.875rem;
+  padding: 0.75rem 0.25rem 0.75rem 0.75rem;
 }
 .home-row-thumb {
   flex: none;
   width: 3.6rem;
   height: 3.6rem;
-  border-radius: 0.8rem;
+  border-radius: 0.75rem;
   overflow: hidden;
   display: grid;
   place-items: center;
@@ -1634,7 +1631,7 @@ html[data-theme="light"] .bizdock-count {
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(30rem 22rem at 80% 10%, rgba(124, 58, 237, 0.5), transparent 60%),
+    radial-gradient(30rem 22rem at 80% 10%, color-mix(in srgb, var(--e-brand-500) 50%, transparent), transparent 60%),
     radial-gradient(24rem 20rem at 0% 90%, rgba(0, 230, 171, 0.22), transparent 60%),
     linear-gradient(160deg, var(--e-ink-700), var(--e-ink-1));
 }
@@ -1647,8 +1644,8 @@ html[data-theme="light"] .bizdock-count {
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(11, 11, 15, 0) 30%,
-    rgba(11, 11, 15, 0.55) 68%,
+    rgba(13, 11, 9, 0) 30%,
+    rgba(13, 11, 9, 0.55) 68%,
     var(--e-ink-1) 100%
   );
 }
@@ -1675,20 +1672,20 @@ html[data-theme="light"] .bizdock-count {
   display: grid;
   place-items: center;
   color: var(--e-text-primary);
-  background: rgba(11, 11, 15, 0.5);
+  background: rgba(13, 11, 9, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .evd-round:hover {
-  background: rgba(11, 11, 15, 0.75);
+  background: rgba(13, 11, 9, 0.75);
 }
 .evd-round.is-on {
   color: var(--e-white);
   border-color: transparent;
   background: var(--e-brand);
-  box-shadow: 0 0 18px -4px rgba(124, 58, 237, 0.9);
+  box-shadow: 0 0 18px -4px color-mix(in srgb, var(--e-brand-500) 90%, transparent);
 }
 .evd-round.is-pop {
   animation: logo-pop 0.4s var(--e-ease-spring);
@@ -1724,16 +1721,24 @@ html[data-theme="light"] .bizdock-count {
 
 /* Grid de datos: fecha / ubicacion / precio */
 .evd-grid {
-  margin-top: 1.4rem;
+  margin-top: 1.375rem;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.6rem;
+  /* Una columna en movil; enty-fan.css lo sube a 3 desde 560px (que es lo que
+     su comentario declara). Antes la base fijaba 3 columnas de 1fr, y como 1fr
+     no baja de su min-content, un nombre de sede largo desbordaba la pantalla
+     a 320px. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.625rem;
 }
 .evd-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.85rem 0.8rem;
+  gap: 0.25rem;
+  /* min-width: 0 para que la celda acepte encogerse por debajo de su contenido
+     y el texto pueda partirse en vez de salirse de la tarjeta. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 0.875rem 0.75rem;
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1742,7 +1747,7 @@ html[data-theme="light"] .bizdock-count {
   width: 1.1rem;
   height: 1.1rem;
   color: var(--e-brand-glow);
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.125rem;
 }
 .evd-cell-k {
   font-size: var(--e-text-2xs);
@@ -1775,9 +1780,9 @@ html[data-theme="light"] .bizdock-count {
   font-size: var(--e-text-base);
   font-weight: 700;
   letter-spacing: 0.01em;
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
-    0 16px 34px -14px rgba(124, 58, 237, 0.95),
-    0 0 26px -6px rgba(124, 58, 237, 0.7);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 50%, transparent),
+    0 16px 34px -14px color-mix(in srgb, var(--e-brand-500) 95%, transparent),
+    0 0 26px -6px color-mix(in srgb, var(--e-brand-500) 70%, transparent);
   transition: filter 0.15s ease, transform 0.1s ease;
 }
 .evd-cta:hover {
@@ -1787,7 +1792,7 @@ html[data-theme="light"] .bizdock-count {
   transform: translateY(1px);
 }
 .evd-cta--wide {
-  margin-top: 1.4rem;
+  margin-top: 1.375rem;
   width: 100%;
 }
 
@@ -1795,7 +1800,7 @@ html[data-theme="light"] .bizdock-count {
 .evd-tabs {
   margin-top: 1.5rem;
   display: flex;
-  gap: 1.6rem;
+  gap: 1.625rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .evd-tabs button {
@@ -1813,7 +1818,7 @@ html[data-theme="light"] .bizdock-count {
   border-bottom-color: var(--e-brand);
 }
 .evd-tabbody {
-  padding-top: 1.1rem;
+  padding-top: 1.125rem;
 }
 .evd-prose {
   margin: 0;
@@ -1835,12 +1840,12 @@ html[data-theme="light"] .bizdock-count {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.75rem;
 }
 .evd-lineup li {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.875rem;
 }
 .evd-lineup-avatar {
   flex: none;
@@ -1851,7 +1856,7 @@ html[data-theme="light"] .bizdock-count {
   place-items: center;
   font-weight: 700;
   color: var(--e-white);
-  background: linear-gradient(135deg, var(--e-violet-500), var(--e-ink-700));
+  background: linear-gradient(135deg, var(--e-brand-500), var(--e-ink-700));
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .evd-lineup-info {
@@ -1865,7 +1870,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .evd-lineup-info em {
   align-self: flex-start;
-  padding: 0.1rem 0.5rem;
+  padding: 0.125rem 0.5rem;
   border-radius: 999px;
   font-size: var(--e-text-2xs);
   font-style: normal;
@@ -1873,14 +1878,14 @@ html[data-theme="light"] .bizdock-count {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--e-brand-glow);
-  background: rgba(124, 58, 237, 0.16);
+  background: color-mix(in srgb, var(--e-brand-500) 16%, transparent);
 }
 
 /* Mapa (OSM embebido, tenido oscuro) + pin de marca encima */
 .evd-map-wrap {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.75rem;
 }
 .evd-map-frame {
   position: relative;
@@ -1939,7 +1944,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-text-primary);
 }
 .evd-empty p {
-  margin: 0 0 1.2rem;
+  margin: 0 0 1.25rem;
   font-size: var(--e-text-base);
   color: var(--e-text-primary);
 }
@@ -1948,13 +1953,13 @@ html[data-theme="light"] .bizdock-count {
   left: 50%;
   bottom: 2rem;
   transform: translateX(-50%);
-  padding: 0.6rem 1.1rem;
+  padding: 0.625rem 1.125rem;
   border-radius: 999px;
   font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--e-white);
-  background: rgba(124, 58, 237, 0.92);
-  box-shadow: 0 12px 30px -12px rgba(124, 58, 237, 0.95);
+  background: color-mix(in srgb, var(--e-brand-500) 92%, transparent);
+  box-shadow: 0 12px 30px -12px color-mix(in srgb, var(--e-brand-500) 95%, transparent);
   animation: enter 0.25s ease both;
   z-index: 20;
 }
@@ -1980,7 +1985,7 @@ html[data-theme="light"] .bizdock-count {
   --notch: 0.5rem;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.16) inset,
-    0 0 0 1px rgba(187, 92, 246, 0.1) inset;
+    0 0 0 1px color-mix(in srgb, var(--e-brand-400) 10%, transparent) inset;
   -webkit-mask:
     radial-gradient(circle at 50% 0, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
       0 0 / calc(var(--notch) * 2) 100% repeat-x,
@@ -2027,20 +2032,20 @@ html[data-theme="light"] .bizdock-count {
 .fan-lookup input:focus {
   outline: none;
   border-color: var(--e-brand);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-500) 22%, transparent);
 }
 .fan-lookup button {
   flex: none;
   height: 3rem;
-  padding: 0 1.2rem;
+  padding: 0 1.25rem;
   border-radius: 999px;
   background: var(--e-brand);
   color: var(--e-white);
   font-size: var(--e-text-sm);
   font-weight: 600;
   font-family: inherit;
-  box-shadow: 0 12px 26px -12px rgba(124, 58, 237, 0.9),
-    0 0 20px -6px rgba(124, 58, 237, 0.6);
+  box-shadow: 0 12px 26px -12px color-mix(in srgb, var(--e-brand-500) 90%, transparent),
+    0 0 20px -6px color-mix(in srgb, var(--e-brand-500) 60%, transparent);
   transition: filter 0.15s ease, box-shadow 0.2s ease;
 }
 .fan-lookup button:hover:not(:disabled) {
@@ -2051,10 +2056,10 @@ html[data-theme="light"] .bizdock-count {
 }
 
 .fan-list {
-  margin-top: 1.6rem;
+  margin-top: 1.625rem;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.875rem;
 }
 /* Boleto hibrido: cristal con textura fisica (bordes rasgados) + digital.
    El material es un poco mas presente que el cristal normal (gradiente sutil
@@ -2062,7 +2067,7 @@ html[data-theme="light"] .bizdock-count {
    papel se lee como silueta y no desaparece. */
 .fan-ticket {
   position: relative;
-  border-radius: 1.05rem;
+  border-radius: 1rem;
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.1),
@@ -2070,7 +2075,7 @@ html[data-theme="light"] .bizdock-count {
   );
   backdrop-filter: blur(var(--e-glass-blur)) saturate(140%);
   -webkit-backdrop-filter: blur(var(--e-glass-blur)) saturate(140%);
-  padding: 1.15rem 1.2rem 1.2rem;
+  padding: 1.125rem 1.25rem 1.25rem;
   /* Bordes superior e inferior rasgados: el corte irregular del papel.
      Mismas capas de mask en union (add) que la hoja de marca. */
   -webkit-mask:
@@ -2096,7 +2101,7 @@ html[data-theme="light"] .bizdock-count {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.25rem;
 }
 .fan-ticket-info strong {
   font-size: var(--e-text-lg);
@@ -2112,7 +2117,7 @@ html[data-theme="light"] .bizdock-count {
 }
 .fan-badge {
   flex: none;
-  padding: 0.3rem 0.6rem;
+  padding: 0.25rem 0.625rem;
   border-radius: 999px;
   font-size: var(--e-text-2xs);
   font-weight: 600;
@@ -2133,7 +2138,7 @@ html[data-theme="light"] .bizdock-count {
   background: rgba(255, 45, 152, 0.12);
 }
 .fan-ticket-foot {
-  margin-top: 0.9rem;
+  margin-top: 0.875rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2147,11 +2152,11 @@ html[data-theme="light"] .bizdock-count {
 }
 .fan-link {
   font-size: var(--e-text-xs);
-  color: var(--e-violet-250);
+  color: var(--e-brand-250);
 }
 .fan-cta {
   height: 2.35rem;
-  padding: 0 1.1rem;
+  padding: 0 1.125rem;
   font-size: var(--e-text-xs);
 }
 .fan-cta:disabled {
@@ -2159,8 +2164,8 @@ html[data-theme="light"] .bizdock-count {
   filter: none;
 }
 .fan-qr-wait {
-  margin-top: 0.9rem;
-  padding-top: 0.9rem;
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
   border-top: 2px dotted rgba(255, 255, 255, 0.16);
   text-align: center;
 }
@@ -2180,9 +2185,9 @@ html[data-theme="light"] .bizdock-count {
 .fan-qr img {
   width: 15rem;
   max-width: 100%;
-  border-radius: 0.85rem;
+  border-radius: 0.875rem;
   background: var(--e-white);
-  padding: 0.6rem;
+  padding: 0.625rem;
   display: inline-block;
 }
 .fan-qr-spark {
@@ -2196,7 +2201,7 @@ html[data-theme="light"] .bizdock-count {
   filter: drop-shadow(0 0 6px rgba(0, 230, 171, 0.9));
 }
 .fan-qr-hint {
-  margin: 0.7rem 0 0;
+  margin: 0.75rem 0 0;
   font-size: var(--e-text-xs);
   color: var(--e-text-secondary);
 }
@@ -2237,7 +2242,7 @@ html:not([data-theme="light"]) .app-shell {
    intercepta el puntero. */
 html:not([data-theme="light"]) .app-shell {
   background-image:
-    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.16), transparent 62%),
+    radial-gradient(52rem 34rem at 104% -10%, color-mix(in srgb, var(--e-brand-500) 16%, transparent), transparent 62%),
     radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.07), transparent 62%),
     radial-gradient(34rem 26rem at 108% 96%, rgba(255, 45, 152, 0.06), transparent 62%);
   background-attachment: fixed;
@@ -2245,7 +2250,7 @@ html:not([data-theme="light"]) .app-shell {
 }
 html[data-theme="light"] .app-shell {
   background-image:
-    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.06), transparent 62%),
+    radial-gradient(52rem 34rem at 104% -10%, color-mix(in srgb, var(--e-brand-500) 6%, transparent), transparent 62%),
     radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.05), transparent 62%);
   background-attachment: fixed;
   background-repeat: no-repeat;
@@ -2268,7 +2273,7 @@ html:not([data-theme="light"]) .app-shell .venue-header,
 html:not([data-theme="light"]) .app-shell .bizdock {
   border-color: var(--e-border-hairline);
   background:
-    radial-gradient(30rem 18rem at 88% -8rem, rgba(124, 58, 237, 0.1), transparent 66%),
+    radial-gradient(30rem 18rem at 88% -8rem, color-mix(in srgb, var(--e-brand-500) 10%, transparent), transparent 66%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 44%),
     rgba(17, 17, 23, 0.86);
   box-shadow:
@@ -2282,10 +2287,10 @@ html:not([data-theme="light"]) .app-shell .venue-header {
   padding: var(--venue-pad-y) 1.4rem;
   border-radius: 1.5rem;
   background:
-    radial-gradient(38rem 18rem at 90% -8rem, rgba(124, 58, 237, 0.17), transparent 64%),
+    radial-gradient(38rem 18rem at 90% -8rem, color-mix(in srgb, var(--e-brand-500) 17%, transparent), transparent 64%),
     radial-gradient(26rem 14rem at 6% 118%, rgba(0, 230, 171, 0.06), transparent 60%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 48%),
-    rgba(16, 16, 22, 0.9);
+    rgba(18, 16, 14, 0.9);
 }
 .app-shell .vh-logo,
 .app-shell .vh-logo-fallback {
@@ -2300,8 +2305,8 @@ html:not([data-theme="light"]) .app-shell .venue-header {
 .app-shell .vh-kpi::before {
   background: linear-gradient(
     180deg,
-    rgba(124, 58, 237, 0.85),
-    rgba(124, 58, 237, 0.08) 80%,
+    color-mix(in srgb, var(--e-brand-500) 85%, transparent),
+    color-mix(in srgb, var(--e-brand-500) 8%, transparent) 80%,
     transparent
   );
 }
@@ -2313,13 +2318,13 @@ html:not([data-theme="light"]) .app-shell .promo-hero {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  border-radius: 1.4rem;
-  padding: 1.15rem 1.25rem;
+  border-radius: 1.375rem;
+  padding: 1.125rem 1.25rem;
   border: 1px solid var(--e-border-hairline);
   background:
-    radial-gradient(30rem 14rem at 94% -8rem, rgba(124, 58, 237, 0.16), transparent 64%),
+    radial-gradient(30rem 14rem at 94% -8rem, color-mix(in srgb, var(--e-brand-500) 16%, transparent), transparent 64%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 46%),
-    rgba(16, 16, 22, 0.9);
+    rgba(18, 16, 14, 0.9);
   box-shadow:
     var(--e-highlight-inset),
     var(--e-elev-card);
@@ -2337,7 +2342,7 @@ html[data-theme="light"] .app-shell .promo-hero {
 /* --- Puerta: cabecera de servicio ------------------------------------- */
 .app-shell .door-head {
   border-bottom: 1px solid var(--e-border-hairline);
-  background: linear-gradient(180deg, rgba(124, 58, 237, 0.12), transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-500) 12%, transparent), transparent);
 }
 .app-shell .door-title {
   letter-spacing: -0.02em;
@@ -2345,7 +2350,7 @@ html[data-theme="light"] .app-shell .promo-hero {
 /* El marco del escáner es la pieza de marca de la puerta: un halo violeta
    alrededor del visor dice "acá apuntá" sin una etiqueta. */
 .app-shell .scan-frame {
-  filter: drop-shadow(0 0 26px rgba(124, 58, 237, 0.35));
+  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--e-brand-500) 35%, transparent));
 }
 
 /* --- Segmentado (tabbar) y navegación inferior ------------------------ */
@@ -2356,36 +2361,36 @@ html[data-theme="light"] .app-shell .promo-hero {
   backdrop-filter: blur(14px) saturate(1.2);
 }
 .app-shell .tabbar-item[aria-selected="true"] {
-  background: linear-gradient(180deg, rgba(124, 58, 237, 0.28), rgba(124, 58, 237, 0.14));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-500) 28%, transparent), color-mix(in srgb, var(--e-brand-500) 14%, transparent));
   color: var(--e-text-primary);
   box-shadow:
-    inset 0 0 0 1px rgba(124, 58, 237, 0.34),
-    0 12px 28px -20px rgba(124, 58, 237, 0.95);
+    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 34%, transparent),
+    0 12px 28px -20px color-mix(in srgb, var(--e-brand-500) 95%, transparent);
 }
 html:not([data-theme="light"]) .app-shell .bottomnav-item.is-active {
-  color: var(--e-violet-200);
+  color: var(--e-brand-200);
 }
 
 /* --- Controles: foco y presión con firma de marca --------------------- */
 .app-shell .field:focus {
   border-color: var(--e-brand-glow);
   box-shadow:
-    0 0 0 3px rgba(124, 58, 237, 0.26),
-    0 0 30px -14px rgba(124, 58, 237, 0.95);
+    0 0 0 3px color-mix(in srgb, var(--e-brand-500) 26%, transparent),
+    0 0 30px -14px color-mix(in srgb, var(--e-brand-500) 95%, transparent);
 }
 .app-shell .btn-primary {
-  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 58%, var(--e-violet-425) 100%);
+  background: linear-gradient(135deg, var(--e-brand-500) 0%, var(--e-brand-400) 58%, var(--e-brand-425) 100%);
 }
 .app-shell .btn-primary:hover {
-  background: linear-gradient(135deg, var(--e-violet-600) 0%, var(--e-violet-425) 58%, var(--e-violet-550) 100%);
+  background: linear-gradient(135deg, var(--e-brand-600) 0%, var(--e-brand-425) 58%, var(--e-brand-550) 100%);
 }
 
 /* Scrollbar con tinte de marca (solo en la casa). */
 html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb {
-  background: rgba(124, 58, 237, 0.4);
+  background: color-mix(in srgb, var(--e-brand-500) 40%, transparent);
 }
 html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
-  background: rgba(124, 58, 237, 0.6);
+  background: color-mix(in srgb, var(--e-brand-500) 60%, transparent);
 }
 
 

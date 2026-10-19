@@ -5,7 +5,7 @@ import { LegalLinks } from "./LegalLinks";
 /**
  * Escenografía de la entrada (login/registro) en dos paneles.
  *
- * Izquierda: el panel de MARCA (navy de la boleta) con el logo grande, el
+ * Izquierda: el panel de MARCA (negro mate de la boleta) con el logo grande, el
  * lema y tres beneficios concretos. Derecha: el formulario sobre el lienzo.
  * Entre ambos corre un TROQUEL real — la línea perforada de la boleta — con
  * dos muescas comidas por una máscara (no por un parche del color del fondo),
@@ -44,26 +44,38 @@ export function AuthShell({ children }) {
       <AuthBackdrop />
 
       {/* ----------------------------------------------------------------
-          PANEL DE MARCA (solo desktop). El navy es la superficie de la
-          boleta; los rayos y la criatura son el agua de marca de fondo.
+          PANEL DE MARCA (solo desktop). El negro mate es la superficie de la
+          boleta; el troquel y la E son el agua de marca de fondo.
           ---------------------------------------------------------------- */}
       <aside className="auth-brand">
         <div className="auth-brand-glow" aria-hidden="true" />
 
-        {/* Rayos del logo, a la misma opacidad que el isotipo: textura que
-            se siente, no que se ve. Reemplazan a los doodles sueltos. */}
+        {/* El troquel: la linea de perforado del talon, la firma de la casa.
+            Sustituye a los rayos del logotipo anterior. */}
         <svg className="auth-brand-rays" viewBox="0 0 512 512" aria-hidden="true">
-          <g fill="#BB5CF6" opacity="0.06">
-            <path d="M256 256 96 24h92zM256 256 268 0h64zM256 256 480 128v84zM256 256 416 488h-92zM256 256 44 384v-84z" />
+          <g fill="var(--e-brand-400)" opacity="0.06">
+            {Array.from({ length: 24 }, (_, i) => (
+              <circle key={i} cx="256" cy={10 + i * 21} r="7" />
+            ))}
           </g>
         </svg>
 
-        {/* La estrella de cuatro puntas, como marca de agua de esquina. */}
+        {/* La "E" troquelada, el isotipo, como marca de agua de esquina.
+            Antes vivia aqui la estrella de cuatro puntas (el icono generico
+            de "producto con IA"), que la identidad Enty retira. */}
         <svg className="auth-brand-mark" viewBox="0 0 512 512" aria-hidden="true">
-          <path
-            fill="#BB5CF6"
-            d="M256 40 l58 158 158 58 -158 58 -58 158 -58 -158 -158 -58 158 -58 z"
-          />
+          <g
+            stroke="var(--e-brand-400)"
+            strokeWidth="54"
+            strokeLinecap="round"
+            fill="none"
+          >
+            <path d="M186 96 V416" />
+            <path d="M186 110 H336" />
+            <path d="M186 256 H304" />
+            <path d="M186 402 H336" />
+          </g>
+          <circle cx="336" cy="110" r="17" fill="var(--e-brand-400)" />
         </svg>
 
         <div className="auth-brand-top">

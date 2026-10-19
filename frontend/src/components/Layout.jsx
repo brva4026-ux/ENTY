@@ -183,7 +183,11 @@ export default function Layout({ children }) {
           pantallas autenticadas. pb alto en móvil para no pisarse con la
           barra de pestañas inferior. */}
       <footer className="mx-auto max-w-5xl px-4 pb-24 md:pb-6">
-        <LegalLinks className="legal-links mx-auto w-max" />
+        {/* Sin `w-max`: la nav medía su ancho max-content (590px) y desbordaba
+            el viewport en todo celular (scroll horizontal de 216px a 390px,
+            medido). Con el ancho disponible, `.legal-links` (flex-wrap) reparte
+            los cinco documentos en varias líneas. */}
+        <LegalLinks className="legal-links mx-auto" />
       </footer>
 
       {/* Barra de pestañas inferior (solo móvil): iconos + etiqueta, indicador

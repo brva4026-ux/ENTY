@@ -4,26 +4,31 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Enty — Brand Guidelines</title>
-<meta name="theme-color" content="#0B0B0F" />
+<meta name="theme-color" content="#0c0a09" />
 <meta name="description" content="Enty — Brand Guidelines. Identidad, paleta, tipografía, logo y sistema de diseño del ticketing nocturno." />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet" />
+<!-- Sora self-hosted: la unica voz del producto (ver src/enty-system.css).
+     Sin Google Fonts: cero requests a terceros, cero FOUT de red. -->
+<style>
+  @font-face{font-family:"Sora";font-style:normal;font-weight:100 800;
+    font-display:swap;src:url("/fonts/sora-latin.woff2") format("woff2")}
+  @font-face{font-family:"Sora";font-style:normal;font-weight:100 800;
+    font-display:swap;src:url("/fonts/sora-latin-ext.woff2") format("woff2")}
+</style>
 <style>
   :root{
-    --violet:#7C3AED;
-    --violet-soft:#8B5CF6;
-    --violet-hi:#BB5CF6;
-    --violet-lo:#5B21B6;
-    --black:#0B0B0F;
-    --black-deep:#050508;
-    --white:#F5F5F7;
+    --brand:#7C3AED;
+    --brand-soft:#BB5CF6;
+    --brand-hi:#D29BF9;
+    --brand-lo:#5B21B6;
+    --black:#0c0a09;
+    --black-deep:#060505;
+    --white:#f6f5f2;
     --green:#00E6AB;
     --pink:#FF2D98;
-    --panel:#101016;
-    --panel-2:#14141B;
+    --panel:#13110e;
+    --panel-2:#1a1713;
     --line:rgba(255,255,255,.09);
-    --muted:#8B8B97;
+    --muted:#a7a098;
     --dim:rgba(255,255,255,.44);
     --r:26px;
   }
@@ -56,7 +61,7 @@
   }
   .sheet::before{
     width:680px;height:680px;top:-360px;left:-280px;
-    background:radial-gradient(circle,rgba(124,58,237,.26),transparent 66%);
+    background:radial-gradient(circle,rgba(67,86,232,.26),transparent 66%);
   }
   .sheet::after{
     width:700px;height:700px;bottom:-380px;right:-300px;
@@ -73,9 +78,9 @@
   /* --- Encabezado ------------------------------------------------------ */
   .eyebrow{
     font-size:11px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;
-    color:var(--violet-hi);
+    color:var(--brand-hi);
   }
-  .eyebrow.dim{color:#7a5cc4}
+  .eyebrow.dim{color:#BB5CF6}
   .head{
     display:grid;grid-template-columns:1fr auto 1fr;align-items:start;
     gap:24px;margin-bottom:74px;
@@ -91,14 +96,14 @@
   .brandmark{text-align:center;line-height:1}
   .wordmark{
     position:relative;display:inline-block;
-    font-family:"Baloo 2","Sora",system-ui,sans-serif;
+    font-family:"Sora",system-ui,sans-serif;
     font-size:64px;font-weight:800;letter-spacing:-.02em;color:#fff;
   }
-  .wordmark .spark{
+  .wordmark .seal{
     position:absolute;top:-.18em;right:-.62em;width:.62em;height:.62em;
-    filter:drop-shadow(0 0 10px rgba(124,58,237,.9));
+    filter:drop-shadow(0 0 10px rgba(67,86,232,.9));
   }
-  .wordmark .spark svg{width:100%;height:100%;display:block}
+  .wordmark .seal svg{width:100%;height:100%;display:block}
   .brandmark .tag{
     margin-top:14px;font-size:10.5px;font-weight:600;letter-spacing:.42em;
     text-transform:uppercase;color:var(--dim);text-indent:.42em;
@@ -116,10 +121,10 @@
   .sub{font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);margin-bottom:12px}
 
   /* --- Visión ---------------------------------------------------------- */
-  .vision-name{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:40px;letter-spacing:-.01em}
-  .vision-name .y{color:var(--violet-hi)}
+  .vision-name{font-family:"Sora",system-ui,sans-serif;font-weight:800;font-size:40px;letter-spacing:-.01em}
+  .vision-name .y{color:var(--brand-hi)}
   .lema{margin-top:8px;font-size:15px;font-weight:600;color:var(--white)}
-  .lema em{font-style:normal;color:var(--violet-hi)}
+  .lema em{font-style:normal;color:var(--brand-hi)}
   .vision-body{margin-top:16px;font-size:13px;color:var(--dim);max-width:44ch}
   .meta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
   .pill{
@@ -127,13 +132,13 @@
     border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);
     font-size:11.5px;font-weight:600;color:var(--white);
   }
-  .pill i{width:7px;height:7px;border-radius:50%;background:var(--violet-hi);display:block}
+  .pill i{width:7px;height:7px;border-radius:50%;background:var(--brand-hi);display:block}
   .pill.g i{background:var(--green)}
   .pill.p i{background:var(--pink)}
   .vals{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
   .val{
     padding:9px 16px;border-radius:14px;border:1px solid var(--line);
-    background:linear-gradient(180deg,rgba(124,58,237,.14),rgba(124,58,237,.05));
+    background:linear-gradient(180deg,rgba(67,86,232,.14),rgba(67,86,232,.05));
     font-size:12px;font-weight:600;
   }
   .vibe{margin-top:22px;font-size:12.5px;color:var(--dim);line-height:1.6}
@@ -158,7 +163,7 @@
   .type-grid .col-r{padding-left:34px}
   .type-name{font-size:56px;font-weight:600;letter-spacing:-.02em;color:#fff;margin-top:8px}
   .type-desc{margin-top:14px;font-size:10.5px;font-weight:600;letter-spacing:.2em;color:var(--muted)}
-  .type-desc b{color:var(--violet-hi);font-weight:600}
+  .type-desc b{color:var(--brand-hi);font-weight:600}
   .type-set{display:flex;flex-direction:column;gap:20px}
   .type-set .label{font-size:10px;font-weight:700;letter-spacing:.22em;color:var(--dim);margin-bottom:7px}
   .type-set .glyphs{font-size:19px;font-weight:400;letter-spacing:.06em;color:var(--white);word-break:break-word;line-height:1.5}
@@ -169,26 +174,26 @@
   .logo-showcase{
     display:grid;place-items:center;padding:46px 24px;border-radius:22px;
     background:
-      radial-gradient(circle at 50% 120%,rgba(124,58,237,.4),transparent 62%),
-      linear-gradient(180deg,#0A0A10,#07070B);
+      radial-gradient(circle at 50% 120%,rgba(67,86,232,.4),transparent 62%),
+      linear-gradient(180deg,#0e0c0b,#0c0a09);
     border:1px solid var(--line);
   }
   .logo-3d{
-    font-family:"Baloo 2",sans-serif;font-weight:800;font-size:66px;color:#fff;
+    font-family:"Sora",system-ui,sans-serif;font-weight:800;font-size:66px;color:#fff;
     letter-spacing:-.02em;position:relative;line-height:1;
     text-shadow:
-      0 1px 0 #cfc7f2, 0 2px 0 #b9aee9, 0 3px 0 #a294e0, 0 4px 0 #8b7ad6,
-      0 6px 14px rgba(0,0,0,.6), 0 0 34px rgba(124,58,237,.85);
+      0 1px 0 #D9B6FF, 0 2px 0 #D29BF9, 0 3px 0 #BB5CF6, 0 4px 0 #7C3AED,
+      0 6px 14px rgba(0,0,0,.6), 0 0 34px rgba(67,86,232,.85);
     filter:drop-shadow(0 18px 22px rgba(0,0,0,.6));
   }
   .logo-3d::after{
     content:"";position:absolute;left:6%;right:6%;bottom:-34px;height:22px;border-radius:50%;
-    background:radial-gradient(ellipse at center,rgba(124,58,237,.55),transparent 70%);
+    background:radial-gradient(ellipse at center,rgba(67,86,232,.55),transparent 70%);
     filter:blur(9px);
   }
-  .logo-3d .spark{position:absolute;top:-.16em;right:-.6em;width:.6em;height:.6em;
-    filter:drop-shadow(0 0 14px rgba(124,58,237,1))}
-  .logo-3d .spark svg{width:100%;height:100%}
+  .logo-3d .seal{position:absolute;top:-.16em;right:-.6em;width:.6em;height:.6em;
+    filter:drop-shadow(0 0 14px rgba(67,86,232,1))}
+  .logo-3d .seal svg{width:100%;height:100%}
   .logo-notes{display:flex;flex-direction:column;gap:18px}
   .note .sub{margin-bottom:8px}
   .note p{font-size:12.5px;color:var(--dim);line-height:1.55}
@@ -197,9 +202,9 @@
   .icon-row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end;margin-top:8px}
   .app-icon{
     position:relative;display:grid;place-items:center;
-    background:#0A0A0F;border:1px solid rgba(187,92,246,.35);
+    background:#0e0c0b;border:1px solid rgba(123,135,255,.35);
     box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 14px 30px rgba(0,0,0,.45),
-               inset 0 0 26px rgba(124,58,237,.18);
+               inset 0 0 26px rgba(67,86,232,.18);
   }
   .app-icon svg{width:100%;height:100%;display:block}
   .app-icon.lg{width:104px;height:104px;border-radius:26px}
@@ -207,9 +212,9 @@
   .app-icon.sm{width:40px;height:40px;border-radius:11px}
   .icon-cap{font-size:10px;font-weight:600;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-top:10px}
 
-  .spark-spec{display:flex;align-items:center;gap:22px;margin-top:6px}
-  .spark-spec .big{width:96px;height:96px;flex:none;filter:drop-shadow(0 0 18px rgba(124,58,237,.85))}
-  .spark-spec .big svg{width:100%;height:100%}
+  .seal-spec{display:flex;align-items:center;gap:22px;margin-top:6px}
+  .seal-spec .big{width:96px;height:96px;flex:none;filter:drop-shadow(0 0 18px rgba(67,86,232,.85))}
+  .seal-spec .big svg{width:100%;height:100%}
 
   /* --- Sistema de UI (mock móvil) -------------------------------------- */
   .ui-grid{display:grid;grid-template-columns:300px 1fr;gap:34px;align-items:start}
@@ -227,12 +232,12 @@
     position:relative;height:290px;
     background:
       radial-gradient(circle at 62% 30%,rgba(255,45,152,.5),transparent 55%),
-      radial-gradient(circle at 30% 20%,rgba(124,58,237,.65),transparent 60%),
-      linear-gradient(180deg,#241046,#0B0B0F);
+      radial-gradient(circle at 30% 20%,rgba(67,86,232,.65),transparent 60%),
+      linear-gradient(180deg,#141a3d,#0c0a09);
   }
   .hero::after{
     content:"";position:absolute;inset:0;
-    background:linear-gradient(180deg,transparent 40%,rgba(11,11,15,.85) 82%,#0B0B0F);
+    background:linear-gradient(180deg,transparent 40%,rgba(12,10,9,.85) 82%,#0c0a09);
   }
   .hero .tags{position:absolute;top:16px;left:16px;display:flex;gap:8px;z-index:2}
   .tag-chip{
@@ -249,29 +254,29 @@
   .screen .rowmeta b{color:var(--white);font-weight:600}
   .cta-pill{
     display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:999px;
-    background:linear-gradient(180deg,var(--violet-soft),var(--violet));
+    background:linear-gradient(180deg,var(--brand-soft),var(--brand));
     color:#fff;font-size:13.5px;font-weight:700;
-    box-shadow:0 12px 26px rgba(124,58,237,.45);
+    box-shadow:0 12px 26px rgba(67,86,232,.45);
   }
   .card{
     background:linear-gradient(180deg,var(--panel),var(--panel-2));
     border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;gap:12px;align-items:center;
   }
   .card .thumb{width:44px;height:44px;border-radius:12px;
-    background:linear-gradient(135deg,var(--pink),var(--violet));flex:none}
+    background:linear-gradient(135deg,var(--pink),var(--brand));flex:none}
   .card .tt{font-size:12.5px;font-weight:600}
   .card .ts{font-size:10.5px;color:var(--dim);margin-top:3px}
   .navbar{
     position:absolute;left:14px;right:14px;bottom:14px;height:58px;border-radius:22px;
-    background:rgba(10,10,16,.86);border:1px solid var(--line);
+    background:rgba(19,17,14,.86);border:1px solid var(--line);
     backdrop-filter:blur(12px);display:grid;grid-template-columns:repeat(4,1fr);
     align-items:center;z-index:3;
   }
   .navbar .it{display:grid;place-items:center;gap:4px;font-size:8.5px;font-weight:600;color:var(--dim)}
   .navbar .it svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-  .navbar .it.on{color:var(--violet-hi)}
-  .navbar .it.on svg{filter:drop-shadow(0 0 8px rgba(187,92,246,.8))}
-  .navbar .it.on .dot{width:5px;height:5px;border-radius:50%;background:var(--violet-hi)}
+  .navbar .it.on{color:var(--brand-hi)}
+  .navbar .it.on svg{filter:drop-shadow(0 0 8px rgba(123,135,255,.8))}
+  .navbar .it.on .dot{width:5px;height:5px;border-radius:50%;background:var(--brand-hi)}
 
   .ui-notes{display:flex;flex-direction:column;gap:20px}
   .comp{border-top:1px solid var(--line);padding-top:16px}
@@ -280,21 +285,21 @@
   .comp p b{color:var(--white);font-weight:600}
   .demo-btn{
     display:inline-flex;align-items:center;height:44px;padding:0 26px;border-radius:999px;
-    background:linear-gradient(180deg,var(--violet-soft),var(--violet));color:#fff;
-    font-size:13px;font-weight:700;box-shadow:0 12px 26px rgba(124,58,237,.4);
+    background:linear-gradient(180deg,var(--brand-soft),var(--brand));color:#fff;
+    font-size:13px;font-weight:700;box-shadow:0 12px 26px rgba(67,86,232,.4);
   }
   .demo-btn.ghost{background:transparent;border:1px solid var(--line);box-shadow:none;color:var(--white)}
 
   /* --- Boleto ---------------------------------------------------------- */
   .ticket-grid{display:grid;grid-template-columns:330px 1fr;gap:38px;align-items:start}
   .tk{
-    position:relative;width:330px;background:#07070B;color:var(--white);
+    position:relative;width:330px;background:#0c0a09;color:var(--white);
     padding:30px 22px 26px;
     /* El drop-shadow sigue la silueta del mask: un filo tenue hace que el
        borde rasgado se lea sobre el panel oscuro. */
     filter:
-      drop-shadow(0 1px 0 rgba(187,92,246,.35))
-      drop-shadow(0 -1px 0 rgba(187,92,246,.25))
+      drop-shadow(0 1px 0 rgba(123,135,255,.35))
+      drop-shadow(0 -1px 0 rgba(123,135,255,.25))
       drop-shadow(0 30px 50px rgba(0,0,0,.65));
   }
   /* Bordes superior e inferior rasgados (grunge): muescas semicirculares
@@ -313,10 +318,10 @@
     mask-composite:add;
   }
   .tk-head{display:flex;align-items:flex-start;justify-content:space-between}
-  .tk-logo{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:20px;line-height:1;position:relative}
-  .tk-logo .spark{position:absolute;top:-.2em;right:-.55em;width:.5em;height:.5em}
-  .tk-logo .spark svg{width:100%;height:100%}
-  .tk-logo .y{color:var(--violet-hi)}
+  .tk-logo{font-family:"Sora",system-ui,sans-serif;font-weight:800;font-size:20px;line-height:1;position:relative}
+  .tk-logo .seal{position:absolute;top:-.2em;right:-.55em;width:.5em;height:.5em}
+  .tk-logo .seal svg{width:100%;height:100%}
+  .tk-logo .y{color:var(--brand-hi)}
   .tk-head .idx{font-size:9px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
   .tk-event{margin-top:26px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.02;text-align:center}
   .tk-sub{margin-top:6px;text-align:center;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim)}
@@ -328,15 +333,15 @@
     display:grid;place-items:center}
   .tk-qr .qr{width:100%;height:100%;border-radius:12px;
     background:
-      linear-gradient(#0B0B0F,#0B0B0F) 0 0/22% 22% no-repeat,
-      linear-gradient(#0B0B0F,#0B0B0F) 100% 0/22% 22% no-repeat,
-      linear-gradient(#0B0B0F,#0B0B0F) 0 100%/22% 22% no-repeat,
-      repeating-conic-gradient(#0B0B0F 0 25%, #fff 0 50%) 0 0/16px 16px;
+      linear-gradient(#0c0a09,#0c0a09) 0 0/22% 22% no-repeat,
+      linear-gradient(#0c0a09,#0c0a09) 100% 0/22% 22% no-repeat,
+      linear-gradient(#0c0a09,#0c0a09) 0 100%/22% 22% no-repeat,
+      repeating-conic-gradient(#0c0a09 0 25%, #fff 0 50%) 0 0/16px 16px;
     opacity:.92;
   }
-  .tk-qr .spark{position:absolute;width:44px;height:44px;
+  .tk-qr .seal{position:absolute;width:44px;height:44px;
     filter:drop-shadow(0 0 10px rgba(0,230,171,.95))}
-  .tk-qr .spark svg{width:100%;height:100%}
+  .tk-qr .seal svg{width:100%;height:100%}
   .tk-perf{margin:18px 0 14px;border-top:2px dashed rgba(255,255,255,.22)}
   .tk-foot{display:flex;justify-content:space-between;align-items:center;gap:14px}
   .tk-seat{font-size:9.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;line-height:1.7}
@@ -348,22 +353,22 @@
   .barcode i:nth-child(5n){height:86%}
   .tk-note{margin-top:14px;text-align:center;font-size:8.5px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
   .tk-anat{display:flex;flex-direction:column;gap:16px}
-  .anat{border-left:2px solid var(--violet);padding-left:14px}
+  .anat{border-left:2px solid var(--brand);padding-left:14px}
   .anat .sub{margin-bottom:6px}
   .anat p{font-size:12.5px;color:var(--dim);line-height:1.55}
   .anat p b{color:var(--white);font-weight:600}
 
   /* --- Prompts --------------------------------------------------------- */
   .prompt{
-    position:relative;background:#07070B;border:1px solid var(--line);border-radius:16px;
+    position:relative;background:#0c0a09;border:1px solid var(--line);border-radius:16px;
     padding:18px 18px 18px 20px;margin-bottom:14px;
   }
   .prompt .phead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
   .prompt .pt{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--white)}
-  .prompt .pflags{font-size:9.5px;letter-spacing:.1em;color:var(--violet-hi);font-weight:600;white-space:nowrap}
+  .prompt .pflags{font-size:9.5px;letter-spacing:.1em;color:var(--brand-hi);font-weight:600;white-space:nowrap}
   .prompt code{
     display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-    font-size:11.5px;line-height:1.65;color:#cdc6e6;white-space:pre-wrap;word-break:break-word;
+    font-size:11.5px;line-height:1.65;color:#D9B6FF;white-space:pre-wrap;word-break:break-word;
   }
 
   /* --- Pie ------------------------------------------------------------- */
@@ -373,8 +378,8 @@
     font-size:10px;font-weight:600;letter-spacing:.22em;color:var(--dim);
     text-transform:uppercase;
   }
-  .foot .more{display:inline-flex;align-items:center;gap:12px;color:var(--violet-hi)}
-  .foot .more i{display:block;width:34px;height:2px;background:var(--violet);border-radius:2px}
+  .foot .more{display:inline-flex;align-items:center;gap:12px;color:var(--brand-hi)}
+  .foot .more i{display:block;width:34px;height:2px;background:var(--brand);border-radius:2px}
 
   @media (max-width:820px){
     .sheet{padding:38px 24px 32px}
@@ -398,24 +403,24 @@
 <body>
   <main class="sheet">
 
-    <!-- Boleto superior izquierdo: degradado morado. -->
+    <!-- Boleto superior izquierdo: degradado violeta. -->
     <div class="bg-ticket tl" aria-hidden="true">
       <svg viewBox="0 0 240 150">
         <defs>
           <linearGradient id="ticketP" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#A78BFA"/>
+            <stop offset="0" stop-color="#D29BF9"/>
             <stop offset=".55" stop-color="#7C3AED"/>
-            <stop offset="1" stop-color="#4C1D95"/>
+            <stop offset="1" stop-color="#8B2FE0"/>
           </linearGradient>
         </defs>
         <path d="M14 26h212a12 12 0 0 1 12 12v24a20 20 0 0 0 0 26v24a12 12 0 0 1-12 12H14A12 12 0 0 1 2 112V88a20 20 0 0 0 0-26V38A12 12 0 0 1 14 26Z"
               fill="url(#ticketP)" opacity=".9"/>
-        <g fill="#0B0B0F" opacity=".55">
+        <g fill="#0c0a09" opacity=".55">
           <rect x="30" y="52" width="118" height="7" rx="3.5"/>
           <rect x="30" y="70" width="76" height="7" rx="3.5"/>
           <rect x="30" y="90" width="96" height="7" rx="3.5"/>
         </g>
-        <path d="M176 44v62" stroke="#0B0B0F" stroke-width="2.5" stroke-dasharray="7 7" opacity=".5"/>
+        <path d="M176 44v62" stroke="#0c0a09" stroke-width="2.5" stroke-dasharray="7 7" opacity=".5"/>
       </svg>
     </div>
 
@@ -447,9 +452,9 @@
       <div class="brandmark">
         <div class="wordmark" role="img" aria-label="Enty">
           Enty
-          <span class="spark" aria-hidden="true">
+          <span class="seal" aria-hidden="true">
             <svg viewBox="0 0 24 24">
-              <path fill="#7C3AED" d="M12 0 C12.7 8.6 15.4 11.3 24 12 C15.4 12.7 12.7 15.4 12 24 C11.3 15.4 8.6 12.7 0 12 C8.6 11.3 11.3 8.6 12 0 Z"/>
+              <circle cx="12" cy="12" r="8.5" fill="none" stroke="#7C3AED" stroke-width="3.6"/><circle cx="12" cy="12" r="2.6" fill="#7C3AED"/>
             </svg>
           </span>
         </div>
@@ -504,21 +509,21 @@
       <p class="eyebrow">— 02 · Paleta de color</p>
       <div class="swatches">
         <div class="swatch">
-          <div class="chip" style="background:#0B0B0F"></div>
+          <div class="chip" style="background:#0c0a09"></div>
           <p class="name">Negro</p>
-          <p class="hex">#0B0B0F</p>
+          <p class="hex">#0c0a09</p>
           <p class="use">Fondo principal. Oscuro profundo, no absoluto.</p>
         </div>
         <div class="swatch">
           <div class="chip" style="background:#7C3AED"></div>
-          <p class="name">Morado Enty</p>
+          <p class="name">Violeta Enty</p>
           <p class="hex">#7C3AED</p>
           <p class="use">Botones, brillos, logo y acentos.</p>
         </div>
         <div class="swatch">
-          <div class="chip" style="background:#F5F5F7"></div>
+          <div class="chip" style="background:#f6f5f2"></div>
           <p class="name">Blanco</p>
-          <p class="hex">#F5F5F7</p>
+          <p class="hex">#f6f5f2</p>
           <p class="use">Tipografía y contraste.</p>
         </div>
         <div class="swatch">
@@ -534,7 +539,7 @@
           <p class="use">Se combina con el verde para dinamismo y trazos de pincel.</p>
         </div>
       </div>
-      <p class="lead">Dark mode nativo y elegante. El morado es el único color “clicable”;
+      <p class="lead">Dark mode nativo y elegante. El violeta es el único color “clicable”;
         el verde y el rosa entran solo como energía gráfica, nunca como texto de interfaz.</p>
     </section>
 
@@ -567,16 +572,16 @@
         minúsculas para cuerpo de texto y descripciones.</p>
     </section>
 
-    <!-- 04 — LOGO, DESTELLO E ISOTIPO -->
+    <!-- 04 — LOGO, SELLO E ISOTIPO -->
     <section class="panel">
       <p class="eyebrow">— 04 · Logo e isotipo</p>
       <div class="logo-grid">
         <div class="logo-showcase">
           <div class="logo-3d" role="img" aria-label="Enty">
             Enty
-            <span class="spark" aria-hidden="true">
+            <span class="seal" aria-hidden="true">
               <svg viewBox="0 0 24 24">
-                <path fill="#7C3AED" d="M12 0 C12.7 8.6 15.4 11.3 24 12 C15.4 12.7 12.7 15.4 12 24 C11.3 15.4 8.6 12.7 0 12 C8.6 11.3 11.3 8.6 12 0 Z"/>
+                <circle cx="12" cy="12" r="8.5" fill="none" stroke="#7C3AED" stroke-width="3.6"/><circle cx="12" cy="12" r="2.6" fill="#7C3AED"/>
               </svg>
             </span>
           </div>
@@ -585,28 +590,28 @@
           <div class="note">
             <p class="sub">Wordmark</p>
             <p>“Enty” en fuente personalizada <b>muy redondeada, gruesa y amigable</b>.
-              El <b>destello</b> flota en la parte superior derecha, cerca de la “y”.</p>
+              El <b>sello</b> flota en la parte superior derecha, cerca de la “y”.</p>
           </div>
           <div class="note">
             <p class="sub">Versión 3D</p>
             <p>Render flotante con textura <b>metálica/vidrio</b>, reflejo sobre el piso
-              negro y un <b>glow morado</b> que emana del destello.</p>
+              negro y un <b>glow violeta</b> que emana del sello.</p>
           </div>
         </div>
       </div>
 
       <div class="two" style="margin-top:34px">
         <div>
-          <p class="sub">El destello (sparkle)</p>
-          <div class="spark-spec">
+          <p class="sub">El sello de registro</p>
+          <div class="seal-spec">
             <div class="big" aria-hidden="true">
               <svg viewBox="0 0 24 24">
-                <path fill="#7C3AED" d="M12 0 C12.7 8.6 15.4 11.3 24 12 C15.4 12.7 12.7 15.4 12 24 C11.3 15.4 8.6 12.7 0 12 C8.6 11.3 11.3 8.6 12 0 Z"/>
+                <circle cx="12" cy="12" r="8.5" fill="none" stroke="#7C3AED" stroke-width="3.6"/><circle cx="12" cy="12" r="2.6" fill="#7C3AED"/>
               </svg>
             </div>
             <p style="font-size:12.5px;color:var(--dim);line-height:1.55">
-              Estrella de <b style="color:#fff">cuatro puntas asimétrica</b>, tipo destello
-              mágico. Elemento clave de la marca: firma el logo, el isotipo y el centro del QR.
+              Anillo con <b style="color:#fff">punto de tinta en el centro</b>, la marca del impresor.
+              Elemento clave de la marca: firma el wordmark, el isotipo y el centro del QR.
             </p>
           </div>
         </div>
@@ -616,12 +621,25 @@
             <div>
               <div class="app-icon lg" aria-label="Enty app icon">
                 <svg viewBox="0 0 512 512">
-                  <rect x="9" y="9" width="494" height="494" rx="118" fill="none" stroke="#BB5CF6" stroke-width="16" stroke-opacity=".85"/>
-                  <g stroke="#FFFFFF" stroke-width="60" stroke-linecap="round" fill="none">
-                    <path d="M186 156 H318"/><path d="M186 256 H292"/>
-                    <path d="M186 356 H318"/><path d="M186 156 V356"/>
+                  <defs>
+                    <linearGradient id="fA" gradientUnits="userSpaceOnUse" x1="256" y1="0" x2="256" y2="512">
+                      <stop offset="0" stop-color="#17130e"/><stop offset="1" stop-color="#0c0a09"/>
+                    </linearGradient>
+                    <linearGradient id="eA" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stop-color="#D29BF9"/><stop offset="0.55" stop-color="#BB5CF6"/><stop offset="1" stop-color="#7C3AED"/>
+                    </linearGradient>
+                    <mask id="pA">
+                      <rect width="512" height="512" fill="#fff"/>
+                      <g fill="#000"><circle cx="186" cy="96" r="13"/><circle cx="186" cy="146" r="13"/><circle cx="186" cy="196" r="13"/><circle cx="186" cy="246" r="13"/><circle cx="186" cy="296" r="13"/><circle cx="186" cy="346" r="13"/><circle cx="186" cy="396" r="13"/></g>
+                    </mask>
+                  </defs>
+                  <rect width="512" height="512" rx="118" fill="url(#fA)"/>
+                  <rect x="9" y="9" width="494" height="494" rx="112" fill="none" stroke="url(#eA)" stroke-width="14" stroke-opacity="0.85"/>
+                  <g mask="url(#pA)"><path d="M186 96 V416" stroke="#fff" stroke-width="54" stroke-linecap="round" fill="none"/></g>
+                  <g stroke="#fff" stroke-width="54" stroke-linecap="round" fill="none">
+                    <path d="M186 110 H336"/><path d="M186 256 H304"/><path d="M186 402 H336"/>
                   </g>
-                  <path fill="#7C3AED" d="M356 196 l13 34 34 13 -34 13 -13 34 -13 -34 -34 -13 34 -13 z"/>
+                  <circle cx="336" cy="110" r="17" fill="#BB5CF6"/>
                 </svg>
               </div>
               <p class="icon-cap">App icon</p>
@@ -629,12 +647,25 @@
             <div>
               <div class="app-icon md" aria-hidden="true">
                 <svg viewBox="0 0 512 512">
-                  <rect x="9" y="9" width="494" height="494" rx="118" fill="none" stroke="#BB5CF6" stroke-width="16" stroke-opacity=".85"/>
-                  <g stroke="#FFFFFF" stroke-width="60" stroke-linecap="round" fill="none">
-                    <path d="M186 156 H318"/><path d="M186 256 H292"/>
-                    <path d="M186 356 H318"/><path d="M186 156 V356"/>
+                  <defs>
+                    <linearGradient id="fB" gradientUnits="userSpaceOnUse" x1="256" y1="0" x2="256" y2="512">
+                      <stop offset="0" stop-color="#17130e"/><stop offset="1" stop-color="#0c0a09"/>
+                    </linearGradient>
+                    <linearGradient id="eB" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stop-color="#D29BF9"/><stop offset="0.55" stop-color="#BB5CF6"/><stop offset="1" stop-color="#7C3AED"/>
+                    </linearGradient>
+                    <mask id="pB">
+                      <rect width="512" height="512" fill="#fff"/>
+                      <g fill="#000"><circle cx="186" cy="96" r="13"/><circle cx="186" cy="146" r="13"/><circle cx="186" cy="196" r="13"/><circle cx="186" cy="246" r="13"/><circle cx="186" cy="296" r="13"/><circle cx="186" cy="346" r="13"/><circle cx="186" cy="396" r="13"/></g>
+                    </mask>
+                  </defs>
+                  <rect width="512" height="512" rx="118" fill="url(#fB)"/>
+                  <rect x="9" y="9" width="494" height="494" rx="112" fill="none" stroke="url(#eB)" stroke-width="14" stroke-opacity="0.85"/>
+                  <g mask="url(#pB)"><path d="M186 96 V416" stroke="#fff" stroke-width="54" stroke-linecap="round" fill="none"/></g>
+                  <g stroke="#fff" stroke-width="54" stroke-linecap="round" fill="none">
+                    <path d="M186 110 H336"/><path d="M186 256 H304"/><path d="M186 402 H336"/>
                   </g>
-                  <path fill="#7C3AED" d="M356 196 l13 34 34 13 -34 13 -13 34 -13 -34 -34 -13 34 -13 z"/>
+                  <circle cx="336" cy="110" r="17" fill="#BB5CF6"/>
                 </svg>
               </div>
               <p class="icon-cap">64 px</p>
@@ -642,19 +673,33 @@
             <div>
               <div class="app-icon sm" aria-hidden="true">
                 <svg viewBox="0 0 512 512">
-                  <rect x="9" y="9" width="494" height="494" rx="118" fill="none" stroke="#BB5CF6" stroke-width="18" stroke-opacity=".85"/>
-                  <g stroke="#FFFFFF" stroke-width="66" stroke-linecap="round" fill="none">
-                    <path d="M186 156 H318"/><path d="M186 256 H292"/>
-                    <path d="M186 356 H318"/><path d="M186 156 V356"/>
+                  <defs>
+                    <linearGradient id="fC" gradientUnits="userSpaceOnUse" x1="256" y1="0" x2="256" y2="512">
+                      <stop offset="0" stop-color="#17130e"/><stop offset="1" stop-color="#0c0a09"/>
+                    </linearGradient>
+                    <linearGradient id="eC" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stop-color="#D29BF9"/><stop offset="0.55" stop-color="#BB5CF6"/><stop offset="1" stop-color="#7C3AED"/>
+                    </linearGradient>
+                    <mask id="pC">
+                      <rect width="512" height="512" fill="#fff"/>
+                      <g fill="#000"><circle cx="186" cy="96" r="13"/><circle cx="186" cy="146" r="13"/><circle cx="186" cy="196" r="13"/><circle cx="186" cy="246" r="13"/><circle cx="186" cy="296" r="13"/><circle cx="186" cy="346" r="13"/><circle cx="186" cy="396" r="13"/></g>
+                    </mask>
+                  </defs>
+                  <rect width="512" height="512" rx="118" fill="url(#fC)"/>
+                  <rect x="9" y="9" width="494" height="494" rx="112" fill="none" stroke="url(#eC)" stroke-width="14" stroke-opacity="0.85"/>
+                  <g mask="url(#pC)"><path d="M186 96 V416" stroke="#fff" stroke-width="54" stroke-linecap="round" fill="none"/></g>
+                  <g stroke="#fff" stroke-width="54" stroke-linecap="round" fill="none">
+                    <path d="M186 110 H336"/><path d="M186 256 H304"/><path d="M186 402 H336"/>
                   </g>
+                  <circle cx="336" cy="110" r="17" fill="#BB5CF6"/>
                 </svg>
               </div>
               <p class="icon-cap">40 px</p>
             </div>
           </div>
           <p style="font-size:12.5px;color:var(--dim);line-height:1.55;margin-top:16px">
-            Cuadrado de bordes muy redondeados, fondo negro, la <b style="color:#fff">“e”
-            minúscula estilizada</b> en blanco y el <b style="color:#fff">destello morado</b>
+            Cuadrado de bordes muy redondeados, fondo negro mate cálido, la <b style="color:#fff">“e”
+            troquelada</b> en blanco y el <b style="color:#fff">sello violeta</b>
             a su derecha.
           </p>
         </div>
@@ -701,20 +746,20 @@
         <div class="ui-notes">
           <div class="comp">
             <p class="sub">Fondo y profundidad</p>
-            <p>Todo ocurre sobre el negro <b>#0B0B0F</b>, con <b>destellos de luz</b> en las
-              esquinas (morado, verde y rosa) que se filtran por detrás. La app no es plana:
+            <p>Todo ocurre sobre el negro <b>#0c0a09</b>, con <b>halos de luz</b> en las
+              esquinas (violeta, verde y rosa) que se filtran por detrás. La app no es plana:
               las superficies son <b>cristal esmerilado</b> (blur + borde de luz al 8–12%)
               sobre ese negro. Sin blancos ni grises claros de fondo.</p>
           </div>
           <div class="comp">
             <p class="sub">Energía gráfica (neón)</p>
             <p>Verde <b>#00E6AB</b> y rosa <b>#FF2D98</b> solo como <b>trazos orgánicos
-              asimétricos</b> de pincel: energía, nunca texto de interfaz. El morado
+              asimétricos</b> de pincel: energía, nunca texto de interfaz. El violeta
               <b>#7C3AED</b> es el único color interactivo.</p>
           </div>
           <div class="comp">
             <p class="sub">Botones (CTAs)</p>
-            <p>Forma de píldora, relleno <b>morado #7C3AED</b> con texto blanco y
+            <p>Forma de píldora, relleno <b>violeta #7C3AED</b> con texto blanco y
               <b>resplandor del mismo color</b> (glow exterior).</p>
             <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap">
               <span class="demo-btn">Comprar boletas</span>
@@ -729,7 +774,7 @@
           <div class="comp">
             <p class="sub">Navegación inferior</p>
             <p>Íconos limpios (<b>Home, Explore, Tickets, Profile</b>) con el ícono activo
-              resaltado en morado.</p>
+              resaltado en violeta.</p>
           </div>
           <div class="comp">
             <p class="sub">Detalles</p>
@@ -751,8 +796,8 @@
         <div class="tk torn" aria-label="Boleto Enty">
           <div class="tk-head">
             <div class="tk-logo">Ent<span class="y">y</span>
-              <span class="spark" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path fill="#7C3AED" d="M12 0 C12.7 8.6 15.4 11.3 24 12 C15.4 12.7 12.7 15.4 12 24 C11.3 15.4 8.6 12.7 0 12 C8.6 11.3 11.3 8.6 12 0 Z"/></svg>
+              <span class="seal" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="#7C3AED" stroke-width="3.6"/><circle cx="12" cy="12" r="2.6" fill="#7C3AED"/></svg>
               </span>
             </div>
             <span class="idx">No. 00128</span>
@@ -778,8 +823,8 @@
 
           <div class="tk-qr">
             <div class="qr"></div>
-            <span class="spark" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path fill="#00E6AB" d="M12 0 C12.7 8.6 15.4 11.3 24 12 C15.4 12.7 12.7 15.4 12 24 C11.3 15.4 8.6 12.7 0 12 C8.6 11.3 11.3 8.6 12 0 Z"/></svg>
+            <span class="seal" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="#00E6AB" stroke-width="3.6"/><circle cx="12" cy="12" r="2.6" fill="#00E6AB"/></svg>
             </span>
           </div>
 
@@ -816,7 +861,7 @@
           </div>
           <div class="anat">
             <p class="sub">QR</p>
-            <p>Cuadrado, con el <b>destello en verde neón en su centro exacto</b>.</p>
+            <p>Cuadrado, con el <b>sello en verde neón en su centro exacto</b>.</p>
           </div>
           <div class="anat">
             <p class="sub">Abajo</p>
@@ -832,15 +877,15 @@
       <p class="eyebrow">— 07 · Prompts de generación (IA)</p>
       <div class="prompt">
         <div class="phead"><span class="pt">Boleto digital (estilo físico / neón)</span><span class="pflags">--ar 9:16 --v 6.0</span></div>
-        <code>A modern futuristic digital concert ticket isolated on a solid deep black background. The ticket has realistic torn paper edges on the top and bottom, giving a physical grunge texture. Inside the ticket: dark mode UI design, bold geometric white typography, glowing energetic neon green and neon pink brush strokes crossing the center. A high-tech QR code with a glowing neon green sparkle icon in the middle. Bottom section features a perforated line and a barcode. High contrast, premium, cyberpunk aesthetic, highly detailed UI design --ar 9:16 --v 6.0</code>
+        <code>A modern futuristic digital concert ticket isolated on a solid deep black background. The ticket has realistic torn paper edges on the top and bottom, giving a physical grunge texture. Inside the ticket: dark mode UI design, bold geometric white typography, glowing energetic neon green and neon pink brush strokes crossing the center. A high-tech QR code with a glowing neon green registro icon in the middle. Bottom section features a perforated line and a barcode. High contrast, premium, cyberpunk aesthetic, highly detailed UI design --ar 9:16 --v 6.0</code>
       </div>
       <div class="prompt">
         <div class="phead"><span class="pt">Logo 3D (render flotante)</span><span class="pflags">--ar 16:9 --style raw --v 6.0</span></div>
-        <code>3D floating wordmark logo "Enty" in a modern, thick, rounded friendly sans-serif font. A glowing purple four-pointed magical sparkle icon floats at the top right of the text. The text has a shiny metallic and glass texture, reflecting on a polished black floor. Dark studio lighting, intense purple neon backlight (#7C3AED) casting a glow around the letters. Deep black background (#0B0B0F). Premium, youthful, futuristic ticketing brand identity, 8k resolution, octane render, unreal engine 5 --ar 16:9 --style raw --v 6.0</code>
+        <code>3D floating wordmark logo "Enty" in a modern, thick, rounded friendly sans-serif font. A glowing purple four-pointed magical registro icon floats at the top right of the text. The text has a shiny metallic and glass texture, reflecting on a polished black floor. Dark studio lighting, intense indigo neon backlight (#7C3AED) casting a glow around the letters. Deep black background (#0c0a09). Premium, youthful, futuristic ticketing brand identity, 8k resolution, octane render, unreal engine 5 --ar 16:9 --style raw --v 6.0</code>
       </div>
       <div class="prompt">
         <div class="phead"><span class="pt">Interfaz de la app (UI design)</span><span class="pflags">--ar 9:16 --v 6.0</span></div>
-        <code>Mobile app UI design for a premium ticketing and concert app, dark mode aesthetic. Deep black background, vibrant purple (#7C3AED) primary buttons and accents. Clean, modern geometric sans-serif typography. Screen shows a concert event detail page with a high-quality atmospheric hero image of an artist performing live. Pill-shaped buttons, rounded cards, subtle neon glow effects. Sleek, professional, futuristic, dribbble style, behance, UI/UX masterpiece, 8k --ar 9:16 --v 6.0</code>
+        <code>Mobile app UI design for a premium ticketing and concert app, dark mode aesthetic. Deep black background, vibrant indigo (#7C3AED) primary buttons and accents. Clean, modern geometric sans-serif typography. Screen shows a concert event detail page with a high-quality atmospheric hero image of an artist performing live. Pill-shaped buttons, rounded cards, subtle neon glow effects. Sleek, professional, futuristic, dribbble style, behance, UI/UX masterpiece, 8k --ar 9:16 --v 6.0</code>
       </div>
     </section>
 
