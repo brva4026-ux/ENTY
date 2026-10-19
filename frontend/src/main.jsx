@@ -210,9 +210,6 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-          {/* Aviso de cookies: necesita router hooks (navega a /cookies), por
-              eso vive DENTRO de BrowserRouter y no junto a OfflineBanner. */}
-          <CookieNotice />
         </BrowserRouter>
       </UIProvider>
     </AuthProvider>

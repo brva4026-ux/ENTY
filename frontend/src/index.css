@@ -2008,6 +2008,151 @@ html[data-theme="light"] .vh-mesnav-hoy {
   }
 }
 
+/* ----------------------------------------------------------------------
+   PORTADA: "Pulso del mes". La portada era un muro de cifras sueltas; aquí
+   el mes se lee como operación en vivo — la puerta (aforo) y cómo compra la
+   gente (anticipación). Mismos hairlines del sistema, mismos tokens de
+   marca; nada de cajas nuevas ni colores inventados.
+   ---------------------------------------------------------------------- */
+.vh-pulso {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem 1.6rem;
+  margin-top: 0.95rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+/* Dos columnas solo cuando hay ancho de verdad: en móvil van apiladas y cada
+   bloque respira a lo ancho. */
+@media (min-width: 720px) {
+  .vh-pulso {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+}
+.vh-pulso-block {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.vh-pulso-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+/* La cifra de puerta: hermana menor del KPI del mes. Misma voz (tabular,
+   tracking cerrado), sin competirle el trono. */
+.vh-pulso-big {
+  font-size: var(--e-text-lg);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-zinc-50);
+  line-height: 1;
+}
+/* Barra de aforo: el carril es la superficie, el relleno es la marca. */
+.vh-pulso-bar {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--color-zinc-800);
+  overflow: hidden;
+}
+.vh-pulso-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  /* Verde = validado (el acento significa): lo que ya entró por la puerta. */
+  background: linear-gradient(90deg, var(--e-emerald-450), var(--e-green-500));
+  transition: width 0.5s ease;
+}
+.vh-pulso-sub {
+  font-size: var(--e-text-2xs);
+  color: var(--color-zinc-500);
+}
+.vh-pulso-none {
+  color: var(--color-zinc-600);
+}
+/* Curva de anticipación: columnas ancladas abajo, del tramo más lejano
+   (izquierda) al más cercano al evento (derecha). El número manda sobre la
+   etiqueta; la barra es magnitud, como en el ranking. */
+.vh-curve {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  height: 3.6rem;
+}
+.vh-curve-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.vh-curve-barwrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.vh-curve-bar {
+  display: block;
+  width: 100%;
+  max-width: 2.1rem;
+  border-radius: 0.3rem 0.3rem 0.15rem 0.15rem;
+  background: linear-gradient(
+    180deg,
+    var(--color-brand-400),
+    var(--color-brand-700)
+  );
+  transition: height 0.5s ease;
+}
+/* Tramo sin ventas: no es una barra de altura 0 (parece un error), es una
+   guía tenue que dice "aquí no se vendió". */
+.vh-curve-bar.is-empty {
+  background: color-mix(in srgb, var(--color-zinc-600) 55%, transparent);
+}
+.vh-curve-n {
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  color: var(--color-zinc-200);
+  line-height: 1;
+}
+.vh-curve-x {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-zinc-600);
+  white-space: nowrap;
+}
+html[data-theme="light"] .vh-pulso {
+  border-top-color: var(--e-neutral-300);
+}
+html[data-theme="light"] .vh-pulso-big {
+  color: var(--e-ink-1);
+}
+html[data-theme="light"] .vh-pulso-bar {
+  background: var(--e-neutral-200);
+}
+html[data-theme="light"] .vh-pulso-bar-fill {
+  background: linear-gradient(90deg, var(--e-emerald-600), var(--e-green-500));
+}
+html[data-theme="light"] .vh-curve-bar.is-empty {
+  background: color-mix(in srgb, var(--e-neutral-300) 90%, transparent);
+}
+html[data-theme="light"] .vh-curve-n {
+  color: var(--e-ink-1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .vh-pulso-bar-fill,
+  .vh-curve-bar {
+    transition: none;
+  }
+}
+
 /* ===========================================================================
    CAPA PREMIUM (pasada 3): micro-detalles que se sienten, no que decoran
    =========================================================================== */
