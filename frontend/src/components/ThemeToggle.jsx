@@ -81,7 +81,14 @@ export default function ThemeToggle() {
       aria-label={`Cambiar tema (actual: ${LABEL[pref]})`}
       className="relative grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-200"
     >
-      {ICONS[shown]}
+      <span className="theme-icon-swap" data-state={shown} aria-hidden="true">
+        <span className="theme-icon" data-icon="light">
+          {ICONS.light}
+        </span>
+        <span className="theme-icon" data-icon="dark">
+          {ICONS.dark}
+        </span>
+      </span>
       {isAuto && (
         <span
           className="absolute right-1 top-1 h-1 w-1 rounded-full bg-brand-400"

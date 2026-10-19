@@ -1708,13 +1708,21 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .evd-grid {
   margin-top: 1.375rem;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Una columna en movil; enty-fan.css lo sube a 3 desde 560px (que es lo que
+     su comentario declara). Antes la base fijaba 3 columnas de 1fr, y como 1fr
+     no baja de su min-content, un nombre de sede largo desbordaba la pantalla
+     a 320px. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.625rem;
 }
 .evd-cell {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  /* min-width: 0 para que la celda acepte encogerse por debajo de su contenido
+     y el texto pueda partirse en vez de salirse de la tarjeta. */
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.875rem 0.75rem;
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.04);

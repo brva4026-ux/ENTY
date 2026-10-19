@@ -3548,6 +3548,72 @@ html[data-theme="light"] .topbar-avatar {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent);
 }
 
+/* Badge de no leídas: entra deslizando desde la campana y remata con un pop
+   de muelle (patron notification-badge de transitions.dev, reescrito sobre
+   los tokens de movimiento de la casa). El contador se remonta con key={unread},
+   asi que cada aviso nuevo vuelve a disparar la entrada. */
+.notif-badge {
+  transform-origin: 100% 0;
+  animation: notif-badge-in var(--e-dur-slow) var(--e-ease-expo) both;
+}
+@keyframes notif-badge-in {
+  0% {
+    opacity: 0;
+    transform: translate(-8px, 10px) scale(0.35);
+    filter: blur(2px);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1.18);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notif-badge {
+    animation: none;
+  }
+}
+
+/* Icono del tema: sol y luna apilados en la misma celda y cruzados con blur
+   y escala (patron icon-swap de transitions.dev). Antes solo se renderizaba
+   uno, asi que el cambio era un salto seco. La escala de entrada se baja de
+   0.25 a 0.4 del original: en un icono de 18px el 0.25 se lee como un
+   parpadeo, no como una transicion. */
+.theme-icon-swap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+.theme-icon-swap .theme-icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--e-dur-base) var(--e-ease-standard),
+    filter var(--e-dur-base) var(--e-ease-standard),
+    transform var(--e-dur-base) var(--e-ease-standard);
+}
+.theme-icon-swap[data-state="light"] .theme-icon[data-icon="light"],
+.theme-icon-swap[data-state="dark"] .theme-icon[data-icon="dark"] {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+.theme-icon-swap[data-state="light"] .theme-icon[data-icon="dark"],
+.theme-icon-swap[data-state="dark"] .theme-icon[data-icon="light"] {
+  opacity: 0;
+  filter: blur(2px);
+  transform: scale(0.4);
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-icon-swap .theme-icon {
+    transition: none;
+  }
+}
+
 /* ----------------------------------------------------------------------
    BOLETA PUBLICA (invitado): la pagina mas vista por alguien que NO trabaja
    en la app — merece la misma Firma. QR con marco de credencial.

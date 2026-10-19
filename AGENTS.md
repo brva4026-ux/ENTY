@@ -103,6 +103,11 @@ y reemplazá el archivo) o el test falla.
   rutas en `main.jsx` y empuja el contenido hacia abajo. Antes era `fixed
   top-3 z-40` y tapaba la cabecera y las acciones del backstage en móvil
   (`portada.spec.js` fallaba de forma intermitente).
+- **E2E contaminados por datos demo**: `fan.spec.js` ("Inicio -> detalle ->
+  Mis boletos") y `fan-checkout.spec.js` fallan cuando los E2E anteriores ya
+  crearon eventos; eligen el PRIMER evento del catálogo y ese puede no tener
+  CTA de compra. Falla también sobre `master` limpio, así que no lo causa un
+  cambio puntual: antes de culpar al diff, re-correlo con `git stash`.
 
 ## Datos demo
 
