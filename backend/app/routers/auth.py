@@ -178,10 +178,10 @@ async def login(
         # igualar timing del bcrypt antes de rechazar
         verify_password(body.password, _DUMMY_HASH)
         await _register_failure(db, email_norm, ip)
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales invalidas")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Correo o contraseña incorrectos")
     if not verify_password(body.password, user["password_hash"]):
         await _register_failure(db, email_norm, ip)
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales invalidas")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Correo o contraseña incorrectos")
     if not user["is_active"]:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario inactivo")
 
