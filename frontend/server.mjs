@@ -49,7 +49,7 @@ const SECURITY_HEADERS = {
     "default-src 'self'; base-uri 'self'; object-src 'none'; " +
     "frame-ancestors 'none'; form-action 'self'; " +
     "script-src 'self' 'sha256-BCxcTDZx8Ar4yrDqOW5obXLMOvXkpCVQOwye3Hq7Da8=' " +
-    "'sha256-tOpkJ3KK+PB+F2LbcSWD0tBsbOYYGl6C5JFOnnqBVPk='; " +
+    "'sha256-jUIYy3a/48gIItZqiYauF9EGma1BA1qQaffcsibxY0c='; " +
     "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
     "font-src 'self'; connect-src 'self' https://*.sentry.io " +
     "https://*.ingest.sentry.io https://*.ingest.us.sentry.io " +

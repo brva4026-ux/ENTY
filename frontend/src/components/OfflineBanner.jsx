@@ -26,6 +26,10 @@ export function OfflineBanner() {
   return (
     <div
       role="alert"
+      // El banner se ancla a top:0; con viewport-fit=cover cae bajo la isla
+      // dinamica. El inset lo empuja al area segura (mismo patron que
+      // Layout.jsx con la barra inferior).
+      style={{ paddingTop: "calc(0.375rem + env(safe-area-inset-top))" }}
       className="offline-in fixed inset-x-0 top-0 z-[60] flex items-center justify-center gap-2 bg-amber-500 px-4 py-1.5 text-xs font-bold text-amber-950"
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="h-4 w-4" aria-hidden="true">

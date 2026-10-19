@@ -349,6 +349,18 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado
   visible y de un solo color** en ambos temas. Corre con `E2E_BASE_URL=http://127.0.0.1:12000
   npx playwright test e2e/a11y.spec.js`.
+- **Un control que se muestra condicionalmente se mide igual.** El switch de
+  push (`PushToggle`) solo se pinta si el backend tiene VAPID (`serverEnabled`);
+  mientras push estuvo apagado nadie medía su tamaño. Al encenderlo apareció en
+  la puerta con el riel de 28px como único hitbox y rompió el mínimo de 44px
+  (SC 2.5.5) que ese test se impone. El area tactil ahora es el boton (44px) y
+  el riel visual se centra dentro: agrandar el control a la vista habría
+  desproporcionado el diseño, así que se agranda el objetivo, no el dibujo.
+- **Enlaces del pie (`.home-foot-links`, `.legal-nav`): 20px de alto.** Cumplian
+  AA solo por la exención de espaciado de `tapTargetFails` (SC 2.5.8), que
+  depende de la geometría de la pagina: al crecer el contenido el pie se corria
+  y el test caia de forma intermitente. Con `min-height: 24px` cumplen por
+  tamaño propio y dejan de ser sensibles al layout.
 
 ## App interna (Enty): Admin · Promotor · Puerta
 
@@ -548,6 +560,16 @@ avisar.
   suite de pytest. `POST /seed` exige `IS_DEMO=true` en el entorno del backend;
   credenciales `admin@bar.test` / `demo1234`. Sin seed, `puerta.spec`/`portada.spec`
   fallan en el login (la DB queda con usuarios tipo `admin-<hex>@example.test`).
+- **Los E2E se auto-limpian: `globalTeardown` borra los eventos `E2E-*`.** Antes
+  los specs que crean eventos (`fan-waitlist`, `door-alert-live`) los dejaban en
+  la DB; como el catalogo publico ordena por `starts_at ASC` (`public.py`), un
+  evento E2E con fecha cercana se cuela al frente y desplaza al del seed. Los
+  specs que eligen "el primer evento del catalogo" (`fan`, `fan-checkout`)
+  empezaban a ver uno agotado y caian en rojo **por datos, no por codigo** (con
+  `-g` o recien sembrado pasaban; en suite completa, no). Si ves ese sintoma,
+  comproba `select count(*) from events where name like 'E2E-%'` antes de tocar
+  el spec: lo mas probable es residuo, no una regresion. El teardown finaliza
+  los `live` antes de borrar (el endpoint veta el borrado con puertas abiertas).
 - **App del fan (publica, sin login):** `/inicio` (vitrina, `HomePage.jsx`),
   `/evento/:id` (detalle de compra, `EventDetailPage.jsx`), `/t` (boleto),
   `/boletas` (mis boletas por contacto). Backend: `GET /public/events` (catalogo)
@@ -558,6 +580,18 @@ avisar.
   `CATEGORY_CHIPS` en `HomePage.jsx`). Una columna real es follow-up.
 - **Sin checkout publico todavia:** el CTA "Comprar boleto" del detalle apunta a
   `/boletas` (el fan recupera lo ya emitido por contacto).
+- **Accesibilidad: qué exige cada superficie.** La puerta exige 44px de objetivo
+  táctil (SC 2.5.5, AAA) porque se usa de pie y a una mano; el resto de lo público
+  exige 24px (SC 2.5.8, AA). **No midas el catálogo con la regla de 44px**: marcaría
+  enlaces dentro de un párrafo y el wordmark, que la norma exime por "inline" y por
+  "spacing". `a11y.spec.js` ya aplica ambas exenciones en `tapTargetFails`; el test
+  de 44px solo corre en `/bouncer`. Medido a 375px: 0 violaciones AA.
+- **Los E2E de a11y no deben esperar con sleeps fijos.** `settled(page)` espera a
+  que desaparezca "Cargando…", a `networkidle` y a que el `<title>` por ruta deje
+  de ser el estático. Con `waitForTimeout(500)` el detalle del evento se medía a
+  medio cargar y el spec fallaba por carrera con `door-alert-live.spec.js` (que crea
+  eventos `E2E-DOOR-*` en paralelo). `firstEventPath` además salta los `E2E-*` para
+  no medir un evento que otro spec está sembrando.
 - **El aviso de cookies va EN FLUJO, no `fixed`.** Es un banner informativo
   montado antes de las rutas en `main.jsx`: empuja el contenido hacia abajo en
   vez de superponerse, asi que no puede tapar nada (ver la nota de la seccion
