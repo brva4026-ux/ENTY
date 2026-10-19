@@ -64,13 +64,17 @@ export function CookieNotice() {
           analítica; por eso no pedimos consentimiento: lo informamos.
         </p>
         <div className="flex shrink-0 items-center gap-2">
+          {/* Objetivo tactil AA (WCAG 2.5.8, 24px): un <button> es
+              inline-block, no inline, asi que no aplica la exencion de enlace
+              dentro de un parrafo; el renglon de 20px no llega. El padding
+              vertical da el area sin agrandar el texto. */}
           <button
             type="button"
             onClick={() => {
               close();
               nav("/cookies");
             }}
-            className="underline decoration-zinc-600 underline-offset-2 hover:text-white"
+            className="py-1 underline decoration-zinc-600 underline-offset-2 hover:text-white"
           >
             Aviso de cookies
           </button>
