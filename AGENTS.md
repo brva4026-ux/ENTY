@@ -681,10 +681,17 @@ avisar.
   `schema.sql` + migraciones, instala el backend, arranca :8001 y el dev
   server :12000 y siembra. `psql` no queda en PATH: usar
   `/usr/lib/postgresql/17/bin/psql` con `PGPASSWORD=devpassword`.
-- **El CI solo aplica `db/schema.sql`**, que NO trae las filas de
-  `legal_documents` (viven en migraciones). Por eso el gate legal no se activa
-  en CI: cualquier spec que asuma aceptaciones pendientes debe saltarse si la
-  cuenta no las tiene (`test.skip`), o fallará en verde solo en local.
+- **`db/schema.sql` ya trae las filas de `legal_documents`** (consolidadas de
+  las migraciones 028/029/030), asi que el gate legal SI se activa en CI y en
+  una instalacion nueva (antes el schema no traia las filas y el gate nunca
+  aparecia: era una obligacion legal que se perdia en silencio).
+- **El seed reparte las aceptaciones legales:** los cuatro usuarios demo de
+  siempre (`admin@bar.test`, promotores, puerta) se siembran ya ACEPTADOS para
+  que el gate no interrumpa el resto de la suite; `gate@bar.test` es la unica
+  cuenta que queda con documentos pendientes y es la que usa
+  `legal-gate.spec.js`. El seed borra las aceptaciones del gate en cada
+  corrida, asi que re-sembrar vuelve a dejar el spec ejercitable (sin eso, la
+  segunda corrida seguida se salta y el guard deja de probar nada).
 - **Puntos que toca el gate legal (no romperlos):** `LegalGate` en `Layout.jsx`
   (`onCleared(true)` — pasar `true`, no `undefined`, o el guard queda abierto y
   la app se pinta en negro); `LegalPage` es dueña del `<h1>` y del

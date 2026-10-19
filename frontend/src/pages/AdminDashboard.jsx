@@ -36,6 +36,8 @@ import PayoutsManager from "../components/PayoutsManager";
 import TypeManager from "../components/TypeManager";
 import AllocationManager from "../components/AllocationManager";
 import TicketList from "../components/TicketList";
+import EmitTicketPanel from "../components/EmitTicketPanel";
+import IssuedTicket from "../components/IssuedTicket";
 import EventTeamPanel from "../components/EventTeamPanel";
 import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
@@ -160,11 +162,11 @@ export default function AdminDashboard() {
   const [allocations, setAllocations] = useState([]);
   const [report, setReport] = useState(null);
   const [users, setUsers] = useState([]);
-  // tickets: el listado real vive en TicketList (server-driven, paginado).
-  // El fetch que llenaba este estado quedó muerto: nadie lo lee. Solo setTickets
-  // se usa para limpiar al cambiar de evento — por eso este useState se queda.
-  const [tickets, setTickets] = useState([]);
+  // El listado real de boletas vive en TicketList (server-driven, paginado).
   const [selectedEvent, setSelectedEvent] = useState(null);
+  // Ultima boleta emitida por el admin en este evento (venta directa): se
+  // muestra con su QR y el enlace de entrega al lado del formulario.
+  const [lastTicket, setLastTicket] = useState(null);
   // Fuente de verdad de la URL: el evento abierto y su pestaña viven en
   // /admin?event=<id>&tab=<tab> — compartible, sobrevive recargas y back.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -379,6 +381,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!selectedEvent) return;
+    // La boleta emitida pertenece al evento anterior: al cambiar de noche, el
+    // QR del evento viejo no debe quedar colgado en el panel del nuevo.
+    setLastTicket(null);
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/types`)
       .then(setTypes)
       .catch((e) => setError(e.message));
@@ -1919,12 +1924,49 @@ export default function AdminDashboard() {
                 total. "Entradas" monta el producto; "Cupos" delega la venta;
                 "Boletas" audita lo vendido y entrega los QR. */}
             {section === "entradas" && (
-              <TypeManager
-                venueId={venueId}
-                eventId={selectedEvent}
-                types={types}
-                onChange={setTypes}
-              />
+              <>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <EmitTicketPanel
+                    venueId={venueId}
+                    eventId={selectedEvent}
+                    event={selectedEventData}
+                    types={types}
+                    onIssued={(ticket) => {
+                      setLastTicket(ticket);
+                      refreshEventData();
+                    }}
+                    onError={setError}
+                  />
+                  <div className="card h-fit p-5">
+                    <p className="eyebrow">Entrega</p>
+                    <h3 className="display mb-3 mt-0.5 flex items-center gap-2 text-base">
+                      <Icon name="ticket" className="h-4 w-4 text-brand-400" />
+                      {lastTicket ? "Boleta generada" : "Vista previa"}
+                    </h3>
+                    {lastTicket ? (
+                      <IssuedTicket
+                        ticket={lastTicket}
+                        eventName={selectedEventData?.name}
+                      />
+                    ) : (
+                      <div className="py-12 text-center">
+                        <span className="tile mx-auto mb-3 grid h-16 w-16">
+                          <Icon name="qr" className="h-8 w-8" />
+                        </span>
+                        <p className="text-sm text-zinc-500">
+                          Emite una boleta para ver el QR y el enlace de envío.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <TypeManager
+                  venueId={venueId}
+                  eventId={selectedEvent}
+                  types={types}
+                  onChange={setTypes}
+                />
+              </>
             )}
 
             {section === "cupos" && (

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { apiFetch, publicTicketPageUrl } from "../lib/api";
+import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { haptics } from "../lib/haptics";
-import TicketPreview from "../components/TicketPreview";
+import IssuedTicket from "../components/IssuedTicket";
 import { PullToRefresh } from "../components/PullToRefresh";
 import { useUI } from "../lib/ui";
 import { activeVenueId } from "../lib/venue";
@@ -14,7 +14,6 @@ import { StatSkeletonRow } from "../components/Skeleton";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
 import { STATUS_META, sortEventsForStrip } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
-import { ticketWaMessage, waLink } from "../lib/whatsapp";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 function firstVenueId(user) {
@@ -47,7 +46,6 @@ export default function PromoterDashboard() {
   const [lastTicket, setLastTicket] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [reissuingId, setReissuingId] = useState(null);
   // Mig 015: corrección de contacto del asistente (nombre/teléfono) con
   // auditoría en la DB. El error más común: el teléfono mal digitado y el
@@ -218,7 +216,6 @@ export default function PromoterDashboard() {
         customerPhone: form.customer_phone,
       });
       haptics.success();
-      setCopied(false);
       setForm({
         ...form,
         customer_name: "",
@@ -263,7 +260,6 @@ export default function PromoterDashboard() {
         customerName: res.customer_name,
         customerPhone: res.customer_phone,
       });
-      setCopied(false);
       haptics.success();
       await loadHistory();
       ui.success(
@@ -306,39 +302,10 @@ export default function PromoterDashboard() {
     }
   }
 
-  // Entrega real: el cliente abre este link y ve su QR (sin sesión). Es la
-  // página HTML (reenviable, con vista previa de WhatsApp), no la imagen cruda.
+  // Entrega: el QR, el enlace y el wa.me viven en <IssuedTicket>, compartido
+  // con el panel del admin (misma boleta, mismo mensaje, un solo arreglo).
   // Desde el historial el objeto puede venir sin raw_token (nunca se guarda en
-  // claro en la DB): entonces no hay URL que copiar hasta reemitir.
-  const ticketUrl =
-    lastTicket?.raw_token != null
-      ? publicTicketPageUrl(lastTicket.raw_token)
-      : null;
-
-  // Entrega por WhatsApp (helper compartido). Si el teléfono viene incompleto
-  // abrimos el selector de contactos en vez de un chat equivocado: waLink
-  // devuelve null y el anchor no se pinta.
-  const waHref = lastTicket
-    ? waLink(
-        lastTicket.customerPhone,
-        ticketWaMessage({
-          customerName: lastTicket.customerName,
-          eventName,
-          ticketId: lastTicket.ticket_id,
-          url: ticketUrl,
-        }),
-      )
-    : null;
-
-  async function copyTicketUrl() {
-    try {
-      await navigator.clipboard.writeText(ticketUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError("No se pudo copiar el enlace. Cópialo manualmente.");
-    }
-  }
+  // claro en la DB): IssuedTicket no pinta enlace hasta que se reemite.
 
   // Recarga completa para pull-to-refresh.
   // Liquidaciones propias: el promotor ve cuanto ha ganado y puede disputar.
@@ -715,78 +682,10 @@ export default function PromoterDashboard() {
                     {lastTicket ? "Boleta generada" : "Vista previa"}
                   </h3>
                   {lastTicket ? (
-                    <div
-                      className="animate-rise space-y-4"
-                      key={lastTicket.raw_token ?? lastTicket.ticket_id}
-                    >
-                      <a
-                        href={ticketUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block"
-                      >
-                        <TicketPreview
-                          rawToken={lastTicket.raw_token}
-                          ticketId={lastTicket.ticket_id}
-                          name={lastTicket.customerName || "Asistente"}
-                          eventName={eventName}
-                        />
-                      </a>
-
-                      {waHref && (
-                        <a
-                          href={waHref}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-white transition hover:bg-emerald-500"
-                        >
-                          <svg
-                            viewBox="0 0 24 24"
-                            className="h-5 w-5"
-                            fill="currentColor"
-                          >
-                            <path d="M12.04 2a9.9 9.9 0 0 0-8.51 14.93L2 22l5.2-1.49A9.9 9.9 0 1 0 12.04 2zm5.77 14.06c-.24.68-1.4 1.3-1.93 1.35-.52.05-1.01.24-3.4-.71-2.87-1.13-4.68-4.06-4.82-4.25-.14-.19-1.15-1.53-1.15-2.92 0-1.39.73-2.07 .99-2.35.26-.28.57-.35.76-.35h.55c.18 0 .42-.07.66.5.24.57.83 1.97.9 2.11.07.14.12.31.02.5-.09.19-.14.3-.28.47-.14.17-.3.38-.42.51-.14.14-.29.3-.12.58.16.28.73 1.2 1.57 1.95 1.08.96 1.99 1.26 2.27 1.4.28.14.44.12.6-.07.17-.19.7-.81.88-1.09.19-.28.38-.23.63-.14.26.09 1.63.77 1.91.91.28.14.47.21.54.33.07.12.07.68-.17 1.36z" />
-                          </svg>
-                          Enviar por WhatsApp
-                        </a>
-                      )}
-
-                      {/* Lo que se le entrega al cliente: abre el QR sin sesión */}
-                      <div className="rounded-lg bg-zinc-800/60 p-3 ring-1 ring-zinc-700/50">
-                        <p className="mb-1 text-xs font-medium text-zinc-400">
-                          Enlace de la boleta (el cliente abre aquí su QR)
-                        </p>
-                        <p className="break-all font-mono text-xs text-zinc-300">
-                          {ticketUrl}
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <a
-                            href={ticketUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn-ghost flex-1 text-xs font-bold"
-                          >
-                            Ver boleta
-                          </a>
-                          <button
-                            type="button"
-                            onClick={copyTicketUrl}
-                            className="btn-ghost flex-1 text-xs font-bold"
-                          >
-                            {copied ? "¡Enlace copiado!" : "Copiar enlace"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <details className="list-row rounded-lg p-3">
-                        <summary className="cursor-pointer text-xs font-medium text-zinc-500">
-                          Código de respaldo (validar sin cámara)
-                        </summary>
-                        <p className="mt-2 break-all font-mono text-xs text-zinc-400">
-                          {lastTicket.raw_token}
-                        </p>
-                      </details>
-                    </div>
+                    <IssuedTicket
+                      ticket={lastTicket}
+                      eventName={eventName}
+                    />
                   ) : (
                     <div className="py-8 text-center">
                       {/* Estado vacío del preview: mini-boleta abstracta, no un
