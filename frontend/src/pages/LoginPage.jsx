@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
@@ -15,15 +15,7 @@ function loginErrorMessage(err) {
     if (raw.toLowerCase().includes("inactivo")) {
       return "Tu cuenta está desactivada. Pide a un administrador de tu negocio que la reactive.";
     }
-    // Verificar si es error de formato de correo (no menciona contraseña)
-    if (!raw.toLowerCase().includes("contraseña") && !raw.toLowerCase().includes("password")) {
-      return "El correo electrónico no tiene un formato correcto. Ejemplo: usuario@negocio.com";
-    }
-    // Verificar si la contraseña es muy corta
-    if (raw.toLowerCase().includes("mínimo") || raw.toLowerCase().includes("minimum") || raw.toLowerCase().includes("short")) {
-      return "La contraseña debe tener al menos 6 caracteres.";
-    }
-    return "Correo o contraseña incorrectos. Revisa mayúsculas y vuelve a intentar.";
+    return "Correo o contraseña incorrectos. Revisa mayúsculas y vuelve a intentar.";;
   }
   if (err?.status === 429) {
     return "Demasiados intentos fallidos. Espera unos minutos y prueba de nuevo.";
@@ -60,32 +52,13 @@ function EyeIcon({ open }) {
   );
 }
 
-/** Componente de error con auto-cierre (5s) y enfocado automáticamente */
-function LoginError({ ref, message, duration = 5000 }) {
-  const [show, setShow] = useState(true);
-  const timeoutRef = useRef(null);
-
-  useEffect(() => {
-    if (show) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setShow(false), duration);
-    }
-  }, [show]);
-
-  return show && (
-    <div
-      role="alert"
-      className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm leading-relaxed text-red-300"
-    >
-      {message}
-    </div>
-  );
-}
-
 export default function LoginPage() {
   useDocumentTitle("Ingresar");
   const { login } = useAuth();
   const nav = useNavigate();
+  // Guard que redirige a /login deja de dónde venía: si el usuario quería
+  // entrar a /perfil y no tenía sesión, aterrizó aquí. Al entrar, lo
+  // devolvemos a su destino original en vez de su dashboard por defecto.
   const location = useLocation();
   const from = location.state?.from;
   const [email, setEmail] = useState("");
@@ -93,11 +66,8 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotMsg, setForgotMsg] = useState("");
-  const [forgotBusy, setForgotBusy] = useState(false);
-  const emailRef = useRef(null);
 
+  // Recuperación de contraseña
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotMsg, setForgotMsg] = useState("");
   const [forgotBusy, setForgotBusy] = useState(false);
@@ -108,6 +78,10 @@ export default function LoginPage() {
     setBusy(true);
     try {
       const user = await login(email, password);
+      // Un solo criterio de redirect (lib/roles.js): re-hacerlo aquí
+      // desincroniza y dejó afuera a super_admin (sus roles no incluyen
+      // el string "admin"). homeForRole devuelve "/login" solo si no hay
+      // ningún rol conocido.
       const home = homeForRole(user);
       if (home === "/login") {
         setError("Tu usuario no tiene un rol asignado");
@@ -140,14 +114,6 @@ export default function LoginPage() {
     }
   }
 
-  // Enfocar email cuando el mensaje de error cambie
-  useEffect(() => {
-    if (error && emailRef.current) {
-      emailRef.current.focus();
-      emailRef.current.select();
-    }
-  }, [error]);
-
   return (
     <AuthShell>
       <div className="relative w-full">
@@ -176,7 +142,6 @@ export default function LoginPage() {
                 className="field auth-field-has-icon"
                 autoComplete="email"
                 autoFocus
-                ref={emailRef}
                 required
               />
             </div>
@@ -228,9 +193,74 @@ export default function LoginPage() {
                 <p className="mb-2 text-xs leading-relaxed text-zinc-400">
                   Escribe tu correo arriba y te enviamos un enlace para crear
                   una contraseña nueva.
-                </button>
+                </p>
                 <button
                   type="button"
                   disabled={forgotBusy || !email}
                   onClick={submitForgot}
-                
+                  className="btn-ghost w-full text-xs font-bold disabled:opacity-40"
+                >
+                  {forgotBusy ? (
+                    <>
+                      <svg
+                        className="btn-spinner"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="9" />
+                      </svg>
+                      Enviando
+                    </>
+                  ) : (
+                    "Enviar enlace de recuperación"
+                  )}
+                </button>
+                {forgotMsg && (
+                  <p className="mt-2 text-xs leading-relaxed text-emerald-300">
+                    {forgotMsg}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div
+                role="alert"
+                className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm leading-relaxed text-red-300"
+              >
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="btn-primary w-full"
+            >
+              {busy && (
+                <svg
+                  className="btn-spinner"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+              )}
+              {busy ? "Entrando" : "Entrar"}
+            </button>
+          </form>
+        </div>
+
+        <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
+          ¿Nuevo en Enty?{" "}
+          <button
+            onClick={() => nav("/register")}
+            className="link-underline font-semibold text-brand-300"
+          >
+            Crea tu negocio
+          </button>
+        </p>
+      </div>
+    </AuthShell>
+  );
+}

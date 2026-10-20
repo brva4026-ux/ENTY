@@ -5,6 +5,7 @@ import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import Logo from "../components/Logo";
 
 /**
  * Inicio — la cara publica de Enty para el fan (mockup "1 · Inicio").
@@ -383,7 +384,7 @@ export default function HomePage() {
         <div className="home-head-left">
           <Link to="/inicio" className="home-wordmark" aria-label="Enty, inicio">
             <span>Enty</span>
-            <Star />
+            <Logo />
           </Link>
           {/* Nav de escritorio: en móvil vive la barra inferior (FanNav). */}
           <nav className="home-topnav" aria-label="Secciones">
@@ -501,20 +502,22 @@ export default function HomePage() {
       ) : (
         <div className="home-grid">
           <Link to={`/evento/${featured.id}`} className="home-feature">
-            {featured.flyer_url ? (
-              <img className="home-feature-flyer" src={featured.flyer_url} alt="" />
-            ) : (
-              <>
-                <NeonStrokes />
-                <SoldRing pct={featured.sold_pct} />
-              </>
-            )}
-            <div className="home-feature-body">
+            {/* Poster pegado a la izquierda con motivo perforado */}
+            <div className="home-feature-poster">
+              {featured.flyer_url ? (
+                <img src={featured.flyer_url} alt={featured.name} />
+              ) : (
+                <>
+                  <NeonStrokes />
+                  <SoldRing pct={featured.sold_pct} />
+                </>
+              )}
+              <span className="home-feature-perf" aria-hidden="true" />
+            </div>
+
+            {/* Rail de compra a la derecha */}
+            <div className="home-feature-rail">
               <div className="home-feature-top">
-                <span className="home-eyebrow">Featured</span>
-                {/* h1 único de la vitrina (jerarquía de documento): el destacado
-                    ES el titular de la pagina; "Proximos"/categorias cuelgan de
-                    el. Visualmente no cambia (la regla es .home-feature-top h1). */}
                 <h1>{featured.name}</h1>
               </div>
               <div className="home-feature-bottom">

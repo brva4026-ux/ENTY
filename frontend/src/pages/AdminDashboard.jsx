@@ -792,7 +792,7 @@ export default function AdminDashboard() {
 
   if (!venueId) {
     return (
-      <div className="card p-6 text-center text-zinc-400">
+      <div className="card p-6 text-center var(--e-text-secondary)">
         No tienes venues asociadas. Habla con un super admin.
       </div>
     );
@@ -820,7 +820,7 @@ export default function AdminDashboard() {
           />
         )}{" "}
         {error && (
-          <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
+          <div className="rounded-xl border border-[var(--e-red-900)] bg-[var(--e-red-950)]/60 text-sm text-[var(--e-red-300)]">
             {error}
           </div>
         )}
@@ -862,11 +862,11 @@ export default function AdminDashboard() {
                             <h2 className="display text-xl sm:text-2xl">
                               <span className="brush-mark">Eventos</span>
                             </h2>
-                            <p className="text-xs text-zinc-500">
+                            <p className="text-xs var(--e-text-tertiary)">
                               {events.length} noche{events.length === 1 ? "" : "s"} en el calendario
                               {liveNow > 0 && (
                                 <>
-                                  <span className="text-zinc-700"> · </span>
+                                  <span className="var(--e-text-inverse)"> · </span>
                                   <span className="evx-livepill">
                                     <span
                                       className="evx-livepill-dot"
@@ -907,7 +907,7 @@ export default function AdminDashboard() {
                         <div className="evx-search">
                           <Icon
                             name="search"
-                            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+                            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 var(--e-text-tertiary)"
                           />
                           <input
                             value={eventQuery}
@@ -1001,14 +1001,14 @@ export default function AdminDashboard() {
                          filtro de estado sin eventos NO es "no coincide una
                          búsqueda". Antes el texto mentía y encima no había
                          salida; aquí se ofrece volver a "Todos". */
-                      <p className="mt-4 text-pretty text-sm text-zinc-500">
+                      <p className="mt-4 text-pretty text-sm var(--e-text-tertiary)">
                         {q
                           ? "Ningún evento coincide con la búsqueda."
                           : "No hay eventos en este estado."}{" "}
                         {eventBucket !== "todos" && (
                           <button
                             onClick={() => setEventBucket("todos")}
-                            className="font-semibold text-violet-300 underline-offset-2 hover:underline"
+                            className="font-semibold var(--e-brand-300) underline-offset-2 hover:underline"
                           >
                             Ver todos
                           </button>
@@ -1556,7 +1556,7 @@ export default function AdminDashboard() {
                     Cerrar
                   </button>
                 </div>
-                <p className="mb-4 text-xs text-zinc-500">
+                <p className="mb-4 text-xs var(--e-text-tertiary)">
                   El aforo no puede bajar de las boletas ya emitidas ni la
                   apertura moverse al pasado.
                 </p>
@@ -1780,7 +1780,7 @@ export default function AdminDashboard() {
                         contador solo quiere unos dias, se acota aqui. Las
                         fechas van en la zona del evento (lo resuelve el API). */}
                     <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-zinc-800 pt-3">
-                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide text-zinc-500">
+                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide var(--e-text-tertiary)">
                         Desde
                         <input
                           type="date"
@@ -1792,7 +1792,7 @@ export default function AdminDashboard() {
                           aria-label="Caja desde"
                         />
                       </label>
-                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide text-zinc-500">
+                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide var(--e-text-tertiary)">
                         Hasta
                         <input
                           type="date"
@@ -1827,7 +1827,7 @@ export default function AdminDashboard() {
                           key={label}
                           className="rounded-xl bg-zinc-940 px-3 py-2"
                         >
-                          <p className="text-2xs uppercase tracking-wide text-zinc-500">
+                          <p className="text-2xs uppercase tracking-wide var(--e-text-tertiary)">
                             {label}
                           </p>
                           <p className="tnum mt-0.5 text-lg font-bold text-zinc-100">
@@ -1953,7 +1953,7 @@ export default function AdminDashboard() {
                         <span className="tile mx-auto mb-3 grid h-16 w-16">
                           <Icon name="qr" className="h-8 w-8" />
                         </span>
-                        <p className="text-sm text-zinc-500">
+                        <p className="text-sm var(--e-text-tertiary)">
                           Emite una boleta para ver el QR y el enlace de envío.
                         </p>
                       </div>

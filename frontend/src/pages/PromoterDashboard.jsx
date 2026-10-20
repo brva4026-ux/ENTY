@@ -509,7 +509,7 @@ export default function PromoterDashboard() {
               {myNights.length > 0 &&
                 selectedEvent &&
                 !myNights.some((n) => n.id === selectedEvent) && (
-                  <div className="mt-3 rounded-xl border border-amber-900/50 bg-amber-950/30 px-4 py-2.5 text-xs text-amber-200/90">
+                  <div className="mt-3 rounded-xl border border-[var(--e-brasa-900)]/50 bg-[var(--e-brasa-950)]/30 px-4 py-2.5 text-xs text-[var(--e-brasa-200)]/90">
                     Ya no estás asignado a esta noche. Si necesitás vender acá,
                     pedile al admin que te sume otra vez.
                   </div>
@@ -553,7 +553,7 @@ export default function PromoterDashboard() {
                     </h3>
 
                     {sellClosed && (
-                      <div className="mb-3 rounded-xl border border-amber-900/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-200/90">
+                      <div className="mb-3 rounded-xl border border-[var(--e-brasa-900)]/50 bg-[var(--e-brasa-950)]/30 px-4 py-3 text-sm text-[var(--e-brasa-200)]/90">
                         La emisión está cerrada: este evento aún no se publica o
                         ya finalizó.
                       </div>
@@ -587,7 +587,7 @@ export default function PromoterDashboard() {
                             rechazo de la DB. */}
                         {selectedTypeCapacity > 0 &&
                           (selectedTypeIssued >= selectedTypeCapacity ? (
-                            <p className="mt-1 text-2xs font-semibold text-amber-300">
+                            <p className="mt-1 text-2xs font-semibold text-[var(--e-brasa-300)]">
                               Sin cupo en este tipo: no podés emitir más acá.
                             </p>
                           ) : (
@@ -931,7 +931,7 @@ function MyPayouts({ venueId, payouts, onReload }) {
                     {p.commission_pct}%
                   </p>
                   {p.disputed_reason && (
-                    <p className="mt-1 text-xs text-amber-400">
+                    <p className="mt-1 text-xs text-[var(--e-brasa-400)]">
                       Tu disputa: {p.disputed_reason}
                     </p>
                   )}
@@ -995,7 +995,7 @@ function MyPayouts({ venueId, payouts, onReload }) {
 
 function StatusPill({ status, onDispute }) {
   const map = {
-    pending: ["Pendiente", "bg-amber-950/60 text-amber-300 ring-amber-800/60"],
+    pending: ["Pendiente", "bg-[var(--e-brasa-950)]/60 text-[var(--e-brasa-300)] ring-[var(--e-brasa-800)]/60"],
     disputed: ["En disputa", "bg-red-950/60 text-red-300 ring-red-800/60"],
     paid: ["Pagada", "bg-emerald-950/60 text-emerald-300 ring-emerald-800/60"],
     rejected: ["Rechazada", "bg-zinc-800 text-zinc-400 ring-zinc-700"],

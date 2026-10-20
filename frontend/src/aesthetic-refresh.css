@@ -1175,6 +1175,275 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   transform: translateY(1px);
 }
 
+/* Poster peg + rail de compra: grid 1 col móvil, 2 columnas ≥900px */
+.home-feature {
+  position: relative;
+  margin-top: 1.375rem;
+  height: 16.4rem;
+  border-radius: var(--e-radius-2xl);
+  overflow: hidden;
+  background: var(--e-glass-1);
+  border: 1px solid var(--e-glass-line);
+  backdrop-filter: blur(var(--e-glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--e-glass-blur)) saturate(140%);
+  box-shadow: var(--e-elev-card);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+@media (min-width: 900px) {
+  .home-feature {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--e-space-6);
+  }
+}
+
+.home-feature-poster {
+  order: 2;
+  position: relative;
+  height: 100%;
+}
+
+@media (min-width: 900px) {
+  .home-feature-poster {
+    order: 1;
+  }
+}
+
+.home-feature-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-feature-poster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 11, 9, 0) 34%,
+    rgba(13, 11, 9, 0.72) 78%,
+    var(--e-ink-1) 100%
+  );
+}
+
+.home-feature-rail {
+  order: 2;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: var(--e-space-4) var(--e-space-4) var(--e-space-2);
+}
+
+@media (min-width: 900px) {
+  .home-feature-rail {
+    order: 2;
+    padding: var(--e-space-6) var(--e-space-4) var(--e-space-2);
+  }
+}
+
+.home-feature-rail .home-feature-top {
+  order: 1;
+}
+
+.home-feature-rail .home-feature-bottom {
+  order: 2;
+}
+
+.home-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* Trazos neon: capa de energia grafica, por debajo del anillo y del texto. */
+.home-strokes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+.home-feature-flyer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+}
+.home-feature-body {
+  position: absolute;
+  left: 1.35rem;
+  right: 1.35rem;
+  bottom: 1.35rem;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.home-eyebrow {
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--e-brand-250);
+}
+.home-feature-top h1 {
+  margin: 0.5rem 0 0;
+  font-size: var(--e-text-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.home-feature-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.home-feature-meta {
+  font-size: var(--e-text-xs);
+  color: var(--e-text-muted);
+  line-height: 1.5;
+}
+.home-feature-meta b {
+  display: block;
+  font-weight: 400;
+  color: var(--e-text-primary);
+}
+.home-cta {
+  flex: none;
+  height: 2.6rem;
+  padding: 0 1.375rem;
+  border-radius: 999px;
+  background: var(--e-brand);
+  color: var(--e-white);
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  /* Resplandor exterior del mismo color: el boton emite luz. */
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 50%, transparent),
+    0 14px 30px -12px color-mix(in srgb, var(--e-brand-500) 90%, transparent),
+    0 0 22px -4px color-mix(in srgb, var(--e-brand-500) 65%, transparent);
+  transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+.home-cta:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 60%, transparent),
+    0 18px 38px -12px var(--e-brand-500),
+    0 0 30px -2px color-mix(in srgb, var(--e-brand-500) 80%, transparent);
+}
+.home-cta:active {
+  transform: translateY(1px);
+}
+
+/* Micro-interacciones profesionales */
+/* Focus-visible: anillo visible usando el token --e-focus-ring, consistente en ambos temas */
+.home-cta:focus-visible {
+  outline: 2px solid var(--e-focus-ring);
+  outline-offset: 2px;
+}
+
+.home-bell:focus-visible {
+  outline: 2px solid var(--e-focus-ring);
+  outline-offset: 2px;
+}
+
+.home-search:focus-within {
+  border-color: color-mix(in srgb, var(--e-brand-500) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-500) 18%, transparent);
+}
+
+/* Estados consistentes en botones y controles */
+.home-row-fav,
+.home-cats button,
+.home-nav a {
+  transition: color var(--e-dur-fast) var(--e-ease-standard),
+    background-color var(--e-dur-fast) var(--e-ease-standard),
+    border-color var(--e-dur-fast) var(--e-ease-standard),
+    box-shadow var(--e-dur-fast) var(--e-ease-standard),
+    transform var(--e-dur-fast) var(--e-ease-standard);
+}
+
+.home-row-fav:hover {
+  color: var(--e-brand-glow);
+}
+
+.home-row-fav:active {
+  transform: scale(0.95);
+}
+
+.home-row-fav.is-on {
+  color: var(--e-brand-glow);
+}
+
+.home-cats button:hover {
+  color: var(--e-text-primary);
+}
+
+.home-cats button.is-on {
+  color: var(--e-text-primary);
+  font-weight: 600;
+}
+
+.home-cats button.is-on .home-cat-dot {
+  color: var(--e-white);
+  background: var(--e-brand);
+  border-color: transparent;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--e-brand-500) 60%, transparent),
+    0 12px 26px -12px color-mix(in srgb, var(--e-brand-500) 95%, transparent),
+    0 0 22px -6px color-mix(in srgb, var(--e-brand-500) 80%, transparent);
+}
+
+/* Focus-visible en enlaces de la navbar y foot */
+.home-nav a:focus-visible {
+  color: var(--e-text-primary);
+  border-radius: var(--e-radius-lg);
+  background: color-mix(in srgb, var(--e-brand-500) 12%, transparent);
+  box-shadow: var(--e-focus-ring);
+}
+
+.home-foot-links a:focus-visible {
+  color: var(--e-text-primary);
+  min-height: 24px;
+}
+
+/* Hover suave en tarjetas de la lista */
+.home-row:hover {
+  border-color: color-mix(in srgb, var(--e-brand-500) 50%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px -26px color-mix(in srgb, var(--e-brand-500) 90%, transparent);
+}
+
+/* Reducir movimiento en esqueleto de carga */
+@media (prefers-reduced-motion: reduce) {
+  .enty-skel {
+    animation: none;
+  }
+}
+
+/* Transición suave en el ticker cuando el usuario interactúa */
+.home-ticker-track {
+  transition: gap var(--e-dur-base) var(--e-ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-ticker-track {
+    gap: 0.625rem 1.5rem;
+  }
+}
+
 /* Sub-encabezado "Proximos" */
 .home-subhead {
   margin-top: 1.5rem;
@@ -1331,7 +1600,17 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   font-size: var(--e-text-2xs);
   font-weight: 400;
   color: var(--e-neutral-650);
-  transition: color 0.15s ease;
+  /* Objetivo táctil ≥ 44px: el hitbox del botón es el área completa + padding visual */
+  padding: 0.25rem 0;
+  /* focus-visible: anillo visible usando el token --e-focus-ring */
+  outline: none;
+  outline-offset: 2px;
+}
+.home-nav a:focus-visible {
+  color: var(--e-text-primary);
+  border-radius: var(--e-radius-lg);
+  background: color-mix(in srgb, var(--e-brand-500) 12%, transparent);
+  box-shadow: var(--e-focus-ring);
 }
 /* Icono de linea fina que se rellena de violeta al estar activo. */
 .home-nav a svg path,

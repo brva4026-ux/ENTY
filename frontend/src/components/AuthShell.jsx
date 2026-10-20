@@ -38,7 +38,7 @@ function Benefit({ children }) {
 
 export function AuthShell({ children }) {
   return (
-    <div className="auth-shell">
+    <div className="auth-shell bg-zinc-950 min-h-screen">
       {/* Misma atmósfera de showroom que el resto de la entrada. En desktop
           queda tapada por el panel de marca; en móvil es todo el fondo. */}
       <AuthBackdrop />
