@@ -33,37 +33,37 @@ function firstVenueId(user) {
 
 const RESULT_STYLES = {
   GRANTED: {
-    bg: "var(--e-brand-600)",
+    bg: "bg-emerald-600",
     text: "ENTRA",
     icon: "✓",
     sub: "Boleta válida",
   },
   ALREADY_REDEEMED: {
-    bg: "var(--e-red-600)",
+    bg: "bg-red-600",
     text: "YA USADA",
     icon: "✗",
     sub: "Presentada anteriormente",
   },
   NOT_FOUND: {
-    bg: "var(--e-red-600)",
+    bg: "bg-red-600",
     text: "NO EXISTE",
     icon: "✗",
     sub: "Código inválido",
   },
   INVALID_EVENT: {
-    bg: "var(--e-surface)",
+    bg: "bg-zinc-700",
     text: "OTRO EVENTO",
     icon: "!",
     sub: "Boleta de otra fiesta",
   },
   EVENT_NOT_LIVE: {
-    bg: "var(--e-surface)",
+    bg: "bg-zinc-700",
     text: "EVENTO CERRADO",
     icon: "!",
     sub: "La puerta no está abierta",
   },
   NOT_VALID: {
-    bg: "var(--e-red-600)",
+    bg: "bg-red-600",
     text: "ANULADA",
     icon: "✗",
     sub: "Boleta revocada",
@@ -71,24 +71,24 @@ const RESULT_STYLES = {
   // Boleta válida del evento pero de otra fila: no entra y NO se consume
   // (puede entrar por la fila correcta). El detalle dice de qué fila era.
   WRONG_TYPE: {
-    bg: "var(--e-brasa-600)",
+    bg: "bg-amber-600",
     text: "FILA EQUIVOCADA",
     icon: "!",
     sub: "",
   },
   NETWORK_ERROR: {
-    bg: "var(--e-brasa-600)",
+    bg: "bg-amber-600",
     text: "SIN RED",
     icon: "!",
     sub: "Revisa tu conexión",
   },
   // Error HTTP con mensaje del servidor (p.ej. el evento fue borrado mientras
   // el portero lo tenía seleccionado): se muestra el detalle real.
-  SCAN_ERROR: { bg: "var(--e-brasa-600)", text: "ERROR", icon: "!", sub: "" },
+  SCAN_ERROR: { bg: "bg-amber-600", text: "ERROR", icon: "!", sub: "" },
   // Mig 013: boleta VÁLIDA cuya ventana de activación aún no abrió. Ámbar
   // (no rojo: no es fraude, es temprano). El detalle trae la hora exacta.
   NOT_ACTIVE: {
-    bg: "var(--e-brasa-600)",
+    bg: "bg-amber-600",
     text: "AÚN NO ACTIVA",
     icon: "⏳",
     sub: "",
@@ -96,13 +96,13 @@ const RESULT_STYLES = {
   // Modo offline: la boleta está en el snapshot descargado. Entra AQUÍ, y la
   // DB dará la palabra final cuando el escaneo se sincronice.
   GRANTED_OFFLINE: {
-    bg: "var(--e-brand-600)",
+    bg: "bg-emerald-600",
     text: "ENTRA (OFFLINE)",
     icon: "✓",
     sub: "Validada con el caché de puerta · se sincroniza al volver la red",
   },
   SNAPSHOT_MISSING: {
-    bg: "var(--e-brasa-600)",
+    bg: "bg-amber-600",
     text: "SIN CACHÉ",
     icon: "!",
     sub: "No hay descarga de puerta para este evento",
@@ -658,7 +658,7 @@ export default function BouncerScanner() {
   }, [offline]);
 
   return (
-    <div className="app-shell flex min-h-[100dvh] flex-col var(--e-ink-1) pb-[env(safe-area-inset-bottom)]">
+    <div className="app-shell flex min-h-[100dvh] flex-col bg-zinc-950 pb-[env(safe-area-inset-bottom)]">
       {/* Sin red: si hay snapshot, la puerta SIGUE trabajando (valida contra
           el caché y encola); si no hay, aquí no hay magia posible — el banner
           lo dice sin inventar una validez que no se puede verificar. */}
@@ -690,7 +690,7 @@ export default function BouncerScanner() {
         <div className="min-w-0">
           <h1 className="door-title text-lg font-bold tracking-tight text-white">
             Control de puerta
-          </h1>            <p className="text-xs var(--e-text-tertiary)">
+          </h1>            <p className="text-xs text-zinc-500">
             {user?.full_name}
             {selectedEventName ? ` · ${selectedEventName}` : ""}
           </p>
@@ -700,22 +700,22 @@ export default function BouncerScanner() {
             <div className="mt-2 flex flex-wrap items-center gap-2 text-2xs">
               <span className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                <span className="var(--e-text-tertiary) font-semibold text-2xs">
+                <span className="text-zinc-200 font-semibold text-2xs">
                   {eventPulse.redeemed}
                 </span>
-                <span className="var(--e-text-tertiary)">ingresaron</span>
+                <span className="text-zinc-500">ingresaron</span>
               </span>
-              <span className="tnum var(--e-text-inverse)">
+              <span className="tnum text-zinc-600">
                 {Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
               </span>
-              <span className="var(--e-text-tertiary)">quedan de {eventPulse.capacity}</span>
+              <span className="text-zinc-500">quedan de {eventPulse.capacity}</span>
               {eventPulse.issued > 0 && (
-                <span className="var(--e-text-tertiary)">· {eventPulse.issued - eventPulse.redeemed} pendientes</span>
+                <span className="text-zinc-500">· {eventPulse.issued - eventPulse.redeemed} pendientes</span>
               )}
               {/* Lo que movió este escáner: en un evento con dos puertas, el
                   total del evento no dice si la noche la trabajó esta puerta. */}
               {myScans && myScans.granted > 0 && (
-                <span className="text-[var(--e-brand-300)]/90">
+                <span className="text-emerald-300/90">
                   · vos: {myScans.granted}
                 </span>
               )}
@@ -723,20 +723,20 @@ export default function BouncerScanner() {
           )
           }
           {!fijo && eventPulse && eventPulse.issued > 0 && (
-            <div className="mt-2 flex items-center gap-2 text-2xs var(--e-text-tertiary)">
+            <div className="mt-2 flex items-center gap-2 text-2xs text-zinc-500">
               <span className="flex items-center gap-1.5">
-                <Icon name="ticket" className="h-3 w-3 var(--e-text-inverse)" />
-                <span className="var(--e-text-tertiary)">{eventPulse.redeemed}</span>
-                <span className="var(--e-text-tertiary)">ingresaron ·</span>
+                <Icon name="ticket" className="h-3 w-3 text-zinc-600" />
+                <span className="text-zinc-200">{eventPulse.redeemed}</span>
+                <span className="text-zinc-500">ingresaron ·</span>
               </span>
-              <span className="tnum var(--e-text-inverse)">
+              <span className="tnum text-zinc-600">
                 {Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
               </span>
-              <span className="var(--e-text-tertiary)">quedan de {eventPulse.capacity}</span>
+              <span className="text-zinc-500">quedan de {eventPulse.capacity}</span>
               {/* Mismo contador que en el modo con link: sin él, el bouncer
                   que entra por el menú no ve cuánto movió su escáner. */}
               {myScans && myScans.granted > 0 && (
-                <span className="text-[var(--e-brand-300)]/90">
+                <span className="text-emerald-300/90">
                   · vos: {myScans.granted}
                 </span>
               )}
@@ -756,11 +756,11 @@ export default function BouncerScanner() {
             onTouchEnd={cancelHold}
             onTouchCancel={cancelHold}
             onContextMenu={(e) => e.preventDefault()}
-            className="relative min-h-[44px] select-none overflow-hidden rounded-lg border border-[var(--e-surface)] px-4 font-semibold var(--e-text-secondary)"
+            className="relative min-h-[44px] select-none overflow-hidden rounded-lg border border-zinc-700 px-4 font-semibold text-zinc-300"
             aria-label="Mantén presionado para salir del modo kiosco"
           >
             <span
-              className="absolute inset-y-0 left-0 var(--e-surface-dark)"
+              className="absolute inset-y-0 left-0 bg-zinc-600"
               style={{ width: `${holdPct}%` }}
               aria-hidden="true"
             />
@@ -778,7 +778,7 @@ export default function BouncerScanner() {
               <select
                 value={selectedEvent ?? ""}
                 onChange={(e) => setSelectedEvent(Number(e.target.value))}
-                className="max-w-[52vw] rounded-lg border border-[var(--e-surface)] var(--e-surface) px-2.5 py-1.5 text-sm text-white sm:max-w-none"
+                className="max-w-[52vw] rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-sm text-white sm:max-w-none"
               >
                 <option value="" disabled>
                   Evento…
@@ -794,13 +794,13 @@ export default function BouncerScanner() {
             )}
             <button
               onClick={() => setKiosk(true)}
-              className="rounded-lg border border-[var(--e-surface)] px-3 py-1.5 text-xs font-semibold var(--e-text-secondary) hover:var(--e-surface)"
+              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
             >
               Bloquear
             </button>
             <button
               onClick={logout}
-              className="rounded-lg border border-[var(--e-surface)] px-3 py-1.5 text-xs font-semibold var(--e-text-secondary) hover:var(--e-surface)"
+              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
             >
               Cerrar sesión
             </button>
@@ -955,7 +955,7 @@ export default function BouncerScanner() {
                   className={`chip min-h-[44px] rounded-full px-4 text-xs font-semibold ${
                     rowFilter === ""
                       ? "chip-active"
-                      : "var(--e-surface)/70 var(--e-text-secondary)"
+                      : "bg-zinc-800/70 text-zinc-300"
                   }`}
                 >
                   Todas las filas
@@ -971,7 +971,7 @@ export default function BouncerScanner() {
                     className={`chip min-h-[44px] rounded-full px-4 text-xs font-semibold ${
                       rowFilter === t.id
                         ? "chip-active"
-                        : "var(--e-surface)/70 var(--e-text-secondary)"
+                        : "bg-zinc-800/70 text-zinc-300"
                     }`}
                   >
                     {t.name}
@@ -981,7 +981,7 @@ export default function BouncerScanner() {
             </div>
           )}
 
-          <p className="mt-4 max-w-sm text-center text-xs var(--e-text-inverse)">
+          <p className="mt-4 max-w-sm text-center text-xs text-zinc-600">
             Verde = entra · Rojo = no entra. El resultado también aparece con el
             código manual.
           </p>
@@ -993,13 +993,13 @@ export default function BouncerScanner() {
             <div className="mt-4 w-full max-w-sm">
               <button
                 onClick={() => setLogOpen((v) => !v)}
-                className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs font-semibold var(--e-text-secondary) transition hover:bg-zinc-900"
+                className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-900"
               >
                 <span>
                   Últimos escaneos{" "}
-                  <span className="tnum var(--e-text-tertiary)">({scanLog.length})</span>
+                  <span className="tnum text-zinc-500">({scanLog.length})</span>
                 </span>
-                <span className="var(--e-text-tertiary)">
+                <span className="text-zinc-500">
                   {logOpen ? "ocultar ▲" : "ver ▼"}
                 </span>
               </button>
@@ -1024,19 +1024,19 @@ export default function BouncerScanner() {
                               : "bg-red-400"
                         }`}
                       />
-                      <span className="tnum shrink-0 var(--e-text-tertiary)">
+                      <span className="tnum shrink-0 text-zinc-500">
                         {new Date(s.at).toLocaleTimeString("es-CO", {
                           hour: "2-digit",
                           minute: "2-digit",
                           second: "2-digit",
                         })}
                       </span>
-                      <span className="truncate font-semibold var(--e-text-secondary)">
+                      <span className="truncate font-semibold text-zinc-300">
                         {SCAN_LOG_LABEL[s.code] ?? s.code}
                         {s.name ? ` · ${s.name}` : ""}
                       </span>
                       {s.detail && i === 0 && (
-                        <span className="ml-auto truncate var(--e-text-inverse)">
+                        <span className="ml-auto truncate text-zinc-600">
                           {s.detail}
                         </span>
                       )}
@@ -1044,7 +1044,7 @@ export default function BouncerScanner() {
                   ))}
                 </ul>
               )}
-              <p className="mt-1 text-center text-2xs var(--e-text-inverse)">
+              <p className="mt-1 text-center text-2xs text-zinc-600">
                 Solo en este dispositivo · sirve para aclarar en puerta
               </p>
             </div>
@@ -1055,7 +1055,7 @@ export default function BouncerScanner() {
               del evento): nunca automática en segundo plano. */}
           <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-2.5">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold var(--e-text-secondary)">
+              <p className="text-xs font-semibold text-zinc-300">
                 Caché de puerta (sin red)
               </p>
               {snapInfo ? (
@@ -1079,7 +1079,7 @@ export default function BouncerScanner() {
               )}
             </div>
             {snapInfo ? (
-              <p className="tnum mt-1 text-2xs var(--e-text-tertiary)">
+              <p className="tnum mt-1 text-2xs text-zinc-500">
                 {snapInfo.count} boletas vivas · descargado{" "}
                 {new Date(snapInfo.generated_at).toLocaleTimeString("es-CO", {
                   hour: "2-digit",
@@ -1088,7 +1088,7 @@ export default function BouncerScanner() {
                 {offline && " · validando sin red"}
               </p>
             ) : (
-              <p className="mt-1 text-2xs var(--e-text-tertiary)">
+              <p className="mt-1 text-2xs text-zinc-500">
                 Baja los hashes de las boletas vigentes para validar en la fila
                 aunque el dato se caiga. Nada de tokens: solo huellas SHA-256.
               </p>

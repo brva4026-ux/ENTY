@@ -2,11 +2,8 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <!-- viewport-fit=cover: sin esto, env(safe-area-inset-*) resuelve a 0 en
-         iOS y todo el codigo que ya reserva el notch / home indicator
-         (Layout.jsx, BouncerScanner, AdminDashboard) queda inerte. -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0c0a09" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0A0A0F" />
     <meta name="description" content="Enty — boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso." />
     <!-- Fuente self-hosted (Sora variable, public/fonts): preload para que el
          primer paint use la voz de marca; sin terceros, sin FOUT de red. -->
@@ -18,7 +15,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Enty" />
-    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzBjMGEwOScvPjxnIHRyYW5zZm9ybT0nc2NhbGUoMC4wNjI1KScgc3Ryb2tlPScjZmZmJyBzdHJva2Utd2lkdGg9JzU0JyBzdHJva2UtbGluZWNhcD0ncm91bmQnIGZpbGw9J25vbmUnPjxwYXRoIGQ9J00xODYgMTEwIEgzMzYnLz48cGF0aCBkPSdNMTg2IDI1NiBIMzA0Jy8+PHBhdGggZD0nTTE4NiA0MDIgSDMzNicvPjxwYXRoIGQ9J00xODYgOTYgVjQxNicvPjwvZz48Y2lyY2xlIGN4PSczMzYnIGN5PScxMTAnIHI9JzE3JyBmaWxsPScjN2I4N2ZmJy8+PC9zdmc+" />
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzBBMEEwRicvPjxnIHRyYW5zZm9ybT0nc2NhbGUoMC4wNjI1KScgc3Ryb2tlPScjZmZmJyBzdHJva2Utd2lkdGg9JzYwJyBzdHJva2UtbGluZWNhcD0ncm91bmQnIGZpbGw9J25vbmUnPjxwYXRoIGQ9J00xODYgMTU2IEgzMTgnLz48cGF0aCBkPSdNMTg2IDI1NiBIMjkyJy8+PHBhdGggZD0nTTE4NiAzNTYgSDMxOCcvPjxwYXRoIGQ9J00xODYgMTU2IFYzNTYnLz48L2c+PHBhdGggZmlsbD0nI0JCNUNGNicgZD0nTTM1NiAxOTYgbDEzIDM0IDM0IDEzIC0zNCAxMyAtMTMgMzQgLTEzIC0zNCAtMzQgLTEzIDM0IC0xMyB6Jy8+PC9zdmc+" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <title>Enty — Boletería y Aforo</title>
     <script>
@@ -38,7 +35,7 @@
           document.documentElement.dataset.theme = "light";
           document.documentElement.style.colorScheme = "light";
           var m = document.querySelector('meta[name="theme-color"]');
-          if (m) m.setAttribute("content", "#f2f1f0");
+          if (m) m.setAttribute("content", "#f4f4f5");
         }
       } catch (e) {}
     </script>
@@ -47,12 +44,11 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      // PWA: el service worker solo en contexto seguro. isSecureContext cubre
-      // https, localhost Y 127.0.0.1 (los tres son contextos seguros por spec);
-      // el check anterior por hostname dejaba fuera 127.0.0.1, que es el host
-      // que usa el E2E, asi que el SW nunca se registraba ahi y el modo
-      // offline de la puerta quedaba sin cobertura.
-      if ("serviceWorker" in navigator && window.isSecureContext) {
+      // PWA: el service worker solo en producción (https) o localhost para QA.
+      if (
+        "serviceWorker" in navigator &&
+        (location.protocol === "https:" || location.hostname === "localhost")
+      ) {
         window.addEventListener("load", () => {
           navigator.serviceWorker.register("/sw.js").catch(() => {});
         });

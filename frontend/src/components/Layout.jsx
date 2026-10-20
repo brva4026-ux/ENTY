@@ -170,7 +170,7 @@ export default function Layout({ children }) {
           Cada navegación re-monta contenido → .reveal coreografía la entrada. */}
       <main
         id="contenido"
-        className="app-main mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8"
+        className="mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8"
       >
         <div key={pathname} className="reveal">
           {children}
@@ -183,11 +183,7 @@ export default function Layout({ children }) {
           pantallas autenticadas. pb alto en móvil para no pisarse con la
           barra de pestañas inferior. */}
       <footer className="mx-auto max-w-5xl px-4 pb-24 md:pb-6">
-        {/* Sin `w-max`: la nav medía su ancho max-content (590px) y desbordaba
-            el viewport en todo celular (scroll horizontal de 216px a 390px,
-            medido). Con el ancho disponible, `.legal-links` (flex-wrap) reparte
-            los cinco documentos en varias líneas. */}
-        <LegalLinks className="legal-links mx-auto" />
+        <LegalLinks className="legal-links mx-auto w-max" />
       </footer>
 
       {/* Barra de pestañas inferior (solo móvil): iconos + etiqueta, indicador

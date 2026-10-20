@@ -29,15 +29,13 @@ import EventWorkbench, {
   sortEventsForStrip,
 } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
-import { Sello, Bolt, RibbonDivider } from "../components/Doodles";
+import { Star4, Bolt, RibbonDivider } from "../components/Doodles";
 import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
 import PayoutsManager from "../components/PayoutsManager";
 import TypeManager from "../components/TypeManager";
 import AllocationManager from "../components/AllocationManager";
 import TicketList from "../components/TicketList";
-import EmitTicketPanel from "../components/EmitTicketPanel";
-import IssuedTicket from "../components/IssuedTicket";
 import EventTeamPanel from "../components/EventTeamPanel";
 import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
@@ -162,11 +160,11 @@ export default function AdminDashboard() {
   const [allocations, setAllocations] = useState([]);
   const [report, setReport] = useState(null);
   const [users, setUsers] = useState([]);
-  // El listado real de boletas vive en TicketList (server-driven, paginado).
+  // tickets: el listado real vive en TicketList (server-driven, paginado).
+  // El fetch que llenaba este estado quedó muerto: nadie lo lee. Solo setTickets
+  // se usa para limpiar al cambiar de evento — por eso este useState se queda.
+  const [tickets, setTickets] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  // Ultima boleta emitida por el admin en este evento (venta directa): se
-  // muestra con su QR y el enlace de entrega al lado del formulario.
-  const [lastTicket, setLastTicket] = useState(null);
   // Fuente de verdad de la URL: el evento abierto y su pestaña viven en
   // /admin?event=<id>&tab=<tab> — compartible, sobrevive recargas y back.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -381,9 +379,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!selectedEvent) return;
-    // La boleta emitida pertenece al evento anterior: al cambiar de noche, el
-    // QR del evento viejo no debe quedar colgado en el panel del nuevo.
-    setLastTicket(null);
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/types`)
       .then(setTypes)
       .catch((e) => setError(e.message));
@@ -792,7 +787,7 @@ export default function AdminDashboard() {
 
   if (!venueId) {
     return (
-      <div className="card p-6 text-center var(--e-text-secondary)">
+      <div className="card p-6 text-center text-zinc-400">
         No tienes venues asociadas. Habla con un super admin.
       </div>
     );
@@ -820,7 +815,7 @@ export default function AdminDashboard() {
           />
         )}{" "}
         {error && (
-          <div className="rounded-xl border border-[var(--e-red-900)] bg-[var(--e-red-950)]/60 text-sm text-[var(--e-red-300)]">
+          <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
             {error}
           </div>
         )}
@@ -855,18 +850,18 @@ export default function AdminDashboard() {
                         búsqueda). */}
                       <div className="evx-head doodle-host">
                         {/* Doodle de fiesta junto al titular (capa POP) */}
-                        <Sello className="-left-1 -top-1 h-3.5 w-3.5 text-[var(--e-green-500)]" />
+                        <Star4 className="-left-1 -top-1 h-3.5 w-3.5 text-[#00E6AB]" />
                         <div className="min-w-0">
                           <p className="eyebrow">Operación</p>
                           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                             <h2 className="display text-xl sm:text-2xl">
                               <span className="brush-mark">Eventos</span>
                             </h2>
-                            <p className="text-xs var(--e-text-tertiary)">
+                            <p className="text-xs text-zinc-500">
                               {events.length} noche{events.length === 1 ? "" : "s"} en el calendario
                               {liveNow > 0 && (
                                 <>
-                                  <span className="var(--e-text-inverse)"> · </span>
+                                  <span className="text-zinc-700"> · </span>
                                   <span className="evx-livepill">
                                     <span
                                       className="evx-livepill-dot"
@@ -907,7 +902,7 @@ export default function AdminDashboard() {
                         <div className="evx-search">
                           <Icon
                             name="search"
-                            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 var(--e-text-tertiary)"
+                            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
                           />
                           <input
                             value={eventQuery}
@@ -1001,14 +996,14 @@ export default function AdminDashboard() {
                          filtro de estado sin eventos NO es "no coincide una
                          búsqueda". Antes el texto mentía y encima no había
                          salida; aquí se ofrece volver a "Todos". */
-                      <p className="mt-4 text-pretty text-sm var(--e-text-tertiary)">
+                      <p className="mt-4 text-pretty text-sm text-zinc-500">
                         {q
                           ? "Ningún evento coincide con la búsqueda."
                           : "No hay eventos en este estado."}{" "}
                         {eventBucket !== "todos" && (
                           <button
                             onClick={() => setEventBucket("todos")}
-                            className="font-semibold var(--e-brand-300) underline-offset-2 hover:underline"
+                            className="font-semibold text-violet-300 underline-offset-2 hover:underline"
                           >
                             Ver todos
                           </button>
@@ -1556,7 +1551,7 @@ export default function AdminDashboard() {
                     Cerrar
                   </button>
                 </div>
-                <p className="mb-4 text-xs var(--e-text-tertiary)">
+                <p className="mb-4 text-xs text-zinc-500">
                   El aforo no puede bajar de las boletas ya emitidas ni la
                   apertura moverse al pasado.
                 </p>
@@ -1780,7 +1775,7 @@ export default function AdminDashboard() {
                         contador solo quiere unos dias, se acota aqui. Las
                         fechas van en la zona del evento (lo resuelve el API). */}
                     <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-zinc-800 pt-3">
-                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide var(--e-text-tertiary)">
+                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide text-zinc-500">
                         Desde
                         <input
                           type="date"
@@ -1792,7 +1787,7 @@ export default function AdminDashboard() {
                           aria-label="Caja desde"
                         />
                       </label>
-                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide var(--e-text-tertiary)">
+                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide text-zinc-500">
                         Hasta
                         <input
                           type="date"
@@ -1827,7 +1822,7 @@ export default function AdminDashboard() {
                           key={label}
                           className="rounded-xl bg-zinc-940 px-3 py-2"
                         >
-                          <p className="text-2xs uppercase tracking-wide var(--e-text-tertiary)">
+                          <p className="text-2xs uppercase tracking-wide text-zinc-500">
                             {label}
                           </p>
                           <p className="tnum mt-0.5 text-lg font-bold text-zinc-100">
@@ -1924,49 +1919,12 @@ export default function AdminDashboard() {
                 total. "Entradas" monta el producto; "Cupos" delega la venta;
                 "Boletas" audita lo vendido y entrega los QR. */}
             {section === "entradas" && (
-              <>
-                <div className="grid gap-5 lg:grid-cols-2">
-                  <EmitTicketPanel
-                    venueId={venueId}
-                    eventId={selectedEvent}
-                    event={selectedEventData}
-                    types={types}
-                    onIssued={(ticket) => {
-                      setLastTicket(ticket);
-                      refreshEventData();
-                    }}
-                    onError={setError}
-                  />
-                  <div className="card h-fit p-5">
-                    <p className="eyebrow">Entrega</p>
-                    <h3 className="display mb-3 mt-0.5 flex items-center gap-2 text-base">
-                      <Icon name="ticket" className="h-4 w-4 text-brand-400" />
-                      {lastTicket ? "Boleta generada" : "Vista previa"}
-                    </h3>
-                    {lastTicket ? (
-                      <IssuedTicket
-                        ticket={lastTicket}
-                        eventName={selectedEventData?.name}
-                      />
-                    ) : (
-                      <div className="py-12 text-center">
-                        <span className="tile mx-auto mb-3 grid h-16 w-16">
-                          <Icon name="qr" className="h-8 w-8" />
-                        </span>
-                        <p className="text-sm var(--e-text-tertiary)">
-                          Emite una boleta para ver el QR y el enlace de envío.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <TypeManager
-                  venueId={venueId}
-                  eventId={selectedEvent}
-                  types={types}
-                  onChange={setTypes}
-                />
-              </>
+              <TypeManager
+                venueId={venueId}
+                eventId={selectedEvent}
+                types={types}
+                onChange={setTypes}
+              />
             )}
 
             {section === "cupos" && (

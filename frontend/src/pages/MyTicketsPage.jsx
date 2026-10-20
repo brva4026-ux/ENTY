@@ -6,7 +6,6 @@ import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
 import { Spark } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
-import { QR_COLORS } from "../lib/qr";
 
 /**
  * Mis boletas — la entrada del fan (magic link, sin cuenta).
@@ -97,7 +96,7 @@ export default function MyTicketsPage() {
         width: 640,
         margin: 1,
         errorCorrectionLevel: "H",
-        color: QR_COLORS,
+        color: { dark: "#0B0B0F", light: "#ffffff" },
       });
       if (mounted.current) setQr(url);
     } catch (e) {
@@ -115,8 +114,7 @@ export default function MyTicketsPage() {
         <div className="home-wordmark">
           <span>Enty</span>
           <svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="8.5" fill="none" stroke="var(--e-brand-400)" strokeWidth="3.6" />
-            <circle cx="12" cy="12" r="2.6" fill="var(--e-brand-400)" />
+            <path d="M12 0 L14.6 9.4 L24 12 L14.6 14.6 L12 24 L9.4 14.6 L0 12 L9.4 9.4 Z" fill="#8B5CF6" />
           </svg>
         </div>
         <Link to="/inicio" className="home-avatar" aria-label="Cartelera">

@@ -4,7 +4,6 @@ import { fetchLegalBody, fetchLegalDocuments, LEGAL_DOCS } from "../lib/legal";
 import { Markdown } from "../lib/markdown";
 import { Logo } from "../components/Brand";
 import { LegalLinks } from "../components/LegalLinks";
-import { Skeleton } from "../components/Skeleton";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
@@ -97,15 +96,9 @@ export default function LegalPage({ slug }) {
         <h1 className="display mt-1 mb-6 text-2xl">{title}</h1>
 
         {loading && (
-          <div className="space-y-3" aria-busy="true">
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-11/12" />
-            <Skeleton className="h-4 w-4/5" />
-            <Skeleton className="mt-6 h-5 w-1/2" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-10/12" />
-          </div>
+          <p className="legal-muted text-sm" role="status">
+            Cargando documento…
+          </p>
         )}
 
         {error && (

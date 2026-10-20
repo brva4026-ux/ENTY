@@ -4,10 +4,8 @@ import { timeAgo } from "../lib/useLiveRefresh";
 /** Marca Enty: logotipo, indicadores vivos y cifras animadas. */
 
 /**
- * Sello de registro: el punto de tinta que el impresor estampa al calibrar la
- * prensa. Sustituye a la estrella de cuatro puntas, que es el icono generico
- * de "producto con IA" y no dice nada de Enty. Se reutiliza como bullet,
- * indicador de carga y centro del QR.
+ * Destello de marca: estrella de cuatro puntas asimetrica. Es la firma de
+ * Enty y se reutiliza como bullet, indicador de carga y centro del QR.
  */
 export function Spark({ size = 12, color = "var(--e-green-500)", className = "" }) {
   return (
@@ -18,8 +16,10 @@ export function Spark({ size = 12, color = "var(--e-green-500)", className = "" 
       className={className}
       aria-hidden="true"
     >
-      <circle cx="12" cy="12" r="9" fill={color} />
-      <circle cx="12" cy="12" r="3.2" fill="var(--e-ink-950)" />
+      <path
+        d="M12 0.5 L15 9 L23.5 12 L15 15 L12 23.5 L9 15 L0.5 12 L9 9 Z"
+        fill={color}
+      />
     </svg>
   );
 }
@@ -48,10 +48,11 @@ export function Logo({ size = "md", animated = true }) {
   return (
     <span className="inline-flex items-center gap-3">
       {/* ISOTIPO UNICO. La misma marca que public/icon.svg y que el favicon
-          del index.html: la "E" troquelada — asta con la linea de perforado y
-          tres lenguetas — sobre el tile de tinta calida. Los colores van
-          planos a proposito: un <defs> con id se duplicaria en cada render
-          del Logo y el segundo svg del DOM quedaria sin gradiente. */}
+          del index.html: icono cuadrado muy redondeado, negro mate con filo
+          violeta brillante, la "E" blanca y la estrella de cuatro puntas en
+          el lateral derecho. Los colores van planos a proposito — un <defs>
+          con id se duplicaria en cada render del Logo y el segundo svg del
+          DOM quedaria sin gradiente. */}
       <span
         className={`${box} relative ${animated ? "logo-pop" : ""} grid place-items-center`}
       >
@@ -63,7 +64,7 @@ export function Logo({ size = "md", animated = true }) {
             className="relative h-full w-full"
             aria-hidden="true"
           >
-            {/* Filo de registro del tile. */}
+            {/* Filo violeta brillante del tile. */}
             <rect
               x="9"
               y="9"
@@ -71,38 +72,34 @@ export function Logo({ size = "md", animated = true }) {
               height="494"
               rx="118"
               fill="none"
-              stroke="var(--e-brand-400)"
+              stroke="var(--e-violet-400)"
               strokeWidth="16"
               strokeOpacity="0.85"
             />
-            {/* El asta: la linea de corte del talon. */}
-            <path
-              d="M186 96 V416"
-              stroke="var(--e-white)"
-              strokeWidth="54"
-              strokeLinecap="round"
-              fill="none"
-            />
-            {/* Las tres lenguetas: brazos superior e inferior completos y el
-                central corto (el troquel del medio). */}
+            {/* La "E": asta + tres brazos redondeados. */}
             <g
               stroke="var(--e-white)"
-              strokeWidth="54"
+              strokeWidth="60"
               strokeLinecap="round"
               fill="none"
             >
-              <path d="M186 110 H336" />
-              <path d="M186 256 H304" />
-              <path d="M186 402 H336" />
+              <path d="M186 156 H318" />
+              <path d="M186 256 H292" />
+              <path d="M186 356 H318" />
+              <path d="M186 156 V356" />
             </g>
-            {/* Sello de registro en la punta de la lengueta superior. */}
-            <circle cx="336" cy="110" r="17" fill="var(--e-brand-400)" />
+            {/* La estrella de cuatro puntas, integrada al lateral derecho. */}
+            <path
+              fill="var(--e-violet-400)"
+              d="M356 196 l13 34 34 13 -34 13 -13 34 -13 -34 -34 -13 34 -13 z"
+            />
           </svg>
         </span>
       </span>
       {hero ? (
-        /* Wordmark hero: "Ent" en tinta de papel y la "y" en el violeta de
-           marca, con el sello de registro sobre la "t". */
+        /* Wordmark hero: tipografia redondeada y futurista (la voz amable de
+           la marca) — "Ent" en tinta blanca y la "y" en el violeta de acento,
+           con la estrella de cuatro puntas sobre la "t". */
         <span className="brand-chip animate-fade">
           <span className="brand-wordmark brand-wordmark-hero">
             <span className="brand-shine">En</span>
@@ -113,13 +110,9 @@ export function Logo({ size = "md", animated = true }) {
                 className="brand-star-mark"
                 aria-hidden="true"
               >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="7.5"
-                  fill="none"
-                  stroke="var(--e-brand-400)"
-                  strokeWidth="3.4"
+                <path
+                  fill="var(--e-violet-400)"
+                  d="M12 1 l2.6 6.8 6.8 2.6 -6.8 2.6 -2.6 6.8 -2.6 -6.8 -6.8 -2.6 6.8 -2.6 z"
                 />
               </svg>
             </span>
@@ -292,7 +285,7 @@ export function Bar({ pct, tone = "brand", gradient }) {
     red: "bg-red-400",
   };
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
       <div
         className={`h-full rounded-full transition-all duration-700 ${
           gradient ? `bg-gradient-to-r ${gradient}` : tones[tone]
@@ -306,14 +299,14 @@ export function Bar({ pct, tone = "brand", gradient }) {
 /** Tarjeta de KPI del command deck. `i` escalona la entrada. */
 export function Stat({ label, value, accent = "slate", i = 0 }) {
   const dots = {
-    slate: "bg-zinc-400",
+    slate: "bg-slate-400",
     emerald: "bg-emerald-400",
     brand: "bg-brand-400",
     red: "bg-red-400",
   };
   return (
     <div className="stat stagger p-3.5" style={{ "--i": i }}>
-      <div className="flex items-center gap-2 text-xs font-medium text-zinc-400">
+      <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
         <span className={`h-2 w-2 rounded-full ${dots[accent]}`} />
         {label}
       </div>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { QR_COLORS } from "../lib/qr";
 
 /** Boleta visual con QR real (escaneable por la app del bouncer). */
 export default function TicketPreview({ rawToken, ticketId, name, eventName }) {
@@ -15,7 +14,7 @@ export default function TicketPreview({ rawToken, ticketId, name, eventName }) {
           width: 480,
           margin: 1,
           errorCorrectionLevel: "M",
-          color: QR_COLORS,
+          color: { dark: "#0f172a", light: "#ffffff" },
         })
       )
       .then((url) => {

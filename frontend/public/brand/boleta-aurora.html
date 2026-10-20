@@ -4,23 +4,18 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Enty — Boleta AURORA</title>
-<meta name="theme-color" content="#0c0a09" />
-<!-- Sora self-hosted: la unica voz de la marca. Sin Google Fonts ni
-     fuentes decorativas (Anton, Permanent Marker): cero terceros. -->
-<style>
-  @font-face{font-family:"Sora";font-style:normal;font-weight:100 800;
-    font-display:swap;src:url("/fonts/sora-latin.woff2") format("woff2")}
-  @font-face{font-family:"Sora";font-style:normal;font-weight:100 800;
-    font-display:swap;src:url("/fonts/sora-latin-ext.woff2") format("woff2")}
-</style>
+<meta name="theme-color" content="#050506" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Anton&family=Permanent+Marker&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --field:#060505;
-    --paper:#0c0a09;
-    --paper-2:#13110e;
+    --field:#050506;
+    --paper:#0A0A0D;
+    --paper-2:#0C0C10;
     --white:#FFFFFF;
     --green:#00E6AB;
-    --green-hot:#00E6AB;
+    --green-hot:#39FF14;
     --pink:#FF2D98;
     --dim:rgba(255,255,255,.55);
     --dim-2:rgba(255,255,255,.34);
@@ -36,7 +31,7 @@
   .ticket{
     position:relative;width:var(--w);max-width:100%;
     background:
-      radial-gradient(120% 80% at 50% -10%, #1a1713 0%, transparent 55%),
+      radial-gradient(120% 80% at 50% -10%, #141419 0%, transparent 55%),
       linear-gradient(180deg,var(--paper-2),var(--paper));
     padding:26px 26px 20px;
     box-shadow:0 30px 70px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.05);
@@ -66,14 +61,14 @@
   }
   .connect .arw{color:var(--green);font-size:11px;margin-left:3px}
 
-  /* --- Héroe: AURORA con órbita y sello -------------------------------- */
+  /* --- Héroe: AURORA con órbita y estrella ----------------------------- */
   .hero{position:relative;text-align:center;margin:34px 0 26px;padding:8px 0}
   .hero .orbit{position:absolute;left:50%;top:50%;width:min(108%,430px);
     transform:translate(-50%,-50%);pointer-events:none;overflow:visible}
   .kicker{font-size:9.5px;font-weight:700;letter-spacing:.5em;color:var(--dim);
     text-indent:.5em;position:relative;z-index:2}
   .title{
-    font-family:"Sora",sans-serif;font-weight:800;letter-spacing:-.02em;line-height:.9;
+    font-family:"Anton",sans-serif;font-weight:400;line-height:.9;
     font-size:76px;letter-spacing:.01em;color:#fff;margin:8px 0 10px;
     position:relative;z-index:2;text-shadow:0 0 34px rgba(0,230,171,.10);
   }
@@ -84,7 +79,7 @@
   /* --- Cuerpo: fecha/plaza + QR ---------------------------------------- */
   .body{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;margin-top:8px}
   .when .yr{font-size:11px;font-weight:600;letter-spacing:.3em;color:var(--dim-2)}
-  .when .big{font-family:"Sora",sans-serif;font-weight:800;font-size:40px;line-height:1;color:#fff;margin:4px 0 2px}
+  .when .big{font-family:"Anton",sans-serif;font-size:40px;line-height:1;color:#fff;margin:4px 0 2px}
   .when .hrs{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--dim)}
   .when .place{margin-top:12px;font-size:12px;font-weight:700;letter-spacing:.06em}
   .when .city{font-size:10px;font-weight:500;letter-spacing:.12em;color:var(--dim-2);margin-top:2px}
@@ -93,7 +88,7 @@
   .qr{position:relative;width:118px;height:118px;border:1px solid var(--hair);
     border-radius:10px;padding:8px;background:rgba(255,255,255,.02)}
   .qr svg{display:block;width:100%;height:100%}
-  .qr .qseal{position:absolute;left:50%;top:50%;width:22px;height:22px;
+  .qr .qstar{position:absolute;left:50%;top:50%;width:22px;height:22px;
     transform:translate(-50%,-50%);filter:drop-shadow(0 0 8px rgba(0,230,171,.85))}
   .scan{margin-top:9px;font-size:8.5px;font-weight:700;letter-spacing:.24em;color:#fff}
   .scan .arw{color:var(--green)}
@@ -118,7 +113,7 @@
   .seat .cell{padding:0 14px;border-left:1px solid var(--hair)}
   .seat .cell:first-child{padding-left:0;border-left:0}
   .seat .k{font-size:7.5px;font-weight:700;letter-spacing:.2em;color:var(--dim-2)}
-  .seat .v{font-family:"Sora",sans-serif;font-weight:800;font-size:22px;line-height:1.1;color:#fff;margin-top:3px}
+  .seat .v{font-family:"Anton",sans-serif;font-size:22px;line-height:1.1;color:#fff;margin-top:3px}
   .admit{text-align:right}
   .admit .k{font-size:8.5px;font-weight:700;letter-spacing:.2em;color:#fff}
   .admit .enty{justify-content:flex-end;margin-top:8px;font-size:16px}
@@ -127,7 +122,7 @@
   .foot{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end;margin-top:22px}
   .barcode svg{display:block;width:190px;height:40px}
   .barcode .cap{margin-top:6px;font-size:7.5px;font-weight:600;letter-spacing:.22em;color:var(--dim-2)}
-  .sign{font-family:"Sora",sans-serif;font-weight:600;font-size:22px;line-height:1;
+  .sign{font-family:"Permanent Marker",cursive;font-size:24px;line-height:1;
     color:var(--green-hot);text-align:right;transform:rotate(-4deg);
     text-shadow:0 0 16px rgba(57,255,20,.55)}
 
@@ -146,7 +141,7 @@
       <div class="enty">
         <svg class="mark" viewBox="0 0 64 84" aria-hidden="true">
           <path d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z" fill="#fff"/>
-          <g fill="#0c0a09"><rect x="20" y="24" width="26" height="6" rx="3"/><rect x="20" y="40" width="26" height="6" rx="3"/><rect x="20" y="56" width="26" height="6" rx="3"/></g>
+          <g fill="#0A0A0D"><rect x="20" y="24" width="26" height="6" rx="3"/><rect x="20" y="40" width="26" height="6" rx="3"/><rect x="20" y="56" width="26" height="6" rx="3"/></g>
         </svg>
         <span>Enty</span>
       </div>
@@ -161,9 +156,8 @@
         <ellipse cx="215" cy="95" rx="205" ry="60" fill="none"
                  stroke="#00E6AB" stroke-width="1.6" opacity=".85"
                  transform="rotate(-7 215 95)"/>
-        <circle cx="368" cy="42" r="9" fill="none" stroke="#00E6AB" stroke-width="3"
-                style="filter:drop-shadow(0 0 10px rgba(0,230,171,.9))"/>
-        <circle cx="368" cy="42" r="2.6" fill="#00E6AB"/>
+        <path d="M360 26 l6 15 15 6 -15 6 -6 15 -6 -15 -15 -6 15 -6 z"
+              fill="#00E6AB" style="filter:drop-shadow(0 0 10px rgba(0,230,171,.9))"/>
       </svg>
       <p class="kicker">Festival</p>
       <h1 class="title">AURORA</h1>
@@ -182,8 +176,8 @@
       <div class="qr-wrap">
         <div class="qr">
           <svg id="qr" viewBox="0 0 29 29" shape-rendering="crispEdges"></svg>
-          <svg class="qseal" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="8.5" fill="none" stroke="#00E6AB" stroke-width="3.6"/><circle cx="12" cy="12" r="2.6" fill="#00E6AB"/>
+          <svg class="qstar" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 1 l2.6 8.4 8.4 2.6 -8.4 2.6 -2.6 8.4 -2.6 -8.4 -8.4 -2.6 8.4 -2.6 z" fill="#00E6AB"/>
           </svg>
         </div>
         <p class="scan">Scan for Entry <span class="arw">↗</span></p>
@@ -194,8 +188,8 @@
     <div class="strokes" aria-hidden="true">
       <svg viewBox="0 0 380 44" preserveAspectRatio="none">
         <path d="M8 30 C 70 8, 130 40, 196 20 S 320 6, 372 24" fill="none"
-              stroke="#00E6AB" stroke-width="5" stroke-linecap="round"
-              opacity=".92" style="filter:drop-shadow(0 0 8px rgba(0,230,171,.7))"/>
+              stroke="#39FF14" stroke-width="5" stroke-linecap="round"
+              opacity=".92" style="filter:drop-shadow(0 0 8px rgba(57,255,20,.7))"/>
         <path d="M20 38 C 96 22, 150 40, 214 26 S 330 14, 366 34" fill="none"
               stroke="#FF2D98" stroke-width="4" stroke-linecap="round"
               opacity=".85" style="filter:drop-shadow(0 0 9px rgba(255,45,152,.65))"/>
@@ -217,7 +211,7 @@
         <div class="enty">
           <svg class="mark" viewBox="0 0 64 84" aria-hidden="true">
             <path d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z" fill="#fff"/>
-            <g fill="#0c0a09"><rect x="20" y="24" width="26" height="6" rx="3"/><rect x="20" y="40" width="26" height="6" rx="3"/><rect x="20" y="56" width="26" height="6" rx="3"/></g>
+            <g fill="#0A0A0D"><rect x="20" y="24" width="26" height="6" rx="3"/><rect x="20" y="40" width="26" height="6" rx="3"/><rect x="20" y="56" width="26" height="6" rx="3"/></g>
           </svg>
           <span>Enty</span>
         </div>
@@ -257,7 +251,7 @@
     for(let y=0;y<N;y++)for(let x=0;x<N;x++){
       let on;
       if(finder(x,y)){ on=((x%7===0||x%7===6||y%7===0||y%7===6)||(x%7>=2&&x%7<=4&&y%7>=2&&y%7<=4)); }
-      else if(x>=12&&x<=16&&y>=12&&y<=16){ on=false; } // hueco para el sello
+      else if(x>=12&&x<=16&&y>=12&&y<=16){ on=false; } // hueco para la estrella
       else { on=rnd()>0.52; }
       if(on) rects+=`<rect x="${x}" y="${y}" width="1" height="1"/>`;
     }

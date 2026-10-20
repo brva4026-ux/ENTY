@@ -69,17 +69,6 @@ export default function VenueHeader({ venueId, user, month, onMonth, children = 
   const avg = ov?.avg_ticket_cents ?? 0;
   const paid = ov ? Math.max(0, ov.tickets_issued - ov.courtesy_tickets) : 0;
 
-  // Pulso del mes: dos lecturas que el /overview ya devolvía y la portada
-  // tiraba. La PUERTA (boletas que entraron sobre las emitidas) dice si la
-  // noche se llenó; la ANTICIPACIÓN (tramos de días antes del evento) dice
-  // cómo compra el público. Es el MISMO request: cero carga nueva.
-  const issued = ov?.tickets_issued ?? 0;
-  const redeemed = ov?.tickets_redeemed ?? 0;
-  const doorPct = issued > 0 ? Math.round((redeemed / issued) * 100) : 0;
-  const curve = ov?.sales_curve ?? [];
-  const curveMax = Math.max(1, ...curve.map((b) => b.tickets));
-  const curveTotal = curve.reduce((s, b) => s + b.tickets, 0);
-
   return (
     <header className="venue-header card">
       {/* Fila superior: identidad (logo + nombre) a la izquierda, la cifra
@@ -118,7 +107,7 @@ export default function VenueHeader({ venueId, user, month, onMonth, children = 
             contexto, junto a comisiones, promedio y boletas. */}
         <div className="vh-kpi doodle-host">
           <Star5
-            className="-right-1 top-4 h-3.5 w-3.5 rotate-12 text-[var(--e-pink-500)]"
+            className="-right-1 top-4 h-3.5 w-3.5 rotate-12 text-[#FF2D98]"
             aria-hidden="true"
           />
           <div className="min-w-0">
@@ -137,7 +126,7 @@ export default function VenueHeader({ venueId, user, month, onMonth, children = 
               {/* Sello de goma (scrapbook): el mes queda "estampado" sobre la
                   cifra, como los sellos del cartel de referencia. */}
               {ov?.month && (
-                <span className="rubber-stamp hidden text-[var(--e-pink-500)] sm:inline-flex">
+                <span className="rubber-stamp hidden text-[#FF2D98] sm:inline-flex">
                   {labelMonth(ov.month).split(" ")[0]}
                 </span>
               )}
@@ -204,78 +193,6 @@ export default function VenueHeader({ venueId, user, month, onMonth, children = 
                 ? `sobre ${paid} paga${paid === 1 ? "" : "s"}`
                 : "solo cortesías este mes"}
             </span>
-          </div>
-        </div>
-      )}
-
-      {/* Pulso del mes: la portada era un muro de cifras sueltas. Aquí el mes
-          se lee como operación en vivo: cuánto entró por la puerta (con su
-          barra de aforo) y cómo compra la gente según los días de
-          anticipación. Ambas salen del MISMO /overview — no hay request nuevo;
-          antes simplemente no se pintaban. */}
-      {ov && (issued > 0 || curveTotal > 0) && (
-        <div className="vh-pulso">
-          {/* Puerta: boletas validadas sobre emitidas. La barra es aforo. */}
-          <div className="vh-pulso-block">
-            <div className="vh-pulso-head">
-              <span className="eyebrow">En puerta</span>
-              <span className="vh-pulso-big tnum">{doorPct}%</span>
-            </div>
-            <div
-              className="vh-pulso-bar"
-              role="img"
-              aria-label={`${redeemed} de ${issued} boletas validadas`}
-            >
-              <span
-                className="vh-pulso-bar-fill"
-                style={{ width: `${Math.min(100, doorPct)}%` }}
-              />
-            </div>
-            <p className="vh-pulso-sub">
-              <span className="tnum">{redeemed}</span> de{" "}
-              <span className="tnum">{issued}</span> boletas validadas
-            </p>
-          </div>
-
-          {/* Anticipación: en qué tramo de días antes del evento se vendió.
-              Los 5 tramos vienen siempre (rellenos con 0): el tramo vacío es
-              el dato. Se lee de lejos a reciente, como la curva del reporte. */}
-          <div className="vh-pulso-block">
-            <div className="vh-pulso-head">
-              <span className="eyebrow">Cómo compran</span>
-              <span className="vh-pulso-sub">días antes del evento</span>
-            </div>
-            {curveTotal > 0 ? (
-              <div
-                className="vh-curve"
-                role="img"
-                aria-label="Boletas emitidas por anticipación de compra"
-              >
-                {curve.map((b) => {
-                  const h = Math.max(6, Math.round((b.tickets / curveMax) * 100));
-                  return (
-                    <div
-                      key={b.bucket}
-                      className="vh-curve-col"
-                      data-tip={`${b.bucket} días: ${b.tickets}`}
-                    >
-                      <span className="vh-curve-barwrap">
-                        <span
-                          className={`vh-curve-bar ${b.tickets > 0 ? "" : "is-empty"}`}
-                          style={{ height: `${h}%` }}
-                        />
-                      </span>
-                      <span className="vh-curve-n tnum">{b.tickets}</span>
-                      <span className="vh-curve-x">{b.bucket}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="vh-pulso-sub vh-pulso-none">
-                Sin ventas de pago este mes: solo cortesías.
-              </p>
-            )}
           </div>
         </div>
       )}

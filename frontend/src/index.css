@@ -19,24 +19,30 @@
     "Sora", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, sans-serif;
   /* MARCA ENTY (sistema hibrido brutalismo fisico + futurismo digital).
-     Tinta calida, violeta de sello y dos acentos con significado. */
-  --color-enty-bg: #0c0a09;
+     Negro profundo, morado vibrante y dos neon como energia grafica. */
+  --color-enty-bg: #0B0B0F;
   --color-enty-violet: #7C3AED;
   --color-enty-green: #00E6AB;
   --color-enty-pink: #FF2D98;
-  --color-enty-white: #f6f5f2;
-  /* El violeta brillante (--color-brand-400) es el brillo/glow del logotipo;
-     el violeta profundo (--color-brand-500) es la accion. */
-  --color-brand-200: #d9b6ff;
-  --color-brand-300: #d29bf9;
-  --color-brand-400: #bb5cf6;
-  --color-brand-500: #7c3aed;
-  --color-brand-600: #6d28d9;
-  --color-brand-700: #5b21b6;
-  --color-accent-400: #bb5cf6;
-  --color-accent-500: #7c3aed;
-  /* Papel hueso: el rotulo "Enty". */
-  --color-cream: #f3eee4;
+  --color-enty-white: #F5F5F7;
+  /* El violeta del logotipo (#BB5CF6) sigue vivo como brillo/glow; el
+     morado interactivo canonico es #7C3AED (--color-enty-violet). */
+  --color-brand-200: #EAD6FE;
+  --color-brand-300: #D29BF9;
+  --color-brand-400: #BB5CF6;
+  --color-brand-500: #BB5CF6;
+  --color-brand-600: #A63DEB;
+  --color-brand-700: #8B2FE0;
+  --color-accent-400: #D29BF9;
+  --color-accent-500: #BB5CF6;
+  /* Superficies nobles de la marca: negro del logotipo y sus pasos. */
+  --color-ticket-950: #0A0A0F;
+  --color-ticket-900: #14121C;
+  --color-ticket-800: #1C1730;
+  --color-ticket-700: #241C3D;
+  --color-ticket-600: #3A2B63;
+  /* Pergamino/violeta claro: el rotulo "Enty". */
+  --color-cream: #F3E8FF;
   /* Brasa: peligro y estado "en puerta". */
   --color-ember: #ef4444;
   /* ESCALA TIPOGRÁFICA (Fase 2): fuente única para las utilidades `text-*`
@@ -92,7 +98,7 @@ body {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
+  background: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   color: var(--e-white);
 }
 
@@ -156,13 +162,13 @@ body {
 }
 
 /* Eyebrow: etiqueta pequeña MAYÚSCULA que encabeza secciones.
-   En brand-400 (el filo de registro del isotipo). */
+   En brand-400 (como los encabezados azul/violeta de distri-stream). */
 .eyebrow {
   font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--e-brand-300);
+  color: var(--e-violet-300);
 }
 
 /* Titulares: apretados, pesados, con tamaño óptico de la variable Inter
@@ -221,7 +227,7 @@ body {
      background: resetea background-repeat a initial y el chevron del
      select.field se repetia en cinta (el bug de los "vvvvvvv"). */
   background-color: var(--color-zinc-940);
-  padding: 0.75rem 0.875rem;
+  padding: 0.7rem 0.85rem;
   font-size: var(--e-text-base);
   color: var(--color-zinc-50);
   outline: none;
@@ -237,8 +243,8 @@ body {
 }
 .field:focus {
   /* Apple: el foco es un anillo limpio del acento, sin glow difuso. */
-  border-color: var(--e-brand-400);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-brand-400) 22%, transparent);
+  border-color: var(--e-violet-400);
+  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.22);
 }
 
 /* Botón primario (Tesla CTA): azul eléctrico plano, radio 8px (token de
@@ -249,13 +255,13 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   border-radius: 0.5rem;
-  background: var(--e-brand-400);
+  background: var(--e-violet-400);
   color: var(--e-brasa-950);
   border: 3px solid transparent;
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
-  padding: 0.5rem 1rem;
+  padding: 0.55rem 1rem;
   font-size: var(--e-text-base);
   font-weight: 500;
   letter-spacing: 0;
@@ -268,14 +274,14 @@ body {
     transform 0.1s ease;
 }
 .btn-primary:hover {
-  background: var(--e-brand-800);
+  background: var(--e-violet-800);
 }
 .btn-primary:focus-visible {
   border-color: var(--e-brasa-950);
   box-shadow: rgba(0, 0, 0, 0) 0 0 0 2px inset;
 }
 .btn-primary:active {
-  background: var(--e-brand-600);
+  background: var(--e-violet-600);
   transform: translateY(1px);
   box-shadow: none;
 }
@@ -289,7 +295,7 @@ body {
   cursor: progress;
 }
 .btn-primary.is-busy .btn-spinner {
-  margin-left: -0.125rem;
+  margin-left: -0.1rem;
 }
 
 /* Botón secundario: outline zinc */
@@ -297,11 +303,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
+  gap: 0.4rem;
   border-radius: 0.5rem;
   border: 1px solid var(--color-zinc-800);
   background: transparent;
-  padding: 0.5rem 0.875rem;
+  padding: 0.5rem 0.9rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-300);
@@ -312,8 +318,8 @@ body {
     transform 0.1s ease;
 }
 .btn-ghost:hover {
-  background: color-mix(in srgb, var(--e-brand-400) 8%, transparent);
-  border-color: color-mix(in srgb, var(--e-brand-400) 45%, transparent);
+  background: color-mix(in srgb, var(--e-violet-400) 8%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
   color: var(--color-zinc-50);
 }
 .btn-ghost:active {
@@ -329,7 +335,7 @@ body {
   display: inline-flex;
   align-items: center;
   border-radius: 0.5rem;
-  padding: 0.5rem 0.875rem;
+  padding: 0.45rem 0.85rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--e-red-600);
@@ -361,7 +367,7 @@ body {
   background: var(--e-red-600);
   color: var(--e-white);
   border: 1px solid rgba(248, 113, 113, 0.5);
-  padding: 0.5rem 1rem;
+  padding: 0.55rem 1rem;
   font-size: var(--e-text-sm);
   font-weight: 600;
   transition:
@@ -413,9 +419,9 @@ body {
 .btn-mini {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   border-radius: 0.5rem;
-  padding: 0.25rem 0.625rem;
+  padding: 0.3rem 0.6rem;
   font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--color-zinc-400);
@@ -447,11 +453,11 @@ body {
   padding: 0;
 }
 .btn-mini[data-variant="brand"] {
-  color: var(--e-brand-300);
+  color: var(--e-violet-300);
 }
 .btn-mini[data-variant="brand"]:hover {
-  background: color-mix(in srgb, var(--e-brand-400) 12%, transparent);
-  color: var(--e-brand-150);
+  background: rgba(187, 92, 246, 0.12);
+  color: var(--e-violet-150);
 }
 .btn-mini[data-variant="success"] {
   color: var(--e-green-400);
@@ -471,15 +477,15 @@ html[data-theme="light"] .btn-mini {
   color: var(--e-neutral-600);
 }
 html[data-theme="light"] .btn-mini:hover {
-  background: rgba(26, 24, 21, 0.06);
+  background: rgba(24, 24, 27, 0.06);
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] .btn-mini[data-variant="brand"] {
-  color: var(--e-brand-600);
+  color: var(--e-violet-600);
 }
 html[data-theme="light"] .btn-mini[data-variant="brand"]:hover {
-  background: color-mix(in srgb, var(--e-brand-400) 9%, transparent);
-  color: var(--e-brand-700);
+  background: rgba(187, 92, 246, 0.09);
+  color: var(--e-violet-700);
 }
 html[data-theme="light"] .btn-mini[data-variant="success"] {
   color: var(--e-emerald-600);
@@ -514,10 +520,10 @@ html[data-theme="light"] .btn-ghost.btn-success {
 .opt-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.35rem;
   border-radius: 999px;
   border: 1px solid var(--color-zinc-700);
-  padding: 0.375rem 0.75rem;
+  padding: 0.4rem 0.8rem;
   font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--color-zinc-400);
@@ -538,9 +544,9 @@ html[data-theme="light"] .btn-ghost.btn-success {
   transform: translateY(0);
 }
 .opt-chip[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--e-brand-400) 55%, transparent);
-  background: color-mix(in srgb, var(--e-brand-400) 15%, transparent);
-  color: var(--e-brand-300);
+  border-color: rgba(187, 92, 246, 0.55);
+  background: rgba(187, 92, 246, 0.15);
+  color: var(--e-violet-300);
 }
 html[data-theme="light"] .opt-chip {
   border-color: var(--e-neutral-400);
@@ -552,9 +558,9 @@ html[data-theme="light"] .opt-chip:hover {
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] .opt-chip[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--e-brand-400) 55%, transparent);
-  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
-  color: var(--e-brand-600);
+  border-color: rgba(187, 92, 246, 0.55);
+  background: rgba(187, 92, 246, 0.1);
+  color: var(--e-violet-600);
 }
 
 /* ===========================================================================
@@ -587,8 +593,8 @@ input[type="checkbox"].accent-brand-500::before {
   background: var(--e-white);
 }
 input[type="checkbox"].accent-brand-500:checked {
-  background: var(--e-brand-400);
-  border-color: var(--e-brand-400);
+  background: var(--e-violet-400);
+  border-color: var(--e-violet-400);
 }
 input[type="checkbox"].accent-brand-500:checked::before {
   transform: scale(1);
@@ -609,7 +615,7 @@ select.field {
   background-repeat: no-repeat;
   background-position: right 0.65rem center;
   background-size: 1rem;
-  padding-right: 2.125rem;
+  padding-right: 2.1rem;
 }
 select.field option {
   background: var(--color-zinc-925);
@@ -652,8 +658,8 @@ html[data-theme="light"] select.field option {
   bottom: calc(100% + 7px);
   left: 50%;
   transform: translateX(-50%) translateY(3px);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.4rem;
   background: var(--color-zinc-900);
   color: var(--color-zinc-200);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -712,9 +718,9 @@ html[data-theme="light"] select.field option {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
-  border-radius: 0.5rem;
-  padding: 0.375rem 0.875rem;
+  gap: 0.4rem;
+  border-radius: 0.55rem;
+  padding: 0.42rem 0.85rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-400);
@@ -738,7 +744,7 @@ html[data-theme="light"] select.field option {
     0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: var(--e-brand-300);
+  color: var(--e-violet-300);
 }
 /* La activa tinta de marca la pone el bloque WB (más abajo): aquí queda la
    base neutral si ese bloque no aplica (por ejemplo dentro de[data-theme-lock]). */
@@ -747,9 +753,9 @@ html[data-theme="light"] select.field option {
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.35rem;
   border-radius: 999px;
-  padding: 0.125rem 0.5rem;
+  padding: 0.15rem 0.55rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -773,7 +779,7 @@ html[data-theme="light"] select.field option {
 .meter-fill {
   height: 100%;
   border-radius: 999px;
-  background: var(--e-brand-400);
+  background: var(--e-violet-400);
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -827,7 +833,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 
 /* ===========================================================================
    FIRMA VISUAL (segunda ola, de distri-stream)
-   - .text-gradient: titular con degradado papel → violeta (la firma más
+   - .text-gradient: titular con degradado blanco → violeta (la firma más
      reconocible de distri-stream, en nuestro acento único).
    - .empty-state: lista vacía con icono en halo violeta en vez de un <p>
      suelto — la lista vacía es la primera impresión de un panel nuevo.
@@ -835,7 +841,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
      usada) con línea y puntos, como el timeline de reportes del original.
    =========================================================================== */
 .text-gradient {
-  background: linear-gradient(120deg, var(--color-zinc-50) 0%, var(--e-brand-300) 55%, var(--e-brand-400) 100%);
+  background: linear-gradient(120deg, var(--color-zinc-50) 0%, var(--e-violet-300) 55%, var(--e-violet-400) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -855,15 +861,15 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: var(--e-brand-300);
+  color: var(--e-violet-300);
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--e-brand-400) 24%, transparent),
-    color-mix(in srgb, var(--e-brand-400) 7%, transparent)
+    rgba(187, 92, 246, 0.24),
+    rgba(187, 92, 246, 0.07)
   );
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent),
-    0 0 26px -10px color-mix(in srgb, var(--e-brand-400) 55%, transparent);
+    inset 0 0 0 1px rgba(187, 92, 246, 0.35),
+    0 0 26px -10px rgba(187, 92, 246, 0.55);
 }
 .empty-state-title {
   font-size: var(--e-text-base);
@@ -872,7 +878,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   color: var(--color-zinc-50);
 }
 .empty-state-text {
-  margin-top: 0.25rem;
+  margin-top: 0.3rem;
   font-size: var(--e-text-sm);
   line-height: 1.55;
   color: var(--color-zinc-400);
@@ -894,7 +900,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   border-radius: 2px;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--e-brand-400) 55%, transparent),
+    rgba(187, 92, 246, 0.55),
     rgba(63, 63, 70, 0.5)
   );
 }
@@ -902,8 +908,8 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.25rem 0;
+  gap: 0.65rem;
+  padding: 0.3rem 0;
 }
 .ticket-step-dot {
   position: relative;
@@ -916,10 +922,10 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   box-shadow: inset 0 0 0 2px var(--color-zinc-700);
 }
 .ticket-step.done .ticket-step-dot {
-  background: var(--e-brand-400);
+  background: var(--e-violet-400);
   box-shadow:
     inset 0 0 0 2px rgba(253, 186, 116, 0.9),
-    0 0 10px -2px color-mix(in srgb, var(--e-brand-400) 80%, transparent);
+    0 0 10px -2px rgba(187, 92, 246, 0.8);
 }
 .ticket-step.current .ticket-step-dot {
   background: var(--e-green-400);
@@ -1145,7 +1151,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 /* Pull-to-refresh: spinner de trazo que gira mientras se carga. */
 .ptr-spinner {
   animation: spin 0.8s linear infinite;
-  color: var(--e-brand-400);
+  color: var(--e-violet-400);
 }
 
 /* Indicador En vivo: punto pulsante + anillo que se expande (radar) */
@@ -1348,14 +1354,14 @@ html[data-theme="light"] header nav a[aria-current="page"] {
    un badge en cero es ruido, no informacion.
    ---------------------------------------------------------------------- */
 .bizdock {
-  padding: 1rem 1.25rem 1.125rem;
+  padding: 1rem 1.25rem 1.1rem;
 }
 .bizdock-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.875rem;
+  margin-bottom: 0.85rem;
 }
 .bizdock-grid {
   display: grid;
@@ -1366,9 +1372,9 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.65rem;
   text-align: left;
-  padding: 0.625rem 0.75rem;
+  padding: 0.6rem 0.7rem;
   border-radius: 0.75rem;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.02);
@@ -1390,11 +1396,11 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   /* Activo: superficie teñida de marca + hairline de marca. Nada de un
      fondo plano de un solo tono: cambiar DOS propiedades a la vez es lo
      que se percibe "de app pagada". */
-  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
-  border-color: color-mix(in srgb, var(--e-brand-400) 35%, transparent);
+  background: rgba(187, 92, 246, 0.1);
+  border-color: rgba(187, 92, 246, 0.35);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
-    0 6px 18px -10px color-mix(in srgb, var(--e-brand-400) 45%, transparent);
+    0 6px 18px -10px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
 }
 .bizdock-icon {
   display: grid;
@@ -1402,7 +1408,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   flex-shrink: 0;
   width: 2.1rem;
   height: 2.1rem;
-  border-radius: 0.625rem;
+  border-radius: 0.6rem;
   color: var(--color-zinc-400);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -1416,7 +1422,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 .bizdock-item.is-active .bizdock-icon {
   color: var(--e-white);
-  background: var(--e-brand-400);
+  background: var(--e-violet-400);
   border-color: transparent;
 }
 .bizdock-text {
@@ -1451,12 +1457,12 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   text-align: center;
   font-size: var(--e-text-2xs);
   font-weight: 700;
-  padding: 0.125rem 0.375rem;
+  padding: 0.1rem 0.35rem;
   border-radius: 999px;
   /* Tinta, no blanco: el contador vive sobre el naranja de la marca y el
      blanco ahi daba 2.8:1. El mismo par tinta/naranja del boton primario. */
   color: var(--e-brasa-950);
-  background: var(--e-brand-400);
+  background: var(--e-violet-400);
 }
 
 /* Fila Pendientes: una sola línea bajo la grilla, separada por hairline.
@@ -1466,7 +1472,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 0.75rem;
-  margin-top: 0.875rem;
+  margin-top: 0.85rem;
   padding-top: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
@@ -1480,8 +1486,8 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .bizdock-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
   border-radius: 999px;
   font-size: var(--e-text-xs);
   font-weight: 600;
@@ -1511,8 +1517,8 @@ html[data-theme="light"] .bizdock-item:hover {
   background: var(--e-neutral-250);
 }
 html[data-theme="light"] .bizdock-item.is-active {
-  background: color-mix(in srgb, var(--e-brand-400) 8%, transparent);
-  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
+  background: color-mix(in srgb, var(--e-violet-400) 8%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   box-shadow: none;
 }
 html[data-theme="light"] .bizdock-icon {
@@ -1522,7 +1528,7 @@ html[data-theme="light"] .bizdock-icon {
 }
 html[data-theme="light"] .bizdock-item.is-active .bizdock-icon {
   color: var(--e-white);
-  background: var(--e-brand-400);
+  background: var(--e-violet-400);
 }
 html[data-theme="light"] .bizdock-label {
   color: var(--e-neutral-900);
@@ -1550,7 +1556,7 @@ html[data-theme="light"] .bizdock-desc {
   background:
     radial-gradient(
       34rem 14rem at 88% -6rem,
-      color-mix(in srgb, var(--e-brand-400) 9%, transparent),
+      rgba(187, 92, 246, 0.09),
       transparent 62%
     ),
     linear-gradient(
@@ -1577,7 +1583,7 @@ html[data-theme="light"] .bizdock-desc {
 .vh-identidad {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.7rem;
   min-width: 0;
 }
 /* Bloque de texto: el eyebrow flota arriba del nombre con su propio aire (no
@@ -1625,8 +1631,8 @@ html[data-theme="light"] .bizdock-desc {
     var(--venue-logo-ring),
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     inset 0 -1px 1px rgba(0, 0, 0, 0.3),
-    0 1px 1px rgba(8, 7, 5, 0.4),
-    0 10px 22px -12px rgba(8, 7, 5, 0.75);
+    0 1px 1px rgba(3, 7, 18, 0.4),
+    0 10px 22px -12px rgba(3, 7, 18, 0.75);
 }
 /* Un flyer como logo necesita su hairline: sin aro, una imagen clara se
    derrama sobre la superficie. Va finisimo — separa, no enmarca. */
@@ -1641,21 +1647,21 @@ html[data-theme="light"] .bizdock-desc {
   /* Dos iniciales pegadas se leen como una sola letra rara. */
   letter-spacing: 0.01em;
   color: var(--e-white);
-  /* Tinta de marca: el mismo negro del logo y del talon de la boleta. La identidad
+  /* Navy de marca: el mismo del logo y del talon de la boleta. La identidad
      del negocio se apoya en el material de la marca en vez de un gris que se
      confundia con el fondo del card (que es lo que la hacia ver apagada). */
   background: linear-gradient(
     160deg,
-    var(--e-brand-600),
-    var(--e-brand-700)
+    var(--color-ticket-600),
+    var(--color-ticket-900)
   );
   /* Canto del chip: la luz entra por arriba, el borde inferior se redondea
      con la media sombra interior. */
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     inset 0 -1px 1px rgba(0, 0, 0, 0.35),
-    0 1px 1px rgba(8, 7, 5, 0.4),
-    0 10px 22px -12px rgba(8, 7, 5, 0.75);
+    0 1px 1px rgba(3, 7, 18, 0.4),
+    0 10px 22px -12px rgba(3, 7, 18, 0.75);
 }
 .vh-kpi {
   min-width: 0;
@@ -1674,8 +1680,8 @@ html[data-theme="light"] .bizdock-desc {
   height: calc(100% + var(--venue-pad-y, 1.1rem));
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--e-brand-400) 70%, transparent),
-    color-mix(in srgb, var(--e-brand-400) 6%, transparent) 82%,
+    rgba(187, 92, 246, 0.7),
+    rgba(187, 92, 246, 0.06) 82%,
     transparent
   );
 }
@@ -1699,18 +1705,18 @@ html[data-theme="light"] .bizdock-desc {
   display: flex;
   align-items: baseline;
   justify-content: flex-end;
-  gap: 0.625rem;
+  gap: 0.6rem;
   font-size: var(--e-text-xs);
   color: var(--color-zinc-500);
-  margin-top: 0.25rem;
+  margin-top: 0.3rem;
 }
 .vh-delta {
   display: inline-flex;
   align-items: center;
-  gap: 0.125rem;
+  gap: 0.15rem;
   font-weight: 700;
   border-radius: 999px;
-  padding: 0.05rem 0.5rem 0.05rem 0.375rem;
+  padding: 0.05rem 0.5rem 0.05rem 0.35rem;
 }
 .vh-delta.is-up {
   color: var(--e-green-400);
@@ -1726,7 +1732,7 @@ html[data-theme="light"] .venue-header {
   background:
     radial-gradient(
       34rem 14rem at 88% -6rem,
-      color-mix(in srgb, var(--e-brand-400) 5%, transparent),
+      rgba(187, 92, 246, 0.05),
       transparent 62%
     ),
     var(--e-white);
@@ -1734,8 +1740,8 @@ html[data-theme="light"] .venue-header {
 html[data-theme="light"] .vh-kpi::before {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--e-brand-400) 55%, transparent),
-    color-mix(in srgb, var(--e-brand-400) 5%, transparent) 82%,
+    rgba(187, 92, 246, 0.55),
+    rgba(187, 92, 246, 0.05) 82%,
     transparent
   );
 }
@@ -1746,21 +1752,21 @@ html[data-theme="light"] .vh-logo {
   box-shadow:
     var(--venue-logo-ring),
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 1px rgba(23, 15, 9, 0.18),
-    0 1px 1px rgba(23, 15, 9, 0.12),
-    0 8px 18px -10px rgba(23, 15, 9, 0.34);
+    inset 0 -1px 1px rgba(9, 15, 38, 0.18),
+    0 1px 1px rgba(9, 15, 38, 0.12),
+    0 8px 18px -10px rgba(9, 15, 38, 0.34);
 }
 html[data-theme="light"] .vh-logo-img {
-  --venue-logo-ring: 0 0 0 1px rgba(26, 24, 21, 0.08);
+  --venue-logo-ring: 0 0 0 1px rgba(24, 24, 27, 0.08);
 }
 html[data-theme="light"] .vh-logo-fallback {
   /* Canto mas marcado: sobre blanco es lo que hace flotar al chip en vez de
-     recortarlo. El relleno ya viene del bloque base (mismos tokens). */
+     recortarlo. El relleno navy ya viene del bloque base (mismos tokens). */
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -1px 1px rgba(23, 15, 9, 0.25),
-    0 1px 1px rgba(23, 15, 9, 0.14),
-    0 8px 18px -10px rgba(23, 15, 9, 0.34);
+    inset 0 -1px 1px rgba(9, 15, 38, 0.25),
+    0 1px 1px rgba(9, 15, 38, 0.14),
+    0 8px 18px -10px rgba(9, 15, 38, 0.34);
 }
 html[data-theme="light"] .vh-kpi-amount {
   color: var(--color-zinc-50);
@@ -1782,12 +1788,12 @@ html[data-theme="light"] .vh-delta.is-down {
   .vh-top {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.875rem;
+    gap: 0.9rem;
   }
   .vh-kpi {
     text-align: left;
     width: 100%;
-    padding-top: 0.875rem;
+    padding-top: 0.85rem;
     padding-right: 0;
     /* El separador vertical se vuelve horizontal (hairline del sistema). */
     border-top: 1px solid rgba(255, 255, 255, 0.07);
@@ -1807,7 +1813,7 @@ html[data-theme="light"] .vh-delta.is-down {
 .vh-embedded {
   width: 100%;
   margin-top: 1rem;
-  padding-top: 0.875rem;
+  padding-top: 0.9rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 html[data-theme="light"] .vh-embedded {
@@ -1825,19 +1831,19 @@ html[data-theme="light"] .vh-embedded {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.375rem 0.875rem;
-  margin-top: 1rem;
-  padding-top: 0.75rem;
+  gap: 0.35rem 0.9rem;
+  margin-top: 0.95rem;
+  padding-top: 0.8rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 .vh-cuenta-item {
   display: grid;
-  gap: 0.125rem;
+  gap: 0.1rem;
   min-width: 0;
 }
 .vh-cuenta-op {
   align-self: flex-end;
-  padding-bottom: 0.125rem;
+  padding-bottom: 0.1rem;
   color: var(--color-zinc-600);
   font-size: var(--e-text-base);
   font-weight: 700;
@@ -1882,13 +1888,13 @@ html[data-theme="light"] .vh-embedded {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.6rem;
   margin-top: 0.75rem;
 }
 .vh-mesnav-ctrl {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.35rem;
 }
 .vh-mesnav-label {
   min-width: 9rem;
@@ -1900,19 +1906,19 @@ html[data-theme="light"] .vh-embedded {
   font-size: var(--e-text-xs);
   font-weight: 700;
   color: var(--color-brand-300);
-  padding: 0.375rem 0.5rem;
+  padding: 0.35rem 0.5rem;
   border-radius: 0.5rem;
 }
 .vh-mesnav-hoy:hover {
   color: var(--color-brand-200);
-  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
+  background: rgba(187, 92, 246, 0.1);
 }
 
 /* Rankings: "quién mueve la noche". Barras finas, misma gramática de
    RevenueBars (brand-500) sin SVG nuevo. */
 .vh-rank {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
+  margin-top: 0.95rem;
+  padding-top: 0.8rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 .vh-rank-head {
@@ -1920,7 +1926,7 @@ html[data-theme="light"] .vh-embedded {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.55rem;
 }
 .vh-rank-sub {
   font-size: var(--e-text-2xs);
@@ -1928,13 +1934,13 @@ html[data-theme="light"] .vh-embedded {
 }
 .vh-rank-list {
   display: grid;
-  gap: 0.375rem;
+  gap: 0.4rem;
 }
 .vh-rank-row {
   display: grid;
   grid-template-columns: 1.4rem minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   font-size: var(--e-text-sm);
 }
 .vh-rank-pos {
@@ -1948,10 +1954,7 @@ html[data-theme="light"] .vh-embedded {
   background: var(--color-zinc-800);
 }
 .vh-rank-pos.is-first {
-  /* --color-amber-300 y no --e-amber-300: el token crudo (#fcd34d) no voltea
-     con el tema y en claro quedaba amarillo claro sobre lavado claro (1.34:1,
-     ilegible). --color-amber-300 si se remapea a --e-brasa-500 en claro. */
-  color: var(--color-amber-300);
+  color: var(--e-amber-300);
   background: rgba(251, 191, 36, 0.14);
   box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.4);
 }
@@ -2011,151 +2014,6 @@ html[data-theme="light"] .vh-mesnav-hoy {
   }
 }
 
-/* ----------------------------------------------------------------------
-   PORTADA: "Pulso del mes". La portada era un muro de cifras sueltas; aquí
-   el mes se lee como operación en vivo — la puerta (aforo) y cómo compra la
-   gente (anticipación). Mismos hairlines del sistema, mismos tokens de
-   marca; nada de cajas nuevas ni colores inventados.
-   ---------------------------------------------------------------------- */
-.vh-pulso {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.9rem 1.6rem;
-  margin-top: 0.95rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
-/* Dos columnas solo cuando hay ancho de verdad: en móvil van apiladas y cada
-   bloque respira a lo ancho. */
-@media (min-width: 720px) {
-  .vh-pulso {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    align-items: start;
-  }
-}
-.vh-pulso-block {
-  display: grid;
-  gap: 0.4rem;
-  min-width: 0;
-}
-.vh-pulso-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.6rem;
-}
-/* La cifra de puerta: hermana menor del KPI del mes. Misma voz (tabular,
-   tracking cerrado), sin competirle el trono. */
-.vh-pulso-big {
-  font-size: var(--e-text-lg);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--color-zinc-50);
-  line-height: 1;
-}
-/* Barra de aforo: el carril es la superficie, el relleno es la marca. */
-.vh-pulso-bar {
-  height: 0.4rem;
-  border-radius: 999px;
-  background: var(--color-zinc-800);
-  overflow: hidden;
-}
-.vh-pulso-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  /* Verde = validado (el acento significa): lo que ya entró por la puerta. */
-  background: linear-gradient(90deg, var(--e-emerald-450), var(--e-green-500));
-  transition: width 0.5s ease;
-}
-.vh-pulso-sub {
-  font-size: var(--e-text-2xs);
-  color: var(--color-zinc-500);
-}
-.vh-pulso-none {
-  color: var(--color-zinc-600);
-}
-/* Curva de anticipación: columnas ancladas abajo, del tramo más lejano
-   (izquierda) al más cercano al evento (derecha). El número manda sobre la
-   etiqueta; la barra es magnitud, como en el ranking. */
-.vh-curve {
-  display: flex;
-  align-items: stretch;
-  gap: 0.35rem;
-  height: 3.6rem;
-}
-.vh-curve-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.2rem;
-  flex: 1 1 0;
-  min-width: 0;
-}
-.vh-curve-barwrap {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 100%;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-.vh-curve-bar {
-  display: block;
-  width: 100%;
-  max-width: 2.1rem;
-  border-radius: 0.3rem 0.3rem 0.15rem 0.15rem;
-  background: linear-gradient(
-    180deg,
-    var(--color-brand-400),
-    var(--color-brand-700)
-  );
-  transition: height 0.5s ease;
-}
-/* Tramo sin ventas: no es una barra de altura 0 (parece un error), es una
-   guía tenue que dice "aquí no se vendió". */
-.vh-curve-bar.is-empty {
-  background: color-mix(in srgb, var(--color-zinc-600) 55%, transparent);
-}
-.vh-curve-n {
-  font-size: var(--e-text-2xs);
-  font-weight: 700;
-  color: var(--color-zinc-200);
-  line-height: 1;
-}
-.vh-curve-x {
-  font-size: 0.5625rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--color-zinc-600);
-  white-space: nowrap;
-}
-html[data-theme="light"] .vh-pulso {
-  border-top-color: var(--e-neutral-300);
-}
-html[data-theme="light"] .vh-pulso-big {
-  color: var(--e-ink-1);
-}
-html[data-theme="light"] .vh-pulso-bar {
-  background: var(--e-neutral-200);
-}
-html[data-theme="light"] .vh-pulso-bar-fill {
-  background: linear-gradient(90deg, var(--e-emerald-600), var(--e-green-500));
-}
-html[data-theme="light"] .vh-curve-bar.is-empty {
-  background: color-mix(in srgb, var(--e-neutral-300) 90%, transparent);
-}
-html[data-theme="light"] .vh-curve-n {
-  color: var(--e-ink-1);
-}
-@media (prefers-reduced-motion: reduce) {
-  .vh-pulso-bar-fill,
-  .vh-curve-bar {
-    transition: none;
-  }
-}
-
 /* ===========================================================================
    CAPA PREMIUM (pasada 3): micro-detalles que se sienten, no que decoran
    =========================================================================== */
@@ -2164,19 +2022,19 @@ html[data-theme="light"] .vh-curve-n {
    perforación punteada y halo de marca. Invita a emitir — nunca un rectángulo
    gris muerto. */
 .ticket-ghost {
-  border-radius: 1.125rem;
+  border-radius: 1.1rem;
   background:
     radial-gradient(
       120% 90% at 50% 0%,
-      color-mix(in srgb, var(--e-brand-400) 28%, transparent),
+      rgba(187, 92, 246, 0.28),
       transparent 62%
     ),
     linear-gradient(180deg, var(--color-zinc-900), var(--e-panel-750));
-  border: 1px dashed color-mix(in srgb, var(--e-brand-400) 45%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--e-violet-400) 45%, transparent);
   position: relative;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 10px 30px -16px color-mix(in srgb, var(--e-brand-400) 50%, transparent);
+    0 10px 30px -16px rgba(187, 92, 246, 0.5);
 }
 .ticket-ghost::after {
   content: "";
@@ -2197,8 +2055,8 @@ html[data-theme="light"] .vh-curve-n {
 }
 .event-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--e-brand-400) 45%, transparent);
-  box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--e-brand-400) 45%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+  box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
 }
 .event-card.is-live {
   border-color: rgba(52, 211, 153, 0.4);
@@ -2220,9 +2078,9 @@ html[data-theme="light"] .vh-curve-n {
 .ec-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
   border-left: 2px solid rgba(255, 255, 255, 0.07);
-  padding-left: 0.5rem;
+  padding-left: 0.55rem;
   min-width: 0;
 }
 .ec-stat-label {
@@ -2246,26 +2104,26 @@ html[data-theme="light"] .ec-stat-label {
   color: var(--color-zinc-400);
 }
 .ec-when-today {
-  border-color: color-mix(in srgb, var(--e-brand-400) 55%, transparent);
-  background: color-mix(in srgb, var(--e-brand-400) 15%, transparent);
-  color: var(--e-brand-300);
+  border-color: rgba(187, 92, 246, 0.55);
+  background: rgba(187, 92, 246, 0.15);
+  color: var(--e-violet-300);
 }
 .ec-when-soon {
-  border-color: color-mix(in srgb, var(--e-brand-400) 35%, transparent);
-  color: var(--e-brand-150);
+  border-color: rgba(187, 92, 246, 0.35);
+  color: var(--e-violet-150);
 }
 html[data-theme="light"] .ec-when {
   border-color: var(--e-neutral-400);
   color: var(--e-neutral-600);
 }
 html[data-theme="light"] .ec-when-today {
-  border-color: color-mix(in srgb, var(--e-brand-400) 50%, transparent);
-  background: color-mix(in srgb, var(--e-brand-400) 10%, transparent);
-  color: var(--e-brand-600);
+  border-color: rgba(187, 92, 246, 0.5);
+  background: rgba(187, 92, 246, 0.1);
+  color: var(--e-violet-600);
 }
 html[data-theme="light"] .ec-when-soon {
-  border-color: color-mix(in srgb, var(--e-brand-400) 30%, transparent);
-  color: var(--e-brand-600);
+  border-color: rgba(187, 92, 246, 0.3);
+  color: var(--e-violet-600);
 }
 
 /* ----------------------------------------------------------------------
@@ -2276,7 +2134,7 @@ html[data-theme="light"] .ec-when-soon {
    de color (no una caja), y el ruido solo aparece al hover.
    ---------------------------------------------------------------------- */
 .events-strip {
-  padding: 0.375rem 0 0.25rem;
+  padding: 0.35rem 0 0.2rem;
   counter-reset: evx;
 }
 .evx-head {
@@ -2284,7 +2142,7 @@ html[data-theme="light"] .ec-when-soon {
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.55rem;
 }
 /* .evx-toolbar (dos filas en móvil, una desde 640px) está definido más abajo,
    junto al bloque que explica por qué. */
@@ -2292,14 +2150,14 @@ html[data-theme="light"] .ec-when-soon {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   white-space: nowrap;
   /* min-height alinea la fila de pestañas con el buscador: antes la pestaña
      media 30px y media renglón, se leia como texto suelto. 2.75rem (44px) es
      el minimo de tap target con el dedo; el buscador tambien mide eso. */
   min-height: 2.75rem;
-  padding: 0.375rem 0.625rem;
-  border-radius: 0.375rem 0.375rem 0 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.4rem 0.4rem 0 0;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-500);
@@ -2325,10 +2183,10 @@ html[data-theme="light"] .ec-when-soon {
   font-weight: 600;
 }
 .evx-tab.is-active .evx-tab-count {
-  color: var(--e-brand-300);
+  color: var(--e-violet-300);
 }
 /* El filete del activo: UN solo acento, plano. Antes iba de naranja a azul
-   periwinkle (var(--e-brand-400) -> var(--e-info-500)), que contradecia la regla de marca de este
+   periwinkle (var(--e-violet-400) -> var(--e-info-500)), que contradecia la regla de marca de este
    mismo archivo ("un solo acento disciplinado ... Nada de arcoiris") y en
    pantalla se leia como dos pedazos de distinto color pegados, no como una
    marca. Sobre 2px de alto, el color plano es ademas lo que se ve nitido. */
@@ -2357,7 +2215,7 @@ html[data-theme="light"] .ec-when-soon {
   margin-left: auto;
   border-left: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 0.5rem;
-  padding-left: 0.625rem;
+  padding-left: 0.65rem;
 }
 html[data-theme="light"] .evx-toolbar > .btn-icon {
   border-left-color: var(--e-neutral-300);
@@ -2385,7 +2243,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   /* row-gap chico: son dos filas pegadas, no dos bloques. Con 0.5rem la fila
      de filtros quedaba a medio centimetro del buscador y se leia como otra
      sección. */
-  gap: 0.375rem 0.5rem;
+  gap: 0.35rem 0.5rem;
   padding-bottom: 0.75rem;
   /* Cabecera pegajosa: con 20+ noches el buscador y los filtros viajan con el
      scroll y la lista nunca queda "sin control". El fondo canvas sella las
@@ -2397,15 +2255,10 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-search {
   position: relative;
-  /* El buscador crece hasta llenar la fila; el toggle de densidad (44px) es
-     el unico que compite por ese ancho. Base explicita (8rem) y NO `auto`:
-     con `auto` la base era el ancho intrinseco del input (~269px, su size
-     por defecto) y a 360-390px no dejaba hueco para el toggle, que caia a su
-     propia fila — el toolbar medía 153px (TRES filas) justo en el celular mas
-     comun, contra las dos filas que documenta este bloque. Con base chica el
-     toggle entra al lado y el toolbar baja a 106px: 47px menos de cabecera
-     pegajosa en cada scroll. min-width:0 permite encogerse sin desbordar. */
-  flex: 1 1 8rem;
+  /* Crece hasta llenar la fila; el unico que compite por ese ancho es el
+     toggle de densidad (40px fijos). Los filtros van aparte (abajo), asi que
+     el buscador ya no puede quedar estrangulado como antes. */
+  flex: 1 1 auto;
   min-width: 0;
 }
 /* Desde 1024px el buscador comparte fila con la tablist, y media 39.4px
@@ -2476,7 +2329,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-filters-row .evx-tab {
   scroll-snap-align: start;
-  padding-inline: 0.75rem;
+  padding-inline: 0.7rem;
 }
 /* Fila única recién a 1024px: con los 6 estados (573px de contenido) mas el
    buscador a 16rem, a 768px la fila se iba a 86px de scroll de PAGINA (medido).
@@ -2497,7 +2350,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     overflow-x: visible;
   }
   .evx-filters-row .evx-tab {
-    padding-inline: 0.625rem;
+    padding-inline: 0.6rem;
   }
 }
 /* Nuevo evento: en movil el verbo completo se partia en dos lineas y
@@ -2506,9 +2359,9 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
+  gap: 0.4rem;
   min-height: 2.75rem;
-  padding-inline: 0.875rem;
+  padding-inline: 0.85rem;
   font-size: var(--e-text-sm);
 }
 /* Nuevo evento: en movil el verbo completo se partia en dos lineas y empujaba
@@ -2525,7 +2378,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-grid {
   display: grid;
-  gap: 0.875rem;
+  gap: 0.85rem;
   margin-top: 1rem;
 }
 @media (min-width: 640px) {
@@ -2549,23 +2402,13 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     transform 0.18s var(--e-ease-expo),
     border-color 0.18s ease,
     box-shadow 0.18s ease;
-  /* Superficie de la casa (mismo material que .card): lavado cenital de 1px,
-     cuerpo zinc-925 y el filo interior de pizarra. Antes era un relleno de
-     2% de blanco sin sombra: a la par del card de la venue se leía como un
-     rectángulo "básico" (borde y nada más). El material la vuelve una
-     tarjeta real sin competir con la portada. */
-  border-radius: 0.875rem;
-  border: 1px solid var(--e-border-hairline);
+  /* Misma superficie sutil de los ítems del dock Del negocio: la tarjeta
+     se lee como tarjeta sin competir con el card de la portada. */
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.035),
-      rgba(255, 255, 255, 0) 42%
-    ),
-    var(--color-zinc-925);
-  box-shadow:
-    var(--e-highlight-inset),
-    var(--e-elev-card);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0) 42%),
+    rgba(255, 255, 255, 0.02);
 }
 /* Barra superior: la única línea de color por tarjeta la dice el ESTADO
    (verde = en puerta, brand = a la venta; cancelado/finalizado usan su
@@ -2584,7 +2427,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   background: linear-gradient(90deg, var(--e-green-400), rgba(52, 211, 153, 0.25));
 }
 .evx-card.is-published::before {
-  background: linear-gradient(90deg, var(--e-brand-100), rgba(240, 236, 227, 0.25));
+  background: linear-gradient(90deg, var(--e-violet-100), rgba(243, 232, 255, 0.25));
 }
 .evx-card.is-ended::before {
   background: var(--e-neutral-500);
@@ -2597,7 +2440,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   inset: 0;
   background: radial-gradient(
     90% 70% at 50% -10%,
-    color-mix(in srgb, var(--e-brand-400) 13%, transparent),
+    rgba(187, 92, 246, 0.13),
     transparent 62%
   );
   opacity: 0;
@@ -2615,22 +2458,12 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     transparent 62%
   );
 }
-/* En táctil NO hay hover: el halo nace en opacity 0 y sólo el puntero lo
-   encendía, así que la noche EN PUERTA —la que importa— se veía igual de
-   plana que una terminada, y la franja se leía "básica" justo en el celular.
-   El halo queda tenue pero permanente en la tarjeta viva: distingue el estado
-   en vivo sin depender del mouse. */
-@media (hover: none) {
-  .evx-card.is-live::after {
-    opacity: 1;
-  }
-}
 .evx-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   box-shadow:
     0 14px 34px -16px rgba(0, 0, 0, 0.6),
-    0 10px 32px -14px color-mix(in srgb, var(--e-brand-400) 35%, transparent);
+    0 10px 32px -14px rgba(187, 92, 246, 0.35);
 }
 .evx-card.is-live:hover {
   border-color: rgba(52, 211, 153, 0.5);
@@ -2644,24 +2477,6 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   letter-spacing: -0.02em;
   color: var(--color-zinc-50);
   font-variation-settings: "opsz" 24;
-}
-/* El nombre de la noche es CÓMO el admin la reconoce. A 24px y una sola
-   línea no entraba: a 320px "Noche Electronica" perdía 85px y a 390px 20px,
-   así que la tarjeta decía "Noche Electronic…" justo en el celular. En
-   pantallas angostas baja a 20px y se permite una segunda línea: la noche se
-   lee completa. Un nombre corto ("sasgaga") queda MÁS compacto que antes
-   (25px de línea contra 36px), así que no se paga alto extra salvo cuando el
-   nombre de verdad lo necesita. */
-@media (max-width: 400px) {
-  .evx-name {
-    font-size: var(--e-text-xl);
-    line-height: 1.25;
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-  }
 }
 /* Pulso operativo de la cabecera: cuántas noches están EN PUERTA. Es el único
    estado que exige atención en vivo y se dice con el mismo verde del ciclo de
@@ -2679,13 +2494,13 @@ html[data-theme="light"] .evx-livepill {
 .evx-livepill-dot {
   width: 0.375rem;
   height: 0.375rem;
-  border-radius: 10000px;
+  border-radius: 9999px;
   background: currentColor;
 }
 .evx-state {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.35rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-400);
@@ -2715,7 +2530,7 @@ html[data-theme="light"] .evx-livepill {
   background: var(--e-green-400);
 }
 .evx-dot[data-status="published"] {
-  background: var(--e-brand-100);
+  background: var(--e-violet-100);
 }
 .evx-dot[data-status="draft"] {
   background: var(--e-neutral-550);
@@ -2736,13 +2551,13 @@ html[data-theme="light"] .evx-livepill {
 .evx-idrow {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.7rem;
 }
 .evx-thumb {
   width: 3.5rem;
   height: 3.5rem;
   flex-shrink: 0;
-  border-radius: 0.75rem;
+  border-radius: 0.7rem;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--color-zinc-940);
@@ -2753,15 +2568,15 @@ html[data-theme="light"] .evx-livepill {
   font-size: var(--e-text-sm);
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--e-brand-150);
+  color: var(--e-violet-150);
   background: linear-gradient(
     140deg,
-    color-mix(in srgb, var(--e-brand-400) 38%, transparent),
-    color-mix(in srgb, var(--e-brand-400) 10%, transparent) 60%,
-    rgba(10, 9, 8, 0.4)
+    rgba(187, 92, 246, 0.38),
+    rgba(187, 92, 246, 0.1) 60%,
+    rgba(9, 9, 11, 0.4)
   );
-  border-color: color-mix(in srgb, var(--e-brand-400) 30%, transparent);
-  text-shadow: 0 1px 2px rgba(10, 9, 8, 0.4);
+  border-color: rgba(187, 92, 246, 0.3);
+  text-shadow: 0 1px 2px rgba(9, 9, 11, 0.4);
 }
 .evx-thumb-fallback.is-ended {
   color: var(--color-zinc-300);
@@ -2785,7 +2600,7 @@ html[data-theme="light"] .evx-livepill {
   font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--e-brand-200);
+  color: var(--e-violet-200);
 }
 .evx-datecal-day {
   font-size: var(--e-text-xl);
@@ -2802,9 +2617,9 @@ html[data-theme="light"] .evx-livepill {
 /* Píldora de apertura reutilizada (ec-when): la fecha deja de ser un
    texto gris enterrado abajo y se vuelve el segundo dato que se lee. */
 .evx-when {
-  gap: 0.25rem;
+  gap: 0.3rem;
   border-radius: 0.375rem;
-  padding: 0.125rem 0.5rem;
+  padding: 0.15rem 0.45rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
 }
@@ -2816,14 +2631,14 @@ html[data-theme="light"] .evx-livepill {
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 0.95rem;
 }
 .evx-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
   border-left: 2px solid rgba(255, 255, 255, 0.07);
-  padding-left: 0.5rem;
+  padding-left: 0.55rem;
   min-width: 0;
   transition: border-color 0.2s ease;
 }
@@ -2838,26 +2653,23 @@ html[data-theme="light"] .evx-livepill {
   color: var(--color-zinc-500);
   white-space: nowrap;
 }
-/* Moviles angostos (320-400px): en tres columnas la cifra del RECAUDO no
-   cabía — "$ 30.000" necesita 88px y la columna ofrecía 58-81px, así que el
-   dato que manda se cortaba (medido a 320/360/390px: se perdían 32/18/8px).
-   El recaudo pasa a su PROPIA fila a lo ancho y "Vendidas/Entraron" comparten
-   la de abajo: la cifra más importante se lee entera y los dos contadores
-   cortos (1/100, 0) no se aprietan. Los rótulos en mayúscula también caben. */
+/* Moviles angostos (320-380px): los tres rotulos en mayusculas no cabian en su
+   columna y empujaban la tarjeta, lo que SCAneaba la pagina en horizontal.
+   Afinar tracking y cuerpo de la rotulo deja las tres cifras en su carril. */
 @media (max-width: 400px) {
   .evx-stats {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem 0.375rem;
-  }
-  /* El dinero primero y a lo ancho: es la cifra que el dueño mira. */
-  .evx-stat:first-child {
-    grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.4rem;
   }
   .evx-stat {
-    padding-left: 0.5rem;
+    padding-left: 0.4rem;
   }
   .evx-stat-label {
-    letter-spacing: 0.04em;
+    font-size: var(--e-text-2xs);
+    letter-spacing: 0.02em;
+  }
+  .evx-stat-value {
+    font-size: var(--e-text-lg);
   }
 }
 .evx-stat-value {
@@ -2893,7 +2705,7 @@ html[data-theme="light"] .evx-livepill {
   height: 0.375rem;
   border-radius: 999px;
   background: var(--e-green-400);
-  margin-right: 0.25rem;
+  margin-right: 0.3rem;
   vertical-align: 0.12em;
   animation: evx-pulse 2s ease-in-out infinite;
 }
@@ -2903,8 +2715,8 @@ html[data-theme="light"] .evx-livepill {
 .evx-meterrow {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.875rem;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
 }
 .evx-pct {
   font-size: var(--e-text-2xs);
@@ -2926,8 +2738,8 @@ html[data-theme="light"] .evx-livepill {
   border-radius: 999px;
   /* Venda de marca con núcleo brillante: proporción VIVA, no un rectángulo
      plano. La luz viaja hacia la punta del llenado. */
-  background: linear-gradient(90deg, color-mix(in srgb, var(--e-brand-400) 45%, transparent), var(--e-brand-400));
-  box-shadow: 0 0 8px -1px color-mix(in srgb, var(--e-brand-400) 55%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--e-violet-400) 45%, transparent), var(--e-violet-400));
+  box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
   transition: width 0.5s var(--e-ease-expo);
 }
 .is-live .evx-meter-fill { background: var(--e-green-400); }
@@ -2939,25 +2751,25 @@ html[data-theme="light"] .evx-thumb {
   background: var(--e-neutral-100);
 }
 html[data-theme="light"] .evx-thumb-fallback {
-  color: var(--e-brand-600);
+  color: var(--e-violet-600);
   text-shadow: none;
   background: linear-gradient(
     140deg,
-    color-mix(in srgb, var(--e-brand-400) 20%, transparent),
-    color-mix(in srgb, var(--e-brand-400) 6%, transparent) 60%,
+    rgba(187, 92, 246, 0.2),
+    rgba(187, 92, 246, 0.06) 60%,
     rgba(255, 255, 255, 0.5)
   );
-  border-color: color-mix(in srgb, var(--e-brand-400) 25%, transparent);
+  border-color: rgba(187, 92, 246, 0.25);
 }
 html[data-theme="light"] .evx-thumb-fallback.is-ended {
   color: var(--color-zinc-500);
-  background: linear-gradient(140deg, rgba(10, 9, 8, 0.07), rgba(10, 9, 8, 0.02));
+  background: linear-gradient(140deg, rgba(9, 9, 11, 0.07), rgba(9, 9, 11, 0.02));
   border-color: var(--e-neutral-300);
 }
 /* La hoja de calendario en claro: el día no puede quedar en tinta clara
    sobre un fondo claro (medido: ratio 1.1). Mes en violeta, día en tinta. */
 html[data-theme="light"] .evx-datecal-mon {
-  color: var(--e-brand-600);
+  color: var(--e-violet-600);
 }
 html[data-theme="light"] .evx-datecal-day {
   color: var(--e-text-primary);
@@ -3001,7 +2813,7 @@ html[data-theme="light"] .evx-pct {
   justify-content: flex-end;
   /* Separacion real entre vecinos: con areas tactiles de 40px, 0.15rem
      dejaba los dedos peleando entre "duplicar" y "eliminar". */
-  gap: 0.375rem;
+  gap: 0.4rem;
   padding: 0 0.75rem 0.75rem;
 }
 /* Publicar/Abrir puertas/Duplicar/Eliminar son control de DEDO (el admin
@@ -3009,7 +2821,7 @@ html[data-theme="light"] .evx-pct {
    del mínimo táctil de 44px. Aquí suben a 44 sin tocar el tamaño del icono. */
 .evx-actions .btn-mini {
   min-height: 2.75rem;
-  padding-inline: 0.75rem;
+  padding-inline: 0.8rem;
 }
 .evx-actions .btn-icon {
   min-width: 2.75rem;
@@ -3023,22 +2835,22 @@ html[data-theme="light"] .evx-pct {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.375rem 0.5rem;
+  gap: 0.4rem 0.5rem;
   margin-top: 0.5rem;
 }
 .evx-open-label {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
-  color: var(--e-brand-300);
+  color: var(--e-violet-300);
   opacity: 0.85;
   white-space: nowrap;
 }
 html[data-theme="light"] .evx-open-label {
-  color: var(--e-brand-600);
+  color: var(--e-violet-600);
 }
 
 /* LISTA COMPACTA: una línea por evento. Con 20+ noches la grilla de
@@ -3046,7 +2858,7 @@ html[data-theme="light"] .evx-open-label {
    en una pantalla. Grid de columnas fijas alineadas: punto · nombre ·
    cuándo · cifras · estado. */
 .evx-list {
-  margin-top: 0.875rem;
+  margin-top: 0.85rem;
   display: flex;
   flex-direction: column;
 }
@@ -3057,8 +2869,8 @@ html[data-theme="light"] .evx-open-label {
   grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.625rem 0.5rem;
-  border-radius: 0.5rem;
+  padding: 0.65rem 0.55rem;
+  border-radius: 0.55rem;
   font-size: var(--e-text-sm);
   transition:
     background 0.12s,
@@ -3099,7 +2911,7 @@ html[data-theme="light"] .evx-open-label {
   background: rgba(255, 255, 255, 0.015);
 }
 html[data-theme="light"] .evx-row:nth-child(even):not(:hover) {
-  background: rgba(28, 26, 22, 0.025);
+  background: rgba(23, 26, 32, 0.025);
 }
 .evx-row-name {
   font-weight: 600;
@@ -3131,7 +2943,7 @@ html[data-theme="light"] .evx-row:nth-child(even):not(:hover) {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.375rem;
+  gap: 0.4rem;
 }
 .evx-row-state {
   font-size: var(--e-text-2xs);
@@ -3149,8 +2961,8 @@ html[data-theme="light"] .evx-row:nth-child(even):not(:hover) {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.125rem 0.375rem;
-  border-radius: 10000px;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
   font-size: var(--e-text-2xs);
   font-weight: 700;
   color: var(--e-amber-400);
@@ -3162,7 +2974,7 @@ html[data-theme="light"] .evx-door-alert {
   background: rgba(180, 83, 9, 0.1);
 }
 html[data-theme="light"] .evx-row:hover {
-  background: rgba(10, 9, 8, 0.03);
+  background: rgba(9, 9, 11, 0.03);
 }
 html[data-theme="light"] .evx-row:has(.evx-row-state.is-live):hover {
   background: rgba(5, 150, 105, 0.04);
@@ -3204,7 +3016,7 @@ html[data-theme="light"] .evx-row-state.is-live {
    propio (el dinero ES el titular del backstage). */
 .wb-revenue {
   font-variant-numeric: tabular-nums;
-  margin-top: 0.125rem;
+  margin-top: 0.15rem;
   font-size: var(--e-text-display);
   font-weight: 800;
   letter-spacing: -0.035em;
@@ -3238,7 +3050,7 @@ html[data-theme="light"] .wb-kpis > * + * {
 /* Flyer del backstage: marco con sombra propia — la imagen del evento es
    contenido, no un adorno suelto con ring genérico. */
 .wb-flyer {
-  border-radius: 0.875rem;
+  border-radius: 0.9rem;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
@@ -3247,7 +3059,7 @@ html[data-theme="light"] .wb-kpis > * + * {
 }
 html[data-theme="light"] .wb-flyer {
   border-color: var(--e-neutral-300);
-  box-shadow: 0 10px 28px -14px rgba(26, 24, 21, 0.35);
+  box-shadow: 0 10px 28px -14px rgba(24, 24, 27, 0.35);
 }
 
 /* ----------------------------------------------------------------------
@@ -3258,10 +3070,10 @@ html[data-theme="light"] .wb-flyer {
 .dp-chart {
   display: flex;
   align-items: flex-end;
-  gap: 0.375rem;
+  gap: 0.35rem;
   height: 7rem;
   margin-top: 1rem;
-  padding-bottom: 1.125rem; /* aire para la fila de horas */
+  padding-bottom: 1.1rem; /* aire para la fila de horas */
   overflow-x: auto;
 }
 .dp-col {
@@ -3269,7 +3081,7 @@ html[data-theme="light"] .wb-flyer {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.25rem;
+  gap: 0.2rem;
   min-width: 0.9rem;
   height: 100%;
   position: relative;
@@ -3285,9 +3097,9 @@ html[data-theme="light"] .wb-flyer {
 .dp-bar {
   width: 0.7rem;
   min-height: 3px;
-  border-radius: 4px 4px 1px 1px;
-  background: linear-gradient(180deg, var(--e-brand-400), var(--e-brand-500));
-  box-shadow: 0 0 12px -4px color-mix(in srgb, var(--e-brand-500) 70%, transparent);
+  border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(180deg, var(--e-violet-400), var(--e-violet-500));
+  box-shadow: 0 0 12px -4px rgba(124, 58, 237, 0.7);
   transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 /* La franja en curso, con puertas abiertas: se enciende en verde ("ahora").
@@ -3308,7 +3120,7 @@ html[data-theme="light"] .wb-flyer {
 .dp-live-dot {
   width: 0.4rem;
   height: 0.4rem;
-  border-radius: 10000px;
+  border-radius: 9999px;
   background: var(--e-green-400);
   box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
   animation: dp-live 1.8s ease-out infinite;
@@ -3331,8 +3143,8 @@ html[data-theme="light"] .wb-flyer {
   margin-top: 1rem;
   border-radius: 0.75rem;
   background: var(--color-zinc-940);
-  padding: 0.875rem 1rem;
-  font-size: 0.75rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.8125rem;
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .dp-num {
@@ -3342,7 +3154,7 @@ html[data-theme="light"] .dp-tick {
   color: var(--e-neutral-550);
 }
 html[data-theme="light"] .dp-bar {
-  background: linear-gradient(180deg, var(--e-brand-hover), var(--e-brand-600));
+  background: linear-gradient(180deg, var(--e-violet-hover), var(--e-violet-600));
   box-shadow: 0 0 12px -5px rgba(109, 40, 217, 0.5);
 }
 html[data-theme="light"] .dp-bar.is-now {
@@ -3368,7 +3180,7 @@ html[data-theme="light"] .dp-empty {
   background:
     radial-gradient(
       30rem 12rem at 92% -6rem,
-      color-mix(in srgb, var(--e-brand-400) 8%, transparent),
+      color-mix(in srgb, var(--e-violet-400) 8%, transparent),
       transparent 62%
     ),
     linear-gradient(
@@ -3382,7 +3194,7 @@ html[data-theme="light"] .card-hero {
   background:
     radial-gradient(
       30rem 12rem at 92% -6rem,
-      color-mix(in srgb, var(--e-brand-400) 4.5%, transparent),
+      rgba(187, 92, 246, 0.045),
       transparent 62%
     ),
     var(--e-white);
@@ -3391,7 +3203,7 @@ html[data-theme="light"] .card-hero {
 /* Barras de recaudo (vista Del negocio): glow de marca al hover y punta
    luminosa — el gráfico deja de ser un bloque plano. */
 .revbar {
-  box-shadow: 0 0 12px -4px color-mix(in srgb, var(--e-brand-400) 50%, transparent);
+  box-shadow: 0 0 12px -4px rgba(187, 92, 246, 0.5);
 }
 .revbar.is-live {
   box-shadow: 0 0 12px -4px rgba(52, 211, 153, 0.55);
@@ -3409,7 +3221,7 @@ html[data-theme="light"] .card-hero {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 40%),
     var(--e-panel-650);
-  border-radius: 1.125rem;
+  border-radius: 1.15rem;
   box-shadow:
     var(--e-elev-overlay),
     var(--e-highlight-inset);
@@ -3432,7 +3244,7 @@ html[data-theme="light"] .dialog-panel {
   border-left: 3px solid var(--e-red-600);
 }
 .toast-in[data-kind="info"] {
-  border-left: 3px solid var(--e-brand-400);
+  border-left: 3px solid var(--e-violet-400);
 }
 
 /* ----------------------------------------------------------------------
@@ -3440,15 +3252,15 @@ html[data-theme="light"] .dialog-panel {
    gradiente gris neutro) — consistente con el dock Del negocio.
    ---------------------------------------------------------------------- */
 .tabbar-item[aria-selected="true"] {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-400) 24%, transparent), color-mix(in srgb, var(--e-brand-400) 12%, transparent));
-  color: var(--e-brand-150);
+  background: linear-gradient(180deg, rgba(187, 92, 246, 0.24), rgba(187, 92, 246, 0.12));
+  color: var(--e-violet-150);
   font-weight: 600;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 40%, transparent),
-    0 2px 10px -3px color-mix(in srgb, var(--e-brand-400) 50%, transparent);
+    inset 0 0 0 1px color-mix(in srgb, var(--e-violet-400) 40%, transparent),
+    0 2px 10px -3px rgba(187, 92, 246, 0.5);
 }
 .tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: var(--e-brand-150);
+  color: var(--e-violet-150);
 }
 
 /* ----------------------------------------------------------------------
@@ -3460,9 +3272,6 @@ html[data-theme="light"] .dialog-panel {
   background: rgba(12, 12, 14, 0.82);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  /* Sticky a top:0: con viewport-fit=cover la barra arranca bajo la isla
-     dinamica y la marca queda tapada. El inset la empuja al area segura. */
-  padding-top: env(safe-area-inset-top);
 }
 html[data-theme="light"] .topbar {
   border-bottom-color: var(--e-neutral-300);
@@ -3470,8 +3279,8 @@ html[data-theme="light"] .topbar {
 }
 .topnav-item {
   position: relative;
-  border-radius: 0.5rem;
-  padding: 0.375rem 0.75rem;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.8rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-400);
@@ -3495,7 +3304,7 @@ html[data-theme="light"] .topbar {
   bottom: -0.55rem; /* cubre el border-bottom del header */
   height: 2px;
   border-radius: 2px;
-  background: var(--e-brand-400);
+  background: var(--e-violet-400);
   transform: scaleX(0);
   transition: transform 0.22s var(--e-ease-expo);
 }
@@ -3507,7 +3316,7 @@ html[data-theme="light"] .topnav-item {
 }
 html[data-theme="light"] .topnav-item:hover {
   color: var(--e-neutral-900);
-  background: rgba(10, 9, 8, 0.04);
+  background: rgba(9, 9, 11, 0.04);
 }
 html[data-theme="light"] .topnav-item.is-active {
   color: var(--color-zinc-50);
@@ -3533,88 +3342,22 @@ html[data-theme="light"] .topnav-item.is-active {
   font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-300);
-  background: linear-gradient(140deg, color-mix(in srgb, var(--e-brand-400) 30%, transparent), color-mix(in srgb, var(--e-brand-400) 10%, transparent));
+  background: linear-gradient(140deg, rgba(187, 92, 246, 0.3), rgba(187, 92, 246, 0.1));
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent),
-    0 2px 8px -3px color-mix(in srgb, var(--e-brand-400) 45%, transparent);
+    inset 0 0 0 1px rgba(187, 92, 246, 0.35),
+    0 2px 8px -3px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .topbar-avatar:hover {
   transform: scale(1.08);
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 60%, transparent),
-    0 4px 14px -4px color-mix(in srgb, var(--e-brand-400) 60%, transparent);
+    inset 0 0 0 1px rgba(187, 92, 246, 0.6),
+    0 4px 14px -4px rgba(187, 92, 246, 0.6);
 }
 html[data-theme="light"] .topbar-avatar {
-  color: var(--e-brand-600);
-  background: linear-gradient(140deg, color-mix(in srgb, var(--e-brand-400) 16%, transparent), color-mix(in srgb, var(--e-brand-400) 6%, transparent));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent);
-}
-
-/* Badge de no leídas: entra deslizando desde la campana y remata con un pop
-   de muelle (patron notification-badge de transitions.dev, reescrito sobre
-   los tokens de movimiento de la casa). El contador se remonta con key={unread},
-   asi que cada aviso nuevo vuelve a disparar la entrada. */
-.notif-badge {
-  transform-origin: 100% 0;
-  animation: notif-badge-in var(--e-dur-slow) var(--e-ease-expo) both;
-}
-@keyframes notif-badge-in {
-  0% {
-    opacity: 0;
-    transform: translate(-8px, 10px) scale(0.35);
-    filter: blur(2px);
-  }
-  55% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1.18);
-    filter: blur(0);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-    filter: blur(0);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .notif-badge {
-    animation: none;
-  }
-}
-
-/* Icono del tema: sol y luna apilados en la misma celda y cruzados con blur
-   y escala (patron icon-swap de transitions.dev). Antes solo se renderizaba
-   uno, asi que el cambio era un salto seco. La escala de entrada se baja de
-   0.25 a 0.4 del original: en un icono de 18px el 0.25 se lee como un
-   parpadeo, no como una transicion. */
-.theme-icon-swap {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-}
-.theme-icon-swap .theme-icon {
-  grid-area: 1 / 1;
-  transition:
-    opacity var(--e-dur-base) var(--e-ease-standard),
-    filter var(--e-dur-base) var(--e-ease-standard),
-    transform var(--e-dur-base) var(--e-ease-standard);
-}
-.theme-icon-swap[data-state="light"] .theme-icon[data-icon="light"],
-.theme-icon-swap[data-state="dark"] .theme-icon[data-icon="dark"] {
-  opacity: 1;
-  filter: blur(0);
-  transform: scale(1);
-}
-.theme-icon-swap[data-state="light"] .theme-icon[data-icon="dark"],
-.theme-icon-swap[data-state="dark"] .theme-icon[data-icon="light"] {
-  opacity: 0;
-  filter: blur(2px);
-  transform: scale(0.4);
-}
-@media (prefers-reduced-motion: reduce) {
-  .theme-icon-swap .theme-icon {
-    transition: none;
-  }
+  color: var(--e-violet-600);
+  background: linear-gradient(140deg, rgba(187, 92, 246, 0.16), rgba(187, 92, 246, 0.06));
+  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.35);
 }
 
 /* ----------------------------------------------------------------------
@@ -3623,15 +3366,15 @@ html[data-theme="light"] .topbar-avatar {
    ---------------------------------------------------------------------- */
 .ticket-qr-frame {
   position: relative;
-  border-radius: 1.125rem;
-  padding: 0.75rem;
+  border-radius: 1.1rem;
+  padding: 0.8rem;
   background:
     linear-gradient(160deg, var(--e-white), var(--color-zinc-100) 70%),
     var(--e-white);
   box-shadow:
-    inset 0 0 0 1px rgba(10, 9, 8, 0.08),
+    inset 0 0 0 1px rgba(9, 9, 11, 0.08),
     0 20px 50px -18px rgba(0, 0, 0, 0.65),
-    0 0 40px -12px color-mix(in srgb, var(--e-brand-400) 35%, transparent);
+    0 0 40px -12px rgba(187, 92, 246, 0.35);
 }
 .ticket-qr-frame::before,
 .ticket-qr-frame::after {
@@ -3639,7 +3382,7 @@ html[data-theme="light"] .topbar-avatar {
   position: absolute;
   width: 22px;
   height: 22px;
-  border-color: var(--e-brand-400);
+  border-color: var(--e-violet-400);
   border-style: solid;
   opacity: 0.85;
 }
@@ -3663,7 +3406,7 @@ html[data-theme="light"] .topbar-avatar {
   background:
     radial-gradient(
       26rem 12rem at 8% -6rem,
-      color-mix(in srgb, var(--e-brand-400) 14%, transparent),
+      rgba(187, 92, 246, 0.14),
       transparent 62%
     ),
     var(--color-zinc-925);
@@ -3672,7 +3415,7 @@ html[data-theme="light"] .onboard-hero {
   background:
     radial-gradient(
       26rem 12rem at 8% -6rem,
-      color-mix(in srgb, var(--e-brand-400) 7%, transparent),
+      rgba(187, 92, 246, 0.07),
       transparent 62%
     ),
     var(--e-white);
@@ -3689,8 +3432,8 @@ html[data-theme="light"] .onboard-progress {
 .onboard-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--e-brand-400) 50%, transparent), var(--e-brand-400));
-  box-shadow: 0 0 8px -1px color-mix(in srgb, var(--e-brand-400) 55%, transparent);
+  background: linear-gradient(90deg, rgba(187, 92, 246, 0.5), var(--e-violet-400));
+  box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
   transition: width 0.45s var(--e-ease-expo);
 }
 
@@ -3704,12 +3447,12 @@ html[data-theme="light"] .onboard-progress {
     transform 0.15s ease;
 }
 .list-row:hover {
-  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   background: rgba(255, 255, 255, 0.05);
   transform: translateY(-1px);
 }
 html[data-theme="light"] .list-row:hover {
-  border-color: color-mix(in srgb, var(--e-brand-400) 35%, transparent);
+  border-color: rgba(187, 92, 246, 0.35);
   background: var(--e-white);
 }
 .row:hover {
@@ -3732,7 +3475,7 @@ html[data-theme="light"] .list-row:hover {
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  border-radius: 0.625rem;
+  border-radius: 0.6rem;
   padding: 0.375rem 0.75rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
@@ -3746,26 +3489,17 @@ html[data-theme="light"] .list-row:hover {
   color: var(--color-zinc-50);
 }
 .bottomnav-item.is-active > span:first-child {
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--e-brand-400) 55%, transparent));
+  filter: drop-shadow(0 0 10px rgba(187, 92, 246, 0.55));
 }
 html[data-theme="light"] .bottomnav {
   border-top-color: var(--e-neutral-300);
   background: rgba(255, 255, 255, 0.94);
 }
-/* pb-28 (7rem) del <main> despeja la bottomnav. Con viewport-fit=cover la
-   barra crece el alto del home indicator y ese colchon se comia el ultimo
-   item, asi que se suma el inset. Solo en movil: desde md la barra no
-   existe y manda pb-8 de Tailwind (mismo corte que md:pb-8). */
-@media (max-width: 767px) {
-  .app-main {
-    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
-  }
-}
 html[data-theme="light"] .bottomnav-item {
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .bottomnav-item:active {
-  background: rgba(10, 9, 8, 0.04);
+  background: rgba(9, 9, 11, 0.04);
 }
 html[data-theme="light"] .bottomnav-item.is-active {
   color: var(--color-zinc-50);
@@ -3812,33 +3546,19 @@ html[data-theme="light"] .evx-tab-count {
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .evx-tab.is-active .evx-tab-count {
-  color: var(--e-brand-600);
+  color: var(--e-violet-600);
 }
 html[data-theme="light"] .evx-card {
-  /* El material de la casa, pero SIN el blanco de .card: la franja de eventos
-     vive DENTRO del card de la venue (vh-embedded), que en claro ya es blanco.
-     Una tarjeta blanca sobre blanco se fusiona con la cabecera (medido: 255,255,255
-     sobre 255,255,255, solo el hairline las separaba). Se conserva el relleno
-     gris de papel y se le suma el filo de contacto y la sombra de la casa. */
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.7),
-      rgba(255, 255, 255, 0) 42%
-    ),
-    var(--e-neutral-100);
+  background: var(--e-neutral-100);
   /* #ececee sobre #e9ecf5 era un borde invisible: la tarjeta no se separaba
      del lienzo y la grilla se leia como un solo bloque. El hairline tiene
      que notarse. */
-  border-color: var(--e-neutral-400);
-  box-shadow:
-    var(--e-highlight-inset),
-    var(--e-elev-card);
+  border-color: var(--e-slate-200);
 }
 html[data-theme="light"] .evx-card::after {
   background: radial-gradient(
     90% 70% at 50% -10%,
-    color-mix(in srgb, var(--e-brand-400) 8%, transparent),
+    color-mix(in srgb, var(--e-violet-400) 8%, transparent),
     transparent 62%
   );
 }
@@ -3850,15 +3570,15 @@ html[data-theme="light"] .evx-card.is-live::after {
   );
 }
 html[data-theme="light"] .evx-card:hover {
-  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   box-shadow:
-    0 14px 34px -18px rgba(26, 24, 21, 0.28),
-    0 10px 32px -14px color-mix(in srgb, var(--e-brand-400) 22%, transparent);
+    0 14px 34px -18px rgba(24, 24, 27, 0.28),
+    0 10px 32px -14px rgba(187, 92, 246, 0.22);
 }
 html[data-theme="light"] .evx-card.is-live:hover {
   border-color: rgba(5, 150, 105, 0.5);
   box-shadow:
-    0 14px 34px -18px rgba(26, 24, 21, 0.28),
+    0 14px 34px -18px rgba(24, 24, 27, 0.28),
     0 10px 32px -14px rgba(5, 150, 105, 0.22);
 }
 html[data-theme="light"] .evx-name {
@@ -3868,10 +3588,10 @@ html[data-theme="light"] .evx-state {
   color: var(--e-neutral-600);
 }
 html[data-theme="light"] .evx-meter {
-  background: rgba(10, 9, 8, 0.07);
+  background: rgba(9, 9, 11, 0.07);
 }
 html[data-theme="light"] .evx-meter-fill {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--e-brand-400) 40%, transparent), var(--e-brand-800));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--e-violet-400) 40%, transparent), var(--e-violet-800));
   box-shadow: none;
 }
 html[data-theme="light"] .is-live .evx-meter-fill { background: var(--e-emerald-500); }
@@ -3937,7 +3657,7 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   position: absolute;
   width: 26px;
   height: 26px;
-  border-color: var(--e-brand-400);
+  border-color: var(--e-violet-400);
   border-style: solid;
   z-index: 20;
   pointer-events: none;
@@ -3983,10 +3703,10 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--e-brand-400) 95%, transparent),
+    color-mix(in srgb, var(--e-violet-400) 95%, transparent),
     transparent
   );
-  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--e-brand-400) 45%, transparent);
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
   z-index: 20;
   pointer-events: none;
   animation: scan-sweep 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
@@ -4020,7 +3740,7 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   inset: 6px;
   border-radius: 1rem;
   border-style: solid;
-  border-color: color-mix(in srgb, var(--e-brand-400) 65%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 65%, transparent);
   border-width: 2px;
   animation: pulse-ring 1.1s ease-in-out infinite;
 }
@@ -4030,10 +3750,10 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
 @keyframes pulse-ring {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--e-brand-400) 40%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--e-brand-400) 8%, transparent);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--e-violet-400) 8%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -4128,20 +3848,16 @@ html[data-theme="light"] {
   --color-amber-300: var(--e-brasa-500);
   --color-amber-400: var(--e-brasa-400);
   --color-red-200: var(--e-red-800);
-  --color-red-300: var(--e-red-800);
-  --color-red-400: var(--e-red-700);
-  /* Superficie de error en claro: bg-red-950/* debe ser un lavado claro. En
-     oscuro es rojo profundo; reutilizarlo en claro daba rojo oscuro sobre
-     rojo oscuro (medido 2.35:1, ilegible). */
-  --color-red-950: var(--e-red-50);
+  --color-red-300: var(--e-red-700);
+  --color-red-400: var(--e-red-600);
   --color-sky-200: var(--e-sky-800);
   --color-sky-300: var(--e-sky-700);
   --color-sky-400: var(--e-sky-600);
-  --color-violet-300: var(--e-brand-600);
+  --color-violet-300: var(--e-violet-600);
 
   /* --- texto de marca sobre claro: violeta profundo (legible en AA) --- */
-  --color-brand-300: var(--e-brand-600);
-  --color-brand-400: var(--e-brand-800);
+  --color-brand-300: var(--e-violet-600);
+  --color-brand-400: var(--e-violet-800);
 
   color-scheme: light;
 }
@@ -4152,11 +3868,11 @@ html[data-theme="light"] {
    ---------------------------------------------------------------------- */
 html[data-theme="light"] body {
   /* Canvas claro plano (Tesla): un solo tono, sin lavados. */
-  background: var(--e-canvas);
+  background: var(--e-neutral-150);
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] ::selection {
-  background: color-mix(in srgb, var(--e-brand-400) 18%, transparent);
+  background: rgba(187, 92, 246, 0.18);
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] .skip-link {
@@ -4165,7 +3881,7 @@ html[data-theme="light"] .skip-link {
   border-color: var(--e-neutral-400);
 }
 html[data-theme="light"] .eyebrow {
-  color: var(--e-brand-500);
+  color: var(--e-violet-500);
 }
 html[data-theme="light"] .display,
 html[data-theme="light"] .text-gradient {
@@ -4224,10 +3940,10 @@ html[data-theme="light"] .field:hover {
   border-color: var(--e-neutral-500);
 }
 html[data-theme="light"] .field:focus {
-  border-color: var(--e-brand-800);
+  border-color: var(--e-violet-800);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--e-brand-400) 14%, transparent),
-    0 0 18px -6px color-mix(in srgb, var(--e-brand-400) 30%, transparent);
+    0 0 0 3px rgba(187, 92, 246, 0.14),
+    0 0 18px -6px rgba(187, 92, 246, 0.3);
 }
 
 /* Botones: primario intacto (violeta sobre blanco ya es premium); ghost y
@@ -4237,8 +3953,8 @@ html[data-theme="light"] .btn-ghost {
   color: var(--e-neutral-800);
 }
 html[data-theme="light"] .btn-ghost:hover {
-  background: color-mix(in srgb, var(--e-brand-400) 6%, transparent);
-  border-color: color-mix(in srgb, var(--e-brand-400) 40%, transparent);
+  background: rgba(187, 92, 246, 0.06);
+  border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   color: var(--e-neutral-900);
 }
 html[data-theme="light"] .btn-danger-text {
@@ -4259,22 +3975,22 @@ html[data-theme="light"] .chip-active {
 html[data-theme="light"] .tabbar {
   background: var(--e-neutral-300);
   box-shadow:
-    inset 0 1px 3px rgba(26, 24, 21, 0.12),
-    inset 0 0 0 1px rgba(26, 24, 21, 0.03);
+    inset 0 1px 3px rgba(24, 24, 27, 0.12),
+    inset 0 0 0 1px rgba(24, 24, 27, 0.03);
 }
 html[data-theme="light"] .tabbar-item {
   color: var(--e-neutral-600);
 }
 html[data-theme="light"] .tabbar-item:hover {
   color: var(--e-neutral-900);
-  background: rgba(26, 24, 21, 0.05);
+  background: rgba(24, 24, 27, 0.05);
 }
 html[data-theme="light"] .tabbar-item[aria-selected="true"] {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--e-brand-400) 14%, transparent), color-mix(in srgb, var(--e-brand-400) 7%, transparent));
-  color: var(--e-brand-600);
+  background: linear-gradient(180deg, rgba(187, 92, 246, 0.14), rgba(187, 92, 246, 0.07));
+  color: var(--e-violet-600);
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 35%, transparent),
-    0 2px 10px -3px color-mix(in srgb, var(--e-brand-400) 35%, transparent);
+    inset 0 0 0 1px rgba(187, 92, 246, 0.35),
+    0 2px 10px -3px rgba(187, 92, 246, 0.35);
 }
 
 /* Tooltip, meter, skeleton: variantes de luz */
@@ -4282,11 +3998,11 @@ html[data-theme="light"] [data-tip]::after {
   background: var(--e-white);
   color: var(--e-neutral-900);
   border-color: var(--e-neutral-300);
-  box-shadow: 0 8px 20px -8px rgba(26, 24, 21, 0.35);
+  box-shadow: 0 8px 20px -8px rgba(24, 24, 27, 0.35);
 }
 html[data-theme="light"] .meter {
   background: var(--e-neutral-300);
-  box-shadow: inset 0 1px 2px rgba(26, 24, 21, 0.15);
+  box-shadow: inset 0 1px 2px rgba(24, 24, 27, 0.15);
 }
 html[data-theme="light"] .skeleton {
   background: linear-gradient(90deg, var(--e-neutral-200) 25%, var(--e-neutral-100) 50%, var(--e-neutral-200) 75%);
@@ -4295,13 +4011,13 @@ html[data-theme="light"] .skeleton {
 
 /* Empty state: el halo violeta se atenúa pero conserva la firma */
 html[data-theme="light"] .empty-state-icon {
-  color: var(--e-brand-600);
+  color: var(--e-violet-600);
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--e-brand-400) 12%, transparent),
-    color-mix(in srgb, var(--e-brand-400) 4%, transparent)
+    rgba(187, 92, 246, 0.12),
+    rgba(187, 92, 246, 0.04)
   );
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-brand-400) 25%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.25);
 }
 html[data-theme="light"] .empty-state-title,
 html[data-theme="light"] .empty-state-text {
@@ -4315,7 +4031,7 @@ html[data-theme="light"] .empty-state-title {
 html[data-theme="light"] .ticket-timeline::before {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--e-brand-400) 45%, transparent),
+    color-mix(in srgb, var(--e-violet-400) 45%, transparent),
     rgba(212, 212, 216, 0.9)
   );
 }
@@ -4333,7 +4049,7 @@ html[data-theme="light"] .ticket-step.done .ticket-step-label {
 /* Diálogos: velo claro, el contenido flota sobre papel */
 html[data-theme="light"] .dialog-backdrop,
 html[data-theme="light"] .dialog-backdrop-out {
-  background: rgba(26, 24, 21, 0.32);
+  background: rgba(24, 24, 27, 0.32);
 }
 
 /* Firma visual: ticket-ghost y event-card ganan versión de luz */
@@ -4341,18 +4057,18 @@ html[data-theme="light"] .ticket-ghost {
   background:
     radial-gradient(
       120% 90% at 50% 0%,
-      color-mix(in srgb, var(--e-brand-400) 10%, transparent),
+      rgba(187, 92, 246, 0.1),
       transparent 62%
     ),
     linear-gradient(180deg, var(--e-white), var(--color-zinc-50));
-  border-color: color-mix(in srgb, var(--e-brand-400) 35%, transparent);
+  border-color: rgba(187, 92, 246, 0.35);
 }
 html[data-theme="light"] .ticket-ghost::after {
-  border-color: rgba(10, 9, 8, 0.12);
+  border-color: rgba(9, 9, 11, 0.12);
 }
 html[data-theme="light"] .event-card:hover {
-  border-color: color-mix(in srgb, var(--e-brand-400) 45%, transparent);
-  box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--e-brand-400) 30%, transparent);
+  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+  box-shadow: 0 12px 32px -14px rgba(187, 92, 246, 0.3);
 }
 html[data-theme="light"] .event-card.is-live {
   border-color: rgba(5, 150, 105, 0.45);
@@ -4363,7 +4079,7 @@ html[data-theme="light"] .event-card.is-live {
 html[data-theme="light"] .ab-aurora {
   background: radial-gradient(
     60rem 32rem at 50% -14rem,
-    color-mix(in srgb, var(--e-brand-400) 5%, transparent),
+    rgba(187, 92, 246, 0.05),
     transparent 62%
   );
 }
@@ -4372,11 +4088,15 @@ html[data-theme="light"] .brand-chip {
   background: none;
   box-shadow: none;
 }
+html[data-theme="light"] .brand-flow {
+  color: var(--e-violet-400);
+  -webkit-text-fill-color: var(--e-violet-400);
+}
 html[data-theme="light"] .auth-field-icon {
   color: var(--color-zinc-400);
 }
 html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
-  color: var(--e-brand-400);
+  color: var(--e-violet-400);
 }
 
 /* Puerta (escáner): SIEMPRE oscura. El flash de un fondo blanco en un
@@ -4408,7 +4128,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   inset: 0;
   background: radial-gradient(
     60rem 32rem at 50% -14rem,
-    color-mix(in srgb, var(--e-brand-400) 8%, transparent),
+    color-mix(in srgb, var(--e-violet-400) 8%, transparent),
     transparent 62%
   );
 }
@@ -4450,6 +4170,12 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   font-size: var(--e-text-display);
   line-height: 1;
 }
+/* "Flow": tinta sólida del acento — un solo color de marca, sin degradado. */
+.brand-flow {
+  color: var(--e-violet-400);
+  -webkit-text-fill-color: var(--e-violet-400);
+}
+
 /* Iconos de campo (correo/candado): el formulario habla el mismo idioma
    visual que el resto del sistema. El wrapper .auth-field enciende el
    icono cuando el campo recibe foco. */
@@ -4465,59 +4191,12 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   transition: color 0.15s;
 }
 .auth-field-has-icon {
-  padding-left: 2.625rem;
+  padding-left: 2.6rem;
 }
 .auth-field:focus-within .auth-field-icon {
-  color: var(--e-brand-400);
+  color: var(--e-violet-400);
 }
-/* Campo con error: el borde y el icono se vuelven rojos para que el ojo vaya
-   al campo exacto, no solo al aviso de arriba. El color lo remapea el tema
-   claro por los tokens de --color-red-*. */
-.auth-field.has-error .field {
-  border-color: var(--color-red-500);
-}
-.auth-field.has-error .field:focus {
-  border-color: var(--color-red-500);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-red-500) 24%, transparent);
-}
-.auth-field.has-error .auth-field-icon {
-  color: var(--color-red-400);
-}
-/* Aviso bajo el campo: la explicacion vive pegada al dato que la provoca,
-   no en un bloque lejano. */
-.auth-field-error {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.375rem;
-  margin-top: 0.375rem;
-  font-size: var(--e-text-xs);
-  line-height: 1.45;
-  color: var(--color-red-400);
-}
-.auth-field-error svg {
-  flex-shrink: 0;
-  margin-top: 0.1rem;
-  height: 0.875rem;
-  width: 0.875rem;
-}
-/* Aviso de Bloq Mayus: no es un error (no hay nada mal escrito todavia), es
-   una pista. Tono neutro de advertencia, no rojo. */
-.auth-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.375rem;
-  margin-top: 0.375rem;
-  font-size: var(--e-text-xs);
-  line-height: 1.45;
-  color: var(--color-amber-300);
-}
-.auth-hint svg {
-  flex-shrink: 0;
-  margin-top: 0.1rem;
-  height: 0.875rem;
-  width: 0.875rem;
-}
-/* Movil: sin orbes ni blurs que abaratar el showroom; la píldora ya no
+/* Móvil: sin orbes ni blurs que abaratar el showroom; la píldora ya no
    existe, no hay padding que ajustar. */
 @media (max-width: 640px) {
   .ab-orb {
@@ -4533,7 +4212,7 @@ body {
   .field {
     /* 16px: umbral anti-zoom de iOS. Desktop conserva los 14px compactos. */
     font-size: var(--e-text-lg);
-    padding: 0.625rem 0.75rem;
+    padding: 0.65rem 0.75rem;
   }
   .btn-primary,
   .btn-ghost,
@@ -4566,19 +4245,12 @@ body {
   .topbar-avatar {
     position: relative;
   }
-  /* El avatar mide 1.85rem (29.6px): con inset -6px llega a 41.6px, 2px por
-     debajo del minimo. -7px lo lleva a 43.6 -> 44 reales y sigue sin tocar
-     a la campana (gap-3 = 12px entre centros de borde). */
   .topbar button[aria-label^="Cambiar tema"]::after,
-  .topbar button[aria-label^="Notificaciones"]::after {
-    content: "";
-    position: absolute;
-    inset: -6px;
-  }
+  .topbar button[aria-label^="Notificaciones"]::after,
   .topbar-avatar::after {
     content: "";
     position: absolute;
-    inset: -7px;
+    inset: -6px;
   }
   /* Pestañas de la app (Vender / Mis boletas / Liquidaciones, filtros del
      escáner): 33px de alto con la densidad de escritorio. En móvil suben a
@@ -4595,7 +4267,7 @@ body {
  *
  *  Reglas de la casa:
  *   - Los colores pop SOLO adornan (doodles, halftone, stickers, marcas
- *     de pincel). Todo lo clicable sigue siendo brand-500 #7C3AED.
+ *     de pincel). Todo lo clicable sigue siendo brand-500 #BB5CF6.
  *   - La fuente manuscrita nunca lleva datos serios: anotaciones y
  *     firmas, no cifras ni estados.
  *   - Nada de esto aparece con prefers-reduced-motion en animacion.
@@ -4624,7 +4296,7 @@ body {
   z-index: -1;
   border-radius: 2px;
   transform: rotate(-0.6deg);
-  background: linear-gradient(90deg, var(--e-brand-500), var(--e-brand-400));
+  background: linear-gradient(90deg, var(--e-violet-500), var(--e-violet-400));
   opacity: 0.9;
 }
 html[data-theme="light"] .brush-mark::after {
@@ -4647,7 +4319,7 @@ html[data-theme="light"] .brush-mark::after {
   mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), var(--e-mask) 0%, transparent 72%);
 }
 html[data-theme="light"] .halftone::before {
-  background-image: radial-gradient(rgba(10, 9, 8, 0.14) 1.2px, transparent 1.3px);
+  background-image: radial-gradient(rgba(9, 9, 11, 0.14) 1.2px, transparent 1.3px);
 }
 
 /* Sticker: chip amarillo rotado con borde de tinta, como los stickers del
@@ -4655,10 +4327,10 @@ html[data-theme="light"] .halftone::before {
 .sticker-pop {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.35rem;
   transform: rotate(-2.2deg);
-  border-radius: 0.625rem;
-  padding: 0.25rem 0.625rem;
+  border-radius: 0.6rem;
+  padding: 0.28rem 0.65rem;
   background: var(--e-green-500);
   color: var(--e-panel-750);
   border: 2px solid var(--color-zinc-925);
@@ -4670,7 +4342,7 @@ html[data-theme="light"] .halftone::before {
   text-transform: uppercase;
 }
 html[data-theme="light"] .sticker-pop {
-  box-shadow: 3px 3px 0 rgba(10, 9, 8, 0.18);
+  box-shadow: 3px 3px 0 rgba(9, 9, 11, 0.18);
 }
 
 /* Doodle flotante: los garabatos del portfolio neon (corona, rayo,
@@ -4698,7 +4370,7 @@ html[data-theme="light"] .sticker-pop {
   position: absolute;
   width: 5.5rem;
   height: 1.6rem;
-  background: color-mix(in srgb, var(--e-brand-500) 40%, transparent);
+  background: rgba(124, 58, 237, 0.4);
   backdrop-filter: blur(1px);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   clip-path: polygon(3% 0, 97% 6%, 100% 94%, 0 100%);
@@ -4712,12 +4384,12 @@ html[data-theme="light"] .sticker-pop {
 .rubber-stamp {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   transform: rotate(3deg);
   border: 2px solid currentColor;
   border-radius: 999px;
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
-  padding: 0.25rem 0.625rem;
+  padding: 0.2rem 0.6rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   font-size: var(--e-text-2xs);
@@ -4730,7 +4402,7 @@ html[data-theme="light"] .sticker-pop {
    Para tips y micro-copy: nunca para datos serios. */
 .paper-note {
   position: relative;
-  border-radius: 0.625rem;
+  border-radius: 0.6rem;
   background: var(--e-brasa-100);
   color: var(--e-brasa-800);
   padding: 0.75rem 1rem;
@@ -4757,7 +4429,7 @@ html[data-theme="light"] .sticker-pop {
 .ribbon-divider {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.6rem;
   color: rgba(255, 255, 255, 0.25);
 }
 .ribbon-divider::before,
@@ -4768,7 +4440,7 @@ html[data-theme="light"] .sticker-pop {
   background: linear-gradient(90deg, transparent, currentColor 20%, currentColor 80%, transparent);
 }
 html[data-theme="light"] .ribbon-divider {
-  color: rgba(10, 9, 8, 0.2);
+  color: rgba(9, 9, 11, 0.2);
 }
 .ribbon-divider .rd-star {
   width: 0.85rem;
@@ -4790,16 +4462,9 @@ html[data-theme="light"] .ribbon-divider .rd-star {
    =========================================================================== */
 .tkt-stage {
   min-height: 100vh;
-  min-height: 100dvh;
   padding: 2rem 1rem 3rem;
-  /* La credencial es la pantalla que el fan muestra en la puerta: no puede
-     quedar bajo el notch. Se respeta el inset en los cuatro bordes. */
-  padding-top: max(2rem, env(safe-area-inset-top));
-  padding-bottom: calc(3rem + env(safe-area-inset-bottom));
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
   background:
-    radial-gradient(46rem 30rem at 50% -10rem, color-mix(in srgb, var(--e-brand-400) 16%, transparent), transparent 62%),
+    radial-gradient(46rem 30rem at 50% -10rem, rgba(187, 92, 246, 0.16), transparent 62%),
     var(--color-zinc-950);
 }
 .tkt-wrap {
@@ -4818,7 +4483,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   /* Cartuchera de festival: ambar con luz cenital y tinte indigo abajo */
   background:
     radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.22), transparent 55%),
-    radial-gradient(140% 60% at 50% 115%, rgba(55, 38, 23, 0.28), transparent 60%),
+    radial-gradient(140% 60% at 50% 115%, rgba(22, 37, 92, 0.28), transparent 60%),
     linear-gradient(180deg, var(--e-brasa-200), var(--e-brasa-300));
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
@@ -4833,7 +4498,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   right: -10%;
   bottom: -2.2rem;
   height: 4.5rem;
-  background: radial-gradient(60% 100% at 50% 100%, rgba(55, 38, 23, 0.3), transparent 70%);
+  background: radial-gradient(60% 100% at 50% 100%, rgba(22, 37, 92, 0.3), transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -4841,7 +4506,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-head {
   position: relative;
   z-index: 1;
-  padding: 1rem 1.25rem 0.375rem;
+  padding: 1.05rem 1.25rem 0.35rem;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -4856,7 +4521,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   color: var(--e-brasa-700);
 }
 .tkt-venue {
-  margin-top: 0.125rem;
+  margin-top: 0.15rem;
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-xs);
   font-weight: 700;
@@ -4865,11 +4530,11 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   flex-shrink: 0;
-  padding: 0.25rem 0.625rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: rgba(55, 38, 23, 0.14);
+  background: rgba(22, 37, 92, 0.14);
   color: var(--e-ink-800);
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-2xs);
@@ -4899,7 +4564,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-sub {
   position: relative;
   z-index: 1;
-  margin: 0.5rem 1.25rem 0;
+  margin: 0.45rem 1.25rem 0;
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-xs);
   font-weight: 800;
@@ -4949,8 +4614,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-body {
   position: relative;
   z-index: 1;
-  padding: 1.125rem 1.25rem 1.25rem;
-  background: linear-gradient(180deg, rgba(55, 38, 23, 0.06), rgba(55, 38, 23, 0.12));
+  padding: 1.1rem 1.25rem 1.25rem;
+  background: linear-gradient(180deg, rgba(22, 37, 92, 0.06), rgba(22, 37, 92, 0.12));
 }
 
 /* --- Zona del QR: panel blanco sobre el ambar --------------------------- */
@@ -4958,16 +4623,16 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.65rem;
 }
 .tkt-qr {
   position: relative;
-  padding: 0.75rem;
+  padding: 0.7rem;
   border-radius: 1rem;
   background: var(--e-white);
   box-shadow:
     0 10px 24px -14px rgba(34, 26, 6, 0.65),
-    0 0 0 1px rgba(55, 38, 23, 0.12);
+    0 0 0 1px rgba(22, 37, 92, 0.12);
 }
 /* Esquinas de encuadre (credencial escaneable) */
 .tkt-qr::before,
@@ -4984,27 +4649,27 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   left: -0.45rem;
   border-right: 0;
   border-bottom: 0;
-  border-top-left-radius: 0.75rem;
+  border-top-left-radius: 0.7rem;
 }
 .tkt-qr::after {
   bottom: -0.45rem;
   right: -0.45rem;
   border-left: 0;
   border-top: 0;
-  border-bottom-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.7rem;
 }
 .tkt-qr img,
 .tkt-qr .skeleton {
   display: block;
   width: 12.5rem;
   height: 12.5rem;
-  border-radius: 0.625rem;
+  border-radius: 0.6rem;
 }
 /* Sello "ADMIT ONE" bajo el QR */
 .tkt-admit {
-  padding: 0.25rem 0.875rem;
+  padding: 0.3rem 0.9rem;
   border-radius: 999px;
-  border: 1.5px dashed rgba(55, 38, 23, 0.45);
+  border: 1.5px dashed rgba(22, 37, 92, 0.45);
   color: var(--e-ink-800);
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-2xs);
@@ -5016,20 +4681,20 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 
 /* --- Datos del asistente (fila tipo talon ROW/SEAT/GATE) ---------------- */
 .tkt-grid {
-  margin-top: 1.125rem;
+  margin-top: 1.1rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border: 1.5px solid rgba(55, 38, 23, 0.35);
+  border: 1.5px solid rgba(22, 37, 92, 0.35);
   border-radius: 0.75rem;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.4);
 }
 .tkt-cell {
-  padding: 0.5rem 0.5rem;
+  padding: 0.55rem 0.5rem;
   text-align: center;
 }
 .tkt-cell + .tkt-cell {
-  border-left: 1.5px dashed rgba(55, 38, 23, 0.3);
+  border-left: 1.5px dashed rgba(22, 37, 92, 0.3);
 }
 .tkt-cell-label {
   font-family: "Sora", system-ui, sans-serif;
@@ -5040,7 +4705,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   color: rgba(74, 47, 5, 0.7);
 }
 .tkt-cell-value {
-  margin-top: 0.125rem;
+  margin-top: 0.15rem;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   font-size: var(--e-text-sm);
@@ -5049,15 +4714,15 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 /* Celda de nombre a lo ancho (debajo de la fila de 3) */
 .tkt-name-row {
-  margin-top: 0.625rem;
+  margin-top: 0.6rem;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.75rem;
   border-radius: 0.75rem;
-  background: rgba(55, 38, 23, 0.1);
-  border: 1.5px solid rgba(55, 38, 23, 0.25);
+  background: rgba(22, 37, 92, 0.1);
+  border: 1.5px solid rgba(22, 37, 92, 0.25);
 }
 .tkt-name-row .tkt-cell-label {
   flex-shrink: 0;
@@ -5069,21 +4734,21 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 
 /* --- Estados no-canjeables: panel de aviso sobre el ambar --------------- */
 .tkt-note {
-  border-radius: 0.875rem;
-  padding: 1.125rem 1rem;
+  border-radius: 0.9rem;
+  padding: 1.1rem 1rem;
   text-align: center;
   background: rgba(255, 255, 255, 0.55);
-  border: 1.5px dashed rgba(55, 38, 23, 0.4);
+  border: 1.5px dashed rgba(22, 37, 92, 0.4);
   color: var(--e-brasa-900);
 }
 .tkt-note .tkt-note-icon {
-  margin: 0 auto 0.625rem;
+  margin: 0 auto 0.6rem;
   width: 3rem;
   height: 3rem;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: rgba(55, 38, 23, 0.12);
+  background: rgba(22, 37, 92, 0.12);
   color: var(--e-ink-800);
 }
 .tkt-note strong {
@@ -5093,7 +4758,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   color: var(--e-brasa-900);
 }
 .tkt-note p {
-  margin-top: 0.25rem;
+  margin-top: 0.3rem;
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-xs);
   line-height: 1.5;
@@ -5113,10 +4778,10 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   width: 100%;
   border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 1rem;
   font-family: "Sora", system-ui, sans-serif;
   font-size: var(--e-text-base);
   font-weight: 700;
@@ -5131,20 +4796,20 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   opacity: 0.55;
   pointer-events: none;
 }
-/* Primario: negro mate solido — la tinta de la boleta del logo */
+/* Primario: navy solido — la tinta de la boleta del logo */
 .tkt-btn-primary {
   background: var(--e-ink-800);
   color: var(--e-white);
-  box-shadow: 0 8px 20px -10px rgba(55, 38, 23, 0.8);
+  box-shadow: 0 8px 20px -10px rgba(22, 37, 92, 0.8);
 }
 .tkt-btn-primary:hover {
   filter: brightness(1.12);
 }
-/* Secundario: blanco translucido con la misma tinta de la boleta */
+/* Secundario: blanco translucido con la misma tinta navy */
 .tkt-btn-quiet {
   background: rgba(255, 255, 255, 0.45);
   color: var(--e-ink-800);
-  border-color: rgba(55, 38, 23, 0.3);
+  border-color: rgba(22, 37, 92, 0.3);
 }
 .tkt-btn-quiet:hover {
   background: rgba(255, 255, 255, 0.65);
@@ -5160,18 +4825,18 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 
 /* --- Pie de la pagina (fuera del ticket) --------------------------------- */
 .tkt-footer {
-  margin-top: 1.125rem;
+  margin-top: 1.1rem;
   text-align: center;
   font-size: var(--e-text-xs);
   color: var(--color-zinc-500);
 }
 /* Firma Enty centrada bajo el ticket */
 .tkt-brandline {
-  margin: 1.125rem auto 0;
+  margin: 1.1rem auto 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   width: fit-content;
   color: var(--color-zinc-400);
 }
@@ -5186,7 +4851,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-brandline img {
   width: 1.15rem;
   height: 1.15rem;
-  border-radius: 0.25rem;
+  border-radius: 0.3rem;
 }
 .tkt-brandline span {
   font-size: var(--e-text-xs);
@@ -5202,21 +4867,21 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 
 /* ===========================================================================
-   AJUSTES DE MARCA (2026-10): negro mate de superficie, rampa de estados y foco.
+   AJUSTES DE MARCA (2026-10): navy de superficie, rampa de estados y foco.
    Se anaden al final a proposito: sobrescriben por cascada lo que quedo en
    la marca azul anterior, sin reescribir 4000 lineas a ciegas.
    =========================================================================== */
 
-/* --- PASO 4: la superficie es la boleta, no gris zinc --------------------
-   La app leia "naranja sobre gris". Ahora la rampa zinc COMPLETA es de
-   negro mate calido — no solo el lienzo: tambien los neutros de texto y de
-   borde, para que el gris de la app sea el mismo material de la boleta.
+/* --- PASO 4: la superficie es la boleta navy, no gris zinc ---------------
+   Los tokens --color-ticket-* ya existian pero no se usaban: la app leia
+   "naranja sobre gris". Ahora la rampa zinc COMPLETA esta teñida de navy —
+   no solo el lienzo: tambien los neutros de texto y de borde, para que el
+   gris-azulado de la app sea el mismo azul de la tinta del logo.
 
    Los pasos 925/850/940 no existian en Tailwind: hacen falta porque el
-   lienzo (--e-zinc-925) y la tarjeta (--e-zinc-850) estan separados por
-   varios pasos y sin intermedios el degradado se ve a bandas. Tailwind v4
-   genera la utilidad bg-zinc-925 a partir del token, asi que no hay caja
-   suelta. */
+   lienzo (var(--e-slate-900)) y la tarjeta (var(--e-slate-850)) estan separados por varios pasos y
+   sin intermedios el degradado se ve a bandas. Tailwind v4 genera la
+   utilidad bg-zinc-925 a partir del token, asi que no hay caja suelta. */
 :root {
   /* DOS RAMPAS, UN NOMBRE. Este es el problema de fondo que arrastraba la
      app: `zinc` se usaba como rampa de TEXTO (200/300/400, casi 200 usos en
@@ -5231,7 +4896,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
      mitad de texto; la superficie se queda como esta. */
   /* Lienzo -> tarjeta: pasos de negro mate Enty, del mas profundo al mas
      alto. Un susurro violeta en los altos, para casar con el filo del logo. */
-  --color-zinc-950: var(--e-canvas);
+  --color-zinc-950: var(--e-ink-950);
   --color-zinc-940: var(--e-zinc-940);
   --color-zinc-925: var(--e-zinc-925);
   --color-zinc-900: var(--e-panel-600);
@@ -5262,7 +4927,7 @@ html[data-theme="light"] {
   --color-zinc-400: var(--e-neutral-675);
   /* var(--e-neutral-550) daba 4.4:1 sobre el gris de la tarjeta: rozaba el limite en 96
      rotulos (stat-label, denominador, descripcion del dock). Este gris con
-     tinte de marca sube a 5.2:1 sin oscurecer el resto del texto. */
+     tinte navy sube a 5.2:1 sin oscurecer el resto del texto. */
   --color-zinc-500: var(--e-neutral-660);
   --color-zinc-600: var(--e-neutral-610);
   /* Intermedios del lienzo claro (no existen en Tailwind, igual que en dark) */
@@ -5274,18 +4939,18 @@ html:not([data-theme="light"]) body {
   background: var(--color-zinc-950);
 }
 html[data-theme="light"] body {
-  background: var(--e-canvas);
+  background: var(--e-neutral-150);
 }
 /* El scrollbar tomaba el token de superficie, que en claro vale blanco:
    sobre el lienzo claro se volvía invisible. Lleva su propio par. */
 html[data-theme="light"] * {
-  scrollbar-color: var(--e-neutral-400) transparent;
+  scrollbar-color: var(--e-slate-300) transparent;
 }
 html[data-theme="light"] *::-webkit-scrollbar-thumb {
-  background: var(--e-neutral-400);
+  background: var(--e-slate-300);
 }
 html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
-  background: var(--e-neutral-500);
+  background: var(--e-slate-400);
 }
 
 /* --- El sufijo del wordmark necesita su propio color por tema ----------
@@ -5293,10 +4958,10 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
    de acento, no de texto. En claro se apaga al violeta profundo, el mismo
    tono que ya usa --color-brand-300 para texto de marca. */
 .brand-suffix {
-  color: var(--e-brand-400);
+  color: var(--e-violet-400);
 }
 html[data-theme="light"] .brand-suffix {
-  color: var(--e-brand-500);
+  color: var(--e-violet-500);
 }
 
 /* --- La estrella de cuatro puntas del wordmark ------------------------
@@ -5341,7 +5006,7 @@ html[data-theme="light"] .rubber-stamp {
    app usaba border-radius uniforme y se leia "tarjeta generica".
    Aqui el troquel es REAL (mascara, no un parche del color del fondo): se
    puncha un semiojo con alpha 0, asi que funciona igual sobre el lienzo
-   negro mate, sobre el claro y sobre cualquier superficie que cambie despues.
+   navy, sobre el claro y sobre cualquier superficie que cambie despues.
    =========================================================================== */
 .evx-card {
   --notch: 7px;
@@ -5375,7 +5040,7 @@ html[data-theme="light"] .rubber-stamp {
 .evx-card::after {
   background: radial-gradient(
     90% 70% at 50% -10%,
-    color-mix(in srgb, var(--e-brand-400) 13%, transparent),
+    rgba(187, 92, 246, 0.13),
     transparent 62%
   );
 }
@@ -5385,7 +5050,7 @@ html[data-theme="light"] .rubber-stamp {
   bottom: 12%;
   right: 52px;
   width: 0;
-  border-left: 1px dashed rgba(240, 236, 227, 0.16);
+  border-left: 1px dashed rgba(243, 232, 255, 0.16);
   pointer-events: none;
   z-index: 0;
 }
@@ -5422,7 +5087,6 @@ html[data-theme="light"] .evx-name {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
-  min-height: 100dvh;
 }
 @media (min-width: 1024px) {
   .auth-shell {
@@ -5430,7 +5094,7 @@ html[data-theme="light"] .evx-name {
   }
 }
 
-/* --- Panel de marca (solo desktop). Superficie = negro mate de la boleta, el
+/* --- Panel de marca (solo desktop). Superficie = navy de la boleta, el
        mismo material del logo y del talon. No sigue el tema: la marca es
        oscura por definicion. --- */
 .auth-brand {
@@ -5444,13 +5108,13 @@ html[data-theme="light"] .evx-name {
   background:
     radial-gradient(
       44rem 34rem at 76% -14%,
-      color-mix(in srgb, var(--e-brand-400) 16%, transparent),
+      rgba(187, 92, 246, 0.16),
       transparent 58%
     ),
     linear-gradient(
       158deg,
-      var(--e-ink-2) 0%,
-      var(--e-ink-1) 58%,
+      var(--color-ticket-900) 0%,
+      var(--color-ticket-950) 58%,
       var(--e-ink-950) 100%
     );
   /* El troquel: dos muescas comidas en el borde derecho del panel, a la
@@ -5496,7 +5160,7 @@ html[data-theme="light"] .evx-name {
   bottom: 12%;
   right: 0;
   width: 0;
-  border-left: 1px dashed rgba(240, 236, 227, 0.18);
+  border-left: 1px dashed rgba(243, 232, 255, 0.18);
   pointer-events: none;
   z-index: 1;
 }
@@ -5509,7 +5173,7 @@ html[data-theme="light"] .evx-name {
   pointer-events: none;
   background: radial-gradient(
     40rem 30rem at 84% 6%,
-    color-mix(in srgb, var(--e-brand-400) 18%, transparent),
+    rgba(187, 92, 246, 0.18),
     transparent 60%
   );
 }
@@ -5549,7 +5213,7 @@ html[data-theme="light"] .evx-name {
   max-width: 30rem;
 }
 .auth-brand-title {
-  margin-top: 0.75rem;
+  margin-top: 0.7rem;
   font-size: var(--e-text-display);
   line-height: 1.04;
   letter-spacing: -0.03em;
@@ -5560,20 +5224,20 @@ html[data-theme="light"] .evx-name {
   max-width: 26rem;
   font-size: var(--e-text-lg);
   line-height: 1.6;
-  color: var(--e-text-secondary);
+  color: var(--e-slate-350);
 }
 .auth-benefits {
   margin-top: 2rem;
   display: grid;
-  gap: 0.75rem;
+  gap: 0.7rem;
 }
 .auth-benefit {
   display: flex;
   align-items: flex-start;
-  gap: 0.625rem;
+  gap: 0.65rem;
   font-size: var(--e-text-base);
   line-height: 1.45;
-  color: var(--e-text-muted);
+  color: var(--e-slate-250);
 }
 .auth-benefit-check {
   flex-shrink: 0;
@@ -5582,9 +5246,9 @@ html[data-theme="light"] .evx-name {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: var(--e-brand-300);
-  background: color-mix(in srgb, var(--e-brand-400) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--e-brand-400) 38%, transparent);
+  color: var(--e-violet-300);
+  background: rgba(187, 92, 246, 0.15);
+  border: 1px solid rgba(187, 92, 246, 0.38);
 }
 .auth-benefit-check svg {
   width: 0.8rem;
@@ -5596,26 +5260,14 @@ html[data-theme="light"] .evx-name {
   position: relative;
   z-index: 1;
   display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
-  min-height: 100dvh;
   padding: 2rem 1.25rem;
-  /* En vertical el contenido va centrado, pero en horizontal (notch al
-     costado) la tarjeta llegaba al borde fisico. Los insets son el minimo
-     de seguridad; el padding de diseno manda cuando no hay notch. */
-  padding-top: max(2rem, env(safe-area-inset-top));
-  padding-bottom: max(2rem, env(safe-area-inset-bottom));
-  padding-left: max(1.25rem, env(safe-area-inset-left));
-  padding-right: max(1.25rem, env(safe-area-inset-right));
 }
-/* Centrado con `margin: auto`, NO con `align-items: center`. Cuando el
-   contenido es mas alto que el viewport (movil bajo, teclado abierto, aviso
-   de cookies encima) el centrado por flex recorta la parte de arriba: el
-   primer campo quedaba fuera de alcance. Los margenes automaticos centran si
-   cabe y, si no, arrancan arriba y dejan desplazarse hasta el final. */
 .auth-panel-inner {
   width: 100%;
   max-width: 24rem;
-  margin: auto;
 }
 
 /* Cabecera compacta para movil (reemplaza al panel de marca). */
@@ -5628,41 +5280,13 @@ html[data-theme="light"] .evx-name {
   animation: fade 0.4s ease-out both;
 }
 .auth-compact-lema {
-  margin-top: 0.375rem;
+  margin-top: 0.4rem;
   font-size: var(--e-text-lg);
   color: var(--color-zinc-400);
 }
 @media (min-width: 1024px) {
   .auth-compact {
     display: none;
-  }
-}
-/* En movil la cabecera pasa a FILA (isotipo + lema al lado): ocupa la mitad de
-   alto que apilada, deja respirar al formulario y se lee como una firma de
-   marca en vez del hero generico centrado. */
-@media (max-width: 640px) {
-  .auth-compact {
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-  .auth-compact-lema {
-    margin-top: 0;
-    max-width: 11rem;
-    text-align: left;
-    font-size: var(--e-text-base);
-    line-height: 1.25;
-  }
-  /* El wordmark hero (display) al lado del isotipo no cabe en 320px: se baja a
-     escala de marca secundaria sin tocar el logo de escritorio. */
-  .auth-compact .brand-wordmark-hero {
-    font-size: var(--e-text-xl);
-  }
-  .auth-panel {
-    padding-top: max(1.25rem, env(safe-area-inset-top));
-    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
   }
 }
 
@@ -5687,21 +5311,21 @@ html[data-theme="light"] .evx-name {
   }
 }
 
-/* El panel de marca es negro mate en AMBOS temas: sus tintas no pueden seguir al
+/* El panel de marca es navy en AMBOS temas: sus tintas no pueden seguir al
    tema. En claro, `html[data-theme="light"] .display` y `.eyebrow` tienen
    mas especificidad (0,2,1) que un selector de dos clases, asi que voltean
-   el titular a tinta oscura sobre el negro mate. Se repiten con la misma forma. */
+   el titular a tinta oscura sobre el navy. Se repiten con la misma forma. */
 .auth-brand .auth-brand-title {
   color: var(--e-neutral-75);
 }
 .auth-brand .eyebrow {
-  color: var(--e-brand-300);
+  color: var(--e-violet-300);
 }
 html[data-theme="light"] .auth-brand .auth-brand-title {
   color: var(--e-neutral-75);
 }
 html[data-theme="light"] .auth-brand .eyebrow {
-  color: var(--e-brand-300);
+  color: var(--e-violet-300);
 }
 
 html[data-theme="light"] .auth-shell {
@@ -5714,7 +5338,7 @@ html[data-theme="light"] .auth-shell .auth-card {
     var(--e-elev-card);
 }
 
-/* El wordmark dentro del panel oscuro ignora el remapeo claro de .brand-shine. */
+/* El wordmark dentro del panel navy ignora el remapeo claro de .brand-shine. */
 .auth-brand .brand-shine,
 html[data-theme="light"] .auth-brand .brand-shine {
   color: var(--e-text-primary);
@@ -5727,46 +5351,6 @@ html[data-theme-lock="dark"] body {
   color: var(--color-zinc-200);
 }
 
-/* ----------------------------------------------------------------------
-   ISLA OSCURA (gate legal). El overlay de aceptaciones es una superficie
-   SIEMPRE oscura: en tema claro, el remapeo de `--color-zinc-*` y de
-   `.display`/`.eyebrow` volteaba su tinta a oscuro SOBRE el negro (1.11:1:
-   texto ilegible). Se repinta la isla con los tokens de la boleta —que
-   tampoco voltean— y se restauran los colores del texto con la misma
-   especificidad `html[data-theme="light"] <sel>` para ganar en ambos temas.
-   Los `--color-zinc-*` se redefinen en la isla: las utilidades de Tailwind
-   los consumen por herencia, así el texto vuelve a la escala oscura.
-   ---------------------------------------------------------------------- */
-.legal-island {
-  background: var(--e-ink-1);
-  color: var(--e-paper);
-  /* Escala oscura del design system, la misma que el tema por defecto. */
-  --color-zinc-950: var(--e-canvas);
-  --color-zinc-900: var(--e-panel-600);
-  --color-zinc-800: var(--e-zinc-800);
-  --color-zinc-600: var(--e-zinc-600);
-  --color-zinc-500: var(--e-zinc-500);
-  --color-zinc-400: var(--e-zinc-400);
-  --color-zinc-300: var(--e-zinc-300);
-  --color-zinc-200: var(--e-zinc-200);
-  --color-zinc-100: var(--e-zinc-100);
-  --color-zinc-50: var(--e-zinc-50);
-}
-.legal-island .eyebrow {
-  color: var(--e-brand-300);
-}
-.legal-island .display {
-  color: var(--e-paper);
-}
-html[data-theme="light"] .legal-island .eyebrow {
-  color: var(--e-brand-300);
-}
-html[data-theme="light"] .legal-island .display {
-  color: var(--e-paper);
-  background: none;
-  -webkit-text-fill-color: currentColor;
-}
-
 /* ======================================================================
    PERFIL — Identidad Enty
    El perfil deja de ser un formulario y pasa a ser la ficha de la persona:
@@ -5777,14 +5361,14 @@ html[data-theme="light"] .legal-island .display {
 .pf-hero {
   position: relative;
   overflow: hidden;
-  border-radius: 1.375rem;
+  border-radius: 1.4rem;
   border: 1px solid var(--in-line-soft, rgba(255, 255, 255, 0.06));
-  padding: 1.375rem 1.5rem;
+  padding: 1.4rem 1.5rem;
   background:
-    radial-gradient(34rem 16rem at 6% -10rem, color-mix(in srgb, var(--e-brand-500) 22%, transparent), transparent 62%),
+    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.22), transparent 62%),
     radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.12), transparent 60%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 48%),
-    rgba(18, 16, 14, 0.92);
+    rgba(16, 16, 22, 0.92);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 22px 52px -34px rgba(0, 0, 0, 0.95);
@@ -5792,7 +5376,7 @@ html[data-theme="light"] .legal-island .display {
 html[data-theme="light"] .pf-hero {
   border: 1px solid rgba(17, 17, 22, 0.09);
   background:
-    radial-gradient(34rem 16rem at 6% -10rem, color-mix(in srgb, var(--e-brand-500) 10%, transparent), transparent 62%),
+    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.1), transparent 62%),
     radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.09), transparent 60%),
     var(--e-white);
   box-shadow: 0 20px 46px -36px rgba(15, 23, 42, 0.55);
@@ -5806,7 +5390,7 @@ html[data-theme="light"] .pf-hero {
   width: 4.5rem;
   height: 4.5rem;
   border-radius: 999px;
-  font-size: 1.625rem;
+  font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
@@ -5816,7 +5400,7 @@ html[data-theme="light"] .pf-hero {
   position: absolute;
   inset: -3px;
   border-radius: 999px;
-  padding: 4px;
+  padding: 3px;
   background: currentColor;
   -webkit-mask:
     linear-gradient(var(--e-mask) 0 0) content-box,
@@ -5850,7 +5434,7 @@ html[data-theme="light"] .pf-avatar {
    hero claro pierden contraste, así que se oscurecen solo aquí. El color
    sigue siendo el del rol; cambia el paso de la escala. */
 html[data-theme="light"] .pf-hero .text-brand-300 {
-  color: var(--e-brand-600);
+  color: var(--e-violet-600);
 }
 html[data-theme="light"] .pf-hero .text-emerald-300 {
   color: var(--e-emerald-600);
@@ -5866,8 +5450,8 @@ html[data-theme="light"] .pf-danger-title {
 .pf-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 1.25rem;
-  font-size: 0.75rem;
+  gap: 0.3rem 1.25rem;
+  font-size: 0.8125rem;
   color: var(--color-zinc-400);
 }
 html[data-theme="light"] .pf-meta {
@@ -5876,7 +5460,7 @@ html[data-theme="light"] .pf-meta {
 .pf-meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.4rem;
   min-width: 0;
 }
 .pf-meta-item svg {
@@ -5890,10 +5474,10 @@ html[data-theme="light"] .pf-meta {
 .pf-role-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.35rem;
   border-radius: 999px;
-  padding: 0.125rem 0.625rem;
-  font-size: 0.75rem;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   background: color-mix(in srgb, currentColor 14%, transparent);
@@ -5930,50 +5514,58 @@ html[data-theme="light"] .pf-meta {
    son documentos que se LEEN, y una linea de 120 caracteres no se lee.
    ---------------------------------------------------------------------- */
 .legal-page {
-  background: var(--e-canvas);
-  color: var(--e-text-secondary);
+  background: var(--color-zinc-950);
+  color: var(--color-zinc-200);
+}
+html[data-theme="light"] .legal-page {
+  background: var(--color-cream);
+  color: #27272a;
 }
 
-/* Cabecera de cristal: el mismo material de la casa fan (hairline + blur)
-   sobre el lienzo, en ambos temas. */
 .legal-header {
-  border-bottom: 1px solid var(--e-border-hairline);
-  background: color-mix(in srgb, var(--e-canvas) 88%, transparent);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 11, 15, 0.9);
   backdrop-filter: blur(8px);
+}
+html[data-theme="light"] .legal-header {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+  background: rgba(245, 245, 247, 0.9);
 }
 
 .legal-muted {
-  color: var(--e-text-muted);
+  color: #a1a1aa;
+}
+html[data-theme="light"] .legal-muted {
+  color: #52525b;
 }
 
-/* Aviso de versión: ámbar de atención con contraste AA en ambos temas. */
 .legal-note {
-  border: 1px solid color-mix(in srgb, var(--e-warn) 38%, transparent);
-  background: color-mix(in srgb, var(--e-warn) 13%, transparent);
-  color: var(--e-amber-300);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(120, 53, 15, 0.18);
+  color: #fcd34d;
 }
 html[data-theme="light"] .legal-note {
-  border-color: color-mix(in srgb, var(--e-brasa-500) 42%, transparent);
-  background: color-mix(in srgb, var(--e-brasa-200) 30%, transparent);
-  color: var(--e-brasa-600);
+  border-color: rgba(180, 83, 9, 0.35);
+  background: rgba(254, 243, 199, 0.6);
+  color: #92400e;
 }
 
 .legal-doc {
   max-width: 68ch;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.75;
 }
 .legal-doc p {
   margin: 0.75rem 0;
 }
 .legal-doc .legal-h1 {
-  font-size: 1.625rem;
+  font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 0 0 1rem;
 }
 .legal-doc .legal-h2 {
-  font-size: 1.125rem;
+  font-size: 1.15rem;
   font-weight: 650;
   margin: 2rem 0 0.75rem;
 }
@@ -5994,19 +5586,22 @@ html[data-theme="light"] .legal-note {
   list-style: decimal;
 }
 .legal-doc li {
-  margin: 0.375rem 0;
+  margin: 0.35rem 0;
 }
 .legal-doc blockquote {
   margin: 1rem 0;
   padding: 0.25rem 0 0.25rem 1rem;
-  border-left: 3px solid var(--e-brand);
+  border-left: 3px solid #7c3aed;
   font-style: italic;
   opacity: 0.88;
 }
 .legal-doc hr {
   margin: 2rem 0;
   border: 0;
-  border-top: 1px solid var(--e-border-hairline);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+html[data-theme="light"] .legal-doc hr {
+  border-top-color: rgba(0, 0, 0, 0.12);
 }
 .legal-table-wrap {
   margin: 1rem 0;
@@ -6015,14 +5610,18 @@ html[data-theme="light"] .legal-note {
 .legal-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 .legal-table th,
 .legal-table td {
   text-align: left;
-  padding: 0.5rem 0.625rem;
-  border-bottom: 1px solid var(--e-border-hairline);
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   vertical-align: top;
+}
+html[data-theme="light"] .legal-table th,
+html[data-theme="light"] .legal-table td {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 .legal-table th {
   font-weight: 600;
@@ -6032,7 +5631,7 @@ html[data-theme="light"] .legal-note {
   font-size: 0.85em;
   background: rgba(255, 255, 255, 0.08);
   padding: 0.1em 0.35em;
-  border-radius: 0.375rem;
+  border-radius: 0.35rem;
 }
 html[data-theme="light"] .legal-doc code {
   background: rgba(0, 0, 0, 0.06);
@@ -6047,18 +5646,14 @@ html[data-theme="light"] .legal-doc code {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem 0.875rem;
-  font-size: var(--e-text-2xs);
+  gap: 0.35rem 0.9rem;
+  font-size: 0.72rem;
 }
 .legal-links a,
 .legal-links button {
   color: inherit;
   opacity: 0.75;
   transition: opacity 0.2s;
-  /* Objetivo tactil AA (WCAG 2.5.8): el renglon de 11px no llega a 24px.
-     El padding da area sin agrandar el texto ni romper el renglon. */
-  padding: 0.25rem 0;
-  min-height: 1.5rem;
 }
 .legal-links a:hover,
 .legal-links button:hover {

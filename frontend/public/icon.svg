@@ -1,56 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Enty">
-<!--
-    ISOTIPO ENTY · "imprenta de la noche"
-
-    La marca no nace de un LED: nace de la BOLETA impresa. El signo es la "E"
-    troquelada — las tres lenguetas de papel y el asta con la linea de
-    perforado del talon. Se retira la estrella de cuatro puntas (el icono
-    generico de "producto con IA", que no dice nada de Enty) y se sustituye
-    por el sello de registro del impresor.
-    Material: tinta violeta sobre negro mate calido.
-  -->
-
   <defs>
-    <!-- Campo: negro mate calido (el mismo ink-950 de la app). -->
+    <!-- Fondo negro mate con una caida de luz sutil desde arriba. -->
     <linearGradient id="field" gradientUnits="userSpaceOnUse" x1="256" y1="0" x2="256" y2="512">
-      <stop offset="0" stop-color="#17130e"/>
-      <stop offset="1" stop-color="#0c0a09"/>
+      <stop offset="0" stop-color="#17151f"/>
+      <stop offset="1" stop-color="#0A0A0F"/>
     </linearGradient>
-    <!-- Filo de registro: violeta de marca, no neon. -->
+    <!-- Filo violeta brillante (neon sutil), no plano. -->
     <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#D29BF9"/>
       <stop offset="0.55" stop-color="#BB5CF6"/>
-      <stop offset="1" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#8B2FE0"/>
     </linearGradient>
-    <!-- Troquel: los agujeros del perforado cortan el asta. -->
-    <mask id="perf">
-      <rect width="512" height="512" fill="#fff"/>
-      <g fill="#000">
-        <circle cx="186" cy="96" r="13"/>
-        <circle cx="186" cy="146" r="13"/>
-        <circle cx="186" cy="196" r="13"/>
-        <circle cx="186" cy="246" r="13"/>
-        <circle cx="186" cy="296" r="13"/>
-        <circle cx="186" cy="346" r="13"/>
-        <circle cx="186" cy="396" r="13"/>
-      </g>
-    </mask>
   </defs>
 
-  <!-- CAMPO: cuadrado de esquinas muy redondeadas (el tile de la app). -->
+  <!-- CAMPO: icono cuadrado de esquinas muy redondeadas. -->
   <rect width="512" height="512" rx="118" fill="url(#field)"/>
-  <!-- FILO de registro: enmarca el tile. -->
-  <rect x="9" y="9" width="494" height="494" rx="112" fill="none" stroke="url(#edge)" stroke-width="14" stroke-opacity="0.85"/>
+  <!-- FILO violeta brillante. -->
+  <rect x="9" y="9" width="494" height="494" rx="112" fill="none" stroke="url(#edge)" stroke-width="16" stroke-opacity="0.9"/>
 
-  <!-- LA "E" TROQUELADA: asta perforada + tres lenguetas. -->
-  <g mask="url(#perf)">
-    <path d="M186 96 V416" stroke="#ffffff" stroke-width="54" stroke-linecap="round" fill="none"/>
+  <!-- LA "E": asta y tres brazos, trazo redondeado (la voz de la marca). -->
+  <g stroke="#FFFFFF" stroke-width="60" stroke-linecap="round" fill="none">
+    <path d="M186 156 H318"/>
+    <path d="M186 256 H292"/>
+    <path d="M186 356 H318"/>
+    <path d="M186 156 V356"/>
   </g>
-  <g stroke="#ffffff" stroke-width="54" stroke-linecap="round" fill="none">
-    <path d="M186 110 H336"/>
-    <path d="M186 256 H304"/>
-    <path d="M186 402 H336"/>
-  </g>
-  <!-- SELLO: marca de registro del impresor, en violeta de marca. -->
-  <circle cx="336" cy="110" r="17" fill="#BB5CF6"/>
+
+  <!-- LA ESTRELLA de cuatro puntas, integrada al lateral derecho. -->
+  <path fill="#BB5CF6" d="M356 196 l13 34 34 13 -34 13 -13 34 -13 -34 -34 -13 34 -13 z"/>
 </svg>

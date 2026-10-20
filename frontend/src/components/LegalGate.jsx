@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchLegalStatus, recordAcceptance } from "../lib/legal";
 import { captureError } from "../lib/sentry";
-import { Skeleton } from "./Skeleton";
-import Icon from "./Icon";
-import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
  * Gate de aceptación legal para cuentas existentes.
@@ -33,12 +30,6 @@ export function LegalGate({ onCleared }) {
   const [checked, setChecked] = useState({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-
-  // El gate sustituye al panel: la pantalla de rol no llega a montarse, así
-  // que su useDocumentTitle nunca corre. El gate pone el suyo mientras
-  // bloquea; al ceder, la página recupera el suyo.
-  const blocking = pending === null || pending.length > 0;
-  useDocumentTitle(blocking ? "Documentos legales" : null);
 
   const refresh = useCallback(async () => {
     try {
@@ -82,26 +73,8 @@ export function LegalGate({ onCleared }) {
 
   if (pending === null) {
     return (
-      <div className="legal-island grid min-h-screen place-items-center px-4">
-        <div className="w-full max-w-xl" aria-busy="true">
-          <Skeleton className="h-3 w-28" />
-          <Skeleton className="mt-3 h-7 w-72" />
-          <Skeleton className="mt-3 h-4 w-full" />
-          <div className="mt-6 space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4"
-              >
-                <Skeleton className="mt-1 h-4 w-4 shrink-0" />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Skeleton className="h-3.5 w-48" />
-                  <Skeleton className="h-2.5 w-24" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-[#0b0b0f] text-sm text-zinc-400">
+        Revisando tus documentos…
       </div>
     );
   }
@@ -110,7 +83,7 @@ export function LegalGate({ onCleared }) {
   const allChecked = pending.every((d) => checked[d.slug]);
 
   return (
-    <div className="legal-island fixed inset-0 z-50 overflow-y-auto px-4 py-10">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#0b0b0f] px-4 py-10">
       <div className="mx-auto max-w-xl">
         <p className="eyebrow">Documentos legales</p>
         <h1 className="display mt-1 text-2xl">Hay cambios en los términos</h1>
@@ -124,7 +97,7 @@ export function LegalGate({ onCleared }) {
           {pending.map((d) => (
             <li
               key={d.slug}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition has-checked:border-brand-500/60 has-checked:bg-zinc-900"
+              className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4"
             >
               <label className="flex cursor-pointer items-start gap-3">
                 <input
@@ -133,7 +106,7 @@ export function LegalGate({ onCleared }) {
                   onChange={(e) =>
                     setChecked((c) => ({ ...c, [d.slug]: e.target.checked }))
                   }
-                  className="mt-1 h-4 w-4 shrink-0 accent-enty-violet"
+                  className="mt-1 h-4 w-4 shrink-0 accent-[#7C3AED]"
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-zinc-100">
@@ -145,10 +118,9 @@ export function LegalGate({ onCleared }) {
                   <button
                     type="button"
                     onClick={() => window.open(d.url, "_blank")}
-                    className="mt-1 inline-flex items-center gap-1 text-xs text-zinc-400 underline decoration-zinc-600 underline-offset-2 transition hover:text-white"
+                    className="mt-1 text-xs text-zinc-400 underline decoration-zinc-600 underline-offset-2 hover:text-white"
                   >
                     Leer el documento
-                    <Icon name="link" className="h-3 w-3" />
                   </button>
                 </span>
               </label>
@@ -166,13 +138,8 @@ export function LegalGate({ onCleared }) {
           type="button"
           onClick={acceptAll}
           disabled={!allChecked || busy}
-          className={`btn-primary mt-6 w-full ${busy ? "is-busy" : ""}`}
+          className="btn-primary mt-6 w-full disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {busy && (
-            <svg className="btn-spinner" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-            </svg>
-          )}
           {busy ? "Registrando…" : "Acepto y continúo"}
         </button>
         <p className="mt-3 text-center text-[11px] text-zinc-500">

@@ -1,23 +1,25 @@
 /**
- * Doodles de marca: trazos gestuales que solo adornan, nunca portan datos
- * ni acciones. Paleta de fiesta usada con cuentagotas: violeta #7C3AED,
- * verde #00E6AB, rosa #FF2D98, papel #F6F5F2.
+ * Doodles POP: garabatos estilo "portfolio de animador" (referencia
+ * Dikshant/Absolut). Solo adornan: nunca portan datos ni acciones.
+ * Colores de fiesta usados con cuentagotas sobre los carteles de referencia:
+ * violeta #7C3AED, verde #00E6AB, rosa #FF2D98, tinta #F5F5F7.
  */
 
 const TINTA = "currentColor";
 
-/** Sello de registro: el mismo signo del isotipo (anillo con punto de
- * tinta). Sustituye a la estrella de cuatro puntas, generica. */
-export function Sello({ className = "", style }) {
+/** Estrella de 4 puntas (destello de cartel). */
+export function Star4({ className = "", style }) {
   return (
     <svg viewBox="0 0 24 24" className={`doodle ${className}`} style={style} aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5" fill="none" stroke={TINTA} strokeWidth="3.6" />
-      <circle cx="12" cy="12" r="2.6" fill={TINTA} />
+      <path
+        d="M12 2c.6 4.8 2.2 7.4 8 10-5.8 2.6-7.4 5.2-8 10-.6-4.8-2.2-7.4-8-10 5.8-2.6 7.4-5.2 8-10Z"
+        fill={TINTA}
+      />
     </svg>
   );
 }
 
-/** Estrella clasica de 5 puntas: acento de fiesta, nunca el isotipo. */
+/** Estrella clasica de 5 puntas (la del hombro de Dikshant). */
 export function Star5({ className = "", style }) {
   return (
     <svg viewBox="0 0 24 24" className={`doodle ${className}`} style={style} aria-hidden="true">
@@ -102,12 +104,14 @@ export function ArrowScribble({ className = "", style }) {
   );
 }
 
-/** Sello de registro para el divisor de lazo (antes estrella de 4 puntas). */
+/** Estrella para el divisor de lazo (ribbon-divider). */
 export function DividerStar({ className = "" }) {
   return (
     <svg viewBox="0 0 24 24" className={`rd-star ${className}`} aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="3.6" />
-      <circle cx="12" cy="12" r="2.6" fill="currentColor" />
+      <path
+        d="M12 2c.6 4.8 2.2 7.4 8 10-5.8 2.6-7.4 5.2-8 10-.6-4.8-2.2-7.4-8-10 5.8-2.6 7.4-5.2 8-10Z"
+        fill="currentColor"
+      />
     </svg>
   );
 }
