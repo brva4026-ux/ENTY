@@ -52,16 +52,15 @@ export function CookieNotice() {
   };
 
   return (
-    <div className="px-3 pt-3">
+    <div className="px-2 pt-2 sm:px-3 sm:pt-3">
       <div
         role="note"
         aria-label="Aviso de cookies"
-        className="cookie-notice mx-auto flex max-w-3xl flex-col gap-2 rounded-xl border border-zinc-700/60 bg-zinc-900/95 px-4 py-3 text-xs leading-relaxed text-zinc-200 shadow-lg sm:flex-row sm:items-center sm:gap-3"
+        className="cookie-notice mx-auto flex max-w-3xl flex-col gap-1.5 rounded-xl border border-zinc-700/60 bg-zinc-900/95 px-3 py-2 text-2xs leading-snug text-zinc-200 shadow-lg sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:py-3 sm:text-xs sm:leading-relaxed"
       >
         <p className="min-w-0 flex-1">
-          Esta app guarda en tu navegador lo necesario para la sesión y el modo
-          sin conexión de la puerta. No hay cookies de publicidad ni de
-          analítica; por eso no pedimos consentimiento: lo informamos.
+          Solo lo necesario para tu sesión y el modo sin conexión. Sin cookies
+          de publicidad ni analítica.
         </p>
         <div className="flex shrink-0 items-center gap-2">
           {/* Objetivo tactil AA (WCAG 2.5.8, 24px): un <button> es
