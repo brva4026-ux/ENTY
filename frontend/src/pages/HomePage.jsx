@@ -534,8 +534,17 @@ export default function HomePage() {
       ) : (
         <div className="home-grid">
           <Link to={`/evento/${featured.id}`} className="home-feature">
+            {/* El flyer del destacado es el LCP de la vitrina: se pide ya y con
+                prioridad alta en vez de competir con el resto de la página. */}
             {featured.flyer_url ? (
-              <img className="home-feature-flyer" src={featured.flyer_url} alt="" />
+              <img
+                className="home-feature-flyer"
+                src={featured.flyer_url}
+                alt=""
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+              />
             ) : (
               <>
                 <NeonStrokes />
@@ -583,7 +592,12 @@ export default function HomePage() {
                   <Link to={`/evento/${e.id}`} className="home-row-main">
                     <span className="home-row-thumb">
                       {e.flyer_url ? (
-                        <img src={e.flyer_url} alt="" />
+                        <img
+                          src={e.flyer_url}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : (
                         <span className="home-row-thumb-date">
                           <b>{b.day}</b>
