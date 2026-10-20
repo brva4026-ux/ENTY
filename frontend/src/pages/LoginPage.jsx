@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
@@ -70,6 +70,19 @@ export default function LoginPage() {
   // (no revela si falló el correo o la contraseña), así que se lleva el foco a
   // la contraseña, que es lo que la persona suele poder corregir.
   const passRef = useRef(null);
+  const emailRef = useRef(null);
+  // Aviso de Bloq Mayús: la causa más común de "mi contraseña es correcta y
+  // no entra" en escritorio.
+  const [capsLock, setCapsLock] = useState(false);
+
+  // autoFocus fijo abría el teclado al entrar en móvil y provocaba salto de
+  // layout y zoom. Solo se enfoca donde hay puntero fino (escritorio).
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      emailRef.current?.focus();
+    }
+  }, []);
 
   // Recuperación de contraseña
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -143,14 +156,19 @@ export default function LoginPage() {
             <div className="auth-field relative mb-4">
               <MailIcon className="auth-field-icon" />
               <input
+                ref={emailRef}
                 id="login-email"
                 type="email"
+                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tu@negocio.com"
                 className="field auth-field-has-icon"
                 autoComplete="email"
-                autoFocus
+                inputMode="email"
+                enterKeyHint="next"
+                autoCapitalize="none"
+                spellCheck={false}
                 required
                 aria-invalid={error ? "true" : undefined}
                 aria-describedby={error ? "login-error" : undefined}
@@ -172,11 +190,21 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Tu contraseña"
                 ref={passRef}
+                name="password"
                 className="field mb-0 !pr-12 auth-field-has-icon"
                 autoComplete="current-password"
+                enterKeyHint="go"
+                spellCheck={false}
                 required
+                onKeyUp={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
+                onKeyDown={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
                 aria-invalid={error ? "true" : undefined}
-                aria-describedby={error ? "login-error" : undefined}
+                aria-describedby={[
+                  error ? "login-error" : null,
+                  capsLock ? "login-caps" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" ") || undefined}
               />
               <button
                 type="button"
@@ -190,6 +218,16 @@ export default function LoginPage() {
                 <EyeIcon open={showPass} />
               </button>
             </div>
+
+            {capsLock && (
+              <p
+                id="login-caps"
+                role="status"
+                className="mb-2 -mt-1 text-xs font-medium text-zinc-400"
+              >
+                Bloq Mayús está activado.
+              </p>
+            )}
 
             <button
               type="button"
@@ -267,6 +305,10 @@ export default function LoginPage() {
               )}
               {busy ? "Entrando" : "Entrar"}
             </button>
+
+            <p className="mt-3 text-center text-xs leading-relaxed text-zinc-400">
+              Conexión segura. Nunca te pediremos tu contraseña por chat.
+            </p>
           </form>
         </div>
 
