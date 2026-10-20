@@ -285,7 +285,7 @@ export default function LoginPage() {
                     }
                   }}
                   placeholder="tu@negocio.com"
-                  className="field auth-field-has-icon"
+                  className="field auth-field-has-icon min-h-[44px]"
                   autoComplete="email"
                   autoFocus
                   ref={emailRef}
@@ -295,7 +295,7 @@ export default function LoginPage() {
                 />
               </div>
               {emailError && (
-                <p id="login-email-error" className="auth-field-error" role="alert">
+                <p id="login-email-error" className="auth-field-error" role="alert" aria-live="polite" aria-atomic="true">
                   <WarnIcon />
                   <span>{emailError}</span>
                 </p>
@@ -312,8 +312,7 @@ export default function LoginPage() {
               <div
                 className={`auth-field relative ${passwordError ? "has-error" : ""}`}
               >
-                <LockIcon className="auth-field-icon" />
-                <input
+                <LockIcon className="auth-field-icon" /><input
                   id="login-password"
                   type={showPass ? "text" : "password"}
                   value={password}
@@ -323,11 +322,10 @@ export default function LoginPage() {
                   }}
                   onKeyUp={(e) => setCapsOn(e.getModifierState?.("CapsLock") ?? false)}
                   onKeyDown={(e) =>
-                    setCapsOn(e.getModifierState?.("CapsLock") ?? false)
-                  }
+                    setCapsOn(e.getModifierState?.("CapsLock") ?? false)}
                   onBlur={() => setCapsOn(false)}
                   placeholder="Tu contraseña"
-                  className="field mb-0 !pr-12 auth-field-has-icon"
+                  className="field mb-0 !pr-12 auth-field-has-icon min-h-[44px]"
                   autoComplete="current-password"
                   ref={passwordRef}
                   aria-invalid={passwordError ? "true" : undefined}
@@ -420,6 +418,8 @@ export default function LoginPage() {
               <div
                 ref={generalErrorRef}
                 role="alert"
+                aria-live="polite"
+                aria-atomic="true"
                 tabIndex={-1}
                 className="mb-4 rounded-lg border border-[var(--e-brand-500)] bg-[color:var(--e-brand-500)_/40] px-3 py-2 text-sm leading-relaxed text-[var(--e-brand-200)]"
               >
