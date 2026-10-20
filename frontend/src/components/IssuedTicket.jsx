@@ -59,7 +59,7 @@ export default function IssuedTicket({ ticket, eventName }) {
           href={waHref}
           target="_blank"
           rel="noreferrer"
-          className="flex w-full items-center justify-center rounded-xl bg var(--e-green-500) py-3 font-semibold text var(--e-paper) transition hover:bg var(--e-green-400)"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-white transition hover:bg-emerald-500"
         >
           <Icon name="whatsapp" className="h-5 w-5" />
           Enviar por WhatsApp
@@ -67,11 +67,11 @@ export default function IssuedTicket({ ticket, eventName }) {
       )}
 
       {/* Lo que se le entrega al invitado: abre el QR sin sesión. */}
-      <div className="rounded-lg bg var(--e-panel-600) p-3 ring-1 ring var(--e-panel-border)">
-        <p className="mb-1 text-xs font-medium text var(--e-text-subtle)">
+      <div className="rounded-lg bg-zinc-800/60 p-3 ring-1 ring-zinc-700/50">
+        <p className="mb-1 text-xs font-medium text-zinc-400">
           Enlace de la boleta (el invitado abre aquí su QR)
         </p>
-        <p className="break-all font-mono text-xs text var(--e-text-on-surface-low)">{ticketUrl}</p>
+        <p className="break-all font-mono text-xs text-zinc-300">{ticketUrl}</p>
         <div className="mt-2 flex gap-2">
           <a
             href={ticketUrl}
@@ -92,10 +92,10 @@ export default function IssuedTicket({ ticket, eventName }) {
       </div>
 
       <details className="list-row rounded-lg p-3">
-        <summary className="cursor-pointer text-xs font-medium text var(--e-text-caption)">
+        <summary className="cursor-pointer text-xs font-medium text-zinc-500">
           Código de respaldo (validar sin cámara)
         </summary>
-        <p className="mt-2 break-all font-mono text-xs text var(--e-text-subtle)">
+        <p className="mt-2 break-all font-mono text-xs text-zinc-400">
           {ticket.raw_token}
         </p>
       </details>

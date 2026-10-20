@@ -413,7 +413,7 @@ function MemberRow({
       key: "purge",
       label: `Eliminar definitivamente a ${m.full_name}`,
       icon: <IconTrash />,
-      cls: "text var(--e-text-caption) hover:text var(--e-red-400) hover:bg var(--e-red-500) / 10",
+      cls: "text-zinc-500 hover:text-red-400 hover:bg-red-500/10",
       onClick: purgeUser,
     },
   ];
@@ -449,7 +449,7 @@ function MemberRow({
             <span
               className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide ring-1 ${
                 m.is_active === false
-                  ? "bg-zinc-800/80 text var(--e-text-caption) ring-zinc-700"
+                  ? "bg-zinc-800/80 text-zinc-500 ring-zinc-700"
                   : "bg-emerald-950/50 text-emerald-400 ring-emerald-900/60"
               }`}
             >
@@ -467,7 +467,7 @@ function MemberRow({
               {meta.label}
             </span>
           </div>
-          <p className="truncate text-xs text var(--e-text-caption)">
+          <p className="truncate text-xs text-zinc-500">
             {m.email}
             <span className="mx-1.5 text-zinc-700">·</span>
             <span
@@ -538,7 +538,7 @@ function MemberRow({
               {isPromoter && m.quota && (
                 <div>
                   <div className="mb-1 flex items-baseline justify-between text-xs">
-                    <span className="text var(--e-text-caption)">Cupo usado</span>
+                    <span className="text-zinc-500">Cupo usado</span>
                     <span className="tnum text-zinc-300">
                       {m.quota.issued} de {m.quota.capacity || "—"} en{" "}
                       {m.quota.allocations}{" "}
@@ -553,7 +553,7 @@ function MemberRow({
                       }}
                     />
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-2xs text var(--e-text-caption)">
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-2xs text-zinc-500">
                     <span className="tnum">
                       Canjeadas:{" "}
                       <span className="text-zinc-300">{m.quota.redeemed}</span>
@@ -568,7 +568,7 @@ function MemberRow({
                 </div>
               )}
               {isBouncer && m.door && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-2xs text var(--e-text-caption)">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-2xs text-zinc-500">
                   <span className="tnum">
                     Accesos concedidos:{" "}
                     <span className="text-emerald-400">{m.door.granted}</span>
@@ -762,13 +762,13 @@ export default function TeamManager({ venueId, users, onChanged }) {
                 Quién hace qué — y qué tan bien
               </h3>
             </div>
-            <p className="text-xs text var(--e-text-caption)">
+            <p className="text-xs text-zinc-500">
               Últimos {stats.days_window} días
             </p>
           </div>
           <div className="grid grid-cols-2 divide-zinc-800/80 sm:grid-cols-4 sm:divide-x">
             <div className="px-2 py-2 text-center">
-              <p className="text-xs text var(--e-text-caption)">Miembros activos</p>
+              <p className="text-xs text-zinc-500">Miembros activos</p>
               <p className="tnum display mt-0.5 text-2xl text-white">
                 {stats.active_members}
                 <span className="text-base text-zinc-600">
@@ -777,19 +777,19 @@ export default function TeamManager({ venueId, users, onChanged }) {
               </p>
             </div>
             <div className="px-2 py-2 text-center">
-              <p className="text-xs text var(--e-text-caption)">Promotores</p>
+              <p className="text-xs text-zinc-500">Promotores</p>
               <p className="tnum display mt-0.5 text-2xl text-white">
                 {stats.promoters_active}
               </p>
             </div>
             <div className="px-2 py-2 text-center">
-              <p className="text-xs text var(--e-text-caption)">Porteros</p>
+              <p className="text-xs text-zinc-500">Porteros</p>
               <p className="tnum display mt-0.5 text-2xl text-white">
                 {stats.bouncers_active}
               </p>
             </div>
             <div className="px-2 py-2 text-center">
-              <p className="text-xs text var(--e-text-caption)">Entraron a trabajar</p>
+              <p className="text-xs text-zinc-500">Entraron a trabajar</p>
               <p
                 className={`tnum display mt-0.5 text-2xl ${stats.active_in_window === 0 ? "text-amber-400" : "text-emerald-400"}`}
               >
@@ -858,7 +858,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
                   className={`tnum rounded-full px-1.5 text-2xs ring-1 ${
                     active
                       ? "bg-zinc-700/80 text-zinc-200 ring-zinc-600"
-                      : "bg-zinc-800/80 text var(--e-text-caption) ring-zinc-700/70"
+                      : "bg-zinc-800/80 text-zinc-500 ring-zinc-700/70"
                   }`}
                 >
                   {counts[t.id]}
@@ -870,7 +870,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
 
         {/* Lista filtrada */}
         {filtered.length === 0 ? (
-          <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-8 text-center text-sm text var(--e-text-caption)">
+          <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-8 text-center text-sm text-zinc-500">
             {query
               ? "Nadie coincide con la búsqueda."
               : counts.all === 0
@@ -965,7 +965,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
             <button disabled={busy} className="btn-primary col-span-full">
               {busy ? "Creando…" : "Crear usuario"}
             </button>
-            <p className="col-span-full text-xs text var(--e-text-caption)">
+            <p className="col-span-full text-xs text-zinc-500">
               Si el correo ya existe, solo se le agrega el rol en esta venue.
             </p>
           </form>

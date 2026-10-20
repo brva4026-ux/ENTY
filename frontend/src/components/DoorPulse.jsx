@@ -31,7 +31,7 @@ export default function DoorPulse({ pulse, isLive }) {
         {bars.length > 0 && (
           <p className="tnum text-xs text-zinc-500">
             pico{" "}
-            <span className="font-semibold text var(--e-text-subtle)">{peak.count}</span> a
+            <span className="font-semibold text-zinc-200">{peak.count}</span> a
             las <span className="text-zinc-300">{peak.label}</span>
           </p>
         )}
@@ -79,7 +79,7 @@ export default function DoorPulse({ pulse, isLive }) {
             {isLive && (
               <>
                 <span className="text-zinc-700">·</span>
-                <span className="inline-flex items-center gap-1 text var(--e-green-400)">
+                <span className="inline-flex items-center gap-1 text-emerald-300">
                   <span className="dp-live-dot" aria-hidden="true" />
                   en vivo
                 </span>
