@@ -60,28 +60,6 @@ function EyeIcon({ open }) {
   );
 }
 
-/** Componente de error con auto-cierre (5s) y enfocado automáticamente */
-function LoginError({ ref, message, duration = 5000 }) {
-  const [show, setShow] = useState(true);
-  const timeoutRef = useRef(null);
-
-  useEffect(() => {
-    if (show) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setShow(false), duration);
-    }
-  }, [show]);
-
-  return show && (
-    <div
-      role="alert"
-      className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm leading-relaxed text-red-300"
-    >
-      {message}
-    </div>
-  );
-}
-
 export default function LoginPage() {
   useDocumentTitle("Ingresar");
   const { login } = useAuth();
@@ -97,10 +75,6 @@ export default function LoginPage() {
   const [forgotMsg, setForgotMsg] = useState("");
   const [forgotBusy, setForgotBusy] = useState(false);
   const emailRef = useRef(null);
-
-  const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotMsg, setForgotMsg] = useState("");
-  const [forgotBusy, setForgotBusy] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
@@ -228,9 +202,74 @@ export default function LoginPage() {
                 <p className="mb-2 text-xs leading-relaxed text-zinc-400">
                   Escribe tu correo arriba y te enviamos un enlace para crear
                   una contraseña nueva.
-                </button>
+                </p>
                 <button
                   type="button"
                   disabled={forgotBusy || !email}
                   onClick={submitForgot}
-                
+                  className="btn-ghost w-full text-xs font-bold disabled:opacity-40"
+                >
+                  {forgotBusy ? (
+                    <>
+                      <svg
+                        className="btn-spinner"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="9" />
+                      </svg>
+                      Enviando
+                    </>
+                  ) : (
+                    "Enviar enlace de recuperación"
+                  )}
+                </button>
+                {forgotMsg && (
+                  <p className="mt-2 text-xs leading-relaxed text-emerald-300">
+                    {forgotMsg}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div
+                role="alert"
+                className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm leading-relaxed text-red-300"
+              >
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="btn-primary w-full"
+            >
+              {busy && (
+                <svg
+                  className="btn-spinner"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+              )}
+              {busy ? "Entrando" : "Entrar"}
+            </button>
+          </form>
+        </div>
+
+        <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
+          ¿Nuevo en Enty?{" "}
+          <button
+            onClick={() => nav("/register")}
+            className="link-underline font-semibold text-brand-300"
+          >
+            Crea tu negocio
+          </button>
+        </p>
+      </div>
+    </AuthShell>
+  );
+}
