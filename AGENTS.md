@@ -383,12 +383,26 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
   y medidor `e-meter`; Puerta = contraste máximo y targets ≥ 44px.
 - Verificación: contraste de texto ≥ 4.5:1 y `scrollWidth == clientWidth` en
   ambos temas, en `/admin`, `/admin?event=1`, `/promotor`, `/bouncer`.
+- **Centrado vertical de una pantalla con formulario: `margin: auto` en el
+  hijo, NO `align-items: center` en el contenedor flex.** Con contenido más alto
+  que el viewport (móvil bajo, teclado abierto, aviso de cookies encima) el
+  centrado por flex desborda por arriba y recorta el primer campo: queda fuera
+  de alcance. `.auth-panel` (login/registro) ya usa esta forma.
+- **Objetivo táctil y aviso de campo**: el error va pegado al campo
+  (`aria-invalid` + `aria-describedby`), no solo en un bloque general lejano.
+  Si el aviso general puede quedar bajo el pliegue, hay que traerlo a la vista
+  (`scrollIntoView`, respetando `prefers-reduced-motion`), no enfocar otro campo.
 
 ## Revisar un preview (Vercel)
 
-El login del preview no se puede automatizar: la herramienta de navegador no
-dispara el `onChange` de React en inputs controlados, así que el formulario
-nunca queda válido y el submit no pasa. Para llegar a una pantalla autenticada
+El login del preview no se puede automatizar **con la herramienta de navegador**:
+no dispara el `onChange` de React en inputs controlados, así que el formulario
+nunca queda válido y el submit no pasa. `page.locator().fill()` de Playwright
+**sí** lo dispara (usa el setter nativo y emite `input`), así que para ejercitar
+el login en local —validación, 401, Bloq Mayús, estados de error— conviene un
+script de Playwright contra el dev server, no la herramienta de navegador.
+
+Para llegar a una pantalla autenticada
 del preview, pedir el token por API y sembrarlo en `localStorage`:
 
 ```bash
@@ -475,6 +489,16 @@ avisar.
   `FUNCTION_INVOCATION_FAILED`**, incluido `/health` — porque el import corre
   antes de cualquier ruta. Ya pasó con `qrcode`/`Pillow` al cablear el QR.
   `tests/test_serverless_deps.py` compara imports vs requirements y lo detecta.
+- **Un extra aplanado pierde su componente.** Ese test compara *nombres de
+  import*, así que `psycopg` a secas lo pasaba mientras la API entera devolvía
+  500: `psycopg` es solo el wrapper y necesita una libpq (`psycopg-binary` en
+  Vercel, que no trae libpq del sistema). Sin ella el import muere con
+  `no pq wrapper available` y tumba `app.main`. Al escribir `psycopg[binary]`
+  como `psycopg`, el binario desapareció. Mismo riesgo con
+  `python-jose[cryptography]`, `passlib[bcrypt]` y `qrcode[pil]`: hoy sus
+  componentes (`cryptography`, `bcrypt`, `Pillow`) van declarados explícitos,
+  pero si se borran el import cae igual.
+  `test_flattened_extras_keep_their_runtime_component` cubre ese caso.
 - **Versión de Python: `.python-version` (3.12).** El backend usa `X | None` a
   nivel módulo, que necesita ≥3.10: en 3.9 `db.py` falla al importar con
   `TypeError: unsupported operand type(s) for |`. No dependas del default de
