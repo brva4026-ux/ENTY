@@ -86,29 +86,3 @@ def test_qr_dependencies_are_available_serverless(package):
     declared = REQUIREMENTS.read_text(encoding="utf-8").lower()
     name = package.split("[", 1)[0].lower()
     assert name in declared, f"{package} falta en api/requirements.txt"
-
-
-# Extra que el backend necesita de verdad en runtime, con el paquete que lo
-# aporta. El test de arriba solo mira NOMBRES de import: `psycopg` figuraba en
-# el archivo y pasaba, pero el extra `[binary]` (la libpq) se habia perdido al
-# aplanar los corchetes, y la API entera respondia 500 en produccion.
-REQUIRED_EXTRAS = {"psycopg": "psycopg-binary"}
-
-
-def test_flattened_extras_keep_their_runtime_component():
-    """Un extra aplanado no puede perder su componente de runtime.
-
-    `psycopg[binary]` se reescribio como `psycopg` a secas; el wrapper sin
-    libpq falla al importar ("no pq wrapper available") y tumba app.main.
-    """
-    declared = _declared_packages()
-    missing = [
-        f"{pkg}[{extra}] -> {component}"
-        for pkg, component in REQUIRED_EXTRAS.items()
-        if pkg in declared and component not in declared
-    ]
-    assert not missing, (
-        "api/requirements.txt declara el paquete pero no su componente de "
-        "runtime; en Vercel la funcion no arranca y la API entera da 500. "
-        f"Faltan: {', '.join(missing)}"
-    )

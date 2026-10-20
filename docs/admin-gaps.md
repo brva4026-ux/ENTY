@@ -115,29 +115,24 @@ O sea que la app se venía renderizando con la fuente por defecto del sistema,
 pese a que `index.css` declaraba Inter. Se movió a un `<link>` en `index.html`
 con `preconnect`, y ahora el HTML construido sí lo incluye.
 
-### 2.9 El bug de `not_found` — **RESUELTO** (deuda saldada)
+### 2.9 El bug de `not_found` — **YA ESTABA RESUELTO, con deuda pendiente**
 
-`schema.sql` insertaba el escaneo fallido con un `INSERT ... SELECT FROM
+`schema.sql:334` inserta el escaneo fallido con un `INSERT ... SELECT FROM
 tickets WHERE token_hash = ...`, que **no inserta nada** cuando el token no
 existe (justo el caso `not_found`). La migración `002_lifecycle.sql:42` lo
 corrige con un `INSERT ... VALUES (NULL, ...)` y hace `ticket_id` nullable.
 
-Hoy `schema.sql` ya trae la versión correcta (`redeem_ticket` inserta
-`VALUES (NULL, p_event_id, ..., 'not_found')` y la columna es nullable), así
-que una instalación nueva no arrastra el bug. Verificado: un token inventado
-registra una fila en `redemptions`.
+Es decir: **en la DB migrada el bug no existe** (verificado: un token inventado
+registra una fila) pero **`schema.sql`, la fuente para instalaciones nuevas,
+todavía tiene la versión rota**. Queda abierto: alinear `schema.sql` con 002.
 
-### 2.10 El comentario de `outcome` en el esquema — **RESUELTO** (comentario eliminado)
+### 2.10 `not_found` no estaba en el comentario del esquema
 
-El comentario de `schema.sql` enumeraba
-`granted | already_redeemed | not_found | invalid_event` y omitía
-`event_not_live` (además de `not_active`, `wrong_type` y `not_valid`, que
-llegaron después). El comentario se eliminó en vez de ampliarlo: la lista de
-estados válidos la define el propio código, y cualquier enumeración a mano
-vuelve a quedar corta con la próxima migración. Los estados reales hoy son
-ocho, y `redemptions.py` los valida en `_filters`.
+`schema.sql:200` documenta `outcome` como
+`granted | already_redeemed | not_found | invalid_event`, pero el código también
+inserta `event_not_live`. Menor, pero es documentación que miente.
 
-### 2.11 La venta directa del admin no tenía pantalla — **CORREGIDO (y luego perdido en un merge)**
+### 2.11 La venta directa del admin no tenía pantalla — **CORREGIDO**
 
 Evidencia: el backend aceptaba `POST /venues/{id}/events/{id}/tickets` con rol
 `admin` desde el Sprint 1 (verificado: `201` con token crudo), pero ningún
@@ -154,58 +149,6 @@ Detalle que quedó unificado: el armado del enlace `/t#<token>` y del mensaje de
 WhatsApp vivía dentro del panel del promotor. Se extrajo a
 `components/IssuedTicket.jsx`, que ahora usan las dos pantallas.
 
-**Regresión (sep-2026).** El commit `e838fad` agregó el panel; el merge
-`ff7c471` ("Merge branch 'master'") tenía dos padres —uno con el panel
-(`f8d104f`) y otro sin él (`fc5237d`)— y resolvió a favor del que no lo tenía:
-borró `EmitTicketPanel`, su import y `<IssuedTicket>` sin que nadie lo notara.
-`tests/test_admin_emit.py` siguió verde todo ese tiempo porque prueba el
-**endpoint**, no la pantalla; el admin volvió a quedarse sin taquilla y la
-documentación siguió diciendo "CORREGIDO". Se restauró el panel (esta vez como
-componente propio, `components/EmitTicketPanel.jsx`) y se agregó
-`frontend/e2e/admin-venta-directa.spec.js`, que falla si la pestaña "Entradas"
-deja de montar el formulario. Esa es la clase de hueco que un test de API no
-puede cazar.
-
-### 2.12 Una instalación nueva se quedaba sin gate legal — **CORREGIDO**
-
-El gate legal (obligatorio por Ley 1581 de Colombia) depende de las filas de
-`legal_documents`. Esas filas vivían **solo** en las migraciones
-`028/029/030`, pero el README manda instalar con `db/schema.sql` a secas
-(`psql ... < db/schema.sql`), sin correr las migraciones. Resultado en una
-instalación limpia: `legal_documents` vacía → `legal_missing_acceptances()`
-devuelve cero filas → ningún usuario acepta términos ni autoriza el
-tratamiento de datos, y la app no lo delata.
-
-Verificado sobre una base nueva creada solo con `schema.sql`:
-`legal_documents rows: 0`. Las 12 filas (versiones 1.0, 1.1 y 1.2 de los cinco
-documentos) se consolidaron en `schema.sql` con `created_at` explícito, porque
-`legal_missing_acceptances` elige la versión vigente por `created_at = max(...)`.
-`test_schema_drift.py` no lo cazaba porque compara con `pg_dump --schema-only`:
-compara estructura, no filas.
-
-### 2.13 El guard del gate legal nunca corría — **CORREGIDO**
-
-`legal-gate.spec.js` existe para atrapar la regresión de la pantalla en negro
-(`onCleared(true)` vs `onCleared()`). Pero se saltaba solo con
-`test.skip(!gate.isVisible())`, y la cuenta demo no tenía documentos
-pendientes: en CI el schema no traía las filas, y en local el primer spec que
-tocaba `admin@bar.test` (`admin-venta-directa.spec.js`) consumía las
-aceptaciones y dejaba el gate cerrado para el resto. O sea: el guard que
-existe para que el bug no vuelva era, en la práctica, un test que nunca corría.
-
-Corrección: el seed siembra ya aceptados a los usuarios demo compartidos y
-reserva `gate@bar.test` (única cuenta con pendientes) para el spec, que además
-borra esas aceptaciones en cada corrida para poder re-ejercitarse. Se
-comprobó revirtiendo el fix: con `onCleared()` el spec falla; con
-`onCleared(true)` pasa.
-
-### 2.14 `not_active` fuera del filtro y de la exportación — **CORREGIDO**
-
-`redemptions.py` valida `?outcome=` contra una lista blanca que omitía
-`not_active` (un estado que `redeem_ticket` inserta de verdad: QR escaneado
-antes de que abra la ventana). El filtro devolvía `422` para un estado real, y
-el CSV tampoco tenía etiqueta en español para él. Se agregaron ambos.
-
 ## 3. Lo que sigue abierto
 
 | # | Pendiente | Por qué importa |
@@ -216,24 +159,15 @@ el CSV tampoco tenía etiqueta en español para él. Se agregaron ambos.
 | 4 | ~~Sin rango de fechas ni exportación~~ **CORREGIDO (oct-2026)** | El cierre de la PUERTA ya exportaba con rango (`/redemptions.csv?since&until`); ahora la CAJA tambien: `GET .../summary` acepta `?since`/`?until` (semiabierto, anclado a la zona del evento) y `GET .../summary.csv` baja el cierre del periodo (caja + puerta + por tipo + por promotor, auditado). El backstage expone un rango Desde/Hasta con boton "Caja (CSV)" junto al cierre de noche |
 | 5 | ~~Sin alerta en vivo al detectar duplicados~~ **CORREGIDO (oct-2026)** | La rafaga (mismo ticket reescaneado 3+ veces en 5 min) ya dispara aviso in-app + push (mig 026) y ahora ademas un **banner en vivo** que se planta encima del panel y enlaza a la noche exacta (mig 027), sin esperar a que el admin abra la campana |
 
-El punto 1 quedó cerrado: el esquema consolidado ya trae el `INSERT` correcto y
-`test_schema_drift.py` lo vigila.
+El punto 1 es el de mayor riesgo y el más barato de cerrar.
 
 ## 4. Verificación
 
-- `backend`: 423/423 tests en verde (`pytest tests/ -q`, incluye los 6 de
-  emisión directa y el nuevo de desglose por portero con ingreso forzado).
-- `frontend`: `npm run build` limpio y `npm run lint:css` sin errores.
-- E2E: 22/22 en verde (incluye `legal-gate.spec.js`, que ahora corre de verdad
-  en vez de saltarse). El gate se comprobó revirtiendo `onCleared(true)` a
-  `onCleared()`: el spec falla, así que atrapa la regresión de la pantalla
-  negra.
-- Instalación limpia: `psql ... < db/schema.sql` deja `legal_documents` con las
-  12 filas y la versión vigente correcta por slug (antes: 0 filas).
+- `backend`: 52/52 tests en verde (46 previos + 6 nuevos de emisión directa).
+- `frontend`: `npm run build` limpio.
 - Extremo a extremo con datos reales (43 boletas, 31 accesos, 7 rechazos):
   los números del panel cuadran contra la consulta SQL directa.
 - Control de acceso probado contra la API en ejecución para los tres roles.
 
 Criterio de cuadre usado: `issued = redeemed + pending` y
-`total = granted + failed`. El desglose por portero suma exactamente esos
-mismos totales (un ingreso forzado cuenta como `granted`, no como `failed`).
+`total = granted + failed`.

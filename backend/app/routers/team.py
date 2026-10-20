@@ -104,8 +104,8 @@ async def team_stats(
         await cur.execute(
             """
             SELECT r.scanned_by_user_id AS user_id,
-                   count(*) FILTER (WHERE r.outcome IN ('granted','granted_forced'))::int AS granted,
-                   count(*) FILTER (WHERE r.outcome NOT IN ('granted','granted_forced'))::int AS rejected,
+                   count(*) FILTER (WHERE r.outcome = 'granted')::int  AS granted,
+                   count(*) FILTER (WHERE r.outcome <> 'granted')::int AS rejected,
                    count(*)::int                                       AS total
             FROM redemptions r
             WHERE r.event_id IN (SELECT id FROM events WHERE venue_id = %s)

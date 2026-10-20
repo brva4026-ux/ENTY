@@ -93,21 +93,6 @@ y reemplazá el archivo) o el test falla.
   datos demo; no hay endpoint de borrado.
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
-- **Verificación visual en el sandbox**: no hace falta levantar Postgres ni el
-  backend. El dev server de Vite proxya `/api` al backend demo de Vercel
-  (`VITE_BACKEND_URL` en el entorno del proceso `vite`), así que
-  `http://127.0.0.1:12000` sirve la UI con datos demo reales. Para Playwright,
-  el Chromium empaquetado no está descargado: pasa
-  `launchOptions.executablePath = '/usr/bin/chromium'` y `E2E_BASE_URL=http://127.0.0.1:12000`.
-  El aviso de cookies es un banner EN FLUJO (no `fixed`): va antes de las
-  rutas en `main.jsx` y empuja el contenido hacia abajo. Antes era `fixed
-  top-3 z-40` y tapaba la cabecera y las acciones del backstage en móvil
-  (`portada.spec.js` fallaba de forma intermitente).
-- **E2E contaminados por datos demo**: `fan.spec.js` ("Inicio -> detalle ->
-  Mis boletos") y `fan-checkout.spec.js` fallan cuando los E2E anteriores ya
-  crearon eventos; eligen el PRIMER evento del catálogo y ese puede no tener
-  CTA de compra. Falla también sobre `master` limpio, así que no lo causa un
-  cambio puntual: antes de culpar al diff, re-correlo con `git stash`.
 
 ## Datos demo
 
@@ -227,8 +212,8 @@ sobre las superficies del fan.
 
 **Clasificación del rediseño (qué se conservó y qué se rehízo):**
 
-- **Conservar**: la marca (matte black `#0c0a09`, violeta `#7C3AED`/`#BB5CF6`,
-  verde `#00E6AB`, rosa `#FF2D98`, tinta `#f6f5f2`, Sora única voz); el
+- **Conservar**: la marca (matte black `#0B0B0F`, violeta `#7C3AED`/`#BB5CF6`,
+  verde `#00E6AB`, rosa `#FF2D98`, tinta `#F5F5F7`, Sora única voz); el
   encuadre nocturno del interior (`.app-shell`); la boleta pública `.tkt` (ya es
   un artefacto troquelado y la credencial de la noche — no tocar).
 - **Perfeccionar**: las superficies `.home`/`.evd` — el motivo de boleto estaba
@@ -258,8 +243,8 @@ sobre las superficies del fan.
   `/boletas` (un elemento cuenta como desborde solo si NINGÚN ancestro lo
   recorta).
 - Detalle: 2 columnas ≥900px (cartel pegajoso + rail de compra), 1 en móvil.
-- Contraste de texto ≥ 4.5:1 sobre `#0c0a09`: `dim` #9a96a8 (6.87), `dim-2`
-  #b6b2c4 (9.55), violeta brillo #BB5CF6 (5.62), verde (12.14), rosa (5.72).
+- Contraste de texto ≥ 4.5:1 sobre `#0B0B0F`: `dim` #9a96a8 (6.83), `dim-2`
+  #b6b2c4 (9.50), violeta brillo #bb5cf6 (5.59), verde (12.07), rosa (5.69).
 
 ## Tokens y guardarraíles (Fase 0–1 del plan estético)
 
@@ -349,18 +334,6 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado
   visible y de un solo color** en ambos temas. Corre con `E2E_BASE_URL=http://127.0.0.1:12000
   npx playwright test e2e/a11y.spec.js`.
-- **Un control que se muestra condicionalmente se mide igual.** El switch de
-  push (`PushToggle`) solo se pinta si el backend tiene VAPID (`serverEnabled`);
-  mientras push estuvo apagado nadie medía su tamaño. Al encenderlo apareció en
-  la puerta con el riel de 28px como único hitbox y rompió el mínimo de 44px
-  (SC 2.5.5) que ese test se impone. El area tactil ahora es el boton (44px) y
-  el riel visual se centra dentro: agrandar el control a la vista habría
-  desproporcionado el diseño, así que se agranda el objetivo, no el dibujo.
-- **Enlaces del pie (`.home-foot-links`, `.legal-nav`): 20px de alto.** Cumplian
-  AA solo por la exención de espaciado de `tapTargetFails` (SC 2.5.8), que
-  depende de la geometría de la pagina: al crecer el contenido el pie se corria
-  y el test caia de forma intermitente. Con `min-height: 24px` cumplen por
-  tamaño propio y dejan de ser sensibles al layout.
 
 ## App interna (Enty): Admin · Promotor · Puerta
 
@@ -383,26 +356,12 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
   y medidor `e-meter`; Puerta = contraste máximo y targets ≥ 44px.
 - Verificación: contraste de texto ≥ 4.5:1 y `scrollWidth == clientWidth` en
   ambos temas, en `/admin`, `/admin?event=1`, `/promotor`, `/bouncer`.
-- **Centrado vertical de una pantalla con formulario: `margin: auto` en el
-  hijo, NO `align-items: center` en el contenedor flex.** Con contenido más alto
-  que el viewport (móvil bajo, teclado abierto, aviso de cookies encima) el
-  centrado por flex desborda por arriba y recorta el primer campo: queda fuera
-  de alcance. `.auth-panel` (login/registro) ya usa esta forma.
-- **Objetivo táctil y aviso de campo**: el error va pegado al campo
-  (`aria-invalid` + `aria-describedby`), no solo en un bloque general lejano.
-  Si el aviso general puede quedar bajo el pliegue, hay que traerlo a la vista
-  (`scrollIntoView`, respetando `prefers-reduced-motion`), no enfocar otro campo.
 
 ## Revisar un preview (Vercel)
 
-El login del preview no se puede automatizar **con la herramienta de navegador**:
-no dispara el `onChange` de React en inputs controlados, así que el formulario
-nunca queda válido y el submit no pasa. `page.locator().fill()` de Playwright
-**sí** lo dispara (usa el setter nativo y emite `input`), así que para ejercitar
-el login en local —validación, 401, Bloq Mayús, estados de error— conviene un
-script de Playwright contra el dev server, no la herramienta de navegador.
-
-Para llegar a una pantalla autenticada
+El login del preview no se puede automatizar: la herramienta de navegador no
+dispara el `onChange` de React en inputs controlados, así que el formulario
+nunca queda válido y el submit no pasa. Para llegar a una pantalla autenticada
 del preview, pedir el token por API y sembrarlo en `localStorage`:
 
 ```bash
@@ -489,16 +448,6 @@ avisar.
   `FUNCTION_INVOCATION_FAILED`**, incluido `/health` — porque el import corre
   antes de cualquier ruta. Ya pasó con `qrcode`/`Pillow` al cablear el QR.
   `tests/test_serverless_deps.py` compara imports vs requirements y lo detecta.
-- **Un extra aplanado pierde su componente.** Ese test compara *nombres de
-  import*, así que `psycopg` a secas lo pasaba mientras la API entera devolvía
-  500: `psycopg` es solo el wrapper y necesita una libpq (`psycopg-binary` en
-  Vercel, que no trae libpq del sistema). Sin ella el import muere con
-  `no pq wrapper available` y tumba `app.main`. Al escribir `psycopg[binary]`
-  como `psycopg`, el binario desapareció. Mismo riesgo con
-  `python-jose[cryptography]`, `passlib[bcrypt]` y `qrcode[pil]`: hoy sus
-  componentes (`cryptography`, `bcrypt`, `Pillow`) van declarados explícitos,
-  pero si se borran el import cae igual.
-  `test_flattened_extras_keep_their_runtime_component` cubre ese caso.
 - **Versión de Python: `.python-version` (3.12).** El backend usa `X | None` a
   nivel módulo, que necesita ≥3.10: en 3.9 `db.py` falla al importar con
   `TypeError: unsupported operand type(s) for |`. No dependas del default de
@@ -584,16 +533,6 @@ avisar.
   suite de pytest. `POST /seed` exige `IS_DEMO=true` en el entorno del backend;
   credenciales `admin@bar.test` / `demo1234`. Sin seed, `puerta.spec`/`portada.spec`
   fallan en el login (la DB queda con usuarios tipo `admin-<hex>@example.test`).
-- **Los E2E se auto-limpian: `globalTeardown` borra los eventos `E2E-*`.** Antes
-  los specs que crean eventos (`fan-waitlist`, `door-alert-live`) los dejaban en
-  la DB; como el catalogo publico ordena por `starts_at ASC` (`public.py`), un
-  evento E2E con fecha cercana se cuela al frente y desplaza al del seed. Los
-  specs que eligen "el primer evento del catalogo" (`fan`, `fan-checkout`)
-  empezaban a ver uno agotado y caian en rojo **por datos, no por codigo** (con
-  `-g` o recien sembrado pasaban; en suite completa, no). Si ves ese sintoma,
-  comproba `select count(*) from events where name like 'E2E-%'` antes de tocar
-  el spec: lo mas probable es residuo, no una regresion. El teardown finaliza
-  los `live` antes de borrar (el endpoint veta el borrado con puertas abiertas).
 - **App del fan (publica, sin login):** `/inicio` (vitrina, `HomePage.jsx`),
   `/evento/:id` (detalle de compra, `EventDetailPage.jsx`), `/t` (boleto),
   `/boletas` (mis boletas por contacto). Backend: `GET /public/events` (catalogo)
@@ -604,45 +543,6 @@ avisar.
   `CATEGORY_CHIPS` en `HomePage.jsx`). Una columna real es follow-up.
 - **Sin checkout publico todavia:** el CTA "Comprar boleto" del detalle apunta a
   `/boletas` (el fan recupera lo ya emitido por contacto).
-- **Accesibilidad: qué exige cada superficie.** La puerta exige 44px de objetivo
-  táctil (SC 2.5.5, AAA) porque se usa de pie y a una mano; el resto de lo público
-  exige 24px (SC 2.5.8, AA). **No midas el catálogo con la regla de 44px**: marcaría
-  enlaces dentro de un párrafo y el wordmark, que la norma exime por "inline" y por
-  "spacing". `a11y.spec.js` ya aplica ambas exenciones en `tapTargetFails`; el test
-  de 44px solo corre en `/bouncer`. Medido a 375px: 0 violaciones AA.
-- **Los E2E de a11y no deben esperar con sleeps fijos.** `settled(page)` espera a
-  que desaparezca "Cargando…", a `networkidle` y a que el `<title>` por ruta deje
-  de ser el estático. Con `waitForTimeout(500)` el detalle del evento se medía a
-  medio cargar y el spec fallaba por carrera con `door-alert-live.spec.js` (que crea
-  eventos `E2E-DOOR-*` en paralelo). `firstEventPath` además salta los `E2E-*` para
-  no medir un evento que otro spec está sembrando.
-- **El aviso de cookies va EN FLUJO, no `fixed`.** Es un banner informativo
-  montado antes de las rutas en `main.jsx`: empuja el contenido hacia abajo en
-  vez de superponerse, asi que no puede tapar nada (ver la nota de la seccion
-  de verificacion visual). No lo vuelvas a `fixed`: como overlay tapaba la
-  cabecera de `AuthShell` y las acciones del backstage.
-- **AA en tema claro: `bg-red-950/*` + `text-red-3xx` era ilegible.** En oscuro
-  `red-950` es rojo profundo; en claro NO se remapeaba, asi que todo estado de
-  error daba ~2.35:1 (medido en pixeles, no con `getComputedStyle`). Arreglado
-  remapeando `--color-red-950` a un lavado claro (`--e-red-50`) en el bloque
-  `html[data-theme="light"]`. Al verificar contraste, **medí los pixeles reales
-  del render**: elegir mal el "color de fondo" mas frecuente da un ratio falso
-  (me paso: reporte 5.74 cuando el real era 2.35).
-- **Hex solo en `tokens.css`.** `stylelint color-no-hex` vigila el resto de
-  hojas: un `#rrggbb` en `index.css` rompe `npm run lint:css`. Las primitivas de
-  color van a `tokens.css` y se consumen por `var()`.
-- **Objetivo tactil AA (WCAG 2.5.8, minimo 24px).** `.legal-links` (11px) usaba
-  renglones de 17px: se les da area con `padding: 0.25rem 0; min-height: 1.5rem`.
-  Ojo: el repo ya cubre varios controles con `::after { inset: -4px }` dentro de
-  `@media (max-width: 640px)`, asi que **medir la caja visual da falsos
-  positivos**: hay que medir el hit area real o mirar el `::after`.
-- **Escala visual: el sistema existia pero se ignoraba.** `--e-space-1..24`
-  (rejilla 4px), `--e-radius-*`, `--e-text-*` estaban definidos y sin usar (28
-  usos de `--e-space-*` frente a 653 valores crudos). Habia 50 espaciados, 27
-  radios y 9 tamanos distintos, casi todos inventados regla por regla (5.6, 9.6,
-  13.6, 4.48, 6.72px...). Se normalizo todo a rejilla de 2px (desvio <=1px).
-  Al tocar la escala, **respetar `999px`** en las pills (no es un paso de
-  rejilla; el snapping lo convertia en `1000px` sin motivo).
 
 ## Admin: salud de puerta (duplicados / rechazos)
 
@@ -739,36 +639,13 @@ avisar.
   `schema.sql` + migraciones, instala el backend, arranca :8001 y el dev
   server :12000 y siembra. `psql` no queda en PATH: usar
   `/usr/lib/postgresql/17/bin/psql` con `PGPASSWORD=devpassword`.
-- **`db/schema.sql` ya trae las filas de `legal_documents`** (consolidadas de
-  las migraciones 028/029/030), asi que el gate legal SI se activa en CI y en
-  una instalacion nueva (antes el schema no traia las filas y el gate nunca
-  aparecia: era una obligacion legal que se perdia en silencio).
-- **El seed reparte las aceptaciones legales:** los cuatro usuarios demo de
-  siempre (`admin@bar.test`, promotores, puerta) se siembran ya ACEPTADOS para
-  que el gate no interrumpa el resto de la suite; `gate@bar.test` es la unica
-  cuenta que queda con documentos pendientes y es la que usa
-  `legal-gate.spec.js`. El seed borra las aceptaciones del gate en cada
-  corrida, asi que re-sembrar vuelve a dejar el spec ejercitable (sin eso, la
-  segunda corrida seguida se salta y el guard deja de probar nada).
+- **El CI solo aplica `db/schema.sql`**, que NO trae las filas de
+  `legal_documents` (viven en migraciones). Por eso el gate legal no se activa
+  en CI: cualquier spec que asuma aceptaciones pendientes debe saltarse si la
+  cuenta no las tiene (`test.skip`), o fallará en verde solo en local.
 - **Puntos que toca el gate legal (no romperlos):** `LegalGate` en `Layout.jsx`
   (`onCleared(true)` — pasar `true`, no `undefined`, o el guard queda abierto y
   la app se pinta en negro); `LegalPage` es dueña del `<h1>` y del
   `document.title` (a11y.spec.js exige uno por pantalla; el `# título` del
-  markdown se descarta); el aviso de cookies ya no es un overlay `z-40`: es un
-  banner en flujo antes de las rutas, así que no compite en z-index con nada.
-- **Los E2E contaminan la DB de dev y se auto-envenenan.** Specs como
-  `fan.spec.js` y `audit-event-create.spec.js` crean eventos `E2E-*` que NO
-  borran. Como la portada ordena por fecha y esos eventos quedan en el futuro,
-  la "primera fila" deja de ser el evento demo y pasa a ser un `E2E-WAIT-*`
-  agotado: `fan.spec.js` y `fan-checkout.spec.js` fallan por datos, no por
-  código (confirmado con `git stash` + rebuild: fallan igual en el baseline).
-  Antes de culpar a un cambio de UI, mirar
-  `select name from events where name like 'E2E-%'` (llegó a haber 24 de 26).
-- **Identidad de marca Enty (regla dura):** una sola voz tipográfica, Sora
-  self-hosted en `public/fonts/*.woff2` — PROHIBIDO Google Fonts o fuentes
-  decorativas (Anton, Permanent Marker) en cualquier HTML, incluidos los
-  estáticos de `public/brand/`. Isotipo = "E troquelada" + sello de registro
-  (anillo con punto); NUNCA la estrella de 4 puntas (genérica "de IA"). La
-  estrella de 5 puntas (`Star5`) sí vale como acento de fiesta. Paleta: negro
-  mate cálido (`--e-ink-*`, canvas `#0c0a09`), no el navy azulado viejo.
-  Verificar: `grep -rn "googleapis\|Anton\|Permanent" frontend/public frontend/src`.
+  markdown se descarta); el banner de alerta de puerta debe quedar por ENCIMA
+  del aviso de cookies (z-45 vs z-40) o el botón queda inclickeable.

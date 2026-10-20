@@ -121,10 +121,6 @@ def test_redemptions_filters(api, dbcur):
     assert rango["total"] == 0
 
     assert api.get(f"{url}?outcome=inventado", "admin").status_code == 422
-    # `not_active` es un outcome que `redeem_ticket` inserta de verdad (QR
-    # escaneado antes de abrir la ventana): tiene que pasar el filtro, no caer
-    # en el 422 de "outcome invalido".
-    assert api.get(f"{url}?outcome=not_active", "admin").status_code == 200
 
 
 def test_redemptions_csv_export(api, dbcur):

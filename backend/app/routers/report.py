@@ -405,7 +405,7 @@ async def event_summary(
             """
             SELECT coalesce(u.full_name, 'Sin identificar') AS full_name,
                    count(*) FILTER (WHERE r.outcome IN ('granted','granted_forced'))::int  AS granted,
-                   count(*) FILTER (WHERE r.outcome NOT IN ('granted','granted_forced'))::int AS failed,
+                   count(*) FILTER (WHERE r.outcome<>'granted')::int AS failed,
                    count(*)::int                                    AS total
             FROM redemptions r
             LEFT JOIN users u ON u.id = r.scanned_by_user_id

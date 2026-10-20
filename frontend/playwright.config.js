@@ -14,11 +14,6 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   testDir: here,
-  // Borra los eventos E2E- que quedan de cada corrida: sin esto se acumulan y
-  // desplazan al evento del seed en el catalogo (orden por starts_at ASC),
-  // volviendo rojos los specs que eligen "el primer evento" por datos, no por
-  // codigo. Ver e2e/global-teardown.js.
-  globalTeardown: here + "e2e/global-teardown.js",
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "line" : "list",
