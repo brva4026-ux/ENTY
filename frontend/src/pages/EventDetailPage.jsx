@@ -280,7 +280,13 @@ export default function EventDetailPage() {
           la columna izquierda (ver .evd-poster). */}
       <div className="evd-hero">
         {data?.flyer_url ? (
-          <img src={data.flyer_url} alt="" />
+          <img
+            src={data.flyer_url}
+            alt=""
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+          />
         ) : (
           <div className="evd-hero-fallback" aria-hidden="true" />
         )}
@@ -304,7 +310,12 @@ export default function EventDetailPage() {
           <div className="evd-poster">
             <div className="evd-poster-frame">
               {data.flyer_url ? (
-                <img src={data.flyer_url} alt="" />
+                <img
+                  src={data.flyer_url}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
               ) : (
                 <div className="evd-hero-fallback" aria-hidden="true" />
               )}

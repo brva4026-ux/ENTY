@@ -5,6 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0A0A0F" />
     <meta name="description" content="Enty — boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso." />
+    <!-- Tarjeta social: sin esto, compartir un link por WhatsApp (el canal real
+         de este producto) mostraba una URL pelada. Cambiar SITE_URL cuando
+         exista dominio propio: es el único lugar donde vive. -->
+    <link rel="canonical" href="https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Enty" />
+    <meta property="og:locale" content="es_CO" />
+    <meta property="og:title" content="Enty — Boletería y Aforo" />
+    <meta property="og:description" content="Boletas, cortesías y control de aforo: ventas por promotor, cupos que no se sobrevenden y puerta con QR anti-reuso." />
+    <meta property="og:url" content="https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/" />
+    <meta property="og:image" content="https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Enty — boletas, cortesías y control de aforo" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Enty — Boletería y Aforo" />
+    <meta name="twitter:description" content="Boletas, cortesías y control de aforo con QR anti-reuso." />
+    <meta name="twitter:image" content="https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/og-cover.png" />
     <!-- Fuente self-hosted (Sora variable, public/fonts): preload para que el
          primer paint use la voz de marca; sin terceros, sin FOUT de red. -->
     <link rel="preload" href="/fonts/sora-latin.woff2" as="font" type="font/woff2" crossorigin />
@@ -18,6 +36,16 @@
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzBBMEEwRicvPjxnIHRyYW5zZm9ybT0nc2NhbGUoMC4wNjI1KScgc3Ryb2tlPScjZmZmJyBzdHJva2Utd2lkdGg9JzYwJyBzdHJva2UtbGluZWNhcD0ncm91bmQnIGZpbGw9J25vbmUnPjxwYXRoIGQ9J00xODYgMTU2IEgzMTgnLz48cGF0aCBkPSdNMTg2IDI1NiBIMjkyJy8+PHBhdGggZD0nTTE4NiAzNTYgSDMxOCcvPjxwYXRoIGQ9J00xODYgMTU2IFYzNTYnLz48L2c+PHBhdGggZmlsbD0nI0JCNUNGNicgZD0nTTM1NiAxOTYgbDEzIDM0IDM0IDEzIC0zNCAxMyAtMTMgMzQgLTEzIC0zNCAtMzQgLTEzIDM0IC0xMyB6Jy8+PC9zdmc+" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <title>Enty — Boletería y Aforo</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Enty",
+        "url": "https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/",
+        "logo": "https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/icons/icon-512.png",
+        "description": "Boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso."
+      }
+    </script>
     <script>
       // Tema antes del primer paint: lee la preferencia y aplica
       // data-theme="light" si corresponde — cero flash blanco al cargar.
