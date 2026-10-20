@@ -11,6 +11,16 @@ import useDocumentTitle from "../lib/useDocumentTitle";
  *  evita un viaje al servidor para algo que ya se sabe en el navegador. */
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/;
 
+/** Colores y tokens Enty --e-*
+ * --e-ink-1: negro mate de marca (fondo principal)
+ * --e-ink-2: negro slightly lighter (superficies secundarias)
+ * --e-brand-400: violeta acción/acento
+ * --e-brand-500: violeta principal (botones, acciones)
+ * --e-brand-300: violeta tenue (textos secundarios)
+ * --e-ink-4: gris oscuro oscuro (bordes, separadores)
+ * --e-ink-1000: negro puro (para texto en modo claro si necesario)
+ */
+
 /**
  * Traduce el error del backend a algo que la persona entiende y sabe qué hacer.
  *
@@ -240,17 +250,17 @@ export default function LoginPage() {
   return (
     <AuthShell>
       <div className="relative w-full">
-        <div className="auth-card reveal p-6 sm:p-7">
+        <div className="auth-card reveal p-6 sm:p-7 bg-[var(--e-ink-1)]">
           <p className="eyebrow">Tu panel</p>
           <h1 className="display mt-1 mb-1 text-2xl">Ingresar</h1>
-          <p className="mb-5 text-sm leading-relaxed text-zinc-400">
+          <p className="mb-5 text-sm leading-relaxed text-[var(--e-ink-4)]">
             Entra con tu correo de trabajo para manejar la venta y la puerta.
           </p>
 
           <form onSubmit={submit} noValidate>
             <label
               htmlFor="login-email"
-              className="mb-1.5 block text-xs font-medium text-zinc-400"
+              className="mb-1.5 block text-xs font-medium text-[var(--e-ink-4)]"
             >
               Correo
             </label>
@@ -294,7 +304,7 @@ export default function LoginPage() {
 
             <label
               htmlFor="login-password"
-              className="mb-1.5 block text-xs font-medium text-zinc-400"
+              className="mb-1.5 block text-xs font-medium text-[var(--e-ink-4)]"
             >
               Contraseña
             </label>
@@ -366,14 +376,14 @@ export default function LoginPage() {
                 setForgotOpen((v) => !v);
                 setForgotMsg("");
               }}
-              className="mb-4 text-xs font-medium text-brand-300 transition hover:text-brand-200"
+              className="mb-4 text-xs font-medium text-[var(--e-brand-300)] transition hover:text-[var(--e-brand-200)]"
             >
               ¿Olvidaste tu contraseña?
             </button>
 
             {forgotOpen && (
-              <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
-                <p className="mb-2 text-xs leading-relaxed text-zinc-400">
+              <div className="mb-4 rounded-lg border border-[var(--e-ink-4)] bg-[var(--e-ink-2)] p-3">
+                <p className="mb-2 text-xs leading-relaxed text-[var(--e-ink-4)]">
                   Escribe tu correo arriba y te enviamos un enlace para crear
                   una contraseña nueva.
                 </p>
@@ -399,7 +409,7 @@ export default function LoginPage() {
                   )}
                 </button>
                 {forgotMsg && (
-                  <p className="mt-2 text-xs leading-relaxed text-emerald-300">
+                  <p className="mt-2 text-xs leading-relaxed text-[var(--e-brand-300)]">
                     {forgotMsg}
                   </p>
                 )}
@@ -411,7 +421,7 @@ export default function LoginPage() {
                 ref={generalErrorRef}
                 role="alert"
                 tabIndex={-1}
-                className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm leading-relaxed text-red-300"
+                className="mb-4 rounded-lg border border-[var(--e-brand-500)] bg-[color:var(--e-brand-500)_/40] px-3 py-2 text-sm leading-relaxed text-[var(--e-brand-200)]"
               >
                 {generalError}
               </div>
@@ -436,11 +446,11 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
-          ¿Nuevo en Enty?{" "}
+        <p className="mt-5 animate-fade text-center text-sm text-[var(--e-ink-4)]">
+          ¿Nuevo en Enty? {" "}
           <button
             onClick={() => nav("/register")}
-            className="link-underline font-semibold text-brand-300"
+            className="link-underline font-semibold text-[var(--e-brand-300)]"
           >
             Crea tu negocio
           </button>
