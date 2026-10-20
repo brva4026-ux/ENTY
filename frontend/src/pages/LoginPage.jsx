@@ -67,12 +67,15 @@ function describeLoginError(err) {
         "No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.",
     };
   }
-  // 5xx: el servidor falló y su texto no dice nada a la persona (a veces es
-  // "Internal Server Error"). Mensaje propio + invitación a reintentar.
+  // 5xx: el fallo es del servidor, no de la persona. Su texto no aporta (a
+  // veces es "Internal Server Error"). El mensaje evita dos engaños: decirle
+  // que "espere y reintente" cuando el servicio está caído (reintentar no
+  // arregla nada) y dejarlo creyendo que su cuenta o contraseña fallan, lo que
+  // lo empuja a un reinicio de contraseña que tampoco sirve.
   if (err?.status >= 500) {
     return {
       general:
-        "Tuvimos un problema en nuestro lado. Espera un momento y vuelve a intentar.",
+        "El servicio no está disponible en este momento. No es tu cuenta ni tu contraseña: es una falla de nuestro lado. Vuelve a intentar más tarde; si sigue igual, avísale al equipo.",
     };
   }
   return { general: raw || "No pudimos iniciar sesión. Inténtalo de nuevo." };

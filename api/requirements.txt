@@ -1,5 +1,12 @@
 fastapi>=0.111
+# psycopg es solo el wrapper: necesita una implementacion de libpq. En Vercel
+# no hay libpq del sistema, asi que sin `psycopg-binary` el import de psycopg
+# muere con "no pq wrapper available" y app.main no carga: TODA la API responde
+# 500 (FUNCTION_INVOCATION_FAILED). Antes se declaraba el extra `psycopg[binary]`
+# (que resolvia igual); al pasar a `psycopg` a secas se perdio el binario. Se
+# declara explicito para que quede a la vista que libpq es obligatorio.
 psycopg>=3.2
+psycopg-binary>=3.2
 psycopg-pool>=3.2
 pydantic>=2.7
 pydantic-settings>=2.3
