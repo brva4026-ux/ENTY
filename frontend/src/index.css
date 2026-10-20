@@ -4470,7 +4470,54 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
 .auth-field:focus-within .auth-field-icon {
   color: var(--e-brand-400);
 }
-/* Móvil: sin orbes ni blurs que abaratar el showroom; la píldora ya no
+/* Campo con error: el borde y el icono se vuelven rojos para que el ojo vaya
+   al campo exacto, no solo al aviso de arriba. El color lo remapea el tema
+   claro por los tokens de --color-red-*. */
+.auth-field.has-error .field {
+  border-color: var(--color-red-500);
+}
+.auth-field.has-error .field:focus {
+  border-color: var(--color-red-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-red-500) 24%, transparent);
+}
+.auth-field.has-error .auth-field-icon {
+  color: var(--color-red-400);
+}
+/* Aviso bajo el campo: la explicacion vive pegada al dato que la provoca,
+   no en un bloque lejano. */
+.auth-field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
+  font-size: var(--e-text-xs);
+  line-height: 1.45;
+  color: var(--color-red-400);
+}
+.auth-field-error svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  height: 0.875rem;
+  width: 0.875rem;
+}
+/* Aviso de Bloq Mayus: no es un error (no hay nada mal escrito todavia), es
+   una pista. Tono neutro de advertencia, no rojo. */
+.auth-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
+  font-size: var(--e-text-xs);
+  line-height: 1.45;
+  color: var(--color-amber-300);
+}
+.auth-hint svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  height: 0.875rem;
+  width: 0.875rem;
+}
+/* Movil: sin orbes ni blurs que abaratar el showroom; la píldora ya no
    existe, no hay padding que ajustar. */
 @media (max-width: 640px) {
   .ab-orb {
@@ -5549,8 +5596,6 @@ html[data-theme="light"] .evx-name {
   position: relative;
   z-index: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
   min-height: 100vh;
   min-height: 100dvh;
   padding: 2rem 1.25rem;
@@ -5562,9 +5607,15 @@ html[data-theme="light"] .evx-name {
   padding-left: max(1.25rem, env(safe-area-inset-left));
   padding-right: max(1.25rem, env(safe-area-inset-right));
 }
+/* Centrado con `margin: auto`, NO con `align-items: center`. Cuando el
+   contenido es mas alto que el viewport (movil bajo, teclado abierto, aviso
+   de cookies encima) el centrado por flex recorta la parte de arriba: el
+   primer campo quedaba fuera de alcance. Los margenes automaticos centran si
+   cabe y, si no, arrancan arriba y dejan desplazarse hasta el final. */
 .auth-panel-inner {
   width: 100%;
   max-width: 24rem;
+  margin: auto;
 }
 
 /* Cabecera compacta para movil (reemplaza al panel de marca). */
@@ -5584,6 +5635,34 @@ html[data-theme="light"] .evx-name {
 @media (min-width: 1024px) {
   .auth-compact {
     display: none;
+  }
+}
+/* En movil la cabecera pasa a FILA (isotipo + lema al lado): ocupa la mitad de
+   alto que apilada, deja respirar al formulario y se lee como una firma de
+   marca en vez del hero generico centrado. */
+@media (max-width: 640px) {
+  .auth-compact {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .auth-compact-lema {
+    margin-top: 0;
+    max-width: 11rem;
+    text-align: left;
+    font-size: var(--e-text-base);
+    line-height: 1.25;
+  }
+  /* El wordmark hero (display) al lado del isotipo no cabe en 320px: se baja a
+     escala de marca secundaria sin tocar el logo de escritorio. */
+  .auth-compact .brand-wordmark-hero {
+    font-size: var(--e-text-xl);
+  }
+  .auth-panel {
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
   }
 }
 
