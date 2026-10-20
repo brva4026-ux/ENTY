@@ -70,6 +70,40 @@ function dayBadge(iso, tz) {
   return { day, month: MONTHS[monthNum - 1] ?? "---" };
 }
 
+/**
+ * Rangos de fecha de la vitrina. El backend no tiene filtro por fecha (ordena
+ * por `starts_at`), asi que se recorta en cliente sobre el catalogo ya
+ * descargado: cero peticiones extra y cambio instantaneo.
+ */
+const DATE_CHIPS = [
+  { key: "todos", label: "Todas" },
+  { key: "hoy", label: "Hoy" },
+  { key: "semana", label: "7 días" },
+  { key: "mes", label: "30 días" },
+];
+
+/** Ciudad del evento: el primer segmento de la direccion, o el venue. */
+function cityOf(e) {
+  return (e.location || e.venue || "").split(",")[0].trim();
+}
+
+/**
+ * ¿El evento cae dentro del rango elegido? "Hoy" es el dia calendario del
+ * navegador (la vitrina se lee desde donde esta el fan); los demas rangos son
+ * ventanas moviles desde ahora, que es como la gente piensa "este fin de
+ * semana" / "este mes".
+ */
+function inDateRange(iso, key) {
+  if (key === "todos") return true;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return false;
+  const now = new Date();
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (key === "hoy") return t >= dayStart && t < dayStart + 86_400_000;
+  const days = key === "semana" ? 7 : 30;
+  return t >= now.getTime() && t <= now.getTime() + days * 86_400_000;
+}
+
 /** Estrella de cuatro puntas (acento de marca). */
 function Star({ size = 8, color = "#8B5CF6" }) {
   return (
@@ -296,6 +330,7 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [cat, setCat] = useState("todos");
   const [query, setQuery] = useState("");
+  const [range, setRange] = useState("todos");
   const [favs, setFavs] = useState(() => new Set());
   // Solo la última tarjeta marcada celebra (rebote): no todas al montar.
   const [favPop, setFavPop] = useState(null);
@@ -311,11 +346,14 @@ export default function HomePage() {
   useEffect(() => setFavs(readFavs()), []);
 
   // Ciudad opcional por URL (?city=Bogotá): permite enlazar/compartir una
-  // cartelera por ciudad sin cuenta. Sin parametro, el catalogo completo.
-  const cityFilter = useMemo(() => {
+  // cartelera por ciudad sin cuenta. Se filtra en cliente sobre el catalogo
+  // ya descargado — cambiar de ciudad NO vuelve a pedir la API (sin esqueleto
+  // de carga) y la URL se mantiene sincronizada para que el enlace se pueda
+  // seguir compartiendo.
+  const [city, setCity] = useState(() => {
     const c = new URLSearchParams(window.location.search).get("city");
-    return c && c.trim() ? c.trim() : undefined;
-  }, []);
+    return c && c.trim() ? c.trim() : "";
+  });
 
   useEffect(() => {
     let alive = true;
@@ -323,7 +361,7 @@ export default function HomePage() {
     // error viejo mientras la petición nueva está en camino.
     setError("");
     setData(null);
-    fetchPublicEvents({ limit: 50, city: cityFilter })
+    fetchPublicEvents({ limit: 100 })
       .then((d) => {
         if (alive) setData(d);
       })
@@ -333,14 +371,35 @@ export default function HomePage() {
     return () => {
       alive = false;
     };
-  }, [cityFilter, reload]);
+  }, [reload]);
+
+  // La ciudad vive en la URL: el enlace compartido abre la misma cartelera.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (city) url.searchParams.set("city", city);
+    else url.searchParams.delete("city");
+    window.history.replaceState(null, "", url);
+  }, [city]);
 
   const events = data?.events ?? [];
   const chip = CATEGORY_CHIPS.find((c) => c.key === cat) ?? CATEGORY_CHIPS[0];
 
+  // Ciudades del catalogo (las que de verdad tienen eventos), de mas a menos
+  // oferta: el filtro no ofrece destinos vacios.
+  const cities = useMemo(() => {
+    const counts = new Map();
+    for (const e of events) {
+      const c = cityOf(e);
+      if (c) counts.set(c, (counts.get(c) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [events]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return events.filter((e) => {
+      if (city && cityOf(e) !== city) return false;
+      if (!inDateRange(e.starts_at, range)) return false;
       if (!chip.match(e)) return false;
       if (!q) return true;
       return (
@@ -349,10 +408,20 @@ export default function HomePage() {
         (e.location ?? "").toLowerCase().includes(q)
       );
     });
-  }, [events, chip, query]);
+  }, [events, chip, query, city, range]);
 
   const featured = filtered[0] ?? null;
   const rest = filtered.slice(1);
+  // Hay un filtro puesto (texto, categoria, fecha o ciudad): cambia el mensaje
+  // del vacio y el boton que lo deshace.
+  const narrowed = Boolean(query.trim()) || cat !== "todos" || range !== "todos" || Boolean(city);
+
+  function resetFilters() {
+    setQuery("");
+    setCat("todos");
+    setRange("todos");
+    setCity("");
+  }
 
   // Avisos = eventos que ocurren en los proximos 7 dias (lo unico que el
   // catalogo publico permite saber sin cuenta). No hay push de fan todavia.
@@ -467,6 +536,41 @@ export default function HomePage() {
         ))}
       </div>
 
+      {/* Filtros: fecha (ventana movil, recortada en cliente) y ciudad (la del
+          catalogo ya descargado). Van juntos y debajo de las categorias para
+          no empujar el hero fuera de pantalla en movil. */}
+      <div className="home-filters" role="group" aria-label="Filtros de la cartelera">
+        <div className="home-filter-dates">
+          {DATE_CHIPS.map((d) => (
+            <button
+              key={d.key}
+              type="button"
+              aria-pressed={range === d.key}
+              className={`home-chip${range === d.key ? " is-on" : ""}`}
+              onClick={() => setRange(d.key)}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+        {cities.length > 1 && (
+          <div className="home-filter-city">
+            <select
+              value={city}
+              onChange={(ev) => setCity(ev.target.value)}
+              aria-label="Filtrar por ciudad"
+            >
+              <option value="">Todas las ciudades</option>
+              {cities.map(([name]) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
       {/* Ticker cinético: la energía de la noche entre el troquel y la rejilla.
           Decorativo (aria-hidden): repite la marca, no aporta datos. La lista
           va duplicada para que el loop sea continuo (el keyframe mueve -50%). */}
@@ -507,17 +611,17 @@ export default function HomePage() {
           <span className="enty-spark" aria-hidden="true">
             <Star size={20} color="#00E6AB" />
           </span>
-          <p>{query ? "Sin resultados" : "No hay eventos próximos"}</p>
+          <p>{narrowed ? "Sin resultados" : "No hay eventos próximos"}</p>
           <span>
-            {query
-              ? "Prueba con otro nombre, artista o ciudad."
+            {narrowed
+              ? "Prueba con otro nombre, categoría, fecha o ciudad."
               : "Vuelve pronto: la cartelera se actualiza cada semana."}
           </span>
-          {query ? (
+          {narrowed ? (
             <button
               type="button"
               className="btn-ghost mt-3"
-              onClick={() => setQuery("")}
+              onClick={resetFilters}
             >
               Ver todos los eventos
             </button>
