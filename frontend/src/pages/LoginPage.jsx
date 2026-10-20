@@ -1,5 +1,5 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
@@ -66,6 +66,10 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Foco al campo corregible cuando falla el ingreso: el mensaje es genérico
+  // (no revela si falló el correo o la contraseña), así que se lleva el foco a
+  // la contraseña, que es lo que la persona suele poder corregir.
+  const passRef = useRef(null);
 
   // Recuperación de contraseña
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -90,6 +94,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError(loginErrorMessage(err));
+      passRef.current?.focus();
     } finally {
       setBusy(false);
     }
@@ -100,11 +105,15 @@ export default function LoginPage() {
     setForgotBusy(true);
     setForgotMsg("");
     try {
-      const res = await apiFetch("/auth/forgot-password", {
+      await apiFetch("/auth/forgot-password", {
         method: "POST",
         body: JSON.stringify({ email }),
       });
-      setForgotMsg(res.detail);
+      // Mensaje deliberadamente genérico: repetir el `detail` del backend
+      // permitiría enumerar qué correos existen en la plataforma.
+      setForgotMsg(
+        "Si el correo está registrado, te enviamos un enlace para crear una contraseña nueva.",
+      );
     } catch (err) {
       setForgotMsg(
         "No pudimos procesar la solicitud ahora. Inténtalo en unos minutos.",
@@ -143,6 +152,8 @@ export default function LoginPage() {
                 autoComplete="email"
                 autoFocus
                 required
+                aria-invalid={error ? "true" : undefined}
+                aria-describedby={error ? "login-error" : undefined}
               />
             </div>
 
@@ -160,14 +171,17 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Tu contraseña"
+                ref={passRef}
                 className="field mb-0 !pr-12 auth-field-has-icon"
                 autoComplete="current-password"
                 required
+                aria-invalid={error ? "true" : undefined}
+                aria-describedby={error ? "login-error" : undefined}
               />
               <button
                 type="button"
                 onClick={() => setShowPass((v) => !v)}
-                className="absolute right-1.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-800/60 hover:text-zinc-100"
+                className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-800/60 hover:text-zinc-100"
                 aria-label={
                   showPass ? "Ocultar contraseña" : "Mostrar contraseña"
                 }
@@ -183,7 +197,7 @@ export default function LoginPage() {
                 setForgotOpen((v) => !v);
                 setForgotMsg("");
               }}
-              className="mb-4 text-xs font-medium text-brand-300 transition hover:text-brand-200"
+              className="mb-2 inline-flex min-h-11 items-center text-xs font-medium text-brand-300 transition hover:text-brand-200"
             >
               ¿Olvidaste tu contraseña?
             </button>
@@ -216,7 +230,11 @@ export default function LoginPage() {
                   )}
                 </button>
                 {forgotMsg && (
-                  <p className="mt-2 text-xs leading-relaxed text-emerald-300">
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    className="mt-2 text-xs leading-relaxed text-zinc-300"
+                  >
                     {forgotMsg}
                   </p>
                 )}
@@ -225,6 +243,7 @@ export default function LoginPage() {
 
             {error && (
               <div
+                id="login-error"
                 role="alert"
                 className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm leading-relaxed text-red-300"
               >
@@ -253,13 +272,40 @@ export default function LoginPage() {
 
         <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
           ¿Nuevo en Enty?{" "}
-          <button
-            onClick={() => nav("/register")}
+          <Link
+            to="/register"
             className="link-underline font-semibold text-brand-300"
           >
             Crea tu negocio
-          </button>
+          </Link>
         </p>
+
+        {/* Salidas de la pantalla: sin ellas, un visitante que llega a /login
+            desde un enlace compartido (o un fan que no es staff) queda atrapado
+            sin acceso al catálogo ni a la información legal. */}
+        <nav
+          aria-label="Enlaces útiles"
+          className="mt-2 flex flex-wrap items-center justify-center gap-x-5 text-xs text-zinc-400"
+        >
+          <Link
+            to="/inicio"
+            className="inline-flex min-h-11 items-center transition hover:text-zinc-200"
+          >
+            Ver eventos
+          </Link>
+          <Link
+            to="/terminos"
+            className="inline-flex min-h-11 items-center transition hover:text-zinc-200"
+          >
+            Términos
+          </Link>
+          <Link
+            to="/privacidad"
+            className="inline-flex min-h-11 items-center transition hover:text-zinc-200"
+          >
+            Privacidad
+          </Link>
+        </nav>
       </div>
     </AuthShell>
   );
