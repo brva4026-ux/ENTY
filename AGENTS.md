@@ -383,12 +383,26 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
   y medidor `e-meter`; Puerta = contraste máximo y targets ≥ 44px.
 - Verificación: contraste de texto ≥ 4.5:1 y `scrollWidth == clientWidth` en
   ambos temas, en `/admin`, `/admin?event=1`, `/promotor`, `/bouncer`.
+- **Centrado vertical de una pantalla con formulario: `margin: auto` en el
+  hijo, NO `align-items: center` en el contenedor flex.** Con contenido más alto
+  que el viewport (móvil bajo, teclado abierto, aviso de cookies encima) el
+  centrado por flex desborda por arriba y recorta el primer campo: queda fuera
+  de alcance. `.auth-panel` (login/registro) ya usa esta forma.
+- **Objetivo táctil y aviso de campo**: el error va pegado al campo
+  (`aria-invalid` + `aria-describedby`), no solo en un bloque general lejano.
+  Si el aviso general puede quedar bajo el pliegue, hay que traerlo a la vista
+  (`scrollIntoView`, respetando `prefers-reduced-motion`), no enfocar otro campo.
 
 ## Revisar un preview (Vercel)
 
-El login del preview no se puede automatizar: la herramienta de navegador no
-dispara el `onChange` de React en inputs controlados, así que el formulario
-nunca queda válido y el submit no pasa. Para llegar a una pantalla autenticada
+El login del preview no se puede automatizar **con la herramienta de navegador**:
+no dispara el `onChange` de React en inputs controlados, así que el formulario
+nunca queda válido y el submit no pasa. `page.locator().fill()` de Playwright
+**sí** lo dispara (usa el setter nativo y emite `input`), así que para ejercitar
+el login en local —validación, 401, Bloq Mayús, estados de error— conviene un
+script de Playwright contra el dev server, no la herramienta de navegador.
+
+Para llegar a una pantalla autenticada
 del preview, pedir el token por API y sembrarlo en `localStorage`:
 
 ```bash
