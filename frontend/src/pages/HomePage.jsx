@@ -300,6 +300,9 @@ export default function HomePage() {
   // Solo la última tarjeta marcada celebra (rebote): no todas al montar.
   const [favPop, setFavPop] = useState(null);
   const [bellOpen, setBellOpen] = useState(false);
+  // Contador de reintentos: cambiar el valor vuelve a disparar el fetch sin
+  // duplicar la lógica de carga (mismo efecto, misma limpieza).
+  const [reload, setReload] = useState(0);
   // La vitrina es nocturna por diseno (negro + violeta). Sin el candado, un
   // visitante con tema claro veia la cartelera como una tarjeta negra sobre
   // blanco: el tema del sistema no aplica a una pantalla publica de marca.
@@ -316,6 +319,10 @@ export default function HomePage() {
 
   useEffect(() => {
     let alive = true;
+    // Un reintento vuelve al estado de carga: si no, la pantalla muestra el
+    // error viejo mientras la petición nueva está en camino.
+    setError("");
+    setData(null);
     fetchPublicEvents({ limit: 50, city: cityFilter })
       .then((d) => {
         if (alive) setData(d);
@@ -326,7 +333,7 @@ export default function HomePage() {
     return () => {
       alive = false;
     };
-  }, [cityFilter]);
+  }, [cityFilter, reload]);
 
   const events = data?.events ?? [];
   const chip = CATEGORY_CHIPS.find((c) => c.key === cat) ?? CATEGORY_CHIPS[0];
@@ -390,6 +397,9 @@ export default function HomePage() {
               Inicio
             </Link>
             <Link to="/boletas">Mis boletos</Link>
+            {/* El staff necesita una entrada visible al panel: en movil la da
+                la barra inferior (Perfil), en escritorio no hay barra. */}
+            <Link to="/login">Acceso</Link>
           </nav>
         </div>
         <div className="home-head-right">
@@ -475,6 +485,13 @@ export default function HomePage() {
           </span>
           <p>No pudimos cargar la cartelera</p>
           <span>{error}</span>
+          <button
+            type="button"
+            className="btn-ghost mt-3"
+            onClick={() => setReload((n) => n + 1)}
+          >
+            Reintentar
+          </button>
         </div>
       ) : !data ? (
         <div className="home-grid">
@@ -496,6 +513,23 @@ export default function HomePage() {
               ? "Prueba con otro nombre, artista o ciudad."
               : "Vuelve pronto: la cartelera se actualiza cada semana."}
           </span>
+          {query ? (
+            <button
+              type="button"
+              className="btn-ghost mt-3"
+              onClick={() => setQuery("")}
+            >
+              Ver todos los eventos
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn-ghost mt-3"
+              onClick={() => setReload((n) => n + 1)}
+            >
+              Actualizar cartelera
+            </button>
+          )}
         </div>
       ) : (
         <div className="home-grid">

@@ -1357,8 +1357,9 @@ html[data-theme="light"] .bizdock-count {
 /* Campana de avisos (reemplaza al avatar de login del header). */
 .home-bell {
   position: relative;
-  width: 2.25rem;
-  height: 2.25rem;
+  /* 2.75rem = 44 px: mínimo táctil del sistema (antes 2.25rem = 36 px). */
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.14);
   display: flex;
