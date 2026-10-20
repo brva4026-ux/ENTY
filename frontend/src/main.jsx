@@ -215,7 +215,11 @@ function App() {
 function HomeRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <SplashScreen />;
-  if (!user) return <Navigate to="/login" replace />;
+  // La raíz es la VITRINA, no el login: Enty vende boletas al fan y la
+  // mayoría de quien abre un enlace compartido no tiene cuenta. Mandarlo a
+  // /login lo dejaba sin catálogo y sin forma de volver. El staff no pierde
+  // entrada: "Acceso" en la cabecera y "Perfil" en la barra inferior.
+  if (!user) return <Navigate to="/inicio" replace />;
   return <Navigate to={homeForRole(user)} replace />;
 }
 
