@@ -33,7 +33,7 @@ function trendPct(current, prev) {
 function TrendPill({ current, prev, invert = false }) {
   const pct = trendPct(current, prev);
   if (pct === null)
-    return <span className="text-2xs text-zinc-600">sin mes anterior</span>;
+    return <span className="text-2xs text var(--e-text-caption)">sin mes anterior</span>;
   const up = pct > 0;
   const flat = pct === 0;
   // invert=true: para costes, subir es malo (aquí no aplica, pero queda por si acaso)
@@ -42,10 +42,10 @@ function TrendPill({ current, prev, invert = false }) {
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-bold ${
         flat
-          ? "bg-zinc-800 text-zinc-400"
+          ? "bg var(--e-ink-950) text-zinc-400"
           : good
-            ? "bg-emerald-500/15 text-emerald-300"
-            : "bg-red-500/15 text-red-300"
+            ? "bg var(--e-green-500) / 15 text var(--e-green-400)"
+            : "bg var(--e-red-500) / 15 text var(--e-red-300)"
       }`}
     >
       {flat ? "=" : up ? "▲" : "▼"} {Math.abs(pct)}%
@@ -59,7 +59,7 @@ function KpiCard({ label, value, accent, children, format }) {
   const isNumber = typeof value === "number";
   return (
     <div className="card card-interactive p-4">
-      <p className="text-2xs font-semibold uppercase tracking-wide text-zinc-500">
+      <p className="text-2xs font-semibold uppercase tracking-wide text var(--e-text-caption)">
         {label}
       </p>
       <p
@@ -112,13 +112,13 @@ function RevenueBars({ events, onOpen }) {
                   e.status === "live" ? "is-live" : ""
                 } ${
                   e.status === "live"
-                    ? "bg-gradient-to-t from-emerald-600/70 to-emerald-400"
+                    ? "bg-gradient-to-t from var(--e-green-600) / 70 to var(--e-green-400)"
                     : "bg-gradient-to-t from-brand-700/60 to-brand-500"
                 }`}
                 style={{ height: `${h}%`, transitionDelay: `${i * 60}ms` }}
               />
             </span>
-            <span className="w-full truncate text-2xs text-zinc-500 group-hover:text-zinc-300">
+            <span className="w-full truncate text-2xs text var(--e-text-caption) group-hover:text var(--e-text-subtle)">
               {e.name}
             </span>
             <span
@@ -163,32 +163,32 @@ function PromoterBars({ promoters }) {
               <span
                 className={`tnum flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                   i === 0
-                    ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40"
-                    : "bg-zinc-800 text-zinc-400"
+                    ? "bg var(--e-amber-400) / 20 text var(--e-amber-300) ring-1 ring var(--e-amber-400) / 40"
+                    : "bg var(--e-ink-950) text-zinc-400"
                 }`}
               >
                 {i + 1}
               </span>
-              <span className="min-w-0 flex-1 truncate font-medium text-zinc-200">
+              <span className="min-w-0 flex-1 truncate font-medium text var(--e-text-subtle)">
                 {p.name}
               </span>
-              <span className="tnum shrink-0 text-xs font-semibold text-zinc-300">
+              <span className="tnum shrink-0 text-xs font-semibold text var(--e-text-subtle)">
                 {p.tickets} {p.tickets === 1 ? "boleta" : "boletas"}
                 {p.has_courtesy && (
-                  <span className="ml-1 font-normal text-zinc-500">
+                  <span className="ml-1 font-normal text var(--e-text-caption)">
                     cortesía
                   </span>
                 )}
               </span>
               {showMoney && (
-                <span className="tnum w-24 shrink-0 text-right text-xs font-semibold text-emerald-300">
+                <span className="tnum w-24 shrink-0 text-right text-xs font-semibold text var(--e-green-400)">
                   {money(p.revenue_cents)}
                 </span>
               )}
             </div>
             {/* La barra debajo del nombre: llena el ancho de la fila sin
                 competir con las cifras (que quedan alineadas en columna). */}
-            <div className="revbar ml-8.5 mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+            <div className="revbar ml-8.5 mt-1 h-1.5 overflow-hidden rounded-full bg var(--e-ink-950)">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-brand-700/70 to-brand-500 transition-all duration-500"
                 style={{
@@ -227,7 +227,7 @@ function SalesCurve({ curve }) {
     return (
       <div className="card p-5">
         <p className="display mb-3 text-base">Ritmo de venta</p>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text var(--e-text-caption)">
           Aún no hay boletas vendidas este mes para medir con cuánta
           anticipación se compran.
         </p>
@@ -238,7 +238,7 @@ function SalesCurve({ curve }) {
   return (
     <div className="card p-5">
       <p className="display text-base">Ritmo de venta</p>
-      <p className="mb-3 mt-1 text-xs text-zinc-500">
+      <p className="mb-3 mt-1 text-xs text var(--e-text-caption)">
         Con cuánta anticipación se vendieron las {total} boletas del mes.
       </p>
       <ul
@@ -253,20 +253,20 @@ function SalesCurve({ curve }) {
           return (
             <li key={b.bucket} className="text-sm">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-zinc-300">
+                <span className="text var(--e-text-subtle)">
                   {ANTICIPATION_LABELS[b.bucket] ?? b.bucket}
                 </span>
-                <span className="tnum shrink-0 text-xs font-semibold text-zinc-200">
+                <span className="tnum shrink-0 text-xs font-semibold text var(--e-text-subtle)">
                   {b.tickets}{" "}
                   {b.tickets === 1 ? "boleta" : "boletas"}
                   {b.revenue_cents > 0 && (
-                    <span className="ml-2 font-normal text-emerald-300">
+                    <span className="ml-2 font-normal text var(--e-green-400)">
                       {money(b.revenue_cents)}
                     </span>
                   )}
                 </span>
               </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg var(--e-ink-950)">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-brand-700/70 to-brand-500 transition-all duration-500"
                   style={{ width: `${w}%`, transitionDelay: `${i * 60}ms` }}
@@ -292,7 +292,7 @@ function RetentionCard({ buyers, returning }) {
     return (
       <div className="card p-5">
         <p className="display mb-3 text-base">Clientes que vuelven</p>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text var(--e-text-caption)">
           Sin compradores con teléfono este mes no se puede medir la
           recurrencia (un cliente solo cuenta si dejó su teléfono).
         </p>
@@ -304,19 +304,19 @@ function RetentionCard({ buyers, returning }) {
   return (
     <div className="card p-5">
       <p className="display text-base">Clientes que vuelven</p>
-      <p className="mb-3 mt-1 text-xs text-zinc-500">
+      <p className="mb-3 mt-1 text-xs text var(--e-text-caption)">
         De {buyers} {buyers === 1 ? "comprador" : "compradores"} con teléfono
         este mes.
       </p>
       {/* Barra partida: recurrente (violeta, el valor que se quiere crecer)
           vs nuevo (gris). Una cifra sola no dice la PROPORCIÓN. */}
       <div
-        className="flex h-3 overflow-hidden rounded-full bg-zinc-800"
+        className="flex h-3 overflow-hidden rounded-full bg var(--e-ink-950)"
         role="img"
         aria-label={`${returning} recurrentes y ${fresh} nuevos de ${buyers} compradores`}
       >
         <div
-          className="h-full bg-gradient-to-r from-brand-700 to-brand-500"
+          className="h-full bg-gradient-to-r from var(--e-brand-700) to var(--e-brand-500)"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -325,15 +325,15 @@ function RetentionCard({ buyers, returning }) {
           <p className="tnum text-2xl font-extrabold text-brand-300">
             <CountUpNumber value={pct} format={(v) => `${Math.round(v)}%`} />
           </p>
-          <p className="text-2xs text-zinc-500">vuelven</p>
+          <p className="text-2xs text var(--e-text-caption)">vuelven</p>
         </div>
         <div>
-          <p className="tnum text-lg font-bold text-zinc-200">{returning}</p>
-          <p className="text-2xs text-zinc-500">recurrentes</p>
+          <p className="tnum text-lg font-bold text var(--e-text-subtle)">{returning}</p>
+          <p className="text-2xs text var(--e-text-caption)">recurrentes</p>
         </div>
         <div>
-          <p className="tnum text-lg font-bold text-zinc-200">{fresh}</p>
-          <p className="text-2xs text-zinc-500">nuevos</p>
+          <p className="tnum text-lg font-bold text var(--e-text-subtle)">{fresh}</p>
+          <p className="text-2xs text var(--e-text-caption)">nuevos</p>
         </div>
       </div>
     </div>
@@ -369,7 +369,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
+      <div className="rounded-xl border border var(--e-red-900) bg var(--e-red-950) / 60 px-4 py-3 text-sm text var(--e-red-400)">
         {error}
       </div>
     );
@@ -419,7 +419,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                 label="Recaudo del mes"
                 value={data.revenue_cents / 100}
                 format={(v) => `$${Math.round(v).toLocaleString("es-CO")}`}
-                accent="text-emerald-300"
+                accent="text var(--e-green-400)"
               >
                 <TrendPill
                   current={data.revenue_cents}
@@ -437,7 +437,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                 value={data.tickets_redeemed}
                 accent="text-brand-300"
               >
-                <span className="text-2xs text-zinc-600">
+                <span className="text-2xs text var(--e-text-caption)">
                   {data.tickets_issued > 0
                     ? `${Math.round((data.tickets_redeemed / data.tickets_issued) * 100)}% de las vendidas`
                     : "—"}
@@ -453,7 +453,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                 format={(v) => `$${Math.round(v).toLocaleString("es-CO")}`}
                 accent="text-rose-300"
               >
-                <span className="text-2xs text-zinc-600">
+                <span className="text-2xs text var(--e-text-caption)">
                   {data.commissions_cents !== null
                     ? "se descuentan del recaudo"
                     : "sin liquidaciones este mes"}
@@ -465,7 +465,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                   data.avg_ticket_cents ? money(data.avg_ticket_cents) : "—"
                 }
               >
-                <span className="text-2xs text-zinc-600">
+                <span className="text-2xs text var(--e-text-caption)">
                   {data.courtesy_tickets} cortesías aparte
                 </span>
               </KpiCard>
@@ -506,12 +506,12 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                 <div className="card p-5">
                   <p className="display mb-3 text-base">
                     Promotores del mes
-                    <span className="ml-2 text-xs font-normal text-zinc-500">
+                    <span className="ml-2 text-xs font-normal text var(--e-text-caption)">
                       boletas con cupo propio
                     </span>
                   </p>
                   {data.top_promoters.length === 0 ? (
-                    <p className="text-sm text-zinc-500">
+                    <p className="text-sm text var(--e-text-caption)">
                       Nadie colocó boletas con cupo propio este mes (las ventas
                       directas del admin no entran al ranking).
                     </p>
@@ -524,7 +524,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                 <div className="card p-5">
                   <p className="display mb-3 text-base">
                     Eventos del mes
-                    <span className="ml-2 text-xs font-normal text-zinc-500">
+                    <span className="ml-2 text-xs font-normal text var(--e-text-caption)">
                       {data.events_count} en total
                     </span>
                   </p>
@@ -537,9 +537,9 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                         >
                           <Icon
                             name="door"
-                            className="h-3.5 w-3.5 shrink-0 text-zinc-500"
+                            className="h-3.5 w-3.5 shrink-0 text var(--e-text-caption)"
                           />
-                          <span className="min-w-0 flex-1 truncate font-medium text-zinc-200">
+                          <span className="min-w-0 flex-1 truncate font-medium text var(--e-text-subtle)">
                             {e.name}
                           </span>
                           <span
@@ -549,7 +549,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                           >
                             {(STATUS_META[e.status] ?? STATUS_META.draft).label}
                           </span>
-                          <span className="tnum w-20 text-right text-xs font-semibold text-emerald-300">
+                          <span className="tnum w-20 text-right text-xs font-semibold text var(--e-green-400)">
                             {money(e.revenue_cents)}
                           </span>
                         </button>

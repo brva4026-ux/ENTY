@@ -163,7 +163,7 @@ export default function AllocationManager({
               }`}
             >
               <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="flex items-center gap-2 font-semibold text-zinc-200">
+                <span className="flex items-center gap-2 font-semibold text var(--e-text-subtle)">
                   {u ? u.full_name : `Promotor #${a.promoter_id}`}
                   {a.is_active === false && (
                     <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-2xs font-bold uppercase text-amber-300 ring-1 ring-amber-500/30">
@@ -172,7 +172,7 @@ export default function AllocationManager({
                   )}
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="tnum text-xs text-zinc-400">
+                  <span className="tnum text-xs text var(--e-text-subtle)">
                     {t ? t.name : `tipo ${a.ticket_type_id}`}
                   </span>
                   <button
@@ -299,7 +299,7 @@ export default function AllocationManager({
           )}
           {saving ? "Asignando…" : "Asignar"}
         </button>
-        {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
+        {err && <p className="col-span-full text-xs text var(--e-red-400)">{err}</p>}
         {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
       </form>
     </div>

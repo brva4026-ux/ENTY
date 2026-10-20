@@ -39,8 +39,8 @@ export default function DoorAlertBanner({ alert, onOpen, onDismiss }) {
       data-door-alert
       className="door-alert-in fixed inset-x-0 top-14 z-[45] mx-auto flex max-w-5xl items-start gap-3 px-4"
     >
-      <div className="flex w-full items-start gap-3 rounded-xl border border-rose-500/40 bg-rose-950/95 px-4 py-3 text-rose-100 shadow-lg shadow-rose-950/40 backdrop-blur">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-500/20 text-rose-300">
+      <div className="flex w-full items-start gap-3 rounded-xl border var(--e-border-strong) bg var(--e-surface-2) px-4 py-3 text var(--e-text-primary) shadow-lg var(--e-shadow-card) backdrop-blur">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg var(--e-brand-400) / 20 text var(--e-brand-400)">
           <Icon name="shield" className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
@@ -50,7 +50,7 @@ export default function DoorAlertBanner({ alert, onOpen, onDismiss }) {
           </p>
           <button
             onClick={open}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-rose-500/90 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-rose-400 active:scale-[0.98]"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg var(--e-brand-500) / 90 px-3 py-1.5 text-xs font-bold text var(--e-paper) transition hover:bg var(--e-brand-400) active:scale-[0.98]"
           >
             Ver la noche
             <Icon name="back" className="h-3.5 w-3.5 rotate-180" />
@@ -59,7 +59,7 @@ export default function DoorAlertBanner({ alert, onOpen, onDismiss }) {
         <button
           onClick={() => onDismiss?.(alert)}
           aria-label="Descartar aviso"
-          className="-m-1 shrink-0 rounded p-1 text-rose-200/70 transition hover:text-rose-100"
+          className="-m-1 shrink-0 rounded p-1 text var(--e-text-subtle) transition hover:text var(--e-text-on-surface)"
         >
           <Icon name="close" className="h-4 w-4" />
         </button>

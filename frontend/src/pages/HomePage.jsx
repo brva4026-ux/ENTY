@@ -40,6 +40,8 @@ const TICKER = [
   "Entrada con QR",
 ];
 
+/** Keyframes ticker cinético - transform only, respecta prefers-reduced-motion */
+
 /** Fecha corta del evento, en su zona horaria: "Vie 24 oct". */
 function shortDate(iso, tz) {
   const d = new Date(iso);
@@ -71,6 +73,13 @@ function dayBadge(iso, tz) {
   return { day, month: MONTHS[monthNum - 1] ?? "---" };
 }
 
+/** Keyframes ticker cinético - transform only, respecta prefers-reduced-motion */
+
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 /** Sello de registro: anillo con punto de tinta (la firma del isotipo). */
 function Star({ size = 8, color = "var(--e-brand-400)" }) {
   return (
@@ -93,7 +102,7 @@ function NeonStrokes() {
       viewBox="0 0 342 262"
       preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
-    >
+      style={{ WebkitFilter: "none", filter: "var(--e-reduced-motion, none)" }}
       <defs>
         <filter id="sGlow" x="-30%" y="-60%" width="160%" height="220%">
           <feGaussianBlur stdDeviation="3.4" result="b" />
@@ -111,17 +120,17 @@ function NeonStrokes() {
         strokeLinecap="round"
         filter="url(#sGlow)"
         opacity="0.9"
-      />
+        [disabled]:opacity="0.5"
       <path
         d="M-6 60 C 96 96, 150 8, 262 46"
         fill="none"
         stroke="var(--e-pink-500)"
-        strokeWidth="1.6"
+        strokeWidth"1.6"
         strokeLinecap="round"
         strokeDasharray="1 7"
         filter="url(#sGlow)"
         opacity="0.85"
-      />
+        [disabled]:opacity="0.5"
     </svg>
   );
 }
@@ -132,7 +141,7 @@ function SoldRing({ pct }) {
   const c = 2 * Math.PI * r;
   const shown = Math.max(0, Math.min(100, pct ?? 0));
   return (
-    <svg className="home-ring" viewBox="0 0 342 262" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <svg className="home-ring" viewBox="0 0 342 262" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ WebkitFilter: "var(--e-reduced-motion, none)", filter: "var(--e-reduced-motion, none)" }}>
       <defs>
         <radialGradient id="hGlow" cx="0.82" cy="0.18" r="0.7">
           <stop offset="0" stopColor="var(--e-brand-400)" stopOpacity="0.34" />
@@ -144,7 +153,7 @@ function SoldRing({ pct }) {
         </linearGradient>
       </defs>
       <rect width="342" height="262" fill="url(#hGlow)" />
-      <g fill="none" stroke="#fff">
+      <g fill="none" stroke="var(--e-paper)">
         <circle cx="266" cy="86" r="74" strokeOpacity="0.07" />
         <circle cx="266" cy="86" r="58" strokeOpacity="0.1" strokeDasharray="1 6.2" />
         <circle cx="266" cy="86" r="42" strokeOpacity="0.07" />
@@ -163,7 +172,7 @@ function SoldRing({ pct }) {
       <text x="266" y="92" textAnchor="middle" fontSize="22" fontWeight="300" fill="var(--e-paper)" letterSpacing="-1">
         {shown}%
       </text>
-      <text x="266" y="108" textAnchor="middle" fontSize="7.5" fill="var(--e-text-muted)" letterSpacing="1.6">
+      <text x="266" y="108" textAnchor="middle" fontSize="7.5" fill="var(--e-text-subtle)" letterSpacing="1.6">
         VENDIDO
       </text>
       <rect width="342" height="262" fill="url(#hFade)" />
@@ -452,7 +461,7 @@ export default function HomePage() {
             className={c.key === cat ? "is-on" : ""}
           >
             <span className="home-cat-dot">
-              {c.icon ? <CatIcon name={c.icon} /> : <Star size={16} color="currentColor" />}
+              c.icon ? <CatIcon name={c.icon} color="var(--e-brand-400)" /> : <Star size={16} color="var(--e-brand-400)" />
             </span>
             {c.label}
           </button>

@@ -180,8 +180,8 @@ export function AnimatedNumber({
 
 const STATUS_STYLES = {
   draft: {
-    badge: "bg-zinc-800/80 text-zinc-400",
-    dot: "bg-zinc-500",
+    badge: "bg var(--e-surface-2) text var(--e-text-subtle)",
+    dot: "bg var(--e-brand-500)",
     label: "Borrador",
   },
   published: {
@@ -190,13 +190,13 @@ const STATUS_STYLES = {
     label: "Publicado",
   },
   live: {
-    badge: "bg-emerald-950/80 text-emerald-400",
-    dot: "bg-emerald-400",
+    badge: "bg var(--e-green-950) text var(--e-green-400)",
+    dot: "bg var(--e-green-400)",
     label: "En puerta",
   },
   ended: {
-    badge: "bg-zinc-800/60 text-zinc-500",
-    dot: "bg-zinc-600",
+    badge: "bg var(--e-surface-2) text var(--e-brand-500)",
+    dot: "bg var(--e-brand-600)",
     label: "Finalizado",
   },
   cancelled: {
@@ -230,7 +230,7 @@ export function LiveIndicator({ live, lastUpdated }) {
   const label = timeAgo(lastUpdated);
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500"
+      className="inline-flex items-center gap-1.5 text-xs font-medium text var(--e-text-caption)"
       title={
         lastUpdated
           ? `Última actualización: ${lastUpdated.toLocaleTimeString("es-CO")}`
@@ -241,7 +241,7 @@ export function LiveIndicator({ live, lastUpdated }) {
         {live && <span className="live-ping" />}
         <span
           className={`relative h-1.5 w-1.5 rounded-full ${
-            live ? "live-dot" : "bg-zinc-700"
+            live ? "live-dot" : "bg var(--e-text-on-surface)"
           }`}
         />
       </span>
@@ -260,39 +260,37 @@ export function QuotaMeter({ used, total, label, compact = false }) {
   const body = (
     <>
       <div className="mb-1.5 flex items-baseline justify-between text-xs">
-        <span className="text-zinc-500">{label}</span>
-        <span className="tnum font-semibold text-zinc-200">
+        <span className="text var(--e-text-caption)">{label}</span>
+        <span className="tnum font-semibold text var(--e-text-subtle)">
           {used}
-          <span className="font-normal text-zinc-500">/{total}</span>
+          <span className="font-normal text var(--e-text-subtle)">/{total}</span>
         </span>
       </div>
       <div className="meter">
         <div className={`meter-fill ${fill}`} style={{ width: `${pct}%` }} />
       </div>
-      {full && (
-        <p className="mt-1 text-2xs font-medium text-red-400">
+      {full && (<p className="mt-1 text-2xs font-medium text var(--e-red-400)">
           Cupo agotado
-        </p>
-      )}
+        </p>)}
     </>
   );
   return compact ? (
     body
   ) : (
-    <div className="rounded-lg bg-zinc-900/60 p-3">{body}</div>
+    <div className="rounded-lg bg var(--e-surface-2) p-3">{body}</div>
   );
 }
 
 /** Barra de progreso suelta, para desgloses que no son un cupo. */
 export function Bar({ pct, tone = "brand", gradient }) {
   const tones = {
-    brand: "bg-brand-400",
-    emerald: "bg-emerald-400",
-    amber: "bg-amber-400",
-    red: "bg-red-400",
+    brand: "bg var(--e-brand-400)",
+    emerald: "bg var(--e-green-400)",
+    amber: "bg var(--e-amber-400)",
+    red: "bg var(--e-red-400)",
   };
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg var(--e-ink-950)">
       <div
         className={`h-full rounded-full transition-all duration-700 ${
           gradient ? `bg-gradient-to-r ${gradient}` : tones[tone]
@@ -304,16 +302,28 @@ export function Bar({ pct, tone = "brand", gradient }) {
 }
 
 /** Tarjeta de KPI del command deck. `i` escalona la entrada. */
-export function Stat({ label, value, accent = "slate", i = 0 }) {
+export function Stat({ label, value, accent = "slate",
   const dots = {
-    slate: "bg-zinc-400",
+    slate: "bg var(--e-surface-2)",
+    emerald: "bg var(--e-green-400)",
+    brand: "bg var(--e-brand-400)",
+    red: "bg var(--e-red-400)",
+  };
+  return (
+    <div className="stat stagger p-3.5" style={{ "--i": i }}>
+      <div className="flex items-center gap-2 text-xs font-medium text var(--e-text-subtle)">
+        <span className={`h-2 w-2 rounded-full ${dots[accent]}`} />
+        {label}
+      </div>, i = 0 }) {
+  const dots = {
+    slate: "bg var(--e-surface-2)",
     emerald: "bg-emerald-400",
     brand: "bg-brand-400",
     red: "bg-red-400",
   };
   return (
     <div className="stat stagger p-3.5" style={{ "--i": i }}>
-      <div className="flex items-center gap-2 text-xs font-medium text-zinc-400">
+      <div className="flex items-center gap-2 text-xs font-medium text var(--e-text-subtle)">
         <span className={`h-2 w-2 rounded-full ${dots[accent]}`} />
         {label}
       </div>

@@ -107,7 +107,7 @@ function Hint({ children, tone = "zinc" }) {
   return (
     <span
       className={`mt-1 block text-2xs leading-snug ${
-        tone === "amber" ? "text-amber-300/80" : "text-zinc-500"
+        tone === "amber" ? "text-amber-300/80" : "text var(--e-text-caption)"
       }`}
     >
       {children}
@@ -281,7 +281,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 className="display text-lg">Nuevo evento</h3>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="mt-0.5 text-xs text var(--e-text-caption)">
               Nace en borrador: lo montas (tipos y cupos) antes de publicarlo.
             </p>
           </div>
@@ -305,7 +305,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                     ? "bg-brand-500/20 text-brand-300"
                     : i === step
                       ? "bg-brand-500 text-white"
-                      : "bg-zinc-800 text-zinc-500"
+                      : "bg-zinc-800 text var(--e-text-caption)"
                 }`}
               >
                 {i < step ? (
@@ -316,7 +316,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
               </span>
               <span
                 className={`hidden text-2xs font-semibold sm:block ${
-                  i === step ? "text-zinc-100" : "text-zinc-500"
+                  i === step ? "text var(--e-ink-100)" : "text var(--e-text-caption)"
                 }`}
               >
                 {s.label}
@@ -338,7 +338,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           {step === 0 && (
             <div key="s0" className="animate-rise grid gap-3.5 sm:grid-cols-2">
               <label className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+                <span className="mb-1 block text-xs font-medium text var(--e-text-subtle)">
                   Nombre del evento *
                 </span>
                 <input
@@ -355,7 +355,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </Hint>
               </label>
               <label className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+                <span className="mb-1 block text-xs font-medium text var(--e-text-subtle)">
                   Lugar del evento
                 </span>
                 <input
@@ -371,7 +371,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </Hint>
               </label>{" "}
               <div className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+                <span className="mb-1 block text-xs font-medium text var(--e-text-subtle)">
                   Flyer del evento (opcional)
                 </span>
                 <div className="flex items-center gap-3">
@@ -380,10 +380,10 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                       src={form.flyer_url}
                       alt="Previsualización del flyer"
                       onError={() => setBadFlyer(form.flyer_url)}
-                      className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
+                      className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring var(--e-ink-700)"
                     />
                   ) : (
-                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text var(--e-text-subtle)">
                       <Icon name="camera" className="h-5 w-5" />
                     </span>
                   )}
@@ -424,7 +424,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                         set({ flyer_url: "" });
                         setFlyerMode(null);
                       }}
-                      className="text-2xs font-semibold text-zinc-500 transition hover:text-red-400"
+                      className="text-2xs font-semibold text var(--e-text-caption) transition hover:text var(--e-red-400)"
                     >
                       Quitar
                     </button>
@@ -436,7 +436,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </Hint>
               </div>
               <label className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+                <span className="mb-1 block text-xs font-medium text var(--e-text-subtle)">
                   Descripción (opcional)
                 </span>
                 <textarea
@@ -472,7 +472,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           {step === 1 && (
             <div key="s1" className="animate-rise grid gap-3.5 sm:grid-cols-2">
               <div className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+                <span className="mb-1 block text-xs font-medium text var(--e-text-subtle)">
                   ¿Cuándo abre? *
                 </span>
                 {/* Atajos primero: un toque y listo. El calendario nativo es
@@ -555,7 +555,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   <button
                     type="button"
                     onClick={() => setCustomDate(true)}
-                    className="mt-2 text-2xs font-semibold text-zinc-500 underline-offset-2 transition hover:text-zinc-300 hover:underline"
+                    className="mt-2 text-2xs font-semibold text var(--e-text-caption) underline-offset-2 transition hover:text var(--e-text-subtle) hover:underline"
                   >
                     Otra fecha u hora…
                   </button>
@@ -564,7 +564,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
               </div>
 
               <div className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+                <span className="mb-1 block text-xs font-medium text var(--e-text-subtle)">
                   ¿Cuánto dura la fiesta? (opcional)
                 </span>
                 {/* Duración, no fecha-absoluta: nadie piensa "cierra 3:00 a.m.
@@ -610,7 +610,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
               </div>
 
               <label>
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+                <span className="mb-1 block text-xs font-medium text var(--e-text-subtle)">
                   El QR del invitado se activa *
                 </span>
                 <input
@@ -648,7 +648,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </Hint>
               </label>
 
-              <p className="sm:col-span-full text-2xs text-zinc-600">
+              <p className="sm:col-span-full text-2xs text var(--e-text-subtle)">
                 La hora se guarda en tu zona (
                 {Intl.DateTimeFormat().resolvedOptions().timeZone}).
               </p>
@@ -659,7 +659,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           {step === 2 && (
             <div key="s2" className="animate-rise space-y-4">
               <label>
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+                <span className="mb-1 block text-xs font-medium text var(--e-text-subtle)">
                   Aforo total (personas) *
                 </span>
                 <input
@@ -696,8 +696,8 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
               </label>
 
               {/* Vista previa: cómo se verá el evento en la lista y la boleta */}
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-                <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-zinc-500">
+              <div className="rounded-xl border border var(--e-ink-950) bg var(--e-ink-950) / 60 p-4">
+                <p className="mb-2 text-2xs font-bold uppercase tracking-wide text var(--e-text-caption)">
                   Así se verá
                 </p>
                 <div className="flex items-start gap-3">
@@ -706,10 +706,10 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                       src={form.flyer_url}
                       alt=""
                       onError={() => setBadFlyer(form.flyer_url)}
-                      className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
+                      className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring var(--e-ink-700)"
                     />
                   ) : (
-                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
+                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text var(--e-text-subtle)">
                       <Icon name="door" className="h-6 w-6" />
                     </span>
                   )}
@@ -717,19 +717,19 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                     <p className="truncate text-sm font-bold text-white">
                       {form.name.trim() || "Evento sin nombre"}
                     </p>
-                    <p className="mt-0.5 text-xs text-zinc-400">
+                    <p className="mt-0.5 text-xs text var(--e-text-subtle)">
                       {form.starts_at
                         ? eventDate(new Date(form.starts_at).toISOString())
                         : "—"}
                       {form.ends_at &&
                         ` → ${eventDate(new Date(form.ends_at).toISOString())}`}
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-zinc-500">
+                    <p className="mt-0.5 truncate text-xs text var(--e-text-caption)">
                       {form.location || "Sin dirección"} · aforo{" "}
                       {form.capacity || "—"} · QR {qrLabel}
                     </p>
                     {form.description.trim() && (
-                      <p className="mt-1 line-clamp-2 text-xs text-zinc-500">
+                      <p className="mt-1 line-clamp-2 text-xs text var(--e-text-caption)">
                         {form.description}
                       </p>
                     )}
@@ -747,7 +747,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
 
           {/* ====== Navegación del asistente ====== */}
           <div className="mt-4 flex items-center justify-between gap-3">
-            <span className="text-xs text-zinc-600">
+            <span className="text-xs text var(--e-text-subtle)">
               Paso {step + 1} de {STEPS.length}
             </span>
             <div className="flex items-center gap-2">
