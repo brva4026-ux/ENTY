@@ -679,11 +679,20 @@ html[data-theme="light"] select.field option {
     opacity 0.15s ease 0.35s,
     transform 0.15s ease 0.35s;
 }
-[data-tip]:hover::after,
 [data-tip]:focus-visible::after {
   display: block;
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+/* El hover se acota a pantallas con puntero real: en movil el primer toque
+   "hover" el botón y en vez de navegar abre el tooltip (dos toques para lo
+   que en escritorio es uno). El foco por teclado sigue mostrándolo siempre. */
+@media (hover: hover) {
+  [data-tip]:hover::after {
+    display: block;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 /* El tooltip se corta si el padre tiene overflow hidden — opt-out disponible */
 [data-tip-static]::after {
@@ -3468,6 +3477,10 @@ html[data-theme="light"] .list-row:hover {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(12, 12, 14, 0.92);
   backdrop-filter: blur(12px);
+  /* La barra vive abajo: en iPhone la barra de gestos y en Android el
+     gesto de "atrás" se comen el ultimo renglon si no se reserva espacio.
+     env() es 0 en escritorio, asi que ahi no cambia nada. */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 .bottomnav-item {
   display: flex;
