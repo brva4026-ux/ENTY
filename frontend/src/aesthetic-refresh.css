@@ -1298,7 +1298,11 @@ html[data-theme="light"] .bizdock-count {
   bottom: 0;
   width: 100%;
   max-width: 26rem;
-  height: 4.9rem;
+  /* altura fija + reserva de la barra de gestos: en movil la barra crece
+     hacia abajo en vez de dejar el contenido debajo del dedo. */
+  min-height: 4.9rem;
+  height: auto;
+  padding-bottom: env(safe-area-inset-bottom);
   background: rgba(11, 11, 15, 0.66);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -1459,7 +1463,9 @@ html[data-theme="light"] .bizdock-count {
   outline: none;
   color: var(--e-text-primary);
   font-family: inherit;
-  font-size: var(--e-text-base);
+  /* 16px: con menos, iOS hace zoom automatico al enfocar y la pantalla
+     "se despega" (el sintoma classico de app no pensada para celular). */
+  font-size: 1rem;
 }
 .home-search input::placeholder {
   color: var(--e-text-secondary);
@@ -1572,7 +1578,8 @@ html[data-theme="light"] .bizdock-count {
   background-color: var(--e-glass-1);
   color: var(--e-text-primary);
   font-family: inherit;
-  font-size: var(--e-text-xs);
+  /* Igual que el buscador: 16px evita el zoom de iOS al abrir el selector. */
+  font-size: 1rem;
   font-weight: 600;
   appearance: none;
   /* Chevron propio: el nativo no respeta el tema oscuro. */

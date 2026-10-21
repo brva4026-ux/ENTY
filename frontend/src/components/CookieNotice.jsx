@@ -55,7 +55,7 @@ export function CookieNotice() {
     <div
       role="note"
       aria-label="Aviso de cookies"
-      className="cookie-notice fixed inset-x-3 top-3 z-40 mx-auto flex max-w-3xl flex-col gap-2 rounded-xl border border-zinc-700/60 bg-zinc-900/95 px-4 py-3 text-xs leading-relaxed text-zinc-200 shadow-lg sm:flex-row sm:items-center sm:gap-3"
+      className="cookie-notice fixed inset-x-0 top-0 z-40 flex flex-row items-center gap-2 border-b border-zinc-700/60 bg-zinc-900/95 px-4 py-2.5 text-[11px] leading-tight text-zinc-200 shadow-lg sm:inset-x-3 sm:top-3 sm:mx-auto sm:max-w-3xl sm:gap-3 sm:rounded-xl sm:border sm:py-3 sm:text-xs sm:leading-relaxed"
     >
       <p className="min-w-0 flex-1">
         Esta app guarda en tu navegador lo necesario para la sesión y el modo
@@ -63,20 +63,23 @@ export function CookieNotice() {
         analítica; por eso no pedimos consentimiento: lo informamos.
       </p>
       <div className="flex shrink-0 items-center gap-2">
+        {/* En movil solo queda "Entendido": el enlace legal sigue estando en
+            el pie y en /cookies, y dejar dos botones alargaba la barra. Los
+            dos cumplen 44px de objetivo tactil. */}
         <button
           type="button"
           onClick={() => {
             close();
             nav("/cookies");
           }}
-          className="underline decoration-zinc-600 underline-offset-2 hover:text-white"
+          className="hidden min-h-11 items-center underline decoration-zinc-600 underline-offset-2 hover:text-white sm:inline-flex"
         >
           Aviso de cookies
         </button>
         <button
           type="button"
           onClick={close}
-          className="btn-ghost !px-3 !py-1.5 text-xs"
+          className="btn-ghost min-h-11 !px-3 text-xs"
         >
           Entendido
         </button>

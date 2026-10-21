@@ -840,3 +840,35 @@ html[data-theme="light"] .legal-link {
   color: var(--e-text-primary);
 }
 
+/* --------------------------------------------------------------------------
+ *  9. MANO HUMANA · el celular no tiene cursor, tiene dedo
+ * ------------------------------------------------------------------------- */
+
+/* Objetivos de 44px solo donde hay puntero grueso: en escritorio estos
+   enlaces son densos a proposito (pie de pagina, enlaces legales del login) y
+   estirarlos romperia el ritmo del panel. WCAG 2.5.5 pide 44px de area tactil;
+   aqui se cumplen sin tocar la version de escritorio. */
+@media (pointer: coarse) {
+  .legal-links a,
+  .legal-links button,
+  .home-foot-links a,
+  .link-underline,
+  .home-wordmark {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}
+
+/* Guardia anti-zoom de iOS: cualquier campo a menos de 16px hace que Safari
+   amplie la pantalla al enfocar y el usuario pierde el contexto. Va al final
+   de la cadena de hojas para ganar en cascada a las reglas puntuales.
+   Los checkboxes y radios quedan fuera: su tamano es el del sistema a proposito. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
