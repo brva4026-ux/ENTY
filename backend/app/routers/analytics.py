@@ -116,11 +116,21 @@ async def ingest_events(
             )
 
         if rows:
-            await cur.executemany(
-                "INSERT INTO analytics_events (name, session_id, path, event_id, props) "
-                "VALUES (%s, %s, %s, %s, %s::jsonb)",
-                rows,
-            )
+            try:
+                await cur.executemany(
+                    "INSERT INTO analytics_events (name, session_id, path, event_id, props) "
+                    "VALUES (%s, %s, %s, %s, %s::jsonb)",
+                    rows,
+                )
+            except psycopg.errors.UndefinedTable:
+                # Despliegue sin la migracion 031: mejor un 503 con el archivo
+                # exacto que un 500 opaco en cada visita. La app ignora esta
+                # respuesta (la analitica nunca bloquea la compra).
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Analitica no disponible: falta aplicar "
+                    "db/migrations/031_analytics_events.sql",
+                )
             await db.commit()
 
     return None
@@ -144,8 +154,9 @@ async def venue_funnel(
     since = datetime.now(timezone.utc) - timedelta(days=days)
 
     async with db.cursor() as cur:
-        await cur.execute(
-            """
+        try:
+            await cur.execute(
+                """
             WITH touched AS (
                 SELECT DISTINCT a.session_id
                 FROM analytics_events a
@@ -167,8 +178,14 @@ async def venue_funnel(
                    count(*) FILTER (WHERE started)::int   AS started
             FROM sessions
             """,
-            {"venue": venue_id, "since": since},
-        )
+                {"venue": venue_id, "since": since},
+            )
+        except psycopg.errors.UndefinedTable:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Metricas no disponibles: falta aplicar "
+                "db/migrations/031_analytics_events.sql",
+            )
         sessions = await cur.fetchone()
 
         await cur.execute(
