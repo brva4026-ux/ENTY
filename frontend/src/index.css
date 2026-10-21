@@ -4227,6 +4227,13 @@ body {
     font-size: var(--e-text-lg);
     padding: 0.65rem 0.75rem;
   }
+  /* El icono del campo vive a la izquierda a 0.85rem y mide 1.15rem: sin
+     reponer el padding-left aqui, el shorthand de arriba lo pisaba (misma
+     especificidad, orden posterior) y el correo y la contraseña arrancaban
+     DEBAJO del icono — el texto ilegible que se veia en movil. */
+  .auth-field-has-icon {
+    padding-left: 2.6rem;
+  }
   .btn-primary,
   .btn-ghost,
   .btn-danger-text {
