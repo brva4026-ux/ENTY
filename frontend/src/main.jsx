@@ -49,6 +49,7 @@ const lazyPage = (loader) => {
 };
 const AdminDashboard = lazyPage(() => import("./pages/AdminDashboard"));
 const PromoterDashboard = lazyPage(() => import("./pages/PromoterDashboard"));
+const FunnelPage = lazyPage(() => import("./pages/FunnelPage"));
 const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
@@ -177,6 +178,16 @@ function App() {
                   <RequireRole role="admin">
                     <Layout>
                       <AdminDashboard />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/metricas"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <FunnelPage />
                     </Layout>
                   </RequireRole>
                 }

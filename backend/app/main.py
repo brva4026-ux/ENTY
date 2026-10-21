@@ -24,6 +24,7 @@ from app.core.observability import capture_exception, init_sentry
 from app.core.push_worker import push_outbox_worker
 from app.core.limiter import limiter
 from app.routers import (
+    analytics,
     auth,
     invitations,
     events,
@@ -138,6 +139,7 @@ def create_app() -> FastAPI:
     app.include_router(waitlist.router)
     app.include_router(payments.router)
     app.include_router(seed.router)
+    app.include_router(analytics.router)
 
     @app.get("/health", tags=["ops"])
     async def health():

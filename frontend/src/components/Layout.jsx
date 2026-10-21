@@ -26,6 +26,19 @@ const TAB_ICONS = {
       <path d="M9 21v-6h6v6" />
     </svg>
   ),
+  "admin/metricas": (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[22px] w-[22px]"
+    >
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </svg>
+  ),
   promotor: (
     <svg
       viewBox="0 0 24 24"

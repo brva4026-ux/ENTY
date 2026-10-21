@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
+import { track } from "../lib/analytics";
 import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
@@ -380,6 +381,12 @@ export default function HomePage() {
     else url.searchParams.delete("city");
     window.history.replaceState(null, "", url);
   }, [city]);
+
+  // Embudo, paso 1: vio la vitrina. Solo cuando el catálogo cargó: si la API
+  // falló, esa visita no es una oportunidad de venta y no debe contarla.
+  useEffect(() => {
+    if (data) track("view_home", { eventCount: (data.events ?? []).length });
+  }, [data]);
 
   const events = data?.events ?? [];
   const chip = CATEGORY_CHIPS.find((c) => c.key === cat) ?? CATEGORY_CHIPS[0];

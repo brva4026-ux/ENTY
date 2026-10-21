@@ -46,6 +46,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "028_legal_acceptances.sql",
     ROOT / "db" / "migrations" / "029_legal_documents_v11.sql",
     ROOT / "db" / "migrations" / "030_legal_plazos.sql",
+    ROOT / "db" / "migrations" / "031_analytics_events.sql",
 ]
 
 
@@ -76,7 +77,7 @@ def db():
             -- legal_documents, y ambas a users/venues. CASCADE resuelve el
             -- orden; se listan para que una corrida previa no deje las tablas
             -- y schema.sql choque con DuplicateTable.
-            legal_acceptances, legal_documents CASCADE;
+            legal_acceptances, legal_documents, analytics_events CASCADE;
         -- event_staff / event_access_tokens (mig 025) referencian users y events:
         -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
         -- el orden de borrado no dependa de las FK.
