@@ -8,6 +8,17 @@
     }
   },
   "rewrites": [
+    {
+      "source": "/evento/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Ww]hats[Aa]pp|[Ff]acebookexternalhit|[Ff]ace[Bb]ot|[Tt]witter[Bb]ot|[Tt]elegram[Bb]ot|[Ss]lackbot|[Dd]iscordbot|[Ll]inkedin[Bb]ot|[Pp]interest|[Aa]pple[Bb]ot|[Gg]ooglebot|[Bb]ingbot|[Rr]edditbot|[Ee]mbedly|[Ii]framely|[Vv][Kk]share|[Ss]kypeUriPreview|[Ww]3C_Validator).*"
+        }
+      ],
+      "destination": "/api/public/share/evento/:id"
+    },
     { "source": "/api/:path*", "destination": "/api/index.py" },
     { "source": "/:path*", "destination": "/index.html" }
   ],
