@@ -4,6 +4,7 @@ import { fetchPublicEventDetail } from "../lib/api";
 import FanCheckoutModal from "../components/FanCheckoutModal";
 import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
+import { track } from "../lib/analytics";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
@@ -190,6 +191,12 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     if (data) setFav(readFavs().has(Number(data.id)));
+  }, [data]);
+
+  // Embudo, paso 2: abrió este evento. Se dispara una sola vez por id, aunque
+  // la pantalla se re-renderice por favoritos o pestañas.
+  useEffect(() => {
+    if (data) track("view_event", { eventId: Number(data.id) });
   }, [data]);
 
   // Geocodificacion best-effort del lugar (Nominatim, sin API key). Solo se
@@ -393,7 +400,11 @@ export default function EventDetailPage() {
                 <button
                   type="button"
                   className="evd-cta evd-cta--wide"
-                  onClick={() => setCheckoutOpen(true)}
+                  onClick={() => {
+                    // Embudo, paso 3: intención real de compra (abre el pago).
+                    track("checkout_start", { eventId: Number(data.id) });
+                    setCheckoutOpen(true);
+                  }}
                 >
                   Comprar boleto
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

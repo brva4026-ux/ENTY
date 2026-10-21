@@ -55,6 +55,14 @@ export function fetchPublicEvents({ category, city, limit } = {}) {
 }
 
 /**
+ * Embudo de producto de una venue (solo admin): sesiones por paso y dinero
+ * pagado. El backend lo calcula por sesiones, no por visitas.
+ */
+export function fetchVenueFunnel(venueId, days = 7) {
+  return apiFetch(`/venues/${venueId}/funnel?days=${days}`);
+}
+
+/**
  * Detalle publico de un evento (pantalla de compra). Mismo caracter que el
  * catalogo: sin sesion. Un evento no publicado o inexistente responde 404.
  */

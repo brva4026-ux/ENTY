@@ -99,7 +99,10 @@ export function homeForRole(user) {
  */
 export function navTabsFor(user) {
   const tabs = [];
-  if (hasRole(user, "admin")) tabs.push({ to: "/admin", label: "Eventos" });
+  if (hasRole(user, "admin")) {
+    tabs.push({ to: "/admin", label: "Eventos" });
+    tabs.push({ to: "/admin/metricas", label: "Métricas" });
+  }
   if (hasRole(user, "promotor"))
     tabs.push({ to: "/promotor", label: "Vender" });
   if (hasRole(user, "bouncer")) tabs.push({ to: "/bouncer", label: "Escanear" });
