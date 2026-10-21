@@ -7,6 +7,7 @@ busca al entregarla. Por eso el nombre del asistente va impreso en la imagen y
 el bouncer lo compara en la puerta (ver docs/arquitectura/03-seguridad.md).
 """
 from html import escape
+import json
 import re
 import secrets
 import time
@@ -16,6 +17,7 @@ from zoneinfo import ZoneInfo
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
@@ -710,6 +712,155 @@ _STATUS_TEXT = {
     "voided": ("Boleta anulada", "#f87171"),
     "refunded": ("Boleta reembolsada", "#f87171"),
 }
+
+
+# --- Vista previa al compartir un evento ----------------------------------
+#
+# El catalogo es una SPA: `/evento/12` es HTML estatico sin datos, asi que
+# WhatsApp (el canal principal de este producto) mostraba un link pelado. No
+# se puede resolver con metadatos estaticos ni con JS: el crawler no ejecuta
+# JS. Vercel reescribe SOLO las peticiones con User-Agent de crawler a esta
+# ruta (ver vercel.json); las personas siguen recibiendo la app. Aqui se
+# responde la tarjeta del evento: nombre, fecha, lugar y precio. Sin datos
+# personales: es informacion que ya es publica en la vitrina.
+
+_DEFAULT_SHARE_IMAGE = "/og-cover.png"
+
+
+def _absolute_url(base: str, path_or_url: str | None) -> str:
+    """Absoluta siempre: los crawlers no resuelven rutas relativas."""
+    if not path_or_url:
+        return f"{base}{_DEFAULT_SHARE_IMAGE}"
+    if path_or_url.startswith(("http://", "https://")):
+        return path_or_url
+    return f"{base}{path_or_url if path_or_url.startswith('/') else '/' + path_or_url}"
+
+
+def _share_event_html(
+    *,
+    base_url: str,
+    event_id: int,
+    name: str,
+    starts_at: datetime,
+    tz_name: str | None,
+    venue: str,
+    location: str | None,
+    flyer_url: str | None,
+    min_price: int | None,
+) -> str:
+    """HTML de la tarjeta social. Puro: sin DB, para poder probarlo aislado."""
+    url = f"{base_url}/evento/{event_id}"
+    image = _absolute_url(base_url, flyer_url)
+    when = _starts_at_label(starts_at, tz_name)
+    where = " · ".join(p for p in (venue, location) if p)
+    desc = f"{when} · {where}"
+
+    schema: dict = {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": name,
+        "startDate": starts_at.isoformat(),
+        "eventStatus": "https://schema.org/EventScheduled",
+        "location": {"@type": "Place", "name": venue},
+        "image": [image],
+        "url": url,
+    }
+    if location:
+        schema["location"]["address"] = location
+    if min_price is not None:
+        schema["offers"] = {
+            "@type": "Offer",
+            "price": f"{min_price / 100:.2f}",
+            "priceCurrency": "COP",
+            "url": url,
+            "availability": "https://schema.org/InStock",
+        }
+    # Todo `<` se escribe como `\u003c`: ni `</script>` ni `<script>` de un
+    # nombre malicioso pueden escapar del bloque. Sigue siendo JSON valido.
+    ld = json.dumps(schema, ensure_ascii=False).replace("<", "\\u003c")
+
+    title = escape(name)
+    return f"""<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — Enty</title>
+    <meta name="description" content="{escape(desc)}" />
+    <link rel="canonical" href="{escape(url)}" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Enty" />
+    <meta property="og:locale" content="es_CO" />
+    <meta property="og:title" content="{title}" />
+    <meta property="og:description" content="{escape(desc)}" />
+    <meta property="og:url" content="{escape(url)}" />
+    <meta property="og:image" content="{escape(image)}" />
+    <meta property="og:image:alt" content="{title} — boletas en Enty" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{title}" />
+    <meta name="twitter:description" content="{escape(desc)}" />
+    <meta name="twitter:image" content="{escape(image)}" />
+    <script type="application/ld+json">{ld}</script>
+  </head>
+  <body>
+    <p><a href="{escape(url)}">{title}</a></p>
+    <p>{escape(desc)}</p>
+  </body>
+</html>
+"""
+
+
+@router.get(
+    "/share/evento/{event_id}",
+    response_class=HTMLResponse,
+    include_in_schema=False,
+    responses={200: {"content": {"text/html": {}}, "description": "Tarjeta del evento"}},
+)
+async def public_event_share_page(
+    event_id: int,
+    request: Annotated[None, Depends(_rate_limit)],
+    settings=Depends(get_settings),
+    db=Depends(get_db),
+):
+    """Tarjeta social de un evento (la consumen los crawlers via rewrite).
+
+    Solo eventos con venta abierta: un borrador no debe filtrarse por un link
+    compartido. Cacheable 5 minutos: el nombre o la fecha pueden cambiar.
+    """
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT e.name, e.flyer_url, e.location, e.starts_at, e.event_timezone,
+                   v.name AS venue_name,
+                   (SELECT min(tt.price_cents) FROM ticket_types tt
+                     WHERE tt.event_id = e.id AND tt.is_active
+                       AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price
+            FROM events e
+            JOIN venues v ON v.id = e.venue_id
+            WHERE e.id = %s AND e.status IN ('published', 'live')
+            """,
+            (event_id,),
+        )
+        row = await cur.fetchone()
+
+    if not row:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Evento no encontrado")
+
+    html = _share_event_html(
+        base_url=settings.app_public_url.rstrip("/"),
+        event_id=event_id,
+        name=row["name"],
+        starts_at=row["starts_at"],
+        tz_name=row["event_timezone"],
+        venue=row["venue_name"],
+        location=row["location"],
+        flyer_url=row["flyer_url"],
+        min_price=row["min_price"],
+    )
+    return HTMLResponse(
+        content=html,
+        headers={"Cache-Control": "public, max-age=300"},
+    )
 
 
 @router.get(

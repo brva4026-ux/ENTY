@@ -312,9 +312,16 @@
   }
 }
 
-/* El destacado: alto completo en móvil, más contenido en escritorio. */
+/* El destacado: alto completo en móvil, más contenido en escritorio.
+   `display: block` no es cosmético: el destacado es un <a> (Link de React
+   Router) y TODOS sus hijos van en posición absoluta, así que como inline se
+   quedaba en ~2px de ancho y el hero desaparecía. Solo se veía con catálogo
+   real (en producción vacía se renderiza el estado vacío y nadie lo notó). */
 .home-feature {
+  display: block;
   margin-top: 0;
+  color: inherit;
+  text-decoration: none;
 }
 @media (min-width: 768px) {
   .home-feature {
