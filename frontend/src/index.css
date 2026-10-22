@@ -5904,6 +5904,162 @@ html[data-theme="light"] .pf-delete-warn {
 }
 
 /* ----------------------------------------------------------------------
+   MOVIMIENTO DEL PERFIL
+   El perfil no "aparece": se compone. El hero entra escalonado (identidad
+   primero, acciones al final), el panel que se visita sube, y el anillo del
+   avatar respira para que la ficha se sienta viva sin gritar.
+
+   Todo comparte un solo keyframe (pf-rise) para que la casa hable una sola
+   gramática de entrada: mismo easing, misma distancia.
+   ---------------------------------------------------------------------- */
+@keyframes pf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* El escalonado del hero: 60ms entre piezas. Solo translateY (nunca X), así
+   el movimiento no puede abrir scroll horizontal en 320px. */
+.pf-hero-main > .pf-avatar,
+.pf-hero-id > *,
+.pf-hero-actions {
+  animation: pf-rise 0.5s var(--e-ease-expo) both;
+}
+.pf-hero-id > :nth-child(1) {
+  animation-delay: 60ms;
+}
+.pf-hero-id > :nth-child(2) {
+  animation-delay: 110ms;
+}
+.pf-hero-id > :nth-child(3) {
+  animation-delay: 160ms;
+}
+.pf-hero-id > :nth-child(4) {
+  animation-delay: 210ms;
+}
+.pf-hero-id > :nth-child(5) {
+  animation-delay: 260ms;
+}
+.pf-hero-actions {
+  animation-delay: 300ms;
+}
+
+/* El anillo del rol respira: 3.4s, el mismo ritmo que el icono del estado
+   vacío. Es la única cosa en bucle del perfil, y es lo que lo hace sentir
+   vivo en reposo. */
+.pf-avatar-ring {
+  animation: breathe 3.4s ease-in-out infinite;
+}
+
+/* El panel entra al visitarlo. Como cada panel se monta al activarse la
+   pestaña, la animación corre sola en cada cambio — sin JS que la dispare. */
+.pf-panel {
+  animation: pf-rise 0.32s var(--e-ease-expo) both;
+}
+
+/* Indicador deslizante de la pestaña activa.
+   Las pestañas cambian de posición (la de Negocio aparece y desaparece según
+   el rol), así que la posición no se puede expresar en CSS: el JS mide la
+   pestaña activa y publica --pf-tab-x/--pf-tab-w. El indicador es un
+   pseudo-elemento (no un nodo del DOM): dentro de role="tablist" no puede
+   vivir nada que no sea un tab, o el lector de pantalla anuncia un hijo
+   fantasma. */
+.pf-tabs::after {
+  content: "";
+  position: absolute;
+  bottom: 0.25rem;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  width: var(--pf-tab-w, 0px);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--e-violet-400) 22%,
+    var(--e-violet-300) 50%,
+    var(--e-violet-400) 78%,
+    transparent
+  );
+  transform: translateX(var(--pf-tab-x, 0px));
+  transition:
+    transform var(--e-dur-base) var(--e-ease-expo),
+    width var(--e-dur-base) var(--e-ease-expo);
+  pointer-events: none;
+}
+html[data-theme="light"] .pf-tabs::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--e-violet-500) 22%,
+    var(--e-violet-600) 50%,
+    var(--e-violet-500) 78%,
+    transparent
+  );
+}
+
+/* ----------------------------------------------------------------------
+   MOVIMIENTO REDUCIDO
+   Doble puerta, un solo lugar:
+   1. La preferencia del sistema (el default de la casa).
+   2. La preferencia explícita de la app (data-motion="reduce", Preferencias).
+      Un ajuste pedido a mano gana sobre la ausencia de preferencia del SO.
+
+   Se anula la DURACIÓN, no la animación (`animation: none`): con duración
+   casi nula el movimiento desaparece igual, pero los eventos `animationend`
+   siguen disparándose y ningún flujo que espere ese evento se queda colgado.
+   ---------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .pf-hero-main > .pf-avatar,
+  .pf-hero-id > *,
+  .pf-hero-actions,
+  .pf-panel,
+  .pf-avatar-ring {
+    animation: none;
+  }
+  .pf-tabs::after {
+    transition: none;
+  }
+  .pf-tabs .tabbar-item,
+  .pf-input-btn,
+  .pf-venue,
+  .pf-delete-btn {
+    transition: none;
+  }
+}
+
+html[data-motion="reduce"] .pf-hero-main > .pf-avatar,
+html[data-motion="reduce"] .pf-hero-id > *,
+html[data-motion="reduce"] .pf-hero-actions,
+html[data-motion="reduce"] .pf-panel,
+html[data-motion="reduce"] .pf-avatar-ring {
+  animation: none;
+}
+html[data-motion="reduce"] .pf-tabs::after,
+html[data-motion="reduce"] .pf-tabs .tabbar-item,
+html[data-motion="reduce"] .pf-input-btn,
+html[data-motion="reduce"] .pf-venue,
+html[data-motion="reduce"] .pf-delete-btn {
+  transition: none;
+}
+
+/* La preferencia de la app aplica a TODA la casa, no solo al perfil: quien
+   la elige la elige para la app entera. Mismo criterio que el bloque de
+   arriba (anular duración, no la animación). */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ----------------------------------------------------------------------
    DOCUMENTOS LEGALES (paginas publicas /terminos, /privacidad, ...)
    El texto llega en markdown desde la API (backend/app/assets/legal/*.md);
    estas reglas solo lo tipografian. La medida de linea se acota a ~68ch:

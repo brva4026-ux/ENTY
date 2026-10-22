@@ -17,7 +17,8 @@ BEGIN;
 -- archivo contra el dump del Postgres local y falla si la base y el archivo
 -- se separan (nada entra a produccion sin pasar por aca).
 --
--- Contenido: 20 tablas (con audit_log de la mig 019 y ticket_payments de la mig 023), enums user_role /
+-- Contenido: 27 tablas (con audit_log de la mig 019, ticket_payments de la mig
+-- 023 y analytics_events de la mig 031), enums user_role /
 -- ticket_status, extension pgcrypto, 25 funciones de negocio y sus triggers.
 -- La logica transaccional (emit_ticket / redeem_ticket / reissue_ticket /
 -- set_event_status / void_ticket / lockout / notificaciones) vive AQUI, en
@@ -1553,6 +1554,39 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: analytics_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.analytics_events (
+    id bigint NOT NULL,
+    name text NOT NULL,
+    session_id text NOT NULL,
+    path text,
+    event_id bigint,
+    props jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT analytics_events_name_check CHECK ((name = ANY (ARRAY['view_home'::text, 'view_event'::text, 'checkout_start'::text]))),
+    CONSTRAINT analytics_events_path_check CHECK (((path IS NULL) OR (length(path) <= 200))),
+    CONSTRAINT analytics_events_session_id_check CHECK (((length(session_id) >= 8) AND (length(session_id) <= 64)))
+);
+
+
+--
+-- Name: analytics_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.analytics_events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.analytics_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+
+--
 -- Name: audit_log; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2330,6 +2364,15 @@ ALTER TABLE public.venues ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 );
 
 --
+-- Name: analytics_events analytics_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_events
+    ADD CONSTRAINT analytics_events_pkey PRIMARY KEY (id);
+
+
+
+--
 -- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2652,6 +2695,21 @@ CREATE INDEX idx_event_waitlist_queue ON public.event_waitlist USING btree (even
 CREATE INDEX idx_events_ends_unended ON public.events USING btree (ends_at) WHERE (status = ANY (ARRAY['live'::text, 'published'::text]));
 
 --
+-- Name: idx_analytics_events_name_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_analytics_events_name_created ON public.analytics_events USING btree (name, created_at DESC);
+
+
+--
+-- Name: idx_analytics_events_session; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_analytics_events_session ON public.analytics_events USING btree (session_id);
+
+
+
+--
 -- Name: idx_event_staff_event; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2899,6 +2957,15 @@ CREATE TRIGGER trg_ticket_reissued_notify AFTER INSERT ON public.ticket_reissues
 --
 
 CREATE TRIGGER trg_tickets_check_active_refs BEFORE INSERT ON public.tickets FOR EACH ROW EXECUTE FUNCTION public.tickets_check_active_refs();
+
+--
+-- Name: analytics_events analytics_events_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_events
+    ADD CONSTRAINT analytics_events_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE SET NULL;
+
+
 
 --
 -- Name: audit_log audit_log_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

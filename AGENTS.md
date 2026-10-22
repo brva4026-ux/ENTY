@@ -64,6 +64,11 @@ migración con objetos nuevos, consolidala también en `db/schema.sql`
 (aplicá schema+migraciones sobre una base limpia, `pg_dump --schema-only`
 y reemplazá el archivo) o el test falla.
 
+Ese test necesita los binarios `psql` y `pg_dump` en el PATH. El contenedor
+puede traer solo el servidor: si el test se salta con "psql/pg_dump no
+disponibles", instalá el cliente (`sudo apt-get install -y postgresql-client`)
+en vez de darlo por bueno — un skip local no es un verde.
+
 ## Convenciones
 
 - **Idioma**: identificadores y comentarios en español, sin tildes en el código.

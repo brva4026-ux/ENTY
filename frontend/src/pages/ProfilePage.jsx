@@ -1,20 +1,18 @@
-import { useNavigate } from "react-router-dom";
-import { useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { ROLE_LABELS, ROLE_VISUALS, topRole } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
+import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
 import PasswordMeter from "../components/PasswordMeter";
 import ThemeChooser from "../components/ThemeChooser";
+import MotionChooser from "../components/MotionChooser";
 import { PushToggle } from "../components/PushToggle";
 import useDocumentTitle from "../lib/useDocumentTitle";
-
-const prefersReducedMotion =
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const roleLabel = (role) => ROLE_LABELS[role] ?? role;
 
@@ -91,6 +89,7 @@ export default function ProfilePage() {
   const { user, logout, setUser } = useAuth();
   const nav = useNavigate();
   const ui = useUI();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Negocio activo (multi-negocio): estado local para re-pintar el selector
   // al instante; los paneles leen el valor persistido en cada carga.
@@ -121,13 +120,24 @@ export default function ProfilePage() {
   const [passMsg, setPassMsg] = useState(null); // {ok, text}
   const [passBusy, setPassBusy] = useState(false);
 
+  // Cierre de las demás sesiones
+  const [sessOpen, setSessOpen] = useState(false);
+  const [sessPass, setSessPass] = useState("");
+  const [sessMsg, setSessMsg] = useState(null);
+  const [sessBusy, setSessBusy] = useState(false);
+
+  // Descarga de los propios datos
+  const [exportBusy, setExportBusy] = useState(false);
+
   // Borrado de cuenta
   const [delOpen, setDelOpen] = useState(false);
   const [delPass, setDelPass] = useState("");
+  const [delConfirm, setDelConfirm] = useState("");
   const [delErr, setDelErr] = useState("");
   const [delBusy, setDelBusy] = useState(false);
 
   const dangerRef = useRef(null);
+  const tabbarRef = useRef(null);
 
   // El negocio solo aparece como pestaña propia si administra alguno: para el
   // resto era una tarjeta que nunca se pintaba y dejaba un hueco.
@@ -141,10 +151,35 @@ export default function ProfilePage() {
     [adminVenue],
   );
 
-  const [tab, setTab] = useState("cuenta");
-  // Si el negocio desaparece (dejó de ser admin), la pestaña activa no puede
-  // quedar apuntando a un panel que ya no existe.
-  const activeTab = tabs.some((t) => t.id === tab) ? tab : tabs[0].id;
+  // La pestaña vive SOLO en la URL: una única fuente de verdad. Con estado
+  // aparte habría que sincronizarlo a mano con el botón atrás, y ahí es donde
+  // se desincronizan la URL y lo que se ve.
+  // Si el negocio desaparece (dejó de ser admin), la pestaña pedida puede
+  // apuntar a un panel que ya no existe: se cae a la primera.
+  const requestedTab = searchParams.get("tab") || "cuenta";
+  const activeTab = tabs.some((t) => t.id === requestedTab)
+    ? requestedTab
+    : tabs[0].id;
+
+  // El indicador deslizante mide la pestaña activa: las pestañas cambian de
+  // posición según el rol, así que la geometría no se puede saber en CSS.
+  // useLayoutEffect: se mide antes del paint, para que el indicador no
+  // aparezca un frame en la posición anterior.
+  useLayoutEffect(() => {
+    const el = tabbarRef.current;
+    if (!el) return;
+    const measure = () => {
+      const active = el.querySelector('[aria-selected="true"]');
+      if (!active) return;
+      el.style.setProperty("--pf-tab-x", `${active.offsetLeft}px`);
+      el.style.setProperty("--pf-tab-w", `${active.offsetWidth}px`);
+    };
+    measure();
+    // Al girar el teléfono o cambiar el ancho, las pestañas se reacomodan.
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [activeTab, tabs]);
 
   if (!user) return null;
 
@@ -158,8 +193,12 @@ export default function ProfilePage() {
   const venueCount = user.venues?.length || 0;
 
   function selectTab(id) {
-    setTab(id);
     haptics.tick();
+    // La pestaña vive en la URL: se puede enlazar ("/perfil?tab=seguridad")
+    // y el botón atrás vuelve a la pestaña anterior. Sin `replace`: cada
+    // cambio es una entrada de historial, que es justo lo que hace que
+    // "atrás" funcione como uno espera.
+    setSearchParams(id === "cuenta" ? {} : { tab: id });
   }
 
   // Navegación por teclado del patrón ARIA tabs (flechas + Home/End).
@@ -180,7 +219,7 @@ export default function ProfilePage() {
   function goToDanger() {
     setDelOpen(true);
     dangerRef.current?.scrollIntoView({
-      behavior: prefersReducedMotion ? "auto" : "smooth",
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
       block: "start",
     });
   }
@@ -276,6 +315,59 @@ export default function ProfilePage() {
     }
   }
 
+  async function submitCloseSessions(e) {
+    e.preventDefault();
+    setSessMsg(null);
+    setSessBusy(true);
+    try {
+      const res = await apiFetch("/auth/close-other-sessions", {
+        method: "POST",
+        body: JSON.stringify({ password: sessPass }),
+      });
+      // El backend invalida TODOS los tokens (bump de token_version) y nos
+      // devuelve uno nuevo: si no lo guardáramos, esta misma sesión caería
+      // al login junto con las demás.
+      localStorage.setItem("tf_token", res.access_token);
+      setUser(res.user);
+      setSessPass("");
+      setSessOpen(false);
+      setSessMsg({
+        ok: true,
+        text: "Listo: las demás sesiones quedaron cerradas. Esta sigue abierta.",
+      });
+      haptics.success();
+      ui.success("Sesiones cerradas.");
+    } catch (err) {
+      setSessMsg({ ok: false, text: err.message });
+    } finally {
+      setSessBusy(false);
+    }
+  }
+
+  /** Descarga de los propios datos como JSON.
+   *  Se usa fetch + blob (no un <a href>): el token viaja en el header, nunca
+   *  en la URL, y así no queda en el historial ni en los logs del servidor. */
+  async function downloadData() {
+    setExportBusy(true);
+    try {
+      const data = await apiFetch("/auth/export");
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "mis-datos-enty.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      haptics.success();
+      ui.success("Descargamos tus datos.");
+    } catch (err) {
+      ui.error(err.message);
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   async function submitDelete(e) {
     e.preventDefault();
     setDelErr("");
@@ -283,7 +375,7 @@ export default function ProfilePage() {
     try {
       await apiFetch("/auth/account", {
         method: "DELETE",
-        body: JSON.stringify({ password: delPass }),
+        body: JSON.stringify({ password: delPass, confirm: delConfirm }),
       });
       logout();
       nav("/login", { state: { deleted: true } });
@@ -370,6 +462,7 @@ export default function ProfilePage() {
 
       {/* Pestañas: una cosa a la vez en lugar de un scroll con todo a la vista. */}
       <div
+        ref={tabbarRef}
         className="tabbar no-scrollbar pf-tabs"
         role="tablist"
         aria-label="Secciones del perfil"
@@ -574,6 +667,96 @@ export default function ProfilePage() {
               </button>
             </div>
           </form>
+
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Sesiones abiertas</h3>
+            <p className="pf-hint pf-hint-block">
+              Si dejaste la sesión abierta en otro dispositivo o crees que
+              alguien más entró, ciérralas todas de una vez. Esta sesión se
+              mantiene abierta.
+            </p>
+
+            {!sessOpen ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSessMsg(null);
+                  setSessOpen(true);
+                }}
+                className="btn-ghost pf-action"
+              >
+                <Icon name="shield" className="h-4 w-4" aria-hidden="true" />
+                Cerrar las demás sesiones…
+              </button>
+            ) : (
+              <form onSubmit={submitCloseSessions} className="pf-form">
+                <Field
+                  id="sess-pass"
+                  label="Confirma tu contraseña"
+                  hint="Pedimos tu contraseña para que nadie más pueda expulsarte de tu propia cuenta."
+                >
+                  <div className="pf-input-wrap">
+                    <input
+                      id="sess-pass"
+                      type="password"
+                      value={sessPass}
+                      onChange={(e) => setSessPass(e.target.value)}
+                      className="field"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+                </Field>
+                <div className="pf-form-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSessOpen(false);
+                      setSessPass("");
+                      setSessMsg(null);
+                    }}
+                    className="btn-ghost"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sessBusy}
+                    className="btn-primary"
+                  >
+                    {sessBusy ? "Cerrando…" : "Cerrar las demás"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {sessMsg && (
+              <div
+                role="status"
+                className={`pf-alert ${sessMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
+              >
+                {sessMsg.text}
+              </div>
+            )}
+          </div>
+
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Tus datos</h3>
+            <p className="pf-hint pf-hint-block">
+              Descarga una copia de lo que Enty sabe de tu cuenta: tus datos,
+              tus negocios y los documentos que aceptaste. Tus contraseñas y
+              los datos de tus clientes no se incluyen.
+            </p>
+            <button
+              type="button"
+              onClick={downloadData}
+              disabled={exportBusy}
+              className="btn-ghost pf-action"
+            >
+              <Icon name="download" className="h-4 w-4" aria-hidden="true" />
+              {exportBusy ? "Preparando…" : "Descargar mis datos (JSON)"}
+            </button>
+          </div>
         </section>
       )}
 
@@ -688,6 +871,14 @@ export default function ProfilePage() {
           <ThemeChooser />
 
           <div className="pf-sub">
+            <h3 className="pf-sub-title">Movimiento</h3>
+            <p className="pf-hint pf-hint-block">
+              Cuánto se mueve la interfaz al cambiar de pantalla o de pestaña.
+            </p>
+            <MotionChooser />
+          </div>
+
+          <div className="pf-sub">
             <h3 className="pf-sub-title">Avisos</h3>
             <p className="pf-hint pf-hint-block">
               Elige si quieres que te avisemos cuando abran puertas en tu negocio.
@@ -723,8 +914,8 @@ export default function ProfilePage() {
           ) : (
             <form onSubmit={submitDelete} className="pf-delete-form">
               <p className="pf-delete-warn">
-                Escribe tu contraseña para confirmar. Esta acción no tiene
-                deshacer.
+                Escribe tu contraseña y tu correo para confirmar. Esta acción no
+                tiene deshacer.
               </p>
               <label className="pf-field" htmlFor="del-pass">
                 <span className="pf-label">Tu contraseña</span>
@@ -736,6 +927,23 @@ export default function ProfilePage() {
                   className="field"
                   placeholder="Tu contraseña"
                   autoComplete="current-password"
+                  required
+                />
+              </label>
+              <label className="pf-field" htmlFor="del-confirm">
+                <span className="pf-label">
+                  Escribe tu correo para confirmar
+                </span>
+                <input
+                  id="del-confirm"
+                  type="text"
+                  value={delConfirm}
+                  onChange={(e) => setDelConfirm(e.target.value)}
+                  className="field"
+                  placeholder={user.email}
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   required
                 />
               </label>
@@ -751,6 +959,7 @@ export default function ProfilePage() {
                     setDelOpen(false);
                     setDelErr("");
                     setDelPass("");
+                    setDelConfirm("");
                   }}
                   className="btn-ghost"
                 >
@@ -758,7 +967,12 @@ export default function ProfilePage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={delBusy || !delPass}
+                  disabled={
+                    delBusy ||
+                    !delPass ||
+                    delConfirm.trim().toLowerCase() !==
+                      user.email.trim().toLowerCase()
+                  }
                   className="pf-delete-btn"
                 >
                   {delBusy ? "Eliminando…" : "Eliminar definitivamente"}
