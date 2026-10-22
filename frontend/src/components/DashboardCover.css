@@ -1,66 +1,278 @@
-/* DashboardCover - TicketFlow Professional Dashboard Cover */
+/* DashboardCover - Premium Motion & Animations */
 
-/* Primary color variable - define en tailwind o globals */
+/* ==========================================
+   PREFERENCES REDUCED MOTION
+   ========================================== */
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-cover * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
+
+/* ==========================================
+   ROOT VARIABLES - COLOR PALETTE
+   ========================================== */
 :root {
   --primary: #10b981;
   --primary-dark: #059669;
+  --primary-light: #34d399;
   --secondary: #64748b;
+  --secondary-dark: #475569;
+  --accent-emerald: #10b981;
+  --accent-slate: #64748b;
   --success: #10b981;
   --error: #ef4444;
   --warning: #f59e0b;
+  --background: #f8fafc;
+  --background-dark: #0f172a;
+  --card: #ffffff;
+  --card-dark: #1e293b;
+  --border: #e2e8f0;
+  --border-dark: #334155;
+  --text: #0f172a;
+  --text-dark: #f8fafc;
+  --muted: #64748b;
+  --muted-dark: #94a3b8;
 }
 
-/* Stat card hover effect */
+/* ==========================================
+   ANIMATION UTILITIES
+   ========================================== */
+
+@keyframe fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframe fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframe fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframe slideInFromLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframe slideInFromRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframe pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframe shimmer {
+  0% { background-position: -1000px 50%; }
+  100% { background-position: 1000px 50%; }
+}
+
+/* Utility classes */
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-in-delay-1 { animation-delay: 0.1s; animation: fadeInUp 0.6s 0.1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.animate-fade-in-delay-2 { animation-delay: 0.2s; animation: fadeInUp 0.6s 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.animate-fade-in-delay-3 { animation-delay: 0.3s; animation: fadeInUp 0.6s 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.animate-fade-in-delay-4 { animation-delay: 0.4s; animation: fadeInUp 0.6s 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+/* Stagger container */
+.stagger-children > * {
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.3s; }
+
+/* ==========================================
+   PAGE TRANSITIONS
+   ========================================== */
+
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 250ms cubic-bezier(0.4, 0, 0.2, 1), transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================
+   STAT CARD HOVER ANIMATIONS
+   ========================================== */
+
+.stat-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .stat-card:hover {
-  @apply shadow-xl border-primary/20;
+  transform: translateY(-4px) scale(1.02);
+  border-color: var(--primary) !important;
+  box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.1), 0 10px 10px -5px rgba(16, 185, 129, 0.05);
 }
 
-/* Button primary */
+.stat-card .trend {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.stat-card:hover .trend {
+  color: var(--primary-dark);
+}
+
+/* ==========================================
+   BUTTON ANIMATIONS PREMIUM
+   ========================================== */
+
 .btn-primary {
-  @apply bg-primary text-white rounded-lg px-6 py-4 font-semibold text-lg shadow-lg hover:opacity-90 transition-opacity;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Button secondary */
-.btn-secondary {
-  @apply bg-white text-gray-800 rounded-lg border border-gray-300 px-6 py-4 font-semibold text-lg shadow-sm hover:bg-gray-50 transition-colors;
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-/* Status badges */
-.badge-live {
-  @apply inline-flex items-center rounded-full bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5;
+.btn-primary:hover::before {
+  opacity: 0.1;
 }
 
-.badge-draft {
-  @apply inline-flex items-center rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5;
+.btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 20px -5px rgba(16, 185, 129, 0.4), 0 24px 40px -10px rgba(16, 185, 129, 0.3);
 }
 
-.badge-upcoming {
-  @apply inline-flex items-center rounded-full bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5;
+.btn-primary:active {
+  transform: translateY(1) scale(0.98);
 }
 
-.badge-ended {
-  @apply inline-flex items-center rounded-full bg-gray-200 text-gray-600 text-xs font-medium px-2.5 py-0.5;
+.btn-primary:focus-visible {
+  outline: 2px solid var(--primary-dark);
+  outline-offset: 2px;
 }
 
-/* Event card */
+/* ==========================================
+   STATUS BADGES ANIMATION
+   ========================================== */
+
+.badge-live, .badge-draft, .badge-upcoming, .badge-ended {
+  transition: all 0.2s ease, transform 0.15s ease;
+}
+
+.badge-live:hover, .badge-draft:hover, .badge-upcoming:hover, .badge-ended:hover {
+  transform: scale(1.05);
+}
+
+/* ==========================================
+   EVENT CARD HOVER
+   ========================================== */
+
 .event-card {
-  @apply rounded-lg border overflow-hidden bg-white dark:bg-gray-800 hover:shadow-xl transition-shadow;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Scan item */
+.event-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+}
+
+/* ==========================================
+   SCAN ITEM ANIMATION
+   ========================================== */
+
 .scan-item {
-  @apply flex items-start gap-3 p-3 rounded-lg bg-white dark:bg-gray-800;
+  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Responsive */
+/* ==========================================
+   SKELETON LOADING ANIMATION
+   ========================================== */
+
+@keyframes skeleton-shimmer {
+  0% { background-color: #e2e8f0; }
+  50% { background-color: #f1f5f9; }
+  100% { background-color: #e2e8f0; }
+}
+
+.skeleton-bg {
+  animation: skeleton-shimmer 1.5s ease-in-out infinite alternate;
+}
+
+/* ==========================================
+   ENTRANCE ANIMATIONS - PAGE LOAD
+   ========================================== */
+
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-cover > *:nth-child(1) {
+    animation: fadeInUp 0.6s 0.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .dashboard-cover > *:nth-child(2) {
+    animation: fadeInUp 0.6s 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .dashboard-cover > *:nth-child(3) {
+    animation: fadeInUp 0.6s 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .dashboard-cover > *:nth-child(4) {
+    animation: fadeInUp 0.6s 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .dashboard-cover > *:nth-child(5) {
+    animation: fadeInUp 0.6s 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .dashboard-cover > *:nth-child(6) {
+    animation: fadeInUp 0.6s 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}
+
+/* Reduced motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-cover > * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ==========================================
+   RESPONSIVE ANIMATIONS
+   ========================================== */
+
 @media (max-width: 640px) {
-  .grid-cols-1 {
-    @grid-template-columns: 1fr !important;
-  }
-  .grid-cols-2 {
-    @grid-template-columns: 1fr !important;
-  }
-  .grid-cols-4 {
-    @grid-template-columns: 1fr !important;
+  .stat-card,
+  .event-card {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
   }
 }

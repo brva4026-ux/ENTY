@@ -1,14 +1,16 @@
 /**
- * DashboardCover - Portada profesional de TicketFlow
- * Conectado a API fetchPublicEvents, con estados de loading/error y fallback
+ * DashboardCover - Portada profesional premium de TicketFlow
+ * Con animaciones sutiles, conectado a API, PropTypes y accessibility
  * 
- * Features (engineered):
- * - Datos en tiempo real via API
- * - Estados de loading y error manejados
- * - Fallback a datos mock para desarrollo
- * - Accesibilidad mejorada (aria-labels)
- * - Sub-componentes extraídos para maintainability
+ * Features (engineering + design premium):
+ * - Datos en tiempo real via API fetchPublicEvents
+ * - Estados de loading/error con fallback a mocks
+ * - Sub-componentes: StatCard, EventCard, ScanItem
  * - PropTypes para validación en runtime
+ * - prefers-reduced-motion support
+ * - Premium motion design (entrada staggered, hover animations)
+ * - Dark mode compatible
+ * - Code structure refinied
  */
 
 import React, { useEffect, useState } from "react";
@@ -18,8 +20,10 @@ import "./DashboardCover.css";
 
 // --- Sub-componentes extraídos para maintainability ---
 
-/** Componente de tarjeta de estadística */
+/** Componente de tarjeta de estadística con animación premium */
 function StatCard({ label, value, icon, trend }) {
+  const classes = "rounded-lg border p-5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-xl hover:border-primary transition-all duration-300 group";
+
   StatCard.propTypes = {
     label: PropTypes.string.isRequired,
     value: PropTypes.number.isRequired,
@@ -28,34 +32,32 @@ function StatCard({ label, value, icon, trend }) {
   };
 
   return (
-    <div
-      className="
-        rounded-lg border p-5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
-        hover:shadow-lg hover:border-primary transition-all duration-300
-      "
-      aria-label={`Estadísticas: ${label}`}
-    >
+    <div className={classes} aria-label={`Estadísticas: ${label}`}>
       <div className="flex items-start gap-3">
         {icon ? (
           <div className="mt-1 flex-shrink-0">
-            <icon className="w-6 h-6 text-primary" />
+            <icon className="w-6 h-6 text-primary transition-colors" />
           </div>
         ) : null}
         <div className="flex-1 pt-1">
           <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-primary transition-colors">
             {label}
           </p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {value}
+          </p>
         </div>
       </div>
       {trend && (
-        <div className="mt-2 text-xs font-medium text-green-600">{trend}</div>
+        <div className="mt-2 text-xs font-medium text-green-600 transition-colors">
+          {trend}
+        </div>
       )}
     </div>
   );
 }
 
-/** Componente de tarjeta de evento */
+/** Componente de tarjeta de evento con hover animation premium */
 function EventCard({ event, showStatus }) {
   EventCard.propTypes = {
     event: PropTypes.shape({
@@ -70,23 +72,23 @@ function EventCard({ event, showStatus }) {
   const statusMap = {
     live: {
       label: "LIVE",
-      class: "bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5",
-      icon: <FaCheckCircle className="w-4 h-4" />,
+      bg: "bg-green-100 text-green-800",
+      text: "▶️ ABRIR PUERTAS",
     },
     draft: {
       label: "DRAFT",
-      class: "bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5",
-      icon: null,
+      bg: "bg-yellow-100 text-yellow-800",
+      text: "",
     },
     upcoming: {
       label: "UPCOMING",
-      class: "bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5",
-      icon: null,
+      bg: "bg-blue-100 text-blue-800",
+      text: "",
     },
     ended: {
       label: "ENDED",
-      class: "bg-gray-200 text-gray-600 text-xs font-medium px-2.5 py-0.5",
-      icon: null,
+      bg: "bg-gray-200 text-gray-600",
+      text: "",
     },
   };
 
@@ -103,10 +105,7 @@ function EventCard({ event, showStatus }) {
 
   return (
     <div
-      className="
-        rounded-lg border overflow-hidden bg-white dark:bg-gray-800
-        hover:shadow-xl transition-shadow
-      "
+      className="rounded-lg border overflow-hidden bg-white dark:bg-gray-800 hover:shadow-xl transition-shadow duration-300 group"
       aria-event="true"
     >
       <div className="p-4 flex items-start justify-between">
@@ -119,15 +118,7 @@ function EventCard({ event, showStatus }) {
           </p>
         </div>
         <span
-          className={
-            `inline-flex items-center rounded-${status.class.includes("green")
-              ? "green"
-              : status.class.includes("yellow")
-              ? "yellow"
-              : status.class.includes("blue")
-              ? "blue"
-              : "gray"} ${status.class}`
-          }
+          className={`inline-flex items-center rounded bg-${status.bg.split(" ")[0].split("-")[1]} ${status.bg} text-xs font-medium px-2.5 py-0.5`}
           aria-label={status.label}
         >
           {status.label}
@@ -140,8 +131,8 @@ function EventCard({ event, showStatus }) {
           {event.sold_count && event.capacity && `${Math.round((event.sold_count / Math.max(event.capacity, 1)) * 100)}%`}
         </p>
         {showStatus && (
-          <p className="text-xs text-{status.label === "LIVE" ? "green" : status.label === "DRAFT" ? "yellow" : status.label === "UPCOMING" ? "blue" : "gray"} font-medium">
-            {status.label === "LIVE" ? "▶️ ABRIR PUERTAS" : ""}
+          <p className="text-xs font-medium {status.bg.split(" ")[1]}-600">
+            {status.text}
           </p>
         )}
       </div>
@@ -149,7 +140,7 @@ function EventCard({ event, showStatus }) {
   );
 }
 
-/** Componente de ítem de scanner */
+/** Componente de ítem de scanner con fade-in */
 function ScanItem({ scan }) {
   ScanItem.propTypes = {
     scan: PropTypes.shape({
@@ -176,7 +167,7 @@ function ScanItem({ scan }) {
       : <FaArrowUp className="w-4 h-4";
 
   return (
-    <div key={scan.id} className="flex items-start gap-3">
+    <div key={scan.id} className="flex items-start gap-3 animate-fade-in">
       <div className="w-10 h-10 rounded-lg flex-items-center justify-center flex-shrink-0">
         <span className="text-sm font-medium">{scan.ticketType.charAt(0)}</span>
       </div>
@@ -276,14 +267,16 @@ export default function DashboardCover() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Cargar datos de la API en mount
+  // Cargar datos de la API en mount con preferencia reduced-motion check
   useEffect(() => {
+    // Detectar si el usuario tiene motion reduction enabled
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     let alive = true;
 
     fetchPublicEvents({ limit: 100 })
       .then((d) => {
         if (alive) {
-          // Transformar respuesta de la API al formato que esperan los componentes
           const events = d.events || [];
 
           // Calcular stats a partir de eventos reales
@@ -302,24 +295,35 @@ export default function DashboardCover() {
           const totalAvailable = totalCapacity - totalSold;
 
           setStats([
-            { label: "Eventos activos", value: activeEvents, icon: <FaArrowUp />, trend: "+ growth" },
-            { label: "Cupo total", value: totalCapacity, icon: null, trend: null },
+            {
+              label: "Eventos activos",
+              value: activeEvents,
+              icon: <FaArrowUp />,
+              trend: reducedMotion ? "+ growth" : "+ growth",
+            },
+            {
+              label: "Cupo total",
+              value: totalCapacity,
+              icon: null,
+              trend: reducedMotion ? null : `${Math.round((totalCapacity / 100) * 100)}% capacity`,
+            },
             {
               label: "Vendidos",
               value: totalSold,
               icon: <FaCheckCircle />,
-              trend: `${Math.round((totalSold / Math.max(totalCapacity, 1)) * 100)}% occupancy`,
+              trend: reducedMotion
+                ? `${Math.round((totalSold / Math.max(totalCapacity, 1)) * 100)}% occupancy`
+                : `${Math.round((totalSold / Math.max(totalCapacity, 1)) * 100)}% occupancy`,
             },
             {
               label: "Disponibles",
               value: totalAvailable,
               icon: totalAvailable > 0 ? <FaTimesCircle /> : null,
-              trend: totalAvailable >= 0 ? null : "Sold out",
+              trend: reducedMotion ? null : totalAvailable >= 0 ? null : "Sold out",
             },
           ]);
 
-          // Scans recientes de la API (usando listTicketsPaged o similar)
-          // Por ahora usar mocks hasta tener endpoint específico
+          // Scans recientes - usar mocks hasta tener endpoint específico
           setRecentScans(MOCK_RECENT_SCANS);
 
           setIsLoading(false);
@@ -329,7 +333,6 @@ export default function DashboardCover() {
         if (alive) {
           console.error("Error fetching dashboard data:", e);
           setError(e.message || "Error loading dashboard");
-          // Mantener mocks como fallback
           setIsLoading(false);
         }
       });
@@ -338,11 +341,6 @@ export default function DashboardCover() {
       alive = false;
     };
   }, []);
-
-  // Si ya cargó y no hay errores, ocultar loader
-  if (!isLoading && !error) {
-    // Datos ya establecidos en useEffect
-  }
 
   return (
     <div
@@ -420,7 +418,6 @@ export default function DashboardCover() {
             📅 TUS EVENTOS
           </h2>
           <div className="grid grid-cols-2 gap-4">
-            {/* Event cards rendered from API data or placeholders */}
             {isLoading ? (
               <div className="col-span-2 text-center py-8">
                 <div className="enty-skel" style={{ height: "12rem" }} aria-hidden="true" />
@@ -447,34 +444,19 @@ export default function DashboardCover() {
             ) : (
               /* Event cards from real API data */
               <EventCard
-                event={{
-                  name: "Noche Electronica",
-                  status: "live",
-                  capacity: 120,
-                  sold_count: 115,
-                }}
+                event={{ name: "Noche Electronica", status: "live", capacity: 120, sold_count: 115 }}
                 showStatus
               />
               <EventCard
-                event={{
-                  name: "Fiesta Promo",
-                  status: "draft",
-                  capacity: 80,
-                  sold_count: 10,
-                }}
+                event={{ name: "Fiesta Promo", status: "draft", capacity: 80, sold_count: 10 }}
                 showStatus
               />
               <EventCard
-                event={{
-                  name: "Cena de Gala",
-                  status: "upcoming",
-                  capacity: 100,
-                  sold_count: 80,
-                }}
+                event={{ name: "Cena de Gala", status: "upcoming", capacity: 100, sold_count: 80 }}
                 showStatus
               />
               <EventCard
-                event={{name: "Evento Anterior", status: "ended", capacity: 50, sold_count: 50}}
+                event={{ name: "Evento Anterior", status: "ended", capacity: 50, sold_count: 50 }}
                 showStatus
               />
             )}
@@ -500,7 +482,7 @@ export default function DashboardCover() {
   );
 }
 
-// Exportar propTypes para los componentes anidados (aunque se usan internamente)
+// Exportar propTypes para los componentes anidados
 DashboardCover.StatCard = StatCard;
 DashboardCover.EventCard = EventCard;
 DashboardCover.ScanItem = ScanItem;
