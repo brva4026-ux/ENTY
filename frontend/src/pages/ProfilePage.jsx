@@ -12,7 +12,9 @@ import useDocumentTitle from "../lib/useDocumentTitle";
 
 const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";const roleLabel = (role) => ROLE_LABELS[role] ?? role;
+const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";
+
+const roleLabel = (role) => ROLE_LABELS[role] ?? role;
 
 /** Premium Avatar component with visual role indicator */
 function PremiumAvatar({ user, size = "md", className: extraClass }) {
@@ -266,7 +268,10 @@ function SectionHead({ eyebrow, title, hint }) {
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       {/* Hero de identidad: la ficha de la persona, no un formulario. */}
-      <div className="pf-hero motion-reduced transition-all duration-200" style="transition: none !important">
+      <div
+        className={`pf-hero transition-all duration-200 ${reducedMotionClass}`}
+        style={prefersReducedMotion ? { transition: "none" } : undefined}
+      >
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <PremiumAvatar user={user} size="md" className="transition-opacity duration-300" />
           <div className="min-w-0 flex-1">
