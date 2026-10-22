@@ -1,0 +1,1 @@
+SELECT (SELECT count(*) FROM users) usuarios, (SELECT count(*) FROM venues) venues, (SELECT count(*) FROM events) eventos, (SELECT count(*) FROM ticket_types) tipos, (SELECT count(*) FROM promoter_allocations) cupos;

@@ -1,0 +1,66 @@
+/* DashboardCover - TicketFlow Professional Dashboard Cover */
+
+/* Primary color variable - define en tailwind o globals */
+:root {
+  --primary: #10b981;
+  --primary-dark: #059669;
+  --secondary: #64748b;
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+}
+
+/* Stat card hover effect */
+.stat-card:hover {
+  @apply shadow-xl border-primary/20;
+}
+
+/* Button primary */
+.btn-primary {
+  @apply bg-primary text-white rounded-lg px-6 py-4 font-semibold text-lg shadow-lg hover:opacity-90 transition-opacity;
+}
+
+/* Button secondary */
+.btn-secondary {
+  @apply bg-white text-gray-800 rounded-lg border border-gray-300 px-6 py-4 font-semibold text-lg shadow-sm hover:bg-gray-50 transition-colors;
+}
+
+/* Status badges */
+.badge-live {
+  @apply inline-flex items-center rounded-full bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5;
+}
+
+.badge-draft {
+  @apply inline-flex items-center rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5;
+}
+
+.badge-upcoming {
+  @apply inline-flex items-center rounded-full bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5;
+}
+
+.badge-ended {
+  @apply inline-flex items-center rounded-full bg-gray-200 text-gray-600 text-xs font-medium px-2.5 py-0.5;
+}
+
+/* Event card */
+.event-card {
+  @apply rounded-lg border overflow-hidden bg-white dark:bg-gray-800 hover:shadow-xl transition-shadow;
+}
+
+/* Scan item */
+.scan-item {
+  @apply flex items-start gap-3 p-3 rounded-lg bg-white dark:bg-gray-800;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .grid-cols-1 {
+    @grid-template-columns: 1fr !important;
+  }
+  .grid-cols-2 {
+    @grid-template-columns: 1fr !important;
+  }
+  .grid-cols-4 {
+    @grid-template-columns: 1fr !important;
+  }
+}
