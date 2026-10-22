@@ -18,8 +18,11 @@ cd "$(dirname "$0")/.."
 # NOTA: la lista DEBE acompanar las migraciones nuevas (todas idempotentes,
 # safe re-run); si se deja desfasada, un cambio de esquema despliega codigo
 # que usa objetos que la base todavia no tiene (500 en rutas nuevas).
+# backend/tests/test_deploy_migrations.py falla si esta lista no coincide con
+# db/migrations/*.sql, asi que el desfase se ve en CI y no en produccion.
 PROJECT_REF="${SUPABASE_PROJECT_REF:-wjknwlrcacalilfrfqyq}"
 MIGRATIONS=(
+  db/migrations/002_lifecycle.sql
   db/migrations/003_ops_hardening.sql
   db/migrations/004_edit_and_delete.sql
   db/migrations/004_ticket_reissue.sql
@@ -49,6 +52,7 @@ MIGRATIONS=(
   db/migrations/028_legal_acceptances.sql
   db/migrations/029_legal_documents_v11.sql
   db/migrations/030_legal_plazos.sql
+  db/migrations/031_analytics_events.sql
 )
 
 echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"
