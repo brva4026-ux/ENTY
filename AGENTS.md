@@ -69,6 +69,14 @@ puede traer solo el servidor: si el test se salta con "psql/pg_dump no
 disponibles", instalá el cliente (`sudo apt-get install -y postgresql-client`)
 en vez de darlo por bueno — un skip local no es un verde.
 
+`tests/test_deploy_migrations.py` cierra el otro lado del mismo problema:
+`db/schema.sql` es la instalación completa, pero **producción se migra con
+`scripts/deploy.sh`**, que lleva la lista de migraciones escrita a mano. Si
+agregás una migración y no la sumás al array `MIGRATIONS`, el código nuevo se
+despliega (Vercel auto-despliega en cada push) pero el objeto nunca llega a
+Supabase: las rutas que lo usan devuelven 503. El test compara la lista contra
+`db/migrations/*.sql` y falla si falta una, sobra una o se rompe el orden.
+
 ## Convenciones
 
 - **Idioma**: identificadores y comentarios en español, sin tildes en el código.
