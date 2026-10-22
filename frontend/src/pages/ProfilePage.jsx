@@ -349,43 +349,53 @@ export default function ProfilePage() {
               title="Tus datos"
               hint="Tu nombre es el que ven tu equipo y quedó registrado en las boletas que emitas."
             />
-            <form onSubmit={submitName} className="space-y-3">
-              <div>
-                <label
-                  htmlFor="full-name"
-                  className="mb-1 block text-xs font-medium text-zinc-400"
-                >
-                  Nombre completo
-                </label>
-                <input
-                  id="full-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="field"
-                  maxLength={120}
-                  minLength={2}
-                  required
-                />
-              </div>
-              {nameMsg && (
-                <div
-                  role="status"
-                  className={`rounded-lg border px-3 py-2 text-sm ${
-                    nameMsg.ok
-                      ? "border-emerald-800/60 bg-emerald-950/40 text-emerald-300"
-                      : "border-red-900/60 bg-red-950/40 text-red-300"
-                  }`}
-                >
-                  {nameMsg.text}
+            <form onSubmit={submitName} className="space-y-3 pf-form-data">
+              <div className="pf-form-data-wrapper">
+                <div className="pf-form-data-row">
+                  <label
+                    htmlFor="full-name"
+                    className="pf-form-label mb-1 block text-xs font-medium text-zinc-400"
+                  >
+                    Nombre completo
+                  </label>
+                  <div className="pf-form-control">
+                    <input
+                      id="full-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="field"
+                      maxLength={120}
+                      minLength={2}
+                      required
+                      aria-describedby="name-help"
+                    />
+                    <p id="name-help" className="pf-form-hint text-xs text-zinc-500">
+                      Tu nombre tal como aparecerá en las boletas
+                    </p>
+                  </div>
                 </div>
-              )}
-              <button
-                type="submit"
-                disabled={nameBusy || name.trim() === user.full_name}
-                className="btn-primary disabled:opacity-40"
-              >
-                {nameBusy ? "Guardando…" : "Guardar nombre"}
-              </button>
+                {nameMsg && (
+                  <div
+                    role="status"
+                    className={`rounded-lg border px-3 py-2 text-sm ${
+                      nameMsg.ok
+                        ? "border-emerald-800/60 bg-emerald-950/40 text-emerald-300"
+                        : "border-red-900/60 bg-red-950/40 text-red-300"
+                    }`}
+                  >
+                    {nameMsg.text}
+                  </div>
+                )}
+                <div className="pf-form-actions">
+                  <button
+                    type="submit"
+                    disabled={nameBusy || name.trim() === user.full_name}
+                    className="btn-primary w-full"
+                  >
+                    {nameBusy ? "Guardando…" : "Guardar nombre"}
+                  </button>
+                </div>
+              </div>
             </form>
           </div>
 

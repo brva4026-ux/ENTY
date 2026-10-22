@@ -183,7 +183,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setShowPass((v) => !v)}
-                className="absolute right-1.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-800/60 hover:text-zinc-100"
+                className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-800/60 hover:text-zinc-100"
                 aria-label={
                   showPass ? "Ocultar contraseña" : "Mostrar contraseña"
                 }

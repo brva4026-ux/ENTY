@@ -1,14 +1,9 @@
 /**
- * OnboardingChecklist: guía al admin primerizo por los 4 pasos para vender
- * su primer evento. Se oculta solo (queda completado + descartado) para no
- * estorbar a quien ya sabe lo que hace. Micro-confeti de emojis al completar
- * todo — un momento especial medido, sin saturar.
- *
- * Antes solo aparecía con la venue VACÍA: al crear el primer evento
- * desaparecía y los pasos 2–4 nunca se veían. Ahora se muestra mientras el
- * evento más reciente sigue en borrador y mide el progreso REAL (tipos,
- * cupos, publicado) que el padre le pasa. Cada paso pendiente es un atajo
- * que lleva a la pestaña donde se resuelve.
+ * Onboarding interactivo: guía paso a paso para nuevos admins.
+ * Cada paso es un atajo directo a la acción que falta.
+ * Se oculta cuando todo está completo (y se puede re-mostrar
+ * borrando `localStorage.tf_onboarding_done`).
+ * Confeti de celebración al terminar — momento especial, sin saturar.
  */
 import { useEffect, useState } from "react";
 import { haptics } from "../lib/haptics";
@@ -31,10 +26,10 @@ export function OnboardingChecklist({
   const [celebrate, setCelebrate] = useState(false);
 
   const steps = [
-    { done: hasEvent, label: "Crea tu primer evento", hint: "Nombre, fecha y aforo", go: "evento" },
-    { done: hasTypes, label: "Define tipos de boleta", hint: "General, VIP, cortesías…", go: "entradas" },
-    { done: hasAllocations, label: "Asigna cupos a tu equipo", hint: "Cada promotor vende dentro de su cupo", go: "cupos" },
-    { done: isPublished, label: "Publica y abre puertas", hint: "Publica para vender; en puerta, escanea QR", go: "resumen" },
+    { done: hasEvent, label: "Crear tu primer evento", hint: "Nombre, fecha y aforo del evento", go: "evento" },
+    { done: hasTypes, label: "Definir tipos de boleta", hint: "General, VIP, cortesías y descuentos", go: "entradas" },
+    { done: hasAllocations, label: "Asignar cupos al equipo", hint: "Distribuye cupos por promotor vendedor", go: "cupos" },
+    { done: isPublished, label: "Publicar y abrir puertas", hint: "Habilita venta; en puerta escanea QR al ingreso", go: "resumen" },
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const allDone = doneCount === steps.length;
@@ -74,13 +69,17 @@ export function OnboardingChecklist({
         </div>
       )}
 
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-2">
         <div>
           <p className="eyebrow">Primeros pasos</p>
-          <h3 className="display mt-0.5 text-base">
+          <h3 className="display mt-0.5 text-base pf-section-title">
             {allDone ? "¡Todo listo para vender! 🎉" : "Pon tu negocio a vender"}
           </h3>
         </div>
+        <p className="text-zinc-500 text-sm max-w-xs">
+          Complete cada paso para poner tu negocio a vender. Son atajos directos
+          a las secciones donde resolvés cada tarea.
+        </p>
         {/* CTA del primer paso: la guía no solo informa, EJECUTA. Sin esto el
           admin primerizo lee "crea tu primer evento" y sale a buscar el botón.
           Una vez hay evento, el botón lleva al paso pendiente más temprano. */}
@@ -118,8 +117,14 @@ export function OnboardingChecklist({
 
       {/* Progreso real (no solo el contador): la barra crece con cada paso
         completado — ver el avance mueve más que leerlo. */}
-      <div className="onboard-progress mt-3" role="progressbar" aria-valuenow={doneCount} aria-valuemin={0} aria-valuemax={steps.length}>
-        <div className="onboard-progress-fill" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+      <div className="onboard-progress-wrapper">
+        <div className="onboard-progress-label">
+          <span className="onboard-progress-done">{doneCount}</span>
+          <span className="onboard-progress-total">de {steps.length}</span>
+        </div>
+        <div className="onboard-progress-bar">
+          <div className="onboard-progress-fill" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+        </div>
       </div>
 
       <ol className="mt-3 space-y-2.5">

@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
                   <button
                     type="button"
                     onClick={() => setShowPass((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
+                    className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-800/60 hover:text-zinc-100"
                     aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
                   >
                     {showPass ? "Ocultar" : "Ver"}
