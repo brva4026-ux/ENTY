@@ -439,7 +439,7 @@ function SectionHead({ eyebrow, title, hint }) {
               hint="Se te pedirá la contraseña actual para confirmar que eres tú."
             />
 
-            <form onSubmit={submitPassword} className="space-y-3">
+            <form onSubmit={submitPassword} className="space-y-5 pf-password-form">
               <div>
                 <label
                   htmlFor="cur-pass"
@@ -447,21 +447,27 @@ function SectionHead({ eyebrow, title, hint }) {
                 >
                   Contraseña actual
                 </label>
-                <div className="relative">
+                <div className="pf-form-group">
+                <label htmlFor="cur-pass" className="pf-form-label">
+                  Contraseña actual
+                  <span className="pf-form-required">*</span>
+                </label>
+                <div className="pf-form-control">
                   <input
                     id="cur-pass"
                     type={showCur ? "text" : "password"}
                     value={curPass}
                     onChange={(e) => setCurPass(e.target.value)}
-                    className="field !pr-16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2"
+                    className="field"
                     autoComplete="current-password"
                     maxLength={128}
                     required
+                    aria-describedby="cur-pass-help"
                   />
                   <button
                     type="button"
                     onClick={() => setShowCur((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
+                    className="pf-form-toggle"
                     aria-label={
                       showCur ? "Ocultar contraseña" : "Mostrar contraseña"
                     }
@@ -469,6 +475,10 @@ function SectionHead({ eyebrow, title, hint }) {
                     {showCur ? "Ocultar" : "Ver"}
                   </button>
                 </div>
+                <p id="cur-pass-help" className="pf-form-hint text-xs text-zinc-500">
+                  Se usará para confirmar tu identidad al actualizar
+                </p>
+              </div>
               </div>
 
               <div>
@@ -484,11 +494,12 @@ function SectionHead({ eyebrow, title, hint }) {
                     type={showNew ? "text" : "password"}
                     value={newPass}
                     onChange={(e) => setNewPass(e.target.value)}
-                    className="field !pr-16"
+                    className="field pf-form-input"
                     autoComplete="new-password"
                     minLength={8}
                     maxLength={128}
                     required
+                    className="pf-form-input"
                   />
                   <button
                     type="button"
