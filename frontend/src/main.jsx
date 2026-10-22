@@ -25,6 +25,10 @@ initFrontendSentry();
 // anti-flash; esto re-aplica y deja el listener del sistema listo).
 import { initTheme } from "./lib/theme";
 initTheme();
+// Movimiento ANTES del primer render, por el mismo motivo que el tema: la
+// primera animación del hero ya sale apagada si la persona pidió quietud.
+import { applyMotion } from "./lib/motion";
+applyMotion();
 import { AuthProvider, useAuth, consumeLoggedOut } from "./lib/auth";
 import { UIProvider } from "./lib/ui";
 import { hasRole, homeForRole } from "./lib/roles";

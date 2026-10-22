@@ -450,7 +450,23 @@ class UpdateVenueRequest(BaseModel):
 
 
 class DeleteAccountRequest(BaseModel):
-    """Borrado definitivo de la propia cuenta (requiere confirmar password)."""
+    """Borrado definitivo de la propia cuenta.
+
+    Exige la contraseña vigente Y el email escrito a mano: el borrado de la
+    propia cuenta es más destructivo que purgar a un tercero (se lleva la
+    venue entera si eres admin único), así que no puede ser más fácil de
+    disparar. Mismo patrón de confirmación que PurgeUserRequest.
+    """
+    password: str
+    confirm: str
+
+
+class CloseOtherSessionsRequest(BaseModel):
+    """Cierre de las demás sesiones abiertas: exige la contraseña vigente.
+
+    Quien solo robara un token no puede expulsar al dueño de su propia
+    cuenta; el dueño sí (y de paso invalida el token robado).
+    """
     password: str
 
 

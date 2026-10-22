@@ -66,6 +66,15 @@
           if (m) m.setAttribute("content", "#f4f4f5");
         }
       } catch (e) {}
+      // Movimiento reducido antes del primer paint: si la persona lo pidió en
+      // la app, la primera animación ya no corre (evita el parpadeo de que
+      // todo se mueva una vez y luego se apague). El SO se respeta aparte,
+      // vía @media en el CSS.
+      try {
+        if (localStorage.getItem("tf_motion") === "reduce") {
+          document.documentElement.dataset.motion = "reduce";
+        }
+      } catch (e) {}
     </script>
   </head>
   <body class="bg-zinc-950 text-zinc-100 min-h-screen">
