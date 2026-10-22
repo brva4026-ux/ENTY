@@ -10,9 +10,47 @@ import PasswordMeter from "../components/PasswordMeter";
 import ThemeChooser from "../components/ThemeChooser";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
-const roleLabel = (role) => ROLE_LABELS[role] ?? role;
+const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** Fecha larga para "Miembro desde": "12 de octubre de 2026". */
+const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";const roleLabel = (role) => ROLE_LABELS[role] ?? role;
+
+/** Premium Avatar component with visual role indicator */
+function PremiumAvatar({ user, size = "md", className: extraClass }) {
+  const visual = ROLE_VISUALS[topRole(user)] ?? ROLE_VISUALS.bouncer;
+  const initials = (user.full_name || "?")
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <span
+      className={`pf-avatar ${visual.avatar} ${extraClass}`}
+      aria-label={`Avatar de ${user.full_name}`}
+    >
+      <span
+        className={`pf-avatar-ring ${visual.tabAccent} premium-ring`}
+        aria-hidden="true"
+      />
+      {initials}
+    </span>
+  );
+}
+
+/** Premium Role Chip */
+function RoleChip({ role, visual }) {
+  return (
+    <span
+      className={`pf-role-chip ${visual.tabAccent} premium-chip`}
+      aria-label={`Rol: ${roleLabel(role)}`}
+    >
+      {roleLabel(role)}
+    </span>
+  );
+}
+
+/** Long date format */
 function longDate(iso) {
   if (!iso) return null;
   const d = new Date(iso);
@@ -24,7 +62,7 @@ function longDate(iso) {
   });
 }
 
-/** Fecha relativa compacta para el último ingreso: "hoy", "ayer", "hace 3 días". */
+/** Relative date format */
 function sinceLabel(iso) {
   if (!iso) return null;
   const then = new Date(iso);
@@ -36,12 +74,12 @@ function sinceLabel(iso) {
   return longDate(iso);
 }
 
-/** Encabezado de sección unificado: eyebrow + título + explicación. */
+/** Premium Section Head with consistent design */
 function SectionHead({ eyebrow, title, hint }) {
   return (
     <div className="pf-section-head">
       {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-      <h3 className="pf-section-title">{title}</h3>
+      <h3 className="pf-section-title font-medium title-large">{title}</h3>
       {hint && (
         <p className="mt-1 text-xs leading-relaxed text-zinc-500">{hint}</p>
       )}
@@ -51,14 +89,14 @@ function SectionHead({ eyebrow, title, hint }) {
 
 /** Página de perfil: identidad del usuario, cambio de contraseña y
  *  eliminación definitiva de la cuenta (zona de peligro). */
-export default function ProfilePage() {
+ export default function ProfilePage() {
   useDocumentTitle("Tu perfil");
   const { user, logout, setUser } = useAuth();
   const nav = useNavigate();
   const ui = useUI();
   // Negocio activo (multi-negocio): estado local para re-pintar el selector
   // al instante; los paneles leen el valor persistido en cada carga.
-  const [currentVenueId, setCurrentVenueId] = useState(() =>
+  const [currentVenueId, setCurrentVenueId] = useState(()=>
     activeVenueId(user),
   );
 
@@ -228,15 +266,9 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       {/* Hero de identidad: la ficha de la persona, no un formulario. */}
-      <div className="pf-hero">
+      <div className="pf-hero motion-reduced transition-all duration-200" style="transition: none !important">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <span className={`pf-avatar ${visual.avatar}`}>
-            <span
-              className={`pf-avatar-ring ${visual.tabAccent}`}
-              aria-hidden="true"
-            />
-            {initials}
-          </span>
+          <PremiumAvatar user={user} size="md" className="transition-opacity duration-300" />
           <div className="min-w-0 flex-1">
             <p className="eyebrow">Tu perfil</p>
             <h1 className="pf-name mt-0.5 truncate">
@@ -258,7 +290,7 @@ export default function ProfilePage() {
                   return (
                     <span
                       key={v.id}
-                      className={`pf-role-chip ${vVisual.tabAccent}`}
+                      className={`pf-role-chip ${vVisual.tabAccent} transition-colors hover:translate-y-1 hover:scale-105 hover:border-zinc-700`}
                     >
                       {v.name}
                       {vRole && (
@@ -363,7 +395,7 @@ export default function ProfilePage() {
                       id="full-name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="field"
+                      className="field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2"
                       maxLength={120}
                       minLength={2}
                       required
@@ -421,7 +453,7 @@ export default function ProfilePage() {
                     type={showCur ? "text" : "password"}
                     value={curPass}
                     onChange={(e) => setCurPass(e.target.value)}
-                    className="field !pr-16"
+                    className="field !pr-16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2"
                     autoComplete="current-password"
                     maxLength={128}
                     required
@@ -514,7 +546,7 @@ export default function ProfilePage() {
                     id="venue-name"
                     value={venueName}
                     onChange={(e) => setVenueName(e.target.value)}
-                    className="field"
+                    className="field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2"
                     maxLength={120}
                     minLength={2}
                     required
@@ -540,18 +572,18 @@ export default function ProfilePage() {
                         {(venueName || "?")[0].toUpperCase()}
                       </span>
                     )}
-                    <input
-                      id="venue-logo"
-                      type="url"
-                      value={venueLogo}
-                      onChange={(e) => {
-                        setVenueLogo(e.target.value);
-                        setLogoError("");
-                      }}
-                      className="field"
-                      placeholder="https://…/logo.png"
-                      maxLength={500}
-                    />
+                  <input
+                    id="venue-logo"
+                    type="url"
+                    value={venueLogo}
+                    onChange={(e) => {
+                      setVenueLogo(e.target.value);
+                      setLogoError("");
+                    }}
+                    className="field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2"
+                    placeholder="https://…/logo.png"
+                    maxLength={500}
+                  />
                   </div>
                   {logoError && (
                     <p className="mt-1 text-xs text-amber-400">
@@ -576,7 +608,7 @@ export default function ProfilePage() {
                     step="0.5"
                     value={venueCommission}
                     onChange={(e) => setVenueCommission(e.target.value)}
-                    className="field"
+                    className="field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2"
                   />
                   <p className="mt-1 text-xs text-zinc-500">
                     Se aplica al recaudo de cada promotor al cerrar su liquidación.

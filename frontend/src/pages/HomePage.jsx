@@ -7,6 +7,10 @@ import { track } from "../lib/analytics";
 import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
+const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";
+
 /**
  * Inicio — la cara publica de Enty para el fan (mockup "1 · Inicio").
  *
@@ -460,7 +464,7 @@ export default function HomePage() {
   const priceLabel = (c) => (c == null ? "Gratis" : money(c));
 
   return (
-    <div className="home">
+    <div className="home motion-reduced">
       <header className="home-head">
         <div className="home-head-left">
           <Link to="/inicio" className="home-wordmark" aria-label="Enty, inicio">
@@ -533,7 +537,7 @@ export default function HomePage() {
             role="tab"
             aria-selected={c.key === cat}
             onClick={() => setCat(c.key)}
-            className={c.key === cat ? "is-on" : ""}
+            className={"relative" + (c.key === cat ? " is-on" : "")}
           >
             <span className="home-cat-dot">
               {c.icon ? <CatIcon name={c.icon} /> : <Star size={16} color="currentColor" />}
@@ -553,7 +557,7 @@ export default function HomePage() {
               key={d.key}
               type="button"
               aria-pressed={range === d.key}
-              className={`home-chip${range === d.key ? " is-on" : ""}`}
+              className={"home-chip transition-colors" + (range === d.key ? " is-on" : "")}
               onClick={() => setRange(d.key)}
             >
               {d.label}
@@ -581,12 +585,8 @@ export default function HomePage() {
       {/* Ticker cinético: la energía de la noche entre el troquel y la rejilla.
           Decorativo (aria-hidden): repite la marca, no aporta datos. La lista
           va duplicada para que el loop sea continuo (el keyframe mueve -50%). */}
-      <div className="home-ticker" aria-hidden="true">
-        <div className="home-ticker-track">
-          {TICKER.concat(TICKER).map((w, i) => (
-            <span key={`${w}-${i}`}>{w}</span>
-          ))}
-        </div>
+      <div className="home-ticker" aria-hidden="true" className="home-ticker">
+        <div className="home-ticker-track"></div>
       </div>
 
       {error ? (
@@ -649,7 +649,7 @@ export default function HomePage() {
                 prioridad alta en vez de competir con el resto de la página. */}
             {featured.flyer_url ? (
               <img
-                className="home-feature-flyer"
+                className="home-feature-flyer transition-opacity duration-300"
                 src={featured.flyer_url}
                 alt=""
                 loading="eager"
@@ -724,7 +724,7 @@ export default function HomePage() {
                   </Link>
                   <button
                     type="button"
-                    className={`home-row-fav${fav ? " is-on" : ""}${favPop === e.id ? " is-pop" : ""}`}
+                    className={"home-row-fav transition-colors" + (fav ? " is-on" : "") + (favPop === e.id ? " is-pop" : "")}
                     aria-label={fav ? `Quitar ${e.name} de favoritos` : `Guardar ${e.name} en favoritos`}
                     aria-pressed={fav}
                     onClick={() => toggleFav(e.id)}
