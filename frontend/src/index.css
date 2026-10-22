@@ -5372,21 +5372,25 @@ html[data-theme-lock="dark"] body {
 }
 
 /* ======================================================================
-   PERFIL — Identidad Enty
-   El perfil deja de ser un formulario y pasa a ser la ficha de la persona:
-   quién es, con qué rol, en qué negocios y desde cuándo. El hero habla el
-   idioma del hero del promotor (aurora violeta) con el mint de la marca como
-   segunda luz: es el único lugar donde la persona es el sujeto.
+   PERFIL — la ficha de la persona
+   El perfil no es un formulario apilado: es la identidad (hero, siempre
+   visible) más paneles que se visitan de uno en uno (pestañas). Lo
+   destructivo (zona de peligro) vive al pie, tras el troquel, y arranca
+   colapsado: lo irreversible no compite con lo cotidiano.
+
+   El hero habla el idioma del hero del promotor (aurora violeta) con el
+   mint de la marca como segunda luz: es el único lugar donde la persona
+   es el sujeto.
    ====================================================================== */
 .pf-hero {
   position: relative;
   overflow: hidden;
   border-radius: 1.4rem;
-  border: 1px solid var(--in-line-soft, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--e-border-hairline);
   padding: 1.4rem 1.5rem;
   background:
-    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.22), transparent 62%),
-    radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.12), transparent 60%),
+    radial-gradient(34rem 16rem at 6% -10rem, color-mix(in srgb, var(--e-violet-500) 22%, transparent), transparent 62%),
+    radial-gradient(26rem 14rem at 104% 118%, color-mix(in srgb, var(--e-green-500) 12%, transparent), transparent 60%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 48%),
     rgba(16, 16, 22, 0.92);
   box-shadow:
@@ -5396,10 +5400,54 @@ html[data-theme-lock="dark"] body {
 html[data-theme="light"] .pf-hero {
   border: 1px solid rgba(17, 17, 22, 0.09);
   background:
-    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.1), transparent 62%),
-    radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.09), transparent 60%),
+    radial-gradient(34rem 16rem at 6% -10rem, color-mix(in srgb, var(--e-violet-500) 10%, transparent), transparent 62%),
+    radial-gradient(26rem 14rem at 104% 118%, color-mix(in srgb, var(--e-green-500) 9%, transparent), transparent 60%),
     var(--e-white);
   box-shadow: 0 20px 46px -36px rgba(15, 23, 42, 0.55);
+}
+
+/* El hero tiene fondo propio en ambos temas, así que su tinta no puede
+   seguir al tema por sí sola: en claro hay que bajarla explícitamente. */
+html[data-theme="light"] .pf-name {
+  color: var(--e-neutral-900);
+}
+html[data-theme="light"] .pf-email {
+  color: var(--color-zinc-600);
+}
+html[data-theme="light"] .pf-avatar {
+  background: var(--e-neutral-100);
+  color: var(--e-neutral-900);
+}
+/* Los tintes de rol (amber/emerald/brand -300) son para fondo oscuro: en el
+   hero claro pierden contraste, así que se oscurecen solo aquí. El color
+   sigue siendo el del rol; cambia el paso de la escala. */
+html[data-theme="light"] .pf-hero .text-brand-300 {
+  color: var(--e-violet-600);
+}
+html[data-theme="light"] .pf-hero .text-emerald-300 {
+  color: var(--e-emerald-600);
+}
+html[data-theme="light"] .pf-hero .text-amber-300 {
+  color: var(--e-brasa-500);
+}
+
+/* Identidad a la izquierda, acciones a la derecha: el avatar ya no queda
+   flotando con media fila vacía al lado. */
+.pf-hero-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+.pf-hero-id {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+.pf-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 
 .pf-avatar {
@@ -5432,38 +5480,17 @@ html[data-theme="light"] .pf-hero {
 
 /* Nombre del hero: grande, con la voz display de la marca. */
 .pf-name {
-  font-size: 1.5rem;
+  font-size: var(--e-text-3xl);
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.02em;
   color: var(--color-zinc-50);
+  overflow-wrap: anywhere;
 }
-/* El hero tiene su propio fondo en ambos temas, así que sus tintas no pueden
-   seguir al tema por sí solas: en claro hay que bajarlas explícitamente. */
-html[data-theme="light"] .pf-name {
-  color: var(--e-neutral-900);
-}
-html[data-theme="light"] .pf-email {
-  color: var(--color-zinc-600);
-}
-html[data-theme="light"] .pf-avatar {
-  background: var(--e-neutral-100);
-  color: var(--e-neutral-900);
-}
-/* Los tintes de rol (amber/emerald/brand -300) son para fondo oscuro: en el
-   hero claro pierden contraste, así que se oscurecen solo aquí. El color
-   sigue siendo el del rol; cambia el paso de la escala. */
-html[data-theme="light"] .pf-hero .text-brand-300 {
-  color: var(--e-violet-600);
-}
-html[data-theme="light"] .pf-hero .text-emerald-300 {
-  color: var(--e-emerald-600);
-}
-html[data-theme="light"] .pf-hero .text-amber-300 {
-  color: var(--e-brasa-500);
-}
-html[data-theme="light"] .pf-danger-title {
-  color: var(--e-red-700);
+.pf-email {
+  font-size: var(--e-text-sm);
+  color: var(--color-zinc-400);
+  overflow-wrap: anywhere;
 }
 
 /* Fila de datos de cuenta: icono + valor. */
@@ -5471,7 +5498,8 @@ html[data-theme="light"] .pf-danger-title {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem 1.25rem;
-  font-size: 0.8125rem;
+  margin-top: 0.75rem;
+  font-size: var(--e-text-sm);
   color: var(--color-zinc-400);
 }
 html[data-theme="light"] .pf-meta {
@@ -5488,6 +5516,12 @@ html[data-theme="light"] .pf-meta {
   opacity: 0.75;
 }
 
+.pf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+}
 /* Chip de rol por negocio. El color lo pone la clase de texto (tabAccent de
    ROLE_VISUALS); aquí se deriva fondo y borde de ese mismo currentColor para
    que rol y color no puedan desincronizarse. */
@@ -5497,35 +5531,377 @@ html[data-theme="light"] .pf-meta {
   gap: 0.35rem;
   border-radius: 999px;
   padding: 0.15rem 0.6rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   background: color-mix(in srgb, currentColor 14%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
 }
-
-/* Dos columnas en desktop: la cuenta a la izquierda, el negocio a la derecha.
-   En móvil, una sola columna en orden natural. */
-.pf-grid {
-  display: grid;
-  gap: 1.25rem;
-  align-items: start;
+.pf-chip-role {
+  opacity: 0.8;
 }
-@media (min-width: 960px) {
-  .pf-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+/* Acciones del hero: ghost con borde hairline del hero, no del canvas. */
+.pf-action {
+  border-color: var(--e-border-soft);
+}
+.pf-action-danger {
+  color: var(--e-red-300);
+}
+.pf-action-danger:hover {
+  color: var(--e-red-300);
+  border-color: color-mix(in srgb, var(--e-red-500) 45%, transparent);
+  background: color-mix(in srgb, var(--e-red-500) 10%, transparent);
+}
+html[data-theme="light"] .pf-action-danger {
+  color: var(--e-red-700);
+}
+
+/* ----------------------------------------------------------------------
+   PESTAÑAS: la .tabbar de la casa (TeamManager, Admin, Invitaciones), a
+   todo el ancho y pegajosa: al bajar por un panel largo las secciones
+   siguen a un toque.
+   ---------------------------------------------------------------------- */
+.pf-tabs {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 5;
+  display: flex;
+  width: 100%;
+  backdrop-filter: blur(8px);
+}
+.pf-tabs .tabbar-item {
+  flex: 1 1 0;
+  min-height: 44px;
+  justify-content: center;
+}
+@media (max-width: 480px) {
+  .pf-tabs .tabbar-item {
+    flex: 0 0 auto;
   }
 }
 
-.pf-section-head {
-  margin-bottom: 1rem;
+/* ----------------------------------------------------------------------
+   PANELES: una cosa a la vez. Un h2 por panel, colgando del h1 del hero.
+   ---------------------------------------------------------------------- */
+.pf-panel {
+  padding: 1.25rem;
 }
-.pf-section-title {
-  font-size: 1rem;
+.pf-panel:focus-visible {
+  outline: 2px solid var(--e-focus-ring);
+  outline-offset: 2px;
+}
+.pf-panel-head {
+  margin-bottom: 1.125rem;
+}
+.pf-panel-title {
+  font-size: var(--e-text-xl);
   font-weight: 700;
   line-height: 1.2;
+  color: var(--color-zinc-50);
+}
+html[data-theme="light"] .pf-panel-title {
+  color: var(--e-neutral-900);
+}
+.pf-panel-hint {
+  margin-top: 0.25rem;
+  font-size: var(--e-text-sm);
+  line-height: 1.55;
+  color: var(--color-zinc-500);
 }
 
+/* Formulario: una columna, ritmo parejo. */
+.pf-form {
+  display: grid;
+  gap: 1rem;
+}
+.pf-field {
+  display: block;
+  min-width: 0;
+}
+.pf-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  color: var(--color-zinc-400);
+}
+html[data-theme="light"] .pf-label {
+  color: var(--e-neutral-600);
+}
+.pf-hint {
+  display: block;
+  margin-top: 0.375rem;
+  font-size: var(--e-text-xs);
+  line-height: 1.5;
+  color: var(--color-zinc-500);
+}
+.pf-hint-block {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+.pf-hint-warn {
+  color: var(--e-amber-400);
+}
+.pf-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.pf-form-actions .btn-primary {
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .pf-form-actions .btn-primary {
+    width: auto;
+  }
+}
+
+/* Input con botón "Ver/Ocultar" superpuesto. */
+.pf-input-wrap {
+  position: relative;
+}
+.pf-input-wrap .field {
+  padding-right: 4.25rem;
+}
+.pf-input-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  color: var(--color-zinc-400);
+  transition: color 0.15s;
+}
+.pf-input-btn:hover {
+  color: var(--color-zinc-100);
+}
+html[data-theme="light"] .pf-input-btn {
+  color: var(--e-neutral-600);
+}
+html[data-theme="light"] .pf-input-btn:hover {
+  color: var(--e-neutral-900);
+}
+
+.pf-alert {
+  border-radius: 0.5rem;
+  border: 1px solid;
+  padding: 0.5rem 0.75rem;
+  font-size: var(--e-text-sm);
+}
+.pf-alert-ok {
+  border-color: color-mix(in srgb, var(--e-green-500) 45%, transparent);
+  background: color-mix(in srgb, var(--e-green-500) 10%, transparent);
+  color: var(--e-green-300);
+}
+.pf-alert-bad {
+  border-color: color-mix(in srgb, var(--e-red-500) 45%, transparent);
+  background: color-mix(in srgb, var(--e-red-500) 10%, transparent);
+  color: var(--e-red-300);
+}
+html[data-theme="light"] .pf-alert-ok {
+  color: var(--e-emerald-700);
+}
+html[data-theme="light"] .pf-alert-bad {
+  color: var(--e-red-700);
+}
+
+/* Sub-bloque dentro de un panel (correo, negocio activo, avisos). */
+.pf-sub {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--e-border-hairline);
+  padding-top: 1.25rem;
+}
+.pf-sub-title {
+  margin-bottom: 0.5rem;
+  font-size: var(--e-text-base);
+  font-weight: 700;
+  color: var(--color-zinc-200);
+}
+html[data-theme="light"] .pf-sub-title {
+  color: var(--e-neutral-900);
+}
+
+/* Dato de solo lectura: se lee como dato, no como campo editable. */
+.pf-readonly {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px dashed var(--e-border-soft);
+  background: color-mix(in srgb, var(--e-ink-3) 55%, transparent);
+  padding: 0.7rem 0.85rem;
+  color: var(--color-zinc-300);
+}
+html[data-theme="light"] .pf-readonly {
+  background: var(--e-neutral-100);
+  color: var(--e-neutral-700);
+}
+.pf-readonly svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.pf-readonly-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--e-text-sm);
+}
+
+/* Selector de negocio activo. */
+.pf-venue-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .pf-venue-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.pf-venue {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--e-border-hairline);
+  padding: 0.75rem;
+  text-align: left;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.pf-venue:hover {
+  border-color: var(--e-border-strong);
+}
+.pf-venue.is-on {
+  border-color: color-mix(in srgb, var(--e-violet-500) 60%, transparent);
+  background: color-mix(in srgb, var(--e-violet-500) 6%, transparent);
+}
+.pf-venue-body {
+  min-width: 0;
+  flex: 1;
+}
+.pf-venue-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--e-text-sm);
+  font-weight: 700;
+  color: var(--color-zinc-200);
+}
+html[data-theme="light"] .pf-venue-name {
+  color: var(--e-neutral-900);
+}
+.pf-venue-roles {
+  display: block;
+  font-size: var(--e-text-xs);
+  color: var(--color-zinc-500);
+}
+.pf-venue-badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--e-violet-500) 15%, transparent);
+  padding: 0.1rem 0.5rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--e-violet-300);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-violet-500) 40%, transparent);
+}
+html[data-theme="light"] .pf-venue-badge {
+  color: var(--e-violet-600);
+}
+
+/* Logo del negocio: la miniatura y la URL en la misma fila. */
+.pf-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+/* El input no puede aportar su ancho intrínseco: sin esto la fila desborda
+   a 320px (el logo y el campo no caben). */
+.pf-logo-row .field {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.pf-logo {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: 0.75rem;
+  object-fit: cover;
+  box-shadow: inset 0 0 0 1px var(--e-border-soft);
+}
+.pf-logo-empty {
+  display: grid;
+  place-items: center;
+  background: var(--e-ink-3);
+  font-size: var(--e-text-lg);
+  font-weight: 700;
+  color: var(--color-zinc-500);
+}
+html[data-theme="light"] .pf-logo-empty {
+  background: var(--e-neutral-200);
+  color: var(--e-neutral-600);
+}
+
+/* ----------------------------------------------------------------------
+   ZONA DE PELIGRO: al pie, tras el troquel, colapsada.
+   ---------------------------------------------------------------------- */
+.pf-danger-wrap {
+  scroll-margin-top: 4rem;
+}
+.pf-danger {
+  border-color: color-mix(in srgb, var(--e-red-500) 35%, transparent);
+  padding: 1.25rem;
+}
+.pf-danger-title {
+  font-size: var(--e-text-lg);
+  font-weight: 700;
+  color: var(--e-red-300);
+}
+html[data-theme="light"] .pf-danger-title {
+  color: var(--e-red-700);
+}
+.pf-danger-copy {
+  margin: 0.25rem 0 1rem;
+  font-size: var(--e-text-xs);
+  line-height: 1.6;
+  color: var(--color-zinc-500);
+}
+.pf-delete-form {
+  display: grid;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--e-red-500) 35%, transparent);
+  background: color-mix(in srgb, var(--e-red-500) 8%, transparent);
+  padding: 1rem;
+}
+.pf-delete-warn {
+  font-size: var(--e-text-sm);
+  color: var(--e-red-300);
+}
+html[data-theme="light"] .pf-delete-warn {
+  color: var(--e-red-800);
+}
+.pf-delete-btn {
+  border-radius: 0.5rem;
+  background: var(--e-red-600);
+  padding: 0.55rem 1rem;
+  font-size: var(--e-text-sm);
+  font-weight: 700;
+  color: var(--e-white);
+  transition: background 0.15s;
+}
+.pf-delete-btn:hover {
+  background: var(--e-red-500);
+}
+.pf-delete-btn:disabled {
+  opacity: 0.4;
+}
 
 /* ----------------------------------------------------------------------
    DOCUMENTOS LEGALES (paginas publicas /terminos, /privacidad, ...)

@@ -186,16 +186,20 @@ for (const scheme of ["dark", "light"]) {
   });
 }
 
-test("contraste AA y alt en el interior (admin, promotor)", async ({ browser }) => {
+test("contraste AA y alt en el interior (admin, promotor, perfil)", async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await ctx.newPage();
   const ok = await available(page, "/login");
   test.skip(!ok, "App no disponible");
 
   const fails = [];
+  // /perfil entra aqui: el hero, los chips de rol y la zona de peligro estrenan
+  // tintes propios, y una superficie con fondo propio es justo donde el
+  // contraste se rompe sin que nadie lo note.
   for (const [email, path] of [
     ["admin@bar.test", "/admin"],
     ["promo1@bar.test", "/promotor"],
+    ["admin@bar.test", "/perfil"],
   ]) {
     await login(page, email);
     await page.goto(path);
@@ -346,10 +350,13 @@ test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", 
   if (seenTitles.size < 2) fails.push({ "": "publicas", issue: `todas comparten title: ${[...seenTitles][0]}` });
 
   // El interior tambien: una pantalla de rol sin h1 rompe el ancla del lector.
+  // /perfil entra aqui: su h1 vive en el hero y los paneles cuelgan en h2/h3,
+  // asi que un salto de nivel se detecta igual que en las pantallas de rol.
   for (const [email, path] of [
     ["admin@bar.test", "/admin"],
     ["promo1@bar.test", "/promotor"],
     ["puerta@bar.test", "/bouncer"],
+    ["admin@bar.test", "/perfil"],
   ]) {
     await login(page, email);
     await page.goto(path);
