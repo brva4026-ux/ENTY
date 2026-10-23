@@ -23,7 +23,12 @@ import { money, currentYM } from "../lib/format";
 import CountUpNumber from "../components/CountUpNumber";
 
 import EmptyState from "../components/EmptyState";
-import { OnboardingChecklist } from "../components/OnboardingChecklist";
+import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
+import {
+  getOnboardingPreference,
+  setOnboardingPreference,
+  clearLegacyOnboardingKey,
+} from "../lib/onboarding";
 import EventWorkbench, {
   EventNotFound,
   sortEventsForStrip,
@@ -255,8 +260,44 @@ export default function AdminDashboard() {
   // siempre — y como el paso de "publicar" solo existe mientras haya borrador,
   // la guía no puede reaparecer en un negocio que ya está vendiendo.
   const newestEvent = events && events.length ? events[0] : null;
-  const showOnboarding =
+  // La guía solo aplica mientras el negocio no esté vendiendo: con el primer
+  // evento publicado ya no hay nada que enseñar.
+  const onboardingRelevant =
     events !== null && (!newestEvent || newestEvent.status === "draft");
+  // Preferencia por venue (lib/onboarding): "accepted" la aceptó, "dismissed"
+  // la rechazó o cerró, null todavía no decidió (se le ofrece). Se relee al
+  // cambiar de venue y al reiniciar la guía (onboardingEpoch).
+  const [onboardingPref, setOnboardingPref] = useState(() =>
+    getOnboardingPreference(venueId)
+  );
+  const [onboardingEpoch, setOnboardingEpoch] = useState(0);
+  useEffect(() => {
+    // La clave vieja (global, sin venue) se limpia una vez: quien la tenía de
+    // la versión anterior debe ver la invitación nueva.
+    clearLegacyOnboardingKey();
+  }, []);
+  useEffect(() => {
+    setOnboardingPref(getOnboardingPreference(venueId));
+  }, [venueId, onboardingEpoch]);
+
+  // Se OFRECE (opt-in) si no decidió; se MUESTRA si la aceptó.
+  const showOnboardingInvite =
+    onboardingRelevant && onboardingPref === null && events !== null;
+  const showOnboardingChecklist =
+    onboardingRelevant && onboardingPref === "accepted" && events !== null;
+  // La guía está visible de alguna forma: los efectos que cargan su progreso
+  // (tipos, cupos) dependen de esto.
+  const showOnboarding = showOnboardingInvite || showOnboardingChecklist;
+  // Acceso permanente para volver a mostrarla cuando está oculta.
+  const showOnboardingResume =
+    events !== null &&
+    onboardingPref === "dismissed" &&
+    (!newestEvent || newestEvent.status === "draft");
+
+  function decideOnboarding(pref) {
+    setOnboardingPreference(venueId, pref);
+    setOnboardingPref(pref);
+  }
 
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
@@ -299,14 +340,24 @@ export default function AdminDashboard() {
       // Sin ?event= en la URL: la lista es la pantalla (modo lista). Nadie
       // aterriza "en el primer evento" por accidente: entrar es una decisión.
       setSelectedEvent(null);
-    } else if (events.length === 0 && !createOpen) {
-      // Venue nueva sin eventos: la única acción posible es crear el primero.
+    } else if (
+      events.length === 0 &&
+      !createOpen &&
+      // La guía manda mientras esté en pantalla: su CTA ("Crear evento") es el
+      // camino, y abrir el modal por encima tapaba la invitación — el admin no
+      // llegaba a decidir— o la propia guía si acababa de rechazarla.
+      !showOnboardingInvite &&
+      !showOnboardingChecklist &&
+      !showOnboardingResume
+    ) {
+      // Venue nueva sin eventos y sin guía: la única acción posible es crear
+      // el primero.
       setCreateOpen(true);
     }
     // selectedEvent a propósito fuera de las deps: esta pantalla solo sigue a
     // la URL y al catálogo, no re-detecciona en cada clic del selector.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, urlEvent]);
+  }, [events, urlEvent, onboardingPref]);
 
   /** Navega al backstage de un evento (la URL es la fuente de verdad). */
   function flyToEvent(id, tab) {
@@ -799,20 +850,32 @@ export default function AdminDashboard() {
         {/* En móvil: invita a instalar la PWA (se oculta sola si ya está instalada) */}
         <InstallPrompt />
         {/* Guía del admin primerizo: acompaña hasta que el PRIMER evento está
-          realmente a la venta. Antes solo vivía con la venue vacía, así que
-          al crear el evento desaparecía y los pasos 2–4 (tipos, cupos,
-          publicar) nunca se veían. Ahora se muestra mientras el evento más
-          reciente siga en borrador y mide el progreso REAL. Al publicarlo
-          (o descartarla) se calla para siempre. */}
-        {events !== null && showOnboarding && (
+          realmente a la venta. Primero se OFRECE (opt-in): el admin decide si
+          la quiere o la hace por su cuenta, y su elección se recuerda por
+          venue. Cuando está oculta queda "Primeros pasos" para volver a
+          abrirla — nunca es irreversible. */}
+        {showOnboardingInvite && (
           <OnboardingChecklist
+            mode="invite"
+            onAccept={() => decideOnboarding("accepted")}
+            onDismiss={() => decideOnboarding("dismissed")}
+          />
+        )}
+        {showOnboardingChecklist && (
+          <OnboardingChecklist
+            mode="checklist"
             hasEvent={events.length > 0}
             hasTypes={types.length > 0}
             hasAllocations={allocations.length > 0}
             isPublished={newestEvent ? newestEvent.status !== "draft" : false}
             onStart={() => setCreateOpen(true)}
             onGo={onboardingGo}
+            onDismiss={() => decideOnboarding("dismissed")}
+            onComplete={() => decideOnboarding("dismissed")}
           />
+        )}
+        {showOnboardingResume && (
+          <OnboardingResume onRestart={() => decideOnboarding("accepted")} />
         )}{" "}
         {error && (
           <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">

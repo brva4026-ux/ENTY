@@ -252,8 +252,10 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
             "America/Bogota",
         }),
       });
-      // La venue acaba de dejar de ser nueva: el checklist se despide solo.
-      localStorage.setItem("tf_onboarding_done", "1");
+      // Crear el evento AVANZA el paso 1 del checklist, no lo mata: la guia
+      // la apaga el admin (o la completa). Antes esta linea escribia
+      // `tf_onboarding_done` y la guia desaparecia aqui, con 3 pasos por
+      // delante (tipos, cupos, publicar).
       onCreated(ev);
       ui.success("Evento creado: añade tipos y cupos 🎟️");
     } catch (err) {
