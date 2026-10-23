@@ -243,6 +243,31 @@ def test_update_venue_name_and_logo(api):
     )
     assert res.status_code == 422
 
+    # Color de marca: se guarda normalizado a minúsculas y vuelve en /auth/me.
+    res = api.client.patch(
+        f"/auth/venues/{venue_id}", headers=headers, json={"primary_color": "#E11D48"}
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["primary_color"] == "#e11d48"
+    me = api.client.get("/auth/me", headers=headers).json()
+    venue_me = next(v for v in me["venues"] if v["id"] == venue_id)
+    assert venue_me["primary_color"] == "#e11d48"
+
+    # "" limpia el color propio: vuelve al de la marca.
+    res = api.client.patch(
+        f"/auth/venues/{venue_id}", headers=headers, json={"primary_color": ""}
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["primary_color"] is None
+
+    # Lista blanca estricta: el valor termina en un `style` del frontend, así
+    # que cualquier cosa que no sea #RRGGBB se rechaza en el borde.
+    for malo in ("red", "#abc", "#12345g", "url(x)", "red;background:url(x)"):
+        res = api.client.patch(
+            f"/auth/venues/{venue_id}", headers=headers, json={"primary_color": malo}
+        )
+        assert res.status_code == 422, f"{malo!r} debería ser 422, fue {res.status_code}"
+
     # Un promotor no puede editar la venue -> 403 (creado por su dueño)
     created = api.client.post(
         f"/venues/{venue_id}/users",

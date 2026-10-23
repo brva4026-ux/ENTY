@@ -516,6 +516,11 @@ async def update_venue_settings(
                 "UPDATE venues SET commission_pct=%s WHERE id=%s",
                 (body.commission_pct, venue_id),
             )
+        if body.primary_color is not None:
+            await cur.execute(
+                "UPDATE venues SET primary_color=%s WHERE id=%s",
+                (body.primary_color or None, venue_id),
+            )
         await db.commit()
 
         await cur.execute(

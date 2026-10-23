@@ -423,12 +423,31 @@ class UpdateProfileRequest(BaseModel):
 
 
 class UpdateVenueRequest(BaseModel):
-    """Edición del negocio por su admin: nombre y logo (URL http(s));
-    logo_url="" limpia el logo."""
+    """Edición del negocio por su admin: nombre, logo (URL http(s)) y color de
+    marca; logo_url="" limpia el logo, primary_color="" vuelve al de la marca."""
     name: str | None = Field(default=None, min_length=2, max_length=120)
     logo_url: str | None = Field(default=None, max_length=500)
     # Comision del promotor (0-100): base del calculo de liquidaciones.
     commission_pct: float | None = Field(default=None, ge=0, le=100)
+    # Color de marca del negocio (hex #RRGGBB). Se usa para teñir su panel:
+    # banner, tile del logo y viga del KPI. "" lo devuelve al violeta de Enty.
+    primary_color: str | None = Field(default=None, max_length=7)
+
+    @model_validator(mode="after")
+    def _primary_color_shape(self):
+        """Solo #RRGGBB (o "" para limpiarlo).
+
+        El valor termina dentro de un `style` del frontend, así que la
+        validación es una lista blanca, no un "escapado": cualquier otra cosa
+        (nombres, `url(...)`, `;`, `)` ) se rechaza aquí y nunca llega al CSS.
+        """
+        if self.primary_color is None:
+            return self
+        c = self.primary_color.strip()
+        if c and not re.fullmatch(r"#[0-9a-fA-F]{6}", c):
+            raise ValueError("primary_color debe ser un hex #RRGGBB")
+        self.primary_color = c.lower()
+        return self
 
     @model_validator(mode="after")
     def _logo_url_shape(self):

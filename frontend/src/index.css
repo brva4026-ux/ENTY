@@ -1284,6 +1284,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   .skeleton,
   .live-dot,
   .live-ping,
+  .vh-live-dot,
   .splash-logo,
   .ptr-spinner,
   .toast-in,
@@ -1555,19 +1556,25 @@ html[data-theme="light"] .bizdock-desc {
    ---------------------------------------------------------------------- */
 .venue-header {
   display: block;
+  position: relative;
   /* El KPI usa este valor para anclar su viga al borde superior del card:
      cambiar el padding acá mantiene la viga pegada. */
   --venue-pad-y: 1.1rem;
+  /* Tinte de marca del negocio. Los defaults son el violeta de Enty; cuando
+     la venue tiene `primary_color` el componente los sobrescribe inline
+     (--vh-brand-wash/glow/line/tile-ink). Una sola fuente de verdad para
+     "dónde se pinta el color del negocio": estas cinco variables. */
+  --vh-brand: var(--e-brand);
+  --vh-brand-wash: rgba(187, 92, 246, 0.09);
+  --vh-brand-glow: rgba(187, 92, 246, 0.22);
+  --vh-brand-line: rgba(187, 92, 246, 0.7);
+  --vh-tile-ink: var(--e-white);
   padding: var(--venue-pad-y) 1.25rem;
   /* Luz cenital propia del sistema (como .card) pero un punto más presente:
      la cabecera es la "portada" del panel. Un lavado de marca en la esquina
      superior derecha (detrás del KPI) le da atmósfera sin pintar nada. */
   background:
-    radial-gradient(
-      34rem 14rem at 88% -6rem,
-      rgba(187, 92, 246, 0.09),
-      transparent 62%
-    ),
+    radial-gradient(34rem 14rem at 88% -6rem, var(--vh-brand-wash), transparent 62%),
     linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.05),
@@ -1575,8 +1582,45 @@ html[data-theme="light"] .bizdock-desc {
     ),
     var(--color-zinc-925);
 }
-/* Fila superior: identidad | KPI. Baja a columna en móvil. */
+/* Banner de portada: capa decorativa DETRÁS de la identidad, no un bloque
+   que empuje el contenido hacia abajo. Absoluto a propósito: el panel ya
+   creció demasiado con la portada unificada; esto da "cara" sin sumar ni un
+   píxel de alto. Se desvanece hacia abajo para fundirse con el card (sin
+   borde inferior duro que habría que recortar). */
+.vh-banner {
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 7.5rem;
+  z-index: 0;
+  border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
+  /* El watermark de iniciales se recorta contra el banner, no contra el
+     card: no ensancha la página ni tapa el KPI. */
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(26rem 11rem at 78% -2.5rem, var(--vh-brand-glow), transparent 72%),
+    linear-gradient(180deg, var(--vh-brand-wash), transparent 82%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 60%);
+}
+/* Iniciales gigantes en marca de agua: el recurso que evita que un negocio
+   sin flyer quede como una caja vacía. Hay portada aunque no haya imagen. */
+.vh-banner-initials {
+  position: absolute;
+  right: 1.1rem;
+  top: -1.6rem;
+  font-size: 8.5rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--vh-brand);
+  opacity: 0.1;
+  user-select: none;
+}
+/* El contenido vive por encima del banner. Sin esto, la capa posicionada
+   (el banner) pintaría sobre el texto estático de la identidad. */
 .vh-top {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1588,12 +1632,53 @@ html[data-theme="light"] .bizdock-desc {
   flex-wrap: wrap;
 }
 /* Lockup de identidad: el tile y el texto van JUNTOS (gap corto), como una
-   marca y su wordmark, no como dos bloques vecinos. */
+   marca y su wordmark, no como dos bloques vecinos. Ahora es un enlace al
+   perfil del negocio: la portada es el camino a editar nombre, logo y color. */
 .vh-identidad {
   display: flex;
   align-items: center;
   gap: 0.7rem;
   min-width: 0;
+  border-radius: 0.75rem;
+  transition: opacity 0.2s var(--e-ease-expo);
+}
+@media (hover: hover) {
+  .vh-identidad:hover {
+    opacity: 0.86;
+  }
+}
+.vh-identidad:focus-visible {
+  outline: 2px solid var(--e-brand);
+  outline-offset: 4px;
+}
+/* Estado operativo en la propia identidad: si la puerta está abierta, el
+   dueño lo ve antes de bajar la mirada al dinero. Verde = "en vivo" en el
+   sistema (DESIGN.md); el punto late como el del dock Del negocio. */
+.vh-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--e-green-400);
+}
+.vh-live-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--e-green-400);
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  animation: dp-live 1.8s ease-out infinite;
+}
+/* El nombre del evento se corta antes de empujar el KPI en pantallas
+   medianas; el punto y la etiqueta "En vivo" nunca se cortan. */
+.vh-live-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* Bloque de texto: el eyebrow flota arriba del nombre con su propio aire (no
    pegado) y el ritmo no depende del leading del titular. */
@@ -1655,7 +1740,7 @@ html[data-theme="light"] .bizdock-desc {
   font-size: var(--e-text-xl);
   /* Dos iniciales pegadas se leen como una sola letra rara. */
   letter-spacing: 0.01em;
-  color: var(--e-white);
+  color: var(--vh-tile-ink);
   /* Navy de marca: el mismo del logo y del talon de la boleta. La identidad
      del negocio se apoya en el material de la marca en vez de un gris que se
      confundia con el fondo del card (que es lo que la hacia ver apagada). */
@@ -1671,6 +1756,16 @@ html[data-theme="light"] .bizdock-desc {
     inset 0 -1px 1px rgba(0, 0, 0, 0.35),
     0 1px 1px rgba(3, 7, 18, 0.4),
     0 10px 22px -12px rgba(3, 7, 18, 0.75);
+}
+/* Con color de marca, el tile deja el navy por el color del negocio: es su
+   sello, no el de Enty. El canto y las sombras se conservan (el material es
+   el mismo, solo cambia el relleno). */
+.venue-header[data-brand] .vh-logo-fallback {
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--vh-brand) 78%, var(--e-white) 22%),
+    color-mix(in srgb, var(--vh-brand) 72%, var(--e-ink-1) 28%)
+  );
 }
 .vh-kpi {
   min-width: 0;
@@ -1689,8 +1784,8 @@ html[data-theme="light"] .bizdock-desc {
   height: calc(100% + var(--venue-pad-y, 1.1rem));
   background: linear-gradient(
     180deg,
-    rgba(187, 92, 246, 0.7),
-    rgba(187, 92, 246, 0.06) 82%,
+    var(--vh-brand-line),
+    color-mix(in srgb, var(--vh-brand-line) 9%, transparent) 82%,
     transparent
   );
 }
@@ -1739,18 +1834,33 @@ html[data-theme="light"] .bizdock-desc {
 html[data-theme="light"] .venue-header {
   /* Showroom blanco: el lavado de marca es apenas perceptible. */
   background:
-    radial-gradient(
-      34rem 14rem at 88% -6rem,
-      rgba(187, 92, 246, 0.05),
-      transparent 62%
-    ),
+    radial-gradient(34rem 14rem at 88% -6rem, var(--vh-brand-wash), transparent 62%),
     var(--e-white);
+}
+html[data-theme="light"] .vh-banner {
+  /* Sobre papel el tinte se lee por contraste, no por glow: mismo recurso,
+     un punto menos de intensidad. */
+  background:
+    radial-gradient(26rem 11rem at 78% -2.5rem, var(--vh-brand-glow), transparent 72%),
+    linear-gradient(180deg, var(--vh-brand-wash), transparent 82%);
+}
+html[data-theme="light"] .vh-banner-initials {
+  opacity: 0.14;
+}
+html[data-theme="light"] .vh-live {
+  /* El verde eléctrico no contrasta sobre blanco: se oscurece al tono de
+     texto del sistema, como hacen los demás estados en claro. */
+  color: var(--e-emerald-600);
+}
+html[data-theme="light"] .vh-live-dot {
+  background: var(--e-emerald-600);
+  box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.5);
 }
 html[data-theme="light"] .vh-kpi::before {
   background: linear-gradient(
     180deg,
-    rgba(187, 92, 246, 0.55),
-    rgba(187, 92, 246, 0.05) 82%,
+    color-mix(in srgb, var(--vh-brand-line) 78%, transparent),
+    color-mix(in srgb, var(--vh-brand-line) 7%, transparent) 82%,
     transparent
   );
 }
@@ -1798,6 +1908,15 @@ html[data-theme="light"] .vh-delta.is-down {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.9rem;
+  }
+  /* En columna el banner se acorta: el contenido crece hacia abajo y una
+     franja alta competiría con el KPI en vez de enmarcarlo. */
+  .vh-banner {
+    height: 5.5rem;
+  }
+  .vh-banner-initials {
+    font-size: 6rem;
+    top: -1rem;
   }
   .vh-kpi {
     text-align: left;
@@ -5868,6 +5987,49 @@ html[data-theme="light"] .pf-venue-badge {
 html[data-theme="light"] .pf-logo-empty {
   background: var(--e-neutral-200);
   color: var(--e-neutral-600);
+}
+
+/* Fila del color de marca: la muestra, su valor y el botón de quitar. Mismo
+   patrón que la fila del logo (muestra + control), para que los dos campos de
+   identidad del negocio se lean igual. */
+.pf-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+/* El input nativo de color trae su propio marco y padding: se normaliza al
+   radio y al tamaño del sistema (8 control / chip). */
+.pf-color-input {
+  width: 3rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--e-border-soft);
+  border-radius: 0.5rem;
+  background: none;
+  cursor: pointer;
+}
+.pf-color-input::-webkit-color-swatch-wrapper {
+  padding: 0.2rem;
+}
+.pf-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 0.3rem;
+}
+.pf-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 0.3rem;
+}
+.pf-color-value {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: var(--e-text-xs);
+  color: var(--color-zinc-500);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ----------------------------------------------------------------------

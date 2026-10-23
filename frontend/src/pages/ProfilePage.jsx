@@ -106,6 +106,8 @@ export default function ProfilePage() {
   );
   const [venueName, setVenueName] = useState(adminVenue?.name || "");
   const [venueLogo, setVenueLogo] = useState(adminVenue?.logo_url || "");
+  // Color de marca: viaja como #RRGGBB. "" = sin color propio (violeta de Enty).
+  const [venueColor, setVenueColor] = useState(adminVenue?.primary_color || "");
   const [venueCommission, setVenueCommission] = useState(
     adminVenue?.commission_pct != null ? String(adminVenue.commission_pct) : "0",
   );
@@ -291,6 +293,7 @@ export default function ProfilePage() {
           name: venueName,
           logo_url: venueLogo,
           commission_pct: Number(venueCommission) || 0,
+          primary_color: venueColor,
         }),
       });
       // Refrescar la venue dentro del user del contexto global
@@ -303,6 +306,7 @@ export default function ProfilePage() {
                 name: updated.name,
                 logo_url: updated.logo_url,
                 commission_pct: updated.commission_pct,
+                primary_color: updated.primary_color,
               }
             : v,
         ),
@@ -818,6 +822,39 @@ export default function ProfilePage() {
               )}
             </Field>
 
+            {/* Color de marca: tiñe la portada del panel (banner, tile y viga
+                del KPI). Vacío = violeta de Enty. El <input type="color"> no
+                admite "sin valor", así que el botón "Quitar" es el que vuelve
+                al color por defecto. */}
+            <Field
+              id="venue-color"
+              label="Color de marca"
+              hint="Se usa en la portada de tu panel. Sin elegir, usa el violeta de Enty."
+            >
+              <div className="pf-color-row">
+                <input
+                  id="venue-color"
+                  type="color"
+                  value={venueColor || "#7c3aed"}
+                  onChange={(e) => setVenueColor(e.target.value)}
+                  className="pf-color-input"
+                  aria-label="Color de marca"
+                />
+                <span className="pf-color-value">
+                  {venueColor || "Violeta de Enty"}
+                </span>
+                {venueColor && (
+                  <button
+                    type="button"
+                    onClick={() => setVenueColor("")}
+                    className="btn-ghost !px-2.5 !py-1 text-xs"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </Field>
+
             {/* Comisión del promotor: base de las liquidaciones (se congela
                 por liquidación al cerrar el periodo). */}
             <Field
@@ -844,7 +881,8 @@ export default function ProfilePage() {
                   venueBusy ||
                   (venueName.trim() === adminVenue.name &&
                     venueLogo === (adminVenue.logo_url || "") &&
-                    venueCommission === String(adminVenue.commission_pct ?? 0))
+                    venueCommission === String(adminVenue.commission_pct ?? 0) &&
+                    venueColor === (adminVenue.primary_color || ""))
                 }
                 className="btn-primary"
               >

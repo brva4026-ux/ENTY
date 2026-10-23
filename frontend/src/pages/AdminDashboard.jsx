@@ -264,6 +264,10 @@ export default function AdminDashboard() {
   // evento publicado ya no hay nada que enseñar.
   const onboardingRelevant =
     events !== null && (!newestEvent || newestEvent.status === "draft");
+  // Evento con la puerta abierta AHORA. Se deriva de la lista ya cargada (el
+  // endpoint de eventos trae `status`), así que saber si hay noche en curso no
+  // cuesta un request. Si hubiera más de uno (no debería), el primero.
+  const liveEvent = (events || []).find((e) => e.status === "live") || null;
   // Preferencia por venue (lib/onboarding): "accepted" la aceptó, "dismissed"
   // la rechazó o cerró, null todavía no decidió (se le ofrece). Se relee al
   // cambiar de venue y al reiniciar la guía (onboardingEpoch).
@@ -898,6 +902,7 @@ export default function AdminDashboard() {
               user={user}
               month={urlMonth}
               onMonth={setMonth}
+              liveEvent={liveEvent}
             >
               {/* PORTADA UNIFICADA: la franja de eventos vive DENTRO del card
                 de la venue — un solo contexto como Del negocio, secciones
