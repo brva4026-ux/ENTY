@@ -546,6 +546,21 @@ avisar.
   suite de pytest. `POST /seed` exige `IS_DEMO=true` en el entorno del backend;
   credenciales `admin@bar.test` / `demo1234`. Sin seed, `puerta.spec`/`portada.spec`
   fallan en el login (la DB queda con usuarios tipo `admin-<hex>@example.test`).
+- **`e2e/onboarding.spec.js` NO usa el seed demo**: el evento del seed ya está
+  publicado, así que su guía de primeros pasos está apagada a propósito. El spec
+  se registra (`/register`) para obtener un negocio nuevo, que es el único
+  estado donde la guía se ofrece por primera vez. El registro acepta términos
+  y crea venue + admin.
+- **El registro tiene lockout por IP** (mig 016, cubo `__register__`): 8
+  intentos en 15 min desde la misma IP y el endpoint devuelve 429 — incluidos
+  los exitosos, porque el registro **no** limpia su contador al acertar (el
+  login sí: `_clear_failures`). Corriendo specs que registran varias veces
+  seguidas, el 429 aparece a mitad de la suite y parece un fallo del producto.
+  Antes de re-correr: `DELETE FROM login_attempts WHERE email_norm='__register__'`.
+- **El aviso de cookies tapa los clics** en un navegador recién abierto (se
+  pinta fijo arriba). Los specs que hacen clic en el panel deben marcarlo como
+  visto: `page.addInitScript(() => localStorage.setItem("tf_cookie_notice", "1.1"))`
+  (la versión vive en `CookieNotice.jsx`, `NOTICE_VERSION`).
 - **App del fan (publica, sin login):** `/inicio` (vitrina, `HomePage.jsx`),
   `/evento/:id` (detalle de compra, `EventDetailPage.jsx`), `/t` (boleto),
   `/boletas` (mis boletas por contacto). Backend: `GET /public/events` (catalogo)

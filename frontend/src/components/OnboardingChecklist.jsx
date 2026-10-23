@@ -1,28 +1,32 @@
 /**
- * Onboarding interactivo: guía paso a paso para nuevos admins.
- * Cada paso es un atajo directo a la acción que falta.
- * Se oculta cuando todo está completo (y se puede re-mostrar
- * borrando `localStorage.tf_onboarding_done`).
- * Confeti de celebración al terminar — momento especial, sin saturar.
+ * Guia de primeros pasos del admin nuevo. Dos modos:
+ *
+ *   mode="invite"    -> aun no decidio: se le OFRECE la guia (opt-in). Dos
+ *                       salidas claras: aceptarla o rechazarla.
+ *   mode="checklist" -> la acepto: pasos, progreso y confeti al completar.
+ *
+ * La preferencia vive en lib/onboarding.js (por venue) y la controla el panel:
+ * este componente solo la recibe como `mode` y avisa con onAccept / onDismiss /
+ * onComplete. Antes la decision era un efecto colateral del modal de crear
+ * evento y no habia forma de volver a mostrar la guia.
  */
 import { useEffect, useState } from "react";
 import { haptics } from "../lib/haptics";
 
-const DISMISS_KEY = "tf_onboarding_done";
-
 const CONFETTI = ["🎉", "🎟️", "✨", "🎊", "🥳"];
 
 export function OnboardingChecklist({
+  mode = "checklist",
   hasEvent,
   hasTypes,
   hasAllocations,
   isPublished,
   onStart,
   onGo,
+  onAccept,
+  onDismiss,
+  onComplete,
 }) {
-  const [dismissed, setDismissed] = useState(
-    () => localStorage.getItem(DISMISS_KEY) === "1"
-  );
   const [celebrate, setCelebrate] = useState(false);
 
   const steps = [
@@ -34,19 +38,55 @@ export function OnboardingChecklist({
   const doneCount = steps.filter((s) => s.done).length;
   const allDone = doneCount === steps.length;
 
+  // Celebra al completar y, unos segundos despues, se retira: el momento se
+  // guardo, la guia ya cumplio. onComplete deja la preferencia en "dismissed",
+  // asi que el acceso para volver a abrirla queda disponible.
   useEffect(() => {
-    if (allDone && !celebrate) {
-      setCelebrate(true);
-      haptics.success();
-      const t = setTimeout(() => {
-        localStorage.setItem(DISMISS_KEY, "1");
-        setDismissed(true);
-      }, 4000);
-      return () => clearTimeout(t);
-    }
-  }, [allDone, celebrate]);
+    if (mode !== "checklist" || !allDone || celebrate) return;
+    setCelebrate(true);
+    haptics.success();
+    const t = setTimeout(() => onComplete?.(), 4000);
+    return () => clearTimeout(t);
+  }, [mode, allDone, celebrate, onComplete]);
 
-  if (dismissed) return null;
+  if (mode === "invite") {
+    return (
+      <div className="card onboard-hero relative overflow-hidden p-5 animate-scale-in">
+        <span aria-hidden="true" className="washi -left-3 -top-2 rotate-[-14deg]" />
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="eyebrow">Primeros pasos</p>
+            <h3 className="display mt-0.5 text-base">
+              👋 ¿Te guío en la configuración?
+            </h3>
+          </div>
+          <p className="text-zinc-500 text-sm max-w-sm">
+            Son 4 pasos y unos 3 minutos: crear el evento, definir los tipos de
+            boleta, asignar cupos y publicar. Si preferís, lo hacés por tu
+            cuenta y volvés a la guía cuando quieras.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onAccept?.()}
+              data-testid="onboarding-accept"
+              className="btn-primary !px-3 !py-1.5 text-xs"
+            >
+              Sí, guiame
+            </button>
+            <button
+              type="button"
+              onClick={() => onDismiss?.()}
+              data-testid="onboarding-decline"
+              className="btn-ghost !px-3 !py-1.5 text-xs"
+            >
+              Lo hago solo
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card onboard-hero relative overflow-hidden p-5 animate-scale-in">
@@ -72,7 +112,7 @@ export function OnboardingChecklist({
       <div className="flex flex-col gap-2">
         <div>
           <p className="eyebrow">Primeros pasos</p>
-          <h3 className="display mt-0.5 text-base pf-section-title">
+          <h3 className="display mt-0.5 text-base">
             {allDone ? "¡Todo listo para vender! 🎉" : "Pon tu negocio a vender"}
           </h3>
         </div>
@@ -101,11 +141,9 @@ export function OnboardingChecklist({
             {doneCount}/{steps.length}
           </span>
           <button
-            onClick={() => {
-              localStorage.setItem(DISMISS_KEY, "1");
-              setDismissed(true);
-            }}
+            onClick={() => onDismiss?.()}
             aria-label="Ocultar guía"
+            data-testid="onboarding-hide"
             className="rounded-full p-1 text-zinc-600 transition hover:bg-zinc-800 hover:text-zinc-300"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -175,5 +213,24 @@ export function OnboardingChecklist({
         })}
       </ol>
     </div>
+  );
+}
+
+/**
+ * Acceso permanente a la guia cuando esta oculta. Ocupa el mismo sitio que la
+ * guia (su "casa"), asi que se encuentra donde se la vio por ultima vez.
+ */
+export function OnboardingResume({ onRestart }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onRestart?.()}
+      data-testid="onboarding-resume"
+      className="card card-interactive flex w-full items-center gap-2 px-4 py-2.5 text-left"
+    >
+      <span aria-hidden="true">🎯</span>
+      <span className="text-sm text-zinc-300">Primeros pasos</span>
+      <span className="text-xs text-zinc-500">Volver a mostrar la guía</span>
+    </button>
   );
 }
