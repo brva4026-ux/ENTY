@@ -551,6 +551,16 @@ avisar.
   se registra (`/register`) para obtener un negocio nuevo, que es el único
   estado donde la guía se ofrece por primera vez. El registro acepta términos
   y crea venue + admin.
+- **La guía de primeros pasos es un DIÁLOGO (`?guia=1`), nunca una tarjeta del
+  panel.** Vivía dentro del flujo y empujaba la portada ~230px (invitación) o
+  ~460px (checklist) hacia abajo, además de duplicarse con un botón al final.
+  Ahora `OnboardingChecklist.jsx` se pinta por **portal** a `document.body`
+  (nace dentro de `.reveal`, cuyos hijos animan con `transform` y atraparían el
+  `fixed`; mismo motivo que `DoorAlertBanner`). Se abre **solo a pedido**: la
+  invitación una única vez en un negocio **sin eventos** y sin decidir, o el
+  botón "Cómo usar la app" de `/perfil?tab=negocio`. Al cerrarla no queda nada
+  en el panel. Si un overlay de la guía reaparece solo, tapa el trabajo y
+  bloquea clics ajenos (rompía `door-alert-live`).
 - **El registro tiene lockout por IP** (mig 016, cubo `__register__`): 8
   intentos en 15 min desde la misma IP y el endpoint devuelve 429 — incluidos
   los exitosos, porque el registro **no** limpia su contador al acertar (el

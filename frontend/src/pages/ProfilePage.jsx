@@ -852,6 +852,29 @@ export default function ProfilePage() {
               </button>
             </div>
           </form>
+
+          {/* Guía de primeros pasos: vive aquí, no en el panel. Si el admin la
+              rechazó al principio, este es el único sitio donde volver a
+              pedirla — y al pulsarla se abre sobre el panel (?guia=1), sin
+              empujar el contenido ni acumularse con nada. */}
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Cómo usar la app</h3>
+            <p className="pf-hint pf-hint-block">
+              Los 4 pasos para poner tu negocio a vender: crear el evento,
+              definir los tipos de boleta, asignar cupos y publicar.
+            </p>
+            <div className="pf-form-actions">
+              <button
+                type="button"
+                onClick={() => nav("/admin?guia=1")}
+                data-testid="profile-onboarding-open"
+                className="btn-ghost"
+              >
+                <Icon name="sparkle" className="h-4 w-4" aria-hidden="true" />
+                Ver la guía de primeros pasos
+              </button>
+            </div>
+          </div>
         </section>
       )}
 

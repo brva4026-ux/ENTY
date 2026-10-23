@@ -1,14 +1,19 @@
 /**
- * La guia de primeros pasos: opt-in, re-apertura y supervivencia al primer evento.
+ * La guía de primeros pasos: opt-in, re-apertura desde el perfil y
+ * supervivencia al primer evento.
  *
- * Regresion del bug: `EventCreateModal` escribia `tf_onboarding_done` al crear
- * el evento, asi que la guia se apagaba en el paso 1 de 4 — justo para el admin
- * primerizo al que esta dirigida. Ademas no habia forma de volver a mostrarla
- * (solo borrando localStorage a mano) y la clave no distinguia venue.
+ * Regresiones cubiertas:
+ *  - `EventCreateModal` escribía `tf_onboarding_done` al crear el evento, así
+ *    que la guía se apagaba en el paso 1 de 4 — justo para el admin primerizo
+ *    al que está dirigida.
+ *  - La guía vivía DENTRO del flujo del panel (233px la invitación, 458px el
+ *    checklist) y empujaba la portada y los eventos hacia abajo, además de
+ *    duplicarse con un botón al final de la página. Ahora es un diálogo.
+ *  - La clave no distinguía venue.
  *
- * Se prueba con una cuenta NUEVA (registro): es el unico estado en el que la
- * guia se ofrece por primera vez, y no depende del seed demo (cuyo evento ya
- * esta publicado, asi que su guia esta apagada a proposito).
+ * Se prueba con una cuenta NUEVA (registro): es el único estado en el que la
+ * guía se ofrece por primera vez, y no depende del seed demo (cuyo evento ya
+ * está publicado, así que su guía está apagada a propósito).
  */
 import { expect, test } from "@playwright/test";
 
@@ -27,17 +32,17 @@ test.beforeEach(async ({ page }) => {
   test.skip(!(await backendDisponible()), `Backend no disponible en ${BASE}`);
   // El aviso de cookies es informativo pero tapa los clics en un navegador
   // limpio (se pinta fijo arriba). Se marca como visto antes de cualquier
-  // script, igual que haria el usuario al pulsar "Entendido".
+  // script, igual que haría el usuario al pulsar "Entendido".
   await page.addInitScript(() => {
     try {
       localStorage.setItem("tf_cookie_notice", "1.1");
     } catch {
-      /* sin storage: el aviso vuelve, pero no es lo que se prueba aqui */
+      /* sin storage: el aviso vuelve, pero no es lo que se prueba aquí */
     }
   });
 });
 
-/** Registra un negocio nuevo y deja la sesion iniciada en /admin. */
+/** Registra un negocio nuevo y deja la sesión iniciada en /admin. */
 async function registrarNegocioNuevo(page) {
   const sello = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   await page.goto("/register");
@@ -55,20 +60,27 @@ test("la guia se ofrece y el admin puede rechazarla o aceptarla", async ({
 }) => {
   await registrarNegocioNuevo(page);
 
-  // Opt-in: se OFRECE, no se impone. Dos salidas explicitas.
+  // Opt-in: se OFRECE como diálogo, no se impone. Dos salidas explícitas.
+  const guia = page.getByTestId("onboarding-guide");
   const aceptar = page.getByTestId("onboarding-accept");
   const rechazar = page.getByTestId("onboarding-decline");
+  await expect(guia).toBeVisible();
   await expect(aceptar).toBeVisible();
   await expect(rechazar).toBeVisible();
 
-  // Rechazarla la oculta, pero deja el acceso permanente para volver.
+  // Rechazarla la cierra y NO deja nada en el panel: ni tarjeta ni botón
+  // acumulándose. El reingreso vive en el perfil.
   await rechazar.click();
-  await expect(aceptar).toBeHidden();
-  const reabrir = page.getByTestId("onboarding-resume");
-  await expect(reabrir).toBeVisible();
+  await expect(guia).toBeHidden();
+  await expect(page.getByTestId("onboarding-resume")).toHaveCount(0);
 
-  // Y volver a mostrarla la trae de vuelta: nunca es irreversible.
-  await reabrir.click();
+  // Y desde el perfil se puede volver a pedir: nunca es irreversible.
+  await page.goto("/perfil?tab=negocio");
+  const pedir = page.getByTestId("profile-onboarding-open");
+  await expect(pedir).toBeVisible();
+  await pedir.click();
+  await page.waitForURL(/\/admin\?guia=1/, { timeout: 20_000 });
+  await expect(page.getByTestId("onboarding-guide")).toBeVisible();
   await expect(page.getByText("Pon tu negocio a vender")).toBeVisible();
 });
 
@@ -76,11 +88,12 @@ test("crear el primer evento NO apaga la guia (el bug)", async ({ page }) => {
   await registrarNegocioNuevo(page);
   await page.getByTestId("onboarding-accept").click();
   await expect(page.getByText("Pon tu negocio a vender")).toBeVisible();
+  await expect(page.getByText("0/4")).toBeVisible();
 
-  // Crear el evento desde el CTA de la propia guia. El CTA y el boton del
+  // Crear el evento desde el CTA de la propia guía. El CTA y el botón del
   // modal se llaman igual: se acota cada uno a su contenedor.
   await page
-    .locator(".onboard-hero")
+    .getByTestId("onboarding-guide")
     .getByRole("button", { name: "Crear evento" })
     .click();
   await page.locator('input[placeholder="Noche Electrónica"]').fill(
@@ -95,9 +108,11 @@ test("crear el primer evento NO apaga la guia (el bug)", async ({ page }) => {
     .click();
   await page.waitForURL(/\/admin\?event=/, { timeout: 20_000 });
 
-  // Volver a la lista: la guia SIGUE ahi, ahora en el paso 2 de 4.
-  // Antes desaparecia aqui, con los pasos 2-4 sin mostrar.
-  await page.goto("/admin");
+  // Volver a la lista: la guía ya no se impone (no se acumula sobre el
+  // panel), pero NO se perdió: se vuelve a pedir desde el perfil y aparece
+  // con el paso 1 hecho (antes desaparecía aquí, con los pasos 2-4 sin ver).
+  await page.goto("/perfil?tab=negocio");
+  await page.getByTestId("profile-onboarding-open").click();
   await expect(page.getByText("Pon tu negocio a vender")).toBeVisible({
     timeout: 10_000,
   });
@@ -105,15 +120,52 @@ test("crear el primer evento NO apaga la guia (el bug)", async ({ page }) => {
   await expect(page.getByText("Definir tipos de boleta")).toBeVisible();
 });
 
+test("la guia no empuja el panel: es un dialogo, no una tarjeta", async ({
+  page,
+}) => {
+  await registrarNegocioNuevo(page);
+  await expect(page.getByTestId("onboarding-guide")).toBeVisible();
+
+  // Las animaciones de entrada de `.reveal` mueven los hijos unos px mientras
+  // corren: se espera a que terminen para medir geometría real.
+  const asentado = () =>
+    page.waitForFunction(
+      () => document.getAnimations().every((a) => a.playState !== "running"),
+      null,
+      { timeout: 5_000 }
+    );
+
+  // El diálogo se pinta por portal y es `fixed`: fuera del flujo del panel.
+  const overlay = await page
+    .getByTestId("onboarding-guide")
+    .evaluate((el) => ({
+      padreEsBody: el.parentElement === document.body,
+      posicion: getComputedStyle(el).position,
+    }));
+  expect(overlay.padreEsBody).toBe(true);
+  expect(overlay.posicion).toBe("fixed");
+
+  await asentado();
+  const conGuia = (await page.locator(".venue-header").boundingBox()).y;
+  await page.getByTestId("onboarding-decline").click();
+  await expect(page.getByTestId("onboarding-guide")).toBeHidden();
+  await asentado();
+  const sinGuia = (await page.locator(".venue-header").boundingBox()).y;
+
+  // La prueba de fuego: la portada del negocio NO se mueve por tener la guía
+  // delante. Antes la guía vivía en el flujo y la empujaba 200-450px abajo.
+  expect(Math.abs(conGuia - sinGuia)).toBeLessThanOrEqual(1);
+});
+
 test("la eleccion es por venue: otro negocio vuelve a ofrecer la guia", async ({
   page,
 }) => {
   await registrarNegocioNuevo(page);
   await page.getByTestId("onboarding-decline").click();
-  await expect(page.getByTestId("onboarding-resume")).toBeVisible();
+  await expect(page.getByTestId("onboarding-guide")).toBeHidden();
 
-  // La clave guardada lleva el venue: sin el, un segundo negocio heredaba la
-  // decision del primero y nunca veia la invitacion.
+  // La clave guardada lleva el venue: sin él, un segundo negocio heredaba la
+  // decisión del primero y nunca veía la invitación.
   const claves = await page.evaluate(() =>
     Object.keys(localStorage).filter((k) => k.startsWith("tf_onboarding"))
   );

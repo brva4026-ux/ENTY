@@ -23,7 +23,7 @@ import { money, currentYM } from "../lib/format";
 import CountUpNumber from "../components/CountUpNumber";
 
 import EmptyState from "../components/EmptyState";
-import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
+import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import {
   getOnboardingPreference,
   setOnboardingPreference,
@@ -256,21 +256,14 @@ export default function AdminDashboard() {
   );
 
   // Onboarding del primer evento: el más reciente (la lista viene ordenada
-  // starts_at DESC) mientras siga en borrador. Publicarlo apaga la guía para
-  // siempre — y como el paso de "publicar" solo existe mientras haya borrador,
-  // la guía no puede reaparecer en un negocio que ya está vendiendo.
+  // starts_at DESC). `newestEvent` alimenta el paso de "publicar" del
+  // checklist y el atajo que abre su backstage.
   const newestEvent = events && events.length ? events[0] : null;
-  // La guía solo aplica mientras el negocio no esté vendiendo: con el primer
-  // evento publicado ya no hay nada que enseñar.
-  const onboardingRelevant =
-    events !== null && (!newestEvent || newestEvent.status === "draft");
   // Preferencia por venue (lib/onboarding): "accepted" la aceptó, "dismissed"
-  // la rechazó o cerró, null todavía no decidió (se le ofrece). Se relee al
-  // cambiar de venue y al reiniciar la guía (onboardingEpoch).
+  // la rechazó o cerró, null todavía no decidió (se le ofrece una vez).
   const [onboardingPref, setOnboardingPref] = useState(() =>
     getOnboardingPreference(venueId)
   );
-  const [onboardingEpoch, setOnboardingEpoch] = useState(0);
   useEffect(() => {
     // La clave vieja (global, sin venue) se limpia una vez: quien la tenía de
     // la versión anterior debe ver la invitación nueva.
@@ -278,25 +271,50 @@ export default function AdminDashboard() {
   }, []);
   useEffect(() => {
     setOnboardingPref(getOnboardingPreference(venueId));
-  }, [venueId, onboardingEpoch]);
+  }, [venueId]);
 
-  // Se OFRECE (opt-in) si no decidió; se MUESTRA si la aceptó.
+  // La guía es un DIÁLOGO que se abre SOLO a pedido: la invitación inicial
+  // (una vez, en un negocio que aún no tiene eventos) o el botón del perfil
+  // (?guia=1). Antes vivía dentro del flujo del panel —233px la invitación,
+  // 458px el checklist— y empujaba la portada y los eventos hacia abajo,
+  // además de duplicarse con un botón "Primeros pasos" al final de la página.
+  //
+  // Nunca se re-abre sola: un overlay que reaparece en cada visita tapa el
+  // trabajo (y bloquea clics que no son suyos). Al cerrarla no queda nada en
+  // el panel; volver a verla es cosa del perfil.
+  //
+  // `guideOpen` es estado LOCAL, no derivado de la URL: aceptar la invitación
+  // marca la preferencia y abre el checklist en el mismo render. Con dos
+  // fuentes (pref + ?guia) el render intermedio dejaba la guía sin pintar y el
+  // modal de "crear evento" se abría encima — exactamente lo que la guía evita.
+  const [guideOpen, setGuideOpen] = useState(false);
+  // Abrir a pedido: el botón del perfil navega a /admin?guia=1. Se limpia el
+  // param enseguida para que un refresh no la reabra por su cuenta.
+  useEffect(() => {
+    if (searchParams.get("guia") !== "1") return;
+    setGuideOpen(true);
+    const p = new URLSearchParams(searchParams);
+    p.delete("guia");
+    setSearchParams(p, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  // Solo en modo lista y sin el modal de crear evento delante: en el backstage
+  // de un evento la guía estorbaría, y dos overlays a la vez se pisan.
+  const guideVisible = !selectedEvent && !createOpen && events !== null;
+  // Se OFRECE una sola vez: negocio recién creado, sin eventos y sin decidir
+  // — el "primerizo" literal. Con eventos ya no interrumpe.
   const showOnboardingInvite =
-    onboardingRelevant && onboardingPref === null && events !== null;
-  const showOnboardingChecklist =
-    onboardingRelevant && onboardingPref === "accepted" && events !== null;
-  // La guía está visible de alguna forma: los efectos que cargan su progreso
-  // (tipos, cupos) dependen de esto.
+    guideVisible && !guideOpen && onboardingPref === null && events.length === 0;
+  const showOnboardingChecklist = guideVisible && guideOpen;
+  // La guía está visible: los efectos que cargan su progreso (tipos, cupos)
+  // dependen de esto.
   const showOnboarding = showOnboardingInvite || showOnboardingChecklist;
-  // Acceso permanente para volver a mostrarla cuando está oculta.
-  const showOnboardingResume =
-    events !== null &&
-    onboardingPref === "dismissed" &&
-    (!newestEvent || newestEvent.status === "draft");
 
   function decideOnboarding(pref) {
     setOnboardingPreference(venueId, pref);
     setOnboardingPref(pref);
+    // Aceptar abre el checklist ya; rechazar o cerrar la retira del panel.
+    setGuideOpen(pref === "accepted");
   }
 
   const loadEvents = useCallback(async () => {
@@ -345,10 +363,9 @@ export default function AdminDashboard() {
       !createOpen &&
       // La guía manda mientras esté en pantalla: su CTA ("Crear evento") es el
       // camino, y abrir el modal por encima tapaba la invitación — el admin no
-      // llegaba a decidir— o la propia guía si acababa de rechazarla.
+      // llegaba a decidir.
       !showOnboardingInvite &&
-      !showOnboardingChecklist &&
-      !showOnboardingResume
+      !showOnboardingChecklist
     ) {
       // Venue nueva sin eventos y sin guía: la única acción posible es crear
       // el primero.
@@ -849,11 +866,11 @@ export default function AdminDashboard() {
       <div className="reveal space-y-5">
         {/* En móvil: invita a instalar la PWA (se oculta sola si ya está instalada) */}
         <InstallPrompt />
-        {/* Guía del admin primerizo: acompaña hasta que el PRIMER evento está
-          realmente a la venta. Primero se OFRECE (opt-in): el admin decide si
-          la quiere o la hace por su cuenta, y su elección se recuerda por
-          venue. Cuando está oculta queda "Primeros pasos" para volver a
-          abrirla — nunca es irreversible. */}
+        {/* Guía del admin primerizo: un DIÁLOGO que acompaña hasta que el
+          PRIMER evento está realmente a la venta. Se OFRECE una vez (opt-in);
+          si la rechaza no queda nada en el panel y puede reabrirla desde su
+          perfil. Antes se pintaba dentro del flujo y empujaba todo hacia
+          abajo, además de duplicarse con un botón al final de la página. */}
         {showOnboardingInvite && (
           <OnboardingChecklist
             mode="invite"
@@ -874,9 +891,6 @@ export default function AdminDashboard() {
             onComplete={() => decideOnboarding("dismissed")}
           />
         )}
-        {showOnboardingResume && (
-          <OnboardingResume onRestart={() => decideOnboarding("accepted")} />
-        )}{" "}
         {error && (
           <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
             {error}
