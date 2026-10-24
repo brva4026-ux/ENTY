@@ -867,7 +867,7 @@ html[data-theme="light"] .legal-link {
    de la cadena de hojas para ganar en cascada a las reglas puntuales.
    Los checkboxes y radios quedan fuera: su tamano es el del sistema a proposito. */
 @media (max-width: 767px) {
-  input:not([type="checkbox"]):not([type="radio"]),
+  input:not([type="checkbox"], [type="radio"]),
   select,
   textarea {
     font-size: 16px;

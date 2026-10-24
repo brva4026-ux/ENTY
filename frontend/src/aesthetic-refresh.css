@@ -1303,6 +1303,10 @@ html[data-theme="light"] .bizdock-count {
      hacia abajo en vez de dejar el contenido debajo del dedo. */
   min-height: 4.9rem;
   height: auto;
+  /* El shorthand va ANTES de la longhand: al reves, `padding` reseteaba el
+     padding-bottom y la reserva de la barra de gestos se perdia (el env() es
+     justo lo que evita que los iconos caigan bajo el indicador de inicio). */
+  padding: 0.75rem 1rem 0;
   padding-bottom: env(safe-area-inset-bottom);
   background: rgba(11, 11, 15, 0.66);
   backdrop-filter: blur(16px);
@@ -1311,7 +1315,6 @@ html[data-theme="light"] .bizdock-count {
   display: flex;
   align-items: flex-start;
   justify-content: space-around;
-  padding: 0.75rem 1rem 0;
   box-sizing: border-box;
   z-index: 5;
 }
