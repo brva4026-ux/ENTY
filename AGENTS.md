@@ -677,3 +677,15 @@ avisar.
   `document.title` (a11y.spec.js exige uno por pantalla; el `# título` del
   markdown se descarta); el banner de alerta de puerta debe quedar por ENCIMA
   del aviso de cookies (z-45 vs z-40) o el botón queda inclickeable.
+- **La portada del panel (`.venue-header`) la definen TRES hojas** y gana la
+  última en cargar (`main.jsx`: tokens → index.css → aesthetic-refresh.css →
+  enty-system.css → enty-fan.css). Editar `index.css` sin comprobar la cascada
+  es silenciosamente inútil: una regla posterior lo anula. El material de la
+  portada vive scopeado a `.app-shell` en `enty-system.css`, en ambos temas.
+  Comprobar con `getComputedStyle` en el navegador, no leyendo el CSS.
+- **El panel renderiza en tema CLARO por defecto** (`tf_theme` sin guardar →
+  `data-theme="light"`). Cualquier maqueta o medición visual debe partir de
+  claro o no representa lo que ve el usuario.
+- **El venue demo (`id=2`, Bar Esquina) no tiene `primary_color` ni `logo_url`**,
+  así que cae al violeta de Enty y al tile de iniciales. Para ver los efectos
+  brand-aware hay que ponerle color en la DB (y restaurarlo después).
