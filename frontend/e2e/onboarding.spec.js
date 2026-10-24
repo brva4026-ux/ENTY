@@ -1,10 +1,19 @@
 /**
- * La guia de primeros pasos: opt-in, re-apertura y supervivencia al primer evento.
+ * La guia de primeros pasos: opt-in, re-apertura, tutorial guiado y
+ * supervivencia al primer evento.
  *
- * Regresion del bug: `EventCreateModal` escribia `tf_onboarding_done` al crear
- * el evento, asi que la guia se apagaba en el paso 1 de 4 — justo para el admin
- * primerizo al que esta dirigida. Ademas no habia forma de volver a mostrarla
- * (solo borrando localStorage a mano) y la clave no distinguia venue.
+ * Regresiones cubiertas aqui, en orden de aparicion:
+ *
+ * 1. `EventCreateModal` escribia `tf_onboarding_done` al crear el evento, asi
+ *    que la guia se apagaba en el paso 1 de 4.
+ * 2. La decision vivia en localStorage (por NAVEGADOR). El mismo admin que la
+ *    rechazaba en la laptop volvia a verla en el celular, y el dominio de
+ *    preview de Vercel no veia la decision de produccion. Ahora vive en el
+ *    servidor (`/auth/me/preferences`), por usuario y negocio.
+ * 3. La guia se renderizaba tambien dentro del backstage de un evento.
+ * 4. El evento del onboarding era `events[0]` con la lista ordenada
+ *    `starts_at DESC`: el evento de fecha MAS LEJANA. Publicar la fiesta de hoy
+ *    y crear un borrador para el mes que viene reactivaba la guia.
  *
  * Se prueba con una cuenta NUEVA (registro): es el unico estado en el que la
  * guia se ofrece por primera vez, y no depende del seed demo (cuyo evento ya
@@ -72,7 +81,101 @@ test("la guia se ofrece y el admin puede rechazarla o aceptarla", async ({
   await expect(page.getByText("Pon tu negocio a vender")).toBeVisible();
 });
 
-test("crear el primer evento NO apaga la guia (el bug)", async ({ page }) => {
+test("la eleccion se guarda en el servidor, no en el navegador", async ({
+  page,
+}) => {
+  await registrarNegocioNuevo(page);
+  await page.getByTestId("onboarding-decline").click();
+  await expect(page.getByTestId("onboarding-resume")).toBeVisible();
+
+  // El bug de fondo: la decision vivia en localStorage (por navegador), asi
+  // que otro dispositivo volvia a ofrecer la guia. Ahora vive en el servidor:
+  // la API la devuelve y localStorage ya no guarda la decision.
+  // La venue activa no siempre esta en localStorage (con un solo negocio el
+  // panel cae a la primera disponible), asi que se pregunta a /auth/me.
+  const prefs = await page.evaluate(async () => {
+    const token = localStorage.getItem("tf_token");
+    const headers = { Authorization: `Bearer ${token}` };
+    const me = await (await fetch("/api/auth/me", { headers })).json();
+    const venueId = Object.keys(me.roles || {})[0];
+    const res = await fetch(`/api/auth/me/preferences?venue_id=${venueId}`, {
+      headers,
+    });
+    return res.json();
+  });
+  const onboarding = prefs.preferences.find((p) => p.key === "onboarding");
+  expect(onboarding.value).toBe("dismissed");
+
+  // Y no queda rastro de la clave vieja: si quedara, otro navegador leeria de
+  // ahi y el arreglo seria cosmetico.
+  const claves = await page.evaluate(() =>
+    Object.keys(localStorage).filter((k) => k.startsWith("tf_onboarding"))
+  );
+  expect(claves).toEqual([]);
+});
+
+test("el tutorial recorre las anclas, guarda el avance y confirma la salida", async ({
+  page,
+}) => {
+  await registrarNegocioNuevo(page);
+
+  // "Si, mostrame" arranca el tutorial: recorte sobre la portada.
+  await page.getByTestId("onboarding-accept").click();
+  const tip = page.locator(".tour-tip");
+  await expect(tip).toBeVisible({ timeout: 10_000 });
+  await expect(tip).toContainText("Esta es tu portada");
+  await expect(page.locator(".tour-hole")).toBeVisible();
+
+  // Avanzar mueve el recorte al ancla siguiente.
+  await page.getByTestId("tour-next").click();
+  await expect(tip).toContainText("Tus eventos viven aquí");
+
+  // Salir NO es un clic: primero pregunta, y "Continuar" cancela la salida.
+  await page.getByTestId("tour-exit").click();
+  await expect(page.getByTestId("tour-confirm-exit")).toBeVisible();
+  await page.getByTestId("tour-stay").click();
+  await expect(tip).toBeVisible();
+
+  // Confirmar la salida lo cierra y deja la guia (la decision fue "accepted").
+  await page.getByTestId("tour-exit").click();
+  await page.getByTestId("tour-confirm-exit").click();
+  await expect(tip).toBeHidden();
+
+  // El avance quedo en el servidor: reabrirlo retoma donde estaba, no en el
+  // paso 1.
+  await page.getByTestId("onboarding-tour").click();
+  await expect(tip).toContainText("Tus eventos viven aquí", { timeout: 10_000 });
+});
+
+test("el tutorial funciona en un negocio sin eventos (portada vacia)", async ({
+  page,
+}) => {
+  await registrarNegocioNuevo(page);
+  await page.getByTestId("onboarding-accept").click();
+  const tip = page.locator(".tour-tip");
+  await expect(tip).toBeVisible({ timeout: 10_000 });
+
+  // Sin eventos, la portada muestra el estado vacio. El ancla "eventos" tiene
+  // que existir IGUAL: si solo viviera en la lista con eventos, el tutorial
+  // se saltaba justo los pasos que un negocio nuevo necesita.
+  await page.getByTestId("tour-next").click();
+  await expect(tip).toContainText("Tus eventos viven aquí");
+  await expect(page.locator(".tour-hole")).toBeVisible();
+
+  await page.getByTestId("tour-next").click();
+  await expect(tip).toContainText("Crea tu primer evento");
+
+  // El backstage no existe todavia: esos dos pasos se saltan solos y el
+  // tutorial sigue con "Del negocio", sin quedar clavado senalando la nada.
+  await page.getByTestId("tour-next").click();
+  await expect(tip).toContainText("Del negocio, siempre a mano", {
+    timeout: 10_000,
+  });
+});
+
+test("crear el primer evento NO apaga la guia ni la mete en el backstage", async ({
+  page,
+}) => {
   await registrarNegocioNuevo(page);
   await page.getByTestId("onboarding-accept").click();
   await expect(page.getByText("Pon tu negocio a vender")).toBeVisible();
@@ -95,6 +198,11 @@ test("crear el primer evento NO apaga la guia (el bug)", async ({ page }) => {
     .click();
   await page.waitForURL(/\/admin\?event=/, { timeout: 20_000 });
 
+  // Dentro del backstage la guia no tiene nada que hacer: tapaba la pantalla
+  // de trabajo del admin.
+  await expect(page.getByText("Pon tu negocio a vender")).toBeHidden();
+  await expect(page.getByTestId("onboarding-resume")).toBeHidden();
+
   // Volver a la lista: la guia SIGUE ahi, ahora en el paso 2 de 4.
   // Antes desaparecia aqui, con los pasos 2-4 sin mostrar.
   await page.goto("/admin");
@@ -103,21 +211,4 @@ test("crear el primer evento NO apaga la guia (el bug)", async ({ page }) => {
   });
   await expect(page.getByText("1/4")).toBeVisible();
   await expect(page.getByText("Definir tipos de boleta")).toBeVisible();
-});
-
-test("la eleccion es por venue: otro negocio vuelve a ofrecer la guia", async ({
-  page,
-}) => {
-  await registrarNegocioNuevo(page);
-  await page.getByTestId("onboarding-decline").click();
-  await expect(page.getByTestId("onboarding-resume")).toBeVisible();
-
-  // La clave guardada lleva el venue: sin el, un segundo negocio heredaba la
-  // decision del primero y nunca veia la invitacion.
-  const claves = await page.evaluate(() =>
-    Object.keys(localStorage).filter((k) => k.startsWith("tf_onboarding"))
-  );
-  expect(claves.length).toBeGreaterThan(0);
-  expect(claves.some((k) => /^tf_onboarding:\d+$/.test(k))).toBe(true);
-  expect(claves).not.toContain("tf_onboarding_done");
 });

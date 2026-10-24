@@ -3542,6 +3542,120 @@ html[data-theme="light"] .onboard-progress-bar {
 }
 
 /* ----------------------------------------------------------------------
+   TUTORIAL GUIADO ("Primeros pasos"): recorte sobre el elemento que se
+   explica + tooltip anclado. El recorte NO es una máscara SVG ni cuatro
+   paneles: es un solo div con un box-shadow de 9999px, que oscurece todo lo
+   demás sin pintar nada extra. El z-index va por encima del panel (80) pero
+   por debajo de los diálogos reales (90+): si el admin abre el modal de crear
+   evento desde el paso 3, el modal manda.
+   ---------------------------------------------------------------------- */
+.tour-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  /* El overlay NO captura clics fuera del tooltip: el tutorial explica dónde
+     presionar y el admin tiene que poder hacerlo. El recorte es informativo;
+     la navegación la controlan los botones del tooltip. */
+  pointer-events: none;
+}
+.tour-hole {
+  position: fixed;
+  border-radius: 12px;
+  pointer-events: none;
+  /* El anillo de marca marca el borde del recorte; el shadow gigante es el
+     oscurecido. En un solo elemento no hay costura entre paneles. */
+  box-shadow:
+    0 0 0 2px var(--e-violet-400),
+    0 0 0 9999px rgba(9, 9, 11, 0.72);
+  transition:
+    top 0.28s var(--e-ease-expo),
+    left 0.28s var(--e-ease-expo),
+    width 0.28s var(--e-ease-expo),
+    height 0.28s var(--e-ease-expo);
+}
+html[data-theme="light"] .tour-hole {
+  box-shadow:
+    0 0 0 2px var(--e-violet-500),
+    0 0 0 9999px rgba(24, 24, 27, 0.55);
+}
+.tour-tip {
+  position: fixed;
+  z-index: 1;
+  pointer-events: auto;
+  width: max-content;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--e-neutral-800, rgba(255, 255, 255, 0.1));
+  background: var(--color-zinc-925);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7);
+  outline: none;
+}
+html[data-theme="light"] .tour-tip {
+  border-color: var(--e-neutral-300);
+  background: var(--e-white);
+  box-shadow: 0 18px 40px -14px rgba(24, 24, 27, 0.28);
+}
+/* Hoja inferior en móvil: un tooltip anclado a un elemento chico a 390px se
+   sale de la pantalla, así que ahí el tooltip es una hoja fija. */
+.tour-tip.is-sheet {
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  width: auto;
+  overflow-y: auto;
+}
+.tour-copy {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-zinc-400);
+}
+html[data-theme="light"] .tour-copy {
+  color: var(--e-neutral-600);
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+.tour-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+/* Confirmación de salida: encima del recorte y del tooltip. */
+.tour-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  pointer-events: auto;
+  background: rgba(9, 9, 11, 0.55);
+}
+.tour-confirm-panel {
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.1rem 1.15rem;
+  border-radius: 16px;
+  border: 1px solid var(--e-neutral-800, rgba(255, 255, 255, 0.1));
+  background: var(--color-zinc-925);
+  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.75);
+}
+html[data-theme="light"] .tour-confirm-panel {
+  border-color: var(--e-neutral-300);
+  background: var(--e-white);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-hole {
+    transition: none;
+  }
+}
+
+/* ----------------------------------------------------------------------
    LISTAS: filas que responden al hover (lift sutil + hairline de marca).
    ---------------------------------------------------------------------- */
 .list-row {

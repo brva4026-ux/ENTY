@@ -17,9 +17,10 @@ BEGIN;
 -- archivo contra el dump del Postgres local y falla si la base y el archivo
 -- se separan (nada entra a produccion sin pasar por aca).
 --
--- Contenido: 27 tablas (con audit_log de la mig 019, ticket_payments de la mig
--- 023 y analytics_events de la mig 031), enums user_role /
--- ticket_status, extension pgcrypto, 25 funciones de negocio y sus triggers.
+-- Contenido: 28 tablas (con audit_log de la mig 019, ticket_payments de la mig
+-- 023, analytics_events de la mig 031 y user_preferences de la mig 032), enums
+-- user_role / ticket_status, extension pgcrypto, 25 funciones de negocio y sus
+-- triggers.
 -- La logica transaccional (emit_ticket / redeem_ticket / reissue_ticket /
 -- set_event_status / void_ticket / lockout / notificaciones) vive AQUI, en
 -- la DB; los routers solo traducen parametros y errores SQL a HTTP.
@@ -2291,6 +2292,22 @@ ALTER TABLE public.tickets ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 );
 
 --
+-- Name: user_preferences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_preferences (
+    user_id bigint NOT NULL,
+    venue_id bigint NOT NULL,
+    key text NOT NULL,
+    value text NOT NULL,
+    step integer,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT user_preferences_key_check CHECK ((key = ANY (ARRAY['onboarding'::text, 'tutorial'::text]))),
+    CONSTRAINT user_preferences_step_check CHECK (((step IS NULL) OR (step >= 0))),
+    CONSTRAINT user_preferences_value_check CHECK ((value = ANY (ARRAY['pending'::text, 'accepted'::text, 'dismissed'::text, 'completed'::text])))
+);
+
+
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2636,6 +2653,14 @@ ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT tickets_token_hash_key UNIQUE (token_hash);
 
 --
+-- Name: user_preferences user_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_preferences
+    ADD CONSTRAINT user_preferences_pkey PRIMARY KEY (user_id, venue_id, key);
+
+
+--
 -- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2909,6 +2934,14 @@ CREATE INDEX idx_tickets_phone ON public.tickets USING btree (customer_phone) WH
 --
 
 CREATE INDEX idx_tickets_token_hash ON public.tickets USING btree (token_hash);
+
+
+--
+-- Name: idx_user_preferences_venue; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_preferences_venue ON public.user_preferences USING btree (venue_id, key);
+
 
 --
 -- Name: idx_users_last_login; Type: INDEX; Schema: public; Owner: -
@@ -3347,6 +3380,22 @@ ALTER TABLE ONLY public.tickets
 
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT tickets_ticket_type_id_fkey FOREIGN KEY (ticket_type_id) REFERENCES public.ticket_types(id) ON DELETE RESTRICT;
+
+--
+-- Name: user_preferences user_preferences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_preferences
+    ADD CONSTRAINT user_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_preferences user_preferences_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_preferences
+    ADD CONSTRAINT user_preferences_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
 
 --
 -- Name: venue_user_roles venue_user_roles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

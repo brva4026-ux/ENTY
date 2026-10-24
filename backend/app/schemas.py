@@ -51,6 +51,43 @@ class VenueSummary(BaseModel):
 
 
 # --------------------------------------------------------------------------
+# Preferencias por usuario y negocio (mig 032)
+# --------------------------------------------------------------------------
+# Los dos estados que el panel puede ESCRIBIR. `pending` es el default de la
+# DB y no se escribe nunca desde el cliente: la ausencia de fila ya significa
+# "sin decidir", asi que un valor explicito seria redundante.
+PreferenceState = Literal["accepted", "dismissed", "completed"]
+PreferenceKey = Literal["onboarding", "tutorial"]
+
+
+class PreferenceOut(BaseModel):
+    """Una preferencia tal como la consume el panel."""
+    key: PreferenceKey
+    value: Literal["pending", "accepted", "dismissed", "completed"] = "pending"
+    # Posicion guardada dentro de la guia/tutorial (0 = arrancar de cero).
+    step: int = 0
+    updated_at: datetime | None = None
+
+
+class PreferencesOut(BaseModel):
+    """Todas las preferencias del usuario en un negocio, en una sola lectura.
+
+    Se devuelven SIEMPRE las dos claves (aunque no haya fila), ya en
+    `pending`: el panel no tiene que distinguir "no existe" de "sin decidir",
+    que para el usuario son el mismo estado.
+    """
+    venue_id: int
+    preferences: list[PreferenceOut]
+
+
+class UpdatePreferenceRequest(BaseModel):
+    value: PreferenceState
+    # Paso actual dentro del tutorial (0 = empezando). Solo lo usa la clave
+    # "tutorial"; en "onboarding" se ignora.
+    step: int | None = Field(default=None, ge=0, le=999)
+
+
+# --------------------------------------------------------------------------
 # Venues (multi-tenant)
 # --------------------------------------------------------------------------
 class VenueCreate(BaseModel):

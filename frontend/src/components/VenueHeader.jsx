@@ -125,7 +125,12 @@ export default function VenueHeader({
   const paid = ov ? Math.max(0, ov.tickets_issued - ov.courtesy_tickets) : 0;
 
   return (
-    <header className="venue-header card" style={tintStyle} data-brand={brand ? "1" : undefined}>
+    <header
+      className="venue-header card"
+      style={tintStyle}
+      data-brand={brand ? "1" : undefined}
+      data-tour="portada"
+    >
       {/* Banner de portada: da atmósfera y "cara" al negocio. Las iniciales
         gigantes en marca de agua son el recurso que evita que un venue sin
         flyer quede como una caja vacía — hay portada aunque no haya imagen.

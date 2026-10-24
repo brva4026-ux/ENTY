@@ -55,7 +55,11 @@ export default function BusinessDock({ venueId, section, onNavigate }) {
   }, [venueId]);
 
   return (
-    <nav className="bizdock card" aria-label="Secciones del negocio">
+    <nav
+      className="bizdock card"
+      aria-label="Secciones del negocio"
+      data-tour="negocio"
+    >
       <div className="bizdock-head">
         <div>
           <p className="eyebrow">Gestión de la venue</p>

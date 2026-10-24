@@ -550,7 +550,18 @@ avisar.
   publicado, así que su guía de primeros pasos está apagada a propósito. El spec
   se registra (`/register`) para obtener un negocio nuevo, que es el único
   estado donde la guía se ofrece por primera vez. El registro acepta términos
-  y crea venue + admin.
+  y crea venue + admin. Son 5 tests y cada uno registra una cuenta: el lockout
+  de abajo (8/15 min) se agota a la mitad si además se re-corre el archivo, así
+  que limpiar el cubo antes de cada corrida.
+- **La guía de primeros pasos vive en el servidor, por (usuario, venue)**:
+  `user_preferences` (mig 032) y `/auth/me/preferences`. Antes estaba en
+  `localStorage`, que es por navegador: la decisión tomada en la laptop
+  reaparecía en el celular, y el dominio de preview de Vercel (otro origen) no
+  veía la de producción. `frontend/src/lib/onboarding.js` cachea en localStorage
+  **solo para pintar sin parpadeo**; la verdad es la fila de la DB. El tutorial
+  guiado (`OnboardingTour.jsx`) se ancla con `data-tour="<id>"` en el DOM y sus
+  pasos se saltan solos si el ancla no existe (p. ej. el backstage en un negocio
+  sin eventos).
 - **El registro tiene lockout por IP** (mig 016, cubo `__register__`): 8
   intentos en 15 min desde la misma IP y el endpoint devuelve 429 — incluidos
   los exitosos, porque el registro **no** limpia su contador al acertar (el

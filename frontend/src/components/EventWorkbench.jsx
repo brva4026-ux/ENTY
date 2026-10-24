@@ -165,7 +165,7 @@ export default function EventWorkbench({
         eyebrow + display + punto de estado (no degradado ni píldora con
         ring): entrar al backstage debe sentirse BAJAR un nivel de la misma
         jerarquía, no cambiar de aplicación. */}
-      <section className="card card-hero p-5">
+      <section className="card card-hero p-5" data-tour="backstage">
         <div className="flex flex-wrap items-start justify-between gap-3">
           {showFlyer && (
             <img
@@ -382,6 +382,7 @@ export default function EventWorkbench({
         className="no-scrollbar -mx-4 flex max-w-full items-center gap-1 overflow-x-auto px-4"
         role="tablist"
         aria-label="Secciones del evento"
+        data-tour="tabs-evento"
       >
         {tabs.map((t) => (
           <button

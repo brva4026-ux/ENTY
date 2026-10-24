@@ -23,6 +23,7 @@ export function OnboardingChecklist({
   isPublished,
   onStart,
   onGo,
+  onTour,
   onAccept,
   onDismiss,
   onComplete,
@@ -57,13 +58,13 @@ export function OnboardingChecklist({
           <div>
             <p className="eyebrow">Primeros pasos</p>
             <h3 className="display mt-0.5 text-base">
-              👋 ¿Te guío en la configuración?
+              👋 ¿Te muestro dónde está todo?
             </h3>
           </div>
           <p className="text-zinc-500 text-sm max-w-sm">
             Son 4 pasos y unos 3 minutos: crear el evento, definir los tipos de
-            boleta, asignar cupos y publicar. Si preferís, lo hacés por tu
-            cuenta y volvés a la guía cuando quieras.
+            boleta, asignar cupos y publicar. Te voy señalando dónde presionar
+            en cada uno. Si preferís, lo hacés por tu cuenta.
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -72,7 +73,7 @@ export function OnboardingChecklist({
               data-testid="onboarding-accept"
               className="btn-primary !px-3 !py-1.5 text-xs"
             >
-              Sí, guiame
+              Sí, mostrame
             </button>
             <button
               type="button"
@@ -134,6 +135,18 @@ export function OnboardingChecklist({
             className="btn-primary !px-3 !py-1.5 text-xs"
           >
             {hasEvent ? "Siguiente paso" : "Crear evento"}
+          </button>
+        )}
+        {/* Tutorial guiado: la guía dice QUÉ falta, el tutorial señala DÓNDE
+          está. Son complementarios, no dos versiones de lo mismo. */}
+        {onTour && (
+          <button
+            type="button"
+            onClick={onTour}
+            data-testid="onboarding-tour"
+            className="btn-ghost !px-3 !py-1.5 text-xs self-start"
+          >
+            🎯 Muéstrame dónde
           </button>
         )}
         <div className="flex items-center gap-2">
@@ -219,18 +232,36 @@ export function OnboardingChecklist({
 /**
  * Acceso permanente a la guia cuando esta oculta. Ocupa el mismo sitio que la
  * guia (su "casa"), asi que se encuentra donde se la vio por ultima vez.
+ *
+ * Dos caminos, porque son dos necesidades distintas: la LISTA dice que falta
+ * hacer, el TUTORIAL senala donde esta cada cosa. Quien cerro la guia por
+ * accidente quiere la lista; quien no entiende la pantalla quiere el tutorial.
  */
-export function OnboardingResume({ onRestart }) {
+export function OnboardingResume({ onRestart, onTour }) {
   return (
-    <button
-      type="button"
-      onClick={() => onRestart?.()}
-      data-testid="onboarding-resume"
-      className="card card-interactive flex w-full items-center gap-2 px-4 py-2.5 text-left"
-    >
+    <div className="card flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
       <span aria-hidden="true">🎯</span>
       <span className="text-sm text-zinc-300">Primeros pasos</span>
-      <span className="text-xs text-zinc-500">Volver a mostrar la guía</span>
-    </button>
+      <div className="ml-auto flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onRestart?.()}
+          data-testid="onboarding-resume"
+          className="btn-ghost !px-3 !py-1.5 text-xs"
+        >
+          Ver la guía
+        </button>
+        {onTour && (
+          <button
+            type="button"
+            onClick={() => onTour?.()}
+            data-testid="onboarding-resume-tour"
+            className="btn-ghost !px-3 !py-1.5 text-xs"
+          >
+            Ver el tutorial
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch, publicTicketPageUrl } from "../lib/api";
 import ContactEditsHistory from "../components/ContactEditsHistory";
@@ -25,10 +25,14 @@ import CountUpNumber from "../components/CountUpNumber";
 import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
 import {
-  getOnboardingPreference,
-  setOnboardingPreference,
-  clearLegacyOnboardingKey,
+  cachedPreferences,
+  loadPreferences,
+  savePreference,
+  clearLegacyOnboardingKeys,
+  PREF_ONBOARDING,
+  PREF_TUTORIAL,
 } from "../lib/onboarding";
+import OnboardingTour, { ONBOARDING_STEPS } from "../components/OnboardingTour";
 import EventWorkbench, {
   EventNotFound,
   sortEventsForStrip,
@@ -288,53 +292,130 @@ export default function AdminDashboard() {
       (!q || ev.name.toLowerCase().includes(q)),
   );
 
-  // Onboarding del primer evento: el más reciente (la lista viene ordenada
-  // starts_at DESC) mientras siga en borrador. Publicarlo apaga la guía para
-  // siempre — y como el paso de "publicar" solo existe mientras haya borrador,
-  // la guía no puede reaparecer en un negocio que ya está vendiendo.
-  const newestEvent = events && events.length ? events[0] : null;
+  // Onboarding del primer evento. El evento del onboarding es el BORRADOR más
+  // cercano en el tiempo, no `events[0]`: la lista viene ordenada `starts_at
+  // DESC`, así que `events[0]` es el evento con la fecha MÁS LEJANA del futuro.
+  // Con ese criterio, publicar la fiesta de hoy y luego crear la del mes que
+  // viene (borrador) reactivaba la guía que el admin ya había cerrado.
+  //
+  // Un borrador sin fecha no debería existir (el modal la exige), pero se
+  // ordena igual para no depender de eso.
+  const onboardingEvent = useMemo(() => {
+    const drafts = (events ?? []).filter((e) => e.status === "draft");
+    if (!drafts.length) return null;
+    return [...drafts].sort((a, b) =>
+      String(a.starts_at ?? "").localeCompare(String(b.starts_at ?? ""))
+    )[0];
+  }, [events]);
   // La guía solo aplica mientras el negocio no esté vendiendo: con el primer
-  // evento publicado ya no hay nada que enseñar.
+  // evento publicado ya no hay nada que enseñar. Se mira TODA la lista, no solo
+  // el borrador: un borrador viejo junto a un evento ya publicado (o en puerta)
+  // no debe reabrir la guía.
   const onboardingRelevant =
-    events !== null && (!newestEvent || newestEvent.status === "draft");
+    events !== null &&
+    !events.some((e) => e.status !== "draft" && e.status !== "cancelled");
   // Evento con la puerta abierta AHORA. Se deriva de la lista ya cargada (el
   // endpoint de eventos trae `status`), así que saber si hay noche en curso no
   // cuesta un request. Si hubiera más de uno (no debería), el primero.
   const liveEvent = (events || []).find((e) => e.status === "live") || null;
-  // Preferencia por venue (lib/onboarding): "accepted" la aceptó, "dismissed"
-  // la rechazó o cerró, null todavía no decidió (se le ofrece). Se relee al
-  // cambiar de venue y al reiniciar la guía (onboardingEpoch).
-  const [onboardingPref, setOnboardingPref] = useState(() =>
-    getOnboardingPreference(venueId)
-  );
-  const [onboardingEpoch, setOnboardingEpoch] = useState(0);
+  // Preferencia por usuario+venue, en el SERVIDOR (lib/onboarding, mig 032):
+  // "accepted" la aceptó, "dismissed" la rechazó, "completed" la terminó,
+  // "pending" todavía no decidió (se le ofrece). Se pinta primero el cache para
+  // no mostrar la invitación un instante y esconderla al llegar la respuesta.
+  const [prefs, setPrefs] = useState(() => cachedPreferences(venueId));
+  const onboardingPref = prefs[PREF_ONBOARDING]?.value ?? "pending";
+  // Tutorial guiado abierto (modo "me dice dónde presionar").
+  const [tourOpen, setTourOpen] = useState(false);
   useEffect(() => {
-    // La clave vieja (global, sin venue) se limpia una vez: quien la tenía de
-    // la versión anterior debe ver la invitación nueva.
-    clearLegacyOnboardingKey();
+    // Claves viejas (localStorage) que ya no se leen: se limpian una vez.
+    clearLegacyOnboardingKeys();
   }, []);
   useEffect(() => {
-    setOnboardingPref(getOnboardingPreference(venueId));
-  }, [venueId, onboardingEpoch]);
+    let alive = true;
+    setPrefs(cachedPreferences(venueId));
+    loadPreferences(venueId).then((p) => {
+      if (alive) setPrefs(p);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [venueId]);
 
-  // Se OFRECE (opt-in) si no decidió; se MUESTRA si la aceptó.
+  // Se OFRECE (opt-in) si no decidió; se MUESTRA la guía si la aceptó.
   const showOnboardingInvite =
-    onboardingRelevant && onboardingPref === null && events !== null;
+    onboardingRelevant && onboardingPref === "pending" && events !== null;
   const showOnboardingChecklist =
     onboardingRelevant && onboardingPref === "accepted" && events !== null;
   // La guía está visible de alguna forma: los efectos que cargan su progreso
   // (tipos, cupos) dependen de esto.
   const showOnboarding = showOnboardingInvite || showOnboardingChecklist;
-  // Acceso permanente para volver a mostrarla cuando está oculta.
+  // Acceso permanente para volver a mostrarla cuando está oculta (la rechazó o
+  // ya la completó). NO depende de que haya un borrador: si el negocio ya
+  // vende, la guía terminó su trabajo y no debe reaparecer sola — pero el
+  // camino de vuelta siempre queda a la vista.
   const showOnboardingResume =
     events !== null &&
-    onboardingPref === "dismissed" &&
-    (!newestEvent || newestEvent.status === "draft");
+    (onboardingPref === "dismissed" || onboardingPref === "completed");
 
+  /** Guarda la decisión en el servidor y refleja el resultado en el acto. */
   function decideOnboarding(pref) {
-    setOnboardingPreference(venueId, pref);
-    setOnboardingPref(pref);
+    setPrefs((p) => ({ ...p, [PREF_ONBOARDING]: { ...p[PREF_ONBOARDING], value: pref } }));
+    savePreference(venueId, PREF_ONBOARDING, pref).catch(() =>
+      // Si el servidor la rechaza, se recarga la verdad: la UI no puede quedar
+      // mintiendo sobre una decisión que no se guardó.
+      loadPreferences(venueId).then(setPrefs)
+    );
   }
+
+  /**
+   * Arranca el tutorial guiado. Aceptar la invitación ES aceptar la guía, así
+   * que también queda "accepted": sin eso, cerrar el tutorial devolvía al admin
+   * a la invitación de nuevo — el bucle que se está arreglando.
+   */
+  function startTour() {
+    if (onboardingPref === "pending") decideOnboarding("accepted");
+    const step = prefs[PREF_TUTORIAL]?.step ?? 0;
+    setPrefs((p) => ({ ...p, [PREF_TUTORIAL]: { value: "accepted", step } }));
+    savePreference(venueId, PREF_TUTORIAL, "accepted", step).catch(() => {});
+    setTourOpen(true);
+  }
+
+  /** Guarda el avance del tutorial (sobrevive a cerrar la app). */
+  function onTourStep(step) {
+    setPrefs((p) => ({ ...p, [PREF_TUTORIAL]: { value: "accepted", step } }));
+    savePreference(venueId, PREF_TUTORIAL, "accepted", step).catch(() => {});
+  }
+
+  /** El tutorial terminó: no vuelve a ofrecerse solo. La guía de progreso
+   *  sigue viva si al negocio le falta montar algo — son dos cosas distintas. */
+  function finishTour() {
+    setTourOpen(false);
+    setPrefs((p) => ({ ...p, [PREF_TUTORIAL]: { value: "completed", step: 0 } }));
+    savePreference(venueId, PREF_TUTORIAL, "completed", 0).catch(() => {});
+  }
+
+  /** El usuario salió del tutorial: se recuerda dónde quedó para retomarlo. */
+  function exitTour() {
+    setTourOpen(false);
+  }
+
+  /** El tutorial no puede explicar el backstage desde la lista: navega solo.
+   *  Es el único punto donde el tutorial mueve la URL; el resto del panel
+   *  sigue siendo el dueño de la navegación. */
+  useEffect(() => {
+    if (!tourOpen) return;
+    const step = ONBOARDING_STEPS[prefs[PREF_TUTORIAL]?.step ?? 0];
+    if (!step) return;
+    if (step.screen === "event") {
+      // El backstage necesita un evento. El borrador del onboarding es el
+      // candidato natural; sin borrador, el más próximo.
+      const target = onboardingEvent ?? events?.[0];
+      if (target && selectedEvent !== target.id) flyToEvent(target.id, "resumen");
+    } else if (selectedEvent !== null) {
+      setSearchParams({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourOpen, prefs[PREF_TUTORIAL]?.step]);
 
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
@@ -458,11 +539,11 @@ export default function AdminDashboard() {
   /** Atajo de la guía de primeros pasos: abre el borrador en la pestaña donde
    *  se resuelve el paso pendiente. Sin evento, solo "Crear evento" aplica. */
   function onboardingGo(step) {
-    if (!newestEvent) {
+    if (!onboardingEvent) {
       setCreateOpen(true);
       return;
     }
-    flyToEvent(newestEvent.id, step === "evento" ? undefined : step);
+    flyToEvent(onboardingEvent.id, step === "evento" ? undefined : step);
   }
 
   // Usuarios de la venue: para asignar cupos con nombres reales
@@ -498,14 +579,14 @@ export default function AdminDashboard() {
   // solo se precarga el borrador cuando NO hay backstage abierto, para no
   // pisar los datos del evento que el admin está editando en ese momento.
   useEffect(() => {
-    if (selectedEvent || !showOnboarding || !newestEvent || !venueId) return;
-    apiFetch(`/venues/${venueId}/events/${newestEvent.id}/types`)
+    if (selectedEvent || !showOnboarding || !onboardingEvent || !venueId) return;
+    apiFetch(`/venues/${venueId}/events/${onboardingEvent.id}/types`)
       .then(setTypes)
       .catch(() => {});
-    apiFetch(`/venues/${venueId}/events/${newestEvent.id}/allocations`)
+    apiFetch(`/venues/${venueId}/events/${onboardingEvent.id}/allocations`)
       .then(setAllocations)
       .catch(() => {});
-  }, [selectedEvent, showOnboarding, newestEvent, venueId]);
+  }, [selectedEvent, showOnboarding, onboardingEvent, venueId]);
 
   // Memoizado: es dependencia de reloadAll (PTR) y de useLiveRefresh; sin
   // memo, ambas corren con una closure vieja cuando cambia el evento elegido.
@@ -860,30 +941,37 @@ export default function AdminDashboard() {
         {/* Guía del admin primerizo: acompaña hasta que el PRIMER evento está
           realmente a la venta. Primero se OFRECE (opt-in): el admin decide si
           la quiere o la hace por su cuenta, y su elección se recuerda por
-          venue. Cuando está oculta queda "Primeros pasos" para volver a
-          abrirla — nunca es irreversible. */}
-        {showOnboardingInvite && (
+          usuario y negocio (en el servidor). Cuando está oculta queda "Primeros
+          pasos" para volver a abrirla — nunca es irreversible.
+
+          Vive SOLO en modo lista: dentro del backstage de un evento la guía no
+          tiene nada que hacer y tapaba la pantalla de trabajo. */}
+        {!selectedEventData && showOnboardingInvite && (
           <OnboardingChecklist
             mode="invite"
-            onAccept={() => decideOnboarding("accepted")}
+            onAccept={startTour}
             onDismiss={() => decideOnboarding("dismissed")}
           />
         )}
-        {showOnboardingChecklist && (
+        {!selectedEventData && showOnboardingChecklist && (
           <OnboardingChecklist
             mode="checklist"
             hasEvent={events.length > 0}
             hasTypes={types.length > 0}
             hasAllocations={allocations.length > 0}
-            isPublished={newestEvent ? newestEvent.status !== "draft" : false}
+            isPublished={events.some((e) => e.status !== "draft")}
             onStart={() => setCreateOpen(true)}
             onGo={onboardingGo}
+            onTour={startTour}
             onDismiss={() => decideOnboarding("dismissed")}
-            onComplete={() => decideOnboarding("dismissed")}
+            onComplete={() => decideOnboarding("completed")}
           />
         )}
-        {showOnboardingResume && (
-          <OnboardingResume onRestart={() => decideOnboarding("accepted")} />
+        {!selectedEventData && showOnboardingResume && (
+          <OnboardingResume
+            onRestart={() => decideOnboarding("accepted")}
+            onTour={startTour}
+          />
         )}{" "}
         {error && (
           <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
@@ -954,6 +1042,7 @@ export default function AdminDashboard() {
                           onClick={() => setCreateOpen(true)}
                           aria-label="Nuevo evento"
                           data-tip="Nuevo evento"
+                          data-tour="nuevo-evento"
                           className="btn-primary evx-newbtn shrink-0"
                         >
                           <Icon name="plus" className="h-4 w-4" />
@@ -1060,9 +1149,8 @@ export default function AdminDashboard() {
                   )}
               {booting ? (
                 <SelectSkeleton className="max-w-xs" />
-              ) : (
-                events.length > 0 && (
-                  <section className="events-strip">
+              ) : events.length > 0 ? (
+                  <section className="events-strip" data-tour="eventos">
                     {visibleEvents.length === 0 ? (
                       /* El vacío dice la verdad del motivo: sin búsqueda, un
                          filtro de estado sin eventos NO es "no coincide una
@@ -1546,8 +1634,30 @@ export default function AdminDashboard() {
                       </div>
                     )}
                   </section>
-                )
-              )}
+                ) : (
+                  /* Negocio recién creado: sin noches todavía. Este bloque es
+                     también el ancla del paso "eventos" del tutorial, que
+                     tiene que existir aunque no haya eventos. */
+                  <section data-tour="eventos" className="pt-1">
+                    <EmptyState
+                      icon="ticket"
+                      title="Todavía no hay eventos"
+                    >
+                      <p>
+                        Crea tu primera noche con el botón de abajo: nace en
+                        borrador y la montas antes de vender.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setCreateOpen(true)}
+                        data-tour="nuevo-evento"
+                        className="btn-primary mt-3 !px-3 !py-1.5 text-xs"
+                      >
+                        Crear mi primer evento
+                      </button>
+                    </EmptyState>
+                  </section>
+                )}
             </VenueHeader>
 
             {/* Acción primaria al alcance del pulgar (solo móvil, modo lista):
@@ -2087,6 +2197,18 @@ export default function AdminDashboard() {
         )}
         {!selectedEventData && section === "invitaciones" && (
           <InvitationsManager venueId={venueId} />
+        )}
+
+        {/* Tutorial guiado: se monta al final para quedar por encima de todo
+          el panel (no dentro de un card, que lo recortaría). */}
+        {tourOpen && (
+          <OnboardingTour
+            steps={ONBOARDING_STEPS}
+            step={prefs[PREF_TUTORIAL]?.step ?? 0}
+            onStep={onTourStep}
+            onExit={exitTour}
+            onFinish={finishTour}
+          />
         )}
       </div>
     </PullToRefresh>

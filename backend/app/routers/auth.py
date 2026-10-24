@@ -39,9 +39,13 @@ from app.schemas import (
     ForgotPasswordRequest,
     LoginRequest,
     MessageOut,
+    PreferenceKey,
+    PreferenceOut,
+    PreferencesOut,
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
+    UpdatePreferenceRequest,
     UpdateProfileRequest,
     UpdateVenueRequest,
     UserSummary,
@@ -215,6 +219,90 @@ async def me(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     return await _build_user_summary(db, user["id"])
+
+
+# ---------------------------------------------------------------------------
+# Preferencias por usuario y negocio (mig 032)
+# ---------------------------------------------------------------------------
+# Antes vivian en localStorage, que es por NAVEGADOR: la guia rechazada en la
+# laptop reaparecia en el celular, y el preview de Vercel (otro origen) no veia
+# la decision de produccion. En la DB la decision es de la persona, no del
+# dispositivo.
+_PREFERENCE_KEYS = ("onboarding", "tutorial")
+
+
+@router.get("/me/preferences", response_model=PreferencesOut)
+async def get_my_preferences(
+    venue_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Preferencias del usuario en un negocio.
+
+    Devuelve SIEMPRE las claves conocidas, en `pending` cuando no hay fila: el
+    panel no distingue "no existe" de "sin decidir", que para el usuario son lo
+    mismo. Cualquier rol de la venue puede leer las SUYAS (son personales)."""
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT key, value, step, updated_at FROM user_preferences "
+            "WHERE user_id=%s AND venue_id=%s",
+            (user["id"], venue_id),
+        )
+        rows = {r["key"]: r for r in await cur.fetchall()}
+    return PreferencesOut(
+        venue_id=venue_id,
+        preferences=[
+            PreferenceOut(
+                key=key,
+                value=rows[key]["value"],
+                step=rows[key]["step"] or 0,
+                updated_at=rows[key]["updated_at"],
+            )
+            if key in rows
+            else PreferenceOut(key=key)
+            for key in _PREFERENCE_KEYS
+        ],
+    )
+
+
+@router.put("/me/preferences/{key}", response_model=PreferenceOut)
+async def set_my_preference(
+    key: PreferenceKey,
+    venue_id: int,
+    body: UpdatePreferenceRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Guarda la decision (y el paso, si es el tutorial) del usuario.
+
+    UPSERT: la primera escritura crea la fila y las siguientes la actualizan.
+    La preferencia es del usuario autenticado, nunca de otro: el `user_id` sale
+    del token, no del cuerpo."""
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            INSERT INTO user_preferences (user_id, venue_id, key, value, step)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (user_id, venue_id, key) DO UPDATE
+               SET value = EXCLUDED.value,
+                   -- El paso solo lo manda el tutorial; en las demas claves un
+                   -- None del cliente NO debe borrar el progreso guardado.
+                   step = COALESCE(EXCLUDED.step, user_preferences.step),
+                   updated_at = now()
+            RETURNING key, value, step, updated_at
+            """,
+            (user["id"], venue_id, key, body.value, body.step),
+        )
+        row = await cur.fetchone()
+        await db.commit()
+    return PreferenceOut(
+        key=row["key"],
+        value=row["value"],
+        step=row["step"] or 0,
+        updated_at=row["updated_at"],
+    )
 
 
 # ---------------------------------------------------------------------------
