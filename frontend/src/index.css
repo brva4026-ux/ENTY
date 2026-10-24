@@ -1957,67 +1957,9 @@ html[data-theme="light"] .vh-embedded {
 }
 
 /* ----------------------------------------------------------------------
-   PORTADA: desglose del mes, navegación de mes y rankings.
+   PORTADA: navegación de mes y rankings.
    Todo cuelga del MISMO hairline del sistema; nada de cajas nuevas.
    ---------------------------------------------------------------------- */
-
-/* Desglose: la cuenta que explica la cifra grande. Una sola línea que
-   envuelve en móvil; los operadores (−, =) son estructura, no texto. */
-.vh-cuenta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.35rem 0.9rem;
-  margin-top: 0.95rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
-.vh-cuenta-item {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-}
-.vh-cuenta-op {
-  align-self: flex-end;
-  padding-bottom: 0.1rem;
-  color: var(--color-zinc-600);
-  font-size: var(--e-text-base);
-  font-weight: 700;
-}
-.vh-cuenta-label {
-  font-size: var(--e-text-2xs);
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--color-zinc-500);
-}
-.vh-cuenta-val {
-  font-size: var(--e-text-base);
-  font-weight: 700;
-  color: var(--color-zinc-100);
-}
-.vh-cuenta-val.is-out {
-  color: var(--e-red-300);
-}
-.vh-cuenta-val.is-net {
-  color: var(--color-enty-green);
-}
-.vh-cuenta-hint {
-  font-size: var(--e-text-2xs);
-  color: var(--color-zinc-600);
-}
-/* El promedio se separa del bloque de la cuenta: a la derecha en pantallas
-   anchas, en su propia línea en móvil. */
-.vh-cuenta-push {
-  margin-left: auto;
-  text-align: right;
-}
-@media (max-width: 640px) {
-  .vh-cuenta-push {
-    margin-left: 0;
-    text-align: left;
-  }
-}
 
 /* Navegación histórica del mes (comparte estado con Reportes vía URL). */
 .vh-mesnav {

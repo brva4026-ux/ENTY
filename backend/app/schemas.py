@@ -1099,6 +1099,29 @@ class VenueDoorEvent(BaseModel):
     redeemed: int = 0
 
 
+class VenueDoorScan(BaseModel):
+    """Un intento de escaneo reciente en la puerta de las noches en vivo.
+
+    Alimenta la cola de "últimos escaneos": el portero necesita ver pasar las
+    boletas, no solo el total. `outcome` distingue si pasó o rebotó, y el
+    nombre del invitado es el mismo que ya expone /redemptions.
+    """
+
+    scanned_at: datetime
+    outcome: str
+    customer_name: str | None = None
+    type_name: str | None = None
+    scanned_by: str | None = None
+
+
+class VenueDoorSlot(BaseModel):
+    """Una franja de 30 min del ritmo de entrada. `n` puede ser 0: el silencio
+    entre tandas es información, no un hueco que la UI deba saltarse."""
+
+    at: datetime
+    n: int = 0
+
+
 class VenueDoor(BaseModel):
     """La puerta del venue ENTERO, sin abrir un evento.
 
@@ -1121,6 +1144,11 @@ class VenueDoor(BaseModel):
     rejected: int = 0
     # Último escaneo de cualquier noche en vivo (null si no hubo ninguno).
     last_scan_at: datetime | None = None
+    # Ritmo de entrada por franja de 30 min (solo granted). Series reales para
+    # dibujar el pulso de la noche, no un adorno inventado en el front.
+    rhythm: list[VenueDoorSlot] = []
+    # Los últimos escaneos, más reciente primero (máx. 12).
+    recent_scans: list[VenueDoorScan] = []
     # Todas las noches con puerta abierta o por abrir, más reciente primero.
     events: list[VenueDoorEvent] = []
 

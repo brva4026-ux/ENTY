@@ -233,47 +233,57 @@ export default function VenueHeader({
         </div>
       </div>
 
-      {/* Desglose del mes: la cuenta que explica la cifra grande. Solo
-          aparece cuando hay algo que explicar — con comisiones en 0 la línea
-          del neto ya es el recaudado y repetirla sería ruido. */}
+      {/* El marcador del mes, en la voz del panel: cifras tabulares que se
+          leen de un golpe. Sustituye al viejo desglose "Recaudado −
+          Comisiones = Neto", que repetía el recaudado y el promedio justo
+          debajo del KPI; aquí la resta vive en la nota del recaudado ("$N
+          neto") y la comisión tiene su propia celda cuando existe. */}
       {ov && (
-        <div className="vh-cuenta">
-          <div className="vh-cuenta-item">
-            <span className="vh-cuenta-label">Recaudado</span>
-            <span className="vh-cuenta-val tnum">{money(revenue)}</span>
+        <dl className="pc-tally vh-tally">
+          <div>
+            <dt className="pc-t-label">Recaudado</dt>
+            <dd className="pc-t-value">
+              <CountUpNumber value={revenue / 100} format={(v) => money(v * 100)} />
+            </dd>
+            <span className="pc-t-note">
+              {hasCommissions ? `${money(net)} neto` : "sin comisiones este mes"}
+            </span>
           </div>
           {hasCommissions && (
-            <>
-              <span className="vh-cuenta-op" aria-hidden="true">
-                −
-              </span>
-              <div className="vh-cuenta-item">
-                <span className="vh-cuenta-label">Comisiones</span>
-                <span className="vh-cuenta-val tnum is-out">
-                  {money(commissions)}
-                </span>
-              </div>
-              <span className="vh-cuenta-op" aria-hidden="true">
-                =
-              </span>
-              <div className="vh-cuenta-item">
-                <span className="vh-cuenta-label">Neto</span>
-                <span className="vh-cuenta-val tnum is-net">{money(net)}</span>
-              </div>
-            </>
+            <div>
+              <dt className="pc-t-label">Comisiones</dt>
+              <dd className="pc-t-value is-hot">{money(commissions)}</dd>
+              <span className="pc-t-note">se lleva el promotor</span>
+            </div>
           )}
-          <div className="vh-cuenta-item vh-cuenta-push">
-            <span className="vh-cuenta-label">Promedio por boleta</span>
-            <span className="vh-cuenta-val tnum">
-              {avg > 0 ? money(avg) : "—"}
-            </span>
-            <span className="vh-cuenta-hint">
-              {paid > 0
-                ? `sobre ${paid} paga${paid === 1 ? "" : "s"}`
-                : "solo cortesías este mes"}
+          <div>
+            <dt className="pc-t-label">Boletas</dt>
+            <dd className="pc-t-value">
+              <CountUpNumber value={ov.tickets_issued} />
+            </dd>
+            <span className="pc-t-note">
+              {paid} paga{paid === 1 ? "" : "s"} ·{" "}
+              {Math.max(0, ov.tickets_issued - paid)} cortesía
+              {ov.tickets_issued - paid === 1 ? "" : "s"}
             </span>
           </div>
-        </div>
+          <div>
+            <dt className="pc-t-label">Ticket medio</dt>
+            <dd className="pc-t-value">{avg > 0 ? money(avg) : "—"}</dd>
+            <span className="pc-t-note">
+              {avg > 0 ? "sobre boletas pagas" : "solo cortesías"}
+            </span>
+          </div>
+          <div>
+            <dt className="pc-t-label">Eventos</dt>
+            <dd className="pc-t-value">
+              <CountUpNumber value={ov.events_count} />
+            </dd>
+            <span className="pc-t-note">
+              {liveEvent ? "1 en puerta ahora" : "ninguno en puerta"}
+            </span>
+          </div>
+        </dl>
       )}
 
       {/* Navegación histórica: el mes del panel (y de Reportes) vive en la

@@ -26,6 +26,10 @@
     <!-- Fuente self-hosted (Sora variable, public/fonts): preload para que el
          primer paint use la voz de marca; sin terceros, sin FOUT de red. -->
     <link rel="preload" href="/fonts/sora-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Voces de operación del panel (Anton cartel + JetBrains Mono cifras).
+         Solo latin: el panel se lee en español; latin-ext se carga on-demand. -->
+    <link rel="preload" href="/fonts/anton-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/jbmono-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />

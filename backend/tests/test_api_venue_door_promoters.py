@@ -122,6 +122,69 @@ def test_venue_door_forbidden_for_bouncer_and_promoter(api):
         assert res.status_code == 403, f"{who} debería recibir 403, dio {res.status_code}"
 
 
+def test_venue_door_rhythm_is_a_gap_filled_half_hour_series(api):
+    """El ritmo son franjas de 30 min con ceros incluidos.
+
+    Los huecos vuelven como 0 a propósito: la gráfica debe dibujar el silencio
+    entre tandas, no saltárselo. Solo cuentan los escaneos `granted`.
+    """
+    venue, event_id = _open_night(api, "Ritmo", capacity=50)
+    t1 = _courtesy(api, venue, event_id, qty=4)
+    t2 = _courtesy(api, venue, event_id, qty=4, name="VIP")
+
+    assert _scan(api, venue, event_id, t1["raw_token"]).json()["redeemed"] is True
+    assert _scan(api, venue, event_id, t2["raw_token"]).json()["redeemed"] is True
+    # Un duplicado: no debe sumar al ritmo (no es alguien que entró).
+    _scan(api, venue, event_id, t2["raw_token"])
+
+    d = api.get(f"/venues/{venue}/door", "admin").json()
+    rhythm = d["rhythm"]
+    assert len(rhythm) >= 2, "la serie debe cubrir varias franjas"
+    # Franjas consecutivas de 30 min exactos, sin saltos.
+    for a, b in zip(rhythm, rhythm[1:]):
+        delta = datetime.fromisoformat(b["at"]) - datetime.fromisoformat(a["at"])
+        assert delta == timedelta(minutes=30), (a["at"], b["at"])
+    # Los 2 ingresos reales están en la serie; el duplicado no.
+    assert sum(s["n"] for s in rhythm) == 2
+
+
+def test_venue_door_rhythm_and_scans_empty_without_live_night(api):
+    """Sin noche en vivo no hay ritmo ni cola: no se inventan series."""
+    venue = api.world["venue_a"]
+    d = api.get(f"/venues/{venue}/door", "admin").json()
+    assert d["rhythm"] == []
+    assert d["recent_scans"] == []
+
+
+def test_venue_door_recent_scans_are_newest_first_and_scoped(api):
+    """La cola trae los últimos escaneos, más reciente primero, y solo de ESTE
+    venue: la puerta de un negocio no puede mostrar la de otro."""
+    venue, event_id = _open_night(api, "Cola", capacity=50)
+    t1 = _courtesy(api, venue, event_id, qty=3)
+    t2 = _courtesy(api, venue, event_id, qty=3, name="VIP")
+    _scan(api, venue, event_id, t1["raw_token"])
+    _scan(api, venue, event_id, t2["raw_token"])
+    _scan(api, venue, event_id, "token-inexistente")
+
+    d = api.get(f"/venues/{venue}/door", "admin").json()
+    scans = d["recent_scans"]
+    assert len(scans) == 3
+    # Más reciente primero.
+    ats = [datetime.fromisoformat(s["scanned_at"]) for s in scans]
+    assert ats == sorted(ats, reverse=True)
+    assert scans[0]["outcome"] == "not_found"
+    assert {s["outcome"] for s in scans} == {"granted", "not_found"}
+    # El nombre del invitado viaja (mismo criterio que /redemptions) pero el
+    # token/hash NO.
+    assert all("token" not in k and "hash" not in k for s in scans for k in s)
+
+    # Otro venue del mismo mundo no ve estos escaneos (su propio admin sí
+    # puede consultar su puerta, y está vacía).
+    other = api.world["venue_b"]
+    d2 = api.get(f"/venues/{other}/door", "outsider").json()
+    assert d2["recent_scans"] == []
+
+
 def test_venue_promoters_advance_against_capacity(api):
     """El cupo asignado da el avance: 3 de 10 = 30%."""
     venue = api.world["venue_a"]

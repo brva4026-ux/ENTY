@@ -10,6 +10,9 @@
  * MVP el promotor mueve cortesías, así que puede venir en 0 sin que sea un
  * error. La columna se muestra siempre para que la ausencia se lea, no se
  * esconda.
+ *
+ * Se lee como la tabla de comisiones de la maqueta (panel-cockpit.css): avatar,
+ * cupo usado, boletas, comisión y una barra de avance con su etiqueta.
  */
 import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
@@ -23,28 +26,30 @@ function initials(name) {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 
+/* Avance contra el cupo, con la etiqueta a la derecha. Sin cupo no hay meta:
+ *  una barra llena haría ver "cumplido" a quien nunca tuvo objetivo. */
 function AdvanceBar({ pct, hasCapacity }) {
   if (!hasCapacity) {
-    // Sin cupo no hay meta: una barra llena haría ver "cumplido" a quien
-    // nunca tuvo objetivo asignado.
-    return <span className="text-2xs text-zinc-500">sin cupo asignado</span>;
+    return (
+      <span className="pc-pav-block is-none">
+        <span className="pc-pav-pct">sin cupo</span>
+      </span>
+    );
   }
   return (
-    <div className="flex items-center gap-2">
-      <div
-        className="padv-track"
+    <span className="pc-pav-block">
+      <span
+        className="pc-pbar"
         role="img"
-        aria-label={`${pct}% del cupo colocado`}
+        aria-label={`${Math.round(pct)}% del cupo colocado`}
       >
-        <div
-          className={`padv-fill${pct >= 100 ? " is-full" : pct >= 80 ? " is-warn" : ""}`}
+        <i
+          className={pct >= 100 ? "is-full" : pct >= 80 ? "is-warn" : undefined}
           style={{ width: `${Math.min(100, pct)}%` }}
         />
-      </div>
-      <span className="tnum shrink-0 text-2xs font-bold text-zinc-400">
-        {Math.round(pct)}%
       </span>
-    </div>
+      <span className="pc-pav-pct">{Math.round(pct)}%</span>
+    </span>
   );
 }
 
@@ -90,15 +95,16 @@ export default function PromotersSection({ venueId, month }) {
   const promoters = data?.promoters ?? [];
   const totalCapacity = data?.capacity_total ?? 0;
   const totalIssued = promoters.reduce((n, p) => n + p.issued, 0);
+  const collectedPct =
+    totalCapacity > 0 ? Math.round((totalIssued / totalCapacity) * 100) : 0;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="display text-base">Promotores</h2>
-        {data?.month && (
-          <span className="text-xs capitalize text-zinc-500">
-            {labelMonth(data.month)}
-          </span>
+      <div className="pc-sec">
+        <h2>Promotores</h2>
+        {data?.month && <span className="pc-when">{labelMonth(data.month)}</span>}
+        {data?.commission_cents > 0 && (
+          <span className="pc-aside">{money(data.commission_cents)} en comisiones</span>
         )}
       </div>
 
@@ -109,45 +115,43 @@ export default function PromotersSection({ venueId, month }) {
         </EmptyState>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="card p-4">
-              <p className="eyebrow">Promotores</p>
-              <p className="tnum mt-1.5 text-2xl font-extrabold text-zinc-100">
+          {/* El marcador del equipo: cuántos son, cuánto cupo llevan colocado
+              y cuánto se llevan. Las tres cifras del dueño. */}
+          <dl className="pc-tally">
+            <div>
+              <dt className="pc-t-label">Promotores</dt>
+              <dd className="pc-t-value">
                 <CountUpNumber value={promoters.length} />
-              </p>
+              </dd>
+              <span className="pc-t-note">activos este mes</span>
             </div>
-            <div className="card p-4">
-              <p className="eyebrow">Boletas colocadas</p>
-              <p className="tnum mt-1.5 text-2xl font-extrabold text-zinc-100">
+            <div>
+              <dt className="pc-t-label">Boletas colocadas</dt>
+              <dd className="pc-t-value">
                 <CountUpNumber value={totalIssued} />
                 {totalCapacity > 0 && (
-                  <span className="text-sm font-semibold text-zinc-500">
-                    {" "}
-                    / {totalCapacity}
-                  </span>
+                  <small className="text-zinc-500"> / {totalCapacity}</small>
                 )}
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">
-                {totalCapacity > 0
-                  ? `${Math.round((totalIssued / totalCapacity) * 100)}% del cupo asignado`
-                  : "sin cupos asignados"}
-              </p>
+              </dd>
+              <span className="pc-t-note">
+                {totalCapacity > 0 ? `${collectedPct}% del cupo asignado` : "sin cupos asignados"}
+              </span>
             </div>
-            <div className="card p-4">
-              <p className="eyebrow">Comisiones</p>
-              <p className="tnum mt-1.5 text-2xl font-extrabold text-emerald-300">
+            <div>
+              <dt className="pc-t-label">Comisiones</dt>
+              <dd className={`pc-t-value${data.commission_cents > 0 ? " is-good" : " is-mute"}`}>
                 {money(data.commission_cents)}
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">
+              </dd>
+              <span className="pc-t-note">
                 {data.commission_cents > 0
                   ? "liquidaciones del mes"
                   : "sin liquidaciones generadas"}
-              </p>
+              </span>
             </div>
-          </div>
+          </dl>
 
-          <div className="ptable card">
-            <div className="prow prow-hd">
+          <div className="pc-ptable">
+            <div className="pc-prow is-head">
               <span>Promotor</span>
               <span>Cupo</span>
               <span>Boletas</span>
@@ -156,24 +160,20 @@ export default function PromotersSection({ venueId, month }) {
               <span>Avance</span>
             </div>
             {promoters.map((p) => (
-              <div className="prow" key={p.promoter_id}>
-                <span className="prow-name">
-                  <span className="prow-av" aria-hidden="true">
+              <div className="pc-prow" key={p.promoter_id}>
+                <span className="pc-pname">
+                  <span className="pc-pav" aria-hidden="true">
                     {initials(p.name)}
                   </span>
                   <span className="min-w-0 truncate">{p.name}</span>
                   {p.has_courtesy && (
-                    <span className="text-2xs font-normal text-zinc-500">
-                      cortesía
-                    </span>
+                    <span className="text-2xs font-normal text-zinc-500">cortesía</span>
                   )}
                 </span>
-                <span className="tnum">
-                  {p.capacity > 0 ? p.capacity : "—"}
-                </span>
-                <span className="tnum font-bold text-zinc-100">{p.issued}</span>
-                <span className="tnum text-emerald-300">{p.redeemed}</span>
-                <span className="tnum text-emerald-300">{money(p.commission_cents)}</span>
+                <span className="pc-pnum">{p.capacity > 0 ? p.capacity : "—"}</span>
+                <span className="pc-pnum is-strong">{p.issued}</span>
+                <span className="pc-pnum">{p.redeemed}</span>
+                <span className="pc-pnum is-money">{money(p.commission_cents)}</span>
                 <AdvanceBar pct={p.advance_pct} hasCapacity={p.capacity > 0} />
               </div>
             ))}

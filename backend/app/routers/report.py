@@ -31,6 +31,8 @@ from app.schemas import (
     ReportSummary,
     VenueDoor,
     VenueDoorEvent,
+    VenueDoorScan,
+    VenueDoorSlot,
     VenueOverview,
     VenuePromoter,
     VenuePromoters,
@@ -969,6 +971,64 @@ _DOOR_EVENTS_SQL = """
     LIMIT 20
 """
 
+# Ritmo de entrada: escaneos GRANTED por franja de 30 min en las ultimas 6 h
+# de cada noche en vivo. Solo granted: un rechazo no es alguien que entro, y
+# mezclarlos convertiria el pulso en una mentira. Los huecos vuelven como
+# cero (generate_series) para que la barra dibuje el silencio, no lo salte.
+_DOOR_RHYTHM_SQL = """
+    WITH live AS (
+        SELECT id, starts_at FROM events
+        WHERE venue_id = %(venue)s AND status = 'live'
+    ),
+    bounds AS (
+        SELECT greatest(coalesce(max(r.scanned_at), now()),
+                        coalesce(max(l.starts_at), now())) AS t_end
+        FROM live l
+        LEFT JOIN redemptions r ON r.event_id = l.id
+    ),
+    slots AS (
+        SELECT generate_series(
+                 date_trunc('hour', b.t_end - interval '5 hours 30 minutes'),
+                 date_trunc('hour', b.t_end) + interval '30 minutes',
+                 interval '30 minutes'
+               ) AS slot
+        FROM bounds b
+    ),
+    hits AS (
+        SELECT date_trunc('hour', r.scanned_at)
+                 + floor(extract(minute FROM r.scanned_at) / 30) * interval '30 minutes' AS slot,
+               count(*)::int AS n
+        FROM redemptions r
+        JOIN live l ON l.id = r.event_id
+        WHERE r.outcome IN ('granted', 'granted_forced')
+          AND r.scanned_at >= now() - interval '6 hours'
+        GROUP BY 1
+    )
+    SELECT s.slot AS at, coalesce(h.n, 0)::int AS n
+    FROM slots s
+    LEFT JOIN hits h ON h.slot = s.slot
+    ORDER BY s.slot
+"""
+
+# Los ultimos escaneos de las noches en vivo, para la cola de puerta. El
+# nombre se expone igual que en /redemptions (el admin ya lo ve); el hash de
+# la boleta NO sale de aqui.
+_DOOR_RECENT_SQL = """
+    SELECT r.scanned_at,
+           r.outcome,
+           t.customer_name,
+           tt.name AS type_name,
+           u.full_name AS scanned_by
+    FROM redemptions r
+    JOIN events e ON e.id = r.event_id AND e.status = 'live'
+    LEFT JOIN tickets t ON t.id = r.ticket_id
+    LEFT JOIN ticket_types tt ON tt.id = t.ticket_type_id
+    LEFT JOIN users u ON u.id = r.scanned_by_user_id
+    WHERE e.venue_id = %(venue)s
+    ORDER BY r.scanned_at DESC, r.id DESC
+    LIMIT 12
+"""
+
 # Agregados SOLO de las noches en vivo. Van en subconsultas sobre un CTE en
 # vez de un JOIN: sumar capacity sobre un join con tickets multiplicaria el
 # aforo por el numero de boletas (error clasico de fan-out).
@@ -1071,6 +1131,15 @@ async def venue_door(
         live = await cur.fetchone()
         await cur.execute(_DOOR_EVENTS_SQL, params)
         events = await cur.fetchall()
+        # Ritmo y cola: solo tienen sentido con una noche en vivo. Sin ella se
+        # evitan dos consultas que devolverian series vacias o basura vieja.
+        rhythm = []
+        recent = []
+        if live["live_events"]:
+            await cur.execute(_DOOR_RHYTHM_SQL, params)
+            rhythm = await cur.fetchall()
+            await cur.execute(_DOOR_RECENT_SQL, params)
+            recent = await cur.fetchall()
 
     return VenueDoor(
         live_events=live["live_events"],
@@ -1080,6 +1149,8 @@ async def venue_door(
         duplicates=live["duplicates"],
         rejected=live["rejected"],
         last_scan_at=live["last_scan_at"],
+        rhythm=[VenueDoorSlot(**r) for r in rhythm],
+        recent_scans=[VenueDoorScan(**r) for r in recent],
         events=[VenueDoorEvent(**e) for e in events],
     )
 
