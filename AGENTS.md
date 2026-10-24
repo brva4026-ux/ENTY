@@ -133,6 +133,28 @@ que re-sembrar. La DB local de desarrollo se levanta con el Postgres portable
 (`.local/pgsql/`, ver `docs/despliegue.md`) y los tests pueden apuntar a una
 base desechable del mismo servidor con `TEST_DATABASE_URL`.
 
+**Re-sembrar no alcanza para los E2E: faltan las aceptaciones legales.** El
+seed (ni `seed_demo_data` ni `scripts/seed_prod.sql`) NO crea filas en
+`legal_acceptances`, y `conftest` deja `legal_documents` poblada (las
+migraciones legales sí corren). Resultado: tras un `pytest`, el admin demo
+tiene documentos pendientes, el `LegalGate` bloquea el panel y specs como
+`a11y.spec` fallan con **decenas** de errores de contraste sobre `/promotor`
+(la pantalla del gate, no un problema de la UI). Se arregla registrando las
+aceptaciones por API para cada usuario demo:
+
+```bash
+TOK=$(curl -s -X POST http://127.0.0.1:8001/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"admin@bar.test","password":"demo1234"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+# repetir para promo1/promo2/puerta@bar.test
+for p in "encargo-datos 1.2" "privacidad 1.1" "terminos-boleta 1.1" "terminos-plataforma 1.2"; do
+  set -- $p
+  curl -s -o /dev/null -X POST http://127.0.0.1:8001/legal/acceptances \
+    -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+    -d "{\"slug\":\"$1\",\"version\":\"$2\"}"
+done
+# verificar: GET /legal/status -> pending debe quedar en 0
+```
+
 ```bash
 cd backend && .venv/bin/python -c "
 import asyncio, psycopg
@@ -557,6 +579,13 @@ avisar.
   login sí: `_clear_failures`). Corriendo specs que registran varias veces
   seguidas, el 429 aparece a mitad de la suite y parece un fallo del producto.
   Antes de re-correr: `DELETE FROM login_attempts WHERE email_norm='__register__'`.
+  **Ojo: el cubo no es solo por email.** `login_locked` bloquea si
+  `count(email_norm) >= 8` **O** `count(ip) >= 8` (mig 016). En local todos los
+  requests comparten la IP `unknown` (no llega `x-real-ip`/`x-forwarded-for`),
+  así que **cualquier** combinación de 8 fallos —incluidos los de registro—
+  bloquea también el login de `admin@bar.test` (429) y media suite falla en el
+  `waitForURL(/admin/)`. Si varios specs fallan en el login de golpe, limpiá la
+  tabla entera: `DELETE FROM login_attempts;` (columnas: `id, email_norm, ip, at`).
 - **El aviso de cookies tapa los clics** en un navegador recién abierto (se
   pinta fijo arriba). Los specs que hacen clic en el panel deben marcarlo como
   visto: `page.addInitScript(() => localStorage.setItem("tf_cookie_notice", "1.1"))`
@@ -569,8 +598,23 @@ avisar.
   no hay columna `category`. Las 5 del mockup (Conciertos/Festivales/Deportes/
   Teatro/Comedia) se refinan en cliente sobre `e.category` + `e.name` (ver
   `CATEGORY_CHIPS` en `HomePage.jsx`). Una columna real es follow-up.
-- **Sin checkout publico todavia:** el CTA "Comprar boleto" del detalle apunta a
-  `/boletas` (el fan recupera lo ya emitido por contacto).
+- **Checkout publico del fan:** el CTA "Comprar boleto" del detalle abre el
+  checkout sin cuenta (`EventDetailPage` -> `POST /public/events/{id}/checkout`).
+  Antes solo llevaba a `/boletas`; el detalle completo esta mas abajo.
+- **`events.status` es una maquina de estados con `ended` TERMINAL**
+  (`events_check_transition`, mig 005): `draft→published|cancelled`,
+  `published→live|cancelled`, `live→ended`. No hay vuelta desde `ended` (ni a
+  `published`): reabrir un evento exige deshabilitar el trigger a mano. Es una
+  trampa al verificar a mano — cerrar la puerta del `Noche Electrónica` del seed
+  rompe `fan-checkout` para siempre hasta re-sembrar.
+- **`fan-checkout.spec` elige el primer evento del catalogo publico con
+  `price_cents > 0`**, no un evento concreto del seed. Otros specs dejan eventos
+  `E2E-*` con precio (p. ej. `E2E-WAIT-*`) en `published`; si sobreviven, el spec
+  compra contra uno sin CTA y falla. Por eso **pasa aislado pero no en una suite
+  larga**: un fallo suyo tras correr otros specs suele ser contaminacion, no el
+  cambio. Limpia los leftovers (`DELETE FROM events WHERE name LIKE 'E2E-%'`)
+  antes de culpar al codigo; los specs que solo fallan en suite completa hay que
+  confirmarlos aislados antes de darlos por rotos.
 
 ## Admin: salud de puerta (duplicados / rechazos)
 
