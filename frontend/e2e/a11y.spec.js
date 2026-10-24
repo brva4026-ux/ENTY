@@ -372,3 +372,50 @@ test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", 
   expect(fails, "pantallas sin h1 unico o con saltos de nivel").toEqual([]);
 });
 
+
+/**
+ * El h1 de /inicio no puede depender de que haya cartelera.
+ *
+ * Hueco que dejo pasar un bug real (oct-2026): el h1 vivia DENTRO de la rama
+ * del destacado, asi que con la cartelera vacia la pagina se quedaba sin
+ * encabezado. El test de arriba no lo cazaba porque corre con el seed demo,
+ * donde siempre hay un evento publicado; y produccion estaba justo en el
+ * estado opuesto (cero eventos), con lo que el fallo solo se veia en vivo.
+ *
+ * Aqui se fuerzan los dos estados alcanzables por un fan con el mismo build:
+ *   1. busqueda sin resultados (el estado vacio de la vista filtrada), y
+ *   2. el estado de error de la carga (API caida), interceptando la respuesta.
+ * En ambos, /inicio debe seguir teniendo exactamente un h1.
+ */
+test("estructura: /inicio conserva un h1 sin cartelera (vacio y error)", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await ctx.newPage();
+  const ok = await available(page, "/inicio");
+  test.skip(!ok, "App no disponible");
+
+  const fails = [];
+
+  // 1. Estado vacio: una busqueda que no puede devolver nada.
+  await page.goto("/inicio");
+  await page.getByLabel("Buscar eventos").fill("zzzz-sin-resultados-zzzz");
+  await page.waitForTimeout(1200);
+  const vacio = await page.evaluate(headingReport);
+  if (vacio.h1 !== 1) fails.push({ estado: "vacio", issue: `h1=${vacio.h1}` });
+  if (vacio.skip) fails.push({ estado: "vacio", issue: `salto ${vacio.skip}` });
+
+  // 2. Estado de error: la cartelera no carga. Se corta la respuesta de la API
+  //    publica para forzar la rama de error del componente.
+  await page.route("**/api/public/**", (route) => route.abort());
+  await page.goto("/inicio");
+  await page.waitForTimeout(1200);
+  const err = await page.evaluate(headingReport);
+  if (err.h1 !== 1) fails.push({ estado: "error", issue: `h1=${err.h1}` });
+  if (err.skip) fails.push({ estado: "error", issue: `salto ${err.skip}` });
+
+  await ctx.close();
+  if (fails.length) console.log("h1 fuera de la cartelera:", JSON.stringify(fails, null, 2));
+  expect(fails, "/inicio sin h1 unico cuando no hay cartelera").toEqual([]);
+});
+

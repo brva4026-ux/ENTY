@@ -332,7 +332,8 @@
     right: 2rem;
     bottom: 2rem;
   }
-  .home-feature-top h1 {
+  .home-feature-top h1,
+  .home-feature-top h2 {
     font-size: var(--e-text-display);
   }
 }
@@ -596,7 +597,8 @@
   .home {
     padding-inline: 1rem;
   }
-  .home-feature-top h1 {
+  .home-feature-top h1,
+  .home-feature-top h2 {
     font-size: var(--e-text-2xl);
   }
   .evd-title {
