@@ -77,6 +77,54 @@ despliega (Vercel auto-despliega en cada push) pero el objeto nunca llega a
 Supabase: las rutas que lo usan devuelven 503. El test compara la lista contra
 `db/migrations/*.sql` y falla si falta una, sobra una o se rompe el orden.
 
+
+### Correr la suite E2E dos veces seguidas (importante)
+
+La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los
+compran y abren la puerta. Al segundo `npx playwright test` contra la misma DB:
+
+- El catálogo de `/inicio` se llena de eventos `E2E-*`. Como varios tests
+  asumen que la primera fila es la del seed (`Noche Electrónica`), fallan por
+  un motivo que **no tiene nada que ver con el cambio que estás probando**.
+  Síntoma real observado: 10 fallos con el mismo código que antes daba 30/31.
+- Los logins del admin chocan con el lockout de `login_attempts`
+  (`_MAX_FAILURES=8` en 15 min, `backend/app/routers/auth.py`). El 9.º intento
+  devuelve **429** y todo test que entre al panel falla.
+
+Antes de culpar a tu diff, limpiá y volvé a correr:
+
+```bash
+export PGPASSWORD=devpassword
+psql -h 127.0.0.1 -U postgres -d ticketflow -c "DELETE FROM login_attempts;"
+# los E2E-* primero sus dependencias (tickets cuelga de ticket_types, etc.)
+for t in analytics_events event_waitlist redemptions tickets ticket_types \
+         promoter_allocations event_staff event_access_tokens \
+         ticket_payments ticket_returns; do
+  psql -h 127.0.0.1 -U postgres -d ticketflow -c \
+    "DELETE FROM $t WHERE event_id IN (SELECT id FROM events WHERE name LIKE 'E2E-%');"
+done
+psql -h 127.0.0.1 -U postgres -d ticketflow -c "DELETE FROM events WHERE name LIKE 'E2E-%';"
+```
+
+Si un test falla, **reproducí el fallo en la DB limpia antes de tocar el
+código**: hoy los dos culpables (contaminación y lockout) se veían idénticos a
+una regresión real.
+
+### stylelint: hoy NO está en CI y el presupuesto está mal
+
+`npm run lint:css` es `stylelint "src/**/*.css" --max-warnings 31`, pero hay
+**64 warnings y 22 errores**: el repo está en **exit 2** desde antes de la
+auditoría y nadie lo corre, así que el guardarraíl del design system no está
+vigilando nada. No te fíes del exit code de un `npm run` a través de un pipe
+(`cmd | tail` te da el exit de `tail`): redirigí a archivo y mirá `$?`.
+
+Los 22 errores viven todos en `components/DashboardCover.css`, un componente
+que **nunca se cableó a ninguna página** (`git log -S DashboardCover` sobre
+`pages/`, `main.jsx` y `App.jsx` sale vacío; 0 importadores; ausente del
+bundle). Incluye 7 `@keyframe` mal escritos —que no definen ninguna animación—
+y un `translateY(1)` inválido. Mientras ese archivo exista, poner stylelint
+como gate en CI deja el pipeline rojo.
+
 ## Convenciones
 
 - **Idioma**: identificadores y comentarios en español, sin tildes en el código.
