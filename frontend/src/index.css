@@ -1601,9 +1601,14 @@ html[data-theme="light"] .bizdock-desc {
     radial-gradient(26rem 11rem at 78% -2.5rem, var(--vh-brand-glow), transparent 72%),
     linear-gradient(180deg, var(--vh-brand-wash), transparent 82%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 60%);
+  /* Hairline inferior: cierra la portada. Sin ella el banner se derrama en
+     el contenido y la cabecera deja de leerse como un bloque propio. */
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--vh-brand) 14%, transparent);
 }
 /* Iniciales gigantes en marca de agua: el recurso que evita que un negocio
-   sin flyer quede como una caja vacía. Hay portada aunque no haya imagen. */
+   sin flyer quede como una caja vacía. Hay portada aunque no haya imagen.
+   Al 10% sobre el card oscuro apenas se insinúan; al 16% son un motivo. */
 .vh-banner-initials {
   position: absolute;
   right: 1.1rem;
@@ -1613,7 +1618,7 @@ html[data-theme="light"] .bizdock-desc {
   line-height: 1;
   letter-spacing: -0.05em;
   color: var(--vh-brand);
-  opacity: 0.1;
+  opacity: 0.16;
   user-select: none;
 }
 /* El contenido vive por encima del banner. Sin esto, la capa posicionada
@@ -1832,7 +1837,10 @@ html[data-theme="light"] .bizdock-desc {
 }
 
 html[data-theme="light"] .venue-header {
-  /* Showroom blanco: el lavado de marca es apenas perceptible. */
+  /* Showroom blanco: el lavado de marca sube porque sobre papel un 9% se
+     pierde (medido: 0.3% de píxeles con marca en el banner). */
+  --vh-brand-wash: color-mix(in srgb, var(--vh-brand) 15%, transparent);
+  --vh-brand-glow: color-mix(in srgb, var(--vh-brand) 30%, transparent);
   background:
     radial-gradient(34rem 14rem at 88% -6rem, var(--vh-brand-wash), transparent 62%),
     var(--e-white);
@@ -1845,7 +1853,7 @@ html[data-theme="light"] .vh-banner {
     linear-gradient(180deg, var(--vh-brand-wash), transparent 82%);
 }
 html[data-theme="light"] .vh-banner-initials {
-  opacity: 0.14;
+  opacity: 0.3;
 }
 html[data-theme="light"] .vh-live {
   /* El verde eléctrico no contrasta sobre blanco: se oscurece al tono de

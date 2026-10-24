@@ -111,6 +111,50 @@ html:not([data-theme="light"]) .app-shell .bizdock {
     var(--e-elev-card);
 }
 
+/* La portada de la venue es el objeto más alto de la jerarquía del panel: se
+   despega del lienzo más que una .card cualquiera. Sin esto página y portada
+   quedan a 1.1:1 —por debajo del umbral en que el ojo lee elevación— y el
+   panel se ve como una sola superficie con texto. El glow usa el color de
+   marca del negocio; sin `primary_color`, `--vh-brand` cae al violeta de
+   siempre y el resultado es idéntico al de antes.
+   Se scopea a .app-shell (no a .venue-header a secas) porque tres hojas
+   definen la portada y la última en cargar gana: aquí queda un solo dueño
+   del material, en los dos temas. */
+html:not([data-theme="light"]) .app-shell .venue-header {
+  background:
+    radial-gradient(
+      38rem 18rem at 90% -8rem,
+      color-mix(in srgb, var(--vh-brand, var(--e-brand)) 17%, transparent),
+      transparent 64%
+    ),
+    radial-gradient(26rem 14rem at 6% 118%, rgba(0, 230, 171, 0.06), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 48%),
+    rgba(16, 16, 22, 0.9);
+  box-shadow:
+    var(--e-highlight-inset),
+    0 2px 6px -2px rgba(0, 0, 0, 0.5),
+    0 30px 64px -34px rgba(0, 0, 0, 0.95);
+}
+/* En claro la profundidad no viene de la sombra (no hay negro que proyectar)
+   sino de un canto definido. El tinte de marca (`--vh-brand-wash`, al 15% en
+   claro) ya lo declara index.css para la portada y su banner. */
+html[data-theme="light"] .app-shell .venue-header {
+  background:
+    radial-gradient(34rem 14rem at 88% -6rem, var(--vh-brand-wash), transparent 62%),
+    var(--e-surface);
+  box-shadow:
+    var(--e-highlight-inset),
+    0 1px 2px -1px rgba(9, 15, 38, 0.16),
+    0 26px 54px -30px rgba(9, 15, 38, 0.42);
+}
+/* Con marca propia, el canto de la portada la anuncia antes de leer el
+   nombre. Sin `primary_color` el borde queda neutro: la portada de un negocio
+   sin marca no cambia. */
+html:not([data-theme="light"]) .app-shell .venue-header[data-brand],
+html[data-theme="light"] .app-shell .venue-header[data-brand] {
+  border-color: color-mix(in srgb, var(--vh-brand) 22%, var(--e-border-hairline));
+}
+
 /* --------------------------------------------------------------------------
  *  5. CTA · la píldora que convierte
  * ------------------------------------------------------------------------- */
