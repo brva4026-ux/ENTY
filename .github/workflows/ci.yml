@@ -20,6 +20,17 @@ jobs:
           cd frontend
           npm ci --no-fund --no-audit
           npm run build
+      - name: Lint CSS (guardarrail del design system)
+        # El presupuesto (--max-warnings en package.json) solo puede BAJAR.
+        # Estuvo sin gate desde que se creo: al ponerlo se descubrio que el
+        # repo llevaba tiempo en exit 2 (22 errores, todos en un componente
+        # que nunca se cableo a ninguna pagina). Aquellos archivos se
+        # eliminaron y el presupuesto se calibro al valor real. Si este paso
+        # falla por superar el maximo, NO subas el numero: quita el warning
+        # (los 41 que quedan son selectores duplicados de legado).
+        run: |
+          cd frontend
+          npm run lint:css
       - name: Check dist output
         run: test -f frontend/dist/index.html
 
