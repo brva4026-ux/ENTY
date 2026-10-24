@@ -83,10 +83,14 @@ Supabase: las rutas que lo usan devuelven 503. El test compara la lista contra
 La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los
 compran y abren la puerta. Al segundo `npx playwright test` contra la misma DB:
 
-- El catálogo de `/inicio` se llena de eventos `E2E-*`. Como varios tests
-  asumen que la primera fila es la del seed (`Noche Electrónica`), fallan por
-  un motivo que **no tiene nada que ver con el cambio que estás probando**.
+- El catálogo de `/inicio` se llena de eventos `E2E-*`. Los tests que asumían
+  que la primera fila era la del seed (`Noche Electrónica`) fallaban por un
+  motivo que **no tiene nada que ver con el cambio que estás probando**.
   Síntoma real observado: 10 fallos con el mismo código que antes daba 30/31.
+  **Ya no**: `fan.spec.js` y `fan-checkout.spec.js` seleccionan el seed
+  explícitamente (por nombre) en vez de "el primero de la lista", así que dan
+  30/31 con la base contaminada. Si aparecen fallos de orden en otro test,
+  aplicá el mismo patrón: anclá al seed, no a la posición.
 - Los logins del admin chocan con el lockout de `login_attempts`
   (`_MAX_FAILURES=8` en 15 min, `backend/app/routers/auth.py`). El 9.º intento
   devuelve **429** y todo test que entre al panel falla.

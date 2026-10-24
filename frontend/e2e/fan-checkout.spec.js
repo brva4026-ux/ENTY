@@ -27,12 +27,25 @@ test.beforeEach(async ({ request }) => {
   }
 });
 
-/** Primer evento del catalogo con localidad de pago (precio > 0). */
+/** Evento del catalogo con localidad de pago (precio > 0) y lugar libre.
+ *
+ * Se prefiere el evento del seed ("Noche Electrónica"): es estable y es el
+ * unico que el test controla. Otras specs corren en paralelo y dejan eventos
+ * E2E-* publicados que caen antes en el catalogo; los de la lista de espera
+ * estan agotados (sold_pct 100) y su CTA es "Entrar a la lista de espera", no
+ * "Comprar boleto", asi que tambien se descartan por sold_pct. El listado
+ * publico no expone `sold_out` (solo el detalle), por eso el proxy es
+ * `sold_pct`. */
 async function pricedEventId(request) {
   const events = await (
     await request.get(`${BASE}/api/public/events?limit=100`)
   ).json();
-  const ev = (events.events || events).find((e) => (e.price_cents || 0) > 0);
+  const list = events.events || events;
+  const priced = list.filter((e) => (e.price_cents || 0) > 0);
+  const ev =
+    priced.find((e) => e.name === "Noche Electrónica") ||
+    priced.find((e) => (e.sold_pct ?? 0) < 100) ||
+    priced[0];
   test.skip(!ev, "El seed demo no tiene eventos con localidad de pago");
   return ev.id;
 }
