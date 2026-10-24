@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch, publicTicketPageUrl } from "../lib/api";
 import ContactEditsHistory from "../components/ContactEditsHistory";
@@ -160,6 +160,9 @@ export default function AdminDashboard() {
   const realVenueId = venueId ?? 0;
 
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)
+  // Eventos de URL ya revalidados contra el servidor (ver más abajo): un
+  // enlace a un evento ausente se relee UNA vez antes de darlo por roto.
+  const probedEventsRef = useRef({});
   // Boletas activas por evento ({id: n}): el pulso de la franja sin abrir
   // cada evento. Un solo GET agregado, no N requests.
   const [ticketCounts, setTicketCounts] = useState({});
@@ -341,9 +344,20 @@ export default function AdminDashboard() {
         setSearchParams({ event: String(wanted) });
       }
     } else if (urlEvent) {
-      // Evento inexistente en la URL (borrado/enlace viejo): se limpia el
-      // parámetro para que la URL diga la verdad de lo que se está viendo.
-      setSearchParams({});
+      // El evento de la URL no está en el catálogo que tenemos. Puede ser un
+      // enlace de verdad roto (borrado) o, más probable en la operación, un
+      // aviso recién llegado a un evento que se creó DESPUÉS de esta carga
+      // (la cola de puerta crea la noche y avisa en el acto). Antes de borrar
+      // el parámetro se relee el catálogo UNA vez: solo si el evento sigue sin
+      // aparecer el enlace se declara roto. Sin este paso, el aviso se comía
+      // su propio destino y aterrizaba en el panel a secas.
+      if (probedEventsRef.current[urlEvent]) {
+        probedEventsRef.current[urlEvent] = false;
+        setSearchParams({});
+      } else {
+        probedEventsRef.current[urlEvent] = true;
+        loadEvents().catch(() => {});
+      }
     } else if (selectedEvent !== null) {
       // Sin ?event= en la URL: la lista es la pantalla (modo lista). Nadie
       // aterriza "en el primer evento" por accidente: entrar es una decisión.
