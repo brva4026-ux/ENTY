@@ -396,6 +396,41 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   visible y de un solo color** en ambos temas. Corre con `E2E_BASE_URL=http://127.0.0.1:12000
   npx playwright test e2e/a11y.spec.js`.
 
+### Gate de diseno (skill design-taste-frontend)
+
+`npm run lint:design` corre el lint del skill de diseno con la **allowlist de
+marca** del proyecto y falla si aparece cualquier hallazgo nuevo. El gate vive
+en `frontend/scripts/design-gate.mjs`; el presupuesto y el motivo de cada
+excepcion, en `design-gate.baseline.json`.
+
+No es una allowlist que deje pasar: es un **trinquete**. El lint del skill banea
+~560 cosas en este repo, pero casi todas son la identidad deliberada de
+TicketFlow (violeta de marca, gradientes del shell nocturno, glass del dock,
+sombras de overlay, emoji de la demo). Esos conteos estan aceptados; **crecer en
+cualquier regla falla**, y una regla que no figure en el baseline tambien falla.
+Asi la cifra solo puede bajar. Para fijar una mejora, `--update`.
+
+```bash
+cd frontend
+npm run lint:design                      # gate
+node scripts/design-gate.mjs --json      # regresiones en JSON
+node scripts/design-gate.mjs --update    # fija el presupuesto actual
+```
+
+Dos cosas que conviene saber antes de confiar en este gate:
+
+- **En CI no verifica.** El skill vive en `.agents/`, que esta gitignored
+  ("skills locales de la sesion"), asi que en CI el script se auto-salta y emite
+  una anotacion `::warning` para que el skip se vea en el PR en vez de pasar por
+  un verde real. Para que verifique hay que vendorizar el skill en el repo (es
+  autocontenido: 119 lineas, solo builtins de Node) o apuntar `TASTE_SKILL_DIR` a
+  un checkout. Hoy el gate es **local**.
+- **El inspector (`inspect.mjs`) no corre en este contenedor.** Lanza Chrome sin
+  `--no-sandbox` y aqui no hay sandbox de usuario, asi que muere con "No usable
+  sandbox". El lint estatico si corre. El inspector ademas acepta
+  `--allow <regla>`, que es la via que documenta el propio skill para marcas
+  existentes; el lint no lo acepta, y por eso el gate lleva su propio baseline.
+
 ## App interna (Enty): Admin · Promotor · Puerta
 
 El interior NO comparte el shell del fan: esas pantallas viven bajo

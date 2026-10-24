@@ -31,6 +31,17 @@ jobs:
         run: |
           cd frontend
           npm run lint:css
+      - name: Lint de diseno (gate del skill, con allowlist de marca)
+        # Este gate corre el lint del skill de diseno (design-taste-frontend) con
+        # la allowlist de marca del proyecto. El skill vive en .agents/, que esta
+        # gitignored, asi que en CI el script se auto-salta con un aviso y este
+        # paso queda verde sin verificar nada. NO es un verde real: para que
+        # verifique hay que vendorizar el skill en el repo (o usar una accion que
+        # lo instale) y pasar el resultado a FAIL. Se deja el paso para que el
+        # gate exista y para que el dia que se vendorice empiece a contar.
+        run: |
+          cd frontend
+          npm run lint:design
       - name: Check dist output
         run: test -f frontend/dist/index.html
 

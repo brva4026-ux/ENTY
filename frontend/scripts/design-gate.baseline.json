@@ -1,0 +1,39 @@
+{
+  "note": "Presupuesto del gate de diseno (scripts/design-gate.mjs). Los conteos son un TRIQUETE: subir en cualquier regla falla el gate. Para bajar, arregla el hallazgo y corre `node scripts/design-gate.mjs --update`. Una regla que no figure aqui tambien falla: si es marca deliberada, agregala con su motivo en `brand` y actualiza con --update. El lint del skill banea ~560 cosas en este repo, pero casi todas son la identidad deliberada de TicketFlow (ver AGENTS.md, 'Capas de diseno' y 'Tokens y guardarrailes').",
+  "allowed": {
+    "gradient": 204,
+    "eyebrow": 51,
+    "gradient-text": 4,
+    "shadow": 171,
+    "glass": 32,
+    "transition-all": 8,
+    "purple": 23,
+    "numbering": 8,
+    "emoji": 34,
+    "mono": 18,
+    "framework-colour": 3,
+    "scale-zero": 1,
+    "ease-in": 2,
+    "bounce": 1,
+    "micro-label": 3,
+    "em-dash": 1
+  },
+  "brand": {
+    "gradient": "El shell nocturno y los scrims sobre flyer son gradientes a proposito: son la capa de atmosfera de la vitrina (AGENTS.md, 'Capas de diseno').",
+    "gradient-text": "El lockup de marca usa relleno degradado en el texto; es identidad, no decoracion.",
+    "purple": "El violeta #7C3AED / #BB5CF6 ES la marca y la unica voz interactiva del sistema (AGENTS.md, 'el violeta es la unica voz interactiva').",
+    "emoji": "La demo usa emoji como contenido de ejemplo de tipos de evento. No es iconografia de interfaz.",
+    "micro-label": "Etiquetas de dato del panel; references/app-screens.md las tolera (APP_LEVEL).",
+    "eyebrow": "El eyebrow es parte de la jerarquia tipografica del proyecto; app-screens.md lo degrada a WARN.",
+    "shadow": "Sombras solo en overlays reales (menu, dialogo, barra pegajosa): es la excepcion que la propia regla admite.",
+    "glass": "El dock inferior y la barra pegajosa usan backdrop blur: es la excepcion admitida (una barra).",
+    "mono": "Cifras tabulares de la puerta y del backstage: alineacion de datos, no codigo.",
+    "numbering": "Cero-padding en fechas, horas y precios, que la regla admite explicitamente.",
+    "transition-all": "Deuda real: 8 sitios con `transition-all`. Se aceptan hoy; bajan cuando se nombren las propiedades (transform, opacity).",
+    "framework-colour": "Tokens de estado (rojo de error, verde de ok) en tokens.css: son el semaforo de la app, no el acento.",
+    "ease-in": "Salidas de dialogo con `reverse`: el ease-in se lee como salida, que es su uso correcto.",
+    "scale-zero": "El check del checkbox nativo nace en scale(0): es un control de sistema, no una entrada de interfaz.",
+    "bounce": "animate-pulse marca el dato en vivo del funnel: es un indicador de estado, no una animacion de atencion.",
+    "em-dash": "104 guiones largos en el copy existente. Es deuda de redaccion, no un defecto de interfaz."
+  }
+}
