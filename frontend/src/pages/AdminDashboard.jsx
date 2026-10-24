@@ -139,6 +139,32 @@ const NEXT_ACTIONS = {
   cancelled: [],
 };
 
+/** Lo que se avisa al cerrar cada transición. Una sola copia: la usan el
+    backstage y la tarjeta de la franja (antes cada camino tenía la suya). */
+const DONE_MESSAGE = {
+  publish: "Evento publicado: ya puede vender 🎟️",
+  live: "Puertas abiertas: la puerta fue avisada 🚪",
+  end: "Evento finalizado",
+  cancel: "Evento cancelado",
+};
+
+/* Presentación de las acciones EN LA TARJETA: verbo corto + icono + color.
+   El backstage usa las etiquetas largas de NEXT_ACTIONS; aquí el ancho es
+   escaso y el verbo solo ("Publicar") ya dice todo. */
+const STRIP_ACTION = {
+  publish: { label: "Publicar", icon: "bolt", variant: "success" },
+  live: { label: "Abrir puertas", icon: "door", variant: "success" },
+  end: { label: "Finalizar", icon: "check", variant: "brand" },
+  cancel: { label: "Cancelar", icon: "close", variant: "danger" },
+};
+
+const ACTION_TIP = {
+  publish: "Publicar evento (pasa a la venta)",
+  live: "Abrir puertas (la puerta empieza a escanear)",
+  end: "Finalizar evento (la puerta deja de escanear)",
+  cancel: "Cancelar evento (las boletas dejan de ser válidas)",
+};
+
 /* Chip de estado para la franja de eventos (compacto, en español) y orden
  * por prioridad operativa: vivos arriba, pasados al final. Ambos viven en
  * EventWorkbench — un solo vocabulario de estados en toda la app. */
@@ -507,40 +533,52 @@ export default function AdminDashboard() {
     // el PTR refrescaría datos de un evento que ya no está seleccionado.
   }, [loadEvents, reloadUsers, refreshEventData]);
 
-  async function runAction(action, label) {
-    if (!selectedEvent) return;
-    // Pre-vuelo también en el backstage (la misma apertura, otro camino).
+  /** Transición de ciclo de vida con UN SOLO camino: lo usan la tarjeta de la
+      franja y el backstage. `ev` es el evento destino (en la tarjeta no siempre
+      es el seleccionado); `fromStrip` solo cambia la clave de `busyAction` y si,
+      al abortar el pre-vuelo, hay que navegar al evento (desde el backstage ya
+      se está dentro). Antes eran dos funciones con textos y reglas distintas. */
+  async function transitionEvent(ev, action, { fromStrip = false } = {}) {
+    if (!ev) return;
+    const busyKey = fromStrip ? `${action}-${ev.id}` : action;
+
+    // PRE-VUELO: abrir puertas sin nadie en puerta era el fracaso silencioso
+    // (el evento pasa a live y el escáner rechaza con 403). Se avisa ANTES del
+    // confirm, con los nombres, y deja seguir si el admin decide que así sea.
     if (action === "live") {
       try {
         const pf = await apiFetch(
-          `/venues/${venueId}/events/${selectedEvent}/preflight`,
+          `/venues/${venueId}/events/${ev.id}/preflight`,
         );
         if (pf.bouncers === 0) {
-          const ok0 = await ui.confirm("¿Abrir puertas sin nadie en puerta?", {
-            message:
-              "Esta noche no tiene nadie asignado en puerta. Podés sumar a alguien en la pestaña Equipo antes de abrir.",
+          const ok = await ui.confirm("¿Abrir puertas sin nadie en puerta?", {
+            message: fromStrip
+              ? "Esta noche no tiene nadie asignado en puerta. La boletería funciona, pero no habrá quien escanee. Podés sumar a alguien en la pestaña Equipo de la noche."
+              : "Esta noche no tiene nadie asignado en puerta. Podés sumar a alguien en la pestaña Equipo antes de abrir.",
             confirmLabel: "Abrir igual",
             danger: true,
           });
-          if (!ok0) {
-            setSection("noche");
+          if (!ok) {
+            flyToEvent(ev.id, "noche");
             return;
           }
         } else if (!pf.door_ready) {
           const names = pf.door_staff.map((s) => s.full_name).join(", ");
-          const ok1 = await ui.confirm("¿Abrir puertas sin escáner activo?", {
-            message: `${names} aún no abrió su link de puerta. Sin canjearlo no podrá escanear esta noche.`,
+          const ok = await ui.confirm("¿Abrir puertas sin escáner activo?", {
+            message: `${names} ${pf.bouncers === 1 ? "está" : "están"} asignado${pf.bouncers === 1 ? "" : "s"} a puerta pero nadie abrió su link todavía. Sin canjear el link no van a poder escanear esta noche.`,
             confirmLabel: "Abrir igual",
           });
-          if (!ok1) {
-            setSection("noche");
+          if (!ok) {
+            flyToEvent(ev.id, "noche");
             return;
           }
         }
       } catch {
-        // Sin pre-vuelo no se bloquea la apertura.
+        // Pre-vuelo caído: no bloquea la apertura (el negocio decide igual).
       }
     }
+
+    // Confirmaciones de las transiciones que no se deshacen.
     if (action === "cancel") {
       const ok = await ui.confirm("¿Cancelar el evento?", {
         message:
@@ -557,90 +595,23 @@ export default function AdminDashboard() {
       });
       if (!ok) return;
     }
-    setBusyAction(action);
-    setError("");
-    try {
-      const updated = await apiFetch(
-        `/venues/${venueId}/events/${selectedEvent}/${action}`,
-        {
-          method: "POST",
-        },
-      );
-      setEvents((evs) => evs.map((e) => (e.id === updated.id ? updated : e)));
-      await refreshEventData();
-      ui.success(
-        action === "publish"
-          ? "Evento publicado: ya puede vender 🎟️"
-          : action === "live"
-            ? "Puertas abiertas: la puerta fue avisada 🚪"
-            : action === "end"
-              ? "Evento finalizado"
-              : "Evento cancelado",
-      );
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusyAction("");
+    if (action === "publish") {
+      const ok = await ui.confirm("¿Publicar el evento?", {
+        message:
+          "El evento pasa a la venta: los promotores pueden emitir boletas.",
+        confirmLabel: "Publicar",
+      });
+      if (!ok) return;
     }
-  }
-
-  /** Transición de ciclo de vida DESDE LA FRANJA: la tarjeta se convierte en
-      panel de control. Publicar (draft) y Abrir puertas (published) son las
-      dos que desbloquean dinero y puerta; cancelar/finalizar quedan en el
-      backstage porque piden contexto (cifras, boletas). */
-  async function quickTransition(ev, action) {
-    const labels = { publish: "¿Publicar el evento?", live: "¿Abrir puertas?" };
-    const done = {
-      publish: "Evento publicado: ya puede vender 🎟️",
-      live: "Puertas abiertas: la puerta fue avisada 🚪",
-    };
-    // PRE-VUELO: abrir puertas sin nadie en puerta era el fracaso silencioso
-    // (el evento pasa a live y el escáner rechaza con 403). El pre-vuelo lo
-    // dice ANTES del confirm, con los nombres, y deja seguir si el admin
-    // decide que así sea.
     if (action === "live") {
-      try {
-        const pf = await apiFetch(
-          `/venues/${venueId}/events/${ev.id}/preflight`,
-        );
-        if (pf.bouncers === 0) {
-          const ok0 = await ui.confirm("¿Abrir puertas sin nadie en puerta?", {
-            message:
-              "Esta noche no tiene nadie asignado en puerta. La boletería funciona, pero no habrá quien escanee. Podés sumar a alguien en la pestaña Equipo de la noche.",
-            confirmLabel: "Abrir igual",
-            danger: true,
-          });
-          if (!ok0) {
-            flyToEvent(ev.id, "noche");
-            return;
-          }
-        } else if (!pf.door_ready) {
-          const names = pf.door_staff.map((s) => s.full_name).join(", ");
-          const ok1 = await ui.confirm(
-            `¿Abrir puertas sin escáner activo?`,
-            {
-              message: `${names} ${pf.bouncers === 1 ? "está" : "están"} asignado${pf.bouncers === 1 ? "" : "s"} a puerta pero nadie abrió su link todavía. Sin canjear el link no van a poder escanear esta noche.`,
-              confirmLabel: "Abrir igual",
-            },
-          );
-          if (!ok1) {
-            flyToEvent(ev.id, "noche");
-            return;
-          }
-        }
-      } catch {
-        // Pre-vuelo caído: no bloquea la apertura (el negocio decide igual).
-      }
+      const ok = await ui.confirm("¿Abrir puertas?", {
+        message: "La puerta empieza a aceptar escaneos.",
+        confirmLabel: "Abrir puertas",
+      });
+      if (!ok) return;
     }
-    const ok = await ui.confirm(labels[action], {
-      message:
-        action === "publish"
-          ? "El evento pasa a la venta: los promotores pueden emitir boletas."
-          : "La puerta empieza a aceptar escaneos.",
-      confirmLabel: action === "publish" ? "Publicar" : "Abrir puertas",
-    });
-    if (!ok) return;
-    setBusyAction(`${action}-${ev.id}`);
+
+    setBusyAction(busyKey);
     setError("");
     try {
       const updated = await apiFetch(
@@ -649,12 +620,27 @@ export default function AdminDashboard() {
       );
       setEvents((evs) => evs.map((e) => (e.id === updated.id ? updated : e)));
       haptics.success();
-      ui.success(done[action]);
+      // El backstage muestra las cifras del evento abierto y necesita releerlas;
+      // la franja ya quedó al día con el evento que devolvió el POST.
+      if (!fromStrip) await refreshEventData();
+      ui.success(DONE_MESSAGE[action]);
     } catch (err) {
       setError(err.message);
     } finally {
       setBusyAction("");
     }
+  }
+
+  /** Acción del backstage: el evento abierto, con la etiqueta de NEXT_ACTIONS. */
+  function runAction(action) {
+    return transitionEvent(selectedEventData, action);
+  }
+
+  /** Acción de la tarjeta de la franja: la tarjeta es panel de control, así que
+      ofrece el ciclo de vida completo (publicar, abrir puertas, finalizar,
+      cancelar) sin tener que entrar al backstage. */
+  function quickTransition(ev, action) {
+    return transitionEvent(ev, action, { fromStrip: true });
   }
 
   function startEditEvent() {
@@ -1459,47 +1445,49 @@ export default function AdminDashboard() {
                                   </div>
                                 )}
                               </div>
-                              {/* Acciones de esquina al hover/focus (desktop):
-                            la tarjeta es panel de control, no solo enlace.
-                            Publicar/Abrir puertas desbloquean dinero y puerta;
-                            duplicar apura la recurrencia semanal. */}
+                              {/* Acciones de la tarjeta: es panel de control,
+                            no solo enlace. Se derivan de NEXT_ACTIONS — la
+                            MISMA fuente que el backstage — así que la tarjeta
+                            ya no reimplementa un subconjunto: un evento en vivo
+                            se finaliza desde aquí, sin abrir su backstage. */}
                               <div className="evx-actions pointer-events-auto">
-                                {(ev.status === "draft" ||
-                                  ev.status === "published") && (
-                                  <button
-                                    onClick={() =>
-                                      quickTransition(
-                                        ev,
-                                        ev.status === "draft"
-                                          ? "publish"
-                                          : "live",
-                                      )
-                                    }
-                                    disabled={busyAction !== ""}
-                                    className="btn-mini"
-                                    data-variant="success"
-                                    data-tip={
-                                      ev.status === "draft"
-                                        ? "Publicar evento (pasa a la venta)"
-                                        : "Abrir puertas (la puerta empieza a escanear)"
-                                    }
-                                  >
-                                    {busyAction === `publish-${ev.id}` ||
-                                    busyAction === `live-${ev.id}` ? (
-                                      <svg
-                                        className="btn-spinner"
-                                        viewBox="0 0 24 24"
-                                        aria-hidden="true"
+                                {(NEXT_ACTIONS[ev.status] ?? []).map(
+                                  ({ action }) => {
+                                    const meta =
+                                      STRIP_ACTION[action] ?? {
+                                        label: action,
+                                        icon: "bolt",
+                                      };
+                                    const busy =
+                                      busyAction === `${action}-${ev.id}`;
+                                    return (
+                                      <button
+                                        key={action}
+                                        onClick={() => quickTransition(ev, action)}
+                                        disabled={busyAction !== ""}
+                                        aria-label={`${meta.label} ${ev.name}`}
+                                        data-tip={ACTION_TIP[action]}
+                                        className="btn-mini"
+                                        data-variant={meta.variant}
                                       >
-                                        <circle cx="12" cy="12" r="9" />
-                                      </svg>
-                                    ) : (
-                                      <Icon name="bolt" className="h-3.5 w-3.5" />
-                                    )}
-                                    {ev.status === "draft"
-                                      ? "Publicar"
-                                      : "Abrir puertas"}
-                                  </button>
+                                        {busy ? (
+                                          <svg
+                                            className="btn-spinner"
+                                            viewBox="0 0 24 24"
+                                            aria-hidden="true"
+                                          >
+                                            <circle cx="12" cy="12" r="9" />
+                                          </svg>
+                                        ) : (
+                                          <Icon
+                                            name={meta.icon}
+                                            className="h-3.5 w-3.5"
+                                          />
+                                        )}
+                                        {meta.label}
+                                      </button>
+                                    );
+                                  },
                                 )}
                                 {/* Duplicar está disponible en TODOS los
                                     estados: de una noche en curso o pasada

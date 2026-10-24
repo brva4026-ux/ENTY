@@ -2889,6 +2889,10 @@ html[data-theme="light"] .evx-pct {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  /* Con el ciclo de vida completo (publicar/abrir/finalizar/cancelar) caben
+     hasta cuatro botones: en la tarjeta más angosta de la rejilla deben poder
+     caer a una segunda línea en vez de empujar el ancho de la página. */
+  flex-wrap: wrap;
   /* Separacion real entre vecinos: con areas tactiles de 40px, 0.15rem
      dejaba los dedos peleando entre "duplicar" y "eliminar". */
   gap: 0.4rem;

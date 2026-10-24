@@ -696,3 +696,23 @@ avisar.
 - **El venue demo (`id=2`, Bar Esquina) no tiene `primary_color` ni `logo_url`**,
   así que cae al violeta de Enty y al tile de iniciales. Para ver los efectos
   brand-aware hay que ponerle color en la DB (y restaurarlo después).
+- **Los E2E se auto-contaminan: una DB sucia produce "regresiones" falsas.**
+  Corriendo la suite entera dos veces seguidas contra la MISMA base aparecen
+  fallos que no tienen nada que ver con el cambio (`fan-checkout.spec`,
+  `fan.spec`, el `scroll horizontal @320px` de `a11y.spec`). El seed no se
+  reaplica y los specs que crean eventos/boletas dejan datos que rompen al
+  siguiente. Antes de creer un fallo, reproducir con la DB como la deja CI:
+  `DROP DATABASE ticketflow_e2e; CREATE DATABASE ticketflow_e2e;`
+  `psql -f db/schema.sql` + `seed_demo_data` (ver el job `e2e` de ci.yml).
+  Con la base fresca la suite da 27 passed / 1 skipped.
+- **El ciclo de vida de un evento tiene UNA sola fuente en el frontend:**
+  `NEXT_ACTIONS` (`AdminDashboard.jsx`), con las transiciones que el backend
+  acepta en `VALID_TRANSITIONS` (`backend/app/routers/lifecycle.py`:
+  publish draft→published, live published→live, end live→ended,
+  cancel *→cancelled). La tarjeta de la franja (`STRIP_ACTION` para el verbo
+  corto) y el backstage renderizan de ahí: no reimplementar un subconjunto en
+  la tarjeta — ese fue el bug de "un evento en vivo solo ofrecía Duplicar".
+  Los dos caminos pasan por `transitionEvent(ev, action, {fromStrip})`; la
+  franja NO llama `refreshEventData()` (el POST ya devuelve el evento) y el
+  backstage sí (necesita releer cifras). `.evx-actions` tiene `flex-wrap`:
+  con el ciclo completo caben cuatro botones y deben poder caer a otra línea.
