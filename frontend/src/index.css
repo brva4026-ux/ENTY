@@ -6596,3 +6596,163 @@ html[data-theme="light"] .legal-doc code {
 
   .prow-name { grid-column: 1 / -1; }
 }
+
+/* ===========================================================================
+   OPERACIÓN PRIMERO · la portada deja de enterrar los eventos (≤640px)
+
+   Medido antes: a 390px la primera tarjeta empezaba en y=1101 (1,3 pantallas
+   abajo) y no había NINGUNA noche visible sin scrollear. La causa era el orden
+   del DOM: identidad → 4 KPI del mes → navegador de mes → ranking → y al final
+   los eventos. La operación vivía al fondo de su propia portada.
+
+   Dos movimientos, ambos de superficie (ni una ruta ni un endpoint cambian):
+
+   1. REORDENAR. La cabecera pasa a columna reordenable y los eventos suben
+      justo debajo de la identidad. El reporte del mes (KPI, mes, ranking)
+      baja: sigue completo y en el mismo orden, solo que DESPUÉS de lo que
+      el admin viene a hacer. Nada se oculta — .vh-mesnav-label y el botón
+      "Volver al mes actual" siguen visibles (contrato de portada-mes).
+   2. COMPRIMIR. Identidad, guía de primeros pasos y la ficha del evento
+      pierden el aire que en móvil se paga en scroll.
+
+   En ≥641px no cambia nada: ahí la rejilla de dos columnas ya muestra 2
+   noches sin scroll y la portada ancha no estorba.
+   =========================================================================== */
+@media (max-width: 640px) {
+  /* --- 1 · Reordenar: identidad → eventos → reporte del mes ------------- */
+  .venue-header {
+    display: flex;
+    flex-direction: column;
+  }
+  .vh-top { order: 1; }
+  .vh-embedded { order: 2; }
+  .vh-tally { order: 3; }
+  .vh-mesnav { order: 4; }
+  .vh-rank { order: 5; }
+  /* Al cambiar de sitio, la franja deja de ser el cierre de la portada y
+     pasa a ser su contenido: el hairline de arriba ya no separa nada y el
+     hueco de antes del reporte lo pone el tally. */
+  .vh-embedded {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+  }
+
+  /* --- 2a · Identidad en una línea de trabajo --------------------------- */
+  /* La identidad y la cifra del mes comparten fila (antes se apilaban: 145px
+     de portada antes de llegar a nada). El nombre manda a la izquierda, la
+     cifra se apoya a la derecha. */
+  .vh-top {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    /* Sin wrap: la fila base lo permite para nombres largos y con el rótulo
+       del KPI eso partía la cabecera en dos líneas (49px de más). En móvil el
+       nombre se recorta con "…" en vez de empujar la cifra a otra fila. */
+    flex-wrap: nowrap;
+  }
+  .vh-identidad { gap: 0.55rem; }
+  .vh-logo {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.7rem;
+  }
+  .vh-nombre-titulo {
+    font-size: var(--e-text-base);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
+  }
+  /* El rótulo ("Recaudado del mes" / "Neto del mes") NO se oculta: dice si
+     la cifra es bruta o neta de comisiones, y sin él el número miente. La
+     meta ("8 eventos · 5 boletas") sí baja: la repite la tira de cifras. */
+  .vh-kpi {
+    flex-shrink: 0;
+    text-align: right;
+    width: auto;
+    padding-top: 0;
+    padding-right: 0;
+    border-top: 0;
+  }
+  .vh-kpi-label {
+    font-size: 0.5625rem;
+    letter-spacing: 0.06em;
+  }
+  .vh-kpi-meta { display: none; }
+  .vh-kpi-amount { font-size: var(--e-text-2xl); }
+  /* La tira de 4 cifras del mes: 2×2 con menos aire (sigue completa). */
+  .vh-tally > div { padding: 0.55rem 0.7rem; }
+  .vh-tally .pc-t-value { font-size: var(--e-text-lg); }
+  .vh-tally .pc-t-label { font-size: 0.5625rem; }
+
+  /* --- 2b · La guía de primeros pasos, de bloque a aviso ---------------- */
+  /* El texto explicativo se recorta a dos líneas: en un teléfono el párrafo
+     entero (4 líneas) empujaba la primera noche fuera de pantalla. La guía
+     es una invitación de una sola vez, no el contenido de la página. */
+  .onboard-hero { padding: 0.8rem 0.9rem; }
+  .onboard-hero p.text-zinc-500 {
+    font-size: var(--e-text-xs);
+    margin-top: 0.15rem;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .onboard-hero .flex.flex-col.gap-3 { gap: 0.5rem; }
+  .onboard-hero h3 { font-size: var(--e-text-sm); }
+
+  /* --- 2c · La ficha del evento: de currículum a control ---------------- */
+  /* El perno del talón es tinta de boleta: en móvil solo roba altura. */
+  .evx-card > .evx-perf { display: none; }
+  .evx-card > .p-4 { padding: 0.8rem; }
+  .evx-card .evx-idrow {
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .evx-card .evx-thumb {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.55rem;
+  }
+  .evx-card .evx-datecal-day { font-size: var(--e-text-lg); }
+  .evx-card .evx-name { font-size: var(--e-text-lg); }
+  .evx-card .evx-meta-row { margin-top: 0.35rem; }
+  /* Las tres cifras dejan de ser tres columnas apiladas y pasan a una
+     línea: "RECAUDO $0 · VENDIDAS 1/50 · ENTRARON 0". El rótulo sigue
+     pegado a su cifra (nadie adivina de qué habla el número). */
+  .evx-card .evx-stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.8rem;
+    margin-top: 0.55rem;
+  }
+  .evx-card .evx-stat {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.28rem;
+    border-left: 0;
+    padding-left: 0;
+  }
+  .evx-card .evx-stat-value { font-size: var(--e-text-base); }
+  .evx-card .evx-meterrow { margin-top: 0.45rem; }
+  /* Las acciones conservan los 44px táctiles (son control de dedo); solo
+     se recorta el aire que las separaba del borde. */
+  .evx-card .evx-actions { padding: 0 0.8rem 0.8rem; }
+
+  /* --- 2d · La cabecera de sección y el buscador ------------------------ */
+  /* El eyebrow "Operación" es andamiaje de la portada ancha; en móvil el
+     titular con su marca de pincel ya dice de qué sección se trata. */
+  .evx-head {
+    align-items: center;
+    margin-bottom: 0.4rem;
+  }
+  .evx-head .eyebrow { display: none; }
+  .evx-head h2 { font-size: var(--e-text-lg); }
+  .evx-toolbar { gap: 0.3rem 0.5rem; }
+  .evx-search .field {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+}
