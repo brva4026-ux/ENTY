@@ -45,6 +45,8 @@ import EventTeamPanel from "../components/EventTeamPanel";
 import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
 import BusinessOverview from "../components/BusinessOverview";
+import DoorSection from "../components/DoorSection";
+import PromotersSection from "../components/PromotersSection";
 import BusinessDock from "../components/BusinessDock";
 import PaymentsPanel from "../components/PaymentsPanel";
 import VenueHeader from "../components/VenueHeader";
@@ -197,6 +199,8 @@ export default function AdminDashboard() {
     "noche",
     "cobros",
     "negocio",
+    "puerta",
+    "promotores",
     "equipo",
     "liquidaciones",
     "invitaciones",
@@ -2050,6 +2054,15 @@ export default function AdminDashboard() {
         {/* Secciones de venue: se renderizan cuando su pestaña está activa y
           NO hay evento abierto (en modo evento la pestaña activa es del
           evento; estas secciones son alcanzables desde la lista). */}
+        {!selectedEventData && section === "puerta" && (
+          <DoorSection
+            venueId={venueId}
+            onOpenEvent={(id) => flyToEvent(id, "entradas")}
+          />
+        )}
+        {!selectedEventData && section === "promotores" && (
+          <PromotersSection venueId={venueId} month={urlMonth} />
+        )}
         {!selectedEventData && section === "cobros" && (
           <PaymentsPanel venueId={venueId} events={events ?? []} />
         )}

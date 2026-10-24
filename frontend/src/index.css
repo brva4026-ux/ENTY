@@ -6405,3 +6405,248 @@ html[data-theme="light"] .legal-doc code {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* ==========================================================================
+   PUERTA (nivel venue) Y PROMOTORES
+   Dos secciones que responden preguntas que antes exigían abrir un evento:
+   "¿qué pasa en mi puerta ahora?" y "¿quién va cumpliendo su cupo?".
+   Todo con tokens: ningún color literal (el color vive en tokens.css).
+   ========================================================================== */
+
+/* --- Puerta: pastilla "en vivo" --- */
+.door-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--e-green-300);
+  background: color-mix(in srgb, var(--e-green-500) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--e-green-500) 34%, transparent);
+}
+
+.door-live-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--e-green-500);
+  animation: door-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes door-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .door-live-dot { animation: none; }
+}
+
+/* --- Puerta: la barra de aforo con dos capas (vendido / dentro) ---
+   Dos capas sobre la misma pista: el fondo es "vendido" y encima va lo que
+   ya entró. Así se ve de un golpe cuánto falta por entrar, que es lo que
+   decide si la puerta necesita otro lector. */
+.door-meter {
+  position: relative;
+  height: 1.25rem;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background: var(--e-surface-3);
+  border: 1px solid var(--e-border-hairline);
+}
+
+.door-meter-sold,
+.door-meter-in {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  transition: width 0.5s ease;
+}
+
+.door-meter-sold {
+  background: color-mix(in srgb, var(--e-violet-500) 42%, transparent);
+}
+
+.door-meter-in {
+  background: var(--e-green-500);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .door-meter-sold, .door-meter-in { transition: none; }
+}
+
+.door-key {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.375rem;
+  border-radius: 2px;
+}
+
+.door-key-in { background: var(--e-green-500); }
+.door-key-sold { background: color-mix(in srgb, var(--e-violet-500) 42%, transparent); }
+
+/* --- Puerta: lista de noches --- */
+.door-nights {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.door-night {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.75rem;
+  background: var(--e-surface);
+  border: 1px solid var(--e-border-hairline);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.door-night:hover {
+  border-color: var(--e-border-soft);
+  transform: translateY(-1px);
+}
+
+.door-night.is-live {
+  border-color: color-mix(in srgb, var(--e-green-500) 40%, transparent);
+  box-shadow: inset 3px 0 0 var(--e-green-500);
+}
+
+.door-night-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.door-night-name {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--e-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.door-night-meter {
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--e-surface-3);
+  overflow: hidden;
+}
+
+.door-night-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--e-violet-500), var(--e-violet-400));
+}
+
+.door-night-fill.is-warn { background: linear-gradient(90deg, var(--e-amber-500), var(--e-amber-400)); }
+.door-night-fill.is-full { background: linear-gradient(90deg, var(--e-emerald-500), var(--e-green-500)); }
+
+.door-night-nums {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--e-text-secondary);
+}
+
+/* --- Promotores: la tabla de avance --- */
+.ptable {
+  padding: 0;
+  overflow: hidden;
+}
+
+.prow {
+  display: grid;
+  grid-template-columns: 1.6fr 0.7fr 0.7fr 0.7fr 1fr 1.4fr;
+  gap: 0.625rem;
+  align-items: center;
+  padding: 0.75rem 1.125rem;
+  border-bottom: 1px solid var(--e-border-hairline);
+  font-size: 0.8125rem;
+  color: var(--e-text-secondary);
+}
+
+.prow:last-child { border-bottom: 0; }
+
+.prow-hd {
+  background: var(--e-surface-2);
+  font-size: 0.59375rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--e-text-muted);
+}
+
+.prow-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--e-text-primary);
+}
+
+.prow-av {
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  flex: none;
+  border-radius: 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--e-white);
+  /* violet-500 primero: el 400 está marcado "solo halo/glow" y no llega a
+     AA con texto blanco encima (3.5:1). Mismo orden que el resto de la app. */
+  background: linear-gradient(150deg, var(--e-violet-500), var(--e-violet-400));
+}
+
+.padv-track {
+  flex: 1;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--e-surface-3);
+  overflow: hidden;
+}
+
+.padv-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--e-violet-500), var(--e-violet-400));
+}
+
+.padv-fill.is-warn { background: linear-gradient(90deg, var(--e-amber-500), var(--e-amber-400)); }
+.padv-fill.is-full { background: linear-gradient(90deg, var(--e-emerald-500), var(--e-green-500)); }
+
+/* En móvil la tabla de 6 columnas no cabe: se apila por filas de datos.
+   Mobile-first real, no una tabla con scroll horizontal. */
+@media (max-width: 640px) {
+  .prow {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.375rem 0.75rem;
+  }
+
+  .prow-hd { display: none; }
+
+  .prow-name { grid-column: 1 / -1; }
+}

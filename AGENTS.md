@@ -631,6 +631,13 @@ avisar.
   E2E: `frontend/e2e/door-alert-live.spec.js` (dispara la rafaga por API).
 - **`/admin?event=<id>` sin `tab`** cae en "Resumen" del backstage (whitelist
   de `AdminDashboard`): es donde vive la salud de puerta que el aviso señala.
+- **Pestañas de venue: hay DOS whitelists que agregar.** Al sumar una sección
+  nueva (ej. `puerta`, `promotores`) hay que tocar el array `section` de
+  `AdminDashboard` (línea ~194, si no la URL cae a "resumen" en silencio) **y**
+  la grilla de `BusinessDock`. Y en `onOpenEvent` de las secciones de venue el
+  `tab` destino tiene que ser uno del backstage (`resumen`/`entradas`/`cupos`/
+  `boletas`/`noche`): `flyToEvent(id, "puerta")` genera un enlace muerto porque
+  "puerta" no existe dentro del evento.
 - **Checkout público del fan (sin cuenta):** `POST /public/events/{id}/checkout`
   y `GET /public/checkout/{reference}` en `public.py`. Reutiliza ENTERO el ciclo
   de la mig 023 (link de Wompi + webhook `approve_ticket_payment`): lo único

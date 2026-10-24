@@ -1085,6 +1085,82 @@ class VenueOverview(BaseModel):
     retention_returning: int = 0
 
 
+class VenueDoorEvent(BaseModel):
+    """Una noche del venue, con su estado de puerta. Alimenta la vista de
+    puerta agregada: el admin que no tiene un evento abierto igual necesita
+    saber cuál está en vivo y cuánta gente entró."""
+
+    event_id: int
+    name: str
+    starts_at: datetime
+    status: str
+    capacity: int
+    issued: int = 0
+    redeemed: int = 0
+
+
+class VenueDoor(BaseModel):
+    """La puerta del venue ENTERO, sin abrir un evento.
+
+    Responde la pregunta que hoy no tenía dónde: "¿qué está pasando en mi
+    puerta ahora mismo?". El desglose por evento existe (`EventPulse`,
+    `EventReport`), pero obliga a entrar a una noche. `live` marca las
+    noches en curso para que la UI las destaque.
+
+    Sin dinero: es dato operativo, no caja.
+    """
+
+    # Noches en estado 'live' (lo que está pasando AHORA).
+    live_events: int = 0
+    # Suma de las noches EN VIVO: el aforo de esta noche, no del mes.
+    live_capacity: int = 0
+    live_issued: int = 0
+    live_redeemed: int = 0
+    # Integridad de puerta de las noches en vivo.
+    duplicates: int = 0
+    rejected: int = 0
+    # Último escaneo de cualquier noche en vivo (null si no hubo ninguno).
+    last_scan_at: datetime | None = None
+    # Todas las noches con puerta abierta o por abrir, más reciente primero.
+    events: list[VenueDoorEvent] = []
+
+
+class VenuePromoter(BaseModel):
+    """Un promotor del mes con su cupo y su comisión.
+
+    `capacity` es la suma de cupos asignados a sus boletas del mes; `issued`
+    lo efectivamente colocado. `advance_pct` es el avance del cupo — la señal
+    que faltaba: `top_promoters` del overview da el ranking en boletas pero
+    no contra cuánto cupo, así que no se veía quién va cumpliendo.
+
+    `commission_cents` sale de las liquidaciones (`promoter_payouts`) y es 0
+    cuando no hay ninguna generada, no null: el total de comisiones del
+    venue ya se expone como null en `VenueOverview` cuando no hay datos.
+    """
+
+    promoter_id: int
+    name: str
+    capacity: int = 0
+    issued: int = 0
+    redeemed: int = 0
+    revenue_cents: int = 0
+    commission_cents: int = 0
+    advance_pct: float = 0.0
+    has_courtesy: bool = False
+
+
+class VenuePromoters(BaseModel):
+    """El equipo de promotores del mes con cupo, avance y comisión."""
+
+    month: str
+    promoters: list[VenuePromoter] = []
+    # Agregados del mes para la cabecera de la sección. `capacity_total` es
+    # suma de CUPOS (boletas), no dinero: el sufijo _cents reservado para
+    # importes. `commission_cents` sí es dinero.
+    capacity_total: int = 0
+    commission_cents: int = 0
+
+
 class MessageOut(BaseModel):
     detail: str
 

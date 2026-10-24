@@ -24,7 +24,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
 from app.core.audit import write_audit
-from app.schemas import EventReport, EventPulse, ReportByPromoter, ReportSummary, VenueOverview
+from app.schemas import (
+    EventReport,
+    EventPulse,
+    ReportByPromoter,
+    ReportSummary,
+    VenueDoor,
+    VenueDoorEvent,
+    VenueOverview,
+    VenuePromoter,
+    VenuePromoters,
+)
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["reporte"])
 
@@ -940,4 +950,184 @@ async def venue_overview_csv(
             "Content-Disposition": f'attachment; filename="resumen-{month}.csv"',
             "Cache-Control": "no-store",
         },
+    )
+
+
+# Noches con puerta abierta o por abrir: las 'live' primero (son las que
+# estan pasando), despues las publicadas por cercania. El LIMIT evita que un
+# venue con cientos de eventos historicos devuelva una lista inmanejable.
+_DOOR_EVENTS_SQL = """
+    SELECT e.id AS event_id, e.name, e.starts_at, e.status, e.capacity,
+           count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS issued,
+           count(t.id) FILTER (WHERE t.status = 'redeemed')::int AS redeemed
+    FROM events e
+    LEFT JOIN tickets t ON t.event_id = e.id
+    WHERE e.venue_id = %(venue)s
+      AND e.status IN ('live', 'published')
+    GROUP BY e.id
+    ORDER BY (e.status = 'live') DESC, e.starts_at DESC
+    LIMIT 20
+"""
+
+# Agregados SOLO de las noches en vivo. Van en subconsultas sobre un CTE en
+# vez de un JOIN: sumar capacity sobre un join con tickets multiplicaria el
+# aforo por el numero de boletas (error clasico de fan-out).
+_DOOR_LIVE_SQL = """
+    WITH live AS (
+        SELECT id, capacity FROM events
+        WHERE venue_id = %(venue)s AND status = 'live'
+    )
+    SELECT (SELECT count(*) FROM live)::int AS live_events,
+           (SELECT coalesce(sum(capacity), 0) FROM live)::int AS live_capacity,
+           (SELECT count(*) FROM tickets t JOIN live l ON l.id = t.event_id
+             WHERE t.status IN ('issued','redeemed'))::int AS live_issued,
+           (SELECT count(*) FROM tickets t JOIN live l ON l.id = t.event_id
+             WHERE t.status = 'redeemed')::int AS live_redeemed,
+           (SELECT count(*) FROM redemptions r JOIN live l ON l.id = r.event_id
+             WHERE r.outcome = 'already_redeemed')::int AS duplicates,
+           (SELECT count(*) FROM redemptions r JOIN live l ON l.id = r.event_id
+             WHERE r.outcome NOT IN ('granted','granted_forced','already_redeemed'))::int
+             AS rejected,
+           (SELECT max(r.scanned_at) FROM redemptions r JOIN live l ON l.id = r.event_id)
+             AS last_scan_at
+"""
+
+# Promotores del mes con cupo, avance y comision. Mismo criterio de "boleta
+# viva" que el resto del reporte. El cupo sale de promoter_allocations (la
+# tabla que define CUANTO puede colocar cada promotor), que es justo lo que
+# _TOP_PROMOTERS_SQL no miraba: daba el ranking en boletas pero no contra
+# cuanto cupo, asi que no se podia ver quien iba cumpliendo.
+_PROMOTERS_SQL = """
+    WITH month_events AS (
+        SELECT id FROM events
+        WHERE venue_id = %(venue)s
+          AND date_trunc('month', starts_at AT TIME ZONE %(tz)s)
+              = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
+    ),
+    caps AS (
+        SELECT a.promoter_id, coalesce(sum(a.capacity), 0)::int AS capacity
+        FROM promoter_allocations a
+        JOIN month_events me ON me.id = a.event_id
+        WHERE a.is_active
+        GROUP BY a.promoter_id
+    ),
+    sold AS (
+        SELECT t.sold_by_user_id AS promoter_id,
+               count(t.id) FILTER (WHERE t.status IN ('issued','redeemed'))::int AS issued,
+               count(t.id) FILTER (WHERE t.status = 'redeemed')::int AS redeemed,
+               coalesce(sum(t.price_cents_snapshot)
+                        FILTER (WHERE t.status IN ('issued','redeemed')), 0)::bigint
+                 AS revenue_cents,
+               bool_or(t.price_cents_snapshot = 0)
+                        FILTER (WHERE t.status IN ('issued','redeemed')) AS has_courtesy
+        FROM tickets t
+        JOIN month_events me ON me.id = t.event_id
+        WHERE t.allocation_id IS NOT NULL
+        GROUP BY t.sold_by_user_id
+    ),
+    comm AS (
+        SELECT promoter_id, coalesce(sum(commission_cents), 0)::bigint AS commission_cents
+        FROM promoter_payouts
+        WHERE venue_id = %(venue)s
+          AND date_trunc('month', created_at AT TIME ZONE %(tz)s)
+              = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
+        GROUP BY promoter_id
+    )
+    SELECT u.id AS promoter_id, u.full_name AS name,
+           coalesce(c.capacity, 0)::int AS capacity,
+           coalesce(s.issued, 0)::int AS issued,
+           coalesce(s.redeemed, 0)::int AS redeemed,
+           coalesce(s.revenue_cents, 0)::bigint AS revenue_cents,
+           coalesce(cm.commission_cents, 0)::bigint AS commission_cents,
+           coalesce(s.has_courtesy, false) AS has_courtesy
+    FROM users u
+    LEFT JOIN caps c ON c.promoter_id = u.id
+    LEFT JOIN sold s ON s.promoter_id = u.id
+    LEFT JOIN comm cm ON cm.promoter_id = u.id
+    WHERE c.promoter_id IS NOT NULL OR s.promoter_id IS NOT NULL
+    ORDER BY coalesce(s.issued, 0) DESC, coalesce(s.revenue_cents, 0) DESC
+    LIMIT 50
+"""
+
+
+@router.get("/door", response_model=VenueDoor)
+async def venue_door(
+    venue_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """La puerta del venue ENTERO, sin abrir una noche.
+
+    El detalle por evento ya existia (`/pulse`, `/report`, `/redemptions`),
+    pero obliga a elegir un evento. El admin que llega al panel quiere saber
+    primero QUE esta pasando: cuantas noches estan en vivo, cuanta gente
+    entro y si la puerta esta rechazando. Sin dinero: es operacion, no caja.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+
+    params = {"venue": venue_id}
+    async with db.cursor() as cur:
+        await cur.execute(_DOOR_LIVE_SQL, params)
+        live = await cur.fetchone()
+        await cur.execute(_DOOR_EVENTS_SQL, params)
+        events = await cur.fetchall()
+
+    return VenueDoor(
+        live_events=live["live_events"],
+        live_capacity=live["live_capacity"],
+        live_issued=live["live_issued"],
+        live_redeemed=live["live_redeemed"],
+        duplicates=live["duplicates"],
+        rejected=live["rejected"],
+        last_scan_at=live["last_scan_at"],
+        events=[VenueDoorEvent(**e) for e in events],
+    )
+
+
+@router.get("/promoters", response_model=VenuePromoters)
+async def venue_promoters(
+    venue_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    month: str | None = None,
+):
+    """El equipo de promotores del mes: cupo, avance y comision.
+
+    `top_promoters` del overview da el ranking en boletas, pero sin el cupo
+    asignado no se puede saber quien va CUMPLIENDO. Aqui el cupo viene de
+    `promoter_allocations` y el avance se calcula contra el.
+
+    `advance_pct` es 0 cuando no hay cupo asignado (no 100 ni null): un
+    promotor sin cupo no tiene avance que medir, y la UI lo muestra sin
+    barra en vez de con una barra llena que mentiria.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+
+    tz = "America/Bogota"
+    month, month_start = _resolve_month(month, tz)
+    params = {"venue": venue_id, "tz": tz, "month_start": month_start.isoformat()}
+
+    async with db.cursor() as cur:
+        await cur.execute(_PROMOTERS_SQL, params)
+        rows = await cur.fetchall()
+
+    promoters = [
+        VenuePromoter(
+            **{
+                **r,
+                "advance_pct": (
+                    round(r["issued"] / r["capacity"] * 100, 1)
+                    if r["capacity"] > 0
+                    else 0.0
+                ),
+            }
+        )
+        for r in rows
+    ]
+
+    return VenuePromoters(
+        month=month,
+        promoters=promoters,
+        capacity_total=sum(p.capacity for p in promoters),
+        commission_cents=sum(p.commission_cents for p in promoters),
     )
