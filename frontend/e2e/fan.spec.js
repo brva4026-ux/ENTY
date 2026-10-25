@@ -27,12 +27,14 @@ test("Inicio -> detalle -> Mis boletos", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "Conciertos" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Comedia" })).toBeVisible();
 
-  // La primera fila de la lista lleva a su detalle publico.
-  const firstRow = page.locator(".home-list .home-row-main").first();
-  await expect(firstRow).toBeVisible();
-  const href = await firstRow.getAttribute("href");
+  // El evento del seed, no "el primero de la lista": otras specs corren en
+  // paralelo y crean eventos publicados (E2E-*) que pueden caer antes. El
+  // seed es el unico con localidad de pago, que es lo que ejercita este test.
+  const row = page.locator(".home-list .home-row-main", { hasText: "Noche Electrónica" }).first();
+  await expect(row).toBeVisible();
+  const href = await row.getAttribute("href");
   expect(href).toMatch(/^\/evento\/\d+$/);
-  await firstRow.click();
+  await row.click();
 
   // Detalle: URL por id, datos clave y pestanas.
   await expect(page).toHaveURL(new RegExp(`${href}$`));

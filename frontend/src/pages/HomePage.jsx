@@ -585,9 +585,26 @@ export default function HomePage() {
       {/* Ticker cinético: la energía de la noche entre el troquel y la rejilla.
           Decorativo (aria-hidden): repite la marca, no aporta datos. La lista
           va duplicada para que el loop sea continuo (el keyframe mueve -50%). */}
-      <div className="home-ticker" aria-hidden="true" className="home-ticker">
-        <div className="home-ticker-track"></div>
+      <div className="home-ticker" aria-hidden="true">
+        <div className="home-ticker-track">
+          {TICKER.concat(TICKER).map((w, i) => (
+            <span key={`${w}-${i}`}>{w}</span>
+          ))}
+        </div>
       </div>
+
+      {/* h1 único de la vitrina, presente en TODOS los estados (cargando, error,
+          vacío y con cartelera). El destacado es el titular cuando existe, pero
+          sin eventos la página se quedaba sin encabezado: cualquier búsqueda sin
+          resultados dejaba el documento sin h1 (a11y.spec.js solo probaba la
+          vista con seed, donde siempre hay destacado). */}
+      <h1 className="sr-only">
+        {error
+          ? "Cartelera no disponible"
+          : narrowed
+            ? "Sin resultados en la cartelera"
+            : "Cartelera de eventos"}
+      </h1>
 
       {error ? (
         <div className="home-empty">
@@ -665,10 +682,12 @@ export default function HomePage() {
             <div className="home-feature-body">
               <div className="home-feature-top">
                 <span className="home-eyebrow">Featured</span>
-                {/* h1 único de la vitrina (jerarquía de documento): el destacado
-                    ES el titular de la pagina; "Proximos"/categorias cuelgan de
-                    el. Visualmente no cambia (la regla es .home-feature-top h1). */}
-                <h1>{featured.name}</h1>
+                {/* h2: el h1 de la página es el encabezado estable de arriba
+                    (siempre presente). El destacado ES el titular visual, pero
+                    la jerarquía de documento necesita un h1 que no dependa de
+                    que existan eventos publicados. Visualmente no cambia: la
+                    regla es .home-feature-top h1/h2 (misma tipografía). */}
+                <h2>{featured.name}</h2>
               </div>
               <div className="home-feature-bottom">
                 <span className="home-feature-meta">

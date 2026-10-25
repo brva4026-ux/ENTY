@@ -34,13 +34,18 @@ from app.routers.legal import (
 )
 from app.schemas import (
     ChangePasswordRequest,
+    CloseOtherSessionsRequest,
     DeleteAccountRequest,
     ForgotPasswordRequest,
     LoginRequest,
     MessageOut,
+    PreferenceKey,
+    PreferenceOut,
+    PreferencesOut,
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
+    UpdatePreferenceRequest,
     UpdateProfileRequest,
     UpdateVenueRequest,
     UserSummary,
@@ -214,6 +219,90 @@ async def me(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     return await _build_user_summary(db, user["id"])
+
+
+# ---------------------------------------------------------------------------
+# Preferencias por usuario y negocio (mig 032)
+# ---------------------------------------------------------------------------
+# Antes vivian en localStorage, que es por NAVEGADOR: la guia rechazada en la
+# laptop reaparecia en el celular, y el preview de Vercel (otro origen) no veia
+# la decision de produccion. En la DB la decision es de la persona, no del
+# dispositivo.
+_PREFERENCE_KEYS = ("onboarding", "tutorial")
+
+
+@router.get("/me/preferences", response_model=PreferencesOut)
+async def get_my_preferences(
+    venue_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Preferencias del usuario en un negocio.
+
+    Devuelve SIEMPRE las claves conocidas, en `pending` cuando no hay fila: el
+    panel no distingue "no existe" de "sin decidir", que para el usuario son lo
+    mismo. Cualquier rol de la venue puede leer las SUYAS (son personales)."""
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT key, value, step, updated_at FROM user_preferences "
+            "WHERE user_id=%s AND venue_id=%s",
+            (user["id"], venue_id),
+        )
+        rows = {r["key"]: r for r in await cur.fetchall()}
+    return PreferencesOut(
+        venue_id=venue_id,
+        preferences=[
+            PreferenceOut(
+                key=key,
+                value=rows[key]["value"],
+                step=rows[key]["step"] or 0,
+                updated_at=rows[key]["updated_at"],
+            )
+            if key in rows
+            else PreferenceOut(key=key)
+            for key in _PREFERENCE_KEYS
+        ],
+    )
+
+
+@router.put("/me/preferences/{key}", response_model=PreferenceOut)
+async def set_my_preference(
+    key: PreferenceKey,
+    venue_id: int,
+    body: UpdatePreferenceRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Guarda la decision (y el paso, si es el tutorial) del usuario.
+
+    UPSERT: la primera escritura crea la fila y las siguientes la actualizan.
+    La preferencia es del usuario autenticado, nunca de otro: el `user_id` sale
+    del token, no del cuerpo."""
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            INSERT INTO user_preferences (user_id, venue_id, key, value, step)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (user_id, venue_id, key) DO UPDATE
+               SET value = EXCLUDED.value,
+                   -- El paso solo lo manda el tutorial; en las demas claves un
+                   -- None del cliente NO debe borrar el progreso guardado.
+                   step = COALESCE(EXCLUDED.step, user_preferences.step),
+                   updated_at = now()
+            RETURNING key, value, step, updated_at
+            """,
+            (user["id"], venue_id, key, body.value, body.step),
+        )
+        row = await cur.fetchone()
+        await db.commit()
+    return PreferenceOut(
+        key=row["key"],
+        value=row["value"],
+        step=row["step"] or 0,
+        updated_at=row["updated_at"],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -515,6 +604,11 @@ async def update_venue_settings(
                 "UPDATE venues SET commission_pct=%s WHERE id=%s",
                 (body.commission_pct, venue_id),
             )
+        if body.primary_color is not None:
+            await cur.execute(
+                "UPDATE venues SET primary_color=%s WHERE id=%s",
+                (body.primary_color or None, venue_id),
+            )
         await db.commit()
 
         await cur.execute(
@@ -574,6 +668,46 @@ async def change_password(
     return MessageOut(detail="Contraseña actualizada.")
 
 
+@router.post("/close-other-sessions", response_model=TokenResponse)
+async def close_other_sessions(
+    body: CloseOtherSessionsRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Cierra las demás sesiones del usuario y deja viva la actual.
+
+    Bump de `token_version` (mig 019): todo JWT emitido antes queda muerto.
+    El problema es que el token de ESTA sesión también lo está, así que se
+    emite uno nuevo y se devuelve en la respuesta: el cliente lo guarda y
+    sigue trabajando, mientras el resto de dispositivos cae al login.
+
+    Exige la contraseña: sin ella, un token robado serviría para expulsar al
+    dueño de su propia cuenta en lugar de para defenderse.
+    """
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT password_hash FROM users WHERE id=%s", (user["id"],)
+        )
+        row = await cur.fetchone()
+        if not row or not verify_password(body.password, row["password_hash"]):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "La contraseña no es correcta."
+            )
+        await cur.execute(
+            "UPDATE users SET token_version = token_version + 1 WHERE id=%s "
+            "RETURNING token_version",
+            (user["id"],),
+        )
+        new_version = (await cur.fetchone())["token_version"]
+        await db.commit()
+
+    token = create_access_token(
+        user["id"], user["venue_ids"], user["roles"], new_version
+    )
+    summary = await _build_user_summary(db, user["id"])
+    return TokenResponse(access_token=token, user=summary)
+
+
 # ---------------------------------------------------------------------------
 # Borrado definitivo de la propia cuenta
 # ---------------------------------------------------------------------------
@@ -584,7 +718,8 @@ async def delete_own_account(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     """Elimina la cuenta y sus membresías. Sola, o con toda la venue si es
-    admin único. Pide la contraseña: confirmación fuerte e irrevocable."""
+    admin único. Pide la contraseña Y el email escrito a mano: confirmación
+    fuerte e irrevocable, proporcional a lo que se lleva por delante."""
     async with db.cursor() as cur:
         await cur.execute(
             "SELECT password_hash FROM users WHERE id=%s", (user["id"],)
@@ -592,6 +727,13 @@ async def delete_own_account(
         row = await cur.fetchone()
         if not row or not verify_password(body.password, row["password_hash"]):
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Contraseña incorrecta")
+        # Confirmación mecanografiada: el email del usuario, tal cual. Un
+        # borrado irreversible no puede dispararse con un clic distraído.
+        if body.confirm.strip().lower() != user["email"].strip().lower():
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Para confirmar, escribe tu correo exactamente como aparece.",
+            )
 
         await cur.execute(
             "SELECT venue_id FROM venue_user_roles WHERE user_id=%s",
@@ -600,6 +742,10 @@ async def delete_own_account(
         venue_ids = [r["venue_id"] for r in await cur.fetchall()]
 
         for vid in venue_ids:
+            # La guarda es para el ADMIN que se va y deja el negocio acéfalo.
+            # A un promotor no le aplica: su salida no deja a nadie a cargo.
+            if "admin" not in user["roles"].get(vid, []):
+                continue
             await cur.execute(
                 """SELECT count(*)::int AS n FROM venue_user_roles
                    WHERE venue_id=%s AND role='admin'""",
@@ -631,6 +777,94 @@ async def delete_own_account(
         await cur.execute("DELETE FROM users WHERE id=%s", (user["id"],))
         await db.commit()
     return MessageOut(detail="Cuenta eliminada definitivamente.")
+
+
+# ---------------------------------------------------------------------------
+# Exportación de los propios datos (portabilidad)
+# ---------------------------------------------------------------------------
+@router.get("/export")
+async def export_own_data(
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Devuelve un JSON con todo lo que la plataforma sabe de esta cuenta.
+
+    Portabilidad y transparencia: la persona puede ver y llevarse sus datos
+    sin pedírselos a nadie. NO incluye el hash de la contraseña (ni tiene por
+    qué: no es un dato del usuario, es un secreto del sistema) ni tokens.
+    Los datos de terceros (los compradores de una venue) tampoco viajan: esto
+    es lo del usuario autenticado, no la base de clientes de su negocio.
+    """
+    uid = user["id"]
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT id, email, phone, full_name, is_active, created_at, "
+            "updated_at, last_login_at FROM users WHERE id=%s",
+            (uid,),
+        )
+        profile = await cur.fetchone()
+        if not profile:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+
+        await cur.execute(
+            """SELECT v.id, v.name, v.slug, vr.role
+               FROM venue_user_roles vr
+               JOIN venues v ON v.id = vr.venue_id
+               WHERE vr.user_id = %s
+               ORDER BY v.name""",
+            (uid,),
+        )
+        memberships = await cur.fetchall()
+
+        # Aceptaciones legales: qué documentos y versiones aceptó esta cuenta.
+        await cur.execute(
+            """SELECT document_slug, document_version, accepted_at
+               FROM legal_acceptances
+               WHERE user_id = %s
+               ORDER BY accepted_at""",
+            (uid,),
+        )
+        acceptances = await cur.fetchall()
+
+    return {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "format_version": 1,
+        "account": {
+            "id": profile["id"],
+            "email": profile["email"],
+            "phone": profile["phone"],
+            "full_name": profile["full_name"],
+            "is_active": profile["is_active"],
+            "created_at": profile["created_at"].isoformat()
+            if profile["created_at"]
+            else None,
+            "updated_at": profile["updated_at"].isoformat()
+            if profile["updated_at"]
+            else None,
+            "last_login_at": profile["last_login_at"].isoformat()
+            if profile["last_login_at"]
+            else None,
+        },
+        "memberships": [
+            {
+                "venue_id": m["id"],
+                "venue_name": m["name"],
+                "venue_slug": m["slug"],
+                "role": m["role"],
+            }
+            for m in memberships
+        ],
+        "legal_acceptances": [
+            {
+                "document": a["document_slug"],
+                "version": a["document_version"],
+                "accepted_at": a["accepted_at"].isoformat()
+                if a["accepted_at"]
+                else None,
+            }
+            for a in acceptances
+        ],
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -204,6 +204,14 @@
   --e-ticket-dim: rgba(255, 255, 255, 0.55);
   --e-ticket-dim-2: rgba(255, 255, 255, 0.34);
 
+  /* Voces tipográficas. `sans` es la marca (Sora) y vale para todo el
+     producto; `display` y `mono` son las voces de OPERACIÓN del panel de un
+     bar (Anton para el cartel, JetBrains Mono para cifras que no bailan).
+     Se declaran aquí para que ninguna hoja nombre una familia a mano. */
+  --e-font-sans: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --e-font-display: "Anton", "Sora", ui-sans-serif, system-ui, sans-serif;
+  --e-font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
   /* ---------------------------------------------------------------- 3 · ESCALAS */
   /* Espacio (base 4px). */
   --e-space-1: 0.25rem;

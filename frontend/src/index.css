@@ -1284,6 +1284,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   .skeleton,
   .live-dot,
   .live-ping,
+  .vh-live-dot,
   .splash-logo,
   .ptr-spinner,
   .toast-in,
@@ -1555,19 +1556,25 @@ html[data-theme="light"] .bizdock-desc {
    ---------------------------------------------------------------------- */
 .venue-header {
   display: block;
+  position: relative;
   /* El KPI usa este valor para anclar su viga al borde superior del card:
      cambiar el padding acá mantiene la viga pegada. */
   --venue-pad-y: 1.1rem;
+  /* Tinte de marca del negocio. Los defaults son el violeta de Enty; cuando
+     la venue tiene `primary_color` el componente los sobrescribe inline
+     (--vh-brand-wash/glow/line/tile-ink). Una sola fuente de verdad para
+     "dónde se pinta el color del negocio": estas cinco variables. */
+  --vh-brand: var(--e-brand);
+  --vh-brand-wash: rgba(187, 92, 246, 0.09);
+  --vh-brand-glow: rgba(187, 92, 246, 0.22);
+  --vh-brand-line: rgba(187, 92, 246, 0.7);
+  --vh-tile-ink: var(--e-white);
   padding: var(--venue-pad-y) 1.25rem;
   /* Luz cenital propia del sistema (como .card) pero un punto más presente:
      la cabecera es la "portada" del panel. Un lavado de marca en la esquina
      superior derecha (detrás del KPI) le da atmósfera sin pintar nada. */
   background:
-    radial-gradient(
-      34rem 14rem at 88% -6rem,
-      rgba(187, 92, 246, 0.09),
-      transparent 62%
-    ),
+    radial-gradient(34rem 14rem at 88% -6rem, var(--vh-brand-wash), transparent 62%),
     linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.05),
@@ -1575,8 +1582,50 @@ html[data-theme="light"] .bizdock-desc {
     ),
     var(--color-zinc-925);
 }
-/* Fila superior: identidad | KPI. Baja a columna en móvil. */
+/* Banner de portada: capa decorativa DETRÁS de la identidad, no un bloque
+   que empuje el contenido hacia abajo. Absoluto a propósito: el panel ya
+   creció demasiado con la portada unificada; esto da "cara" sin sumar ni un
+   píxel de alto. Se desvanece hacia abajo para fundirse con el card (sin
+   borde inferior duro que habría que recortar). */
+.vh-banner {
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 7.5rem;
+  z-index: 0;
+  border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
+  /* El watermark de iniciales se recorta contra el banner, no contra el
+     card: no ensancha la página ni tapa el KPI. */
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(26rem 11rem at 78% -2.5rem, var(--vh-brand-glow), transparent 72%),
+    linear-gradient(180deg, var(--vh-brand-wash), transparent 82%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 60%);
+  /* Hairline inferior: cierra la portada. Sin ella el banner se derrama en
+     el contenido y la cabecera deja de leerse como un bloque propio. */
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--vh-brand) 14%, transparent);
+}
+/* Iniciales gigantes en marca de agua: el recurso que evita que un negocio
+   sin flyer quede como una caja vacía. Hay portada aunque no haya imagen.
+   Al 10% sobre el card oscuro apenas se insinúan; al 16% son un motivo. */
+.vh-banner-initials {
+  position: absolute;
+  right: 1.1rem;
+  top: -1.6rem;
+  font-size: 8.5rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--vh-brand);
+  opacity: 0.16;
+  user-select: none;
+}
+/* El contenido vive por encima del banner. Sin esto, la capa posicionada
+   (el banner) pintaría sobre el texto estático de la identidad. */
 .vh-top {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1588,12 +1637,53 @@ html[data-theme="light"] .bizdock-desc {
   flex-wrap: wrap;
 }
 /* Lockup de identidad: el tile y el texto van JUNTOS (gap corto), como una
-   marca y su wordmark, no como dos bloques vecinos. */
+   marca y su wordmark, no como dos bloques vecinos. Ahora es un enlace al
+   perfil del negocio: la portada es el camino a editar nombre, logo y color. */
 .vh-identidad {
   display: flex;
   align-items: center;
   gap: 0.7rem;
   min-width: 0;
+  border-radius: 0.75rem;
+  transition: opacity 0.2s var(--e-ease-expo);
+}
+@media (hover: hover) {
+  .vh-identidad:hover {
+    opacity: 0.86;
+  }
+}
+.vh-identidad:focus-visible {
+  outline: 2px solid var(--e-brand);
+  outline-offset: 4px;
+}
+/* Estado operativo en la propia identidad: si la puerta está abierta, el
+   dueño lo ve antes de bajar la mirada al dinero. Verde = "en vivo" en el
+   sistema (DESIGN.md); el punto late como el del dock Del negocio. */
+.vh-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--e-green-400);
+}
+.vh-live-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--e-green-400);
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  animation: dp-live 1.8s ease-out infinite;
+}
+/* El nombre del evento se corta antes de empujar el KPI en pantallas
+   medianas; el punto y la etiqueta "En vivo" nunca se cortan. */
+.vh-live-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* Bloque de texto: el eyebrow flota arriba del nombre con su propio aire (no
    pegado) y el ritmo no depende del leading del titular. */
@@ -1655,7 +1745,7 @@ html[data-theme="light"] .bizdock-desc {
   font-size: var(--e-text-xl);
   /* Dos iniciales pegadas se leen como una sola letra rara. */
   letter-spacing: 0.01em;
-  color: var(--e-white);
+  color: var(--vh-tile-ink);
   /* Navy de marca: el mismo del logo y del talon de la boleta. La identidad
      del negocio se apoya en el material de la marca en vez de un gris que se
      confundia con el fondo del card (que es lo que la hacia ver apagada). */
@@ -1671,6 +1761,16 @@ html[data-theme="light"] .bizdock-desc {
     inset 0 -1px 1px rgba(0, 0, 0, 0.35),
     0 1px 1px rgba(3, 7, 18, 0.4),
     0 10px 22px -12px rgba(3, 7, 18, 0.75);
+}
+/* Con color de marca, el tile deja el navy por el color del negocio: es su
+   sello, no el de Enty. El canto y las sombras se conservan (el material es
+   el mismo, solo cambia el relleno). */
+.venue-header[data-brand] .vh-logo-fallback {
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--vh-brand) 78%, var(--e-white) 22%),
+    color-mix(in srgb, var(--vh-brand) 72%, var(--e-ink-1) 28%)
+  );
 }
 .vh-kpi {
   min-width: 0;
@@ -1689,8 +1789,8 @@ html[data-theme="light"] .bizdock-desc {
   height: calc(100% + var(--venue-pad-y, 1.1rem));
   background: linear-gradient(
     180deg,
-    rgba(187, 92, 246, 0.7),
-    rgba(187, 92, 246, 0.06) 82%,
+    var(--vh-brand-line),
+    color-mix(in srgb, var(--vh-brand-line) 9%, transparent) 82%,
     transparent
   );
 }
@@ -1737,20 +1837,38 @@ html[data-theme="light"] .bizdock-desc {
 }
 
 html[data-theme="light"] .venue-header {
-  /* Showroom blanco: el lavado de marca es apenas perceptible. */
+  /* Showroom blanco: el lavado de marca sube porque sobre papel un 9% se
+     pierde (medido: 0.3% de píxeles con marca en el banner). */
+  --vh-brand-wash: color-mix(in srgb, var(--vh-brand) 15%, transparent);
+  --vh-brand-glow: color-mix(in srgb, var(--vh-brand) 30%, transparent);
   background:
-    radial-gradient(
-      34rem 14rem at 88% -6rem,
-      rgba(187, 92, 246, 0.05),
-      transparent 62%
-    ),
+    radial-gradient(34rem 14rem at 88% -6rem, var(--vh-brand-wash), transparent 62%),
     var(--e-white);
+}
+html[data-theme="light"] .vh-banner {
+  /* Sobre papel el tinte se lee por contraste, no por glow: mismo recurso,
+     un punto menos de intensidad. */
+  background:
+    radial-gradient(26rem 11rem at 78% -2.5rem, var(--vh-brand-glow), transparent 72%),
+    linear-gradient(180deg, var(--vh-brand-wash), transparent 82%);
+}
+html[data-theme="light"] .vh-banner-initials {
+  opacity: 0.3;
+}
+html[data-theme="light"] .vh-live {
+  /* El verde eléctrico no contrasta sobre blanco: se oscurece al tono de
+     texto del sistema, como hacen los demás estados en claro. */
+  color: var(--e-emerald-600);
+}
+html[data-theme="light"] .vh-live-dot {
+  background: var(--e-emerald-600);
+  box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.5);
 }
 html[data-theme="light"] .vh-kpi::before {
   background: linear-gradient(
     180deg,
-    rgba(187, 92, 246, 0.55),
-    rgba(187, 92, 246, 0.05) 82%,
+    color-mix(in srgb, var(--vh-brand-line) 78%, transparent),
+    color-mix(in srgb, var(--vh-brand-line) 7%, transparent) 82%,
     transparent
   );
 }
@@ -1799,6 +1917,15 @@ html[data-theme="light"] .vh-delta.is-down {
     align-items: flex-start;
     gap: 0.9rem;
   }
+  /* En columna el banner se acorta: el contenido crece hacia abajo y una
+     franja alta competiría con el KPI en vez de enmarcarlo. */
+  .vh-banner {
+    height: 5.5rem;
+  }
+  .vh-banner-initials {
+    font-size: 6rem;
+    top: -1rem;
+  }
   .vh-kpi {
     text-align: left;
     width: 100%;
@@ -1830,67 +1957,9 @@ html[data-theme="light"] .vh-embedded {
 }
 
 /* ----------------------------------------------------------------------
-   PORTADA: desglose del mes, navegación de mes y rankings.
+   PORTADA: navegación de mes y rankings.
    Todo cuelga del MISMO hairline del sistema; nada de cajas nuevas.
    ---------------------------------------------------------------------- */
-
-/* Desglose: la cuenta que explica la cifra grande. Una sola línea que
-   envuelve en móvil; los operadores (−, =) son estructura, no texto. */
-.vh-cuenta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.35rem 0.9rem;
-  margin-top: 0.95rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
-.vh-cuenta-item {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-}
-.vh-cuenta-op {
-  align-self: flex-end;
-  padding-bottom: 0.1rem;
-  color: var(--color-zinc-600);
-  font-size: var(--e-text-base);
-  font-weight: 700;
-}
-.vh-cuenta-label {
-  font-size: var(--e-text-2xs);
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--color-zinc-500);
-}
-.vh-cuenta-val {
-  font-size: var(--e-text-base);
-  font-weight: 700;
-  color: var(--color-zinc-100);
-}
-.vh-cuenta-val.is-out {
-  color: var(--e-red-300);
-}
-.vh-cuenta-val.is-net {
-  color: var(--color-enty-green);
-}
-.vh-cuenta-hint {
-  font-size: var(--e-text-2xs);
-  color: var(--color-zinc-600);
-}
-/* El promedio se separa del bloque de la cuenta: a la derecha en pantallas
-   anchas, en su propia línea en móvil. */
-.vh-cuenta-push {
-  margin-left: auto;
-  text-align: right;
-}
-@media (max-width: 640px) {
-  .vh-cuenta-push {
-    margin-left: 0;
-    text-align: left;
-  }
-}
 
 /* Navegación histórica del mes (comparte estado con Reportes vía URL). */
 .vh-mesnav {
@@ -2820,6 +2889,10 @@ html[data-theme="light"] .evx-pct {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  /* Con el ciclo de vida completo (publicar/abrir/finalizar/cancelar) caben
+     hasta cuatro botones: en la tarjeta más angosta de la rejilla deben poder
+     caer a una segunda línea en vez de empujar el ancho de la página. */
+  flex-wrap: wrap;
   /* Separacion real entre vecinos: con areas tactiles de 40px, 0.15rem
      dejaba los dedos peleando entre "duplicar" y "eliminar". */
   gap: 0.4rem;
@@ -3429,13 +3502,35 @@ html[data-theme="light"] .onboard-hero {
     ),
     var(--e-white);
 }
-.onboard-progress {
+/* Barra de progreso del onboarding. El componente pide wrapper/label/bar:
+   sin estas reglas la barra no se pintaba (la barra vivia en .onboard-progress,
+   que ningun nodo usaba). */
+.onboard-progress-wrapper {
+  margin-top: 0.75rem;
+}
+.onboard-progress-label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+.onboard-progress-done {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--e-violet-400);
+  font-variant-numeric: tabular-nums;
+}
+.onboard-progress-total {
+  font-size: 0.6875rem;
+  color: var(--color-zinc-500);
+}
+.onboard-progress-bar {
   height: 4px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
-html[data-theme="light"] .onboard-progress {
+html[data-theme="light"] .onboard-progress-bar {
   background: var(--e-neutral-300);
 }
 .onboard-progress-fill {
@@ -3444,6 +3539,120 @@ html[data-theme="light"] .onboard-progress {
   background: linear-gradient(90deg, rgba(187, 92, 246, 0.5), var(--e-violet-400));
   box-shadow: 0 0 8px -1px rgba(187, 92, 246, 0.55);
   transition: width 0.45s var(--e-ease-expo);
+}
+
+/* ----------------------------------------------------------------------
+   TUTORIAL GUIADO ("Primeros pasos"): recorte sobre el elemento que se
+   explica + tooltip anclado. El recorte NO es una máscara SVG ni cuatro
+   paneles: es un solo div con un box-shadow de 9999px, que oscurece todo lo
+   demás sin pintar nada extra. El z-index va por encima del panel (80) pero
+   por debajo de los diálogos reales (90+): si el admin abre el modal de crear
+   evento desde el paso 3, el modal manda.
+   ---------------------------------------------------------------------- */
+.tour-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  /* El overlay NO captura clics fuera del tooltip: el tutorial explica dónde
+     presionar y el admin tiene que poder hacerlo. El recorte es informativo;
+     la navegación la controlan los botones del tooltip. */
+  pointer-events: none;
+}
+.tour-hole {
+  position: fixed;
+  border-radius: 12px;
+  pointer-events: none;
+  /* El anillo de marca marca el borde del recorte; el shadow gigante es el
+     oscurecido. En un solo elemento no hay costura entre paneles. */
+  box-shadow:
+    0 0 0 2px var(--e-violet-400),
+    0 0 0 9999px rgba(9, 9, 11, 0.72);
+  transition:
+    top 0.28s var(--e-ease-expo),
+    left 0.28s var(--e-ease-expo),
+    width 0.28s var(--e-ease-expo),
+    height 0.28s var(--e-ease-expo);
+}
+html[data-theme="light"] .tour-hole {
+  box-shadow:
+    0 0 0 2px var(--e-violet-500),
+    0 0 0 9999px rgba(24, 24, 27, 0.55);
+}
+.tour-tip {
+  position: fixed;
+  z-index: 1;
+  pointer-events: auto;
+  width: max-content;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--e-neutral-800, rgba(255, 255, 255, 0.1));
+  background: var(--color-zinc-925);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7);
+  outline: none;
+}
+html[data-theme="light"] .tour-tip {
+  border-color: var(--e-neutral-300);
+  background: var(--e-white);
+  box-shadow: 0 18px 40px -14px rgba(24, 24, 27, 0.28);
+}
+/* Hoja inferior en móvil: un tooltip anclado a un elemento chico a 390px se
+   sale de la pantalla, así que ahí el tooltip es una hoja fija. */
+.tour-tip.is-sheet {
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  width: auto;
+  overflow-y: auto;
+}
+.tour-copy {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-zinc-400);
+}
+html[data-theme="light"] .tour-copy {
+  color: var(--e-neutral-600);
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+.tour-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+/* Confirmación de salida: encima del recorte y del tooltip. */
+.tour-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  pointer-events: auto;
+  background: rgba(9, 9, 11, 0.55);
+}
+.tour-confirm-panel {
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.1rem 1.15rem;
+  border-radius: 16px;
+  border: 1px solid var(--e-neutral-800, rgba(255, 255, 255, 0.1));
+  background: var(--color-zinc-925);
+  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.75);
+}
+html[data-theme="light"] .tour-confirm-panel {
+  border-color: var(--e-neutral-300);
+  background: var(--e-white);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-hole {
+    transition: none;
+  }
 }
 
 /* ----------------------------------------------------------------------
@@ -5372,21 +5581,25 @@ html[data-theme-lock="dark"] body {
 }
 
 /* ======================================================================
-   PERFIL — Identidad Enty
-   El perfil deja de ser un formulario y pasa a ser la ficha de la persona:
-   quién es, con qué rol, en qué negocios y desde cuándo. El hero habla el
-   idioma del hero del promotor (aurora violeta) con el mint de la marca como
-   segunda luz: es el único lugar donde la persona es el sujeto.
+   PERFIL — la ficha de la persona
+   El perfil no es un formulario apilado: es la identidad (hero, siempre
+   visible) más paneles que se visitan de uno en uno (pestañas). Lo
+   destructivo (zona de peligro) vive al pie, tras el troquel, y arranca
+   colapsado: lo irreversible no compite con lo cotidiano.
+
+   El hero habla el idioma del hero del promotor (aurora violeta) con el
+   mint de la marca como segunda luz: es el único lugar donde la persona
+   es el sujeto.
    ====================================================================== */
 .pf-hero {
   position: relative;
   overflow: hidden;
   border-radius: 1.4rem;
-  border: 1px solid var(--in-line-soft, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--e-border-hairline);
   padding: 1.4rem 1.5rem;
   background:
-    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.22), transparent 62%),
-    radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.12), transparent 60%),
+    radial-gradient(34rem 16rem at 6% -10rem, color-mix(in srgb, var(--e-violet-500) 22%, transparent), transparent 62%),
+    radial-gradient(26rem 14rem at 104% 118%, color-mix(in srgb, var(--e-green-500) 12%, transparent), transparent 60%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 48%),
     rgba(16, 16, 22, 0.92);
   box-shadow:
@@ -5396,10 +5609,54 @@ html[data-theme-lock="dark"] body {
 html[data-theme="light"] .pf-hero {
   border: 1px solid rgba(17, 17, 22, 0.09);
   background:
-    radial-gradient(34rem 16rem at 6% -10rem, rgba(124, 58, 237, 0.1), transparent 62%),
-    radial-gradient(26rem 14rem at 104% 118%, rgba(0, 230, 171, 0.09), transparent 60%),
+    radial-gradient(34rem 16rem at 6% -10rem, color-mix(in srgb, var(--e-violet-500) 10%, transparent), transparent 62%),
+    radial-gradient(26rem 14rem at 104% 118%, color-mix(in srgb, var(--e-green-500) 9%, transparent), transparent 60%),
     var(--e-white);
   box-shadow: 0 20px 46px -36px rgba(15, 23, 42, 0.55);
+}
+
+/* El hero tiene fondo propio en ambos temas, así que su tinta no puede
+   seguir al tema por sí sola: en claro hay que bajarla explícitamente. */
+html[data-theme="light"] .pf-name {
+  color: var(--e-neutral-900);
+}
+html[data-theme="light"] .pf-email {
+  color: var(--color-zinc-600);
+}
+html[data-theme="light"] .pf-avatar {
+  background: var(--e-neutral-100);
+  color: var(--e-neutral-900);
+}
+/* Los tintes de rol (amber/emerald/brand -300) son para fondo oscuro: en el
+   hero claro pierden contraste, así que se oscurecen solo aquí. El color
+   sigue siendo el del rol; cambia el paso de la escala. */
+html[data-theme="light"] .pf-hero .text-brand-300 {
+  color: var(--e-violet-600);
+}
+html[data-theme="light"] .pf-hero .text-emerald-300 {
+  color: var(--e-emerald-600);
+}
+html[data-theme="light"] .pf-hero .text-amber-300 {
+  color: var(--e-brasa-500);
+}
+
+/* Identidad a la izquierda, acciones a la derecha: el avatar ya no queda
+   flotando con media fila vacía al lado. */
+.pf-hero-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+.pf-hero-id {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+.pf-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 
 .pf-avatar {
@@ -5432,38 +5689,17 @@ html[data-theme="light"] .pf-hero {
 
 /* Nombre del hero: grande, con la voz display de la marca. */
 .pf-name {
-  font-size: 1.5rem;
+  font-size: var(--e-text-3xl);
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.02em;
   color: var(--color-zinc-50);
+  overflow-wrap: anywhere;
 }
-/* El hero tiene su propio fondo en ambos temas, así que sus tintas no pueden
-   seguir al tema por sí solas: en claro hay que bajarlas explícitamente. */
-html[data-theme="light"] .pf-name {
-  color: var(--e-neutral-900);
-}
-html[data-theme="light"] .pf-email {
-  color: var(--color-zinc-600);
-}
-html[data-theme="light"] .pf-avatar {
-  background: var(--e-neutral-100);
-  color: var(--e-neutral-900);
-}
-/* Los tintes de rol (amber/emerald/brand -300) son para fondo oscuro: en el
-   hero claro pierden contraste, así que se oscurecen solo aquí. El color
-   sigue siendo el del rol; cambia el paso de la escala. */
-html[data-theme="light"] .pf-hero .text-brand-300 {
-  color: var(--e-violet-600);
-}
-html[data-theme="light"] .pf-hero .text-emerald-300 {
-  color: var(--e-emerald-600);
-}
-html[data-theme="light"] .pf-hero .text-amber-300 {
-  color: var(--e-brasa-500);
-}
-html[data-theme="light"] .pf-danger-title {
-  color: var(--e-red-700);
+.pf-email {
+  font-size: var(--e-text-sm);
+  color: var(--color-zinc-400);
+  overflow-wrap: anywhere;
 }
 
 /* Fila de datos de cuenta: icono + valor. */
@@ -5471,7 +5707,8 @@ html[data-theme="light"] .pf-danger-title {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem 1.25rem;
-  font-size: 0.8125rem;
+  margin-top: 0.75rem;
+  font-size: var(--e-text-sm);
   color: var(--color-zinc-400);
 }
 html[data-theme="light"] .pf-meta {
@@ -5488,6 +5725,12 @@ html[data-theme="light"] .pf-meta {
   opacity: 0.75;
 }
 
+.pf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+}
 /* Chip de rol por negocio. El color lo pone la clase de texto (tabAccent de
    ROLE_VISUALS); aquí se deriva fondo y borde de ese mismo currentColor para
    que rol y color no puedan desincronizarse. */
@@ -5497,35 +5740,576 @@ html[data-theme="light"] .pf-meta {
   gap: 0.35rem;
   border-radius: 999px;
   padding: 0.15rem 0.6rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   background: color-mix(in srgb, currentColor 14%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
 }
-
-/* Dos columnas en desktop: la cuenta a la izquierda, el negocio a la derecha.
-   En móvil, una sola columna en orden natural. */
-.pf-grid {
-  display: grid;
-  gap: 1.25rem;
-  align-items: start;
+.pf-chip-role {
+  opacity: 0.8;
 }
-@media (min-width: 960px) {
-  .pf-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+/* Acciones del hero: ghost con borde hairline del hero, no del canvas. */
+.pf-action {
+  border-color: var(--e-border-soft);
+}
+.pf-action-danger {
+  color: var(--e-red-300);
+}
+.pf-action-danger:hover {
+  color: var(--e-red-300);
+  border-color: color-mix(in srgb, var(--e-red-500) 45%, transparent);
+  background: color-mix(in srgb, var(--e-red-500) 10%, transparent);
+}
+html[data-theme="light"] .pf-action-danger {
+  color: var(--e-red-700);
+}
+
+/* ----------------------------------------------------------------------
+   PESTAÑAS: la .tabbar de la casa (TeamManager, Admin, Invitaciones), a
+   todo el ancho y pegajosa: al bajar por un panel largo las secciones
+   siguen a un toque.
+   ---------------------------------------------------------------------- */
+.pf-tabs {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 5;
+  display: flex;
+  width: 100%;
+  backdrop-filter: blur(8px);
+}
+.pf-tabs .tabbar-item {
+  flex: 1 1 0;
+  min-height: 44px;
+  justify-content: center;
+}
+@media (max-width: 480px) {
+  .pf-tabs .tabbar-item {
+    flex: 0 0 auto;
   }
 }
 
-.pf-section-head {
-  margin-bottom: 1rem;
+/* ----------------------------------------------------------------------
+   PANELES: una cosa a la vez. Un h2 por panel, colgando del h1 del hero.
+   ---------------------------------------------------------------------- */
+.pf-panel {
+  padding: 1.25rem;
 }
-.pf-section-title {
-  font-size: 1rem;
+.pf-panel:focus-visible {
+  outline: 2px solid var(--e-focus-ring);
+  outline-offset: 2px;
+}
+.pf-panel-head {
+  margin-bottom: 1.125rem;
+}
+.pf-panel-title {
+  font-size: var(--e-text-xl);
   font-weight: 700;
   line-height: 1.2;
+  color: var(--color-zinc-50);
+}
+html[data-theme="light"] .pf-panel-title {
+  color: var(--e-neutral-900);
+}
+.pf-panel-hint {
+  margin-top: 0.25rem;
+  font-size: var(--e-text-sm);
+  line-height: 1.55;
+  color: var(--color-zinc-500);
 }
 
+/* Formulario: una columna, ritmo parejo. */
+.pf-form {
+  display: grid;
+  gap: 1rem;
+}
+.pf-field {
+  display: block;
+  min-width: 0;
+}
+.pf-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  color: var(--color-zinc-400);
+}
+html[data-theme="light"] .pf-label {
+  color: var(--e-neutral-600);
+}
+.pf-hint {
+  display: block;
+  margin-top: 0.375rem;
+  font-size: var(--e-text-xs);
+  line-height: 1.5;
+  color: var(--color-zinc-500);
+}
+.pf-hint-block {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+.pf-hint-warn {
+  color: var(--e-amber-400);
+}
+.pf-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.pf-form-actions .btn-primary {
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .pf-form-actions .btn-primary {
+    width: auto;
+  }
+}
+
+/* Input con botón "Ver/Ocultar" superpuesto. */
+.pf-input-wrap {
+  position: relative;
+}
+.pf-input-wrap .field {
+  padding-right: 4.25rem;
+}
+.pf-input-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  color: var(--color-zinc-400);
+  transition: color 0.15s;
+}
+.pf-input-btn:hover {
+  color: var(--color-zinc-100);
+}
+html[data-theme="light"] .pf-input-btn {
+  color: var(--e-neutral-600);
+}
+html[data-theme="light"] .pf-input-btn:hover {
+  color: var(--e-neutral-900);
+}
+
+.pf-alert {
+  border-radius: 0.5rem;
+  border: 1px solid;
+  padding: 0.5rem 0.75rem;
+  font-size: var(--e-text-sm);
+}
+.pf-alert-ok {
+  border-color: color-mix(in srgb, var(--e-green-500) 45%, transparent);
+  background: color-mix(in srgb, var(--e-green-500) 10%, transparent);
+  color: var(--e-green-300);
+}
+.pf-alert-bad {
+  border-color: color-mix(in srgb, var(--e-red-500) 45%, transparent);
+  background: color-mix(in srgb, var(--e-red-500) 10%, transparent);
+  color: var(--e-red-300);
+}
+html[data-theme="light"] .pf-alert-ok {
+  color: var(--e-emerald-700);
+}
+html[data-theme="light"] .pf-alert-bad {
+  color: var(--e-red-700);
+}
+
+/* Sub-bloque dentro de un panel (correo, negocio activo, avisos). */
+.pf-sub {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--e-border-hairline);
+  padding-top: 1.25rem;
+}
+.pf-sub-title {
+  margin-bottom: 0.5rem;
+  font-size: var(--e-text-base);
+  font-weight: 700;
+  color: var(--color-zinc-200);
+}
+html[data-theme="light"] .pf-sub-title {
+  color: var(--e-neutral-900);
+}
+
+/* Dato de solo lectura: se lee como dato, no como campo editable. */
+.pf-readonly {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px dashed var(--e-border-soft);
+  background: color-mix(in srgb, var(--e-ink-3) 55%, transparent);
+  padding: 0.7rem 0.85rem;
+  color: var(--color-zinc-300);
+}
+html[data-theme="light"] .pf-readonly {
+  background: var(--e-neutral-100);
+  color: var(--e-neutral-700);
+}
+.pf-readonly svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.pf-readonly-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--e-text-sm);
+}
+
+/* Selector de negocio activo. */
+.pf-venue-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .pf-venue-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.pf-venue {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--e-border-hairline);
+  padding: 0.75rem;
+  text-align: left;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.pf-venue:hover {
+  border-color: var(--e-border-strong);
+}
+.pf-venue.is-on {
+  border-color: color-mix(in srgb, var(--e-violet-500) 60%, transparent);
+  background: color-mix(in srgb, var(--e-violet-500) 6%, transparent);
+}
+.pf-venue-body {
+  min-width: 0;
+  flex: 1;
+}
+.pf-venue-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--e-text-sm);
+  font-weight: 700;
+  color: var(--color-zinc-200);
+}
+html[data-theme="light"] .pf-venue-name {
+  color: var(--e-neutral-900);
+}
+.pf-venue-roles {
+  display: block;
+  font-size: var(--e-text-xs);
+  color: var(--color-zinc-500);
+}
+.pf-venue-badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--e-violet-500) 15%, transparent);
+  padding: 0.1rem 0.5rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--e-violet-300);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-violet-500) 40%, transparent);
+}
+html[data-theme="light"] .pf-venue-badge {
+  color: var(--e-violet-600);
+}
+
+/* Logo del negocio: la miniatura y la URL en la misma fila. */
+.pf-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+/* El input no puede aportar su ancho intrínseco: sin esto la fila desborda
+   a 320px (el logo y el campo no caben). */
+.pf-logo-row .field {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.pf-logo {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: 0.75rem;
+  object-fit: cover;
+  box-shadow: inset 0 0 0 1px var(--e-border-soft);
+}
+.pf-logo-empty {
+  display: grid;
+  place-items: center;
+  background: var(--e-ink-3);
+  font-size: var(--e-text-lg);
+  font-weight: 700;
+  color: var(--color-zinc-500);
+}
+html[data-theme="light"] .pf-logo-empty {
+  background: var(--e-neutral-200);
+  color: var(--e-neutral-600);
+}
+
+/* Fila del color de marca: la muestra, su valor y el botón de quitar. Mismo
+   patrón que la fila del logo (muestra + control), para que los dos campos de
+   identidad del negocio se lean igual. */
+.pf-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+/* El input nativo de color trae su propio marco y padding: se normaliza al
+   radio y al tamaño del sistema (8 control / chip). */
+.pf-color-input {
+  width: 3rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--e-border-soft);
+  border-radius: 0.5rem;
+  background: none;
+  cursor: pointer;
+}
+.pf-color-input::-webkit-color-swatch-wrapper {
+  padding: 0.2rem;
+}
+.pf-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 0.3rem;
+}
+.pf-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 0.3rem;
+}
+.pf-color-value {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: var(--e-text-xs);
+  color: var(--color-zinc-500);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------------
+   ZONA DE PELIGRO: al pie, tras el troquel, colapsada.
+   ---------------------------------------------------------------------- */
+.pf-danger-wrap {
+  scroll-margin-top: 4rem;
+}
+.pf-danger {
+  border-color: color-mix(in srgb, var(--e-red-500) 35%, transparent);
+  padding: 1.25rem;
+}
+.pf-danger-title {
+  font-size: var(--e-text-lg);
+  font-weight: 700;
+  color: var(--e-red-300);
+}
+html[data-theme="light"] .pf-danger-title {
+  color: var(--e-red-700);
+}
+.pf-danger-copy {
+  margin: 0.25rem 0 1rem;
+  font-size: var(--e-text-xs);
+  line-height: 1.6;
+  color: var(--color-zinc-500);
+}
+.pf-delete-form {
+  display: grid;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--e-red-500) 35%, transparent);
+  background: color-mix(in srgb, var(--e-red-500) 8%, transparent);
+  padding: 1rem;
+}
+.pf-delete-warn {
+  font-size: var(--e-text-sm);
+  color: var(--e-red-300);
+}
+html[data-theme="light"] .pf-delete-warn {
+  color: var(--e-red-800);
+}
+.pf-delete-btn {
+  border-radius: 0.5rem;
+  background: var(--e-red-600);
+  padding: 0.55rem 1rem;
+  font-size: var(--e-text-sm);
+  font-weight: 700;
+  color: var(--e-white);
+  transition: background 0.15s;
+}
+.pf-delete-btn:hover {
+  background: var(--e-red-500);
+}
+.pf-delete-btn:disabled {
+  opacity: 0.4;
+}
+
+/* ----------------------------------------------------------------------
+   MOVIMIENTO DEL PERFIL
+   El perfil no "aparece": se compone. El hero entra escalonado (identidad
+   primero, acciones al final), el panel que se visita sube, y el anillo del
+   avatar respira para que la ficha se sienta viva sin gritar.
+
+   Todo comparte un solo keyframe (pf-rise) para que la casa hable una sola
+   gramática de entrada: mismo easing, misma distancia.
+   ---------------------------------------------------------------------- */
+@keyframes pf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* El escalonado del hero: 60ms entre piezas. Solo translateY (nunca X), así
+   el movimiento no puede abrir scroll horizontal en 320px. */
+.pf-hero-main > .pf-avatar,
+.pf-hero-id > *,
+.pf-hero-actions {
+  animation: pf-rise 0.5s var(--e-ease-expo) both;
+}
+.pf-hero-id > :nth-child(1) {
+  animation-delay: 60ms;
+}
+.pf-hero-id > :nth-child(2) {
+  animation-delay: 110ms;
+}
+.pf-hero-id > :nth-child(3) {
+  animation-delay: 160ms;
+}
+.pf-hero-id > :nth-child(4) {
+  animation-delay: 210ms;
+}
+.pf-hero-id > :nth-child(5) {
+  animation-delay: 260ms;
+}
+.pf-hero-actions {
+  animation-delay: 300ms;
+}
+
+/* El anillo del rol respira: 3.4s, el mismo ritmo que el icono del estado
+   vacío. Es la única cosa en bucle del perfil, y es lo que lo hace sentir
+   vivo en reposo. */
+.pf-avatar-ring {
+  animation: breathe 3.4s ease-in-out infinite;
+}
+
+/* El panel entra al visitarlo. Como cada panel se monta al activarse la
+   pestaña, la animación corre sola en cada cambio — sin JS que la dispare. */
+.pf-panel {
+  animation: pf-rise 0.32s var(--e-ease-expo) both;
+}
+
+/* Indicador deslizante de la pestaña activa.
+   Las pestañas cambian de posición (la de Negocio aparece y desaparece según
+   el rol), así que la posición no se puede expresar en CSS: el JS mide la
+   pestaña activa y publica --pf-tab-x/--pf-tab-w. El indicador es un
+   pseudo-elemento (no un nodo del DOM): dentro de role="tablist" no puede
+   vivir nada que no sea un tab, o el lector de pantalla anuncia un hijo
+   fantasma. */
+.pf-tabs::after {
+  content: "";
+  position: absolute;
+  bottom: 0.25rem;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  width: var(--pf-tab-w, 0px);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--e-violet-400) 22%,
+    var(--e-violet-300) 50%,
+    var(--e-violet-400) 78%,
+    transparent
+  );
+  transform: translateX(var(--pf-tab-x, 0px));
+  transition:
+    transform var(--e-dur-base) var(--e-ease-expo),
+    width var(--e-dur-base) var(--e-ease-expo);
+  pointer-events: none;
+}
+html[data-theme="light"] .pf-tabs::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--e-violet-500) 22%,
+    var(--e-violet-600) 50%,
+    var(--e-violet-500) 78%,
+    transparent
+  );
+}
+
+/* ----------------------------------------------------------------------
+   MOVIMIENTO REDUCIDO
+   Doble puerta, un solo lugar:
+   1. La preferencia del sistema (el default de la casa).
+   2. La preferencia explícita de la app (data-motion="reduce", Preferencias).
+      Un ajuste pedido a mano gana sobre la ausencia de preferencia del SO.
+
+   Se anula la DURACIÓN, no la animación (`animation: none`): con duración
+   casi nula el movimiento desaparece igual, pero los eventos `animationend`
+   siguen disparándose y ningún flujo que espere ese evento se queda colgado.
+   ---------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .pf-hero-main > .pf-avatar,
+  .pf-hero-id > *,
+  .pf-hero-actions,
+  .pf-panel,
+  .pf-avatar-ring {
+    animation: none;
+  }
+  .pf-tabs::after {
+    transition: none;
+  }
+  .pf-tabs .tabbar-item,
+  .pf-input-btn,
+  .pf-venue,
+  .pf-delete-btn {
+    transition: none;
+  }
+}
+
+html[data-motion="reduce"] .pf-hero-main > .pf-avatar,
+html[data-motion="reduce"] .pf-hero-id > *,
+html[data-motion="reduce"] .pf-hero-actions,
+html[data-motion="reduce"] .pf-panel,
+html[data-motion="reduce"] .pf-avatar-ring {
+  animation: none;
+}
+html[data-motion="reduce"] .pf-tabs::after,
+html[data-motion="reduce"] .pf-tabs .tabbar-item,
+html[data-motion="reduce"] .pf-input-btn,
+html[data-motion="reduce"] .pf-venue,
+html[data-motion="reduce"] .pf-delete-btn {
+  transition: none;
+}
+
+/* La preferencia de la app aplica a TODA la casa, no solo al perfil: quien
+   la elige la elige para la app entera. Mismo criterio que el bloque de
+   arriba (anular duración, no la animación). */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
 
 /* ----------------------------------------------------------------------
    DOCUMENTOS LEGALES (paginas publicas /terminos, /privacidad, ...)
@@ -5680,4 +6464,409 @@ html[data-theme="light"] .legal-doc code {
   opacity: 1;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* ==========================================================================
+   PUERTA (nivel venue) Y PROMOTORES
+   Dos secciones que responden preguntas que antes exigían abrir un evento:
+   "¿qué pasa en mi puerta ahora?" y "¿quién va cumpliendo su cupo?".
+   Todo con tokens: ningún color literal (el color vive en tokens.css).
+   ========================================================================== */
+
+/* --- Puerta: pastilla "en vivo" --- */
+.door-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--e-green-300);
+  background: color-mix(in srgb, var(--e-green-500) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--e-green-500) 34%, transparent);
+}
+
+.door-live-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--e-green-500);
+  animation: door-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes door-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .door-live-dot { animation: none; }
+}
+
+/* --- Puerta: la barra de aforo con dos capas (vendido / dentro) ---
+   Dos capas sobre la misma pista: el fondo es "vendido" y encima va lo que
+   ya entró. Así se ve de un golpe cuánto falta por entrar, que es lo que
+   decide si la puerta necesita otro lector. */
+.door-meter {
+  position: relative;
+  height: 1.25rem;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background: var(--e-surface-3);
+  border: 1px solid var(--e-border-hairline);
+}
+
+.door-meter-sold,
+.door-meter-in {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  transition: width 0.5s ease;
+}
+
+.door-meter-sold {
+  background: color-mix(in srgb, var(--e-violet-500) 42%, transparent);
+}
+
+.door-meter-in {
+  background: var(--e-green-500);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .door-meter-sold, .door-meter-in { transition: none; }
+}
+
+.door-key {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.375rem;
+  border-radius: 2px;
+}
+
+.door-key-in { background: var(--e-green-500); }
+.door-key-sold { background: color-mix(in srgb, var(--e-violet-500) 42%, transparent); }
+
+/* --- Puerta: lista de noches --- */
+.door-nights {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.door-night {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.75rem;
+  background: var(--e-surface);
+  border: 1px solid var(--e-border-hairline);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.door-night:hover {
+  border-color: var(--e-border-soft);
+  transform: translateY(-1px);
+}
+
+.door-night.is-live {
+  border-color: color-mix(in srgb, var(--e-green-500) 40%, transparent);
+  box-shadow: inset 3px 0 0 var(--e-green-500);
+}
+
+.door-night-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.door-night-name {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--e-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.door-night-meter {
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--e-surface-3);
+  overflow: hidden;
+}
+
+.door-night-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--e-violet-500), var(--e-violet-400));
+}
+
+.door-night-fill.is-warn { background: linear-gradient(90deg, var(--e-amber-500), var(--e-amber-400)); }
+.door-night-fill.is-full { background: linear-gradient(90deg, var(--e-emerald-500), var(--e-green-500)); }
+
+.door-night-nums {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--e-text-secondary);
+}
+
+/* --- Promotores: la tabla de avance --- */
+.ptable {
+  padding: 0;
+  overflow: hidden;
+}
+
+.prow {
+  display: grid;
+  grid-template-columns: 1.6fr 0.7fr 0.7fr 0.7fr 1fr 1.4fr;
+  gap: 0.625rem;
+  align-items: center;
+  padding: 0.75rem 1.125rem;
+  border-bottom: 1px solid var(--e-border-hairline);
+  font-size: 0.8125rem;
+  color: var(--e-text-secondary);
+}
+
+.prow:last-child { border-bottom: 0; }
+
+.prow-hd {
+  background: var(--e-surface-2);
+  font-size: 0.59375rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--e-text-muted);
+}
+
+.prow-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--e-text-primary);
+}
+
+.prow-av {
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  flex: none;
+  border-radius: 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--e-white);
+  /* violet-500 primero: el 400 está marcado "solo halo/glow" y no llega a
+     AA con texto blanco encima (3.5:1). Mismo orden que el resto de la app. */
+  background: linear-gradient(150deg, var(--e-violet-500), var(--e-violet-400));
+}
+
+.padv-track {
+  flex: 1;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--e-surface-3);
+  overflow: hidden;
+}
+
+.padv-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--e-violet-500), var(--e-violet-400));
+}
+
+.padv-fill.is-warn { background: linear-gradient(90deg, var(--e-amber-500), var(--e-amber-400)); }
+.padv-fill.is-full { background: linear-gradient(90deg, var(--e-emerald-500), var(--e-green-500)); }
+
+/* En móvil la tabla de 6 columnas no cabe: se apila por filas de datos.
+   Mobile-first real, no una tabla con scroll horizontal. */
+@media (max-width: 640px) {
+  .prow {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.375rem 0.75rem;
+  }
+
+  .prow-hd { display: none; }
+
+  .prow-name { grid-column: 1 / -1; }
+}
+
+/* ===========================================================================
+   OPERACIÓN PRIMERO · la portada deja de enterrar los eventos (≤640px)
+
+   Medido antes: a 390px la primera tarjeta empezaba en y=1101 (1,3 pantallas
+   abajo) y no había NINGUNA noche visible sin scrollear. La causa era el orden
+   del DOM: identidad → 4 KPI del mes → navegador de mes → ranking → y al final
+   los eventos. La operación vivía al fondo de su propia portada.
+
+   Dos movimientos, ambos de superficie (ni una ruta ni un endpoint cambian):
+
+   1. REORDENAR. La cabecera pasa a columna reordenable y los eventos suben
+      justo debajo de la identidad. El reporte del mes (KPI, mes, ranking)
+      baja: sigue completo y en el mismo orden, solo que DESPUÉS de lo que
+      el admin viene a hacer. Nada se oculta — .vh-mesnav-label y el botón
+      "Volver al mes actual" siguen visibles (contrato de portada-mes).
+   2. COMPRIMIR. Identidad, guía de primeros pasos y la ficha del evento
+      pierden el aire que en móvil se paga en scroll.
+
+   En ≥641px no cambia nada: ahí la rejilla de dos columnas ya muestra 2
+   noches sin scroll y la portada ancha no estorba.
+   =========================================================================== */
+@media (max-width: 640px) {
+  /* --- 1 · Reordenar: identidad → eventos → reporte del mes ------------- */
+  .venue-header {
+    display: flex;
+    flex-direction: column;
+  }
+  .vh-top { order: 1; }
+  .vh-embedded { order: 2; }
+  .vh-tally { order: 3; }
+  .vh-mesnav { order: 4; }
+  .vh-rank { order: 5; }
+  /* Al cambiar de sitio, la franja deja de ser el cierre de la portada y
+     pasa a ser su contenido: el hairline de arriba ya no separa nada y el
+     hueco de antes del reporte lo pone el tally. */
+  .vh-embedded {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+  }
+
+  /* --- 2a · Identidad en una línea de trabajo --------------------------- */
+  /* La identidad y la cifra del mes comparten fila (antes se apilaban: 145px
+     de portada antes de llegar a nada). El nombre manda a la izquierda, la
+     cifra se apoya a la derecha. */
+  .vh-top {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    /* Sin wrap: la fila base lo permite para nombres largos y con el rótulo
+       del KPI eso partía la cabecera en dos líneas (49px de más). En móvil el
+       nombre se recorta con "…" en vez de empujar la cifra a otra fila. */
+    flex-wrap: nowrap;
+  }
+  .vh-identidad { gap: 0.55rem; }
+  .vh-logo {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.7rem;
+  }
+  .vh-nombre-titulo {
+    font-size: var(--e-text-base);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
+  }
+  /* El rótulo ("Recaudado del mes" / "Neto del mes") NO se oculta: dice si
+     la cifra es bruta o neta de comisiones, y sin él el número miente. La
+     meta ("8 eventos · 5 boletas") sí baja: la repite la tira de cifras. */
+  .vh-kpi {
+    flex-shrink: 0;
+    text-align: right;
+    width: auto;
+    padding-top: 0;
+    padding-right: 0;
+    border-top: 0;
+  }
+  .vh-kpi-label {
+    font-size: 0.5625rem;
+    letter-spacing: 0.06em;
+  }
+  .vh-kpi-meta { display: none; }
+  .vh-kpi-amount { font-size: var(--e-text-2xl); }
+  /* La tira de 4 cifras del mes: 2×2 con menos aire (sigue completa). */
+  .vh-tally > div { padding: 0.55rem 0.7rem; }
+  .vh-tally .pc-t-value { font-size: var(--e-text-lg); }
+  .vh-tally .pc-t-label { font-size: 0.5625rem; }
+
+  /* --- 2b · La guía de primeros pasos, de bloque a aviso ---------------- */
+  /* El texto explicativo se recorta a dos líneas: en un teléfono el párrafo
+     entero (4 líneas) empujaba la primera noche fuera de pantalla. La guía
+     es una invitación de una sola vez, no el contenido de la página. */
+  .onboard-hero { padding: 0.8rem 0.9rem; }
+  .onboard-hero p.text-zinc-500 {
+    font-size: var(--e-text-xs);
+    margin-top: 0.15rem;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .onboard-hero .flex.flex-col.gap-3 { gap: 0.5rem; }
+  .onboard-hero h3 { font-size: var(--e-text-sm); }
+
+  /* --- 2c · La ficha del evento: de currículum a control ---------------- */
+  /* El perno del talón es tinta de boleta: en móvil solo roba altura. */
+  .evx-card > .evx-perf { display: none; }
+  .evx-card > .p-4 { padding: 0.8rem; }
+  .evx-card .evx-idrow {
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .evx-card .evx-thumb {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.55rem;
+  }
+  .evx-card .evx-datecal-day { font-size: var(--e-text-lg); }
+  .evx-card .evx-name { font-size: var(--e-text-lg); }
+  .evx-card .evx-meta-row { margin-top: 0.35rem; }
+  /* Las tres cifras dejan de ser tres columnas apiladas y pasan a una
+     línea: "RECAUDO $0 · VENDIDAS 1/50 · ENTRARON 0". El rótulo sigue
+     pegado a su cifra (nadie adivina de qué habla el número). */
+  .evx-card .evx-stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.8rem;
+    margin-top: 0.55rem;
+  }
+  .evx-card .evx-stat {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.28rem;
+    border-left: 0;
+    padding-left: 0;
+  }
+  .evx-card .evx-stat-value { font-size: var(--e-text-base); }
+  .evx-card .evx-meterrow { margin-top: 0.45rem; }
+  /* Las acciones conservan los 44px táctiles (son control de dedo); solo
+     se recorta el aire que las separaba del borde. */
+  .evx-card .evx-actions { padding: 0 0.8rem 0.8rem; }
+
+  /* --- 2d · La cabecera de sección y el buscador ------------------------ */
+  /* El eyebrow "Operación" es andamiaje de la portada ancha; en móvil el
+     titular con su marca de pincel ya dice de qué sección se trata. */
+  .evx-head {
+    align-items: center;
+    margin-bottom: 0.4rem;
+  }
+  .evx-head .eyebrow { display: none; }
+  .evx-head h2 { font-size: var(--e-text-lg); }
+  .evx-toolbar { gap: 0.3rem 0.5rem; }
+  .evx-search .field {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
 }

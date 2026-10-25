@@ -196,7 +196,11 @@ export default function Layout({ children }) {
           pantallas autenticadas. pb alto en móvil para no pisarse con la
           barra de pestañas inferior. */}
       <footer className="mx-auto max-w-5xl px-4 pb-24 md:pb-6">
-        <LegalLinks className="legal-links mx-auto w-max" />
+        {/* Sin `w-max`: ancho max-content (590px) ganaba al contenedor en
+            móvil y desbordaba la página entera (606px de scroll horizontal
+            a 360/390/414px). El pie es flex-wrap; con ancho fluido envuelve
+            en dos líneas en vez de empujar la pantalla. */}
+        <LegalLinks className="legal-links mx-auto" />
       </footer>
 
       {/* Barra de pestañas inferior (solo móvil): iconos + etiqueta, indicador

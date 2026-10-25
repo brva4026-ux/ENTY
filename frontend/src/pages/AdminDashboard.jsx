@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch, publicTicketPageUrl } from "../lib/api";
 import ContactEditsHistory from "../components/ContactEditsHistory";
@@ -23,7 +23,16 @@ import { money, currentYM } from "../lib/format";
 import CountUpNumber from "../components/CountUpNumber";
 
 import EmptyState from "../components/EmptyState";
-import { OnboardingChecklist } from "../components/OnboardingChecklist";
+import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
+import {
+  cachedPreferences,
+  loadPreferences,
+  savePreference,
+  clearLegacyOnboardingKeys,
+  PREF_ONBOARDING,
+  PREF_TUTORIAL,
+} from "../lib/onboarding";
+import OnboardingTour, { ONBOARDING_STEPS } from "../components/OnboardingTour";
 import EventWorkbench, {
   EventNotFound,
   sortEventsForStrip,
@@ -40,6 +49,8 @@ import EventTeamPanel from "../components/EventTeamPanel";
 import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
 import BusinessOverview from "../components/BusinessOverview";
+import DoorSection from "../components/DoorSection";
+import PromotersSection from "../components/PromotersSection";
 import BusinessDock from "../components/BusinessDock";
 import PaymentsPanel from "../components/PaymentsPanel";
 import VenueHeader from "../components/VenueHeader";
@@ -132,6 +143,32 @@ const NEXT_ACTIONS = {
   cancelled: [],
 };
 
+/** Lo que se avisa al cerrar cada transición. Una sola copia: la usan el
+    backstage y la tarjeta de la franja (antes cada camino tenía la suya). */
+const DONE_MESSAGE = {
+  publish: "Evento publicado: ya puede vender 🎟️",
+  live: "Puertas abiertas: la puerta fue avisada 🚪",
+  end: "Evento finalizado",
+  cancel: "Evento cancelado",
+};
+
+/* Presentación de las acciones EN LA TARJETA: verbo corto + icono + color.
+   El backstage usa las etiquetas largas de NEXT_ACTIONS; aquí el ancho es
+   escaso y el verbo solo ("Publicar") ya dice todo. */
+const STRIP_ACTION = {
+  publish: { label: "Publicar", icon: "bolt", variant: "success" },
+  live: { label: "Abrir puertas", icon: "door", variant: "success" },
+  end: { label: "Finalizar", icon: "check", variant: "brand" },
+  cancel: { label: "Cancelar", icon: "close", variant: "danger" },
+};
+
+const ACTION_TIP = {
+  publish: "Publicar evento (pasa a la venta)",
+  live: "Abrir puertas (la puerta empieza a escanear)",
+  end: "Finalizar evento (la puerta deja de escanear)",
+  cancel: "Cancelar evento (las boletas dejan de ser válidas)",
+};
+
 /* Chip de estado para la franja de eventos (compacto, en español) y orden
  * por prioridad operativa: vivos arriba, pasados al final. Ambos viven en
  * EventWorkbench — un solo vocabulario de estados en toda la app. */
@@ -153,6 +190,9 @@ export default function AdminDashboard() {
   const realVenueId = venueId ?? 0;
 
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)
+  // Eventos de URL ya revalidados contra el servidor (ver más abajo): un
+  // enlace a un evento ausente se relee UNA vez antes de darlo por roto.
+  const probedEventsRef = useRef({});
   // Boletas activas por evento ({id: n}): el pulso de la franja sin abrir
   // cada evento. Un solo GET agregado, no N requests.
   const [ticketCounts, setTicketCounts] = useState({});
@@ -192,6 +232,8 @@ export default function AdminDashboard() {
     "noche",
     "cobros",
     "negocio",
+    "puerta",
+    "promotores",
     "equipo",
     "liquidaciones",
     "invitaciones",
@@ -250,13 +292,130 @@ export default function AdminDashboard() {
       (!q || ev.name.toLowerCase().includes(q)),
   );
 
-  // Onboarding del primer evento: el más reciente (la lista viene ordenada
-  // starts_at DESC) mientras siga en borrador. Publicarlo apaga la guía para
-  // siempre — y como el paso de "publicar" solo existe mientras haya borrador,
-  // la guía no puede reaparecer en un negocio que ya está vendiendo.
-  const newestEvent = events && events.length ? events[0] : null;
-  const showOnboarding =
-    events !== null && (!newestEvent || newestEvent.status === "draft");
+  // Onboarding del primer evento. El evento del onboarding es el BORRADOR más
+  // cercano en el tiempo, no `events[0]`: la lista viene ordenada `starts_at
+  // DESC`, así que `events[0]` es el evento con la fecha MÁS LEJANA del futuro.
+  // Con ese criterio, publicar la fiesta de hoy y luego crear la del mes que
+  // viene (borrador) reactivaba la guía que el admin ya había cerrado.
+  //
+  // Un borrador sin fecha no debería existir (el modal la exige), pero se
+  // ordena igual para no depender de eso.
+  const onboardingEvent = useMemo(() => {
+    const drafts = (events ?? []).filter((e) => e.status === "draft");
+    if (!drafts.length) return null;
+    return [...drafts].sort((a, b) =>
+      String(a.starts_at ?? "").localeCompare(String(b.starts_at ?? ""))
+    )[0];
+  }, [events]);
+  // La guía solo aplica mientras el negocio no esté vendiendo: con el primer
+  // evento publicado ya no hay nada que enseñar. Se mira TODA la lista, no solo
+  // el borrador: un borrador viejo junto a un evento ya publicado (o en puerta)
+  // no debe reabrir la guía.
+  const onboardingRelevant =
+    events !== null &&
+    !events.some((e) => e.status !== "draft" && e.status !== "cancelled");
+  // Evento con la puerta abierta AHORA. Se deriva de la lista ya cargada (el
+  // endpoint de eventos trae `status`), así que saber si hay noche en curso no
+  // cuesta un request. Si hubiera más de uno (no debería), el primero.
+  const liveEvent = (events || []).find((e) => e.status === "live") || null;
+  // Preferencia por usuario+venue, en el SERVIDOR (lib/onboarding, mig 032):
+  // "accepted" la aceptó, "dismissed" la rechazó, "completed" la terminó,
+  // "pending" todavía no decidió (se le ofrece). Se pinta primero el cache para
+  // no mostrar la invitación un instante y esconderla al llegar la respuesta.
+  const [prefs, setPrefs] = useState(() => cachedPreferences(venueId));
+  const onboardingPref = prefs[PREF_ONBOARDING]?.value ?? "pending";
+  // Tutorial guiado abierto (modo "me dice dónde presionar").
+  const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    // Claves viejas (localStorage) que ya no se leen: se limpian una vez.
+    clearLegacyOnboardingKeys();
+  }, []);
+  useEffect(() => {
+    let alive = true;
+    setPrefs(cachedPreferences(venueId));
+    loadPreferences(venueId).then((p) => {
+      if (alive) setPrefs(p);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [venueId]);
+
+  // Se OFRECE (opt-in) si no decidió; se MUESTRA la guía si la aceptó.
+  const showOnboardingInvite =
+    onboardingRelevant && onboardingPref === "pending" && events !== null;
+  const showOnboardingChecklist =
+    onboardingRelevant && onboardingPref === "accepted" && events !== null;
+  // La guía está visible de alguna forma: los efectos que cargan su progreso
+  // (tipos, cupos) dependen de esto.
+  const showOnboarding = showOnboardingInvite || showOnboardingChecklist;
+  // Acceso permanente para volver a mostrarla cuando está oculta (la rechazó o
+  // ya la completó). NO depende de que haya un borrador: si el negocio ya
+  // vende, la guía terminó su trabajo y no debe reaparecer sola — pero el
+  // camino de vuelta siempre queda a la vista.
+  const showOnboardingResume =
+    events !== null &&
+    (onboardingPref === "dismissed" || onboardingPref === "completed");
+
+  /** Guarda la decisión en el servidor y refleja el resultado en el acto. */
+  function decideOnboarding(pref) {
+    setPrefs((p) => ({ ...p, [PREF_ONBOARDING]: { ...p[PREF_ONBOARDING], value: pref } }));
+    savePreference(venueId, PREF_ONBOARDING, pref).catch(() =>
+      // Si el servidor la rechaza, se recarga la verdad: la UI no puede quedar
+      // mintiendo sobre una decisión que no se guardó.
+      loadPreferences(venueId).then(setPrefs)
+    );
+  }
+
+  /**
+   * Arranca el tutorial guiado. Aceptar la invitación ES aceptar la guía, así
+   * que también queda "accepted": sin eso, cerrar el tutorial devolvía al admin
+   * a la invitación de nuevo — el bucle que se está arreglando.
+   */
+  function startTour() {
+    if (onboardingPref === "pending") decideOnboarding("accepted");
+    const step = prefs[PREF_TUTORIAL]?.step ?? 0;
+    setPrefs((p) => ({ ...p, [PREF_TUTORIAL]: { value: "accepted", step } }));
+    savePreference(venueId, PREF_TUTORIAL, "accepted", step).catch(() => {});
+    setTourOpen(true);
+  }
+
+  /** Guarda el avance del tutorial (sobrevive a cerrar la app). */
+  function onTourStep(step) {
+    setPrefs((p) => ({ ...p, [PREF_TUTORIAL]: { value: "accepted", step } }));
+    savePreference(venueId, PREF_TUTORIAL, "accepted", step).catch(() => {});
+  }
+
+  /** El tutorial terminó: no vuelve a ofrecerse solo. La guía de progreso
+   *  sigue viva si al negocio le falta montar algo — son dos cosas distintas. */
+  function finishTour() {
+    setTourOpen(false);
+    setPrefs((p) => ({ ...p, [PREF_TUTORIAL]: { value: "completed", step: 0 } }));
+    savePreference(venueId, PREF_TUTORIAL, "completed", 0).catch(() => {});
+  }
+
+  /** El usuario salió del tutorial: se recuerda dónde quedó para retomarlo. */
+  function exitTour() {
+    setTourOpen(false);
+  }
+
+  /** El tutorial no puede explicar el backstage desde la lista: navega solo.
+   *  Es el único punto donde el tutorial mueve la URL; el resto del panel
+   *  sigue siendo el dueño de la navegación. */
+  useEffect(() => {
+    if (!tourOpen) return;
+    const step = ONBOARDING_STEPS[prefs[PREF_TUTORIAL]?.step ?? 0];
+    if (!step) return;
+    if (step.screen === "event") {
+      // El backstage necesita un evento. El borrador del onboarding es el
+      // candidato natural; sin borrador, el más próximo.
+      const target = onboardingEvent ?? events?.[0];
+      if (target && selectedEvent !== target.id) flyToEvent(target.id, "resumen");
+    } else if (selectedEvent !== null) {
+      setSearchParams({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourOpen, prefs[PREF_TUTORIAL]?.step]);
 
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
@@ -292,21 +451,42 @@ export default function AdminDashboard() {
         setSearchParams({ event: String(wanted) });
       }
     } else if (urlEvent) {
-      // Evento inexistente en la URL (borrado/enlace viejo): se limpia el
-      // parámetro para que la URL diga la verdad de lo que se está viendo.
-      setSearchParams({});
+      // El evento de la URL no está en el catálogo que tenemos. Puede ser un
+      // enlace de verdad roto (borrado) o, más probable en la operación, un
+      // aviso recién llegado a un evento que se creó DESPUÉS de esta carga
+      // (la cola de puerta crea la noche y avisa en el acto). Antes de borrar
+      // el parámetro se relee el catálogo UNA vez: solo si el evento sigue sin
+      // aparecer el enlace se declara roto. Sin este paso, el aviso se comía
+      // su propio destino y aterrizaba en el panel a secas.
+      if (probedEventsRef.current[urlEvent]) {
+        probedEventsRef.current[urlEvent] = false;
+        setSearchParams({});
+      } else {
+        probedEventsRef.current[urlEvent] = true;
+        loadEvents().catch(() => {});
+      }
     } else if (selectedEvent !== null) {
       // Sin ?event= en la URL: la lista es la pantalla (modo lista). Nadie
       // aterriza "en el primer evento" por accidente: entrar es una decisión.
       setSelectedEvent(null);
-    } else if (events.length === 0 && !createOpen) {
-      // Venue nueva sin eventos: la única acción posible es crear el primero.
+    } else if (
+      events.length === 0 &&
+      !createOpen &&
+      // La guía manda mientras esté en pantalla: su CTA ("Crear evento") es el
+      // camino, y abrir el modal por encima tapaba la invitación — el admin no
+      // llegaba a decidir— o la propia guía si acababa de rechazarla.
+      !showOnboardingInvite &&
+      !showOnboardingChecklist &&
+      !showOnboardingResume
+    ) {
+      // Venue nueva sin eventos y sin guía: la única acción posible es crear
+      // el primero.
       setCreateOpen(true);
     }
     // selectedEvent a propósito fuera de las deps: esta pantalla solo sigue a
     // la URL y al catálogo, no re-detecciona en cada clic del selector.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, urlEvent]);
+  }, [events, urlEvent, onboardingPref]);
 
   /** Navega al backstage de un evento (la URL es la fuente de verdad). */
   function flyToEvent(id, tab) {
@@ -359,11 +539,11 @@ export default function AdminDashboard() {
   /** Atajo de la guía de primeros pasos: abre el borrador en la pestaña donde
    *  se resuelve el paso pendiente. Sin evento, solo "Crear evento" aplica. */
   function onboardingGo(step) {
-    if (!newestEvent) {
+    if (!onboardingEvent) {
       setCreateOpen(true);
       return;
     }
-    flyToEvent(newestEvent.id, step === "evento" ? undefined : step);
+    flyToEvent(onboardingEvent.id, step === "evento" ? undefined : step);
   }
 
   // Usuarios de la venue: para asignar cupos con nombres reales
@@ -399,14 +579,14 @@ export default function AdminDashboard() {
   // solo se precarga el borrador cuando NO hay backstage abierto, para no
   // pisar los datos del evento que el admin está editando en ese momento.
   useEffect(() => {
-    if (selectedEvent || !showOnboarding || !newestEvent || !venueId) return;
-    apiFetch(`/venues/${venueId}/events/${newestEvent.id}/types`)
+    if (selectedEvent || !showOnboarding || !onboardingEvent || !venueId) return;
+    apiFetch(`/venues/${venueId}/events/${onboardingEvent.id}/types`)
       .then(setTypes)
       .catch(() => {});
-    apiFetch(`/venues/${venueId}/events/${newestEvent.id}/allocations`)
+    apiFetch(`/venues/${venueId}/events/${onboardingEvent.id}/allocations`)
       .then(setAllocations)
       .catch(() => {});
-  }, [selectedEvent, showOnboarding, newestEvent, venueId]);
+  }, [selectedEvent, showOnboarding, onboardingEvent, venueId]);
 
   // Memoizado: es dependencia de reloadAll (PTR) y de useLiveRefresh; sin
   // memo, ambas corren con una closure vieja cuando cambia el evento elegido.
@@ -434,40 +614,52 @@ export default function AdminDashboard() {
     // el PTR refrescaría datos de un evento que ya no está seleccionado.
   }, [loadEvents, reloadUsers, refreshEventData]);
 
-  async function runAction(action, label) {
-    if (!selectedEvent) return;
-    // Pre-vuelo también en el backstage (la misma apertura, otro camino).
+  /** Transición de ciclo de vida con UN SOLO camino: lo usan la tarjeta de la
+      franja y el backstage. `ev` es el evento destino (en la tarjeta no siempre
+      es el seleccionado); `fromStrip` solo cambia la clave de `busyAction` y si,
+      al abortar el pre-vuelo, hay que navegar al evento (desde el backstage ya
+      se está dentro). Antes eran dos funciones con textos y reglas distintas. */
+  async function transitionEvent(ev, action, { fromStrip = false } = {}) {
+    if (!ev) return;
+    const busyKey = fromStrip ? `${action}-${ev.id}` : action;
+
+    // PRE-VUELO: abrir puertas sin nadie en puerta era el fracaso silencioso
+    // (el evento pasa a live y el escáner rechaza con 403). Se avisa ANTES del
+    // confirm, con los nombres, y deja seguir si el admin decide que así sea.
     if (action === "live") {
       try {
         const pf = await apiFetch(
-          `/venues/${venueId}/events/${selectedEvent}/preflight`,
+          `/venues/${venueId}/events/${ev.id}/preflight`,
         );
         if (pf.bouncers === 0) {
-          const ok0 = await ui.confirm("¿Abrir puertas sin nadie en puerta?", {
-            message:
-              "Esta noche no tiene nadie asignado en puerta. Podés sumar a alguien en la pestaña Equipo antes de abrir.",
+          const ok = await ui.confirm("¿Abrir puertas sin nadie en puerta?", {
+            message: fromStrip
+              ? "Esta noche no tiene nadie asignado en puerta. La boletería funciona, pero no habrá quien escanee. Podés sumar a alguien en la pestaña Equipo de la noche."
+              : "Esta noche no tiene nadie asignado en puerta. Podés sumar a alguien en la pestaña Equipo antes de abrir.",
             confirmLabel: "Abrir igual",
             danger: true,
           });
-          if (!ok0) {
-            setSection("noche");
+          if (!ok) {
+            flyToEvent(ev.id, "noche");
             return;
           }
         } else if (!pf.door_ready) {
           const names = pf.door_staff.map((s) => s.full_name).join(", ");
-          const ok1 = await ui.confirm("¿Abrir puertas sin escáner activo?", {
-            message: `${names} aún no abrió su link de puerta. Sin canjearlo no podrá escanear esta noche.`,
+          const ok = await ui.confirm("¿Abrir puertas sin escáner activo?", {
+            message: `${names} ${pf.bouncers === 1 ? "está" : "están"} asignado${pf.bouncers === 1 ? "" : "s"} a puerta pero nadie abrió su link todavía. Sin canjear el link no van a poder escanear esta noche.`,
             confirmLabel: "Abrir igual",
           });
-          if (!ok1) {
-            setSection("noche");
+          if (!ok) {
+            flyToEvent(ev.id, "noche");
             return;
           }
         }
       } catch {
-        // Sin pre-vuelo no se bloquea la apertura.
+        // Pre-vuelo caído: no bloquea la apertura (el negocio decide igual).
       }
     }
+
+    // Confirmaciones de las transiciones que no se deshacen.
     if (action === "cancel") {
       const ok = await ui.confirm("¿Cancelar el evento?", {
         message:
@@ -484,90 +676,23 @@ export default function AdminDashboard() {
       });
       if (!ok) return;
     }
-    setBusyAction(action);
-    setError("");
-    try {
-      const updated = await apiFetch(
-        `/venues/${venueId}/events/${selectedEvent}/${action}`,
-        {
-          method: "POST",
-        },
-      );
-      setEvents((evs) => evs.map((e) => (e.id === updated.id ? updated : e)));
-      await refreshEventData();
-      ui.success(
-        action === "publish"
-          ? "Evento publicado: ya puede vender 🎟️"
-          : action === "live"
-            ? "Puertas abiertas: la puerta fue avisada 🚪"
-            : action === "end"
-              ? "Evento finalizado"
-              : "Evento cancelado",
-      );
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusyAction("");
+    if (action === "publish") {
+      const ok = await ui.confirm("¿Publicar el evento?", {
+        message:
+          "El evento pasa a la venta: los promotores pueden emitir boletas.",
+        confirmLabel: "Publicar",
+      });
+      if (!ok) return;
     }
-  }
-
-  /** Transición de ciclo de vida DESDE LA FRANJA: la tarjeta se convierte en
-      panel de control. Publicar (draft) y Abrir puertas (published) son las
-      dos que desbloquean dinero y puerta; cancelar/finalizar quedan en el
-      backstage porque piden contexto (cifras, boletas). */
-  async function quickTransition(ev, action) {
-    const labels = { publish: "¿Publicar el evento?", live: "¿Abrir puertas?" };
-    const done = {
-      publish: "Evento publicado: ya puede vender 🎟️",
-      live: "Puertas abiertas: la puerta fue avisada 🚪",
-    };
-    // PRE-VUELO: abrir puertas sin nadie en puerta era el fracaso silencioso
-    // (el evento pasa a live y el escáner rechaza con 403). El pre-vuelo lo
-    // dice ANTES del confirm, con los nombres, y deja seguir si el admin
-    // decide que así sea.
     if (action === "live") {
-      try {
-        const pf = await apiFetch(
-          `/venues/${venueId}/events/${ev.id}/preflight`,
-        );
-        if (pf.bouncers === 0) {
-          const ok0 = await ui.confirm("¿Abrir puertas sin nadie en puerta?", {
-            message:
-              "Esta noche no tiene nadie asignado en puerta. La boletería funciona, pero no habrá quien escanee. Podés sumar a alguien en la pestaña Equipo de la noche.",
-            confirmLabel: "Abrir igual",
-            danger: true,
-          });
-          if (!ok0) {
-            flyToEvent(ev.id, "noche");
-            return;
-          }
-        } else if (!pf.door_ready) {
-          const names = pf.door_staff.map((s) => s.full_name).join(", ");
-          const ok1 = await ui.confirm(
-            `¿Abrir puertas sin escáner activo?`,
-            {
-              message: `${names} ${pf.bouncers === 1 ? "está" : "están"} asignado${pf.bouncers === 1 ? "" : "s"} a puerta pero nadie abrió su link todavía. Sin canjear el link no van a poder escanear esta noche.`,
-              confirmLabel: "Abrir igual",
-            },
-          );
-          if (!ok1) {
-            flyToEvent(ev.id, "noche");
-            return;
-          }
-        }
-      } catch {
-        // Pre-vuelo caído: no bloquea la apertura (el negocio decide igual).
-      }
+      const ok = await ui.confirm("¿Abrir puertas?", {
+        message: "La puerta empieza a aceptar escaneos.",
+        confirmLabel: "Abrir puertas",
+      });
+      if (!ok) return;
     }
-    const ok = await ui.confirm(labels[action], {
-      message:
-        action === "publish"
-          ? "El evento pasa a la venta: los promotores pueden emitir boletas."
-          : "La puerta empieza a aceptar escaneos.",
-      confirmLabel: action === "publish" ? "Publicar" : "Abrir puertas",
-    });
-    if (!ok) return;
-    setBusyAction(`${action}-${ev.id}`);
+
+    setBusyAction(busyKey);
     setError("");
     try {
       const updated = await apiFetch(
@@ -576,12 +701,27 @@ export default function AdminDashboard() {
       );
       setEvents((evs) => evs.map((e) => (e.id === updated.id ? updated : e)));
       haptics.success();
-      ui.success(done[action]);
+      // El backstage muestra las cifras del evento abierto y necesita releerlas;
+      // la franja ya quedó al día con el evento que devolvió el POST.
+      if (!fromStrip) await refreshEventData();
+      ui.success(DONE_MESSAGE[action]);
     } catch (err) {
       setError(err.message);
     } finally {
       setBusyAction("");
     }
+  }
+
+  /** Acción del backstage: el evento abierto, con la etiqueta de NEXT_ACTIONS. */
+  function runAction(action) {
+    return transitionEvent(selectedEventData, action);
+  }
+
+  /** Acción de la tarjeta de la franja: la tarjeta es panel de control, así que
+      ofrece el ciclo de vida completo (publicar, abrir puertas, finalizar,
+      cancelar) sin tener que entrar al backstage. */
+  function quickTransition(ev, action) {
+    return transitionEvent(ev, action, { fromStrip: true });
   }
 
   function startEditEvent() {
@@ -799,19 +939,38 @@ export default function AdminDashboard() {
         {/* En móvil: invita a instalar la PWA (se oculta sola si ya está instalada) */}
         <InstallPrompt />
         {/* Guía del admin primerizo: acompaña hasta que el PRIMER evento está
-          realmente a la venta. Antes solo vivía con la venue vacía, así que
-          al crear el evento desaparecía y los pasos 2–4 (tipos, cupos,
-          publicar) nunca se veían. Ahora se muestra mientras el evento más
-          reciente siga en borrador y mide el progreso REAL. Al publicarlo
-          (o descartarla) se calla para siempre. */}
-        {events !== null && showOnboarding && (
+          realmente a la venta. Primero se OFRECE (opt-in): el admin decide si
+          la quiere o la hace por su cuenta, y su elección se recuerda por
+          usuario y negocio (en el servidor). Cuando está oculta queda "Primeros
+          pasos" para volver a abrirla — nunca es irreversible.
+
+          Vive SOLO en modo lista: dentro del backstage de un evento la guía no
+          tiene nada que hacer y tapaba la pantalla de trabajo. */}
+        {!selectedEventData && showOnboardingInvite && (
           <OnboardingChecklist
+            mode="invite"
+            onAccept={startTour}
+            onDismiss={() => decideOnboarding("dismissed")}
+          />
+        )}
+        {!selectedEventData && showOnboardingChecklist && (
+          <OnboardingChecklist
+            mode="checklist"
             hasEvent={events.length > 0}
             hasTypes={types.length > 0}
             hasAllocations={allocations.length > 0}
-            isPublished={newestEvent ? newestEvent.status !== "draft" : false}
+            isPublished={events.some((e) => e.status !== "draft")}
             onStart={() => setCreateOpen(true)}
             onGo={onboardingGo}
+            onTour={startTour}
+            onDismiss={() => decideOnboarding("dismissed")}
+            onComplete={() => decideOnboarding("completed")}
+          />
+        )}
+        {!selectedEventData && showOnboardingResume && (
+          <OnboardingResume
+            onRestart={() => decideOnboarding("accepted")}
+            onTour={startTour}
           />
         )}{" "}
         {error && (
@@ -835,6 +994,7 @@ export default function AdminDashboard() {
               user={user}
               month={urlMonth}
               onMonth={setMonth}
+              liveEvent={liveEvent}
             >
               {/* PORTADA UNIFICADA: la franja de eventos vive DENTRO del card
                 de la venue — un solo contexto como Del negocio, secciones
@@ -882,6 +1042,7 @@ export default function AdminDashboard() {
                           onClick={() => setCreateOpen(true)}
                           aria-label="Nuevo evento"
                           data-tip="Nuevo evento"
+                          data-tour="nuevo-evento"
                           className="btn-primary evx-newbtn shrink-0"
                         >
                           <Icon name="plus" className="h-4 w-4" />
@@ -988,9 +1149,8 @@ export default function AdminDashboard() {
                   )}
               {booting ? (
                 <SelectSkeleton className="max-w-xs" />
-              ) : (
-                events.length > 0 && (
-                  <section className="events-strip">
+              ) : events.length > 0 ? (
+                  <section className="events-strip" data-tour="eventos">
                     {visibleEvents.length === 0 ? (
                       /* El vacío dice la verdad del motivo: sin búsqueda, un
                          filtro de estado sin eventos NO es "no coincide una
@@ -1373,47 +1533,49 @@ export default function AdminDashboard() {
                                   </div>
                                 )}
                               </div>
-                              {/* Acciones de esquina al hover/focus (desktop):
-                            la tarjeta es panel de control, no solo enlace.
-                            Publicar/Abrir puertas desbloquean dinero y puerta;
-                            duplicar apura la recurrencia semanal. */}
+                              {/* Acciones de la tarjeta: es panel de control,
+                            no solo enlace. Se derivan de NEXT_ACTIONS — la
+                            MISMA fuente que el backstage — así que la tarjeta
+                            ya no reimplementa un subconjunto: un evento en vivo
+                            se finaliza desde aquí, sin abrir su backstage. */}
                               <div className="evx-actions pointer-events-auto">
-                                {(ev.status === "draft" ||
-                                  ev.status === "published") && (
-                                  <button
-                                    onClick={() =>
-                                      quickTransition(
-                                        ev,
-                                        ev.status === "draft"
-                                          ? "publish"
-                                          : "live",
-                                      )
-                                    }
-                                    disabled={busyAction !== ""}
-                                    className="btn-mini"
-                                    data-variant="success"
-                                    data-tip={
-                                      ev.status === "draft"
-                                        ? "Publicar evento (pasa a la venta)"
-                                        : "Abrir puertas (la puerta empieza a escanear)"
-                                    }
-                                  >
-                                    {busyAction === `publish-${ev.id}` ||
-                                    busyAction === `live-${ev.id}` ? (
-                                      <svg
-                                        className="btn-spinner"
-                                        viewBox="0 0 24 24"
-                                        aria-hidden="true"
+                                {(NEXT_ACTIONS[ev.status] ?? []).map(
+                                  ({ action }) => {
+                                    const meta =
+                                      STRIP_ACTION[action] ?? {
+                                        label: action,
+                                        icon: "bolt",
+                                      };
+                                    const busy =
+                                      busyAction === `${action}-${ev.id}`;
+                                    return (
+                                      <button
+                                        key={action}
+                                        onClick={() => quickTransition(ev, action)}
+                                        disabled={busyAction !== ""}
+                                        aria-label={`${meta.label} ${ev.name}`}
+                                        data-tip={ACTION_TIP[action]}
+                                        className="btn-mini"
+                                        data-variant={meta.variant}
                                       >
-                                        <circle cx="12" cy="12" r="9" />
-                                      </svg>
-                                    ) : (
-                                      <Icon name="bolt" className="h-3.5 w-3.5" />
-                                    )}
-                                    {ev.status === "draft"
-                                      ? "Publicar"
-                                      : "Abrir puertas"}
-                                  </button>
+                                        {busy ? (
+                                          <svg
+                                            className="btn-spinner"
+                                            viewBox="0 0 24 24"
+                                            aria-hidden="true"
+                                          >
+                                            <circle cx="12" cy="12" r="9" />
+                                          </svg>
+                                        ) : (
+                                          <Icon
+                                            name={meta.icon}
+                                            className="h-3.5 w-3.5"
+                                          />
+                                        )}
+                                        {meta.label}
+                                      </button>
+                                    );
+                                  },
                                 )}
                                 {/* Duplicar está disponible en TODOS los
                                     estados: de una noche en curso o pasada
@@ -1472,8 +1634,30 @@ export default function AdminDashboard() {
                       </div>
                     )}
                   </section>
-                )
-              )}
+                ) : (
+                  /* Negocio recién creado: sin noches todavía. Este bloque es
+                     también el ancla del paso "eventos" del tutorial, que
+                     tiene que existir aunque no haya eventos. */
+                  <section data-tour="eventos" className="pt-1">
+                    <EmptyState
+                      icon="ticket"
+                      title="Todavía no hay eventos"
+                    >
+                      <p>
+                        Crea tu primera noche con el botón de abajo: nace en
+                        borrador y la montas antes de vender.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setCreateOpen(true)}
+                        data-tour="nuevo-evento"
+                        className="btn-primary mt-3 !px-3 !py-1.5 text-xs"
+                      >
+                        Crear mi primer evento
+                      </button>
+                    </EmptyState>
+                  </section>
+                )}
             </VenueHeader>
 
             {/* Acción primaria al alcance del pulgar (solo móvil, modo lista):
@@ -1982,6 +2166,15 @@ export default function AdminDashboard() {
         {/* Secciones de venue: se renderizan cuando su pestaña está activa y
           NO hay evento abierto (en modo evento la pestaña activa es del
           evento; estas secciones son alcanzables desde la lista). */}
+        {!selectedEventData && section === "puerta" && (
+          <DoorSection
+            venueId={venueId}
+            onOpenEvent={(id) => flyToEvent(id, "entradas")}
+          />
+        )}
+        {!selectedEventData && section === "promotores" && (
+          <PromotersSection venueId={venueId} month={urlMonth} />
+        )}
         {!selectedEventData && section === "cobros" && (
           <PaymentsPanel venueId={venueId} events={events ?? []} />
         )}
@@ -2004,6 +2197,18 @@ export default function AdminDashboard() {
         )}
         {!selectedEventData && section === "invitaciones" && (
           <InvitationsManager venueId={venueId} />
+        )}
+
+        {/* Tutorial guiado: se monta al final para quedar por encima de todo
+          el panel (no dentro de un card, que lo recortaría). */}
+        {tourOpen && (
+          <OnboardingTour
+            steps={ONBOARDING_STEPS}
+            step={prefs[PREF_TUTORIAL]?.step ?? 0}
+            onStep={onTourStep}
+            onExit={exitTour}
+            onFinish={finishTour}
+          />
         )}
       </div>
     </PullToRefresh>

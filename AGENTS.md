@@ -64,6 +64,71 @@ migración con objetos nuevos, consolidala también en `db/schema.sql`
 (aplicá schema+migraciones sobre una base limpia, `pg_dump --schema-only`
 y reemplazá el archivo) o el test falla.
 
+Ese test necesita los binarios `psql` y `pg_dump` en el PATH. El contenedor
+puede traer solo el servidor: si el test se salta con "psql/pg_dump no
+disponibles", instalá el cliente (`sudo apt-get install -y postgresql-client`)
+en vez de darlo por bueno — un skip local no es un verde.
+
+`tests/test_deploy_migrations.py` cierra el otro lado del mismo problema:
+`db/schema.sql` es la instalación completa, pero **producción se migra con
+`scripts/deploy.sh`**, que lleva la lista de migraciones escrita a mano. Si
+agregás una migración y no la sumás al array `MIGRATIONS`, el código nuevo se
+despliega (Vercel auto-despliega en cada push) pero el objeto nunca llega a
+Supabase: las rutas que lo usan devuelven 503. El test compara la lista contra
+`db/migrations/*.sql` y falla si falta una, sobra una o se rompe el orden.
+
+
+### Correr la suite E2E dos veces seguidas (importante)
+
+La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los
+compran y abren la puerta. Al segundo `npx playwright test` contra la misma DB:
+
+- El catálogo de `/inicio` se llena de eventos `E2E-*`. Los tests que asumían
+  que la primera fila era la del seed (`Noche Electrónica`) fallaban por un
+  motivo que **no tiene nada que ver con el cambio que estás probando**.
+  Síntoma real observado: 10 fallos con el mismo código que antes daba 30/31.
+  **Ya no**: `fan.spec.js` y `fan-checkout.spec.js` seleccionan el seed
+  explícitamente (por nombre) en vez de "el primero de la lista", así que dan
+  30/31 con la base contaminada. Si aparecen fallos de orden en otro test,
+  aplicá el mismo patrón: anclá al seed, no a la posición.
+- Los logins del admin chocan con el lockout de `login_attempts`
+  (`_MAX_FAILURES=8` en 15 min, `backend/app/routers/auth.py`). El 9.º intento
+  devuelve **429** y todo test que entre al panel falla.
+
+Antes de culpar a tu diff, limpiá y volvé a correr:
+
+```bash
+export PGPASSWORD=devpassword
+psql -h 127.0.0.1 -U postgres -d ticketflow -c "DELETE FROM login_attempts;"
+# los E2E-* primero sus dependencias (tickets cuelga de ticket_types, etc.)
+for t in analytics_events event_waitlist redemptions tickets ticket_types \
+         promoter_allocations event_staff event_access_tokens \
+         ticket_payments ticket_returns; do
+  psql -h 127.0.0.1 -U postgres -d ticketflow -c \
+    "DELETE FROM $t WHERE event_id IN (SELECT id FROM events WHERE name LIKE 'E2E-%');"
+done
+psql -h 127.0.0.1 -U postgres -d ticketflow -c "DELETE FROM events WHERE name LIKE 'E2E-%';"
+```
+
+Si un test falla, **reproducí el fallo en la DB limpia antes de tocar el
+código**: hoy los dos culpables (contaminación y lockout) se veían idénticos a
+una regresión real.
+
+### stylelint: hoy NO está en CI y el presupuesto está mal
+
+`npm run lint:css` es `stylelint "src/**/*.css" --max-warnings 31`, pero hay
+**64 warnings y 22 errores**: el repo está en **exit 2** desde antes de la
+auditoría y nadie lo corre, así que el guardarraíl del design system no está
+vigilando nada. No te fíes del exit code de un `npm run` a través de un pipe
+(`cmd | tail` te da el exit de `tail`): redirigí a archivo y mirá `$?`.
+
+Los 22 errores viven todos en `components/DashboardCover.css`, un componente
+que **nunca se cableó a ninguna página** (`git log -S DashboardCover` sobre
+`pages/`, `main.jsx` y `App.jsx` sale vacío; 0 importadores; ausente del
+bundle). Incluye 7 `@keyframe` mal escritos —que no definen ninguna animación—
+y un `translateY(1)` inválido. Mientras ese archivo exista, poner stylelint
+como gate en CI deja el pipeline rojo.
+
 ## Convenciones
 
 - **Idioma**: identificadores y comentarios en español, sin tildes en el código.
@@ -335,6 +400,41 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   visible y de un solo color** en ambos temas. Corre con `E2E_BASE_URL=http://127.0.0.1:12000
   npx playwright test e2e/a11y.spec.js`.
 
+### Gate de diseno (skill design-taste-frontend)
+
+`npm run lint:design` corre el lint del skill de diseno con la **allowlist de
+marca** del proyecto y falla si aparece cualquier hallazgo nuevo. El gate vive
+en `frontend/scripts/design-gate.mjs`; el presupuesto y el motivo de cada
+excepcion, en `design-gate.baseline.json`.
+
+No es una allowlist que deje pasar: es un **trinquete**. El lint del skill banea
+~560 cosas en este repo, pero casi todas son la identidad deliberada de
+TicketFlow (violeta de marca, gradientes del shell nocturno, glass del dock,
+sombras de overlay, emoji de la demo). Esos conteos estan aceptados; **crecer en
+cualquier regla falla**, y una regla que no figure en el baseline tambien falla.
+Asi la cifra solo puede bajar. Para fijar una mejora, `--update`.
+
+```bash
+cd frontend
+npm run lint:design                      # gate
+node scripts/design-gate.mjs --json      # regresiones en JSON
+node scripts/design-gate.mjs --update    # fija el presupuesto actual
+```
+
+Dos cosas que conviene saber antes de confiar en este gate:
+
+- **En CI no verifica.** El skill vive en `.agents/`, que esta gitignored
+  ("skills locales de la sesion"), asi que en CI el script se auto-salta y emite
+  una anotacion `::warning` para que el skip se vea en el PR en vez de pasar por
+  un verde real. Para que verifique hay que vendorizar el skill en el repo (es
+  autocontenido: 119 lineas, solo builtins de Node) o apuntar `TASTE_SKILL_DIR` a
+  un checkout. Hoy el gate es **local**.
+- **El inspector (`inspect.mjs`) no corre en este contenedor.** Lanza Chrome sin
+  `--no-sandbox` y aqui no hay sandbox de usuario, asi que muere con "No usable
+  sandbox". El lint estatico si corre. El inspector ademas acepta
+  `--allow <regla>`, que es la via que documenta el propio skill para marcas
+  existentes; el lint no lo acepta, y por eso el gate lleva su propio baseline.
+
 ## App interna (Enty): Admin · Promotor · Puerta
 
 El interior NO comparte el shell del fan: esas pantallas viven bajo
@@ -533,6 +633,32 @@ avisar.
   suite de pytest. `POST /seed` exige `IS_DEMO=true` en el entorno del backend;
   credenciales `admin@bar.test` / `demo1234`. Sin seed, `puerta.spec`/`portada.spec`
   fallan en el login (la DB queda con usuarios tipo `admin-<hex>@example.test`).
+- **`e2e/onboarding.spec.js` NO usa el seed demo**: el evento del seed ya está
+  publicado, así que su guía de primeros pasos está apagada a propósito. El spec
+  se registra (`/register`) para obtener un negocio nuevo, que es el único
+  estado donde la guía se ofrece por primera vez. El registro acepta términos
+  y crea venue + admin. Son 5 tests y cada uno registra una cuenta: el lockout
+  de abajo (8/15 min) se agota a la mitad si además se re-corre el archivo, así
+  que limpiar el cubo antes de cada corrida.
+- **La guía de primeros pasos vive en el servidor, por (usuario, venue)**:
+  `user_preferences` (mig 032) y `/auth/me/preferences`. Antes estaba en
+  `localStorage`, que es por navegador: la decisión tomada en la laptop
+  reaparecía en el celular, y el dominio de preview de Vercel (otro origen) no
+  veía la de producción. `frontend/src/lib/onboarding.js` cachea en localStorage
+  **solo para pintar sin parpadeo**; la verdad es la fila de la DB. El tutorial
+  guiado (`OnboardingTour.jsx`) se ancla con `data-tour="<id>"` en el DOM y sus
+  pasos se saltan solos si el ancla no existe (p. ej. el backstage en un negocio
+  sin eventos).
+- **El registro tiene lockout por IP** (mig 016, cubo `__register__`): 8
+  intentos en 15 min desde la misma IP y el endpoint devuelve 429 — incluidos
+  los exitosos, porque el registro **no** limpia su contador al acertar (el
+  login sí: `_clear_failures`). Corriendo specs que registran varias veces
+  seguidas, el 429 aparece a mitad de la suite y parece un fallo del producto.
+  Antes de re-correr: `DELETE FROM login_attempts WHERE email_norm='__register__'`.
+- **El aviso de cookies tapa los clics** en un navegador recién abierto (se
+  pinta fijo arriba). Los specs que hacen clic en el panel deben marcarlo como
+  visto: `page.addInitScript(() => localStorage.setItem("tf_cookie_notice", "1.1"))`
+  (la versión vive en `CookieNotice.jsx`, `NOTICE_VERSION`).
 - **App del fan (publica, sin login):** `/inicio` (vitrina, `HomePage.jsx`),
   `/evento/:id` (detalle de compra, `EventDetailPage.jsx`), `/t` (boleto),
   `/boletas` (mis boletas por contacto). Backend: `GET /public/events` (catalogo)
@@ -603,6 +729,13 @@ avisar.
   E2E: `frontend/e2e/door-alert-live.spec.js` (dispara la rafaga por API).
 - **`/admin?event=<id>` sin `tab`** cae en "Resumen" del backstage (whitelist
   de `AdminDashboard`): es donde vive la salud de puerta que el aviso señala.
+- **Pestañas de venue: hay DOS whitelists que agregar.** Al sumar una sección
+  nueva (ej. `puerta`, `promotores`) hay que tocar el array `section` de
+  `AdminDashboard` (línea ~194, si no la URL cae a "resumen" en silencio) **y**
+  la grilla de `BusinessDock`. Y en `onOpenEvent` de las secciones de venue el
+  `tab` destino tiene que ser uno del backstage (`resumen`/`entradas`/`cupos`/
+  `boletas`/`noche`): `flyToEvent(id, "puerta")` genera un enlace muerto porque
+  "puerta" no existe dentro del evento.
 - **Checkout público del fan (sin cuenta):** `POST /public/events/{id}/checkout`
   y `GET /public/checkout/{reference}` en `public.py`. Reutiliza ENTERO el ciclo
   de la mig 023 (link de Wompi + webhook `approve_ticket_payment`): lo único
@@ -649,3 +782,35 @@ avisar.
   `document.title` (a11y.spec.js exige uno por pantalla; el `# título` del
   markdown se descarta); el banner de alerta de puerta debe quedar por ENCIMA
   del aviso de cookies (z-45 vs z-40) o el botón queda inclickeable.
+- **La portada del panel (`.venue-header`) la definen TRES hojas** y gana la
+  última en cargar (`main.jsx`: tokens → index.css → aesthetic-refresh.css →
+  enty-system.css → enty-fan.css). Editar `index.css` sin comprobar la cascada
+  es silenciosamente inútil: una regla posterior lo anula. El material de la
+  portada vive scopeado a `.app-shell` en `enty-system.css`, en ambos temas.
+  Comprobar con `getComputedStyle` en el navegador, no leyendo el CSS.
+- **El panel renderiza en tema CLARO por defecto** (`tf_theme` sin guardar →
+  `data-theme="light"`). Cualquier maqueta o medición visual debe partir de
+  claro o no representa lo que ve el usuario.
+- **El venue demo (`id=2`, Bar Esquina) no tiene `primary_color` ni `logo_url`**,
+  así que cae al violeta de Enty y al tile de iniciales. Para ver los efectos
+  brand-aware hay que ponerle color en la DB (y restaurarlo después).
+- **Los E2E se auto-contaminan: una DB sucia produce "regresiones" falsas.**
+  Corriendo la suite entera dos veces seguidas contra la MISMA base aparecen
+  fallos que no tienen nada que ver con el cambio (`fan-checkout.spec`,
+  `fan.spec`, el `scroll horizontal @320px` de `a11y.spec`). El seed no se
+  reaplica y los specs que crean eventos/boletas dejan datos que rompen al
+  siguiente. Antes de creer un fallo, reproducir con la DB como la deja CI:
+  `DROP DATABASE ticketflow_e2e; CREATE DATABASE ticketflow_e2e;`
+  `psql -f db/schema.sql` + `seed_demo_data` (ver el job `e2e` de ci.yml).
+  Con la base fresca la suite da 27 passed / 1 skipped.
+- **El ciclo de vida de un evento tiene UNA sola fuente en el frontend:**
+  `NEXT_ACTIONS` (`AdminDashboard.jsx`), con las transiciones que el backend
+  acepta en `VALID_TRANSITIONS` (`backend/app/routers/lifecycle.py`:
+  publish draft→published, live published→live, end live→ended,
+  cancel *→cancelled). La tarjeta de la franja (`STRIP_ACTION` para el verbo
+  corto) y el backstage renderizan de ahí: no reimplementar un subconjunto en
+  la tarjeta — ese fue el bug de "un evento en vivo solo ofrecía Duplicar".
+  Los dos caminos pasan por `transitionEvent(ev, action, {fromStrip})`; la
+  franja NO llama `refreshEventData()` (el POST ya devuelve el evento) y el
+  backstage sí (necesita releer cifras). `.evx-actions` tiene `flex-wrap`:
+  con el ciclo completo caben cuatro botones y deben poder caer a otra línea.

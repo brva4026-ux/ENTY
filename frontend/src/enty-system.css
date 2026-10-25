@@ -43,6 +43,58 @@
 }
 
 /* --------------------------------------------------------------------------
+ *  1b. TIPOGRAFÍA DE OPERACIÓN · Anton (display) + JetBrains Mono (cifras)
+ *
+ *  El panel de un bar se lee de reojo, de noche y en un mostrador. Anton es
+ *  la voz de cartel (nombre de la noche, cifra grande); JetBrains Mono es el
+ *  instrumento: cifras tabulares que no bailan al cambiar de valor.
+ *
+ *  Solo las usa la capa del panel (panel-cockpit.css). La vitrina del fan
+ *  conserva Sora: son dos contextos, no dos marcas. Self-hosted, igual que
+ *  Sora, para no depender de terceros ni pagar un FOUT de red.
+ * ------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Anton";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/anton-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Anton";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/anton-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/jbmono-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/jbmono-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* --------------------------------------------------------------------------
  *  2. TOKENS DE PRODUCTO
  *  Los tokens viven en UN solo lugar: src/tokens.css (--e-*), importado
  *  primero. Antes esta hoja redefinía --e-bg/--e-surface/--e-violet… y
@@ -109,6 +161,50 @@ html:not([data-theme="light"]) .app-shell .bizdock {
   box-shadow:
     var(--e-highlight-inset),
     var(--e-elev-card);
+}
+
+/* La portada de la venue es el objeto más alto de la jerarquía del panel: se
+   despega del lienzo más que una .card cualquiera. Sin esto página y portada
+   quedan a 1.1:1 —por debajo del umbral en que el ojo lee elevación— y el
+   panel se ve como una sola superficie con texto. El glow usa el color de
+   marca del negocio; sin `primary_color`, `--vh-brand` cae al violeta de
+   siempre y el resultado es idéntico al de antes.
+   Se scopea a .app-shell (no a .venue-header a secas) porque tres hojas
+   definen la portada y la última en cargar gana: aquí queda un solo dueño
+   del material, en los dos temas. */
+html:not([data-theme="light"]) .app-shell .venue-header {
+  background:
+    radial-gradient(
+      38rem 18rem at 90% -8rem,
+      color-mix(in srgb, var(--vh-brand, var(--e-brand)) 17%, transparent),
+      transparent 64%
+    ),
+    radial-gradient(26rem 14rem at 6% 118%, rgba(0, 230, 171, 0.06), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 48%),
+    rgba(16, 16, 22, 0.9);
+  box-shadow:
+    var(--e-highlight-inset),
+    0 2px 6px -2px rgba(0, 0, 0, 0.5),
+    0 30px 64px -34px rgba(0, 0, 0, 0.95);
+}
+/* En claro la profundidad no viene de la sombra (no hay negro que proyectar)
+   sino de un canto definido. El tinte de marca (`--vh-brand-wash`, al 15% en
+   claro) ya lo declara index.css para la portada y su banner. */
+html[data-theme="light"] .app-shell .venue-header {
+  background:
+    radial-gradient(34rem 14rem at 88% -6rem, var(--vh-brand-wash), transparent 62%),
+    var(--e-surface);
+  box-shadow:
+    var(--e-highlight-inset),
+    0 1px 2px -1px rgba(9, 15, 38, 0.16),
+    0 26px 54px -30px rgba(9, 15, 38, 0.42);
+}
+/* Con marca propia, el canto de la portada la anuncia antes de leer el
+   nombre. Sin `primary_color` el borde queda neutro: la portada de un negocio
+   sin marca no cambia. */
+html:not([data-theme="light"]) .app-shell .venue-header[data-brand],
+html[data-theme="light"] .app-shell .venue-header[data-brand] {
+  border-color: color-mix(in srgb, var(--vh-brand) 22%, var(--e-border-hairline));
 }
 
 /* --------------------------------------------------------------------------
