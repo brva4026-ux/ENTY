@@ -91,8 +91,82 @@ function auditInPage() {
     return { r: 11, g: 11, b: 15, a: 1 };
   };
   const contrastFails = [];
+  const controlFails = [];
   const tapSmall = [];
   let noAlt = 0;
+
+  // --- Contraste no textual (WCAG 1.4.11) ---
+  // El límite de un control de formulario debe dar 3:1 contra el color que lo
+  // rodea. El chequeo de texto de arriba NO lo cubre: un input sin texto
+  // propio (todos) es invisible para él, y por eso el borde casi transparente
+  // de .field pasó desapercibido. Se mide el límite tal como lo ve el ojo:
+  // borde sobre el relleno, o relleno sobre el fondo, o el anillo de foco.
+  const over = (fg, bg) => {
+    if (!fg) return bg;
+    if (fg.a >= 1) return { r: fg.r, g: fg.g, b: fg.b, a: 1 };
+    return {
+      r: Math.round(fg.r * fg.a + bg.r * (1 - fg.a)),
+      g: Math.round(fg.g * fg.a + bg.g * (1 - fg.a)),
+      b: Math.round(fg.b * fg.a + bg.b * (1 - fg.a)),
+      a: 1,
+    };
+  };
+  // Primer fondo opaco FUERA del control (no el suyo): es contra eso que el
+  // límite tiene que contrastar.
+  const outsideOf = (el) => {
+    let n = el.parentElement;
+    while (n && n !== document.documentElement) {
+      const c = parse(getComputedStyle(n).backgroundColor);
+      if (c && c.a > 0.85) return c;
+      n = n.parentElement;
+    }
+    return { r: 11, g: 11, b: 15, a: 1 };
+  };
+  document.querySelectorAll("input:not([type=hidden]),select,textarea").forEach((el) => {
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden") return;
+    if (parseFloat(cs.opacity) < 0.5) return;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return;
+
+    const bw = parseFloat(cs.borderTopWidth) || 0;
+    const app = cs.appearance || cs.webkitAppearance;
+    // Un control NATIVO (appearance != none) sin caja propia lo dibuja el
+    // navegador: no hay color que medir y su contraste no es nuestro.
+    if (app !== "none" && bw === 0) return;
+
+    const out = outsideOf(el);
+    const own = over(parse(cs.backgroundColor), out);
+    const borderR = bw > 0 ? ratio(over(parse(cs.borderTopColor), own), out) : 0;
+    const fillR = parse(cs.backgroundColor)?.a > 0.05 ? ratio(own, out) : 0;
+
+    // Anillo (box-shadow) con spread > 0: es el indicador de foco.
+    let ringR = 0;
+    const bs = cs.boxShadow;
+    if (bs && bs !== "none") {
+      for (const layer of bs.split(/,(?![^(]*\))/)) {
+        const c = parse(layer);
+        if (!c) continue;
+        const spread = parseFloat((layer.match(/(-?[\d.]+)px(?=\s*$)/) || [])[1] || "0");
+        if (spread <= 0) continue;
+        ringR = Math.max(ringR, ratio(over(c, out), out));
+      }
+    }
+
+    const best = Math.max(borderR, ringR, fillR);
+    if (best < 3) {
+      controlFails.push({
+        tag: el.tagName.toLowerCase(),
+        type: el.type || "",
+        cls: (el.className || "").toString().slice(0, 40),
+        best: +best.toFixed(2),
+        border: +borderR.toFixed(2),
+        ring: +ringR.toFixed(2),
+        fill: +fillR.toFixed(2),
+      });
+    }
+  });
+
   document.querySelectorAll("body *").forEach((el) => {
     const cs = getComputedStyle(el);
     if (cs.display === "none" || cs.visibility === "hidden") return;
@@ -131,7 +205,7 @@ function auditInPage() {
     }
     if (el.tagName === "IMG" && !el.getAttribute("alt")) noAlt++;
   });
-  return { contrastFails, tapSmall, noAlt };
+  return { contrastFails, controlFails, tapSmall, noAlt };
 }
 
 async function audit(page) {
@@ -175,14 +249,19 @@ for (const scheme of ["dark", "light"]) {
     const eventPath = await firstEventPath(page);
     const paths = eventPath ? [...PUBLIC, eventPath] : PUBLIC;
     const fails = [];
+    const controlFails = [];
     for (const path of paths) {
       await available(page, path);
       const r = await audit(page);
       for (const f of r.contrastFails) fails.push({ path, ...f });
+      for (const f of r.controlFails) controlFails.push({ path, ...f });
     }
     await ctx.close();
     if (fails.length) console.log("Fallos de contraste:", JSON.stringify(fails, null, 2));
+    if (controlFails.length)
+      console.log("Fallos de contraste no textual:", JSON.stringify(controlFails, null, 2));
     expect(fails, `${fails.length} textos por debajo de AA`).toEqual([]);
+    expect(controlFails, `${controlFails.length} controles con límite bajo 3:1`).toEqual([]);
   });
 }
 
@@ -193,6 +272,7 @@ test("contraste AA y alt en el interior (admin, promotor, perfil)", async ({ bro
   test.skip(!ok, "App no disponible");
 
   const fails = [];
+  const controlFails = [];
   // /perfil entra aqui: el hero, los chips de rol y la zona de peligro estrenan
   // tintes propios, y una superficie con fondo propio es justo donde el
   // contraste se rompe sin que nadie lo note.
@@ -205,11 +285,15 @@ test("contraste AA y alt en el interior (admin, promotor, perfil)", async ({ bro
     await page.goto(path);
     const r = await audit(page);
     for (const f of r.contrastFails) fails.push({ path, ...f });
+    for (const f of r.controlFails) controlFails.push({ path, ...f });
     expect(r.noAlt, `imágenes sin alt en ${path}`).toBe(0);
   }
   await ctx.close();
   if (fails.length) console.log("Fallos de contraste (interior):", JSON.stringify(fails, null, 2));
+  if (controlFails.length)
+    console.log("Fallos de contraste no textual (interior):", JSON.stringify(controlFails, null, 2));
   expect(fails).toEqual([]);
+  expect(controlFails).toEqual([]);
 });
 
 test("la puerta: contraste AA y objetivos táctiles ≥ 44px", async ({ browser }) => {
@@ -224,7 +308,10 @@ test("la puerta: contraste AA y objetivos táctiles ≥ 44px", async ({ browser 
   await ctx.close();
 
   if (r.contrastFails.length) console.log("Contraste (puerta):", JSON.stringify(r.contrastFails, null, 2));
+  if (r.controlFails.length)
+    console.log("Contraste no textual (puerta):", JSON.stringify(r.controlFails, null, 2));
   expect(r.contrastFails, "texto por debajo de AA en la puerta").toEqual([]);
+  expect(r.controlFails, "límite de control por debajo de 3:1 en la puerta").toEqual([]);
   // La puerta es crítica: todo control debe ser cómodo de pulsar a una mano.
   if (r.tapSmall.length) console.log("Objetivos pequeños (puerta):", JSON.stringify(r.tapSmall, null, 2));
   expect(r.tapSmall, "objetivos táctiles < 44px en la puerta").toEqual([]);

@@ -222,7 +222,7 @@ body {
 .field {
   width: 100%;
   border-radius: 0.5rem;
-  border: 1px solid var(--color-zinc-800);
+  border: 1px solid var(--e-control-line);
   /* El color va en background-COLOR (no en el shorthand): el shorthand
      background: resetea background-repeat a initial y el chevron del
      select.field se repetia en cinta (el bug de los "vvvvvvv"). */
@@ -239,11 +239,11 @@ body {
   color: var(--color-zinc-500);
 }
 .field:hover {
-  border-color: var(--color-zinc-700);
+  border-color: var(--e-control-line-hover);
 }
 .field:focus {
   /* Apple: el foco es un anillo limpio del acento, sin glow difuso. */
-  border-color: var(--e-violet-400);
+  border-color: var(--e-control-line-focus);
   box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.22);
 }
 
@@ -604,7 +604,7 @@ input[type="checkbox"].accent-brand-500:active {
 }
 html[data-theme="light"] input[type="checkbox"].accent-brand-500 {
   background: var(--e-white);
-  border-color: var(--e-neutral-500);
+  border-color: var(--e-control-line);
 }
 
 /* Select: flecha propia (la nativa no respeta el tema) y cursor de opcion */
@@ -4144,7 +4144,7 @@ html[data-theme="light"] .row:hover {
 
 /* Inputs: superficie blanca, borde visible, foco con halo violeta */
 html[data-theme="light"] .field {
-  border-color: var(--e-neutral-400);
+  border-color: var(--e-control-line);
   /* background-color (no shorthand): ver .field — el shorthand pisaba el
      no-repeat del chevron del select y lo repetia en cinta en tema claro. */
   background-color: var(--e-white);
@@ -4159,10 +4159,10 @@ html[data-theme="light"] .field::placeholder {
   color: var(--color-zinc-400);
 }
 html[data-theme="light"] .field:hover {
-  border-color: var(--e-neutral-500);
+  border-color: var(--e-control-line-hover);
 }
 html[data-theme="light"] .field:focus {
-  border-color: var(--e-violet-800);
+  border-color: var(--e-control-line-focus);
   box-shadow:
     0 0 0 3px rgba(187, 92, 246, 0.14),
     0 0 18px -6px rgba(187, 92, 246, 0.3);
