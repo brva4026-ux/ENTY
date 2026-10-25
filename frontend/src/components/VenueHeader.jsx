@@ -2,10 +2,11 @@
  * Cabecera de la VENUE: el primer vistazo del dashboard dice a qué negocio
  * estás administrando y cómo le va ESTE MES — sin entrar a Reportes.
  *
- * Datos: todo viene de lo que ya existe. Nombre/logo de `user.venues`
+ * Datos: todo viene de lo que ya existe. Nombre/logo/color de `user.venues`
  * (los manda /auth/me); KPIs, rankings y comisiones del endpoint
  * /venues/{id}/overview (el mismo que usa BusinessOverview, sin duplicar
- * criterio contable).
+ * criterio contable). El evento en vivo lo pasa el panel desde la lista que
+ * ya cargó — no hay request extra para saber si la puerta está abierta.
  *
  * Jerarquía del dinero: el mes se lee de arriba abajo como una cuenta.
  * "Recaudado" es lo que entró; "comisiones" lo que se lleva el promotor;
@@ -13,6 +14,7 @@
  * mira primero (el neto), el recaudado baja a línea de contexto.
  */
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { money, labelMonth, shiftMonth, currentYM } from "../lib/format";
 import CountUpNumber from "./CountUpNumber";
@@ -20,7 +22,27 @@ import Icon from "./Icon";
 import { Skeleton } from "./Skeleton";
 import { Star5 } from "./Doodles";
 
-export default function VenueHeader({ venueId, user, month, onMonth, children = null }) {
+/** Iniciales del negocio para el tile y la marca de agua: dos letras.
+ *
+ * Con una sola, "Bar Esquina" daba "B" y el tile parecía un avatar genérico;
+ * el CSS ya reservaba `letter-spacing` para dos. Una palabra sola ("Fonda")
+ * usa sus dos primeras letras, no una.
+ */
+function initialsOf(name) {
+  const words = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+export default function VenueHeader({
+  venueId,
+  user,
+  month,
+  onMonth,
+  liveEvent = null,
+  children = null,
+}) {
   const [ov, setOv] = useState(null); // null = cargando (skeleton, no ceros)
 
   useEffect(() => {
@@ -38,6 +60,39 @@ export default function VenueHeader({ venueId, user, month, onMonth, children = 
   }, [venueId, month]);
 
   const venue = (user?.venues || []).find((v) => v.id === venueId);
+
+  // Color de marca del negocio. Ya venía en /auth/me y no se usaba: el panel
+  // de cada venue puede llevar SU color. Se expone como variables CSS y el CSS
+  // decide dónde aplicarlas; sin color, todo cae al violeta de Enty. El valor
+  // llega validado como #RRGGBB desde el backend, pero se re-verifica aquí:
+  // una venue vieja pudo guardarse antes de esa validación y este string
+  // termina dentro de un `style`.
+  const rawColor = venue?.primary_color || "";
+  const brand = /^#[0-9a-f]{6}$/i.test(rawColor) ? rawColor.toLowerCase() : null;
+  const initials = initialsOf(venue?.name);
+
+  // El tile de iniciales se pinta con el color del negocio, así que el texto
+  // no puede ser siempre blanco: sobre un amarillo claro no se lee. Luminancia
+  // relativa (WCAG) para elegir tinta clara u oscura.
+  const tileInk = (() => {
+    if (!brand) return null;
+    const [r, g, b] = [1, 3, 5].map((i) =>
+      parseInt(brand.slice(i, i + 2), 16) / 255
+    );
+    const lin = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    return L > 0.5 ? "#18181b" : "#ffffff";
+  })();
+
+  const tintStyle = brand
+    ? {
+        "--vh-brand": brand,
+        "--vh-brand-wash": `${brand}17`, // 9% — lavado del card
+        "--vh-brand-glow": `${brand}2e`, // 18% — banner
+        "--vh-brand-line": `${brand}8f`, // 56% — viga del KPI
+        "--vh-tile-ink": tileInk,
+      }
+    : undefined;
 
   // Mes mostrado: manda el que pide la URL; si no hay, el que dice el API
   // (zona del negocio, no la del navegador).
@@ -70,15 +125,34 @@ export default function VenueHeader({ venueId, user, month, onMonth, children = 
   const paid = ov ? Math.max(0, ov.tickets_issued - ov.courtesy_tickets) : 0;
 
   return (
-    <header className="venue-header card">
+    <header
+      className="venue-header card"
+      style={tintStyle}
+      data-brand={brand ? "1" : undefined}
+      data-tour="portada"
+    >
+      {/* Banner de portada: da atmósfera y "cara" al negocio. Las iniciales
+        gigantes en marca de agua son el recurso que evita que un venue sin
+        flyer quede como una caja vacía — hay portada aunque no haya imagen.
+        Puramente decorativo: el nombre real vive abajo, en el lockup. */}
+      <div className="vh-banner" aria-hidden="true">
+        <span className="vh-banner-initials">{initials}</span>
+      </div>
+
       {/* Fila superior: identidad (logo + nombre) a la izquierda, la cifra
         del negocio a la derecha. La portada completa sigue debajo: toolbar
         y franja de eventos viven DENTRO de este card (misma gramática del
         dock Del negocio: un card = un contexto, secciones por hairline). */}
       <div className="vh-top">
         {/* Identidad: logo (o iniciales si no tiene) + nombre + eyebrow. El
-          tile de identidad 56px es el ancla visual de la portada. */}
-        <div className="vh-identidad">
+          lockup entero lleva al perfil del negocio: la portada es también el
+          camino para editar el nombre, el logo y el color. */}
+        <Link
+          to="/perfil?tab=negocio"
+          className="vh-identidad"
+          data-tip="Editar el negocio"
+          aria-label={`Editar ${venue?.name ?? "el negocio"}`}
+        >
           {venue?.logo_url ? (
             <img
               src={venue.logo_url}
@@ -87,7 +161,7 @@ export default function VenueHeader({ venueId, user, month, onMonth, children = 
             />
           ) : (
             <span className="vh-logo vh-logo-fallback" aria-hidden="true">
-              {(venue?.name || "?").trim().charAt(0).toUpperCase()}
+              {initials}
             </span>
           )}
           {/* Lockup: el tile y el bloque de texto van juntos (gap corto) y
@@ -99,8 +173,18 @@ export default function VenueHeader({ venueId, user, month, onMonth, children = 
             <h1 className="display vh-nombre-titulo">
               {venue?.name ?? "Tu negocio"}
             </h1>
+            {/* El estado operativo manda sobre cualquier adorno: si la puerta
+              está abierta, esto es lo primero que el dueño necesita saber. */}
+            {liveEvent && (
+              <p className="vh-live">
+                <span className="vh-live-dot" aria-hidden="true" />
+                <span className="vh-live-txt">
+                  En vivo · {liveEvent.name}
+                </span>
+              </p>
+            )}
           </div>
-        </div>
+        </Link>
 
         {/* KPI headline: la cuenta del mes. La cifra grande es el NETO (lo
             que le queda al negocio); el recaudado baja a la línea de
@@ -154,47 +238,57 @@ export default function VenueHeader({ venueId, user, month, onMonth, children = 
         </div>
       </div>
 
-      {/* Desglose del mes: la cuenta que explica la cifra grande. Solo
-          aparece cuando hay algo que explicar — con comisiones en 0 la línea
-          del neto ya es el recaudado y repetirla sería ruido. */}
+      {/* El marcador del mes, en la voz del panel: cifras tabulares que se
+          leen de un golpe. Sustituye al viejo desglose "Recaudado −
+          Comisiones = Neto", que repetía el recaudado y el promedio justo
+          debajo del KPI; aquí la resta vive en la nota del recaudado ("$N
+          neto") y la comisión tiene su propia celda cuando existe. */}
       {ov && (
-        <div className="vh-cuenta">
-          <div className="vh-cuenta-item">
-            <span className="vh-cuenta-label">Recaudado</span>
-            <span className="vh-cuenta-val tnum">{money(revenue)}</span>
+        <dl className="pc-tally vh-tally">
+          <div>
+            <dt className="pc-t-label">Recaudado</dt>
+            <dd className="pc-t-value">
+              <CountUpNumber value={revenue / 100} format={(v) => money(v * 100)} />
+            </dd>
+            <span className="pc-t-note">
+              {hasCommissions ? `${money(net)} neto` : "sin comisiones este mes"}
+            </span>
           </div>
           {hasCommissions && (
-            <>
-              <span className="vh-cuenta-op" aria-hidden="true">
-                −
-              </span>
-              <div className="vh-cuenta-item">
-                <span className="vh-cuenta-label">Comisiones</span>
-                <span className="vh-cuenta-val tnum is-out">
-                  {money(commissions)}
-                </span>
-              </div>
-              <span className="vh-cuenta-op" aria-hidden="true">
-                =
-              </span>
-              <div className="vh-cuenta-item">
-                <span className="vh-cuenta-label">Neto</span>
-                <span className="vh-cuenta-val tnum is-net">{money(net)}</span>
-              </div>
-            </>
+            <div>
+              <dt className="pc-t-label">Comisiones</dt>
+              <dd className="pc-t-value is-hot">{money(commissions)}</dd>
+              <span className="pc-t-note">se lleva el promotor</span>
+            </div>
           )}
-          <div className="vh-cuenta-item vh-cuenta-push">
-            <span className="vh-cuenta-label">Promedio por boleta</span>
-            <span className="vh-cuenta-val tnum">
-              {avg > 0 ? money(avg) : "—"}
-            </span>
-            <span className="vh-cuenta-hint">
-              {paid > 0
-                ? `sobre ${paid} paga${paid === 1 ? "" : "s"}`
-                : "solo cortesías este mes"}
+          <div>
+            <dt className="pc-t-label">Boletas</dt>
+            <dd className="pc-t-value">
+              <CountUpNumber value={ov.tickets_issued} />
+            </dd>
+            <span className="pc-t-note">
+              {paid} paga{paid === 1 ? "" : "s"} ·{" "}
+              {Math.max(0, ov.tickets_issued - paid)} cortesía
+              {ov.tickets_issued - paid === 1 ? "" : "s"}
             </span>
           </div>
-        </div>
+          <div>
+            <dt className="pc-t-label">Ticket medio</dt>
+            <dd className="pc-t-value">{avg > 0 ? money(avg) : "—"}</dd>
+            <span className="pc-t-note">
+              {avg > 0 ? "sobre boletas pagas" : "solo cortesías"}
+            </span>
+          </div>
+          <div>
+            <dt className="pc-t-label">Eventos</dt>
+            <dd className="pc-t-value">
+              <CountUpNumber value={ov.events_count} />
+            </dd>
+            <span className="pc-t-note">
+              {liveEvent ? "1 en puerta ahora" : "ninguno en puerta"}
+            </span>
+          </div>
+        </dl>
       )}
 
       {/* Navegación histórica: el mes del panel (y de Reportes) vive en la

@@ -2,7 +2,7 @@
  * Skeletons con shimmer de marca y support de prefers-reduced-motion.
  * Se usan como estado de carga "quieto" — la página conserva su layout
  * real y los bloques respiran hasta que llegan los datos.
- * Diseño consistente con DashboardCover, ProfilePage y HomePage.
+ * Diseño consistente con ProfilePage y HomePage.
  */
 
 /** Skeleton base con shimmer premium */

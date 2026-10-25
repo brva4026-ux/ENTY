@@ -51,6 +51,43 @@ class VenueSummary(BaseModel):
 
 
 # --------------------------------------------------------------------------
+# Preferencias por usuario y negocio (mig 032)
+# --------------------------------------------------------------------------
+# Los dos estados que el panel puede ESCRIBIR. `pending` es el default de la
+# DB y no se escribe nunca desde el cliente: la ausencia de fila ya significa
+# "sin decidir", asi que un valor explicito seria redundante.
+PreferenceState = Literal["accepted", "dismissed", "completed"]
+PreferenceKey = Literal["onboarding", "tutorial"]
+
+
+class PreferenceOut(BaseModel):
+    """Una preferencia tal como la consume el panel."""
+    key: PreferenceKey
+    value: Literal["pending", "accepted", "dismissed", "completed"] = "pending"
+    # Posicion guardada dentro de la guia/tutorial (0 = arrancar de cero).
+    step: int = 0
+    updated_at: datetime | None = None
+
+
+class PreferencesOut(BaseModel):
+    """Todas las preferencias del usuario en un negocio, en una sola lectura.
+
+    Se devuelven SIEMPRE las dos claves (aunque no haya fila), ya en
+    `pending`: el panel no tiene que distinguir "no existe" de "sin decidir",
+    que para el usuario son el mismo estado.
+    """
+    venue_id: int
+    preferences: list[PreferenceOut]
+
+
+class UpdatePreferenceRequest(BaseModel):
+    value: PreferenceState
+    # Paso actual dentro del tutorial (0 = empezando). Solo lo usa la clave
+    # "tutorial"; en "onboarding" se ignora.
+    step: int | None = Field(default=None, ge=0, le=999)
+
+
+# --------------------------------------------------------------------------
 # Venues (multi-tenant)
 # --------------------------------------------------------------------------
 class VenueCreate(BaseModel):
@@ -423,12 +460,31 @@ class UpdateProfileRequest(BaseModel):
 
 
 class UpdateVenueRequest(BaseModel):
-    """Edición del negocio por su admin: nombre y logo (URL http(s));
-    logo_url="" limpia el logo."""
+    """Edición del negocio por su admin: nombre, logo (URL http(s)) y color de
+    marca; logo_url="" limpia el logo, primary_color="" vuelve al de la marca."""
     name: str | None = Field(default=None, min_length=2, max_length=120)
     logo_url: str | None = Field(default=None, max_length=500)
     # Comision del promotor (0-100): base del calculo de liquidaciones.
     commission_pct: float | None = Field(default=None, ge=0, le=100)
+    # Color de marca del negocio (hex #RRGGBB). Se usa para teñir su panel:
+    # banner, tile del logo y viga del KPI. "" lo devuelve al violeta de Enty.
+    primary_color: str | None = Field(default=None, max_length=7)
+
+    @model_validator(mode="after")
+    def _primary_color_shape(self):
+        """Solo #RRGGBB (o "" para limpiarlo).
+
+        El valor termina dentro de un `style` del frontend, así que la
+        validación es una lista blanca, no un "escapado": cualquier otra cosa
+        (nombres, `url(...)`, `;`, `)` ) se rechaza aquí y nunca llega al CSS.
+        """
+        if self.primary_color is None:
+            return self
+        c = self.primary_color.strip()
+        if c and not re.fullmatch(r"#[0-9a-fA-F]{6}", c):
+            raise ValueError("primary_color debe ser un hex #RRGGBB")
+        self.primary_color = c.lower()
+        return self
 
     @model_validator(mode="after")
     def _logo_url_shape(self):
@@ -450,7 +506,23 @@ class UpdateVenueRequest(BaseModel):
 
 
 class DeleteAccountRequest(BaseModel):
-    """Borrado definitivo de la propia cuenta (requiere confirmar password)."""
+    """Borrado definitivo de la propia cuenta.
+
+    Exige la contraseña vigente Y el email escrito a mano: el borrado de la
+    propia cuenta es más destructivo que purgar a un tercero (se lleva la
+    venue entera si eres admin único), así que no puede ser más fácil de
+    disparar. Mismo patrón de confirmación que PurgeUserRequest.
+    """
+    password: str
+    confirm: str
+
+
+class CloseOtherSessionsRequest(BaseModel):
+    """Cierre de las demás sesiones abiertas: exige la contraseña vigente.
+
+    Quien solo robara un token no puede expulsar al dueño de su propia
+    cuenta; el dueño sí (y de paso invalida el token robado).
+    """
     password: str
 
 
@@ -1048,6 +1120,110 @@ class VenueOverview(BaseModel):
     # teléfono (no se puede saber si repite; contarlo como nuevo mentiría).
     retention_buyers: int = 0
     retention_returning: int = 0
+
+
+class VenueDoorEvent(BaseModel):
+    """Una noche del venue, con su estado de puerta. Alimenta la vista de
+    puerta agregada: el admin que no tiene un evento abierto igual necesita
+    saber cuál está en vivo y cuánta gente entró."""
+
+    event_id: int
+    name: str
+    starts_at: datetime
+    status: str
+    capacity: int
+    issued: int = 0
+    redeemed: int = 0
+
+
+class VenueDoorScan(BaseModel):
+    """Un intento de escaneo reciente en la puerta de las noches en vivo.
+
+    Alimenta la cola de "últimos escaneos": el portero necesita ver pasar las
+    boletas, no solo el total. `outcome` distingue si pasó o rebotó, y el
+    nombre del invitado es el mismo que ya expone /redemptions.
+    """
+
+    scanned_at: datetime
+    outcome: str
+    customer_name: str | None = None
+    type_name: str | None = None
+    scanned_by: str | None = None
+
+
+class VenueDoorSlot(BaseModel):
+    """Una franja de 30 min del ritmo de entrada. `n` puede ser 0: el silencio
+    entre tandas es información, no un hueco que la UI deba saltarse."""
+
+    at: datetime
+    n: int = 0
+
+
+class VenueDoor(BaseModel):
+    """La puerta del venue ENTERO, sin abrir un evento.
+
+    Responde la pregunta que hoy no tenía dónde: "¿qué está pasando en mi
+    puerta ahora mismo?". El desglose por evento existe (`EventPulse`,
+    `EventReport`), pero obliga a entrar a una noche. `live` marca las
+    noches en curso para que la UI las destaque.
+
+    Sin dinero: es dato operativo, no caja.
+    """
+
+    # Noches en estado 'live' (lo que está pasando AHORA).
+    live_events: int = 0
+    # Suma de las noches EN VIVO: el aforo de esta noche, no del mes.
+    live_capacity: int = 0
+    live_issued: int = 0
+    live_redeemed: int = 0
+    # Integridad de puerta de las noches en vivo.
+    duplicates: int = 0
+    rejected: int = 0
+    # Último escaneo de cualquier noche en vivo (null si no hubo ninguno).
+    last_scan_at: datetime | None = None
+    # Ritmo de entrada por franja de 30 min (solo granted). Series reales para
+    # dibujar el pulso de la noche, no un adorno inventado en el front.
+    rhythm: list[VenueDoorSlot] = []
+    # Los últimos escaneos, más reciente primero (máx. 12).
+    recent_scans: list[VenueDoorScan] = []
+    # Todas las noches con puerta abierta o por abrir, más reciente primero.
+    events: list[VenueDoorEvent] = []
+
+
+class VenuePromoter(BaseModel):
+    """Un promotor del mes con su cupo y su comisión.
+
+    `capacity` es la suma de cupos asignados a sus boletas del mes; `issued`
+    lo efectivamente colocado. `advance_pct` es el avance del cupo — la señal
+    que faltaba: `top_promoters` del overview da el ranking en boletas pero
+    no contra cuánto cupo, así que no se veía quién va cumpliendo.
+
+    `commission_cents` sale de las liquidaciones (`promoter_payouts`) y es 0
+    cuando no hay ninguna generada, no null: el total de comisiones del
+    venue ya se expone como null en `VenueOverview` cuando no hay datos.
+    """
+
+    promoter_id: int
+    name: str
+    capacity: int = 0
+    issued: int = 0
+    redeemed: int = 0
+    revenue_cents: int = 0
+    commission_cents: int = 0
+    advance_pct: float = 0.0
+    has_courtesy: bool = False
+
+
+class VenuePromoters(BaseModel):
+    """El equipo de promotores del mes con cupo, avance y comisión."""
+
+    month: str
+    promoters: list[VenuePromoter] = []
+    # Agregados del mes para la cabecera de la sección. `capacity_total` es
+    # suma de CUPOS (boletas), no dinero: el sufijo _cents reservado para
+    # importes. `commission_cents` sí es dinero.
+    capacity_total: int = 0
+    commission_cents: int = 0
 
 
 class MessageOut(BaseModel):

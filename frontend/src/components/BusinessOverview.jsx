@@ -503,7 +503,12 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
             ) : (
               <div className="grid gap-5 lg:grid-cols-2">
                 {/* Top promotores del mes */}
-                <div className="card p-5">
+                {/* min-w-0: un grid item nace con min-width:auto, así que el
+                    ranking (nombres largos + cifra shrink-0) lo estiraba a
+                    424px dentro de un grid de 358px y desbordaba la página
+                    en móvil. Con min-w-0 el grid puede encoger la tarjeta y
+                    el truncate del nombre hace su trabajo. */}
+                <div className="card min-w-0 p-5">
                   <p className="display mb-3 text-base">
                     Promotores del mes
                     <span className="ml-2 text-xs font-normal text-zinc-500">
@@ -521,7 +526,10 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                 </div>
 
                 {/* Eventos del mes con su aporte */}
-                <div className="card p-5">
+                {/* min-w-0 por la misma razón que la tarjeta vecina: en una
+                    sola columna el grid toma el min-content del ítem más
+                    ancho (382px de la fila nombre+estado+recaudo) y desborda. */}
+                <div className="card min-w-0 p-5">
                   <p className="display mb-3 text-base">
                     Eventos del mes
                     <span className="ml-2 text-xs font-normal text-zinc-500">

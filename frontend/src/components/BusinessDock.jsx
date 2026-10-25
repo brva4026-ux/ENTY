@@ -55,7 +55,11 @@ export default function BusinessDock({ venueId, section, onNavigate }) {
   }, [venueId]);
 
   return (
-    <nav className="bizdock card" aria-label="Secciones del negocio">
+    <nav
+      className="bizdock card"
+      aria-label="Secciones del negocio"
+      data-tour="negocio"
+    >
       <div className="bizdock-head">
         <div>
           <p className="eyebrow">Gestión de la venue</p>
@@ -69,6 +73,8 @@ export default function BusinessDock({ venueId, section, onNavigate }) {
       <div className="bizdock-grid" role="tablist">
         {[
           ["negocio", "Reportes", "La foto del mes: ventas, puerta y equipo", "chart"],
+          ["puerta", "Puerta", "Qué pasa ahora en la puerta del bar", "door"],
+          ["promotores", "Promotores", "Cupo, avance y comisión del mes", "users"],
           ["cobros", "Cobros", "Enlaces de pago y quién ya pagó", "ticket"],
           ["equipo", "Equipo", "Quién vende, quién abre la puerta", "users", counts.team],
           [
