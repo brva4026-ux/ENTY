@@ -202,6 +202,41 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   box-shadow: 0 0 26px -14px rgba(187, 92, 246, 0.95);
 }
 
+/* ----------------------------------------------------------------------
+   ÁREA TÁCTIL DEL HEADER (WCAG 2.5.8)
+
+   Los controles del header son chicos a propósito (32x32 el tema y la
+   campana, 30x30 el avatar): a 320px el bloque entero ya está al límite y
+   agrandarlos de verdad ganaba scroll horizontal. Pero un dedo no apunta a
+   32px. La solución separa el TAMAÑO VISUAL del ÁREA DE TOQUE: un
+   pseudo-elemento transparente de 44x44 centrado, que no cambia el ícono ni
+   mueve el layout.
+
+   Va en `::before`, NO en `::after`: el tooltip de la app se define como
+   `[data-tip]::after` con `display: none` (index.css), y como el tema y el
+   avatar llevan `data-tip`, esa regla —misma propiedad, especificidad
+   0,1,1— pisaba el área de toque y la dejaba sin efecto. Se midió: con
+   `::after` el clic a +18px del centro del tema no llegaba al botón; con
+   `::before` sí. La campana, que no tiene `data-tip`, funcionaba igual con
+   cualquiera de los dos.
+
+   El gap es 12px (gap-3) y los controles miden 32px: centro a centro hay
+   44px, justo el ancho del área, así que no se roban clics entre sí.
+   ---------------------------------------------------------------------- */
+.topbar-hit {
+  position: relative;
+}
+
+.topbar-hit::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
 .bottomnav {
   border-top: 1px solid var(--e-border-hairline);
   background: color-mix(in srgb, var(--e-canvas) 88%, transparent);
@@ -336,6 +371,8 @@ html[data-theme="light"] .bizdock-count {
 
 .auth-brand-title {
   text-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  animation: auth-rise 0.55s var(--e-ease-expo) both;
+  animation-delay: 0.12s;
 }
 
 .auth-brand-sub,
@@ -347,6 +384,191 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-violet-200);
   background: rgba(187, 92, 246, 0.15);
   border-color: rgba(187, 92, 246, 0.42);
+}
+
+/* ----------------------------------------------------------------------
+   COREOGRAFÍA DE LA ENTRADA (login/registro)
+
+   El panel de marca entraba de golpe (medido: `animation: none` en todas
+   sus piezas) y la navegación al panel era un corte seco. Aquí se orquesta:
+   logo → titular → subtítulo → beneficios, en cascada, y el troquel se
+   dibuja. Solo transform/opacity y una sola curva (la del sistema).
+
+   CLAVE: la opacidad inicial vive en el `from` del keyframe, NO en la regla
+   base. Así `animation: none` (movimiento reducido) deja el elemento visible
+   por defecto en vez de dejarlo en opacity 0 — el patrón frágil que usa
+   `.reveal > *` y que obliga a reponer `opacity: 1` a mano.
+   ---------------------------------------------------------------------- */
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* El troquel se traza de arriba abajo, como el corte de la boleta. */
+@keyframes auth-perf-draw {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.auth-brand-top {
+  animation: auth-rise 0.5s var(--e-ease-expo) both;
+}
+
+.auth-brand-rays,
+.auth-brand-mark {
+  animation: fade 0.9s var(--e-ease-standard) both;
+}
+
+.auth-brand-copy .eyebrow {
+  animation: auth-rise 0.5s var(--e-ease-expo) both;
+  animation-delay: 0.06s;
+}
+
+.auth-brand-sub {
+  animation: auth-rise 0.55s var(--e-ease-expo) both;
+  animation-delay: 0.18s;
+}
+
+.auth-benefit {
+  animation: auth-rise 0.5s var(--e-ease-expo) both;
+}
+
+.auth-benefit:nth-child(1) {
+  animation-delay: 0.24s;
+}
+.auth-benefit:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.auth-benefit:nth-child(3) {
+  animation-delay: 0.36s;
+}
+.auth-benefit:nth-child(n + 4) {
+  animation-delay: 0.42s;
+}
+
+.auth-perf {
+  transform-origin: top center;
+  animation: auth-perf-draw 0.7s var(--e-ease-expo) both;
+  animation-delay: 0.1s;
+}
+
+/* ----------------------------------------------------------------------
+   TRANSICIÓN DE VISTA (login → panel)
+
+   `withViewTransition` (lib/viewTransition.js) envuelve la navegación con
+   `document.startViewTransition`. El navegador saca una foto del DOM viejo y
+   nuevo; estas reglas son el cruce. Sin soporte o con movimiento reducido, el
+   JS no llama a la API y estas reglas no llegan a aplicarse.
+   ---------------------------------------------------------------------- */
+@keyframes vt-leave {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.99);
+  }
+}
+@keyframes vt-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+}
+
+::view-transition-old(root) {
+  animation: vt-leave 0.2s var(--e-ease-standard) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-enter 0.32s var(--e-ease-expo) both;
+}
+
+/* ----------------------------------------------------------------------
+   SEÑALES DEL FORMULARIO
+   El rechazo se SIENTE (sacudida) y el ingreso se CONFIRMA antes de cruzar
+   (check + "Listo"), en vez de un corte seco.
+   ---------------------------------------------------------------------- */
+@keyframes auth-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.auth-error {
+  animation: auth-shake 0.36s var(--e-ease-standard) both;
+}
+
+@keyframes auth-check-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.btn-check {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  animation: auth-check-pop 0.32s var(--e-ease-spring) both;
+}
+
+/* El botón confirmado se tinta de "validado" (el verde tiene significado en
+   el sistema: disponible/hecho). El prefijo `.auth-shell` NO es decorativo:
+   `enty-system.css` se carga después y redefine `.btn-primary` (background
+   `--e-brand`) con la misma especificidad, así que sin él la cascada pisa
+   esta regla. Texto oscuro del tema (--e-brasa-950) sobre el verde: contraste
+   medido 11.4:1. */
+.auth-shell .btn-primary.is-ok {
+  background: var(--e-success);
+  color: var(--e-brasa-950);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-brand-top,
+  .auth-brand-rays,
+  .auth-brand-mark,
+  .auth-brand-copy .eyebrow,
+  .auth-brand-title,
+  .auth-brand-sub,
+  .auth-benefit,
+  .auth-perf,
+  .auth-error,
+  .btn-check {
+    animation: none;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
 }
 
 .evx-card {
@@ -1796,6 +2018,12 @@ html[data-theme="light"] .bizdock-count {
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Un item de grid nace con min-width:auto: un valor sin espacios (una sede
+     o localidad con un token largo) ensancha su pista y empuja las otras dos
+     fuera de la pantalla a 320px. min-width:0 deja encoger la pista y el
+     overflow-wrap parte el token dentro de la celda. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .evd-cell-icon {
   width: 1.1rem;
@@ -2440,6 +2668,97 @@ html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
   background: rgba(124, 58, 237, 0.6);
 }
 
+
+/* ----------------------------------------------------------------------
+   ENTRADA DE PANTALLA (cartelera, boletas, detalle, puerta)
+
+   Estas superficies montaban de golpe (medido: `animation: none` en todos
+   sus bloques). La entrada de la casa es una cascada corta: cada bloque sube
+   10px y se asienta, con 50ms entre uno y otro, así el ojo lee el orden en
+   el que la pantalla se arma en vez de recibirla entera.
+
+   Solo transform/opacity, una sola curva, y la opacidad inicial vive en el
+   `from` del keyframe (NO en la regla base): con `animation: none`
+   (movimiento reducido) el bloque queda visible por defecto, en vez del
+   patrón frágil que exige reponer `opacity: 1` a mano.
+   ---------------------------------------------------------------------- */
+@keyframes screen-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Los fijos quedan fuera: un `transform` en un ancestro los ancla a él y
+   dejan de flotar sobre el scroll (el dock de la cartelera, el aviso de
+   enlace copiado, el modal de compra del detalle). */
+.home > :not(.home-nav, .sr-only),
+.evd > :not(.dialog-backdrop, .evd-copied),
+.door-shell > * {
+  animation: screen-rise 0.42s var(--e-ease-expo) both;
+}
+
+/* La cascada: 35ms entre bloque y bloque. El índice cuenta TODOS los hermanos,
+   también los excluidos: un bloque fijo en medio solo deja un hueco de 35ms,
+   que no se nota. El tope (0.245s) mantiene la entrada entera por debajo de
+   0.7s: el audit de a11y ignora lo que esté bajo opacidad 0.5, así que una
+   cascada más larga le escondería bloques y debilitaría el guardarraíl. */
+.home > :nth-child(2),
+.evd > :nth-child(2),
+.door-shell > :nth-child(2) {
+  animation-delay: 0.035s;
+}
+.home > :nth-child(3),
+.evd > :nth-child(3),
+.door-shell > :nth-child(3) {
+  animation-delay: 0.07s;
+}
+.home > :nth-child(4),
+.evd > :nth-child(4),
+.door-shell > :nth-child(4) {
+  animation-delay: 0.105s;
+}
+.home > :nth-child(5),
+.evd > :nth-child(5),
+.door-shell > :nth-child(5) {
+  animation-delay: 0.14s;
+}
+.home > :nth-child(6),
+.evd > :nth-child(6),
+.door-shell > :nth-child(6) {
+  animation-delay: 0.175s;
+}
+.home > :nth-child(7),
+.evd > :nth-child(7),
+.door-shell > :nth-child(7) {
+  animation-delay: 0.21s;
+}
+.home > :nth-child(n + 8),
+.evd > :nth-child(n + 8),
+.door-shell > :nth-child(n + 8) {
+  animation-delay: 0.245s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home > :not(.home-nav, .sr-only),
+  .evd > :not(.dialog-backdrop, .evd-copied),
+  .door-shell > * {
+    animation: none;
+  }
+}
+/* La preferencia de la app apaga igual que el SO. El reset global de
+   index.css solo anula la DURACIÓN (0.001ms); con `both` + delay el bloque
+   igual parpadearía invisible esos 50-400ms, así que acá se quita la
+   animación entera. */
+html[data-motion="reduce"] .home > :not(.home-nav, .sr-only),
+html[data-motion="reduce"] .evd > :not(.dialog-backdrop, .evd-copied),
+html[data-motion="reduce"] .door-shell > * {
+  animation: none;
+}
 
 /* ----------------------------------------------------------------------
    MOVIMIENTO REDUCIDO — esta hoja define animaciones y transiciones de

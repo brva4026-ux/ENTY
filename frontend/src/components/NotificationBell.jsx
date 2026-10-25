@@ -158,7 +158,7 @@ export default function NotificationBell() {
           if (!open) refresh();
         }}
         aria-label={`Notificaciones${unread ? ` (${unread} sin leer)` : ""}`}
-        className="relative grid h-8 w-8 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
+        className="topbar-hit relative grid h-8 w-8 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
       >
         <Icon name="bell" className="h-5 w-5" />
         {unread > 0 && (

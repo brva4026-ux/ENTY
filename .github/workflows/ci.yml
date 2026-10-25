@@ -122,20 +122,33 @@ jobs:
           cd frontend
           npm ci --no-fund --no-audit
           npm run build
-      - name: Apply schema (db/schema.sql)
+      - name: Apply schema + migrations (db/schema.sql, db/migrations/*.sql)
         # Este job corria por primera vez recien cuando backend se puso verde:
         # siempre estuvo skipped (backend rojo) y su falta de esquema nunca
         # habia salido a la luz. El seed asume tablas; el schema se aplica aqui
         # una vez (mismas migraciones que conftest aplica para pytest).
+        #
+        # Antes aplicaba SOLO schema.sql: las migraciones quedaban fuera, asi
+        # que `legal_documents` nacia vacia. Consecuencia medida: /terminos
+        # respondia 404 y e2e/legal-gate.spec.js se auto-saltaba ("la cuenta
+        # demo no tiene documentos legales pendientes"), de modo que la
+        # aceptacion legal del registro no se probaba nunca en CI. El glob va
+        # en orden numerico (mismo orden que conftest.py y deploy.sh, y
+        # tests/test_deploy_migrations.py falla si la lista de deploy se
+        # desfasa del directorio).
         run: |
           cd backend
           python - <<'PY'
           import os, pathlib, psycopg
-          sql = pathlib.Path('../db/schema.sql').read_text(encoding='utf-8')
+          root = pathlib.Path('..')
+          files = [root / 'db' / 'schema.sql']
+          files += sorted((root / 'db' / 'migrations').glob('*.sql'))
           conn = psycopg.connect(os.environ['TEST_DATABASE_URL'], autocommit=True)
-          conn.execute(sql)
+          for f in files:
+              conn.execute(f.read_text(encoding='utf-8'))
+              print('aplicado', f.name)
           conn.close()
-          print('schema aplicado')
+          print('esquema y migraciones aplicados')
           PY
       - name: Seed demo
         run: |
