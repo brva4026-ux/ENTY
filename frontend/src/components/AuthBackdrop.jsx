@@ -1,9 +1,8 @@
 /**
- * Escenografía de la entrada (login/registro) — v3 Tesla/Apple: showroom
- * plano. La pantalla es el producto: canvas único, cero gradientes
- * decorativos, cero sombras de UI. La única "fotografía" es una luz muy
- * sutil desde arriba, como la lámpara de un showroom. Con
- * prefers-reduced-motion no hay nada que apagar: nada se mueve.
+ * Escenografía de la entrada (login/registro) — anti-slop v3.
+ * canvas único, cero gradientes decorativos, cero sombras de UI.
+ * La única "luz" es un punto sutil desde arriba, como la lámpara de un showroom.
+ * Con prefers-reduced-motion nada se mueve: la calma es el lujo.
  *
  * Capas: una sola (la luz del showroom). La calma ES el lujo.
  */
@@ -47,8 +46,6 @@ export function LockIcon({ className = "" }) {
 
 export function AuthBackdrop() {
   return (
-    <div className="auth-backdrop" aria-hidden="true">
-      <div className="ab-aurora" />
-    </div>
+    <div className="auth-backdrop" aria-hidden="true" />
   );
 }
