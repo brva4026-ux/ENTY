@@ -127,7 +127,7 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
         <div className="card border-emerald-800 bg-emerald-950/40 p-4">
           <p className="eyebrow">Link de puerta</p>
           <p className="mt-1 text-sm text-zinc-300">
-            Mandásele este link a{" "}
+            Envíale este link a{" "}
             <strong className="text-emerald-200">
               {(rows ?? []).find((r) => r.user_id === linkReciente.user_id)?.full_name ??
                 "la persona"}
@@ -306,7 +306,7 @@ function Roster({
                   <span className="text-emerald-400">
                     Link vigente —{" "}
                     {linkReciente?.user_id === p.user_id
-                      ? "lo tenés en pantalla"
+                      ? "lo tienes en pantalla"
                       : "reenvíaselo si no lo abrió"}
                   </span>
                 ) : (

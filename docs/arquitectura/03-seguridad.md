@@ -111,6 +111,35 @@ HMAC. Aquí NO se aplica por decisión de diseño, y es deliberada:
 Lo que sí se endureció en la 019: sesiones revocables (`token_version`),
 auditoría de dinero/exports (`audit_log`) y rate limit de escaneos.
 
+## 3.4c Acceso del fan a "Mis boletas": el contacto NO es credencial
+
+El fan no tiene cuenta. La pantalla `/boletas` permite ver sus boletas y
+regenerar el QR. El diseño inicial trataba al **contacto** (correo o teléfono
+con que se emitió la boleta) como identidad, y eso era un agujero real:
+conocer el correo de alguien bastaba para listar sus boletas y para pedir su
+QR — que rota el token y deja al dueño sin entrar.
+
+El modelo corregido separa **dato** de **credencial**:
+
+| Vía | Qué es | Cuándo se usa |
+|---|---|---|
+| `POST /public/my-tickets` | Pide el enlace. Responde **siempre** lo mismo, tenga o no boletas, y solo manda correo si hay correo configurado | El fan escribe su contacto |
+| Enlace firmado (`token`) | HMAC de vida corta sobre el contacto, viaja por correo (`/boletas?acceso=…`) | Camino normal con email activo |
+| Posesión (`raw_token`) | El token crudo de **otra** boleta del mismo dueño | Cuando no hay correo configurado, o el fan ya tiene una boleta abierta |
+
+Reglas que sostienen el arreglo:
+
+- **El contacto nunca autoriza.** Sale de la credencial, no del cuerpo del
+  request: un enlace legítimo no puede apuntar a otro contacto.
+- **Respuesta uniforme** en `/my-tickets` (sin enumeración: no se puede saber
+  quién tiene boletas).
+- **401 uniforme** para enlace inválido o vencido (no se distingue "vencido"
+  de "inventado"). **404 uniforme** para boleta inexistente o ajena.
+- La lista **nunca** expone el token crudo: el QR se pide aparte y la DB lo
+  rota con `reissue_ticket` (auditado).
+- La posesión es la misma credencial que ya usa `/t` (192 bits de entropía):
+  no agrega superficie, reusa la existente.
+
 ## 3.5 Checklist de seguridad operacional
 
 - [ ] HTTPS en frontend y API (TLS 1.2+).

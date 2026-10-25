@@ -22,10 +22,14 @@ from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.fan_access import create_fan_access_token, verify_fan_access_token
+from app.core.mailer import Mailer
 from app.core.refs import payment_reference
 from app.schemas import (
+    FanCredentialRequest,
     FanLookupRequest,
     FanTicketTokenOut,
+    FanTicketsOut,
     PublicCheckoutOut,
     PublicCheckoutRequest,
     PublicCheckoutStatusOut,
@@ -515,10 +519,12 @@ async def public_checkout_status(
 
 # --- App del fan: "mis boletas" (magic link) ------------------------------
 #
-# El fan no tiene cuenta: su correo o telefono ES la identidad con la que le
-# emitieron las boletas. Pide el enlace con ese contacto, ve su lista y, para
-# la boleta que quiera usar, regenera el QR (magic link). Sin sesion, igual
-# que la boleta: el contacto es el unico dato y la respuesta nunca lo repite.
+# El fan no tiene cuenta. El contacto (correo o telefono) NO es la credencial:
+# es solo con quien se pidio la boleta, un dato que cualquiera puede conocer.
+# La credencial es el ENLACE firmado que se entrega a ese contacto (o la
+# posesion de otra boleta suya, que tambien prueba que el contacto es suyo).
+# Antes el contacto solo bastaba: con un correo ajeno se listaban sus boletas y
+# se pedia su QR — que rota el token y deja al dueno sin entrada.
 
 # Normalizacion del contacto. El correo solo se recorta y baja a minusculas
 # (sus puntos son significativos: "a.b@x.com" no es "ab@x.com"). El telefono se
@@ -531,7 +537,21 @@ def _contact_params(raw: str) -> dict:
     return {"is_email": False, "email": "", "phone": re.sub(r"\D", "", s)}
 
 
-_FAN_TICKETS_SQL = """
+# Los telefonos se comparan por sus ULTIMOS 10 digitos: el mismo numero guardado
+# como "3001234567" (local) y como "+57 300 123 4567" (con indicativo) tiene que
+# encontrar la misma boleta. Sin esto, quien escribe su numero como lo tiene
+# agendado no encontraba nada y creia que la boleta no existia.
+_PHONE_TAIL = "right(regexp_replace(coalesce(t.customer_phone, ''), '[^0-9]', '', 'g'), 10)"
+
+# El correo tampoco distingue mayusculas: se guarda tal cual lo escribio quien
+# emitio la boleta, asi que la comparacion normaliza el lado de la columna (el
+# lado del parametro ya viene en minusculas desde _contact_params). Sin esto,
+# una boleta emitida como "Fan@Bar.test" era invisible para quien buscaba
+# "fan@bar.test" — el mismo caso que el telefono, pero sin cubrir.
+_EMAIL_MATCH = "lower(t.customer_email) = %(email)s"
+
+
+_FAN_TICKETS_SQL = f"""
     SELECT t.id            AS ticket_id,
            t.status::text  AS status,
            e.name          AS event_name,
@@ -544,9 +564,8 @@ _FAN_TICKETS_SQL = """
       FROM tickets t
       JOIN events e ON e.id = t.event_id
       JOIN venues v ON v.id = e.venue_id
-     WHERE (%(is_email)s AND t.customer_email = %(email)s)
-        OR (NOT %(is_email)s
-            AND regexp_replace(coalesce(t.customer_phone, ''), '[^0-9]', '', 'g') = %(phone)s)
+     WHERE (%(is_email)s AND {_EMAIL_MATCH})
+        OR (NOT %(is_email)s AND {_PHONE_TAIL} = right(%(phone)s, 10))
      ORDER BY e.starts_at DESC
      LIMIT 100
 """
@@ -583,45 +602,115 @@ async def fan_my_tickets(
     request: Annotated[None, Depends(_rate_limit)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Boletas de un fan, buscadas por el contacto con que se emitieron.
+    """Pide el enlace de acceso del fan (respuesta SIEMPRE generica).
 
-    Sin sesion: el contacto (correo o telefono) es la identidad, igual que el
-    token del QR es la credencial de una boleta. No se expone ningun token
-    aqui; para ver el QR se pide `my-ticket-token`.
+    El contacto solo pide el enlace: no devuelve boletas. Si el contacto tiene
+    boletas Y hay canal de entrega (correo), se envia un enlace firmado de vida
+    corta; si no, la respuesta es la misma. Asi el endpoint no sirve para
+    enumerar quien tiene boletas ni para leer las de nadie.
     """
     key = _contact_params(body.contact)
     async with db.cursor() as cur:
         await cur.execute(_FAN_TICKETS_SQL, key)
         rows = await cur.fetchall()
 
-    tickets = [_fan_ticket_row(r) for r in rows]
-    return {"contact": body.contact, "count": len(tickets), "tickets": tickets}
+    settings = get_settings()
+    mailer = Mailer(
+        api_key=settings.resend_api_key,
+        from_email=settings.email_from_address,
+        from_name="Enty",
+        app_url=settings.app_public_url,
+    )
+
+    # Solo se envia si hay boletas y el contacto es un correo (el enlace viaja
+    # por correo; con un telefono no hay a donde mandarlo — el fan lo pide al
+    # organizador, que lo reemite desde el panel).
+    if rows and key["is_email"] and mailer.enabled:
+        token = create_fan_access_token(key["email"])
+        await run_in_threadpool(
+            mailer.send_fan_access,
+            to=key["email"],
+            tickets=[
+                {"event_name": r["event_name"], "venue_name": r["venue_name"]}
+                for r in rows
+            ],
+            link=f"{settings.app_public_url}/boletas?acceso={token}",
+        )
+
+    # El texto no depende de si habia boletas (anti-enumeracion) ni de si el
+    # correo se pudo enviar.
+    return {
+        "detail": (
+            "Si ese contacto tiene boletas, te enviamos un enlace para verlas. "
+            "Revisa también tu correo no deseado. Si no llega, pídeselo al "
+            "organizador del evento."
+        ),
+        "email_configured": mailer.enabled and key["is_email"],
+    }
+
+
+@router.post("/my-tickets/access", response_model=FanTicketsOut)
+async def fan_tickets_with_access(
+    body: FanCredentialRequest,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Lista las boletas del dueno acreditado (enlace firmado o posesion).
+
+    La credencial manda: sin firma valida ni token de boleta, 401 uniforme (no
+    se distingue "vencido" de "inventado"). El contacto sale DE LA CREDENCIAL,
+    nunca del cuerpo: asi una credencial legitima no puede apuntar a otro.
+    """
+    contact = await _resolve_contact(db, body)
+    if not contact:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "El enlace venció o no es válido. Pide uno nuevo.",
+        )
+
+    key = _contact_params(contact)
+    async with db.cursor() as cur:
+        await cur.execute(_FAN_TICKETS_SQL, key)
+        rows = await cur.fetchall()
+
+    return {
+        "contact": contact,
+        "count": len(rows),
+        "tickets": [_fan_ticket_row(r) for r in rows],
+    }
 
 
 @router.post("/my-tickets/{ticket_id}/token", response_model=FanTicketTokenOut)
 async def fan_ticket_token(
     ticket_id: int,
-    body: FanLookupRequest,
+    body: FanCredentialRequest,
     request: Annotated[None, Depends(_rate_limit)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Regenera el enlace (QR) de UNA boleta del fan que comprueba el contacto.
+    """Regenera el enlace (QR) de UNA boleta, con una credencial valida.
 
-    Es el "magic link": el contacto identifica al dueno; la DB rota el token
-    con `reissue_ticket` (auditado) y devuelve el token crudo una sola vez.
+    Misma credencial que la lista (enlace firmado o posesion de otra boleta del
+    mismo dueno); ninguna es "conozco el correo". La DB rota el token con
+    `reissue_ticket` (auditado).
     """
-    key = _contact_params(body.contact)
+    contact = await _resolve_contact(db, body)
+    if not contact:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "El enlace venció o no es válido. Pide uno nuevo.",
+        )
+
+    key = _contact_params(contact)
     async with db.cursor() as cur:
         await cur.execute(
-            """
+            f"""
             SELECT t.id
               FROM tickets t
-             WHERE t.id = %s
-               AND ((%s AND t.customer_email = %s)
-                    OR (NOT %s
-                        AND regexp_replace(coalesce(t.customer_phone, ''), '[^0-9]', '', 'g') = %s))
+             WHERE t.id = %(ticket_id)s
+               AND ((%(is_email)s AND {_EMAIL_MATCH})
+                    OR (NOT %(is_email)s AND {_PHONE_TAIL} = right(%(phone)s, 10)))
             """,
-            (ticket_id, key["is_email"], key["email"], key["is_email"], key["phone"]),
+            {"ticket_id": ticket_id, **key},
         )
         if not await cur.fetchone():
             # Mismo mensaje que una boleta inexistente: no revelamos si existe.
@@ -637,6 +726,38 @@ async def fan_ticket_token(
             raise _fan_reissue_error(e)
 
     return {"ticket_id": ticket_id, "raw_token": raw_token}
+
+
+async def _resolve_contact(
+    db: psycopg.AsyncConnection, body: FanCredentialRequest
+) -> str | None:
+    """Contacto acreditado por la credencial, o None si no acredita nada.
+
+    Acepta el enlace firmado (`token`) o la posesion del token crudo de una
+    boleta (`raw_token`). En el segundo caso devuelve el contacto ya
+    normalizado (correo o digitos) del dueno de esa boleta. Cualquier valor que
+    no acredite da None — y el llamador responde 401 uniforme.
+    """
+    if body.token:
+        return verify_fan_access_token(body.token)
+    if not body.raw_token:
+        return None
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.customer_email, t.customer_phone
+              FROM tickets t
+             WHERE t.token_hash = encode(digest(%s, 'sha256'), 'hex')
+            """,
+            (body.raw_token,),
+        )
+        row = await cur.fetchone()
+    if not row:
+        return None
+    if row["customer_email"]:
+        return row["customer_email"].strip().lower()
+    phone = re.sub(r"\D", "", row["customer_phone"] or "")
+    return phone or None
 
 
 def _fan_reissue_error(e: psycopg.errors.Error) -> HTTPException:

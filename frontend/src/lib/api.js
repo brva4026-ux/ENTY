@@ -92,9 +92,10 @@ export function fetchPublicCheckoutStatus(reference) {
 }
 
 /**
- * App del fan: "mis boletas" por contacto (magic link, sin cuenta).
- * El correo o telefono con que le emitieron las boletas es la identidad.
- * No devuelve tokens: para el QR se pide `fetchMyTicketToken`.
+ * App del fan: "mis boletas" (magic link, sin cuenta).
+ * El contacto NO es la credencial: solo pide que se envíe el enlace firmado a
+ * ese correo. Devuelve un texto genérico (no revela si hay boletas) y si hay
+ * correo configurado para enviarlo.
  */
 export function fetchMyTickets(contact) {
   return apiFetch("/public/my-tickets", {
@@ -104,13 +105,25 @@ export function fetchMyTickets(contact) {
 }
 
 /**
- * Regenera el enlace (QR) de UNA boleta propia. El token anterior muere: la
- * DB rota el hash con `reissue_ticket`. Devuelve el token crudo una sola vez.
+ * Abre la lista con una credencial: `{ token }` (enlace firmado del correo) o
+ * `{ raw_token }` (token de otra boleta propia). El contacto nunca basta.
  */
-export function fetchMyTicketToken(ticketId, contact) {
+export function fetchFanTicketsWithAccess(credential) {
+  return apiFetch("/public/my-tickets/access", {
+    method: "POST",
+    body: JSON.stringify(credential),
+  });
+}
+
+/**
+ * Regenera el enlace (QR) de UNA boleta propia, con la misma credencial que
+ * abrió la lista. El token anterior muere: la DB rota el hash con
+ * `reissue_ticket`. Devuelve el token crudo una sola vez.
+ */
+export function fetchMyTicketToken(ticketId, credential) {
   return apiFetch(`/public/my-tickets/${ticketId}/token`, {
     method: "POST",
-    body: JSON.stringify({ contact }),
+    body: JSON.stringify(credential),
   });
 }
 

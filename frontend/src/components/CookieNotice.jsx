@@ -55,7 +55,7 @@ export function CookieNotice() {
     <div
       role="note"
       aria-label="Aviso de cookies"
-      className="cookie-notice fixed inset-x-0 top-0 z-40 flex flex-row items-center gap-2 border-b border-zinc-700/60 bg-zinc-900/95 px-4 py-2.5 text-[11px] leading-tight text-zinc-200 shadow-lg sm:inset-x-3 sm:top-3 sm:mx-auto sm:max-w-3xl sm:gap-3 sm:rounded-xl sm:border sm:py-3 sm:text-xs sm:leading-relaxed"
+      className="cookie-notice relative z-40 flex flex-row items-center gap-2 border-b border-zinc-700/60 bg-zinc-900/95 px-4 py-2.5 text-xs leading-snug text-zinc-200 shadow-lg sm:gap-3 sm:py-3"
     >
       <p className="min-w-0 flex-1">
         Esta app guarda en tu navegador lo necesario para la sesión y el modo

@@ -621,7 +621,7 @@ export default function PromoterDashboard() {
                         {selectedTypeCapacity > 0 &&
                           (selectedTypeIssued >= selectedTypeCapacity ? (
                             <p className="mt-1 text-2xs font-semibold text-amber-300">
-                              Sin cupo en este tipo: no podés emitir más acá.
+                              Sin cupo en este tipo: no puedes emitir más aquí.
                             </p>
                           ) : (
                             <p className="mt-1 text-2xs text-zinc-500">

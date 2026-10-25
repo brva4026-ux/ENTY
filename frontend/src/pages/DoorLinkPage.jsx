@@ -73,9 +73,9 @@ export default function DoorLinkPage() {
         <div className="relative w-full max-w-sm">
           <div className="card p-6 text-center">
             <Logo />
-            <h1 className="display mt-4 text-lg">Iniciá sesión</h1>
+            <h1 className="display mt-4 text-lg">Inicia sesión</h1>
             <p className="mt-2 text-sm text-zinc-500">
-              Este link es personal: entrá con la cuenta que el admin asignó a
+              Este link es personal: entra con la cuenta que el admin asignó a
               esta noche y volvé a abrirlo.
             </p>
             <button
@@ -115,8 +115,8 @@ export default function DoorLinkPage() {
             <>
               <p className="mt-4 text-xs text-zinc-500">
                 Este link sirve solo para entrar a esa noche, con tu cuenta. Si no
-                tienes cámara o no puedes generar el QR en el escáner, pedí el
-                código manual al administrar y entrá por la pantalla de puerta.
+                tienes cámara o no puedes generar el QR en el escáner, pide el
+                código manual al administrador y entra por la pantalla de puerta.
               </p>
               <p className="eyebrow mt-4">Tu noche</p>
               <h1 className="display mt-0.5 text-xl">{preview.event_name}</h1>
@@ -136,7 +136,7 @@ export default function DoorLinkPage() {
               </p>
               {preview.used && (
                 <p className="mt-2 text-xs text-amber-400">
-                  Este link ya se usó. Si perdiste el teléfono, pedí uno nuevo.
+                  Este link ya se usó. Si perdiste el teléfono, pide uno nuevo.
                 </p>
               )}
               <button

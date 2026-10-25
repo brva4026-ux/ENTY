@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
-import { fetchMyTickets, fetchMyTicketToken } from "../lib/api";
+import { fetchMyTickets, fetchMyTicketToken, fetchFanTicketsWithAccess } from "../lib/api";
 import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
 import { Spark } from "../components/Brand";
@@ -10,14 +10,16 @@ import useDocumentTitle from "../lib/useDocumentTitle";
 /**
  * Mis boletas — la entrada del fan (magic link, sin cuenta).
  *
- * El fan no tiene usuario: escribe el correo o telefono con que le emitieron
- * las boletas y ve su lista. Para usar una boleta, "Ver mi QR" regenera su
- * enlace (el token anterior muere). El token crudo se muestra una sola vez y
- * se guarda en localStorage por si vuelve: la DB solo tiene su hash.
+ * El contacto NO es la credencial: es un dato público. Al pedirlo, se envía un
+ * enlace firmado de vida corta al correo (o, si no hay correo configurado, se
+ * indica pedírselo al organizador). Con ese enlace —o con el token de otra
+ * boleta propia— la pantalla lista las boletas y dibuja el QR.
  *
- * Mismo shell que Inicio (barra inferior), mismo look nocturno.
+ * El token crudo se muestra una sola vez y se guarda en localStorage: la DB
+ * solo tiene su hash, y es la llave para reabrir la lista sin pedir correo.
  */
-const STORE_KEY = "tf_fan_contact";
+const CONTACT_KEY = "tf_fan_contact";
+const TOKEN_KEY = "tf_fan_token";
 const STATUS = {
   issued: { label: "Válida", tone: "ok" },
   redeemed: { label: "Ya usada", tone: "warn" },
@@ -27,10 +29,14 @@ const STATUS = {
 
 export default function MyTicketsPage() {
   useDocumentTitle("Mis boletas");
+  const [params] = useSearchParams();
   const [contact, setContact] = useState("");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  // Credencial vigente: el enlace firmado del correo o el token de una boleta.
+  const [credential, setCredential] = useState(null);
 
   // QR abierto (boleta cuyo enlace se acaba de generar) + su data URL.
   const [openId, setOpenId] = useState(null);
@@ -42,15 +48,7 @@ export default function MyTicketsPage() {
   useEffect(() => {
     const restore = forceDarkOnce();
     mounted.current = true;
-    try {
-      const saved = localStorage.getItem(STORE_KEY);
-      if (saved) {
-        setContact(saved);
-        lookup(saved);
-      }
-    } catch {
-      /* modo privado */
-    }
+    load();
     return () => {
       mounted.current = false;
       restore();
@@ -58,26 +56,54 @@ export default function MyTicketsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function lookup(value) {
-    const q = (value ?? contact).trim();
+  /** Abre la lista con la mejor credencial disponible: el enlace de la URL,
+   *  o el token de una boleta guardado de una visita anterior. */
+  async function load() {
+    const access = params.get("acceso");
+    let saved = null;
+    try {
+      saved = localStorage.getItem(TOKEN_KEY);
+    } catch {
+      /* modo privado */
+    }
+    const cred = access ? { token: access } : saved ? { raw_token: saved } : null;
+    if (!cred) return;
+    try {
+      const d = await fetchFanTicketsWithAccess(cred);
+      if (!mounted.current) return;
+      setCredential(cred);
+      setData(d);
+      // El enlace de la URL ya cumplió: se limpia para no dejarlo en el
+      // historial ni en un marcador compartido.
+      if (access) window.history.replaceState({}, "", "/boletas");
+    } catch (e) {
+      if (mounted.current) setError(e.message || "No pudimos abrir tus boletas");
+    }
+  }
+
+  async function requestLink() {
+    const q = contact.trim();
     if (q.length < 5) {
       setError("Escribe el correo o teléfono con que compraste.");
       return;
     }
     setBusy(true);
     setError("");
-    setOpenId(null);
-    setQr(null);
+    setNotice("");
     try {
-      const d = await fetchMyTickets(q);
-      setData(d);
+      const res = await fetchMyTickets(q);
       try {
-        localStorage.setItem(STORE_KEY, q);
+        localStorage.setItem(CONTACT_KEY, q);
       } catch {
         /* modo privado */
       }
+      setNotice(
+        res.email_configured
+          ? "Te enviamos un enlace a tu correo. Ábrelo desde este dispositivo."
+          : "Pídele el enlace al organizador del evento: te lo reenvía al instante.",
+      );
     } catch (e) {
-      setError(e.message || "No pudimos buscar tus boletas");
+      setError(e.message || "No pudimos enviar el enlace");
     } finally {
       if (mounted.current) setBusy(false);
     }
@@ -89,7 +115,7 @@ export default function MyTicketsPage() {
     setQrError("");
     setQrBusy(true);
     try {
-      const { raw_token: token } = await fetchMyTicketToken(ticket.ticket_id, contact.trim());
+      const { raw_token: token } = await fetchMyTicketToken(ticket.ticket_id, credential);
       // El QR se dibuja local: se ve aunque falle la red despues. Mismo nivel
       // de correccion que la boleta (H): escanear en la puerta falla menos.
       const url = await QRCode.toDataURL(token, {
@@ -98,6 +124,13 @@ export default function MyTicketsPage() {
         errorCorrectionLevel: "H",
         color: { dark: "#0B0B0F", light: "#ffffff" },
       });
+      // El token recien emitido pasa a ser la credencial guardada: la próxima
+      // visita abre la lista sin depender del correo.
+      try {
+        localStorage.setItem(TOKEN_KEY, token);
+      } catch {
+        /* modo privado */
+      }
       if (mounted.current) setQr(url);
     } catch (e) {
       if (mounted.current) setQrError(e.message || "No pudimos generar tu QR");
@@ -126,14 +159,17 @@ export default function MyTicketsPage() {
 
       <div className="home-title">
         <h1>Mis boletas</h1>
-        <p>Entra con tu correo o teléfono. Sin cuenta, sin contraseña.</p>
+        <p>
+          Escribe el correo o teléfono con que compraste. Te enviamos un enlace
+          seguro para verlas — así nadie más puede abrirlas.
+        </p>
       </div>
 
       <form
         className="fan-lookup"
         onSubmit={(e) => {
           e.preventDefault();
-          lookup();
+          requestLink();
         }}
       >
         <input
@@ -146,14 +182,19 @@ export default function MyTicketsPage() {
           aria-label="Correo o teléfono"
         />
         <button type="submit" disabled={busy}>
-          {busy ? "Buscando…" : "Ver mis boletas"}
+          {busy ? "Enviando…" : "Enviar enlace"}
         </button>
       </form>
 
       {error ? (
-        <div className="home-empty">
-          <p>No pudimos buscar</p>
+        <div className="home-empty" role="alert">
+          <p>No pudimos continuar</p>
           <span>{error}</span>
+        </div>
+      ) : notice && !data ? (
+        <div className="home-empty" role="status">
+          <p>Revisa tu correo</p>
+          <span>{notice}</span>
         </div>
       ) : data && tickets.length === 0 ? (
         <div className="home-empty">

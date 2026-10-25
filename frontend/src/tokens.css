@@ -249,10 +249,12 @@
   --e-radius-2xl: 1.5rem;
   --e-radius-pill: 999px;
 
-  /* Tipografía (ratio 1.25; display fluida). Piso de legibilidad 0.6875rem. */
-  --e-text-2xs: 0.6875rem;
-  --e-text-xs: 0.75rem;
-  --e-text-sm: 0.8125rem;
+  /* Tipografía (ratio 1.25; display fluida). Piso de legibilidad 0.75rem:
+     por debajo de 12px el texto de apoyo (chips, etiquetas de la barra) se
+     vuelve ilegible en móvil a pleno sol, que es donde se usa la entrada. */
+  --e-text-2xs: 0.75rem;
+  --e-text-xs: 0.8125rem;
+  --e-text-sm: 0.875rem;
   --e-text-base: 0.9375rem;
   --e-text-lg: 1.0625rem;
   --e-text-xl: 1.25rem;

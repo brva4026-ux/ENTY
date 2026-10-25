@@ -93,6 +93,50 @@ class Mailer:
             html=html,
         )
 
+    def send_fan_access(
+        self, *, to: str, tickets: list[dict], link: str
+    ) -> bool:
+        """Enlace para ver las boletas del fan.
+
+        Es la credencial: sin cuenta, el enlace firmado (vida corta) es lo que
+        acredita el contacto. Se listan hasta 5 eventos para que el correo sea
+        reconocible ("esto es lo que tengo tuyo"), sin volcar datos sensibles.
+        """
+        items = "".join(
+            f'<li style="margin:0 0 6px;color:#333;font-size:14px">'
+            f"{t['event_name']} · {t['venue_name']}</li>"
+            for t in tickets[:5]
+        )
+        more = (
+            f'<p style="margin:6px 0 0;color:#777;font-size:13px">'
+            f"y {len(tickets) - 5} más</p>"
+            if len(tickets) > 5
+            else ""
+        )
+        html = f"""\
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px">
+  <h2 style="margin:0 0 8px;font-size:20px">Tus boletas en Enty</h2>
+  <p style="margin:0 0 16px;color:#555;font-size:14px">
+    Alguien pidió ver las boletas de este correo. Si fuiste tú, entra aquí:
+  </p>
+  <ul style="margin:0 0 20px;padding-left:20px">{items}</ul>
+  <p style="margin:0 0 24px">
+    <a href="{link}"
+       style="background:#7c3aed;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px;display:inline-block">
+      Ver mis boletas
+    </a>
+  </p>
+  {more}
+  <p style="margin:16px 0 8px;color:#777;font-size:13px">
+    El enlace vence en 30 minutos. Por seguridad, no lo compartas: quien lo
+    abra puede ver tus códigos QR.
+  </p>
+  <p style="margin:0;color:#999;font-size:12px">
+    Si no fuiste tú, ignora este correo: tus boletas siguen intactas.
+  </p>
+</div>"""
+        return self._send(to=to, subject="Tus boletas en Enty", html=html)
+
     def send_invitation(self, *, to: str, full_name: str, venue_name: str, link: str) -> bool:
         """Invitación al equipo: reaprovecha el token de staff_invitations."""
         html = f"""\

@@ -126,6 +126,12 @@ function App() {
       <UIProvider>
         <OfflineBanner />
         <BrowserRouter>
+          {/* El aviso de cookies va en FLUJO (sticky) y ANTES del contenido:
+              como overlay fijo tapaba la campana de notificaciones y el primer
+              toque caía en "Entendido" en vez del botón real. Así empuja el
+              contenido hacia abajo y nunca intercepta un clic. Necesita el
+              router (navega a /cookies), por eso vive aquí dentro. */}
+          <CookieNotice />
           <Suspense fallback={<SplashScreen />}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
@@ -226,9 +232,6 @@ function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
-          {/* Aviso de cookies: necesita router hooks (navega a /cookies), por
-              eso vive DENTRO de BrowserRouter y no junto a OfflineBanner. */}
-          <CookieNotice />
         </BrowserRouter>
       </UIProvider>
     </AuthProvider>

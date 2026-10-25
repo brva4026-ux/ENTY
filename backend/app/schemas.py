@@ -640,9 +640,28 @@ class PaymentCreateRequest(BaseModel):
 
 
 class FanLookupRequest(BaseModel):
-    """Contacto con el que se emitieron las boletas (correo o telefono)."""
+    """Contacto con el que se emitieron las boletas (correo o telefono).
+
+    Ya NO es una credencial: solo pide que se envie el enlace de acceso al
+    contacto. La credencial es el token firmado que llega a ese contacto.
+    """
 
     contact: str = Field(min_length=5, max_length=200)
+
+
+class FanCredentialRequest(BaseModel):
+    """Credencial del fan para ver sus boletas o regenerar un QR.
+
+    Dos formas validas, y ninguna es "conozco el correo" (eso era el agujero):
+      - `token`: el enlace firmado que se entrega al contacto (viaja en el
+        correo), o
+      - `raw_token`: el token crudo de OTRA boleta del mismo dueno. La
+        posesion es la credencial, igual que en /t: quien ya tiene una entrada
+        vigente puede recuperar el QR de otra sin pasar por el correo.
+    """
+
+    token: str | None = Field(default=None, max_length=2000)
+    raw_token: str | None = Field(default=None, max_length=200)
 
 
 class FanTicketOut(BaseModel):
