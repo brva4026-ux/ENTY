@@ -396,7 +396,7 @@ export default function InvitationsManager({ venueId }) {
               <p className="eyebrow">Enlace listo — se muestra una sola vez</p>
               <p className="mt-0.5 text-sm text-zinc-300">
                 Envíale este enlace a{" "}
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-ink">
                   {lastLink.name}
                 </span>{" "}
                 ({lastLink.email}). Al abrirlo, esa persona crea su propia
@@ -467,6 +467,7 @@ export default function InvitationsManager({ venueId }) {
             className="grid grid-cols-1 gap-2 sm:grid-cols-2"
           >
             <input
+              aria-label="Nombre completo"
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               className="field"
@@ -483,7 +484,7 @@ export default function InvitationsManager({ venueId }) {
                   aria-pressed={form.role === r}
                   className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-bold transition-colors ${
                     form.role === r
-                      ? "border-zinc-500 bg-zinc-800 text-white"
+                      ? "border-zinc-500 bg-zinc-800 text-ink"
                       : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700"
                   }`}
                 >
@@ -496,6 +497,7 @@ export default function InvitationsManager({ venueId }) {
               ))}
             </div>
             <input
+              aria-label="Correo de la persona"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="field"
@@ -509,7 +511,7 @@ export default function InvitationsManager({ venueId }) {
                 setForm({ ...form, expires_hours: Number(e.target.value) })
               }
               className="field"
-              aria-label="Vigencia del enlace"
+            aria-label="Vigencia del enlace"
             >
               <option value={24}>Vigencia: 24 horas</option>
               <option value={72}>Vigencia: 3 días</option>
@@ -527,7 +529,7 @@ export default function InvitationsManager({ venueId }) {
       <div className="card p-5">
         <div
           className="-mx-1 mb-4 flex gap-1 overflow-x-auto px-1 pb-1"
-          role="tablist"
+          role="group"
           aria-label="Filtrar por estado"
         >
           {TABS.map((t) => {
@@ -535,12 +537,11 @@ export default function InvitationsManager({ venueId }) {
             return (
               <button
                 key={t.id}
-                role="tab"
-                aria-selected={active}
+                aria-pressed={active}
                 onClick={() => setTab(t.id)}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
                   active
-                    ? "border-zinc-600 bg-zinc-800 text-white"
+                    ? "border-zinc-600 bg-zinc-800 text-ink"
                     : "border-zinc-800/70 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                 }`}
               >
@@ -616,7 +617,7 @@ export default function InvitationsManager({ venueId }) {
                       </div>
                       <p className="truncate text-xs text-zinc-500">
                         {inv.email}
-                        <span className="mx-1.5 text-zinc-700">·</span>
+                        <span className="mx-1.5 text-zinc-600">·</span>
                         {st === "pending"
                           ? relTime(inv.expires_at)
                           : st === "accepted"

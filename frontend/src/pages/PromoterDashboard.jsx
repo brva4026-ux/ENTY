@@ -556,7 +556,7 @@ export default function PromoterDashboard() {
               promotor abre para. */}
             <nav
               className="tabbar no-scrollbar max-w-full"
-              aria-label="Secciones del promotor"
+            aria-label="Secciones del promotor"
             >
               {[
                 ["vender", "Vender", "ticket"],
@@ -601,6 +601,7 @@ export default function PromoterDashboard() {
                           Tipo de boleta
                         </label>
                         <select
+                          aria-label="Tipo de boleta"
                           value={form.ticket_type_id}
                           onChange={(e) => handleTypeChange(e.target.value)}
                           className="field"
@@ -639,6 +640,7 @@ export default function PromoterDashboard() {
                           Nombre del asistente *
                         </label>
                         <input
+                          aria-label="Nombre del asistente"
                           value={form.customer_name}
                           onChange={(e) =>
                             setForm({ ...form, customer_name: e.target.value })
@@ -653,6 +655,7 @@ export default function PromoterDashboard() {
                           Teléfono (con código de país) *
                         </label>
                         <input
+                          aria-label="Teléfono del asistente"
                           value={form.customer_phone}
                           onChange={(e) =>
                             setForm({ ...form, customer_phone: e.target.value })
@@ -668,6 +671,7 @@ export default function PromoterDashboard() {
                           Correo (opcional)
                         </label>
                         <input
+                          aria-label="Correo del asistente"
                           value={form.customer_email}
                           onChange={(e) =>
                             setForm({ ...form, customer_email: e.target.value })
@@ -890,6 +894,7 @@ export default function PromoterDashboard() {
                             </p>
                             <div className="flex flex-wrap gap-2">
                               <input
+                                aria-label="Nombre del asistente"
                                 value={edit.name}
                                 onChange={(e) =>
                                   setEdit({ ...edit, name: e.target.value })
@@ -898,6 +903,7 @@ export default function PromoterDashboard() {
                                 placeholder="Nombre del asistente"
                               />
                               <input
+                                aria-label="Teléfono del asistente"
                                 value={edit.phone}
                                 onChange={(e) =>
                                   setEdit({ ...edit, phone: e.target.value })
@@ -909,6 +915,7 @@ export default function PromoterDashboard() {
                             </div>
                             <div className="flex gap-2">
                               <input
+                                aria-label="Motivo de la corrección"
                                 value={edit.reason}
                                 onChange={(e) =>
                                   setEdit({ ...edit, reason: e.target.value })
@@ -1043,7 +1050,7 @@ function MyPayouts({ venueId, payouts, onReload }) {
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="tnum display text-lg text-white">
+                  <p className="tnum display text-lg text-ink">
                     {fmt(
                       p.status === "paid" ? p.paid_cents : p.commission_cents,
                     )}
@@ -1065,6 +1072,7 @@ function MyPayouts({ venueId, payouts, onReload }) {
                 <div className="mt-2 space-y-2">
                   {err && <p className="text-xs text-red-400">{err}</p>}
                   <textarea
+                    aria-label="Motivo de la disputa"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     className="field min-h-20 text-sm"

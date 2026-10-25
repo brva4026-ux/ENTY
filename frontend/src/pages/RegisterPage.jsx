@@ -126,10 +126,11 @@ export default function RegisterPage() {
           </p>
 
           <form onSubmit={submit}>
-            <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+            <label htmlFor="reg-venue-name" className="mb-1.5 block text-xs font-medium text-zinc-400">
               Nombre de tu negocio
             </label>
             <input
+              id="reg-venue-name"
               value={form.venue_name}
               onChange={(e) => set("venue_name", e.target.value)}
               placeholder="Bar La Esquina"
@@ -138,10 +139,11 @@ export default function RegisterPage() {
               required
             />
 
-            <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+            <label htmlFor="reg-full-name" className="mb-1.5 block text-xs font-medium text-zinc-400">
               Tu nombre completo
             </label>
             <input
+              id="reg-full-name"
               value={form.full_name}
               onChange={(e) => set("full_name", e.target.value)}
               placeholder="Ana Gómez"
@@ -150,12 +152,13 @@ export default function RegisterPage() {
               required
             />
 
-            <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+            <label htmlFor="reg-email" className="mb-1.5 block text-xs font-medium text-zinc-400">
               Correo
             </label>
             <div className="auth-field relative mb-4">
               <MailIcon className="auth-field-icon" />
               <input
+              id="reg-email"
                 type="email"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
@@ -166,12 +169,13 @@ export default function RegisterPage() {
               />
             </div>
 
-            <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+            <label htmlFor="reg-password" className="mb-1.5 block text-xs font-medium text-zinc-400">
               Contraseña
             </label>
             <div className="auth-field relative mb-2">
               <LockIcon className="auth-field-icon" />
               <input
+              id="reg-password"
                 type={showPass ? "text" : "password"}
                 value={form.password}
                 onChange={(e) => set("password", e.target.value)}

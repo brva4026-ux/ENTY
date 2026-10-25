@@ -178,10 +178,11 @@ export default function WaitlistPage() {
 
             <form onSubmit={doJoin} className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label htmlFor="wl-name" className="mb-1 block text-xs font-medium text-zinc-400">
                   Tu nombre
                 </label>
                 <input
+                  id="wl-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -191,10 +192,11 @@ export default function WaitlistPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label htmlFor="wl-phone" className="mb-1 block text-xs font-medium text-zinc-400">
                   Tu celular
                 </label>
                 <input
+                  id="wl-phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
@@ -204,10 +206,11 @@ export default function WaitlistPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label htmlFor="wl-event" className="mb-1 block text-xs font-medium text-zinc-400">
                   Evento
                 </label>
                 <input
+                  id="wl-event"
                   value={eventId}
                   onChange={(e) => {
                     const raw = e.target.value;

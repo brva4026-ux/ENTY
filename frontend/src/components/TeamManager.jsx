@@ -469,7 +469,7 @@ function MemberRow({
           </div>
           <p className="truncate text-xs text-zinc-500">
             {m.email}
-            <span className="mx-1.5 text-zinc-700">·</span>
+            <span className="mx-1.5 text-zinc-600">·</span>
             <span
               className={
                 m.last_login_at ? "text-zinc-400" : "text-amber-500/90"
@@ -621,6 +621,7 @@ function MemberRow({
             <div className="w-full">
               <div className="flex gap-1.5">
                 <input
+                  aria-label="Nueva contraseña"
                   value={newPass}
                   onChange={(e) => setNewPass(e.target.value)}
                   className="field py-1 text-xs"
@@ -769,7 +770,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
           <div className="grid grid-cols-2 divide-zinc-800/80 sm:grid-cols-4 sm:divide-x">
             <div className="px-2 py-2 text-center">
               <p className="text-xs text-zinc-500">Miembros activos</p>
-              <p className="tnum display mt-0.5 text-2xl text-white">
+              <p className="tnum display mt-0.5 text-2xl text-ink">
                 {stats.active_members}
                 <span className="text-base text-zinc-600">
                   /{stats.total_members}
@@ -778,13 +779,13 @@ export default function TeamManager({ venueId, users, onChanged }) {
             </div>
             <div className="px-2 py-2 text-center">
               <p className="text-xs text-zinc-500">Promotores</p>
-              <p className="tnum display mt-0.5 text-2xl text-white">
+              <p className="tnum display mt-0.5 text-2xl text-ink">
                 {stats.promoters_active}
               </p>
             </div>
             <div className="px-2 py-2 text-center">
               <p className="text-xs text-zinc-500">Porteros</p>
-              <p className="tnum display mt-0.5 text-2xl text-white">
+              <p className="tnum display mt-0.5 text-2xl text-ink">
                 {stats.bouncers_active}
               </p>
             </div>
@@ -825,7 +826,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
       <div className="card p-5">
         <div
           className="tabbar no-scrollbar mb-4 max-w-full"
-          role="tablist"
+          role="group"
           aria-label="Filtrar por rol"
         >
           {TABS.map((t) => {
@@ -834,8 +835,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
             return (
               <button
                 key={t.id}
-                role="tab"
-                aria-selected={active}
+                aria-pressed={active}
                 onClick={() => setTab(t.id)}
                 className="tabbar-item shrink-0 !text-xs"
               >
@@ -915,6 +915,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
             className="grid grid-cols-1 gap-2 sm:grid-cols-2"
           >
             <input
+              aria-label="Nombre completo"
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               className="field"
@@ -931,7 +932,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
                   aria-pressed={form.role === r}
                   className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-bold transition-colors ${
                     form.role === r
-                      ? "border-zinc-500 bg-zinc-800 text-white"
+                      ? "border-zinc-500 bg-zinc-800 text-ink"
                       : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700"
                   }`}
                 >
@@ -944,6 +945,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
               ))}
             </div>
             <input
+              aria-label="Correo de la persona"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="field"
@@ -952,6 +954,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
               required
             />
             <input
+              aria-label="Contraseña inicial"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="field"

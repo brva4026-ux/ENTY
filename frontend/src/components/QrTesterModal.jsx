@@ -3,6 +3,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { fetchPublicTicket } from "../lib/api";
 import { eventDate } from "../lib/format";
 import Icon from "./Icon";
+import { useDialogA11y } from "../lib/useDialogA11y";
 
 /**
  * Probador de QR del admin.
@@ -19,6 +20,7 @@ import Icon from "./Icon";
  * revisarlo antes de emitir juicio).
  */
 export default function QrTesterModal({ onClose }) {
+  const { dialogRef, titleId } = useDialogA11y({ onClose });
   const [scanning, setScanning] = useState(false);
   const [camError, setCamError] = useState("");
   const [manual, setManual] = useState("");
@@ -27,13 +29,8 @@ export default function QrTesterModal({ onClose }) {
   const html5Ref = useRef(null);
 
   useEffect(() => {
-    // Escape cierra el probador (accesible, sin mouse).
-    const onKey = (e) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      stopCam();
-    };
+    // Escape y foco los maneja useDialogA11y; aquí solo se apaga la cámara.
+    return () => stopCam();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,15 +100,16 @@ export default function QrTesterModal({ onClose }) {
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Probador de QR"
+      aria-labelledby={titleId}
     >
       <div
+        ref={dialogRef}
         className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-zinc-800 bg-zinc-900 shadow-2xl sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-100">
+            <h2 id={titleId} className="flex items-center gap-2 text-lg font-semibold text-zinc-100">
               <Icon name="qr" className="h-5 w-5 text-brand-400" />
               Probador de QR
             </h2>
@@ -174,6 +172,7 @@ export default function QrTesterModal({ onClose }) {
             className="flex gap-2"
           >
             <input
+              aria-label="Enlace o token de la boleta"
               value={manual}
               onChange={(e) => setManual(e.target.value)}
               placeholder="Enlace del invitado (…/t#TOKEN) o token"

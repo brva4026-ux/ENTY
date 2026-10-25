@@ -310,7 +310,7 @@ export function Stat({ label, value, accent = "slate", i = 0 }) {
         <span className={`h-2 w-2 rounded-full ${dots[accent]}`} />
         {label}
       </div>
-      <div className="tnum mt-1.5 font-display text-3xl font-extrabold leading-none tracking-tight text-white">
+      <div className="tnum mt-1.5 font-display text-3xl font-extrabold leading-none tracking-tight text-ink">
         {value}
       </div>
     </div>

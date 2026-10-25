@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTabKeys } from "../lib/useTabKeys";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPublicEventDetail } from "../lib/api";
 import FanCheckoutModal from "../components/FanCheckoutModal";
@@ -119,6 +120,12 @@ export default function EventDetailPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("descripcion");
+  const evdTabs = useTabKeys({
+    ids: ["descripcion", "lineup", "ubicacion"],
+    activeId: tab,
+    onSelect: setTab,
+    idOf: (k) => `evd-tab-${k}`,
+  });
   const [fav, setFav] = useState(false);
   const [favPop, setFavPop] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -422,8 +429,12 @@ export default function EventDetailPage() {
               ].map(([k, label]) => (
                 <button
                   key={k}
+                  id={`evd-tab-${k}`}
                   role="tab"
                   aria-selected={tab === k}
+                  aria-controls={`evd-panel-${k}`}
+                  tabIndex={tab === k ? 0 : -1}
+                  onKeyDown={evdTabs.onKeyDown}
                   className={tab === k ? "is-on" : ""}
                   onClick={() => setTab(k)}
                 >
@@ -432,7 +443,13 @@ export default function EventDetailPage() {
               ))}
             </div>
 
-            <div className="evd-tabbody">
+            <div
+              className="evd-tabbody"
+              role="tabpanel"
+              id={`evd-panel-${tab}`}
+              aria-labelledby={`evd-tab-${tab}`}
+              tabIndex={0}
+            >
               {tab === "descripcion" &&
                 (data.description ? (
                   <p className="evd-prose">{data.description}</p>

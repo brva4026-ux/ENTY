@@ -157,7 +157,7 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
             <button
               onClick={() => setLinkReciente(null)}
               className="btn-mini shrink-0"
-              aria-label="Cerrar el link"
+            aria-label="Cerrar el link"
             >
               <Icon name="close" className="h-3.5 w-3.5" />
             </button>
@@ -188,7 +188,7 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
               value={elegido}
               onChange={(e) => setElegido(e.target.value)}
               className="field flex-1"
-              aria-label="Persona del equipo"
+            aria-label="Persona del equipo"
             >
               <option value="">Elegí a quién…</option>
               {candidatos.map((u) => (
@@ -203,7 +203,7 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
               value={rolNuevo}
               onChange={(e) => setRolNuevo(e.target.value)}
               className="field sm:w-40"
-              aria-label="Rol en esta noche"
+            aria-label="Rol en esta noche"
             >
               <option value="bouncer">Puerta</option>
               <option value="promotor">Venta</option>

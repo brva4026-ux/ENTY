@@ -74,11 +74,11 @@ export default function DoorPulse({ pulse, isLive }) {
               <span className="tnum font-semibold text-zinc-300">{total}</span>{" "}
               ingresos en {bars.length} franja{bars.length === 1 ? "" : "s"}
             </span>
-            <span className="text-zinc-700">·</span>
+            <span className="text-zinc-600">·</span>
             <span>último ingreso {last.label}</span>
             {isLive && (
               <>
-                <span className="text-zinc-700">·</span>
+                <span className="text-zinc-600">·</span>
                 <span className="inline-flex items-center gap-1 text-emerald-300">
                   <span className="dp-live-dot" aria-hidden="true" />
                   en vivo

@@ -1030,7 +1030,7 @@ export default function AdminDashboard() {
                               {events.length} noche{events.length === 1 ? "" : "s"} en el calendario
                               {liveNow > 0 && (
                                 <>
-                                  <span className="text-zinc-700"> · </span>
+                                  <span className="text-zinc-600"> · </span>
                                   <span className="evx-livepill">
                                     <span
                                       className="evx-livepill-dot"
@@ -1119,7 +1119,7 @@ export default function AdminDashboard() {
                     hay algo que scrollear de verdad). */}
                         <div
                           className="evx-filters"
-                          role="tablist"
+                          role="group"
                           aria-label="Filtrar eventos por estado"
                         >
                           <div className="no-scrollbar evx-filters-row">
@@ -1133,8 +1133,7 @@ export default function AdminDashboard() {
                               return (
                                 <button
                                   key={id}
-                                  role="tab"
-                                  aria-selected={active}
+                                  aria-pressed={active}
                                   onClick={() => setEventBucket(id)}
                                   className={`evx-tab ${active ? "is-active" : ""}`}
                                 >
@@ -1930,6 +1929,12 @@ export default function AdminDashboard() {
             )}
 
             {/* ====== Pestañas dentro del backstage ====== */}
+            <div
+              id="evx-tab-panel"
+              role="tabpanel"
+              aria-labelledby={`evx-tab-${section}`}
+              tabIndex={0}
+            >
             {section === "resumen" && (
               <div className="grid gap-5 lg:grid-cols-2">
                 {report ? (
@@ -2153,6 +2158,7 @@ export default function AdminDashboard() {
                 preflight={preflight}
               />
             )}
+            </div>
           </>
         )}
         {/* Divisor de lazo (scrapbook): cierra la portada de la noche antes

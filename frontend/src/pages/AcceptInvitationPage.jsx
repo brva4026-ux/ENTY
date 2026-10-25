@@ -226,7 +226,7 @@ export default function AcceptInvitationPage() {
                 <p className="text-2xs font-bold uppercase tracking-wide text-zinc-500">
                   Entras como
                 </p>
-                <p className="display mt-0.5 text-base text-white">
+                <p className="display mt-0.5 text-base text-ink">
                   {ROLE_LABEL[preview?.role] || preview?.role} · {preview?.venue_name}
                 </p>
                 <p className="mt-1.5 text-sm text-zinc-400">

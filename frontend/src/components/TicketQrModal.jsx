@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { publicTicketPageUrl } from "../lib/api";
 import { ticketWaMessage, waLink } from "../lib/whatsapp";
 import Icon from "./Icon";
+import { useDialogA11y } from "../lib/useDialogA11y";
 
 /**
  * QR de una boleta vista desde el admin.
@@ -15,6 +16,7 @@ import Icon from "./Icon";
  * queda asociado al asistente mientras el evento esté abierto.
  */
 export default function TicketQrModal({ ticket, onClose }) {
+  const { dialogRef, titleId } = useDialogA11y({ onClose });
   const [qr, setQr] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -76,13 +78,14 @@ export default function TicketQrModal({ ticket, onClose }) {
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="card animate-scale-in w-full max-w-sm p-5 text-center"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={`QR de la boleta #${ticket?.id}`}
+        aria-labelledby={titleId}
       >
-        <p className="display text-base">Boleta #{ticket?.id}</p>
+        <p id={titleId} className="display text-base">Boleta #{ticket?.id}</p>
         <p className="mt-0.5 text-xs text-zinc-500">
           {ticket?.customer_name}
           {ticket?.type_name ? ` · ${ticket.type_name}` : ""}

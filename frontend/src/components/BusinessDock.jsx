@@ -70,7 +70,7 @@ export default function BusinessDock({ venueId, section, onNavigate }) {
           pagos.
         </p>
       </div>
-      <div className="bizdock-grid" role="tablist">
+      <div className="bizdock-grid">
         {[
           ["negocio", "Reportes", "La foto del mes: ventas, puerta y equipo", "chart"],
           ["puerta", "Puerta", "Qué pasa ahora en la puerta del bar", "door"],
@@ -96,8 +96,7 @@ export default function BusinessDock({ venueId, section, onNavigate }) {
           return (
             <button
               key={id}
-              role="tab"
-              aria-selected={active}
+              type="button"
               aria-current={active ? "page" : undefined}
               onClick={() => {
                 haptics.tick();

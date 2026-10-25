@@ -63,7 +63,7 @@ function KpiCard({ label, value, accent, children, format }) {
         {label}
       </p>
       <p
-        className={`tnum mt-1.5 text-3xl font-extrabold leading-none tracking-[-0.03em] ${accent ?? "text-white"}`}
+        className={`tnum mt-1.5 text-3xl font-extrabold leading-none tracking-[-0.03em] ${accent ?? "text-ink"}`}
         style={{ fontVariationSettings: '"opsz" 32' }}
       >
         {isNumber ? (

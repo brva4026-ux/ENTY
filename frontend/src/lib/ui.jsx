@@ -14,6 +14,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { haptics } from "./haptics";
+import { useDialogA11y } from "./useDialogA11y";
 
 const UIContext = createContext(null);
 
@@ -95,21 +96,19 @@ function Dialog({ spec, resolve, onClose }) {
     [resolve, onClose]
   );
 
+  // Escape, foco atrapado y scroll bloqueado: ver useDialogA11y.
+  const { dialogRef, titleId } = useDialogA11y({
+    onClose: () => finish(spec.kind === "prompt" ? null : false),
+  });
+
   useEffect(() => {
     // Foco al montar: al input (prompt) o al botón seguro (confirm/alert).
     const t = setTimeout(() => {
       if (spec.kind === "prompt" && inputRef.current) inputRef.current.select();
       else document.getElementById("dialog-primary-btn")?.focus();
     }, 30);
-    const onKey = (e) => {
-      if (e.key === "Escape") finish(spec.kind === "prompt" ? null : false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [spec, finish]);
+    return () => clearTimeout(t);
+  }, [spec]);
 
   const primaryCls = spec.danger
     ? "rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-500 active:scale-[0.98]"
@@ -122,14 +121,18 @@ function Dialog({ spec, resolve, onClose }) {
       onMouseDown={(e) => e.target === e.currentTarget && finish(spec.kind === "prompt" ? null : false)}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
     >
-      <div className={`dialog-panel w-full max-w-sm p-5 ${closing ? "dialog-out" : "dialog-in"}`}>
+      <div
+        ref={dialogRef}
+        className={`dialog-panel w-full max-w-sm p-5 ${closing ? "dialog-out" : "dialog-in"}`}
+      >
         <div className="flex items-start gap-3">
           <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${spec.danger ? "bg-red-950/70 text-red-400 ring-1 ring-red-500/30" : "bg-brand-500/15 text-brand-300 ring-1 ring-brand-500/30"}`}>
             <Icon path={icon} className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <h3 className="display text-base text-white">{spec.title}</h3>
+            <h3 id={titleId} className="display text-base text-ink">{spec.title}</h3>
             {spec.message && (
               <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-zinc-400">
                 {spec.message}
@@ -140,6 +143,7 @@ function Dialog({ spec, resolve, onClose }) {
 
         {spec.kind === "prompt" && (
           <input
+            aria-label="Escribe tu respuesta"
             ref={inputRef}
             value={value}
             onChange={(e) => setValue(e.target.value)}

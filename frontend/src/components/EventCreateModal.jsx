@@ -3,6 +3,7 @@ import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
 import { eventDate } from "../lib/format";
 import Icon from "./Icon";
+import { useDialogA11y } from "../lib/useDialogA11y";
 
 /** Date -> valor para <input type="datetime-local"> (hora LOCAL, sin zona). */
 function pad2(n) {
@@ -125,6 +126,7 @@ function Hint({ children, tone = "zinc" }) {
  * cambiaron: esto es puramente la experiencia de llenarlo.
  */
 export default function EventCreateModal({ venueId, onClose, onCreated }) {
+  const { dialogRef, titleId } = useDialogA11y({ onClose });
   const ui = useUI();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(defaultEventForm);
@@ -274,15 +276,16 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
       className="dialog-backdrop fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="dialog-panel my-auto w-full max-w-2xl p-5">
+      <div ref={dialogRef} className="dialog-panel my-auto w-full max-w-2xl p-5">
         {/* ====== Cabecera + pasos ====== */}
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h3 className="display text-lg">Nuevo evento</h3>
+            <h3 id={titleId} className="display text-lg">Nuevo evento</h3>
             <p className="mt-0.5 text-xs text-zinc-500">
               Nace en borrador: lo montas (tipos y cupos) antes de publicarlo.
             </p>
@@ -412,6 +415,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   )}
                   {flyerMode === "enlace" && (
                     <input
+                      aria-label="Enlace del flyer"
                       type="url"
                       value={form.flyer_url}
                       onChange={(e) => set({ flyer_url: e.target.value })}
@@ -547,6 +551,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </div>
                 {customDate ? (
                   <input
+                    aria-label="Fecha y hora de inicio"
                     type="datetime-local"
                     value={form.starts_at}
                     onChange={(e) => set({ starts_at: e.target.value })}
@@ -716,7 +721,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                     </span>
                   )}
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-white">
+                    <p className="truncate text-sm font-bold text-ink">
                       {form.name.trim() || "Evento sin nombre"}
                     </p>
                     <p className="mt-0.5 text-xs text-zinc-400">
