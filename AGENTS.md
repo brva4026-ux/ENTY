@@ -149,6 +149,25 @@ como gate en CI deja el pipeline rojo.
 
 ## Trampas conocidas
 
+- **CI en rojo que NO es tu culpa (facturación de GitHub)**: si los jobs de
+  `ci.yml` terminan en **~3 segundos** (cuando lo normal son ~9 minutos), el
+  job nunca arrancó. La anotación lo dice:
+
+  > `The job was not started because recent account payments have failed or
+  > your spending limit needs to be increased.`
+
+  Es un problema de facturación de la cuenta, no del diff: `master` ya estaba
+  rojo por lo mismo. No pierdas tiempo "arreglando" tu cambio ni buscando el
+  log (`--log-failed` responde `log not found` / `BlobNotFound`, porque nunca
+  hubo log). Verificá el tiempo del run y la anotación antes que el código:
+
+  ```bash
+  gh run list --repo brva4026-ux/ticketflow --workflow=CI --limit 5
+  gh run view <RUN_ID> --repo brva4026-ux/ticketflow   # lee ANNOTATIONS
+  ```
+
+  Se arregla en GitHub > Settings > Billing. Mientras tanto, el gate real es
+  correr las suites localmente (backend, frontend y e2e) y el deploy de Vercel.
 - **`prepare_threshold`**: en psycopg3, `None` desactiva los prepared
   statements y `0` los prepara en el **primer** uso. Debe ser `None` detrás de
   un pooler en modo transaction (Supabase `:6543`, pgBouncer), o `redeem`
