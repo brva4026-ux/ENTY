@@ -215,9 +215,10 @@ async def accept_invitation(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     # Lockout en DB (mig 016): cubo por IP con email sentinel. Cada intento
-    # de canje cuenta como fallo; el éxito está en el UPDATE que sigue (el
-    # token válido canjea aunque el cubo tenga entradas, no hay login que
-    # "limpiar" — la ventana de 15 min se agota sola).
+    # de canje cuenta como fallo (defensa contra fuerza bruta del token), pero
+    # el ÉXITO limpia el cubo: sin eso, invitar a un equipo de 20 desde la
+    # misma IP bloqueaba al noveno por 15 minutos, porque cada canje legítimo
+    # sumaba al mismo contador que nunca se vaciaba.
     ip = _client_ip(request)
     if await _login_locked(db, "__invite__", ip):
         raise HTTPException(
@@ -288,7 +289,11 @@ async def accept_invitation(
         )
         await db.commit()
 
-    from app.routers.auth import _build_user_summary
+    from app.routers.auth import _build_user_summary, _clear_failures
+
+    # El canje fue legítimo: se vacía el cubo de esta IP para que el resto del
+    # equipo pueda aceptar su invitación (ver comentario al inicio).
+    await _clear_failures(db, "__invite__", ip)
 
     roles = {str(inv["venue_id"]): [inv["role"]]}
     token = create_access_token(user_id, [inv["venue_id"]], roles, 1)
