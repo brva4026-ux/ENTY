@@ -175,6 +175,16 @@ como gate en CI deja el pipeline rojo.
   Hay dos sitios en `app/core/db.py`: `_CONNECT_KWARGS` e `init_pool`.
 - **Seed**: `POST /seed` solo responde si `IS_DEMO=true`. Borra y recrea los
   datos demo; no hay endpoint de borrado.
+- **`push_outbox` es global y el drenador procesa de a 50**: `_drain_once`
+  toma las cartas más antiguas con `LIMIT MAX_ATTEMPTS_PER_TICK` (50). Un test
+  que acepte muchas invitaciones (cada una notifica al admin de la venue)
+  mete cartas nuevas al outbox compartido y desplaza la que
+  `test_push_outbox::test_drain_once_marks_letter_processed` espera ver
+  procesada: el test falla por contaminación, no por lógica. Pasa aislado y
+  falla en la suite completa. Si tu test genera notificaciones, bórralas al
+  terminar (`DELETE FROM push_outbox WHERE notification_id IN (SELECT id FROM
+  notifications WHERE venue_id = %s AND kind = ...)`). El síntoma engaña
+  porque el test que falla no es el que ensucia.
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
 
