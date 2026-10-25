@@ -19,6 +19,7 @@ from app.schemas import (
     DoorSnapshotOut,
     DoorSyncItem,
     DoorSyncOut,
+    DoorSyncResult,
     RedeemOut,
     TicketContactEditRequest,
     TicketContactEditOut,
@@ -720,7 +721,16 @@ async def door_sync(
     Cada token pasa por `redeem_ticket` COMO SI FUERA AHORA: si la boleta fue
     anulada o ya canjeada mientras el teléfono estaba offline, la DB lo dice
     y el resultado refleja la verdad final (granted / already_redeemed /
-    rejected). `scanned_at` es informativo; el canje real queda con su now().
+    rejected).
+
+    Idempotencia (mig 034): cada item trae un `scan_id` que el teléfono generó
+    al escanear. Si el sync se reintenta (corte de red, la app se cierra a
+    medias), el scan_id ya visto devuelve su resultado SIN volver a canjear:
+    el reintento deja de falsear el conteo de la puerta. `scanned_at` es la
+    hora real del escaneo, saneada en SQL.
+
+    La respuesta trae `results` en el MISMO orden que la entrada: el cliente
+    borra de IndexedDB solo lo que el server confirmó.
     """
     ensure_roles(user, venue_id, "super_admin", "admin", "bouncer")
     # La misma válvula anti-spam del redeem en línea: una cola offline nunca
@@ -735,12 +745,45 @@ async def door_sync(
         )
 
     granted = already = rejected = 0
+    results: list[DoorSyncResult] = []
     async with db.cursor() as cur:
         for item in body:
+            # 1) ¿Ya procesamos este scan_id? Devolver el recibo, sin canjear.
+            if item.scan_id:
+                try:
+                    await cur.execute(
+                        "SELECT outcome FROM door_sync_receipts "
+                        "WHERE event_id = %s AND scan_id = %s",
+                        (event_id, item.scan_id),
+                    )
+                    prev = await cur.fetchone()
+                except psycopg.errors.Error:
+                    # Un scan_id malformado (no uuid) no debe tumbar la cola:
+                    # se sigue como si no hubiera recibo.
+                    await db.rollback()
+                    prev = None
+                if prev:
+                    code = prev["outcome"] if isinstance(prev, dict) else prev[0]
+                    results.append(DoorSyncResult(scan_id=item.scan_id, code=code))
+                    if code == "GRANTED":
+                        granted += 1
+                    elif code == "ALREADY_REDEEMED":
+                        already += 1
+                    else:
+                        rejected += 1
+                    continue
+
+            # 2) Canje real. La hora del escaneo viaja al SQL (saneada ahí).
             try:
                 await cur.execute(
-                    "SELECT redeem_ticket(%s, %s, %s, %s)",
-                    (event_id, item.raw_token, user["id"], item.ticket_type_id),
+                    "SELECT redeem_ticket(%s, %s, %s, %s, %s)",
+                    (
+                        event_id,
+                        item.raw_token,
+                        user["id"],
+                        item.ticket_type_id,
+                        item.scanned_at,
+                    ),
                 )
                 row = await cur.fetchone()
                 code = row["redeem_ticket"] if isinstance(row, dict) else row[0]
@@ -748,8 +791,25 @@ async def door_sync(
                 # Un token problemático no tira la cola entera: se cuenta como
                 # rechazado y se sigue con el resto.
                 await db.rollback()
+                code = "INVALID"
+                results.append(DoorSyncResult(scan_id=item.scan_id, code=code))
                 rejected += 1
                 continue
+
+            # 3) Dejar el recibo para que un reintento sea no-op.
+            if item.scan_id:
+                try:
+                    await cur.execute(
+                        "INSERT INTO door_sync_receipts (event_id, scan_id, outcome) "
+                        "VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
+                        (event_id, item.scan_id, code),
+                    )
+                except psycopg.errors.Error:
+                    # El recibo es una optimización: si falla (scan_id no uuid),
+                    # el canje ya ocurrió y la respuesta sigue siendo válida.
+                    await db.rollback()
+
+            results.append(DoorSyncResult(scan_id=item.scan_id, code=code))
             if code == "GRANTED":
                 granted += 1
             elif code == "ALREADY_REDEEMED":
@@ -763,4 +823,5 @@ async def door_sync(
         granted=granted,
         already_redeemed=already,
         rejected=rejected,
+        results=results,
     )

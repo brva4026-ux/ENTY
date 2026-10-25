@@ -48,6 +48,8 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "030_legal_plazos.sql",
     ROOT / "db" / "migrations" / "031_analytics_events.sql",
     ROOT / "db" / "migrations" / "032_user_preferences.sql",
+    ROOT / "db" / "migrations" / "033_inventory_per_type.sql",
+    ROOT / "db" / "migrations" / "034_door_grace_and_sync_truth.sql",
 ]
 
 
@@ -79,6 +81,8 @@ def db():
             -- orden; se listan para que una corrida previa no deje las tablas
             -- y schema.sql choque con DuplicateTable.
             legal_acceptances, legal_documents, analytics_events,
+                -- Recibos idempotentes del sync de puerta (mig 034).
+                door_sync_receipts,
                 -- Preferencias por usuario+venue (mig 032). No cuelga nada de
                 -- ella, pero si schema.sql la crea y una corrida previa la dejo,
                 -- el CREATE choca con DuplicateTable y revienta el lote entero.
@@ -91,7 +95,9 @@ def db():
         -- redeem_ticket tuvo dos firmas (3 y 4 args, mig 008): un DROP sin
         -- firma lanza AmbiguousFunction si conviven overloads.
         DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint);
-        DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint, bigint);            DROP FUNCTION IF EXISTS emit_ticket, void_ticket,
+        DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint, bigint);
+        DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint, bigint, timestamp with time zone);
+        DROP FUNCTION IF EXISTS emit_ticket, void_ticket,
             reissue_ticket, set_event_status, notify_user, notify_venue_admins,
             notify_payout_lifecycle, notify_invitation_accepted,
             notify_ticket_reissued, correct_ticket_contact, events_check_capacity,

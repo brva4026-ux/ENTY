@@ -77,6 +77,15 @@ despliega (Vercel auto-despliega en cada push) pero el objeto nunca llega a
 Supabase: las rutas que lo usan devuelven 503. El test compara la lista contra
 `db/migrations/*.sql` y falla si falta una, sobra una o se rompe el orden.
 
+**El cuerpo de una migración que reemplaza una función debe ser BYTE-IDÉNTICO
+al de `schema.sql`.** El drift test re-aplica las migraciones sobre una
+instalación limpia y compara el `pg_dump`; si el cuerpo difiere aunque sea en
+un comentario o en la indentación, el dump cambia y el test falla. No escribas
+el cuerpo a mano: extraelo del `schema.sql` (o copiá y pegá sin retocar) y
+agregá los comentarios de la migración FUERA del `$$ ... $$`. Los
+`CREATE FUNCTION` de una migración van con `CREATE OR REPLACE`, y una tabla
+nueva con `CREATE TABLE IF NOT EXISTS` (para que un re-run no rompa).
+
 
 ### Correr la suite E2E dos veces seguidas (importante)
 
@@ -175,6 +184,30 @@ como gate en CI deja el pipeline rojo.
   Hay dos sitios en `app/core/db.py`: `_CONNECT_KWARGS` e `init_pool`.
 - **Seed**: `POST /seed` solo responde si `IS_DEMO=true`. Borra y recrea los
   datos demo; no hay endpoint de borrado.
+- **La puerta y el cierre de eventos (mig 034)**: el auto-cierre tiene 6 h de
+  **gracia** (`ends_at` es una estimación del organizador, no una orden de
+  desalojo). No la quites: sin ella, un bar que cierra más tarde de lo previsto
+  pasa el evento a `ended` y `redeem_ticket` —que solo acepta `live`/`published`—
+  rechaza TODAS las boletas válidas con `EVENT_NOT_LIVE`. Si un evento cerró de
+  más, `POST /venues/{v}/events/{e}/reopen` lo devuelve a `live` (admin,
+  auditado); `ended -> live` está en la matriz de transiciones del trigger.
+  Ojo con los tests de cierre: un evento vencido hace **1 h** ya NO se cierra.
+- **Sync offline idempotente**: cada item de la cola de puerta lleva un
+  `scan_id` (uuid del teléfono). `door-sync` lo usa como recibo en
+  `door_sync_receipts (event_id, scan_id)` y responde `results[]` por token.
+  El cliente borra de IndexedDB solo lo confirmado, y **nunca** un `INVALID`
+  (eso es un fallo transitorio del canje, no un rechazo: borrarlo perdería una
+  entrada pagada). Los rechazos definitivos sí se borran.
+- **`push_outbox` es global y el drenador procesa de a 50**: `_drain_once`
+  toma las cartas más antiguas con `LIMIT MAX_ATTEMPTS_PER_TICK` (50). Un test
+  que acepte muchas invitaciones (cada una notifica al admin de la venue)
+  mete cartas nuevas al outbox compartido y desplaza la que
+  `test_push_outbox::test_drain_once_marks_letter_processed` espera ver
+  procesada: el test falla por contaminación, no por lógica. Pasa aislado y
+  falla en la suite completa. Si tu test genera notificaciones, bórralas al
+  terminar (`DELETE FROM push_outbox WHERE notification_id IN (SELECT id FROM
+  notifications WHERE venue_id = %s AND kind = ...)`). El síntoma engaña
+  porque el test que falla no es el que ensucia.
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
 

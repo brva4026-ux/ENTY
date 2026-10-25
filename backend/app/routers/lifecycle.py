@@ -37,6 +37,11 @@ VALID_TRANSITIONS = {
     "publish": ("draft", "published"),
     "live": ("published", "live"),
     "end": ("live", "ended"),
+    # Reapertura (mig 034): 'ended' dejó de ser terminal. El auto-cierre con
+    # gracia (6 h) evita el caso normal, pero un ends_at mal cargado o un
+    # "Terminar" pulsado sin querer dejaban el evento muerto para siempre, sin
+    # puerta y sin venta. Reabrir es explícito, de admin, y queda auditado.
+    "reopen": ("ended", "live"),
     # Se puede cancelar desde borrador O publicado (migración 005: el trigger de
     # DB valida la matriz completa, así que 'live/ended/cancelled -> cancelled'
     # queda bloqueado a nivel DB aunque el endpoint lo intentara).
@@ -88,6 +93,15 @@ async def _transition(venue_id, event_id, user, db, action):
             await cur.execute("SELECT set_event_status(%s, %s, %s)", (event_id, p_from, p_to))
         except psycopg.errors.Error as e:
             raise _error_to_http(e)
+
+        # La reapertura es la única transición que "resucita" un evento y
+        # devuelve la puerta: merece rastro (mig 034).
+        if action == "reopen":
+            await write_audit(
+                cur, venue_id, user["id"], "event_reopen", "event", event_id,
+                {"from": p_from, "to": p_to},
+            )
+
         out = await fetch_event(cur, event_id, venue_id)
         await db.commit()
     return out
@@ -181,6 +195,21 @@ async def end_event(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     return await _transition(venue_id, event_id, user, db, "end")
+
+
+@router.post("/events/{event_id}/reopen", response_model=EventOut)
+async def reopen_event(
+    venue_id: int, event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Devuelve un evento terminado a la puerta (ended -> live, mig 034).
+
+    El auto-cierre tiene 6 h de gracia, pero la noche puede estirarse más (o
+    el cierre fue un error): sin esta salida, 'ended' era terminal y no había
+    forma de volver a escanear ni de vender. Requiere admin y queda auditado.
+    """
+    return await _transition(venue_id, event_id, user, db, "reopen")
 
 
 @router.post("/events/{event_id}/cancel", response_model=EventOut)

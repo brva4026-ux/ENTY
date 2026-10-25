@@ -5,6 +5,10 @@ pulsaba "Terminar": la franja mentia y los KPIs del negocio se distorsionaban.
 La funcion auto_close_expired_events() (SQL, idempotente) hace las
 transiciones validas live->ended y published->ended; el endpoint de listado
 de eventos la invoca como watchdog en cada lectura.
+
+Desde la mig 034 el cierre tiene 6 h de GRACIA (ends_at es una estimacion del
+organizador, no una orden de desalojo): por eso los tests vencen el evento 7 h
+atras y no 1 h. La gracia en si se cubre en test_door_grace_and_sync.py.
 """
 import psycopg
 import pytest
@@ -23,7 +27,7 @@ def test_live_vencido_se_cierra(api):
     ) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE events SET ends_at = now() - interval '1 hour' WHERE id = %s",
+                "UPDATE events SET ends_at = now() - interval '7 hours' WHERE id = %s",
                 (scen["event"],),
             )
     closed = api.run_sql("SELECT auto_close_expired_events()")
@@ -58,7 +62,7 @@ def test_es_idempotente(api):
     ) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE events SET ends_at = now() - interval '1 hour' WHERE id = %s",
+                "UPDATE events SET ends_at = now() - interval '7 hours' WHERE id = %s",
                 (scen["event"],),
             )
     primera = api.run_sql("SELECT auto_close_expired_events()")
@@ -79,7 +83,7 @@ def test_watchdog_en_listado(api, api_client):
     ) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE events SET ends_at = now() - interval '1 hour' WHERE id = %s",
+                "UPDATE events SET ends_at = now() - interval '7 hours' WHERE id = %s",
                 (scen["event"],),
             )
     events = api.get(f"/venues/{scen['venue']}/events", "admin").json()
@@ -103,7 +107,7 @@ def test_published_vencido_no_tumba_el_listado(api):
     ) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE events SET ends_at = now() - interval '1 hour' WHERE id = %s",
+                "UPDATE events SET ends_at = now() - interval '7 hours' WHERE id = %s",
                 (scen["event"],),
             )
     # Antes del fix: este GET lanzaba invalid_transition y respondia 500.

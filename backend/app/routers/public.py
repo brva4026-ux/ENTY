@@ -46,6 +46,10 @@ router = APIRouter(prefix="/public", tags=["publico"])
 _RATE_LIMIT = 120  # peticiones por minuto por IP
 _RATE_WINDOW = 60.0
 _rate_bucket: dict[str, list[float]] = {}
+# Tope de IPs rastreadas. Sin esto, el dict crecía una entrada por IP para
+# SIEMPRE (una botnet o un scraper con IPs rotativas lo inflaban sin límite):
+# memoria que nunca se libera en un proceso de vida larga.
+_RATE_MAX_KEYS = 10_000
 
 
 def _rate_key(request: Request) -> str:
@@ -63,6 +67,19 @@ def _rate_key(request: Request) -> str:
     )
 
 
+def _evict_expired(bucket_map: dict[str, list[float]], now: float, window: float) -> None:
+    """Suelta las IPs cuyo cubo ya expiró, si el mapa pasó del tope.
+
+    Se poda SOLO al cruzar el tope: recorrer el mapa en cada petición costaría
+    más que el problema que resuelve. Las IPs sin actividad en la ventana no
+    aportan nada y se pueden tirar enteras.
+    """
+    if len(bucket_map) <= _RATE_MAX_KEYS:
+        return
+    for ip in [k for k, v in bucket_map.items() if not v or now - v[-1] > window]:
+        bucket_map.pop(ip, None)
+
+
 async def _rate_limit(request: Request) -> None:
     ip = _rate_key(request)
     now = time.monotonic()
@@ -71,6 +88,7 @@ async def _rate_limit(request: Request) -> None:
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Demasiadas peticiones")
     bucket.append(now)
     _rate_bucket[ip] = bucket
+    _evict_expired(_rate_bucket, now, _RATE_WINDOW)
 
 # Ni cachear ni indexar: el contenido cambia (la boleta puede anularse) y no
 # queremos que un buscador archive los QRs de los clientes.
@@ -383,6 +401,7 @@ async def _checkout_rate_limit(request: Request) -> None:
         )
     bucket.append(now)
     _checkout_bucket[ip] = bucket
+    _evict_expired(_checkout_bucket, now, _CHECKOUT_WINDOW)
 
 
 @router.post(

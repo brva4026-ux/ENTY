@@ -101,6 +101,15 @@ const RESULT_STYLES = {
     icon: "✓",
     sub: "Validada con el caché de puerta · se sincroniza al volver la red",
   },
+  // Doble escaneo sin red del MISMO teléfono: la boleta ya está en la cola de
+  // sync, así que NO vuelve a entrar (el snapshot, al ser una foto previa, la
+  // seguía viendo viva).
+  ALREADY_REDEEMED_OFFLINE: {
+    bg: "bg-red-600",
+    text: "YA USADA (OFFLINE)",
+    icon: "✗",
+    sub: "Ya se escaneó en este teléfono · pendiente de sync",
+  },
   SNAPSHOT_MISSING: {
     bg: "bg-amber-600",
     text: "SIN CACHÉ",
@@ -125,6 +134,7 @@ const SCAN_LOG_LABEL = {
   SCAN_ERROR: "ERROR",
   NOT_ACTIVE: "AÚN NO ACTIVA",
   GRANTED_OFFLINE: "ENTRA (OFFLINE)",
+  ALREADY_REDEEMED_OFFLINE: "YA USADA (OFFLINE)",
   SNAPSHOT_MISSING: "SIN CACHÉ",
 };
 // Anti-spam de reintentos de NOT_ACTIVE: el servidor no cobra por cada
@@ -336,6 +346,10 @@ export default function BouncerScanner() {
         if (local.code === "GRANTED_OFFLINE") {
           await queueRedemption(rawToken, {
             typeId: rowFilter || null,
+            // El evento va con el item: la cola es del teléfono y un bouncer
+            // puede haber trabajado dos eventos, así que sin esto el sync
+            // mandaba los tokens del otro evento contra el seleccionado.
+            eventId: selectedEvent,
           });
           await refreshPending();
         }

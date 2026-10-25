@@ -210,3 +210,34 @@ def test_lifecycle_after_accept(api):
     users = api.get(f"/venues/{venue}/users", "admin").json()
     roles = {u["email"]: u["roles"] for u in users}
     assert roles[email] == ["admin"]
+
+
+def test_team_can_be_invited_in_one_batch_from_same_ip(api, dbcur):
+    """Bug real: cada canje legítimo sumaba al cubo del lockout (mig 016) y
+    nunca lo vaciaba, así que la novena persona invitada desde la misma IP
+    —una oficina, un bar— recibía 429 y no podía entrar al equipo.
+
+    Aquí se invitan 12 personas seguidas (más que _MAX_FAILURES=8) y todas
+    deben aceptar sin bloqueo."""
+    venue = api.world["venue_a"]
+    tag = _tag()
+    for i in range(12):
+        email = f"batch{i}_{tag}@t.test"
+        res = _create(api, venue, email, role="bouncer")
+        assert res.status_code == 201, res.text
+        tok = _raw_token_from(res.json()["invite_url"])
+        acc = _accept(api.client, tok)
+        assert acc.status_code == 200, (
+            f"la persona {i + 1} del equipo quedó bloqueada: {acc.status_code} {acc.text}"
+        )
+
+    # Cada aceptación notifica al admin de la venue y deja una carta en el
+    # outbox GLOBAL. El drenador procesa solo las 50 más antiguas por tick, así
+    # que estas 12 desplazarían la carta que test_push_outbox espera procesada.
+    # La venue es nueva en cada test, así que borrar por venue_id es seguro.
+    dbcur.execute(
+        "DELETE FROM push_outbox WHERE notification_id IN ("
+        "  SELECT id FROM notifications"
+        "  WHERE venue_id = %s AND kind = 'invitation_accepted')",
+        (venue,),
+    )

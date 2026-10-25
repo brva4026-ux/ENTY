@@ -139,7 +139,11 @@ const NEXT_ACTIONS = {
     { action: "cancel", label: "Cancelar evento", danger: true },
   ],
   live: [{ action: "end", label: "Finalizar evento" }],
-  ended: [],
+  ended: [
+    // Reabrir (mig 034): 'ended' dejó de ser terminal. La noche se puede
+    // estirar más allá de la gracia de 6 h, o el cierre fue un error.
+    { action: "reopen", label: "Reabrir puertas" },
+  ],
   cancelled: [],
 };
 
@@ -149,6 +153,7 @@ const DONE_MESSAGE = {
   publish: "Evento publicado: ya puede vender 🎟️",
   live: "Puertas abiertas: la puerta fue avisada 🚪",
   end: "Evento finalizado",
+  reopen: "Evento reabierto: la puerta vuelve a escanear 🔓",
   cancel: "Evento cancelado",
 };
 
@@ -159,6 +164,7 @@ const STRIP_ACTION = {
   publish: { label: "Publicar", icon: "bolt", variant: "success" },
   live: { label: "Abrir puertas", icon: "door", variant: "success" },
   end: { label: "Finalizar", icon: "check", variant: "brand" },
+  reopen: { label: "Reabrir", icon: "door", variant: "success" },
   cancel: { label: "Cancelar", icon: "close", variant: "danger" },
 };
 
@@ -166,6 +172,7 @@ const ACTION_TIP = {
   publish: "Publicar evento (pasa a la venta)",
   live: "Abrir puertas (la puerta empieza a escanear)",
   end: "Finalizar evento (la puerta deja de escanear)",
+  reopen: "Reabrir puertas (la puerta vuelve a escanear)",
   cancel: "Cancelar evento (las boletas dejan de ser válidas)",
 };
 
@@ -626,7 +633,8 @@ export default function AdminDashboard() {
     // PRE-VUELO: abrir puertas sin nadie en puerta era el fracaso silencioso
     // (el evento pasa a live y el escáner rechaza con 403). Se avisa ANTES del
     // confirm, con los nombres, y deja seguir si el admin decide que así sea.
-    if (action === "live") {
+    // Reabrir (mig 034) vuelve a poner la puerta en marcha: mismo pre-vuelo.
+    if (action === "live" || action === "reopen") {
       try {
         const pf = await apiFetch(
           `/venues/${venueId}/events/${ev.id}/preflight`,

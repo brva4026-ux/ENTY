@@ -877,6 +877,23 @@ class DoorSyncItem(BaseModel):
     raw_token: str = Field(min_length=8)
     scanned_at: datetime | None = None  # cuándo se validó en la puerta
     ticket_type_id: int | None = None
+    # Idempotencia (mig 034): el teléfono genera un uuid por escaneo. Si el
+    # sync se reintenta tras un corte de red, la DB reconoce el scan_id y
+    # devuelve el resultado ya guardado sin volver a canjear.
+    scan_id: str | None = None
+
+
+class DoorSyncResult(BaseModel):
+    """Resultado de UN token de la cola, en el mismo orden en que llegó.
+
+    El cliente lo necesita para borrar de IndexedDB solo los items que el
+    server realmente procesó: con un solo contador agregado, un POST cortado a
+    mitad obligaba a reenviar todo y los ya canjeados volvían como
+    already_redeemed (entradas perdidas en el conteo).
+    """
+
+    scan_id: str | None = None
+    code: str  # GRANTED / ALREADY_REDEEMED / NOT_FOUND / ...
 
 
 class DoorSyncOut(BaseModel):
@@ -890,6 +907,7 @@ class DoorSyncOut(BaseModel):
     granted: int
     already_redeemed: int
     rejected: int  # not_found / not_valid / wrong_type / invalid_event
+    results: list[DoorSyncResult] = []
 
 
 # --------------------------------------------------------------------------
