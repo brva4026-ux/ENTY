@@ -6,6 +6,8 @@ import { homeForRole } from "../lib/roles";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { withViewTransition } from "../lib/viewTransition";
+import { prefersReducedMotion } from "../lib/motion";
 
 /** Traduce errores técnicos del backend a mensajes que una persona entiende
  *  y sabe qué hacer después. */
@@ -66,6 +68,13 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Momento de éxito: antes de navegar, el botón confirma que el ingreso
+  // salió bien. Sin esto, el corte al panel era tan seco que la persona no
+  // sabía si su click había registrado.
+  const [ok, setOk] = useState(false);
+  // Sacudida del bloque de error: la señal de rechazo se SIENTE, no solo se
+  // lee. `key` remonta el bloque para que la animación corra en cada intento.
+  const [errorTick, setErrorTick] = useState(0);
   // Foco al campo corregible cuando falla el ingreso: el mensaje es genérico
   // (no revela si falló el correo o la contraseña), así que se lleva el foco a
   // la contraseña, que es lo que la persona suele poder corregir.
@@ -102,13 +111,21 @@ export default function LoginPage() {
       const home = homeForRole(user);
       if (home === "/login") {
         setError("Tu usuario no tiene un rol asignado");
-      } else {
-        nav(from || home, { replace: true });
+        setBusy(false);
+        return;
       }
+      // Confirmación breve antes de cruzar: el botón pasa a "Listo" y la
+      // navegación entra con transición de vista (la tarjeta se disuelve y el
+      // panel aparece). Con movimiento reducido el aviso dura un instante y
+      // el salto es directo: la preferencia manda.
+      setOk(true);
+      const pause = prefersReducedMotion() ? 0 : 260;
+      await new Promise((r) => setTimeout(r, pause));
+      withViewTransition(() => nav(from || home, { replace: true }));
     } catch (err) {
       setError(loginErrorMessage(err));
+      setErrorTick((n) => n + 1);
       passRef.current?.focus();
-    } finally {
       setBusy(false);
     }
   }
@@ -281,9 +298,10 @@ export default function LoginPage() {
 
             {error && (
               <div
+                key={errorTick}
                 id="login-error"
                 role="alert"
-                className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm leading-relaxed text-red-300"
+                className="auth-error mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm leading-relaxed text-red-300"
               >
                 {error}
               </div>
@@ -291,10 +309,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={busy}
-              className="btn-primary w-full"
+              disabled={busy || ok}
+              className={"btn-primary w-full" + (ok ? " is-ok" : "")}
             >
-              {busy && (
+              {busy && !ok && (
                 <svg
                   className="btn-spinner"
                   viewBox="0 0 24 24"
@@ -303,7 +321,21 @@ export default function LoginPage() {
                   <circle cx="12" cy="12" r="9" />
                 </svg>
               )}
-              {busy ? "Entrando" : "Entrar"}
+              {ok && (
+                <svg
+                  className="btn-check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m5 12.5 4.5 4.5L19 7" />
+                </svg>
+              )}
+              {ok ? "Listo" : busy ? "Entrando" : "Entrar"}
             </button>
 
             <p className="mt-3 text-center text-xs leading-relaxed text-zinc-400">

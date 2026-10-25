@@ -79,7 +79,7 @@ export default function ThemeToggle() {
       }}
       data-tip={`Tema: ${LABEL[pref]}${isAuto ? " (sigue al sistema)" : ""}`}
       aria-label={`Cambiar tema (actual: ${LABEL[pref]})`}
-      className="relative grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-200"
+      className="topbar-hit relative grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-200"
     >
       {ICONS[shown]}
       {isAuto && (

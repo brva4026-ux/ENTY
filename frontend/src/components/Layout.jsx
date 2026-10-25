@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import TransitionLink from "./TransitionLink";
 import { useAuth } from "../lib/auth";
 import { hasRole, navTabsFor, topRoleLabel } from "../lib/roles";
 import { haptics } from "../lib/haptics";
@@ -116,14 +117,14 @@ export default function Layout({ children }) {
               {tabs.map((t) => {
                 const active = pathname === t.to;
                 return (
-                  <Link
+                  <TransitionLink
                     key={t.to}
                     to={t.to}
                     aria-current={active ? "page" : undefined}
                     className={`topnav-item ${active ? "is-active" : ""}`}
                   >
                     {t.label}
-                  </Link>
+                  </TransitionLink>
                 );
               })}
             </nav>
@@ -147,7 +148,7 @@ export default function Layout({ children }) {
               to="/perfil"
               data-tip="Tu perfil"
               aria-label="Tu perfil"
-              className="topbar-avatar"
+              className="topbar-avatar topbar-hit"
             >
               {initials}
             </Link>
@@ -161,7 +162,7 @@ export default function Layout({ children }) {
                 // de tu rol.
                 nav("/login", { replace: true });
               }}
-              className="btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs"
+              className="topbar-hit btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs"
               aria-label="Cerrar sesión"
             >
               {/* Mismo verbo que el escáner: "salir" era ambiguo (¿salir de
@@ -215,7 +216,7 @@ export default function Layout({ children }) {
             {tabs.map((t) => {
               const active = pathname === t.to;
               return (
-                <Link
+                <TransitionLink
                   key={t.to}
                   to={t.to}
                   aria-current={active ? "page" : undefined}
@@ -231,7 +232,7 @@ export default function Layout({ children }) {
                   <span
                     className={`h-0.5 w-5 rounded-full transition-all duration-300 ${active ? "bg-brand-400" : "bg-transparent"}`}
                   />
-                </Link>
+                </TransitionLink>
               );
             })}
           </div>

@@ -633,6 +633,28 @@ avisar.
   suite de pytest. `POST /seed` exige `IS_DEMO=true` en el entorno del backend;
   credenciales `admin@bar.test` / `demo1234`. Sin seed, `puerta.spec`/`portada.spec`
   fallan en el login (la DB queda con usuarios tipo `admin-<hex>@example.test`).
+- **Animación de entrada (login)**: la coreografía vive en `aesthetic-refresh.css`
+  y la navegación con View Transitions en `frontend/src/lib/viewTransition.js`.
+  El `useNavigate` declarativo (con `<BrowserRouter>`) **no** acepta la opción
+  `viewTransition` — es exclusiva del data router; por eso el helper envuelve el
+  `nav()` con `document.startViewTransition` + `flushSync`. Si tocás `.btn-primary`
+  recuerda que `enty-system.css` carga después y lo redefine: cualquier estado
+  nuevo necesita especificidad `.auth-shell` (o `.app-shell`) para ganar.
+- **Entrada de las pantallas de la casa**: `.home`, `.evd` y `.door-shell`
+  entran con `screen-rise` en cascada de 35ms (aesthetic-refresh.css). Dos
+  reglas al tocarlas: (1) los hijos `position: fixed` quedan fuera del selector
+  (`.home-nav`, `.evd-copied`, `.dialog-backdrop`) porque un `transform` en el
+  padre los ancla a él y dejan de flotar sobre el scroll; (2) el tope de la
+  cascada (0.245s) es deliberado — el audit de `e2e/a11y.spec.js` ignora lo que
+  esté bajo opacidad 0.5, así que una entrada más larga le escondería bloques y
+  debilitaría el guardarraíl. Se apaga con `prefers-reduced-motion` Y con
+  `html[data-motion="reduce"]` (el reset global solo anula la duración; con
+  `both` + delay el bloque igual parpadearía).
+- **Grillas con datos del usuario**: todo item de `.evd-grid` lleva
+  `min-width: 0` + `overflow-wrap: anywhere`. Sin eso, un valor sin espacios
+  (una sede o localidad con un token largo) ensancha su pista y empuja las
+  otras celdas fuera de la pantalla a 320px. Lo detectó el chequeo de scroll
+  horizontal del spec de estructura.
 - **`e2e/onboarding.spec.js` NO usa el seed demo**: el evento del seed ya está
   publicado, así que su guía de primeros pasos está apagada a propósito. El spec
   se registra (`/register`) para obtener un negocio nuevo, que es el único

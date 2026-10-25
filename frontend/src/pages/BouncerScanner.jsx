@@ -658,7 +658,7 @@ export default function BouncerScanner() {
   }, [offline]);
 
   return (
-    <div className="app-shell flex min-h-[100dvh] flex-col bg-zinc-950 pb-[env(safe-area-inset-bottom)]">
+    <div className="app-shell door-shell flex min-h-[100dvh] flex-col bg-zinc-950 pb-[env(safe-area-inset-bottom)]">
       {/* Sin red: si hay snapshot, la puerta SIGUE trabajando (valida contra
           el caché y encola); si no hay, aquí no hay magia posible — el banner
           lo dice sin inventar una validez que no se puede verificar. */}

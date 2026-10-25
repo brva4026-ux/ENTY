@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchLegalStatus, recordAcceptance } from "../lib/legal";
 import { captureError } from "../lib/sentry";
+import { forceDarkOnce } from "../lib/theme";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
  * Gate de aceptación legal para cuentas existentes.
@@ -30,6 +32,16 @@ export function LegalGate({ onCleared }) {
   const [checked, setChecked] = useState({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // El panel es negro de marca en AMBOS temas (es una compuerta, no una
+  // pantalla del tema del usuario). Sin el candado, en claro el texto tomaba
+  // los tokens del tema —tinta oscura sobre el negro fijo— y medía 1.1:1.
+  useEffect(() => forceDarkOnce(), []);
+
+  // La compuerta bloquea el contenido de Layout, así que la ruta de debajo
+  // nunca monta y su título no llega a aplicarse: sin esto, /promotor y
+  // cualquier panel pendiente quedaban con el <title> genérico de index.html.
+  useDocumentTitle("Documentos legales");
 
   const refresh = useCallback(async () => {
     try {

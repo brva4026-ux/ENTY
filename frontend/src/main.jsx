@@ -40,6 +40,7 @@ import { OfflineBanner } from "./components/OfflineBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import NotFoundPage from "./pages/NotFoundPage";
 // Code-splitting: TODAS las páginas de rol y flujos pesados son chunks
 // separados que solo baja quien los usa. El admin no paga el escáner, el
 // portero no paga el panel admin, y el invitado (el teléfono más humilde de
@@ -219,7 +220,10 @@ function App() {
                 }
               />
               <Route path="/" element={<HomeRedirect />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* Ruta inexistente: pantalla propia, no redirección muda a "/".
+                  Un enlace roto o un QR viejo se veían como un aterrizaje
+                  normal, sin explicar que la dirección pedida no existe. */}
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
           {/* Aviso de cookies: necesita router hooks (navega a /cookies), por
