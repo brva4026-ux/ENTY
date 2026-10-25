@@ -995,6 +995,7 @@ export default function AdminDashboard() {
               month={urlMonth}
               onMonth={setMonth}
               liveEvent={liveEvent}
+              liveCount={liveNow}
             >
               {/* PORTADA UNIFICADA: la franja de eventos vive DENTRO del card
                 de la venue — un solo contexto como Del negocio, secciones

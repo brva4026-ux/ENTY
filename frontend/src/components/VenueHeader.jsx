@@ -41,6 +41,7 @@ export default function VenueHeader({
   month,
   onMonth,
   liveEvent = null,
+  liveCount = 0,
   children = null,
 }) {
   const [ov, setOv] = useState(null); // null = cargando (skeleton, no ceros)
@@ -124,6 +125,18 @@ export default function VenueHeader({
   const avg = ov?.avg_ticket_cents ?? 0;
   const paid = ov ? Math.max(0, ov.tickets_issued - ov.courtesy_tickets) : 0;
 
+  // Nota del KPI "Eventos". Dice el ALCANCE del conteo: es del mes, no del
+  // calendario completo como la franja de abajo (sin esto, 9 y 10 parecían un
+  // error de conteo). El "en puerta ahora" solo aplica al mes en curso: en un
+  // mes pasado el estado de la puerta es de HOY y mezclaría dos ejes.
+  const eventsNote = (() => {
+    if (isCurrent && liveCount > 0) return `${liveCount} en puerta ahora`;
+    if (!isCurrent) return "ese mes";
+    return ov?.prev_events_count > 0
+      ? `este mes · ${ov.prev_events_count} el mes pasado`
+      : "este mes";
+  })();
+
   return (
     <header
       className="venue-header card"
@@ -174,12 +187,17 @@ export default function VenueHeader({
               {venue?.name ?? "Tu negocio"}
             </h1>
             {/* El estado operativo manda sobre cualquier adorno: si la puerta
-              está abierta, esto es lo primero que el dueño necesita saber. */}
+              está abierta, esto es lo primero que el dueño necesita saber.
+              Con más de una noche abierta no se elige un nombre "ganador"
+              (había 3 abiertas y el badge anunciaba una sola): se dice
+              cuántas. */}
             {liveEvent && (
               <p className="vh-live">
                 <span className="vh-live-dot" aria-hidden="true" />
                 <span className="vh-live-txt">
-                  En vivo · {liveEvent.name}
+                  {liveCount > 1
+                    ? `En vivo · ${liveCount} noches abiertas`
+                    : `En vivo · ${liveEvent.name}`}
                 </span>
               </p>
             )}
@@ -284,9 +302,10 @@ export default function VenueHeader({
             <dd className="pc-t-value">
               <CountUpNumber value={ov.events_count} />
             </dd>
-            <span className="pc-t-note">
-              {liveEvent ? "1 en puerta ahora" : "ninguno en puerta"}
-            </span>
+            {/* "este mes" no es adorno: la franja de abajo cuenta TODAS las
+                noches del calendario, así que sin el alcance explícito los
+                dos números (9 y 10) parecían un error de conteo. */}
+            <span className="pc-t-note">{eventsNote}</span>
           </div>
         </dl>
       )}
