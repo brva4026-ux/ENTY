@@ -77,6 +77,15 @@ despliega (Vercel auto-despliega en cada push) pero el objeto nunca llega a
 Supabase: las rutas que lo usan devuelven 503. El test compara la lista contra
 `db/migrations/*.sql` y falla si falta una, sobra una o se rompe el orden.
 
+**El cuerpo de una migración que reemplaza una función debe ser BYTE-IDÉNTICO
+al de `schema.sql`.** El drift test re-aplica las migraciones sobre una
+instalación limpia y compara el `pg_dump`; si el cuerpo difiere aunque sea en
+un comentario o en la indentación, el dump cambia y el test falla. No escribas
+el cuerpo a mano: extraelo del `schema.sql` (o copiá y pegá sin retocar) y
+agregá los comentarios de la migración FUERA del `$$ ... $$`. Los
+`CREATE FUNCTION` de una migración van con `CREATE OR REPLACE`, y una tabla
+nueva con `CREATE TABLE IF NOT EXISTS` (para que un re-run no rompa).
+
 
 ### Correr la suite E2E dos veces seguidas (importante)
 

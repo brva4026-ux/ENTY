@@ -200,6 +200,10 @@ CREATE FUNCTION public.auto_close_expired_events() RETURNS integer
     LANGUAGE plpgsql
     AS $$
 DECLARE
+    -- Tolerancia de "la noche se estiró": ends_at es una estimación del
+    -- organizador, no una orden de desalojo. Sin ella, un bar que cierra más
+    -- tarde de lo previsto veía EVENT_NOT_LIVE en boletas válidas.
+    v_grace  interval := interval '6 hours';
     v_closed integer;
     c record;
 BEGIN
@@ -209,7 +213,7 @@ BEGIN
            SET status = 'ended', updated_at = now()
          WHERE status = 'live'
            AND ends_at IS NOT NULL
-           AND ends_at < now()
+           AND ends_at + v_grace < now()
         RETURNING 1
     )
     SELECT count(*) INTO v_closed FROM closed;
@@ -230,7 +234,7 @@ BEGIN
            SET status = 'cancelled', updated_at = now()
          WHERE status = 'published'
            AND ends_at IS NOT NULL
-           AND ends_at < now()
+           AND ends_at + v_grace < now()
         RETURNING id, venue_id, name
     LOOP
         v_closed := v_closed + 1;
@@ -596,7 +600,10 @@ BEGIN
     IF NOT (
         (OLD.status = 'draft'     AND NEW.status IN ('published', 'cancelled')) OR
         (OLD.status = 'published' AND NEW.status IN ('live', 'cancelled')) OR
-        (OLD.status = 'live'      AND NEW.status = 'ended')
+        (OLD.status = 'live'      AND NEW.status = 'ended') OR
+        -- Reapertura: la noche se estiró más que la gracia, o el cierre fue un
+        -- error. El admin vuelve a poner la puerta en marcha.
+        (OLD.status = 'ended'     AND NEW.status = 'live')
     ) THEN
         RAISE EXCEPTION 'invalid_transition (% -> %)', OLD.status, NEW.status;
     END IF;
@@ -1059,7 +1066,7 @@ $$;
 -- Name: redeem_ticket(bigint, text, bigint, bigint); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.redeem_ticket(p_event_id bigint, p_raw_token text, p_scanned_by_user_id bigint, p_expected_ticket_type_id bigint DEFAULT NULL::bigint) RETURNS text
+CREATE FUNCTION public.redeem_ticket(p_event_id bigint, p_raw_token text, p_scanned_by_user_id bigint, p_expected_ticket_type_id bigint DEFAULT NULL::bigint, p_scanned_at timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS text
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -1068,9 +1075,19 @@ DECLARE
     v_event_status text;
     v_event_starts_at timestamptz;
     v_event_unlock integer;
+    v_scanned_at timestamptz;
 BEGIN
     IF p_raw_token IS NULL OR length(p_raw_token) < 8 THEN
         RAISE EXCEPTION 'invalid_token_format';
+    END IF;
+
+    -- Hora efectiva del escaneo: la del cliente (sync offline) si es
+    -- plausible, now() si no. Una hora futura o de hace más de 7 días es un
+    -- reloj roto, no un dato.
+    v_scanned_at := COALESCE(p_scanned_at, now());
+    IF v_scanned_at > now() + INTERVAL '5 minutes'
+       OR v_scanned_at < now() - INTERVAL '7 days' THEN
+        v_scanned_at := now();
     END IF;
 
     -- Guardia: el evento del escaneo debe existir (migración 006). Sin esto,
@@ -1084,14 +1101,14 @@ BEGIN
     SELECT * INTO v_ticket FROM tickets WHERE token_hash = v_token_hash;
     IF NOT FOUND THEN
         -- ticket_id NULL: el escaneo existe como huella, sin boleta asociada
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-        VALUES (NULL, p_event_id, p_scanned_by_user_id, 'not_found');
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
+        VALUES (NULL, p_event_id, p_scanned_by_user_id, 'not_found', v_scanned_at);
         RETURN 'NOT_FOUND';
     END IF;
 
     IF v_ticket.event_id <> p_event_id THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'invalid_event');
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'invalid_event', v_scanned_at);
         RETURN 'INVALID_EVENT';
     END IF;
 
@@ -1099,16 +1116,16 @@ BEGIN
       INTO v_event_status, v_event_starts_at, v_event_unlock
       FROM events WHERE id = p_event_id;
     IF v_event_status <> 'live' AND v_event_status <> 'published' THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'event_not_live');
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'event_not_live', v_scanned_at);
         RETURN 'EVENT_NOT_LIVE';
     END IF;
 
     -- Ventana de activación (mig 013): el QR "existe" desde
     -- starts_at - unlock minutos. Antes, rechazo sin consumir.
     IF v_event_starts_at - (v_event_unlock * INTERVAL '1 minute') > now() THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'not_active');
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'not_active', v_scanned_at);
         RETURN 'NOT_ACTIVE';
     END IF;
 
@@ -1116,36 +1133,36 @@ BEGIN
     -- entra y NO se consume (podrá entrar por la fila correcta después).
     IF p_expected_ticket_type_id IS NOT NULL
        AND v_ticket.ticket_type_id <> p_expected_ticket_type_id THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'wrong_type');
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'wrong_type', v_scanned_at);
         RETURN 'WRONG_TYPE';
     END IF;
 
     IF v_ticket.status = 'voided' OR v_ticket.status = 'refunded' THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'not_valid');
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'not_valid', v_scanned_at);
         RETURN 'NOT_VALID';
     END IF;
 
     IF v_ticket.status = 'redeemed' THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed');
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at);
         RETURN 'ALREADY_REDEEMED';
     END IF;
 
     -- Compare-and-swap: exactamente UNA de las filas concurrentes sera afectada.
     UPDATE tickets
-       SET status = 'redeemed', redeemed_at = now(), redeemed_by_user_id = p_scanned_by_user_id
+       SET status = 'redeemed', redeemed_at = v_scanned_at, redeemed_by_user_id = p_scanned_by_user_id
      WHERE id = v_ticket.id AND status = 'issued';
 
     IF NOT FOUND THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed');
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at);
         RETURN 'ALREADY_REDEEMED';
     END IF;
 
-    INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome)
-    VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'granted');
+    INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
+    VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'granted', v_scanned_at);
     RETURN 'GRANTED';
 END;
 $$;
@@ -1336,10 +1353,11 @@ BEGIN
         RAISE EXCEPTION 'invalid_transition';
     END IF;
 
-    -- Al abrir puertas (published -> live): la suma de quantities de los tipos
-    -- debe cubrir las boletas ya emitidas. Si el admin redujo tipos por
-    -- debajo de lo vendido, la puerta no abre con sobreventa.
-    IF p_from = 'published' AND p_to = 'live' THEN
+    -- Al abrir (o reabrir) puertas: la suma de quantities de los tipos debe
+    -- cubrir las boletas ya emitidas. Si el admin redujo tipos por debajo de
+    -- lo vendido, la puerta no abre con sobreventa. Aplica a CUALQUIER
+    -- entrada a 'live' (published -> live y la reapertura ended -> live).
+    IF p_to = 'live' THEN
         SELECT count(*) INTO v_issued
           FROM tickets
          WHERE event_id = p_event_id
@@ -1635,6 +1653,18 @@ ALTER TABLE public.audit_log ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MAXVALUE
     CACHE 1
 );
+
+--
+-- Name: door_sync_receipts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.door_sync_receipts (
+    event_id bigint NOT NULL,
+    scan_id uuid NOT NULL,
+    outcome text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 
 --
 -- Name: event_waitlist; Type: TABLE; Schema: public; Owner: -
@@ -2416,6 +2446,13 @@ ALTER TABLE ONLY public.analytics_events
 
 ALTER TABLE ONLY public.audit_log
     ADD CONSTRAINT audit_log_pkey PRIMARY KEY (id);
+
+--
+-- Name: door_sync_receipts door_sync_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.door_sync_receipts
+    ADD CONSTRAINT door_sync_receipts_pkey PRIMARY KEY (event_id, scan_id);
 
 --
 -- Name: event_waitlist event_waitlist_event_id_phone_key; Type: CONSTRAINT; Schema: public; Owner: -
