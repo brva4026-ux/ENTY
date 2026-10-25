@@ -184,6 +184,20 @@ como gate en CI deja el pipeline rojo.
   Hay dos sitios en `app/core/db.py`: `_CONNECT_KWARGS` e `init_pool`.
 - **Seed**: `POST /seed` solo responde si `IS_DEMO=true`. Borra y recrea los
   datos demo; no hay endpoint de borrado.
+- **La puerta y el cierre de eventos (mig 034)**: el auto-cierre tiene 6 h de
+  **gracia** (`ends_at` es una estimación del organizador, no una orden de
+  desalojo). No la quites: sin ella, un bar que cierra más tarde de lo previsto
+  pasa el evento a `ended` y `redeem_ticket` —que solo acepta `live`/`published`—
+  rechaza TODAS las boletas válidas con `EVENT_NOT_LIVE`. Si un evento cerró de
+  más, `POST /venues/{v}/events/{e}/reopen` lo devuelve a `live` (admin,
+  auditado); `ended -> live` está en la matriz de transiciones del trigger.
+  Ojo con los tests de cierre: un evento vencido hace **1 h** ya NO se cierra.
+- **Sync offline idempotente**: cada item de la cola de puerta lleva un
+  `scan_id` (uuid del teléfono). `door-sync` lo usa como recibo en
+  `door_sync_receipts (event_id, scan_id)` y responde `results[]` por token.
+  El cliente borra de IndexedDB solo lo confirmado, y **nunca** un `INVALID`
+  (eso es un fallo transitorio del canje, no un rechazo: borrarlo perdería una
+  entrada pagada). Los rechazos definitivos sí se borran.
 - **`push_outbox` es global y el drenador procesa de a 50**: `_drain_once`
   toma las cartas más antiguas con `LIMIT MAX_ATTEMPTS_PER_TICK` (50). Un test
   que acepte muchas invitaciones (cada una notifica al admin de la venue)
