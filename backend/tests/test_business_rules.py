@@ -140,6 +140,28 @@ def test_type_inventory_cannot_exceed_aforo(dbcur):
     assert code and ("event_at_capacity" in code or "ticket_type_sold_out" in code)
 
 
+def test_type_inventory_is_per_type_not_a_shared_pool(dbcur):
+    """Bug real (mig 033): el tope de una localidad se medía contra la SUMA de
+    quantities de todas, así que una localidad chica se podía sobrevender con
+    el sobrante de las demás. Con aforo holgado, "VIP" (5) debe cortar en 5
+    aunque "General" tenga 50 libres."""
+    v = _venue(dbcur, "t-pertype")
+    u = _user(dbcur, "pertype@test.co")
+    e = _event(dbcur, v, "PerType Event", capacity=100)
+    tg = _type(dbcur, e, "General", qty=50)
+    tv = _type(dbcur, e, "VIP", qty=5)
+
+    for i in range(5):
+        _emit(dbcur, e, tv, None, u, f"VIP {i}")
+
+    # La 6ta boleta VIP debe rebotar por inventario de ESA localidad, no por aforo.
+    code = _err_code(lambda: _emit(dbcur, e, tv, None, u, "VIP 6"))
+    assert code and "ticket_type_sold_out" in code
+
+    # Y "General" sigue vendiendo: el rechazo fue de la localidad, no del evento.
+    _emit(dbcur, e, tg, None, u, "General 1")
+
+
 # ---------------------------------------------------------------------------
 # Anti-reuso (compare-and-swap)
 # ---------------------------------------------------------------------------

@@ -48,6 +48,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "030_legal_plazos.sql",
     ROOT / "db" / "migrations" / "031_analytics_events.sql",
     ROOT / "db" / "migrations" / "032_user_preferences.sql",
+    ROOT / "db" / "migrations" / "033_inventory_per_type.sql",
 ]
 
 

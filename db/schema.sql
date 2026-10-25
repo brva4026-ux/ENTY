@@ -481,15 +481,19 @@ DECLARE
     v_type           ticket_types%ROWTYPE;
     v_alloc          promoter_allocations%ROWTYPE;
     v_used_in_alloc  bigint;
+    v_used_in_type   bigint;
     v_used_total     bigint;
-    v_types_total    bigint;
     v_event_capacity bigint;
     v_status_allowed text;
     v_token_hash     text;
     v_ticket_id      bigint;
 BEGIN
+    -- Bloquea la localidad: serializa emisiones concurrentes contra su cupo.
     SELECT * INTO v_type FROM ticket_types WHERE id = p_ticket_type_id FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'ticket_type_not_found'; END IF;
+    IF v_type.event_id <> p_event_id THEN
+        RAISE EXCEPTION 'ticket_type_not_in_event';
+    END IF;
 
     IF v_type.price_cents > 0 AND p_allocation_id IS NOT NULL THEN
         RAISE EXCEPTION 'paid_ticket_tied_to_promoter_allocation: usar venta directa para boletas de pago';
@@ -515,20 +519,23 @@ BEGIN
         END IF;
     END IF;
 
-    -- 3) Un solo conteo de boletas activas del evento (anti-sobreventa global).
+    -- 3) Inventario DE ESTA LOCALIDAD (mig 033): el tope es el suyo, no la
+    -- suma de todas. Antes, una localidad chica se podía sobrevender con el
+    -- sobrante de las demás.
+    SELECT count(*) INTO v_used_in_type
+      FROM tickets
+     WHERE event_id = p_event_id
+       AND ticket_type_id = p_ticket_type_id
+       AND status NOT IN ('voided', 'refunded');
+    IF v_used_in_type >= v_type.quantity THEN
+        RAISE EXCEPTION 'ticket_type_sold_out';
+    END IF;
+
+    -- 3b) Aforo físico del evento (tope distinto del inventario por localidad).
     SELECT count(*) INTO v_used_total
       FROM tickets
      WHERE event_id = p_event_id
        AND status NOT IN ('voided', 'refunded');
-
-    -- 3a) Inventario por tipos: la suma de quantities es el total vendible.
-    SELECT COALESCE(SUM(quantity), 0) INTO v_types_total
-      FROM ticket_types WHERE event_id = p_event_id;
-    IF v_used_total >= v_types_total THEN
-        RAISE EXCEPTION 'ticket_type_sold_out';
-    END IF;
-
-    -- 3b) Aforo físico del evento.
     IF v_used_total >= v_event_capacity THEN
         RAISE EXCEPTION 'event_at_capacity';
     END IF;
@@ -1318,6 +1325,7 @@ DECLARE
     v_count integer;
     v_issued bigint;
     v_types_total bigint;
+    v_over text;
 BEGIN
     SELECT count(*) INTO v_count
       FROM events
@@ -1344,6 +1352,19 @@ BEGIN
         IF v_issued > v_types_total THEN
             RAISE EXCEPTION 'capacity_below_issued (issued=%, types_total=%)',
                 v_issued, v_types_total;
+        END IF;
+
+        -- Ninguna localidad puede tener más boletas vivas que su inventario.
+        SELECT tt.name INTO v_over
+          FROM ticket_types tt
+         WHERE tt.event_id = p_event_id
+           AND (SELECT count(*) FROM tickets t
+                 WHERE t.event_id = p_event_id
+                   AND t.ticket_type_id = tt.id
+                   AND t.status NOT IN ('voided', 'refunded')) > tt.quantity
+         LIMIT 1;
+        IF v_over IS NOT NULL THEN
+            RAISE EXCEPTION 'ticket_type_oversold (%)', v_over;
         END IF;
     END IF;
 
