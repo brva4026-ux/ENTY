@@ -72,7 +72,7 @@ export function CookieNotice() {
             close();
             nav("/cookies");
           }}
-          className="hidden min-h-11 items-center underline decoration-zinc-600 underline-offset-2 hover:text-white sm:inline-flex"
+          className="hidden min-h-11 items-center underline decoration-zinc-600 underline-offset-2 hover:text-ink sm:inline-flex"
         >
           Aviso de cookies
         </button>

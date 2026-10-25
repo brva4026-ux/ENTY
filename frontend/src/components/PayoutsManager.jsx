@@ -202,7 +202,7 @@ export default function PayoutsManager({ venueId, users }) {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="tnum display text-xl text-white">
+                    <p className="tnum display text-xl text-ink">
                       {fmtCOP(p.status === "paid" ? p.paid_cents : p.commission_cents)}
                     </p>
                     {(p.status === "pending" || p.status === "disputed") && (

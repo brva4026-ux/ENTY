@@ -66,7 +66,7 @@ export function InstallPrompt() {
           <Logo />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-white">
+          <p className="text-sm font-semibold text-ink">
             Instala Enty en tu teléfono
           </p>
           {available ? (

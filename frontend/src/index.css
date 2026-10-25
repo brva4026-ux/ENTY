@@ -325,6 +325,15 @@ body {
 .btn-ghost:active {
   transform: translateY(1px);
 }
+
+/* Objetivo táctil: la caja crece a 44px solo en punteros gruesos. Es un botón
+   secundario grande, así que aquí sí se puede crecer de verdad (a diferencia
+   de .btn-mini, que vive en filas densas). */
+@media (pointer: coarse) {
+  .btn-ghost {
+    min-height: 2.75rem;
+  }
+}
 .btn-ghost:disabled {
   opacity: 0.45;
   pointer-events: none;
@@ -437,6 +446,25 @@ body {
 }
 .btn-mini:active {
   transform: translateY(1px);
+}
+
+/* Objetivo táctil. La caja visual sigue siendo compacta (densidad de tabla),
+   pero en punteros gruesos el área pulsable crece a 44px con un ::after
+   invisible. Mismo patrón que .topnav-item: sin mover el layout, sin agrandar
+   el botón a la vista. Crítico en la puerta: móvil, una mano, con guantes. */
+@media (pointer: coarse) {
+  .btn-mini {
+    position: relative;
+  }
+  .btn-mini::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+    transform: translate(-50%, -50%);
+  }
 }
 .btn-mini:disabled {
   opacity: 0.45;

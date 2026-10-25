@@ -43,7 +43,7 @@ export default function ReportWidget({ report }) {
         </div>
         <p className="tnum text-sm text-zinc-500">
           Aforo <span className="font-semibold text-zinc-200">{report.occupancy_pct}%</span>
-          <span className="mx-1.5 text-zinc-700">·</span>
+          <span className="mx-1.5 text-zinc-600">·</span>
           {report.capacity} cupos
         </p>
       </div>
@@ -53,7 +53,7 @@ export default function ReportWidget({ report }) {
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="eyebrow">Recaudo</p>
-            <p className="tnum display mt-1 text-4xl text-white">
+            <p className="tnum display mt-1 text-4xl text-ink">
               <AnimatedNumber
                 value={report.revenue_cents / 100}
                 format={(v) =>
@@ -111,10 +111,10 @@ export default function ReportWidget({ report }) {
                   </span>
                   <span className="tnum hidden text-right text-xs text-zinc-500 sm:block">
                     {t.issued}/{t.quantity} emitidas
-                    <span className="mx-1 text-zinc-700">·</span>
+                    <span className="mx-1 text-zinc-600">·</span>
                     {t.redeemed} en puerta
                   </span>
-                  <span className="tnum text-right text-sm font-semibold text-white">
+                  <span className="tnum text-right text-sm font-semibold text-ink">
                     {t.revenue_cents > 0 ? fmtCOP(t.revenue_cents) : <span className="font-normal text-zinc-600">—</span>}
                   </span>
                 </div>
@@ -136,7 +136,7 @@ export default function ReportWidget({ report }) {
                       <span className="truncate text-sm font-medium text-zinc-200">{p.full_name}</span>
                       <span className="tnum shrink-0 text-xs text-zinc-500">
                         {p.issued}/{p.capacity} cupos
-                        <span className="mx-1 text-zinc-700">·</span>
+                        <span className="mx-1 text-zinc-600">·</span>
                         {p.redeemed} en puerta
                       </span>
                     </div>

@@ -530,12 +530,11 @@ export default function HomePage() {
         />
       </div>
 
-      <div role="tablist" aria-label="Categorías" className="home-cats">
+      <div role="group" aria-label="Categorías" className="home-cats">
         {CATEGORY_CHIPS.map((c) => (
           <button
             key={c.key}
-            role="tab"
-            aria-selected={c.key === cat}
+            aria-pressed={c.key === cat}
             onClick={() => setCat(c.key)}
             className={"relative" + (c.key === cat ? " is-on" : "")}
           >
@@ -569,7 +568,7 @@ export default function HomePage() {
             <select
               value={city}
               onChange={(ev) => setCity(ev.target.value)}
-              aria-label="Filtrar por ciudad"
+            aria-label="Filtrar por ciudad"
             >
               <option value="">Todas las ciudades</option>
               {cities.map(([name]) => (

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useDialogA11y } from "../lib/useDialogA11y";
 import { startPublicCheckout, fetchPublicCheckoutStatus } from "../lib/api";
 import { money } from "../lib/format";
 
@@ -20,6 +21,8 @@ function paidTypes(types) {
 }
 
 export default function FanCheckoutModal({ event, reference, onClose, onPaid }) {
+  const { dialogRef, titleId } = useDialogA11y({ onClose });
+
   const types = paidTypes(event?.ticket_types);
   const [typeId, setTypeId] = useState(
     () => (types.find((t) => !t.sold_out) ?? types[0])?.id ?? null,
@@ -124,14 +127,15 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
       className="dialog-backdrop fixed inset-0 z-[90] flex items-end justify-center overflow-y-auto p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="dialog-panel my-auto w-full max-w-md p-5">
+      <div ref={dialogRef} className="dialog-panel my-auto w-full max-w-md p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h3 className="display text-lg">
+            <h3 id={titleId} className="display text-lg">
               {reference ? "Confirmando tu pago" : "Comprar boleto"}
             </h3>
             <p className="mt-0.5 text-xs text-zinc-500">

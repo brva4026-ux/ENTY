@@ -174,12 +174,14 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
             {editingId === t.id ? (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input
+                  aria-label="Nombre del tipo de boleta"
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                   className="field col-span-full"
                   placeholder="Nombre"
                 />
                 <input
+                  aria-label="Precio en pesos"
                   value={draft.price}
                   onChange={(e) =>
                     setDraft({ ...draft, price: e.target.value })
@@ -189,6 +191,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
                   inputMode="numeric"
                 />
                 <input
+                  aria-label="Cantidad de boletas"
                   value={draft.qty}
                   onChange={(e) => setDraft({ ...draft, qty: e.target.value })}
                   className="field"

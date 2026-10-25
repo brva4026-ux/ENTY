@@ -9,6 +9,7 @@
  * El selector de eventos queda en la página padre; esto solo es el interior.
  */
 import { useState } from "react";
+import { useTabKeys } from "../lib/useTabKeys";
 import { Link } from "react-router-dom";
 import { LiveIndicator } from "./Brand";
 import CountUpNumber from "./CountUpNumber";
@@ -91,7 +92,7 @@ function Kpi({ value, label, accent }) {
   return (
     <div className="min-w-16">
       <p
-        className={`tnum text-xl font-bold leading-none ${accent ?? "text-white"}`}
+        className={`tnum text-xl font-bold leading-none ${accent ?? "text-ink"}`}
       >
         {typeof value === "number" ? <CountUpNumber value={value} /> : value}
       </p>
@@ -158,6 +159,12 @@ export default function EventWorkbench({
     { id: "boletas", label: "Boletas", icon: "ticket" },
     { id: "noche", label: "Equipo", icon: "users" },
   ];
+  const wbTabs = useTabKeys({
+    ids: tabs.map((t) => t.id),
+    activeId: tab,
+    onSelect: onTab,
+    idOf: (id) => `evx-tab-${id}`,
+  });
 
   return (
     <div className="space-y-4">
@@ -193,11 +200,11 @@ export default function EventWorkbench({
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500">
               {formatEventDate(ev.starts_at)}
               {ev.ends_at ? ` → ${formatEventDate(ev.ends_at)}` : ""}
-              <span className="text-zinc-700">·</span>
+              <span className="text-zinc-600">·</span>
               <span className="tnum">aforo {ev.capacity}</span>
               {ev.location && (
                 <>
-                  <span className="text-zinc-700">·</span>
+                  <span className="text-zinc-600">·</span>
                   <span className="truncate">{ev.location}</span>
                 </>
               )}
@@ -387,8 +394,12 @@ export default function EventWorkbench({
         {tabs.map((t) => (
           <button
             key={t.id}
+            id={`evx-tab-${t.id}`}
             role="tab"
             aria-selected={tab === t.id}
+            aria-controls="evx-tab-panel"
+            tabIndex={wbTabs.tabIndexFor(t.id)}
+            onKeyDown={wbTabs.onKeyDown}
             onClick={() => onTab(t.id)}
             className={`evx-tab ${tab === t.id ? "is-active" : ""}`}
           >

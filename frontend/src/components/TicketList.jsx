@@ -291,7 +291,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div
           className="tabbar no-scrollbar"
-          role="tablist"
+          role="group"
           aria-label="Filtrar por estado"
         >
           {[
@@ -303,8 +303,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
           ].map(([id, label]) => (
             <button
               key={id}
-              role="tab"
-              aria-selected={status === id}
+              aria-pressed={status === id}
               onClick={() => setStatus(id)}
               className="tabbar-item !text-xs"
             >
@@ -317,6 +316,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
           className="flex min-w-52 flex-1 items-center gap-1.5"
         >
           <input
+            aria-label="Buscar por nombre del asistente"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             className="field !py-1.5 text-xs"
@@ -425,6 +425,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                 {voidingId === t.id && (
                   <div className="mt-2 flex gap-2">
                     <input
+                      aria-label="Motivo de anulación"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
                       className="field !py-1.5 text-xs"
@@ -463,6 +464,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <input
+                        aria-label="Nombre del asistente"
                         value={edit.name}
                         onChange={(e) =>
                           setEdit({ ...edit, name: e.target.value })
@@ -471,6 +473,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                         placeholder="Nombre del asistente"
                       />
                       <input
+                        aria-label="Teléfono del asistente"
                         value={edit.phone}
                         onChange={(e) =>
                           setEdit({ ...edit, phone: e.target.value })
@@ -482,6 +485,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                     </div>
                     <div className="flex gap-2">
                       <input
+                        aria-label="Motivo de la corrección"
                         value={edit.reason}
                         onChange={(e) =>
                           setEdit({ ...edit, reason: e.target.value })

@@ -130,7 +130,7 @@ export function LegalGate({ onCleared }) {
                   <button
                     type="button"
                     onClick={() => window.open(d.url, "_blank")}
-                    className="mt-1 text-xs text-zinc-400 underline decoration-zinc-600 underline-offset-2 hover:text-white"
+                    className="mt-1 text-xs text-zinc-400 underline decoration-zinc-600 underline-offset-2 hover:text-ink"
                   >
                     Leer el documento
                   </button>
@@ -154,7 +154,7 @@ export function LegalGate({ onCleared }) {
         >
           {busy ? "Registrando…" : "Acepto y continúo"}
         </button>
-        <p className="mt-3 text-center text-[11px] text-zinc-500">
+        <p className="mt-3 text-center text-2xs text-zinc-500">
           Puedes abrir cada documento en una pestaña nueva y volver aquí.
         </p>
       </div>

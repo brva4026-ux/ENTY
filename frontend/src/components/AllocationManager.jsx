@@ -206,6 +206,7 @@ export default function AllocationManager({
               {editingId === a.id ? (
                 <div className="flex gap-2">
                   <input
+                    aria-label="Capacidad asignada"
                     value={draftCapacity}
                     onChange={(e) => setDraftCapacity(e.target.value)}
                     className="field !py-1.5 text-xs"

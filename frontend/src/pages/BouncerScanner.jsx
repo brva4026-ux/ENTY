@@ -679,11 +679,14 @@ export default function BouncerScanner() {
       {offline && (
         <div
           role="alert"
-          className="bg-amber-950/80 px-4 py-2 text-center text-xs font-semibold text-amber-200"
+          className="flex items-center justify-center gap-2 bg-amber-950/80 px-4 py-2 text-center text-xs font-semibold text-amber-200"
         >
-          {snapInfo
-            ? `⚠️ Sin conexión: validando con el caché (${snapInfo.count} boletas). Los ingresos se sincronizan al reconectar.${pendingSync > 0 ? ` Pendientes: ${pendingSync}.` : ""}`
-            : "⚠️ Sin conexión y sin caché de puerta: descarga el caché con red para poder canjear offline."}
+          <Icon name="alert" className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            {snapInfo
+              ? `Sin conexión: validando con el caché (${snapInfo.count} boletas). Los ingresos se sincronizan al reconectar.${pendingSync > 0 ? ` Pendientes: ${pendingSync}.` : ""}`
+              : "Sin conexión y sin caché de puerta: descarga el caché con red para poder canjear offline."}
+          </span>
         </div>
       )}
       {/* La puerta existe para una noche EN PUERTA. Si el evento todavía no
@@ -790,6 +793,7 @@ export default function BouncerScanner() {
                 sabe su noche cambiar de turno con un toque accidental. */}
             {!fijo && (
               <select
+                aria-label="Elige el evento de la noche"
                 value={selectedEvent ?? ""}
                 onChange={(e) => setSelectedEvent(Number(e.target.value))}
                 className="max-w-[52vw] rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-sm text-white sm:max-w-none"
@@ -827,8 +831,9 @@ export default function BouncerScanner() {
         <button
           onClick={resetScan}
           /* El resultado se ANUNCIA (lectores de pantalla): en la oscuridad
-             de la puerta el canal de respaldo no puede ser solo visual. */
-          role="status"
+             de la puerta el canal de respaldo no puede ser solo visual.
+             `role="status"` implica aria-live="polite"; aquí se quiere el
+             anuncio inmediato, así que se declara `assertive` sin el role. */
           aria-live="assertive"
           className={`scan-result flex flex-1 flex-col items-center justify-center ${style.bg} p-6 transition-colors`}
           data-result={result?.code === "GRANTED" || result?.code === "GRANTED_OFFLINE" ? "ok" : "no"}
@@ -940,6 +945,7 @@ export default function BouncerScanner() {
             className="mt-5 flex w-full max-w-sm items-center gap-2"
           >
             <input
+              aria-label="Código de la boleta"
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
               placeholder="O escribe el código de la boleta"

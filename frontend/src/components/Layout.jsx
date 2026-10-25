@@ -163,7 +163,7 @@ export default function Layout({ children }) {
                 nav("/login", { replace: true });
               }}
               className="topbar-hit btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs"
-              aria-label="Cerrar sesión"
+            aria-label="Cerrar sesión"
             >
               {/* Mismo verbo que el escáner: "salir" era ambiguo (¿salir de
                 dónde?). Cerrar sesión no se confunde con navegar.
