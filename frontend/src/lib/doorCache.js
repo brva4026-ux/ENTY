@@ -254,9 +254,15 @@ export async function syncQueue(venueId, eventId) {
     // Solo lo confirmado sale de la cola. Si el server no devolvió `results`
     // (versión vieja), no se borra nada: se prefiere reintentar de más —el
     // recibo del server lo hace no-op— antes que perder una entrada.
+    //
+    // `INVALID` significa que la SQL del canje LANCÓ (deadlock, conexión
+    // cortada), no que la boleta sea inválida: el server no dejó recibo, así
+    // que borrarlo aquí perdería una entrada pagada. Se conserva para
+    // reintentar; los rechazos reales (ALREADY_REDEEMED, NOT_FOUND, ...) sí
+    // son definitivos y sí se borran.
     const confirmed = (out.results ?? [])
-      .map((r) => r.scan_id)
-      .filter(Boolean);
+      .filter((r) => r.scan_id && r.code !== "INVALID")
+      .map((r) => r.scan_id);
     if (confirmed.length > 0) {
       const tx = db.transaction(STORE_QUEUE, "readwrite");
       const store = tx.objectStore(STORE_QUEUE);

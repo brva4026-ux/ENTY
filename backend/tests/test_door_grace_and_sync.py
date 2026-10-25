@@ -189,6 +189,26 @@ def test_sync_devuelve_resultado_por_token(api, world):
     assert [r["code"] for r in out["results"]] == ["GRANTED", "NOT_FOUND"]
 
 
+def test_sync_un_scan_id_roto_no_pierde_la_entrada(api, world):
+    """Un scan_id que no es uuid no debe costar una entrada.
+
+    El cliente genera uuid v4, pero un teléfono viejo (o un dato corrupto)
+    podría mandar otra cosa. El recibo es una optimización: si no se puede
+    escribir, el canje ya ocurrió y la respuesta debe seguir siendo el
+    resultado REAL (no un INVALID), porque el cliente conserva en su cola
+    solo lo que no pudo confirmar.
+    """
+    venue, ev, t, tk = _door_event(api, world)
+    out = api.post(
+        f"/venues/{venue}/events/{ev['id']}/door-sync",
+        "bouncer",
+        [{"raw_token": tk["raw_token"], "scan_id": "no-soy-un-uuid"}],
+    ).json()
+    assert out["granted"] == 1, "el canje ocurrió: la respuesta no puede mentir"
+    assert out["results"][0]["code"] == "GRANTED"
+    assert out["results"][0]["scan_id"] == "no-soy-un-uuid"
+
+
 # ---------------------------------------------------------------------------
 # 4) La hora real del escaneo se persiste
 # ---------------------------------------------------------------------------
