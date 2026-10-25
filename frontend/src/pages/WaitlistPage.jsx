@@ -186,7 +186,7 @@ export default function WaitlistPage() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   minLength={2}
-                  className="w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-800 focus:ring-brand-500"
+                  className="w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-600 focus:ring-brand-500"
                   placeholder="Nombre y apellido"
                 />
               </div>
@@ -199,7 +199,7 @@ export default function WaitlistPage() {
                   onChange={(e) => setPhone(e.target.value)}
                   required
                   inputMode="tel"
-                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-800 focus:ring-brand-500"
+                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-600 focus:ring-brand-500"
                   placeholder="300 000 0000"
                 />
               </div>
@@ -221,7 +221,7 @@ export default function WaitlistPage() {
                   }}
                   required
                   inputMode="numeric"
-                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-800 focus:ring-brand-500"
+                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-600 focus:ring-brand-500"
                   placeholder="Link del evento o su número"
                 />
                 <p className="mt-1 text-2xs text-zinc-500">

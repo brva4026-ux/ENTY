@@ -82,7 +82,7 @@ html[data-theme="light"] .bizdock {
 select.field,
 textarea.field {
   border-radius: var(--e-radius-lg);
-  border-color: rgba(187, 92, 246, 0.22);
+  border-color: var(--e-control-line);
   background-color: rgba(187, 92, 246, 0.075);
   color: var(--e-text-primary);
 }
@@ -92,11 +92,11 @@ textarea.field {
 }
 
 .field:hover {
-  border-color: rgba(187, 92, 246, 0.42);
+  border-color: var(--e-control-line-hover);
 }
 
 .field:focus {
-  border-color: var(--e-brand);
+  border-color: var(--e-control-line-focus);
   box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.24), 0 0 28px -16px rgba(187, 92, 246, 0.95);
 }
 
@@ -1444,7 +1444,7 @@ html[data-theme="light"] .bizdock-count {
   padding: 0 1rem;
   border-radius: 1rem;
   background: var(--e-glass-1);
-  border: 1px solid var(--e-glass-line);
+  border: 1px solid var(--e-glass-line-strong);
   color: var(--e-text-secondary);
   transition: border-color 0.15s ease, box-shadow 0.2s ease;
 }
@@ -1572,7 +1572,7 @@ html[data-theme="light"] .bizdock-count {
   max-width: 12rem;
   padding: 0 2rem 0 0.95rem;
   border-radius: var(--e-radius-lg);
-  border: 1px solid var(--e-glass-line);
+  border: 1px solid var(--e-glass-line-strong);
   background-color: var(--e-glass-1);
   color: var(--e-text-primary);
   font-family: inherit;
@@ -2066,7 +2066,7 @@ html[data-theme="light"] .bizdock-count {
   padding: 0 1rem;
   border-radius: 1rem;
   background: var(--e-glass-1);
-  border: 1px solid var(--e-glass-line);
+  border: 1px solid var(--e-glass-line-strong);
   backdrop-filter: blur(var(--e-glass-blur));
   -webkit-backdrop-filter: blur(var(--e-glass-blur));
   color: var(--e-text-primary);

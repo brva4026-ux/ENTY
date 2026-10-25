@@ -180,6 +180,15 @@
   --e-border-soft: rgba(245, 245, 247, 0.16);
   --e-border-strong: rgba(245, 245, 247, 0.28);
 
+  /* Borde de los controles de formulario (input/select/textarea/checkbox).
+     El hairline decorativo no sirve aquí: WCAG 1.4.11 exige 3:1 para el
+     límite del control, y ni el borde violeta translúcido (1.33:1) ni el
+     relleno (1.08:1) lo alcanzan. El peor caso de este valor es 3.17:1
+     sobre --e-ink-4. */
+  --e-control-line: #6b6b76;
+  --e-control-line-hover: var(--e-neutral-500);
+  --e-control-line-focus: var(--e-violet-400);
+
   --e-brand: var(--e-violet-500);
   --e-brand-glow: var(--e-violet-400);
   --e-success: var(--e-green-500);
@@ -195,6 +204,11 @@
   --e-glass-1: rgba(255, 255, 255, 0.05);
   --e-glass-2: rgba(255, 255, 255, 0.08);
   --e-glass-line: rgba(255, 255, 255, 0.12);
+  /* Límite de un CONTROL sobre cristal (buscador, lookup): el hairline de
+     cristal queda en 1.34:1 y no cumple 1.4.11. Sobre el relleno de cristal
+     este valor da 3.57:1. Las superficies decorativas siguen con
+     --e-glass-line. */
+  --e-glass-line-strong: rgba(255, 255, 255, 0.38);
   --e-glass-blur: 16px;
 
   /* Material de la boleta: SIEMPRE oscuro (es la credencial de la noche y no
@@ -295,6 +309,13 @@ html[data-theme="light"] {
   --e-border-hairline: rgba(23, 26, 32, 0.1);
   --e-border-soft: rgba(23, 26, 32, 0.16);
   --e-border-strong: rgba(23, 26, 32, 0.28);
+
+  /* Control en claro: el hairline tampoco alcanza (1.48:1). Un gris medio
+     es el único que cruza 3:1 tanto sobre blanco (4.83:1) como sobre el
+     lienzo (4.29:1) sin volverse una línea negra dura. */
+  --e-control-line: var(--e-neutral-550);
+  --e-control-line-hover: var(--e-neutral-600);
+  --e-control-line-focus: var(--e-violet-800);
 
   --e-shadow-1: 0 1px 2px rgba(23, 26, 32, 0.08);
   --e-shadow-2: 0 8px 20px -14px rgba(23, 26, 32, 0.22);
