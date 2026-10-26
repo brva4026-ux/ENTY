@@ -5,6 +5,7 @@ import { eventDate, clockTime } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import Icon from "../components/Icon";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { SITE } from "../lib/site";
 
 /**
  * Boleta del invitado. Es la pagina publica que se comparte por WhatsApp: el
@@ -27,8 +28,8 @@ function readToken() {
   }
 }
 
-/** Isotipo: la "C" con muesca de boleto, en blanco sobre la boleta. */
-function CelestialMark({ className }) {
+/** Isotipo: monograma con muesca de boleto, en blanco sobre la boleta. */
+function BrandMark({ className }) {
   return (
     <svg viewBox="0 0 64 84" className={className} aria-hidden="true">
       <path
@@ -153,7 +154,7 @@ export default function PublicTicketPage() {
     setBusy(true);
     try {
       const blob = await (await fetch(imageUrl)).blob();
-      const file = new File([blob], `boleta-${ticket?.ticket_id ?? "enty"}.jpg`, {
+      const file = new File([blob], `boleta-${ticket?.ticket_id ?? "vpass"}.jpg`, {
         type: "image/jpeg",
       });
       // Web Share API (movil): manda la IMAGEN, no un texto.
@@ -254,8 +255,8 @@ export default function PublicTicketPage() {
         <div className="tkt">
           <div className="tkt-head">
             <div className="tkt-brand-lock">
-              <CelestialMark className="tkt-mark" />
-              <span>Celestial Strokes</span>
+              <BrandMark className="tkt-mark" />
+              <span>{SITE.name}</span>
             </div>
             <p className="tkt-connect">
               Music
@@ -408,8 +409,8 @@ export default function PublicTicketPage() {
                   <div className="tkt-admit">
                     <p className="tkt-admit-k">General Admission</p>
                     <div className="tkt-brand-lock tkt-brand-lock--sm">
-                      <CelestialMark className="tkt-mark" />
-                      <span>Celestial Strokes</span>
+                      <BrandMark className="tkt-mark" />
+                      <span>{SITE.name}</span>
                     </div>
                   </div>
                 </div>
@@ -426,7 +427,7 @@ export default function PublicTicketPage() {
                     <svg viewBox="0 0 190 40" preserveAspectRatio="none">
                       <Barcode />
                     </svg>
-                    <p className="tkt-barcode-cap">Celestial Strokes — Tu próxima boleta</p>
+                    <p className="tkt-barcode-cap">{SITE.name} — Tu próxima boleta</p>
                   </div>
                   <p className="tkt-sign">See You There!</p>
                 </div>
@@ -520,8 +521,8 @@ export default function PublicTicketPage() {
         )}
 
         <div className="tkt-brandline">
-          <img src="/icon.svg" alt="" aria-hidden="true" />
-          <span>Celestial Strokes</span>
+          <img src="/logo-vpass.jpg" alt="" aria-hidden="true" />
+          <span>{SITE.name}</span>
         </div>
         <p className="tkt-footer">Guarda esta página: la necesitas en la entrada</p>
       </div>

@@ -467,7 +467,7 @@ class UpdateVenueRequest(BaseModel):
     # Comision del promotor (0-100): base del calculo de liquidaciones.
     commission_pct: float | None = Field(default=None, ge=0, le=100)
     # Color de marca del negocio (hex #RRGGBB). Se usa para teñir su panel:
-    # banner, tile del logo y viga del KPI. "" lo devuelve al violeta de Enty.
+    # banner, tile del logo y viga del KPI. "" lo devuelve al violeta de V-Pass.
     primary_color: str | None = Field(default=None, max_length=7)
 
     @model_validator(mode="after")

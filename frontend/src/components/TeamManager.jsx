@@ -4,7 +4,7 @@
  * - distri-stream: pestañas por rol con icono + contador (Clientes/Revendedores/Administradores)
  * - unicall-blue: avatar con iniciales, chip de estado y acciones de icono por fila
  *
- * Adaptado a la identidad Celestial Strokes (dark, sobrio, motion con reduced-motion).
+ * Adaptado a la identidad V-Pass (dark, sobrio, motion con reduced-motion).
  * Los datos siguen viniendo de GET /users/stats: iconos sí, decoración no.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";

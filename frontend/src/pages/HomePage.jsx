@@ -6,13 +6,14 @@ import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { SITE } from "../lib/site";
 
 const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";
 
 /**
- * Inicio — la cara pública de Celestial Strokes para el fan (mockup "1 · Inicio").
+ * Inicio — la cara pública de V-Pass para el fan (mockup "1 · Inicio").
  *
  * Catalogo de descubrimiento SIN login: lista los eventos con venta abierta
  * (`published`/`live`, futuros) que devuelve /public/events, con su categoria
@@ -31,7 +32,7 @@ const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";
 const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
 const FAVS_KEY = "tf_fan_favs";
 
-/** Palabras del ticker cinético: el vocabulario de la noche de Celestial Strokes. Se
+/** Palabras del ticker cinético: el vocabulario de la noche de V-Pass. Se
  *  duplica en el render para un loop continuo (el keyframe mueve -50%). */
 const TICKER = [
   "Conciertos",
@@ -467,9 +468,12 @@ export default function HomePage() {
     <div className="home motion-reduced">
       <header className="home-head">
         <div className="home-head-left">
-          <Link to="/inicio" className="home-wordmark" aria-label="Celestial Strokes, inicio">
-            <span>Celestial Strokes</span>
-            <Star />
+          <Link to="/inicio" className="home-wordmark">
+            <img
+              src="/logo-vpass.jpg"
+              alt={SITE.name}
+              className="home-wordmark-logo"
+            />
           </Link>
           {/* Nav de escritorio: en móvil vive la barra inferior (FanNav). */}
           <nav className="home-topnav" aria-label="Secciones">
@@ -759,7 +763,7 @@ export default function HomePage() {
 
       <footer className="home-foot">
         <p className="home-foot-brand">
-          <span>Celestial Strokes</span>
+          <span>{SITE.name}</span>
           <i aria-hidden="true" />
         </p>
         <nav className="home-foot-links" aria-label="Enlaces legales">

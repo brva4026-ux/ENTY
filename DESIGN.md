@@ -1,6 +1,6 @@
-# DESIGN.md — Enty
+# DESIGN.md — V-Pass
 
-Sistema de diseño de Enty: boletería y control de aforo para bares, venues y
+Sistema de diseño de V-Pass: boletería y control de aforo para bares, venues y
 recintos de conciertos/festivales/deportes/teatro. Este documento describe la
 **capa visual** del producto. La fuente de verdad ejecutable es
 `frontend/src/tokens.css`; aquí se explica el porqué y las reglas que ninguna
@@ -8,7 +8,7 @@ hoja puede romper.
 
 > Documento anterior: el análisis de Apple que vivía en este archivo se movió a
 > `docs/referencia-apple.md` como referencia histórica (Fase 6 del plan
-> estético). Apple no es la estética de Enty.
+> estético). Apple no es la estética de V-Pass.
 
 ---
 
@@ -16,7 +16,7 @@ hoja puede romper.
 
 | Atributo | Valor |
 |---|---|
-| Nombre | Enty |
+| Nombre | V-Pass |
 | Sector | Conciertos · Festivales · Deportes · Teatro |
 | Vibe | Nocturno · futurista · tech · vibrante |
 | Producto | Gestión de cortesías y verificación de boletas (NO venta de boletas) |

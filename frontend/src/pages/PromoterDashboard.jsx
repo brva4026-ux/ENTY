@@ -12,6 +12,7 @@ import EmptyState from "../components/EmptyState";
 import ContactEditsHistory from "../components/ContactEditsHistory";
 import { StatSkeletonRow } from "../components/Skeleton";
 import { LiveIndicator, QuotaMeter } from "../components/Brand";
+import { SITE } from "../lib/site";
 import { STATUS_META, sortEventsForStrip } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
 import { ticketWaMessage, waLink } from "../lib/whatsapp";
@@ -371,7 +372,7 @@ export default function PromoterDashboard() {
       <div className="reveal space-y-6">
         <div className="promo-hero">
           <div>
-            <p className="eyebrow">Celestial Strokes</p>
+            <p className="eyebrow">{SITE.name}</p>
             <h1
               className="display promo-hero-title"
               style={{ fontVariationSettings: '"opsz" 32' }}

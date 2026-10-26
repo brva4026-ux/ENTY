@@ -6,7 +6,7 @@
 propio dominio. Desaparece la transferencia de IP a ese tercero y se añade al
 inventario el preferencias del aviso mismo.
 
-> Este aviso explica qué guarda Enty en el navegador de quien usa la aplicación.
+> Este aviso explica qué guarda V-Pass en el navegador de quien usa la aplicación.
 > Aplica la Ley 1581 de 2012 en cuanto a los identificadores que permiten
 > individualizar a una persona. El detalle del tratamiento está en la Política de
 > Tratamiento de Datos Personales (`privacidad`).
@@ -15,7 +15,7 @@ inventario el preferencias del aviso mismo.
 
 ## 1. Qué usamos y qué no
 
-**Enty no usa cookies de publicidad, de redes sociales, de perfilamiento
+**V-Pass no usa cookies de publicidad, de redes sociales, de perfilamiento
 comercial ni de repetición de sesión (*session replay*).** No hay píxeles de
 seguimiento ni herramientas de analítica de terceros. Esto es deliberado: la
 aplicación gestiona acceso a eventos y dinero, y el rastreo publicitario no
@@ -56,7 +56,7 @@ de privacidad que el propio aviso declaraba como pendiente).
 
 ### 2.3. Categorías que NO usamos
 
-Para que no haya ambigüedad, en Enty **no existen** cookies ni tecnologías de:
+Para que no haya ambigüedad, en V-Pass **no existen** cookies ni tecnologías de:
 publicidad, redes sociales, analítica de terceros, *session replay*, Flash Local
 Shared Objects, ni SDK de aplicaciones móviles de terceros.
 

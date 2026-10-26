@@ -1,4 +1,4 @@
-/* Enty service worker — app shell offline para la puerta.
+/* V-Pass service worker — app shell offline para la puerta.
  *
  * Objetivo: si el venue pierde internet, el portero aún puede ABRIR el
  * escáner (la validación de boletas obviamente requiere red; eso es
@@ -80,12 +80,12 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "Enty", body: event.data ? event.data.text() : "" };
+    data = { title: "V-Pass", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "Enty";
+  const title = data.title || "V-Pass";
   const options = {
     body: data.body || "",
-    tag: data.tag || "enty",
+    tag: data.tag || "vpass",
     renotify: true, // el tag repetido vuelve a vibrar: cada apertura importa
     vibrate: [80, 60, 80],
     badge: "/icons/icon-maskable-192.png",

@@ -261,7 +261,7 @@ export default function EventDetailPage() {
     }
   }
 
-  // Mapa: OSM incrustado (sin API key). El pin lo dibuja Enty encima del
+  // Mapa: OSM incrustado (sin API key). El pin lo dibuja V-Pass encima del
   // centro (el embed no acepta marcador por URL); se tiñe oscuro con CSS.
   const mapSrc = coords
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(

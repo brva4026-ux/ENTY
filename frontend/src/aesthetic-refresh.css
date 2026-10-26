@@ -982,6 +982,15 @@ html[data-theme="light"] .bizdock-count {
   letter-spacing: -0.05em;
   line-height: 1;
 }
+/* Logo de marca: la imagen se usa tal cual (JPEG subido por el usuario), sin
+   vectorizar. El recorte queda redondeado para que el fondo crema no choque
+   con la cabecera oscura. */
+.home-wordmark-logo {
+  display: block;
+  height: 2.25rem;
+  width: auto;
+  border-radius: 0.5rem;
+}
 .home-avatar {
   width: 2.25rem;
   height: 2.25rem;

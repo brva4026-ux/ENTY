@@ -6,6 +6,7 @@ import { homeForRole } from "../lib/roles";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { SITE } from "../lib/site";
 
 /** Traduce errores técnicos del backend a mensajes que una persona entiende
  *  y sabe qué hacer después. */
@@ -313,7 +314,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
-          ¿Nuevo en Celestial Strokes?{" "
+          ¿Nuevo en {SITE.name}?{" "}
           <Link
             to="/register"
             className="link-underline font-semibold text-brand-300"

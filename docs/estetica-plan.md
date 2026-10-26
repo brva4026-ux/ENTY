@@ -1,11 +1,11 @@
 ---
-title: Plan de elevación estética — Enty
+title: Plan de elevación estética — V-Pass
 version: 1
 scope: frontend (vitrina del fan + interior admin/promotor/puerta + auth)
 principle: la marca se unifica en tokens; la cascada se aplana; la calidad se mide
 ---
 
-# Plan de elevación estética avanzada — Enty
+# Plan de elevación estética avanzada — V-Pass
 
 > Objetivo: llevar **toda** la estética del producto a nivel avanzado (no solo la
 > vitrina del fan, que ya se rediseñó). El resultado debe sentirse como **un solo
@@ -81,7 +81,7 @@ Cinco principios que gobiernan cada decisión:
 ## 3. Sistema de tokens (la base de todo)
 
 Se crea `frontend/src/tokens.css`, importado **primero** en `main.jsx`. Tres
-niveles, con prefijo único `--e-*` (Enty) para no chocar con Tailwind ni con los
+niveles, con prefijo único `--e-*` (V-Pass) para no chocar con Tailwind ni con los
 espacios legacy:
 
 ```
@@ -292,7 +292,7 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 - **Promotor**: la tarjeta "Mis noches" (`.e-meter` / `.e-meter-fill` con
   `.is-warn`/`.is-full`) muestra la proporción del cupo por noche; el seed demo
   ahora siembra `event_staff` para que la tarjeta exista en la demo.
-- **`DESIGN.md`**: sustituido por un design system real de Enty; el análisis de
+- **`DESIGN.md`**: sustituido por un design system real de V-Pass; el análisis de
   Apple se movió a `docs/referencia-apple.md`.
 - **Verificación**: backend 354/354, E2E Playwright 11/11 (incluye a11y
   claro/oscuro y targets ≥ 44px en puerta), stylelint 0 errores / 30 warnings,
@@ -327,7 +327,7 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 ## 7. Nota sobre la documentación de diseño
 
 `DESIGN.md` **ya no es el análisis de Apple**. En Fase 6 se sustituyó por un
-design system real de Enty (identidad, paleta, tipografía, tokens, superficies
+design system real de V-Pass (identidad, paleta, tipografía, tokens, superficies
 por rol, motivos, movimiento y guardarraíles). El análisis de Apple que lo
 ocupaba se conserva como referencia histórica en `docs/referencia-apple.md`.
 

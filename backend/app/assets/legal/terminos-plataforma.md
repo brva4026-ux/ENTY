@@ -10,9 +10,9 @@ constitución societaria del proyecto.
 mora, preaviso, exportación, límite de responsabilidad, confidencialidad y
 aviso de modificación, y el horario de soporte.
 
-> Los acepta quien crea una cuenta de negocio en Enty: el bar, el organizador o
+> Los acepta quien crea una cuenta de negocio en V-Pass: el bar, el organizador o
 > el establecimiento (el **Cliente**). Es un contrato entre comerciantes y rige
-> la relación Enty ↔ Cliente. Lo que acepta el comprador de una boleta está en
+> la relación V-Pass ↔ Cliente. Lo que acepta el comprador de una boleta está en
 > otro documento (`terminos-boleta`).
 
 ---
@@ -21,7 +21,7 @@ aviso de modificación, y el horario de soporte.
 
 1.1. Estos Términos se celebran entre **[COMPLETAR: razón social]**, identificada
 con NIT **[COMPLETAR]**, con domicilio en **Calle 128 A BIS 88B-22**, en
-adelante **Enty**, y la persona natural o jurídica que crea la cuenta, en
+adelante **V-Pass**, y la persona natural o jurídica que crea la cuenta, en
 adelante el **Cliente**.
 
 1.2. La aceptación se perfecciona con la marcación del checkbox en el formulario
@@ -36,12 +36,12 @@ declara estar autorizado para ello.
 
 ## 2. Definiciones
 
-- **Plataforma:** el servicio de software de Enty para crear eventos, asignar
+- **Plataforma:** el servicio de software de V-Pass para crear eventos, asignar
   cupos a promotores, emitir boletas con código QR, validar el ingreso en puerta
   y consultar reportes.
 - **Venue:** el establecimiento del Cliente dentro de la Plataforma.
 - **Evento:** cada jornada o función que el Cliente crea y cuya capacidad define.
-- **Boleta:** la credencial digital con un código QR de un solo uso que Enty
+- **Boleta:** la credencial digital con un código QR de un solo uso que V-Pass
   emite para acceder a un Evento.
 - **Asistente:** la persona que recibe y presenta una Boleta en la puerta.
 - **Token:** el secreto aleatorio que da validez a una Boleta. Su valor en claro
@@ -51,30 +51,30 @@ declara estar autorizado para ello.
 
 ## 3. Objeto y descripción del servicio
 
-3.1. Enty pone a disposición del Cliente una Plataforma en la modalidad de
+3.1. V-Pass pone a disposición del Cliente una Plataforma en la modalidad de
 *software como servicio*: el Cliente accede por internet, sin que se le
-transfiera ningún programa, y Enty opera, aloja y mantiene la Plataforma.
+transfiera ningún programa, y V-Pass opera, aloja y mantiene la Plataforma.
 
 3.2. La Plataforma incluye: gestión de eventos y tipos de boleta, asignación de
 cupos a promotores con control de sobreventa, emisión y reenvío de boletas,
 validación de ingreso con registro de cada intento (exitoso o no), reporte en
 vivo, gestión de equipo y roles, lista de espera y emisión de boletas de pago.
 
-3.3. **Lo que la Plataforma no es.** Enty no es el organizador del Evento, no
+3.3. **Lo que la Plataforma no es.** V-Pass no es el organizador del Evento, no
 vende boletas en nombre propio, no es propietario ni operador del
 establecimiento y no es la autoridad de la puerta. La relación con el Asistente
-es entre el Asistente y el Cliente: Enty es un proveedor tecnológico.
+es entre el Asistente y el Cliente: V-Pass es un proveedor tecnológico.
 
 3.4. Esa relación es de **consumo** y se rige por el Estatuto del Consumidor
 (Ley 1480 de 2011), cuyas normas son de carácter imperativo. El Cliente — no
-Enty — es quien responde frente al Asistente por la venta de la boleta, la
+V-Pass — es quien responde frente al Asistente por la venta de la boleta, la
 realización del Evento, la veracidad de la información publicada, la atención de
 peticiones, quejas y reclamos, el derecho de retracto y la reversión del pago.
-Enty no asume esas obligaciones ni puede sustituir al Cliente en ellas, y el
-Cliente mantendrá indemne a Enty frente a las reclamaciones que de allí se
+V-Pass no asume esas obligaciones ni puede sustituir al Cliente en ellas, y el
+Cliente mantendrá indemne a V-Pass frente a las reclamaciones que de allí se
 deriven.
 
-3.4. Enty puede modificar, agregar o descontinuar funcionalidades. Si la
+3.4. V-Pass puede modificar, agregar o descontinuar funcionalidades. Si la
 modificación reduce sustancialmente la funcionalidad contratada, se aplica la
 cláusula 15.
 
@@ -85,17 +85,17 @@ correo registrado es el canal oficial de notificaciones.
 
 4.2. Las credenciales son personales e intransferibles. El Cliente es
 responsable de la custodia de las cuentas de su equipo, de la asignación de
-roles y de todo uso que se haga con ellas. Enty no solicita contraseñas por
+roles y de todo uso que se haga con ellas. V-Pass no solicita contraseñas por
 ningún canal.
 
 4.3. El Cliente debe reportar de inmediato cualquier uso no autorizado a
-**vargasblancobrayan@gmail.com**. Enty puede revocar sesiones de forma
+**vargasblancobrayan@gmail.com**. V-Pass puede revocar sesiones de forma
 inmediata ante un riesgo de seguridad.
 
 4.4. Los enlaces de acceso a puerta y las invitaciones de equipo son
 credenciales de un solo uso: el Cliente responde por su distribución.
 
-4.5. Enty puede suspender la cuenta de un usuario inactivo, o cuando exista
+4.5. V-Pass puede suspender la cuenta de un usuario inactivo, o cuando exista
 sospecha fundada de fraude, acceso indebido o uso contrario a estos Términos.
 
 ## 5. Planes, precios y facturación
@@ -103,21 +103,21 @@ sospecha fundada de fraude, acceso indebido o uso contrario a estos Términos.
 5.1. Los precios y las condiciones comerciales del plan contratado constan en la
 propuesta comercial aceptada por el Cliente, que hace parte de este contrato.
 
-5.2. Enty factura electrónicamente conforme a la normativa de la Dirección de
+5.2. V-Pass factura electrónicamente conforme a la normativa de la Dirección de
 Impuestos y Aduanas Nacionales (DIAN). El Cliente debe suministrar los datos
 fiscales correctos y su responsabilidad de facturación electrónica como receptor.
 
 5.3. Los precios están expresados en pesos colombianos (COP) y no incluyen los
 impuestos que resulten aplicables, que se discriminarán en la factura.
 
-5.4. La mora faculta a Enty a cobrar intereses a la tasa máxima legalmente
+5.4. La mora faculta a V-Pass a cobrar intereses a la tasa máxima legalmente
 permitida y puede originar la suspensión del servicio conforme a la cláusula 11.
 La información sobre la mora puede reportarse a operadores de información
 financiera, según la Ley 1266 de 2008, previa comunicación al Cliente.
 
-5.5. **Sobre el dinero de las boletas.** Enty no recauda ni custodia el precio
+5.5. **Sobre el dinero de las boletas.** V-Pass no recauda ni custodia el precio
 de las boletas que el Cliente vende: el recaudo ocurre en la cuenta del Cliente
-a través de la pasarela de pagos que este configure. Enty no responde por
+a través de la pasarela de pagos que este configure. V-Pass no responde por
 reembolsos, contracargos ni reversiones que se originen en la venta de boletas.
 
 ## 6. Obligaciones del Cliente
@@ -169,31 +169,31 @@ reparto de roles es el siguiente:
 - **El Cliente es el Responsable** del tratamiento de los datos de los
   Asistentes (nombre, teléfono, correo y registro de ingreso al Evento). Decide
   sobre su finalidad y es quien debe obtener la autorización.
-- **Enty es el Encargado** de ese tratamiento: solo los trata siguiendo las
+- **V-Pass es el Encargado** de ese tratamiento: solo los trata siguiendo las
   instrucciones del Cliente, para operar la Plataforma, y aplica el Acuerdo de
   Encargo de Tratamiento (`encargo-datos`), que hace parte de este contrato.
-- **Enty es el Responsable** de los datos de las cuentas de usuario del Cliente
+- **V-Pass es el Responsable** de los datos de las cuentas de usuario del Cliente
   y su equipo (datos de contacto, credenciales y registros de auditoría), que
   trata conforme a la Política de Tratamiento de Datos Personales del Cliente.
 
-8.2. Enty no usa los Datos del Cliente para finalidades publicitarias propias,
+8.2. V-Pass no usa los Datos del Cliente para finalidades publicitarias propias,
 no los vende y no los cede a terceros distintos de los subencargados
 enumerados en la Política de Tratamiento de Datos Personales.
 
 8.3. El Cliente responderá por cualquier reclamación derivada de la falta de
-autorización de un Asistente y mantendrá indemne a Enty frente a sanciones de la
+autorización de un Asistente y mantendrá indemne a V-Pass frente a sanciones de la
 Superintendencia de Industria y Comercio, salvo que la causa sea imputable a
-Enty.
+V-Pass.
 
-8.4. Enty cumple medidas de seguridad técnicas y administrativas razonables,
-incluidas las descritas en la cláusula 9.2. Ningún sistema es infalible y Enty
+8.4. V-Pass cumple medidas de seguridad técnicas y administrativas razonables,
+incluidas las descritas en la cláusula 9.2. Ningún sistema es infalible y V-Pass
 no garantiza la ausencia total de incidentes, pero se obliga a informar al
 Cliente sin dilación indebida cuando uno ocurra.
 
 ## 9. Propiedad intelectual, licencia y seguridad
 
 9.1. La Plataforma, su código fuente, marcas, diseño, documentación y
-actualizaciones son de titularidad exclusiva de Enty. Se concede al Cliente una
+actualizaciones son de titularidad exclusiva de V-Pass. Se concede al Cliente una
 licencia limitada, no exclusiva, no transferible, no sublicenciable y revocable
 para usar la Plataforma durante la vigencia del contrato, con el único fin de
 gestionar sus Eventos.
@@ -204,15 +204,15 @@ solo uso, cada escaneo queda auditado y las acciones sensibles se registran. Los
 detalles técnicos constan en la documentación de arquitectura.
 
 9.3. El Cliente conserva la titularidad de sus Datos del Cliente y de sus
-marcas. Autoriza a Enty a usarlas únicamente para prestar el servicio y para
+marcas. Autoriza a V-Pass a usarlas únicamente para prestar el servicio y para
 mencionarlo como cliente en material comercial, salvo oposición escrita.
 
-9.4. Si el Cliente envía sugerencias o comentarios, autoriza a Enty a usarlos
+9.4. Si el Cliente envía sugerencias o comentarios, autoriza a V-Pass a usarlos
 libremente sin contraprestación.
 
 ## 10. Nivel de servicio y soporte
 
-10.1. Enty procurará mantener la Plataforma disponible de forma continua, salvo
+10.1. V-Pass procurará mantener la Plataforma disponible de forma continua, salvo
 ventanas de mantenimiento programado, que se comunicarán con antelación
 razonable, y las interrupciones por causas ajenas a su control (fuerza mayor,
 fallas de proveedores de nube, de conectividad o de la pasarela de pagos).
@@ -220,7 +220,7 @@ fallas de proveedores de nube, de conectividad o de la pasarela de pagos).
 10.2. El canal de soporte es **vargasblancobrayan@gmail.com** (teléfono
 **310 276 5347** durante eventos en curso) con horario
 **lunes a sábado, 9:00 a 18:00 (hora de Colombia), con atención prioritaria
-durante eventos en curso**. Enty atenderá los reportes en tiempos razonables según
+durante eventos en curso**. V-Pass atenderá los reportes en tiempos razonables según
 su severidad.
 
 10.3. El servicio se presta "tal como está" en cuanto al hardware, software y
@@ -230,15 +230,15 @@ descargado previamente la lista del Evento.
 
 ## 11. Suspensión y terminación
 
-11.1. Enty puede suspender el servicio, previo aviso, por: (a) mora superior a
+11.1. V-Pass puede suspender el servicio, previo aviso, por: (a) mora superior a
 **15 días**; (b) uso que ponga en riesgo la seguridad o la
 estabilidad de la Plataforma; (c) requerimiento de autoridad competente.
 
 11.2. Cualquiera de las partes puede terminar el contrato con un preaviso de
-**30 días**. Enty puede terminar de inmediato ante un
+**30 días**. V-Pass puede terminar de inmediato ante un
 incumplimiento grave.
 
-11.3. Terminado el contrato, Enty conservará los Datos del Cliente durante
+11.3. Terminado el contrato, V-Pass conservará los Datos del Cliente durante
 **30 días** para permitir su exportación, y luego los eliminará o
 anonimizará, salvo aquellos que deba conservar por obligación legal o
 contractual (ver la Política de Tratamiento de Datos Personales).
@@ -249,7 +249,7 @@ lista de ingreso antes de que el acceso se desactive.
 
 ## 12. Garantías y limitación de responsabilidad
 
-12.1. Enty declara que la Plataforma funciona conforme a su documentación. No
+12.1. V-Pass declara que la Plataforma funciona conforme a su documentación. No
 garantiza resultados comerciales, ni la asistencia de un número determinado de
 personas, ni que el Evento sea exitoso.
 
@@ -257,19 +257,19 @@ personas, ni que el Evento sea exitoso.
 entre la persona y el nombre de la Boleta es humano y responsabilidad del
 Cliente, igual que la vigilancia del establecimiento.
 
-12.3. Enty no responde por: (a) la decisión del Cliente de permitir o negar el
+12.3. V-Pass no responde por: (a) la decisión del Cliente de permitir o negar el
 ingreso; (b) daños derivados de la operación del Evento, incluidos accidentes,
 riñas o incumplimientos frente a los Asistentes; (c) la pérdida de conectividad
 en el establecimiento; (d) el uso de las credenciales por terceros cuando el
 Cliente no las custodió; (e) las actuaciones de la pasarela de pagos o de otros
 proveedores externos.
 
-12.4. Salvo dolo o culpa grave, la responsabilidad total acumulada de Enty se
+12.4. Salvo dolo o culpa grave, la responsabilidad total acumulada de V-Pass se
 limita al monto efectivamente pagado por el Cliente por el servicio en los
 **12 meses** anteriores al hecho que la origine.
 
 12.5. Ninguna cláusula de este contrato limita los derechos que la ley reconozca
-de forma imperativa, ni exonera a Enty de responsabilidad en los casos en que la
+de forma imperativa, ni exonera a V-Pass de responsabilidad en los casos en que la
 ley no lo permita.
 
 ## 13. Confidencialidad
@@ -290,11 +290,11 @@ electrónicos a los correos registrados, salvo las que la ley exija por escrito
 físico.
 
 14.2. El Cliente debe mantener actualizado su correo de contacto y revisar los
-avisos que Enty envíe sobre cambios en el servicio.
+avisos que V-Pass envíe sobre cambios en el servicio.
 
 ## 15. Modificaciones
 
-15.1. Enty puede modificar estos Términos. Los cambios materiales se comunicarán
+15.1. V-Pass puede modificar estos Términos. Los cambios materiales se comunicarán
 al correo registrado con al menos **15 días** de antelación. Si el
 Cliente no está de acuerdo, puede terminar el contrato antes de que la nueva
 versión entre en vigor.
@@ -317,7 +317,7 @@ corresponda.
 ## 17. Disposiciones varias
 
 17.1. **Cesión:** el Cliente no puede ceder el contrato sin autorización escrita
-de Enty. Enty puede cederlo a una sociedad vinculada, avisando al Cliente.
+de V-Pass. V-Pass puede cederlo a una sociedad vinculada, avisando al Cliente.
 
 17.2. **Independencia:** no se crea sociedad, agencia, franquicia ni relación
 laboral entre las partes. El personal de cada parte depende exclusivamente de

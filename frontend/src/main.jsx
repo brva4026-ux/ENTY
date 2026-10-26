@@ -146,7 +146,7 @@ function App() {
               fragmento (#), que el navegador no envia al servidor. */}
               <Route path="/t" element={<PublicTicketPage />} />
               {/* Inicio: la vitrina publica del fan (catalogo de eventos).
-              Sin login — es la cara de consumidor de Celestial Strokes. */}
+              Sin login — es la cara de consumidor de V-Pass. */}
               <Route path="/inicio" element={<HomePage />} />
               {/* Detalle del evento: la pantalla de compra, publica como la
               vitrina. Se llega tocando un evento del catalogo. */}
@@ -234,7 +234,7 @@ function App() {
 function HomeRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <SplashScreen />;
-  // La raíz es la VITRINA, no el login: Enty vende boletas al fan y la
+  // La raíz es la VITRINA, no el login: V-Pass vende boletas al fan y la
   // mayoría de quien abre un enlace compartido no tiene cuenta. Mandarlo a
   // /login lo dejaba sin catálogo y sin forma de volver. El staff no pierde
   // entrada: "Acceso" en la cabecera y "Perfil" en la barra inferior.

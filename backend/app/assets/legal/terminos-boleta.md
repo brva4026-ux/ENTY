@@ -7,7 +7,7 @@ como `[X]`. Los campos del Organizador (cláusula 1.2 y 12.1) los completa
 cada bar con sus datos antes de vender; la aplicación muestra la identidad
 del organizador del evento en el que se compra.
 
-> Los acepta quien recibe o compra una boleta para un evento publicado en Enty.
+> Los acepta quien recibe o compra una boleta para un evento publicado en V-Pass.
 > Es un contrato de consumo: aplica el Estatuto del Consumidor (Ley 1480 de
 > 2011), que es de carácter imperativo — no se puede renunciar a él ni
 > modificarlo en perjuicio del consumidor.
@@ -25,8 +25,8 @@ organizador, identificado con NIT **[COMPLETAR]**, domicilio
 **[COMPLETAR]**, teléfono **[COMPLETAR]** y correo **[COMPLETAR]**, conforme al
 artículo 50 de la Ley 1480 de 2011.
 
-1.3. **Enty** es el proveedor tecnológico que emite la boleta y valida el
-ingreso. Enty no es el organizador, no es el vendedor de la boleta y no
+1.3. **V-Pass** es el proveedor tecnológico que emite la boleta y valida el
+ingreso. V-Pass no es el organizador, no es el vendedor de la boleta y no
 responde por la realización del evento ni por su contenido.
 
 1.4. La aceptación de estos Términos ocurre cuando el Asistente activa su boleta.
@@ -118,8 +118,8 @@ ofrecido; o (d) el producto no fue entregado.
 siguientes al conocimiento del hecho. El proveedor debe devolver el dinero en
 los **quince (15) días hábiles** siguientes.
 
-6.3. Enty no custodia el dinero de la venta y no puede ejecutar la reversión: el
-recaudo ocurre en la cuenta del Organizador. Enty entregará la información
+6.3. V-Pass no custodia el dinero de la venta y no puede ejecutar la reversión: el
+recaudo ocurre en la cuenta del Organizador. V-Pass entregará la información
 técnica y los registros de emisión y validación que soporten la reclamación.
 
 ## 7. Cancelación, aplazamiento y cambios
@@ -139,7 +139,7 @@ Organizador, la devolución se determinará según el tiempo efectivamente
 disfrutado y lo que informen las condiciones del evento.
 
 7.5. Los términos de las cláusulas anteriores son responsabilidad del
-Organizador. Enty no responde por el reembolso, pero facilitará los registros
+Organizador. V-Pass no responde por el reembolso, pero facilitará los registros
 que acrediten la emisión de la boleta.
 
 ## 8. Fuerza mayor
@@ -157,7 +157,7 @@ el evento o devuelve el valor, en los términos de la cláusula 7.
 
 9.1. El nombre, teléfono, correo y el registro de ingreso del Asistente son
 tratados por el Organizador, quien es el **Responsable** del tratamiento, y por
-Enty, quien actúa como **Encargado** para operar la Plataforma: emitir la boleta,
+V-Pass, quien actúa como **Encargado** para operar la Plataforma: emitir la boleta,
 validar el ingreso y generar los reportes del evento.
 
 9.2. La finalidad es la gestión del evento, el control de acceso, la prevención
@@ -185,7 +185,7 @@ boletas.
 10.2. La fabricación o alteración de boletas, y el acceso indebido a los
 sistemas de validación, pueden constituir delito conforme a la Ley 1273 de 2009.
 
-10.3. El Organizador y Enty pueden anular las boletas obtenidas por medios
+10.3. El Organizador y V-Pass pueden anular las boletas obtenidas por medios
 fraudulentos o contrarios a estos Términos.
 
 ## 11. Garantía y responsabilidad
@@ -193,7 +193,7 @@ fraudulentos o contrarios a estos Términos.
 11.1. El Organizador responde por la prestación del servicio contratado, en los
 términos de la Ley 1480 de 2011.
 
-11.2. Enty responde por el correcto funcionamiento de la Plataforma conforme a
+11.2. V-Pass responde por el correcto funcionamiento de la Plataforma conforme a
 su documentación, y no por la realización, la calidad ni la seguridad del evento.
 
 11.3. La Plataforma reduce la falsificación y la duplicación de boletas, pero no

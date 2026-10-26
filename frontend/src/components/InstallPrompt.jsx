@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Logo } from "./Brand";
+import { SITE } from "../lib/site";
 
 /** Tarjeta de instalación de la PWA.
  *  - Android/Chrome: captura beforeinstallprompt y ofrece el install nativo.
@@ -67,7 +68,7 @@ export function InstallPrompt() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">
-            Instala Celestial Strokes en tu teléfono
+            Instala {SITE.name} en tu teléfono
           </p>
           {available ? (
             <>

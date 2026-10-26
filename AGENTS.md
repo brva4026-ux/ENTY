@@ -231,7 +231,7 @@ muere en el acto.
 - Si agregás objetos de esquema, sumalos al `DROP` del `conftest` o los tests
   arrastran estado entre sesiones.
 
-## App del fan (Enty)
+## App del fan (V-Pass)
 
 El fan **no tiene cuenta**: su correo o teléfono ES la identidad. Las pantallas
 públicas viven bajo `.home` (shell nocturno: negro + violeta, Sora 300) y se
@@ -269,7 +269,7 @@ sobre las superficies del fan.
 
 | Capa | Alcance |
 | --- | --- |
-| `tokens.css` | **Tokens del design system Enty** (`--e-*`): primitivas, semánticas (voltean con el tema) y escalas cerradas (espacio, radio, tipo, motion, elevación). Ver "Tokens y guardarraíles". |
+| `tokens.css` | **Tokens del design system V-Pass** (`--e-*`): primitivas, semánticas (voltean con el tema) y escalas cerradas (espacio, radio, tipo, motion, elevación). Ver "Tokens y guardarraíles". |
 | `index.css` | Base del design system (clases `.card`, `.field`, `.btn-*`), tema claro/oscuro y la vitrina del fan (`.home`, `.evd`). |
 | `aesthetic-refresh.css` | Marca aplicada: `.home` (Inicio/boletas), `.evd` (detalle), `.tkt` (boleta pública) y la capa `.app-shell` del interior. |
 | `enty-system.css` | Retoques del sistema ("eleva sin reescribir"). |
@@ -290,7 +290,7 @@ sobre las superficies del fan.
 - **Eliminar**: la carga de decoración sin función; la duplicación de color de
   rol (ya centralizada en `lib/roles.js` → `ROLE_VISUALS`).
 
-**Motivos exclusivos de Enty** (reconocibles sin el logotipo):
+**Motivos exclusivos de V-Pass** (reconocibles sin el logotipo):
 
 1. **Boleto perforado** — `.enty-perf` (troquel de línea discontinua) y
    `.enty-notch` (canto festoneado por máscara radial). Se usan como separador
@@ -373,7 +373,7 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   el título visible va en `h1`; un `sr-only` solo es aceptable si de verdad
   no hay texto titular. La vitrina pone `h1` en el evento destacado
   (`.home-feature-top h1`), no en el wordmark (que reevalúa el logo).
-- **`lib/useDocumentTitle.js`**: hook de título por ruta (`"<algo> · Enty"`).
+- **`lib/useDocumentTitle.js`**: hook de título por ruta (`"<algo> · V-Pass"`).
   Toda página nueva lo llama (título fijo o dato dinámico, p. ej.
   `useDocumentTitle(data?.name)` en el detalle; `null` mientras carga deja el
   título anterior, sin parpadear a un texto genérico). Sin esto, una pestaña
@@ -435,7 +435,7 @@ Dos cosas que conviene saber antes de confiar en este gate:
   `--allow <regla>`, que es la via que documenta el propio skill para marcas
   existentes; el lint no lo acepta, y por eso el gate lleva su propio baseline.
 
-## App interna (Enty): Admin · Promotor · Puerta
+## App interna (V-Pass): Admin · Promotor · Puerta
 
 El interior NO comparte el shell del fan: esas pantallas viven bajo
 `.app-shell` (Layout, BouncerScanner, DoorLinkPage). La capa de marca está al
@@ -792,7 +792,7 @@ avisar.
   `data-theme="light"`). Cualquier maqueta o medición visual debe partir de
   claro o no representa lo que ve el usuario.
 - **El venue demo (`id=2`, Bar Esquina) no tiene `primary_color` ni `logo_url`**,
-  así que cae al violeta de Enty y al tile de iniciales. Para ver los efectos
+  así que cae al violeta de V-Pass y al tile de iniciales. Para ver los efectos
   brand-aware hay que ponerle color en la DB (y restaurarlo después).
 - **Los E2E se auto-contaminan: una DB sucia produce "regresiones" falsas.**
   Corriendo la suite entera dos veces seguidas contra la MISMA base aparecen
