@@ -106,7 +106,7 @@ export function LegalGate({ onCleared }) {
                   onChange={(e) =>
                     setChecked((c) => ({ ...c, [d.slug]: e.target.checked }))
                   }
-                  className="mt-1 h-4 w-4 shrink-0 accent-[#7C3AED]"
+                  className="mt-1 h-4 w-4 shrink-0 accent-[#3d5cd6]"
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-zinc-100">

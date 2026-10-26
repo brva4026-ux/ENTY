@@ -23,30 +23,33 @@
   /* ---------------------------------------------------------------- 1 · PRIMITIVAS */
   /* Tinta: el negro del logotipo y sus pasos de superficie (canon de producto:
      los mismos pasos mate que usaba enty-system.css). */
-  --e-ink-0: #050507;
-  --e-ink-1: #0b0b0f; /* matte black de marca */
-  --e-ink-2: #101017;
-  --e-ink-3: #171622;
-  --e-ink-4: #1e1c2c;
+  --e-ink-0: #050505;
+  --e-ink-1: #0e0d0c; /* negro mate de marca (carbón cálido del logotipo) */
+  --e-ink-2: #141312;
+  --e-ink-3: #1b1a18;
+  --e-ink-4: #232120;
   /* Pasos del "ticket" (superficies nobles de la boleta). */
-  --e-ink-1000: #0a0a0d; /* papel de la boleta */
-  --e-ink-950: #0a0a0f;
-  --e-ink-900: #14121c;
-  --e-ink-800: #1c1730;
-  --e-ink-700: #241c3d;
-  --e-ink-600: #3a2b63;
-  /* Violeta: interactivo canónico + brillo del logotipo. */
-  --e-violet-100: #f3e8ff; /* pergamino del rótulo Enty */
-  --e-violet-150: #ead6fe;
-  --e-violet-200: #d9b6ff; /* texto de marca sobre relleno violeta tenue */
-  --e-violet-300: #d29bf9;
-  --e-violet-400: #bb5cf6; /* solo halo/glow */
-  --e-violet-450: #a63deb;
-  --e-violet-500: #7c3aed; /* acción (blanco encima = 5.7:1) */
-  --e-violet-600: #6d28d9;
-  --e-violet-700: #5b21b6;
-  --e-violet-800: #8b2fe0;
-  --e-violet-hover: #8b5cf6; /* hover del CTA */
+  --e-ink-1000: #0a0a09; /* papel de la boleta */
+  --e-ink-950: #0a0a09;
+  --e-ink-900: #151413;
+  --e-ink-800: #1e1c1a;
+  --e-ink-700: #282523;
+  --e-ink-600: #3b3633;
+  /* Azul: interactivo canónico + brillo de marca. Rampa derivada del azul de
+     las ondas del logotipo (#384888, H≈228°). El paso 500 es el ancla: mismo
+     contraste que el acento anterior (blanco encima = 5.68:1), así que todos
+     los pares texto/fondo del producto siguen cumpliendo AA sin recalcular. */
+  --e-blue-100: #f0f1f7; /* pergamino del rótulo */
+  --e-blue-150: #e3e6f2;
+  --e-blue-200: #ced4ee; /* texto de marca sobre relleno azul tenue */
+  --e-blue-300: #8e9fe1;
+  --e-blue-400: #4f6bdb; /* solo halo/glow */
+  --e-blue-450: #415fd7;
+  --e-blue-500: #3d5cd6; /* acción (blanco encima = 5.68:1) */
+  --e-blue-600: #203eb6;
+  --e-blue-700: #1b328d;
+  --e-blue-800: #192969;
+  --e-blue-hover: #4d6add; /* hover del CTA */
   /* Acentos con significado. */
   --e-green-500: #00e6ab; /* validado / disponible */
   --e-green-400: #34d399;
@@ -69,10 +72,10 @@
   --e-green-neon: #39ff14; /* neón de "en vivo" */
   --e-info-500: #6f95f0; /* periwinkle: enlace/estado informativo */
   --e-rose-700: #a82f52;
-  --e-violet-250: #b7a3ff;
-  --e-violet-350: #9f67ff;
-  --e-violet-425: #a855f7;
-  --e-violet-550: #9333ea;
+  --e-blue-250: #b0bbe8;
+  --e-blue-350: #6a81dc;
+  --e-blue-425: #4764d9;
+  --e-blue-550: #2748ce;
   /* Neutros (canon claro: canvas → tinta). */
   --e-neutral-25: #f7f7fb;
   --e-neutral-50: #fafafa;
@@ -160,7 +163,7 @@
   --e-slate-400: #a8b3cc;
   --e-slate-850: #0d1425;
   --e-slate-900: #080d1a;
-  --e-paper: #f5f5f7; /* tinta de marca */
+  --e-paper: #f5eedd; /* crema del logotipo (tinta de marca) */
   --e-white: #ffffff;
   --e-mask: #000; /* opaco para máscaras/recortes (no es un color visible) */
 
@@ -172,21 +175,21 @@
   --e-overlay: rgba(5, 5, 7, 0.72);
 
   --e-text-primary: var(--e-paper);
-  --e-text-secondary: #b6b2c4; /* 9.50:1 sobre --e-canvas */
-  --e-text-muted: #9a96a8; /* 6.83:1 sobre --e-canvas */
+  --e-text-secondary: #bcb6ac; /* 9.2:1 sobre --e-canvas */
+  --e-text-muted: #a09a90; /* 6.6:1 sobre --e-canvas */
   --e-text-on-accent: var(--e-white);
 
-  --e-border-hairline: rgba(245, 245, 247, 0.1);
-  --e-border-soft: rgba(245, 245, 247, 0.16);
-  --e-border-strong: rgba(245, 245, 247, 0.28);
+  --e-border-hairline: rgba(245, 238, 221, 0.1);
+  --e-border-soft: rgba(245, 238, 221, 0.16);
+  --e-border-strong: rgba(245, 238, 221, 0.28);
 
-  --e-brand: var(--e-violet-500);
-  --e-brand-glow: var(--e-violet-400);
+  --e-brand: var(--e-blue-500);
+  --e-brand-glow: var(--e-blue-400);
   --e-success: var(--e-green-500);
   --e-urgent: var(--e-pink-500);
   --e-warn: var(--e-amber-500);
   --e-danger: var(--e-red-500);
-  /* Anillo de foco: crema en oscuro (contrasta contra el violeta del botón),
+  /* Anillo de foco: crema en oscuro (contrasta contra el azul del botón),
      tinta en claro (contrasta contra el lienzo). */
   --e-focus-ring: var(--e-neutral-75);
 
@@ -269,8 +272,8 @@
   --e-elev-card: var(--e-shadow-4); /* tarjeta en reposo */
   --e-elev-raised: 0 12px 30px -14px rgba(0, 0, 0, 0.65); /* hover/activa */
   --e-elev-overlay: 0 24px 70px -22px rgba(0, 0, 0, 0.8); /* modal/hoja */
-  --e-glow-brand: 0 0 0 1px rgba(187, 92, 246, 0.35), 0 8px 28px -12px rgba(187, 92, 246, 0.5);
-  --e-glow-violet: 0 12px 34px -18px rgba(124, 58, 237, 0.9);
+  --e-glow-brand: 0 0 0 1px rgba(79, 107, 219, 0.35), 0 8px 28px -12px rgba(79, 107, 219, 0.5);
+  --e-glow-blue: 0 12px 34px -18px rgba(61, 92, 214, 0.9);
   --e-glow-green: 0 12px 34px -18px rgba(0, 230, 171, 0.75);
   --e-glow-pink: 0 12px 34px -18px rgba(255, 45, 152, 0.75);
   /* Grano sutil de atmósfera (data-URI SVG fractalNoise). */
@@ -332,10 +335,10 @@ html[data-theme="light"] {
    ---------------------------------------------------------------------- */
 .auth-brand {
   --e-text-primary: var(--e-paper);
-  --e-text-secondary: #c9c3d8;
-  --e-text-muted: #b3bfd6;
-  --e-border-hairline: rgba(245, 245, 247, 0.12);
-  --e-border-soft: rgba(245, 245, 247, 0.2);
+  --e-text-secondary: #cec7b8;
+  --e-text-muted: #b7bfd0;
+  --e-border-hairline: rgba(245, 238, 221, 0.12);
+  --e-border-soft: rgba(245, 238, 221, 0.2);
 }
 
 /* Superficies semánticas: voltean con el tema. Sustituyen a `bg-zinc-950`

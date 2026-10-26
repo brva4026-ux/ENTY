@@ -234,7 +234,7 @@ muere en el acto.
 ## App del fan (V-Pass)
 
 El fan **no tiene cuenta**: su correo o teléfono ES la identidad. Las pantallas
-públicas viven bajo `.home` (shell nocturno: negro + violeta, Sora 300) y se
+públicas viven bajo `.home` (shell nocturno: negro + azul, Sora 300) y se
 fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO.
 
 - `/inicio` — vitrina pública (`HomePage`): catálogo de `/public/events`.
@@ -277,8 +277,8 @@ sobre las superficies del fan.
 
 **Clasificación del rediseño (qué se conservó y qué se rehízo):**
 
-- **Conservar**: la marca (matte black `#0B0B0F`, violeta `#7C3AED`/`#BB5CF6`,
-  verde `#00E6AB`, rosa `#FF2D98`, tinta `#F5F5F7`, Sora única voz); el
+- **Conservar**: la marca (carbón cálido `#0E0D0C`, azul `#3D5CD6`/`#4F6BDB`,
+  verde `#00E6AB`, rosa `#FF2D98`, crema `#F5EEDD`, Sora única voz); el
   encuadre nocturno del interior (`.app-shell`); la boleta pública `.tkt` (ya es
   un artefacto troquelado y la credencial de la noche — no tocar).
 - **Perfeccionar**: las superficies `.home`/`.evd` — el motivo de boleto estaba
@@ -301,22 +301,22 @@ sobre las superficies del fan.
 3. **Rejilla editorial** — `.home-list` es 1 col en móvil, 2 en ≥640px y 3 en
    ≥1024px; la fila de evento se vuelve tarjeta con la fecha como sello.
 4. **Acento con significado** — verde = disponible/validado, rosa = urgencia.
-   El violeta es la única voz interactiva.
+   El azul es la única voz interactiva.
 
 **Verificación de la vitrina** (la que falla si se rompe):
 - Cero scroll horizontal a 320/420/768/1440px en `/inicio`, `/evento/:id`,
   `/boletas` (un elemento cuenta como desborde solo si NINGÚN ancestro lo
   recorta).
 - Detalle: 2 columnas ≥900px (cartel pegajoso + rail de compra), 1 en móvil.
-- Contraste de texto ≥ 4.5:1 sobre `#0B0B0F`: `dim` #9a96a8 (6.83), `dim-2`
-  #b6b2c4 (9.50), violeta brillo #bb5cf6 (5.59), verde (12.07), rosa (5.69).
+- Contraste de texto ≥ 4.5:1 sobre `#0E0D0C`: `dim` #a09a90 (6.6), `dim-2`
+  #bcb6ac (9.2), azul brillo #4f6bdb (5.35), verde (12.07), rosa (5.69).
 
 ## Tokens y guardarraíles (Fase 0–1 del plan estético)
 
 Ver `docs/estetica-plan.md`. Resumen operativo:
 
 - **`src/tokens.css` es la fuente única de color/forma/movimiento.** Prefijo
-  `--e-*`, tres niveles: primitivas (`--e-ink-1`, `--e-violet-500`…), semánticas
+  `--e-*`, tres niveles: primitivas (`--e-ink-1`, `--e-blue-500`…), semánticas
   (`--e-canvas`, `--e-text-primary`, `--e-brand`…) y escalas cerradas
   (`--e-space-*`, `--e-radius-*`, `--e-text-*`, `--e-dur-*`, `--e-ease-*`,
   `--e-shadow-*`, `--e-elev-*`). Los componentes consumen las **semánticas**,
@@ -409,7 +409,7 @@ excepcion, en `design-gate.baseline.json`.
 
 No es una allowlist que deje pasar: es un **trinquete**. El lint del skill banea
 ~560 cosas en este repo, pero casi todas son la identidad deliberada de
-TicketFlow (violeta de marca, gradientes del shell nocturno, glass del dock,
+TicketFlow (azul de marca, gradientes del shell nocturno, glass del dock,
 sombras de overlay, emoji de la demo). Esos conteos estan aceptados; **crecer en
 cualquier regla falla**, y una regla que no figure en el baseline tambien falla.
 Asi la cifra solo puede bajar. Para fijar una mejora, `--update`.
@@ -444,7 +444,7 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
 
 - **Regla al agregar una pantalla interna**: ponele `app-shell` al root o no
   recibe el encuadre nocturno, las superficies de cristal ni la tinta de marca.
-- La paleta interna es violeta `#7C3AED` (marca) / `#BB5CF6` (brillo), verde
+- La paleta interna es azul `#3D5CD6` (marca) / `#4F6BDB` (brillo), verde
   `#00E6AB` y rosa `#FF2D98`. **No** reintroducir naranja/ámbar de la marca
   anterior (`rgba(251,146,60,…)`, `#9a3412`) ni lima (`#7cff00`, `#f0f542`).
 - La tinta casi blanca (`--e-text-primary`, antes `--in-ink`) se aplica **solo
@@ -452,7 +452,7 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
   color de `body`, o quedaría texto blanco sobre blanco.
 - **Jerarquía por rol** (Fase 6): Admin = densidad y jerarquía de datos (lista
   compacta con zebra sutil, cabecera pegajosa `.evx-toolbar`, cifras tabulares,
-  violeta solo en la acción primaria); Promotor = tinte de marca en cupos/ranking
+  azul solo en la acción primaria); Promotor = tinte de marca en cupos/ranking
   y medidor `e-meter`; Puerta = contraste máximo y targets ≥ 44px.
 - Verificación: contraste de texto ≥ 4.5:1 y `scrollWidth == clientWidth` en
   ambos temas, en `/admin`, `/admin?event=1`, `/promotor`, `/bouncer`.
@@ -792,7 +792,7 @@ avisar.
   `data-theme="light"`). Cualquier maqueta o medición visual debe partir de
   claro o no representa lo que ve el usuario.
 - **El venue demo (`id=2`, Bar Esquina) no tiene `primary_color` ni `logo_url`**,
-  así que cae al violeta de V-Pass y al tile de iniciales. Para ver los efectos
+  así que cae al azul de V-Pass y al tile de iniciales. Para ver los efectos
   brand-aware hay que ponerle color en la DB (y restaurarlo después).
 - **Los E2E se auto-contaminan: una DB sucia produce "regresiones" falsas.**
   Corriendo la suite entera dos veces seguidas contra la MISMA base aparecen

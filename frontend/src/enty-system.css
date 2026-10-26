@@ -9,7 +9,7 @@
  *  Reglas que gobiernan esta capa:
  *   1. Sora es la única voz tipográfica. Las fuentes de cartel quedan como
  *      acento confinado a la boleta del invitado.
- *   2. Violeta con texto = #7C3AED (blanco encima = 5.7:1). #BB5CF6 solo
+ *   2. Azul con texto = #3d5cd6 (blanco encima = 5.7:1). #4f6bdb solo
  *      como halo/luz, nunca como relleno que sostenga texto.
  *   3. Verde = validado/disponible. Rosa = urgencia/últimas. Acento con
  *      significado, no decoración.
@@ -97,7 +97,7 @@
 /* --------------------------------------------------------------------------
  *  2. TOKENS DE PRODUCTO
  *  Los tokens viven en UN solo lugar: src/tokens.css (--e-*), importado
- *  primero. Antes esta hoja redefinía --e-bg/--e-surface/--e-violet… y
+ *  primero. Antes esta hoja redefinía --e-bg/--e-surface/--e-blue… y
  *  colisionaba con tokens.css; se retiró el bloque duplicado (Fase 1 del
  *  plan estético). Aquí solo se CONSUMEN los tokens semánticos.
  * ------------------------------------------------------------------------- */
@@ -154,7 +154,7 @@ html:not([data-theme="light"]) .app-shell .card,
 html:not([data-theme="light"]) .app-shell .venue-header,
 html:not([data-theme="light"]) .app-shell .bizdock {
   background:
-    radial-gradient(30rem 18rem at 88% -8rem, rgba(124, 58, 237, 0.11), transparent 66%),
+    radial-gradient(30rem 18rem at 88% -8rem, rgba(61, 92, 214, 0.11), transparent 66%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 44%),
     rgba(17, 17, 23, 0.88);
   border-color: var(--e-border-soft);
@@ -167,7 +167,7 @@ html:not([data-theme="light"]) .app-shell .bizdock {
    despega del lienzo más que una .card cualquiera. Sin esto página y portada
    quedan a 1.1:1 —por debajo del umbral en que el ojo lee elevación— y el
    panel se ve como una sola superficie con texto. El glow usa el color de
-   marca del negocio; sin `primary_color`, `--vh-brand` cae al violeta de
+   marca del negocio; sin `primary_color`, `--vh-brand` cae al azul de
    siempre y el resultado es idéntico al de antes.
    Se scopea a .app-shell (no a .venue-header a secas) porque tres hojas
    definen la portada y la última en cargar gana: aquí queda un solo dueño
@@ -222,7 +222,7 @@ html[data-theme="light"] .app-shell .venue-header[data-brand] {
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    var(--e-glow-violet);
+    var(--e-glow-blue);
   transition:
     transform var(--e-dur-fast) var(--e-ease-standard),
     box-shadow var(--e-dur-base) var(--e-ease-standard),
@@ -230,10 +230,10 @@ html[data-theme="light"] .app-shell .venue-header[data-brand] {
 }
 .app-shell .btn-primary:hover,
 .btn-primary:hover {
-  background: var(--e-violet-hover);
+  background: var(--e-blue-hover);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 16px 40px -18px rgba(124, 58, 237, 1);
+    0 16px 40px -18px rgba(61, 92, 214, 1);
 }
 .app-shell .btn-primary:active,
 .btn-primary:active {
@@ -265,9 +265,9 @@ html[data-theme="light"] .app-shell .venue-header[data-brand] {
   border-color: rgba(255, 45, 152, 0.3);
 }
 .e-pill--brand {
-  color: var(--e-violet-200);
-  background: rgba(124, 58, 237, 0.16);
-  border-color: rgba(124, 58, 237, 0.34);
+  color: var(--e-blue-200);
+  background: rgba(61, 92, 214, 0.16);
+  border-color: rgba(61, 92, 214, 0.34);
 }
 
 /* --------------------------------------------------------------------------
@@ -287,7 +287,7 @@ html[data-theme="light"] .e-meter {
   display: block;
   height: 100%;
   border-radius: var(--e-radius-pill);
-  background: linear-gradient(90deg, rgba(124, 58, 237, 0.45), var(--e-brand-glow));
+  background: linear-gradient(90deg, rgba(61, 92, 214, 0.45), var(--e-brand-glow));
 }
 .e-meter-fill.is-warn {
   background: var(--e-amber-400);

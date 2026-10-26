@@ -62,7 +62,7 @@ export default function FunnelPage() {
               onClick={() => setDays(r.days)}
               className={`min-h-11 rounded-full px-4 text-sm font-semibold transition ${
                 days === r.days
-                  ? "bg-violet-600 text-white"
+                  ? "bg-brand-600 text-white"
                   : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
               }`}
             >
@@ -105,7 +105,7 @@ export default function FunnelPage() {
                   aria-label={`${s.label}: ${s.count} ${s.unit} (${pct}% del primer paso)`}
                 >
                   <div
-                    className="h-full rounded-full bg-violet-500"
+                    className="h-full rounded-full bg-brand-500"
                     style={{ width: `${Math.max(pct, s.count ? 3 : 0)}%` }}
                   />
                 </div>

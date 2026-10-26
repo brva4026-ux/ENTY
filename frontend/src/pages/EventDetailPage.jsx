@@ -472,7 +472,7 @@ export default function EventDetailPage() {
                       />
                       <span className="evd-map-pin" aria-hidden="true">
                         <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M12 22s7.5-6.6 7.5-11.7A7.5 7.5 0 1 0 4.5 10.3C4.5 15.4 12 22 12 22z" fill="#7C3AED" stroke="#fff" strokeWidth="1.4" />
+                          <path d="M12 22s7.5-6.6 7.5-11.7A7.5 7.5 0 1 0 4.5 10.3C4.5 15.4 12 22 12 22z" fill="#3d5cd6" stroke="#fff" strokeWidth="1.4" />
                           <circle cx="12" cy="10" r="2.7" fill="#fff" />
                         </svg>
                       </span>

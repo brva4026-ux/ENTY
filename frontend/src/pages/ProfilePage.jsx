@@ -107,7 +107,7 @@ export default function ProfilePage() {
   );
   const [venueName, setVenueName] = useState(adminVenue?.name || "");
   const [venueLogo, setVenueLogo] = useState(adminVenue?.logo_url || "");
-  // Color de marca: viaja como #RRGGBB. "" = sin color propio (violeta de V-Pass).
+  // Color de marca: viaja como #RRGGBB. "" = sin color propio (azul de V-Pass).
   const [venueColor, setVenueColor] = useState(adminVenue?.primary_color || "");
   const [venueCommission, setVenueCommission] = useState(
     adminVenue?.commission_pct != null ? String(adminVenue.commission_pct) : "0",
@@ -824,25 +824,25 @@ export default function ProfilePage() {
             </Field>
 
             {/* Color de marca: tiñe la portada del panel (banner, tile y viga
-                del KPI). Vacío = violeta de la marca. El <input type="color"> no
+                del KPI). Vacío = azul de la marca. El <input type="color"> no
                 admite "sin valor", así que el botón "Quitar" es el que vuelve
                 al color por defecto. */}
             <Field
               id="venue-color"
               label="Color de marca"
-              hint={`Se usa en la portada de tu panel. Sin elegir, usa el violeta de ${SITE.name}.`}
+              hint={`Se usa en la portada de tu panel. Sin elegir, usa el azul de ${SITE.name}.`}
             >
               <div className="pf-color-row">
                 <input
                   id="venue-color"
                   type="color"
-                  value={venueColor || "#7c3aed"}
+                  value={venueColor || "#3d5cd6"}
                   onChange={(e) => setVenueColor(e.target.value)}
                   className="pf-color-input"
                   aria-label="Color de marca"
                 />
                 <span className="pf-color-value">
-                  {venueColor || `Violeta de ${SITE.name}`}
+                  {venueColor || `Azul de ${SITE.name}`}
                 </span>
                 {venueColor && (
                   <button

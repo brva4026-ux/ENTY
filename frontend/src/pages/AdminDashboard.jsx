@@ -1163,7 +1163,7 @@ export default function AdminDashboard() {
                         {eventBucket !== "todos" && (
                           <button
                             onClick={() => setEventBucket("todos")}
-                            className="font-semibold text-violet-300 underline-offset-2 hover:underline"
+                            className="font-semibold text-brand-300 underline-offset-2 hover:underline"
                           >
                             Ver todos
                           </button>

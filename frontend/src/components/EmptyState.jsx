@@ -4,7 +4,7 @@ import Icon from "./Icon";
  * Estado vacío premium (patrón empty-state de distri-stream, en dark).
  *
  * La lista vacía es la primera impresión de un panel nuevo: un <p> suelto
- * se ve como "no funciona"; un icono en halo violeta + título + texto se ve
+ * se ve como "no funciona"; un icono en halo azul + título + texto se ve
  * como "todavía no hay nada, y así se resuelve".
  *
  * Props:

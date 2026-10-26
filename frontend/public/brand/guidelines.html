@@ -4,20 +4,20 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>V-Pass — Brand Guidelines</title>
-<meta name="theme-color" content="#0B0B0F" />
+<meta name="theme-color" content="#0E0D0C" />
 <meta name="description" content="V-Pass — Brand Guidelines. Identidad, paleta, tipografía, logo y sistema de diseño del ticketing nocturno." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --violet:#7C3AED;
-    --violet-soft:#8B5CF6;
-    --violet-hi:#BB5CF6;
-    --violet-lo:#5B21B6;
-    --black:#0B0B0F;
-    --black-deep:#050508;
-    --white:#F5F5F7;
+    --blue:#3D5CD6;
+    --blue-soft:#4D6ADD;
+    --blue-hi:#4F6BDB;
+    --blue-lo:#1B328D;
+    --black:#0E0D0C;
+    --black-deep:#050505;
+    --white:#F5EEDD;
     --green:#00E6AB;
     --pink:#FF2D98;
     --panel:#101016;
@@ -73,7 +73,7 @@
   /* --- Encabezado ------------------------------------------------------ */
   .eyebrow{
     font-size:11px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;
-    color:var(--violet-hi);
+    color:var(--blue-hi);
   }
   .eyebrow.dim{color:#7a5cc4}
   .head{
@@ -117,9 +117,9 @@
 
   /* --- Visión ---------------------------------------------------------- */
   .vision-name{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:40px;letter-spacing:-.01em}
-  .vision-name .y{color:var(--violet-hi)}
+  .vision-name .y{color:var(--blue-hi)}
   .lema{margin-top:8px;font-size:15px;font-weight:600;color:var(--white)}
-  .lema em{font-style:normal;color:var(--violet-hi)}
+  .lema em{font-style:normal;color:var(--blue-hi)}
   .vision-body{margin-top:16px;font-size:13px;color:var(--dim);max-width:44ch}
   .meta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
   .pill{
@@ -127,7 +127,7 @@
     border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);
     font-size:11.5px;font-weight:600;color:var(--white);
   }
-  .pill i{width:7px;height:7px;border-radius:50%;background:var(--violet-hi);display:block}
+  .pill i{width:7px;height:7px;border-radius:50%;background:var(--blue-hi);display:block}
   .pill.g i{background:var(--green)}
   .pill.p i{background:var(--pink)}
   .vals{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
@@ -158,7 +158,7 @@
   .type-grid .col-r{padding-left:34px}
   .type-name{font-size:56px;font-weight:600;letter-spacing:-.02em;color:#fff;margin-top:8px}
   .type-desc{margin-top:14px;font-size:10.5px;font-weight:600;letter-spacing:.2em;color:var(--muted)}
-  .type-desc b{color:var(--violet-hi);font-weight:600}
+  .type-desc b{color:var(--blue-hi);font-weight:600}
   .type-set{display:flex;flex-direction:column;gap:20px}
   .type-set .label{font-size:10px;font-weight:700;letter-spacing:.22em;color:var(--dim);margin-bottom:7px}
   .type-set .glyphs{font-size:19px;font-weight:400;letter-spacing:.06em;color:var(--white);word-break:break-word;line-height:1.5}
@@ -228,11 +228,11 @@
     background:
       radial-gradient(circle at 62% 30%,rgba(255,45,152,.5),transparent 55%),
       radial-gradient(circle at 30% 20%,rgba(124,58,237,.65),transparent 60%),
-      linear-gradient(180deg,#241046,#0B0B0F);
+      linear-gradient(180deg,#141C3A,#0E0D0C);
   }
   .hero::after{
     content:"";position:absolute;inset:0;
-    background:linear-gradient(180deg,transparent 40%,rgba(11,11,15,.85) 82%,#0B0B0F);
+    background:linear-gradient(180deg,transparent 40%,rgba(14,13,12,.85) 82%,#0E0D0C);
   }
   .hero .tags{position:absolute;top:16px;left:16px;display:flex;gap:8px;z-index:2}
   .tag-chip{
@@ -249,7 +249,7 @@
   .screen .rowmeta b{color:var(--white);font-weight:600}
   .cta-pill{
     display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:999px;
-    background:linear-gradient(180deg,var(--violet-soft),var(--violet));
+    background:linear-gradient(180deg,var(--blue-soft),var(--blue));
     color:#fff;font-size:13.5px;font-weight:700;
     box-shadow:0 12px 26px rgba(124,58,237,.45);
   }
@@ -258,7 +258,7 @@
     border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;gap:12px;align-items:center;
   }
   .card .thumb{width:44px;height:44px;border-radius:12px;
-    background:linear-gradient(135deg,var(--pink),var(--violet));flex:none}
+    background:linear-gradient(135deg,var(--pink),var(--blue));flex:none}
   .card .tt{font-size:12.5px;font-weight:600}
   .card .ts{font-size:10.5px;color:var(--dim);margin-top:3px}
   .navbar{
@@ -269,9 +269,9 @@
   }
   .navbar .it{display:grid;place-items:center;gap:4px;font-size:8.5px;font-weight:600;color:var(--dim)}
   .navbar .it svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-  .navbar .it.on{color:var(--violet-hi)}
+  .navbar .it.on{color:var(--blue-hi)}
   .navbar .it.on svg{filter:drop-shadow(0 0 8px rgba(187,92,246,.8))}
-  .navbar .it.on .dot{width:5px;height:5px;border-radius:50%;background:var(--violet-hi)}
+  .navbar .it.on .dot{width:5px;height:5px;border-radius:50%;background:var(--blue-hi)}
 
   .ui-notes{display:flex;flex-direction:column;gap:20px}
   .comp{border-top:1px solid var(--line);padding-top:16px}
@@ -280,7 +280,7 @@
   .comp p b{color:var(--white);font-weight:600}
   .demo-btn{
     display:inline-flex;align-items:center;height:44px;padding:0 26px;border-radius:999px;
-    background:linear-gradient(180deg,var(--violet-soft),var(--violet));color:#fff;
+    background:linear-gradient(180deg,var(--blue-soft),var(--blue));color:#fff;
     font-size:13px;font-weight:700;box-shadow:0 12px 26px rgba(124,58,237,.4);
   }
   .demo-btn.ghost{background:transparent;border:1px solid var(--line);box-shadow:none;color:var(--white)}
@@ -316,7 +316,7 @@
   .tk-logo{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:20px;line-height:1;position:relative}
   .tk-logo .spark{position:absolute;top:-.2em;right:-.55em;width:.5em;height:.5em}
   .tk-logo .spark svg{width:100%;height:100%}
-  .tk-logo .y{color:var(--violet-hi)}
+  .tk-logo .y{color:var(--blue-hi)}
   .tk-head .idx{font-size:9px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
   .tk-event{margin-top:26px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.02;text-align:center}
   .tk-sub{margin-top:6px;text-align:center;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim)}
@@ -328,10 +328,10 @@
     display:grid;place-items:center}
   .tk-qr .qr{width:100%;height:100%;border-radius:12px;
     background:
-      linear-gradient(#0B0B0F,#0B0B0F) 0 0/22% 22% no-repeat,
-      linear-gradient(#0B0B0F,#0B0B0F) 100% 0/22% 22% no-repeat,
-      linear-gradient(#0B0B0F,#0B0B0F) 0 100%/22% 22% no-repeat,
-      repeating-conic-gradient(#0B0B0F 0 25%, #fff 0 50%) 0 0/16px 16px;
+      linear-gradient(#0E0D0C,#0E0D0C) 0 0/22% 22% no-repeat,
+      linear-gradient(#0E0D0C,#0E0D0C) 100% 0/22% 22% no-repeat,
+      linear-gradient(#0E0D0C,#0E0D0C) 0 100%/22% 22% no-repeat,
+      repeating-conic-gradient(#0E0D0C 0 25%, #fff 0 50%) 0 0/16px 16px;
     opacity:.92;
   }
   .tk-qr .spark{position:absolute;width:44px;height:44px;
@@ -348,7 +348,7 @@
   .barcode i:nth-child(5n){height:86%}
   .tk-note{margin-top:14px;text-align:center;font-size:8.5px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
   .tk-anat{display:flex;flex-direction:column;gap:16px}
-  .anat{border-left:2px solid var(--violet);padding-left:14px}
+  .anat{border-left:2px solid var(--blue);padding-left:14px}
   .anat .sub{margin-bottom:6px}
   .anat p{font-size:12.5px;color:var(--dim);line-height:1.55}
   .anat p b{color:var(--white);font-weight:600}
@@ -360,7 +360,7 @@
   }
   .prompt .phead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
   .prompt .pt{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--white)}
-  .prompt .pflags{font-size:9.5px;letter-spacing:.1em;color:var(--violet-hi);font-weight:600;white-space:nowrap}
+  .prompt .pflags{font-size:9.5px;letter-spacing:.1em;color:var(--blue-hi);font-weight:600;white-space:nowrap}
   .prompt code{
     display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
     font-size:11.5px;line-height:1.65;color:#cdc6e6;white-space:pre-wrap;word-break:break-word;
@@ -373,8 +373,8 @@
     font-size:10px;font-weight:600;letter-spacing:.22em;color:var(--dim);
     text-transform:uppercase;
   }
-  .foot .more{display:inline-flex;align-items:center;gap:12px;color:var(--violet-hi)}
-  .foot .more i{display:block;width:34px;height:2px;background:var(--violet);border-radius:2px}
+  .foot .more{display:inline-flex;align-items:center;gap:12px;color:var(--blue-hi)}
+  .foot .more i{display:block;width:34px;height:2px;background:var(--blue);border-radius:2px}
 
   @media (max-width:820px){
     .sheet{padding:38px 24px 32px}
@@ -398,7 +398,7 @@
 <body>
   <main class="sheet">
 
-    <!-- Boleto superior izquierdo: degradado morado. -->
+    <!-- Boleto superior izquierdo: degradado azul. -->
     <div class="bg-ticket tl" aria-hidden="true">
       <svg viewBox="0 0 240 150">
         <defs>
@@ -410,12 +410,12 @@
         </defs>
         <path d="M14 26h212a12 12 0 0 1 12 12v24a20 20 0 0 0 0 26v24a12 12 0 0 1-12 12H14A12 12 0 0 1 2 112V88a20 20 0 0 0 0-26V38A12 12 0 0 1 14 26Z"
               fill="url(#ticketP)" opacity=".9"/>
-        <g fill="#0B0B0F" opacity=".55">
+        <g fill="#0E0D0C" opacity=".55">
           <rect x="30" y="52" width="118" height="7" rx="3.5"/>
           <rect x="30" y="70" width="76" height="7" rx="3.5"/>
           <rect x="30" y="90" width="96" height="7" rx="3.5"/>
         </g>
-        <path d="M176 44v62" stroke="#0B0B0F" stroke-width="2.5" stroke-dasharray="7 7" opacity=".5"/>
+        <path d="M176 44v62" stroke="#0E0D0C" stroke-width="2.5" stroke-dasharray="7 7" opacity=".5"/>
       </svg>
     </div>
 
@@ -504,9 +504,9 @@
       <p class="eyebrow">— 02 · Paleta de color</p>
       <div class="swatches">
         <div class="swatch">
-          <div class="chip" style="background:#0B0B0F"></div>
+          <div class="chip" style="background:#0E0D0C"></div>
           <p class="name">Negro</p>
-          <p class="hex">#0B0B0F</p>
+          <p class="hex">#0E0D0C</p>
           <p class="use">Fondo principal. Oscuro profundo, no absoluto.</p>
         </div>
         <div class="swatch">
@@ -516,9 +516,9 @@
           <p class="use">Botones, brillos, logo y acentos.</p>
         </div>
         <div class="swatch">
-          <div class="chip" style="background:#F5F5F7"></div>
+          <div class="chip" style="background:#F5EEDD"></div>
           <p class="name">Blanco</p>
-          <p class="hex">#F5F5F7</p>
+          <p class="hex">#F5EEDD</p>
           <p class="use">Tipografía y contraste.</p>
         </div>
         <div class="swatch">
@@ -701,7 +701,7 @@
         <div class="ui-notes">
           <div class="comp">
             <p class="sub">Fondo y profundidad</p>
-            <p>Todo ocurre sobre el negro <b>#0B0B0F</b>, con <b>destellos de luz</b> en las
+            <p>Todo ocurre sobre el negro <b>#0E0D0C</b>, con <b>destellos de luz</b> en las
               esquinas (morado, verde y rosa) que se filtran por detrás. La app no es plana:
               las superficies son <b>cristal esmerilado</b> (blur + borde de luz al 8–12%)
               sobre ese negro. Sin blancos ni grises claros de fondo.</p>
@@ -836,7 +836,7 @@
       </div>
       <div class="prompt">
         <div class="phead"><span class="pt">Logo 3D (render flotante)</span><span class="pflags">--ar 16:9 --style raw --v 6.0</span></div>
-        <code>3D floating wordmark logo "V-Pass" in a modern, thick, rounded friendly sans-serif font. A glowing purple four-pointed magical sparkle icon floats at the top right of the text. The text has a shiny metallic and glass texture, reflecting on a polished black floor. Dark studio lighting, intense purple neon backlight (#7C3AED) casting a glow around the letters. Deep black background (#0B0B0F). Premium, youthful, futuristic ticketing brand identity, 8k resolution, octane render, unreal engine 5 --ar 16:9 --style raw --v 6.0</code>
+        <code>3D floating wordmark logo "V-Pass" in a modern, thick, rounded friendly sans-serif font. A glowing purple four-pointed magical sparkle icon floats at the top right of the text. The text has a shiny metallic and glass texture, reflecting on a polished black floor. Dark studio lighting, intense purple neon backlight (#7C3AED) casting a glow around the letters. Deep black background (#0E0D0C). Premium, youthful, futuristic ticketing brand identity, 8k resolution, octane render, unreal engine 5 --ar 16:9 --style raw --v 6.0</code>
       </div>
       <div class="prompt">
         <div class="phead"><span class="pt">Interfaz de la app (UI design)</span><span class="pflags">--ar 9:16 --v 6.0</span></div>

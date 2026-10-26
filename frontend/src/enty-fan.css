@@ -18,7 +18,7 @@
  *   3. REJILLA EDITORIAL — composición asimétrica: un destacado grande y el
  *      resto en columnas. La fecha es un SELLO (día enorme, mes diminuto).
  *   4. ACENTO CON SIGNIFICADO — verde = disponible/validado, rosa = urgencia.
- *      El violeta es la única voz interactiva.
+ *      El azul es la única voz interactiva.
  *
  *  Reglas no negociables:
  *   - Sora es la única voz. Motion: solo transform/opacity.
@@ -36,8 +36,8 @@
   --enty-ink: var(--e-paper);
   --enty-dim: var(--e-text-muted);
   --enty-dim-2: var(--e-text-secondary);
-  --enty-violet: var(--e-brand);
-  --enty-violet-bright: var(--e-brand-glow);
+  --enty-blue: var(--e-brand);
+  --enty-blue-bright: var(--e-brand-glow);
   --enty-green: var(--e-success);
   --enty-pink: var(--e-urgent);
   --enty-line: rgba(255, 255, 255, 0.1);
@@ -186,8 +186,8 @@
     border-color var(--enty-dur) var(--enty-ease);
 }
 .home-cats button.is-on {
-  border-color: color-mix(in srgb, var(--enty-violet-bright) 45%, transparent);
-  background: color-mix(in srgb, var(--enty-violet) 18%, transparent);
+  border-color: color-mix(in srgb, var(--enty-blue-bright) 45%, transparent);
+  background: color-mix(in srgb, var(--enty-blue) 18%, transparent);
 }
 
 /* --------------------------------------------------------------------------
@@ -233,7 +233,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--enty-violet-bright);
+  background: var(--enty-blue-bright);
   opacity: 0.75;
 }
 @keyframes enty-ticker {
@@ -433,9 +433,9 @@
   height: 3rem;
   margin: 0 auto 1rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--enty-violet) 16%, transparent);
+  background: color-mix(in srgb, var(--enty-blue) 16%, transparent);
   box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--enty-violet-bright) 40%, transparent);
+    color-mix(in srgb, var(--enty-blue-bright) 40%, transparent);
 }
 
 /* Esqueletos de carga con el pulso de la casa. */
@@ -754,8 +754,8 @@
   text-underline-offset: 2px;
 }
 html[data-theme="light"] .legal-link {
-  /* Violeta profundo: --e-brand-glow no alcanza AA sobre papel claro. */
-  color: var(--e-violet-700);
+  /* Azul profundo: --e-brand-glow no alcanza AA sobre papel claro. */
+  color: var(--e-blue-700);
 }
 
 .legal-foot {

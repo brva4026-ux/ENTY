@@ -29,7 +29,7 @@ const KIND_TILE = {
   payout_reviewed: { icon: "check", tile: "bg-emerald-500/15 text-emerald-400" },
   payout_disputed: { icon: "flag", tile: "bg-amber-500/15 text-amber-400" },
   invitation_accepted: { icon: "users", tile: "bg-sky-500/15 text-sky-400" },
-  ticket_reissued: { icon: "qr", tile: "bg-violet-500/15 text-violet-300" },
+  ticket_reissued: { icon: "qr", tile: "bg-brand-500/15 text-brand-300" },
   event_autoclosed: { icon: "clock", tile: "bg-amber-500/15 text-amber-400" },
   door_anomaly: { icon: "shield", tile: "bg-rose-500/15 text-rose-400" },
 };

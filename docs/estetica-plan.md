@@ -39,7 +39,7 @@ Medido sobre el árbol actual (`frontend/src`, 8 424 líneas de CSS en 4 hojas):
 | **Foco de teclado desparejo** | `:focus-visible` global (radio 0.375rem) vs controles redondos/pill. | El anillo no sigue la forma del control. |
 
 **Lo que ya está bien y hay que proteger**: la marca es coherente y distintiva
-(matte black, violeta, verde/rosa con significado, Sora única voz); la boleta
+(carbón cálido, azul, verde/rosa con significado, Sora única voz); la boleta
 pública `.tkt` es un artefacto troquelado de primera; el motivo de boleto
 perforado y el ticker del fan ya existen; el modo oscuro por defecto y la puerta
 forzada oscura son decisiones correctas.
@@ -60,7 +60,7 @@ Cinco principios que gobiernan cada decisión:
    **eligen**, no se inventan por página.
 2. **La marca en un punto.** Ningún hex de marca dentro de un componente; todo
    sale de un token. Cambiar `--brand` debe re-vestir el producto entero.
-3. **El acento significa.** Violeta = acción; verde = validado/disponible; rosa =
+3. **El acento significa.** Azul = acción; verde = validado/disponible; rosa =
    urgencia/últimas; ámbar = atención; rojo = rechazo. Nunca decoración.
 4. **Profundidad por materia, no por brillo.** Superficies con relieve de 1px,
    grano sutil, auras radiales contenidas y sombras de contacto (no `box-shadow`
@@ -72,7 +72,7 @@ Cinco principios que gobiernan cada decisión:
 **Elevación por rol** (misma marca, distinta densidad):
 
 - **Fan** (público): editorial y aireado. Es la vitrina.
-- **Admin**: denso, monocromo, con el violeta reservado a la acción primaria.
+- **Admin**: denso, monocromo, con el azul reservado a la acción primaria.
 - **Promotor**: densidad media, tinte de marca en cupos/ranking.
 - **Puerta**: máximo contraste, siempre oscuro, tap targets grandes, cero adornos.
 
@@ -86,10 +86,10 @@ espacios legacy:
 
 ```
 Nivel 1 · PRIMITIVAS  (crudo, no se usa en componentes)
-  --e-ink-0 #050507  --e-ink-1 #0B0B0F  --e-ink-2 #14121C  --e-ink-3 #1C1730
-  --e-violet-500 #7C3AED  --e-violet-400 #BB5CF6  --e-violet-600 #6D28D9
+  --e-ink-0 #050505  --e-ink-1 #0E0D0C  --e-ink-2 #141312  --e-ink-3 #1B1A18
+  --e-blue-500 #3D5CD6  --e-blue-400 #4F6BDB  --e-blue-600 #203EB6
   --e-green-500 #00E6AB   --e-pink-500 #FF2D98     --e-amber-500 #F5A524
-  --e-red-500 #EF4444     --e-paper #F5F5F7
+  --e-red-500 #EF4444     --e-paper #F5EEDD
 
 Nivel 2 · SEMÁNTICAS  (lo que usan los componentes)
   --e-canvas / --e-surface / --e-surface-2 / --e-surface-3 / --e-overlay
@@ -265,7 +265,7 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 ### Fase 6 — Elevación por rol (interior) y cierre
 
 - **Admin**: densidad y jerarquía de datos; tablas/listas con zebra sutil,
-  cabeceras pegajosas, cifras tabulares, violeta solo en la acción primaria.
+  cabeceras pegajosas, cifras tabulares, azul solo en la acción primaria.
 - **Promotor**: tinte de marca en cupos/ranking; estados de comisión claros.
 - **Puerta**: contraste máximo, targets grandes, feedback de escaneo inconfundible.
   En el cierre, el veredicto `ALREADY_REDEEMED` ("YA USADA") dejó de ser un
@@ -273,8 +273,8 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   hora del primer canje** (zona del evento), y el escáner lo muestra — la
   discusión clásica "¿ya la usé?" se resuelve con datos, igual que `NOT_ACTIVE`
   (hora de apertura del QR) y `WRONG_TYPE` (fila real). La retícula del escáner
-  pasó sus literales de marca a `color-mix(var(--e-violet-400))`: la única hoja
-  con violeta crudo era la de la puerta.
+  pasó sus literales de marca a `color-mix(var(--e-blue-400))`: la única hoja
+  con azul crudo era la de la puerta.
 - Retirar el bloque `@layer compat`; borrar los namespaces legacy.
 - Actualizar `AGENTS.md` y `DESIGN.md` (ver nota abajo).
 - *Aceptación*: E2E 6/6 verdes; regresión visual aprobada; stylelint y a11y verdes.

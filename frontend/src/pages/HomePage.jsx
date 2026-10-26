@@ -111,7 +111,7 @@ function inDateRange(iso, key) {
 }
 
 /** Estrella de cuatro puntas (acento de marca). */
-function Star({ size = 8, color = "#8B5CF6" }) {
+function Star({ size = 8, color = "#4d6add" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 0 L14.6 9.4 L24 12 L14.6 14.6 L12 24 L9.4 14.6 L0 12 L9.4 9.4 Z" fill={color} />
@@ -173,8 +173,8 @@ function SoldRing({ pct }) {
     <svg className="home-ring" viewBox="0 0 342 262" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
         <radialGradient id="hGlow" cx="0.82" cy="0.18" r="0.7">
-          <stop offset="0" stopColor="#8B5CF6" stopOpacity="0.34" />
-          <stop offset="1" stopColor="#8B5CF6" stopOpacity="0" />
+          <stop offset="0" stopColor="#4d6add" stopOpacity="0.34" />
+          <stop offset="1" stopColor="#4d6add" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="hFade" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0.35" stopColor="#101012" stopOpacity="0" />
@@ -192,7 +192,7 @@ function SoldRing({ pct }) {
         cy="86"
         r={r}
         fill="none"
-        stroke="#B7A3FF"
+        stroke="#b0bbe8"
         strokeWidth="2"
         strokeLinecap="round"
         strokeDasharray={`${(shown / 100) * c} ${c}`}
@@ -301,8 +301,8 @@ function Heart({ filled }) {
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M12 20s-7-4.6-7-9.5A3.9 3.9 0 0 1 12 7a3.9 3.9 0 0 1 7 3.5C19 15.4 12 20 12 20z"
-        fill={filled ? "#7C3AED" : "none"}
-        stroke={filled ? "#7C3AED" : "currentColor"}
+        fill={filled ? "#3d5cd6" : "none"}
+        stroke={filled ? "#3d5cd6" : "currentColor"}
         strokeWidth="1.6"
         strokeLinejoin="round"
       />
@@ -344,7 +344,7 @@ export default function HomePage() {
   // Contador de reintentos: cambiar el valor vuelve a disparar el fetch sin
   // duplicar la lógica de carga (mismo efecto, misma limpieza).
   const [reload, setReload] = useState(0);
-  // La vitrina es nocturna por diseno (negro + violeta). Sin el candado, un
+  // La vitrina es nocturna por diseno (negro + azul). Sin el candado, un
   // visitante con tema claro veia la cartelera como una tarjeta negra sobre
   // blanco: el tema del sistema no aplica a una pantalla publica de marca.
   useEffect(() => forceDarkOnce(), []);
@@ -613,7 +613,7 @@ export default function HomePage() {
       {error ? (
         <div className="home-empty">
           <span className="enty-spark" aria-hidden="true">
-            <Star size={20} color="#BB5CF6" />
+            <Star size={20} color="#4f6bdb" />
           </span>
           <p>No pudimos cargar la cartelera</p>
           <span>{error}</span>

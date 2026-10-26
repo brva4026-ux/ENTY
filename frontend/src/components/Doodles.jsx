@@ -2,7 +2,7 @@
  * Doodles POP: garabatos estilo "portfolio de animador" (referencia
  * Dikshant/Absolut). Solo adornan: nunca portan datos ni acciones.
  * Colores de fiesta usados con cuentagotas sobre los carteles de referencia:
- * violeta #7C3AED, verde #00E6AB, rosa #FF2D98, tinta #F5F5F7.
+ * azul #3d5cd6, verde #00E6AB, rosa #FF2D98, tinta #F5EEDD.
  */
 
 const TINTA = "currentColor";
