@@ -12,6 +12,7 @@ import PasswordMeter from "../components/PasswordMeter";
 import ThemeChooser from "../components/ThemeChooser";
 import MotionChooser from "../components/MotionChooser";
 import { PushToggle } from "../components/PushToggle";
+import { SITE } from "../lib/site";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 const roleLabel = (role) => ROLE_LABELS[role] ?? role;
@@ -106,7 +107,7 @@ export default function ProfilePage() {
   );
   const [venueName, setVenueName] = useState(adminVenue?.name || "");
   const [venueLogo, setVenueLogo] = useState(adminVenue?.logo_url || "");
-  // Color de marca: viaja como #RRGGBB. "" = sin color propio (violeta de Celestial Strokes).
+  // Color de marca: viaja como #RRGGBB. "" = sin color propio (azul de V-Pass).
   const [venueColor, setVenueColor] = useState(adminVenue?.primary_color || "");
   const [venueCommission, setVenueCommission] = useState(
     adminVenue?.commission_pct != null ? String(adminVenue.commission_pct) : "0",
@@ -360,7 +361,7 @@ export default function ProfilePage() {
       });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "mis-datos-enty.json";
+      a.download = "mis-datos-vpass.json";
       a.click();
       URL.revokeObjectURL(a.href);
       haptics.success();
@@ -747,7 +748,7 @@ export default function ProfilePage() {
           <div className="pf-sub">
             <h3 className="pf-sub-title">Tus datos</h3>
             <p className="pf-hint pf-hint-block">
-              Descarga una copia de lo que Celestial Strokes sabe de tu cuenta: tus datos,
+              Descarga una copia de lo que {SITE.name} sabe de tu cuenta: tus datos,
               tus negocios y los documentos que aceptaste. Tus contraseñas y
               los datos de tus clientes no se incluyen.
             </p>
@@ -823,25 +824,25 @@ export default function ProfilePage() {
             </Field>
 
             {/* Color de marca: tiñe la portada del panel (banner, tile y viga
-                del KPI). Vacío = violeta de Celestial Strokes. El <input type="color"> no
+                del KPI). Vacío = azul de la marca. El <input type="color"> no
                 admite "sin valor", así que el botón "Quitar" es el que vuelve
                 al color por defecto. */}
             <Field
               id="venue-color"
               label="Color de marca"
-              hint="Se usa en la portada de tu panel. Sin elegir, usa el violeta de Celestial Strokes."
+              hint={`Se usa en la portada de tu panel. Sin elegir, usa el azul de ${SITE.name}.`}
             >
               <div className="pf-color-row">
                 <input
                   id="venue-color"
                   type="color"
-                  value={venueColor || "#7c3aed"}
+                  value={venueColor || "#3d5cd6"}
                   onChange={(e) => setVenueColor(e.target.value)}
                   className="pf-color-input"
                   aria-label="Color de marca"
                 />
                 <span className="pf-color-value">
-                  {venueColor || "Violeta de Enty"}
+                  {venueColor || `Azul de ${SITE.name}`}
                 </span>
                 {venueColor && (
                   <button
@@ -929,7 +930,7 @@ export default function ProfilePage() {
       {/* Zona de peligro: lo destructivo no vive "a la vista" junto a lo demás.
           Se separa con el troquel de la casa y arranca colapsado. */}
       <div className="pf-danger-wrap" ref={dangerRef}>
-        <div className="enty-perf" aria-hidden="true" />
+        <div className="vp-perf" aria-hidden="true" />
         <section className="card pf-danger" aria-labelledby="pf-danger-title">
           <h2 id="pf-danger-title" className="pf-danger-title">
             Zona de peligro

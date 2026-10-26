@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0A0A0F" />
+    <meta name="theme-color" content="#0E0D0C" />
     <meta name="description" content="V-Pass — boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso." />
     <!-- Tarjeta social: sin esto, compartir un link por WhatsApp (el canal real
          de este producto) mostraba una URL pelada. Cambiar SITE_URL cuando
@@ -18,7 +18,7 @@
     <meta property="og:image" content="https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/og-cover.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Enty — boletas, cortesías y control de aforo" />
+    <meta property="og:image:alt" content="V-Pass — boletas, cortesías y control de aforo" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="V-Pass — Boletería y Aforo" />
     <meta name="twitter:description" content="Boletas, cortesías y control de aforo con QR anti-reuso." />
@@ -37,8 +37,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="V-Pass" />
-    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzBBMEEwRicvPjxnIHRyYW5zZm9ybT0nc2NhbGUoMC4wNjI1KScgc3Ryb2tlPScjZmZmJyBzdHJva2Utd2lkdGg9JzYwJyBzdHJva2UtbGluZWNhcD0ncm91bmQnIGZpbGw9J25vbmUnPjxwYXRoIGQ9J00xODYgMTU2IEgzMTgnLz48cGF0aCBkPSdNMTg2IDI1NiBIMjkyJy8+PHBhdGggZD0nTTE4NiAzNTYgSDMxOCcvPjxwYXRoIGQ9J00xODYgMTU2IFYzNTYnLz48L2c+PHBhdGggZmlsbD0nI0JCNUNGNicgZD0nTTM1NiAxOTYgbDEzIDM0IDM0IDEzIC0zNCAxMyAtMTMgMzQgLTEzIC0zNCAtMzQgLTEzIDM0IC0xMyB6Jy8+PC9zdmc+" />
-    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="data:image/png;base64,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" />
     <title>V-Pass — Boletería y Aforo</title>
     <script type="application/ld+json">
       {

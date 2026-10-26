@@ -231,10 +231,10 @@ muere en el acto.
 - Si agregás objetos de esquema, sumalos al `DROP` del `conftest` o los tests
   arrastran estado entre sesiones.
 
-## App del fan (Enty)
+## App del fan (V-Pass)
 
 El fan **no tiene cuenta**: su correo o teléfono ES la identidad. Las pantallas
-públicas viven bajo `.home` (shell nocturno: negro + violeta, Sora 300) y se
+públicas viven bajo `.home` (shell nocturno: negro + azul, Sora 300) y se
 fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO.
 
 - `/inicio` — vitrina pública (`HomePage`): catálogo de `/public/events`.
@@ -262,23 +262,23 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
 ## Capas de diseño (auditoría)
 
 El frontend importa **cinco** hojas en este orden (main.jsx):
-`tokens.css` → `index.css` → `aesthetic-refresh.css` → `enty-system.css` →
-`enty-fan.css`. `tokens.css` es la fuente única de color/forma/movimiento; las
-demás elevan la anterior sin reescribirla y `enty-fan.css` es la última palabra
+`tokens.css` → `index.css` → `aesthetic-refresh.css` → `vp-system.css` →
+`vp-fan.css`. `tokens.css` es la fuente única de color/forma/movimiento; las
+demás elevan la anterior sin reescribirla y `vp-fan.css` es la última palabra
 sobre las superficies del fan.
 
 | Capa | Alcance |
 | --- | --- |
-| `tokens.css` | **Tokens del design system Enty** (`--e-*`): primitivas, semánticas (voltean con el tema) y escalas cerradas (espacio, radio, tipo, motion, elevación). Ver "Tokens y guardarraíles". |
+| `tokens.css` | **Tokens del design system V-Pass** (`--e-*`): primitivas, semánticas (voltean con el tema) y escalas cerradas (espacio, radio, tipo, motion, elevación). Ver "Tokens y guardarraíles". |
 | `index.css` | Base del design system (clases `.card`, `.field`, `.btn-*`), tema claro/oscuro y la vitrina del fan (`.home`, `.evd`). |
 | `aesthetic-refresh.css` | Marca aplicada: `.home` (Inicio/boletas), `.evd` (detalle), `.tkt` (boleta pública) y la capa `.app-shell` del interior. |
-| `enty-system.css` | Retoques del sistema ("eleva sin reescribir"). |
-| `enty-fan.css` | **Experiencia del fan (vitrina editorial)**: responsive real, motivo de boleto perforado, ticker cinético y estados completos. |
+| `vp-system.css` | Retoques del sistema ("eleva sin reescribir"). |
+| `vp-fan.css` | **Experiencia del fan (vitrina editorial)**: responsive real, motivo de boleto perforado, ticker cinético y estados completos. |
 
 **Clasificación del rediseño (qué se conservó y qué se rehízo):**
 
-- **Conservar**: la marca (matte black `#0B0B0F`, violeta `#7C3AED`/`#BB5CF6`,
-  verde `#00E6AB`, rosa `#FF2D98`, tinta `#F5F5F7`, Sora única voz); el
+- **Conservar**: la marca (carbón cálido `#0E0D0C`, azul `#3D5CD6`/`#4F6BDB`,
+  verde `#00E6AB`, rosa `#FF2D98`, crema `#F5EEDD`, Sora única voz); el
   encuadre nocturno del interior (`.app-shell`); la boleta pública `.tkt` (ya es
   un artefacto troquelado y la credencial de la noche — no tocar).
 - **Perfeccionar**: las superficies `.home`/`.evd` — el motivo de boleto estaba
@@ -290,10 +290,10 @@ sobre las superficies del fan.
 - **Eliminar**: la carga de decoración sin función; la duplicación de color de
   rol (ya centralizada en `lib/roles.js` → `ROLE_VISUALS`).
 
-**Motivos exclusivos de Enty** (reconocibles sin el logotipo):
+**Motivos exclusivos de V-Pass** (reconocibles sin el logotipo):
 
-1. **Boleto perforado** — `.enty-perf` (troquel de línea discontinua) y
-   `.enty-notch` (canto festoneado por máscara radial). Se usan como separador
+1. **Boleto perforado** — `.vp-perf` (troquel de línea discontinua) y
+   `.vp-notch` (canto festoneado por máscara radial). Se usan como separador
    editorial y canto del rail de compra. La boleta pública y `.fan-ticket` ya
    traen su propio corte rasgado.
 2. **Ticker cinético** — `.home-ticker` en Inicio: banda de palabras de la noche
@@ -301,22 +301,22 @@ sobre las superficies del fan.
 3. **Rejilla editorial** — `.home-list` es 1 col en móvil, 2 en ≥640px y 3 en
    ≥1024px; la fila de evento se vuelve tarjeta con la fecha como sello.
 4. **Acento con significado** — verde = disponible/validado, rosa = urgencia.
-   El violeta es la única voz interactiva.
+   El azul es la única voz interactiva.
 
 **Verificación de la vitrina** (la que falla si se rompe):
 - Cero scroll horizontal a 320/420/768/1440px en `/inicio`, `/evento/:id`,
   `/boletas` (un elemento cuenta como desborde solo si NINGÚN ancestro lo
   recorta).
 - Detalle: 2 columnas ≥900px (cartel pegajoso + rail de compra), 1 en móvil.
-- Contraste de texto ≥ 4.5:1 sobre `#0B0B0F`: `dim` #9a96a8 (6.83), `dim-2`
-  #b6b2c4 (9.50), violeta brillo #bb5cf6 (5.59), verde (12.07), rosa (5.69).
+- Contraste de texto ≥ 4.5:1 sobre `#0E0D0C`: `dim` #a09a90 (6.6), `dim-2`
+  #bcb6ac (9.2), azul brillo #4f6bdb (5.35), verde (12.07), rosa (5.69).
 
 ## Tokens y guardarraíles (Fase 0–1 del plan estético)
 
 Ver `docs/estetica-plan.md`. Resumen operativo:
 
 - **`src/tokens.css` es la fuente única de color/forma/movimiento.** Prefijo
-  `--e-*`, tres niveles: primitivas (`--e-ink-1`, `--e-violet-500`…), semánticas
+  `--e-*`, tres niveles: primitivas (`--e-ink-1`, `--e-blue-500`…), semánticas
   (`--e-canvas`, `--e-text-primary`, `--e-brand`…) y escalas cerradas
   (`--e-space-*`, `--e-radius-*`, `--e-text-*`, `--e-dur-*`, `--e-ease-*`,
   `--e-shadow-*`, `--e-elev-*`). Los componentes consumen las **semánticas**,
@@ -373,7 +373,7 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   el título visible va en `h1`; un `sr-only` solo es aceptable si de verdad
   no hay texto titular. La vitrina pone `h1` en el evento destacado
   (`.home-feature-top h1`), no en el wordmark (que reevalúa el logo).
-- **`lib/useDocumentTitle.js`**: hook de título por ruta (`"<algo> · Enty"`).
+- **`lib/useDocumentTitle.js`**: hook de título por ruta (`"<algo> · V-Pass"`).
   Toda página nueva lo llama (título fijo o dato dinámico, p. ej.
   `useDocumentTitle(data?.name)` en el detalle; `null` mientras carga deja el
   título anterior, sin parpadear a un texto genérico). Sin esto, una pestaña
@@ -409,7 +409,7 @@ excepcion, en `design-gate.baseline.json`.
 
 No es una allowlist que deje pasar: es un **trinquete**. El lint del skill banea
 ~560 cosas en este repo, pero casi todas son la identidad deliberada de
-TicketFlow (violeta de marca, gradientes del shell nocturno, glass del dock,
+TicketFlow (azul de marca, gradientes del shell nocturno, glass del dock,
 sombras de overlay, emoji de la demo). Esos conteos estan aceptados; **crecer en
 cualquier regla falla**, y una regla que no figure en el baseline tambien falla.
 Asi la cifra solo puede bajar. Para fijar una mejora, `--update`.
@@ -435,7 +435,7 @@ Dos cosas que conviene saber antes de confiar en este gate:
   `--allow <regla>`, que es la via que documenta el propio skill para marcas
   existentes; el lint no lo acepta, y por eso el gate lleva su propio baseline.
 
-## App interna (Enty): Admin · Promotor · Puerta
+## App interna (V-Pass): Admin · Promotor · Puerta
 
 El interior NO comparte el shell del fan: esas pantallas viven bajo
 `.app-shell` (Layout, BouncerScanner, DoorLinkPage). La capa de marca está al
@@ -444,7 +444,7 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
 
 - **Regla al agregar una pantalla interna**: ponele `app-shell` al root o no
   recibe el encuadre nocturno, las superficies de cristal ni la tinta de marca.
-- La paleta interna es violeta `#7C3AED` (marca) / `#BB5CF6` (brillo), verde
+- La paleta interna es azul `#3D5CD6` (marca) / `#4F6BDB` (brillo), verde
   `#00E6AB` y rosa `#FF2D98`. **No** reintroducir naranja/ámbar de la marca
   anterior (`rgba(251,146,60,…)`, `#9a3412`) ni lima (`#7cff00`, `#f0f542`).
 - La tinta casi blanca (`--e-text-primary`, antes `--in-ink`) se aplica **solo
@@ -452,7 +452,7 @@ la vitrina del fan (`.home`) y la boleta pública no se tocan.
   color de `body`, o quedaría texto blanco sobre blanco.
 - **Jerarquía por rol** (Fase 6): Admin = densidad y jerarquía de datos (lista
   compacta con zebra sutil, cabecera pegajosa `.evx-toolbar`, cifras tabulares,
-  violeta solo en la acción primaria); Promotor = tinte de marca en cupos/ranking
+  azul solo en la acción primaria); Promotor = tinte de marca en cupos/ranking
   y medidor `e-meter`; Puerta = contraste máximo y targets ≥ 44px.
 - Verificación: contraste de texto ≥ 4.5:1 y `scrollWidth == clientWidth` en
   ambos temas, en `/admin`, `/admin?event=1`, `/promotor`, `/bouncer`.
@@ -508,6 +508,11 @@ avisar.
 
   Por eso el repo tiene `git config user.email brva4026@gmail.com`. **No**
   commitear como `openhands` (el default del entorno), o el deploy se bloquea.
+  Verificá `git config user.email` **antes de commitear**: una sesión nueva
+  puede haber vuelto al default `openhands@all-hands.dev`. Tampoco pongas
+  `Co-authored-by: openhands <openhands@all-hands.dev>` en el mensaje: aunque
+  Vercel mira el email del **autor**, el trailer mete el email bloqueado en el
+  historial y es ruido innecesario.
   Si ya hay commits con el autor equivocado, reescribir solo los autores:
 
   ```bash
@@ -620,7 +625,7 @@ avisar.
   desde `frontend/` (donde está `node_modules`), no desde `/tmp`.
 - El sistema visual vive en `frontend/src/aesthetic-refresh.css` (tokens del fan
   en `.home`, estilos de la app del fan al final). Tokens globales en `@theme`
-  de `index.css` (`--color-enty-*`, fuente `Sora`).
+  de `index.css` (`--color-vp-*`, fuente `Sora`).
 - El dev server sirve `frontend/dist`: **corré `npm run build`** antes de mirar
   cambios en `http://127.0.0.1:12000`.
 - **E2E: correr contra el dev server, no contra el backend.** `playwright.config.js`
@@ -784,15 +789,15 @@ avisar.
   del aviso de cookies (z-45 vs z-40) o el botón queda inclickeable.
 - **La portada del panel (`.venue-header`) la definen TRES hojas** y gana la
   última en cargar (`main.jsx`: tokens → index.css → aesthetic-refresh.css →
-  enty-system.css → enty-fan.css). Editar `index.css` sin comprobar la cascada
+  vp-system.css → vp-fan.css). Editar `index.css` sin comprobar la cascada
   es silenciosamente inútil: una regla posterior lo anula. El material de la
-  portada vive scopeado a `.app-shell` en `enty-system.css`, en ambos temas.
+  portada vive scopeado a `.app-shell` en `vp-system.css`, en ambos temas.
   Comprobar con `getComputedStyle` en el navegador, no leyendo el CSS.
 - **El panel renderiza en tema CLARO por defecto** (`tf_theme` sin guardar →
   `data-theme="light"`). Cualquier maqueta o medición visual debe partir de
   claro o no representa lo que ve el usuario.
 - **El venue demo (`id=2`, Bar Esquina) no tiene `primary_color` ni `logo_url`**,
-  así que cae al violeta de Enty y al tile de iniciales. Para ver los efectos
+  así que cae al azul de V-Pass y al tile de iniciales. Para ver los efectos
   brand-aware hay que ponerle color en la DB (y restaurarlo después).
 - **Los E2E se auto-contaminan: una DB sucia produce "regresiones" falsas.**
   Corriendo la suite entera dos veces seguidas contra la MISMA base aparecen

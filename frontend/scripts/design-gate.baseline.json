@@ -21,7 +21,7 @@
   "brand": {
     "gradient": "El shell nocturno y los scrims sobre flyer son gradientes a proposito: son la capa de atmosfera de la vitrina (AGENTS.md, 'Capas de diseno').",
     "gradient-text": "El lockup de marca usa relleno degradado en el texto; es identidad, no decoracion.",
-    "purple": "El violeta #7C3AED / #BB5CF6 ES la marca y la unica voz interactiva del sistema (AGENTS.md, 'el violeta es la unica voz interactiva').",
+    "purple": "El azul #3D5CD6 / #4F6BDB ES la marca y la unica voz interactiva del sistema (AGENTS.md, 'el azul es la unica voz interactiva'). Los conteos de `purple` que quedan son el color de negocio por local (venue), no el acento de marca.",
     "emoji": "La demo usa emoji como contenido de ejemplo de tipos de evento. No es iconografia de interfaz.",
     "micro-label": "Etiquetas de dato del panel; references/app-screens.md las tolera (APP_LEVEL).",
     "eyebrow": "El eyebrow es parte de la jerarquia tipografica del proyecto; app-screens.md lo degrada a WARN.",

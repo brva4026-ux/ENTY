@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    app_name: str = "Enty API"
+    app_name: str = "V-Pass API"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     # Email transaccional (Resend): reset de contrasena self-service,
     # invitaciones al equipo. Vacio = email deshabilitado (no-op).
     resend_api_key: str = ""
-    email_from_address: str = "Enty <onboarding@resend.dev>"
+    email_from_address: str = "V-Pass <onboarding@resend.dev>"
     # URL publica de la app: construye los links de reset/invitacion.
     app_public_url: str = "https://ticketflow-brva4026-uxs-projects.vercel.app"
 

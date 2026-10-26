@@ -9,7 +9,7 @@ y los canales de contacto del Responsable; la razón social y el NIT aparecen
 pendientes de constitución.
 
 > Expedida en cumplimiento de la Ley 1581 de 2012, el Decreto 1377 de 2013 y el
-> Decreto 1074 de 2015 (compilatorio). Es de obligatorio cumplimiento para Enty
+> Decreto 1074 de 2015 (compilatorio). Es de obligatorio cumplimiento para V-Pass
 > y su personal.
 
 ---
@@ -33,12 +33,12 @@ personal*, *dato sensible*, *titular*, *tratamiento*, *responsable del
 tratamiento*, *encargado del tratamiento*, *autorización* y *aviso de
 privacidad*.
 
-## 3. Doble rol: Enty es Responsable y también Encargado
+## 3. Doble rol: V-Pass es Responsable y también Encargado
 
 Esta distinción es la parte más importante de esta Política y determina a quién
 debe dirigirse cada titular.
 
-**3.1. Enty actúa como RESPONSABLE** del tratamiento de los datos de:
+**3.1. V-Pass actúa como RESPONSABLE** del tratamiento de los datos de:
 
 - las personas que crean una cuenta de negocio (nombre, correo, contraseña
   cifrada, nombre del establecimiento, historial de acceso);
@@ -46,17 +46,17 @@ debe dirigirse cada titular.
   registro de las acciones que realizan en la Plataforma);
 - los datos de facturación y de contacto comercial del Cliente.
 
-**3.2. Enty actúa como ENCARGADO** del tratamiento de los datos de los
+**3.2. V-Pass actúa como ENCARGADO** del tratamiento de los datos de los
 **Asistentes** a los eventos (nombre, teléfono, correo, historial de emisión,
 activación y validación de boletas). En este caso el **Responsable es el
 Organizador**, quien decide la finalidad y quien debe obtener la autorización.
-Enty los trata únicamente siguiendo sus instrucciones y conforme al Acuerdo de
+V-Pass los trata únicamente siguiendo sus instrucciones y conforme al Acuerdo de
 Encargo de Tratamiento (`encargo-datos`).
 
 **3.3. A quién dirigirse.** Para datos de un Asistente, el titular debe dirigirse
-al Organizador del evento. Enty apoyará al Organizador para atender la solicitud,
+al Organizador del evento. V-Pass apoyará al Organizador para atender la solicitud,
 pero no decide sobre ellos. Para datos de una cuenta de negocio, el titular se
-dirige directamente a Enty.
+dirige directamente a V-Pass.
 
 ## 4. Datos que tratamos y para qué
 
@@ -83,7 +83,7 @@ boleta (usada, anulada o inexistente), no en un perfil del titular.
 
 ## 5. Autorización
 
-**5.1.** Enty obtiene del titular, o del Cliente cuando Enty actúa como
+**5.1.** V-Pass obtiene del titular, o del Cliente cuando V-Pass actúa como
 Encargado, la **autorización previa, expresa e informada** para el tratamiento,
 conforme al artículo 9 de la Ley 1581 de 2012 y el artículo 7 del Decreto 1377
 de 2013.
@@ -95,12 +95,12 @@ documento aceptado. La tabla `legal_acceptances` conserva ese registro como
 prueba.
 
 **5.3.** El Organizador es quien debe obtener la autorización de los Asistentes
-para el tratamiento de sus datos. Enty pone a disposición el mecanismo técnico y
+para el tratamiento de sus datos. V-Pass pone a disposición el mecanismo técnico y
 conserva la trazabilidad, pero no sustituye esa obligación.
 
 **5.4. Autorización de datos sensibles.** Cuando el tratamiento recaiga sobre
 datos sensibles o sobre datos de niñas, niños y adolescentes, la autorización
-debe ser expresa y no puede presumirse. Enty no trata datos de menores de edad
+debe ser expresa y no puede presumirse. V-Pass no trata datos de menores de edad
 por iniciativa propia; si el Organizador requiriera hacerlo, debe informarlo y
 obtener la autorización respectiva.
 
@@ -175,7 +175,7 @@ cláusula 11.3 de los Términos de la Plataforma para exportar sus datos.
 
 ## 9. Transferencia y transmisión a terceros
 
-**9.1. Encargados y subencargados.** Para operar el servicio, Enty se apoya en
+**9.1. Encargados y subencargados.** Para operar el servicio, V-Pass se apoya en
 proveedores que tratan datos por su cuenta y siguiendo sus instrucciones:
 
 | Proveedor | Función | Ubicación de los datos |
@@ -199,20 +199,20 @@ seguridad y confidencialidad. **[COMPLETAR: verificar si el país de destino
 cuenta con nivel adecuado de protección según la SIC o si se requiere declarar
 la autorización expresa del titular.]**
 
-**9.3.** Enty no vende, arrienda ni cede datos personales a terceros para
+**9.3.** V-Pass no vende, arrienda ni cede datos personales a terceros para
 finalidades publicitarias propias.
 
-**9.4.** Enty puede revelar datos por orden de autoridad competente, en los casos
+**9.4.** V-Pass puede revelar datos por orden de autoridad competente, en los casos
 previstos por la ley, y comunicarlo al titular cuando sea posible.
 
 ## 10. Medidas de seguridad
 
-**10.1.** Enty aplica medidas técnicas, humanas y administrativas razonables para
+**10.1.** V-Pass aplica medidas técnicas, humanas y administrativas razonables para
 evitar la adulteración, pérdida, consulta, uso o acceso no autorizado:
 
 - Las contraseñas se almacenan cifradas con un algoritmo de hash resistente, no
   en texto claro.
-- Los códigos QR se guardan únicamente como hash criptográfico: ni Enty puede
+- Los códigos QR se guardan únicamente como hash criptográfico: ni V-Pass puede
   reconstruir una boleta a partir de la base de datos.
 - Las sesiones son revocables y expiran; existe bloqueo temporal tras intentos
   fallidos de acceso.
@@ -224,15 +224,15 @@ evitar la adulteración, pérdida, consulta, uso o acceso no autorizado:
 - Las acciones sobre datos se rastrean para responder a un incidente.
 
 **10.2.** Ningún sistema es infalible. Si se presenta un incidente de seguridad
-que afecte datos personales, Enty informará al Responsable y a los titulares
+que afecte datos personales, V-Pass informará al Responsable y a los titulares
 afectados cuando corresponda, y adoptará las medidas de mitigación necesarias.
 
-**10.3.** El titular debe cuidar sus credenciales. Enty nunca solicita
+**10.3.** El titular debe cuidar sus credenciales. V-Pass nunca solicita
 contraseñas por correo, teléfono ni mensajería.
 
 ## 11. Niñas, niños y adolescentes
 
-El servicio de Enty está dirigido a mayores de edad. Algunos eventos pueden
+El servicio de V-Pass está dirigido a mayores de edad. Algunos eventos pueden
 admitir asistentes menores de edad, en cuyo caso la autorización para tratar sus
 datos corresponde al representante legal y el tratamiento debe respetar su
 interés superior (artículo 7 de la Ley 1581 de 2012). Está prohibido el ingreso
@@ -241,7 +241,7 @@ de menores a eventos con consumo de alcohol (artículo 30 de la Ley 1098 de 2006
 ## 12. RNBD
 
 **[COMPLETAR: una vez se superen los topes de activos totales o ingresos previstos
-en la normativa, Enty inscribirá sus bases de datos en el Registro Nacional de
+en la normativa, V-Pass inscribirá sus bases de datos en el Registro Nacional de
 Bases de Datos (RNBD) administrado por la Superintendencia de Industria y
 Comercio, y actualizará este documento con la información del registro.]**
 

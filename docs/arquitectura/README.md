@@ -1,4 +1,4 @@
-# Arquitectura Enty — Índice
+# Arquitectura V-Pass — Índice
 
 Documentación técnica del comité. Cada tema se ancla al código del repo.
 

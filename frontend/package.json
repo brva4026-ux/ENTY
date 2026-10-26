@@ -1,9 +1,9 @@
 {
-  "name": "enty-frontend",
+  "name": "vpass-frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Enty - frontend web (admin, promotor, bouncer)",
+  "description": "V-Pass - frontend web (admin, promotor, bouncer)",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node replace-sw-version.js",

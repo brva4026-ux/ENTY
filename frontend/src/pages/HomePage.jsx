@@ -6,13 +6,14 @@ import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { SITE } from "../lib/site";
 
 const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";
 
 /**
- * Inicio — la cara pública de Celestial Strokes para el fan (mockup "1 · Inicio").
+ * Inicio — la cara pública de V-Pass para el fan (mockup "1 · Inicio").
  *
  * Catalogo de descubrimiento SIN login: lista los eventos con venta abierta
  * (`published`/`live`, futuros) que devuelve /public/events, con su categoria
@@ -31,7 +32,7 @@ const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";
 const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
 const FAVS_KEY = "tf_fan_favs";
 
-/** Palabras del ticker cinético: el vocabulario de la noche de Celestial Strokes. Se
+/** Palabras del ticker cinético: el vocabulario de la noche de V-Pass. Se
  *  duplica en el render para un loop continuo (el keyframe mueve -50%). */
 const TICKER = [
   "Conciertos",
@@ -110,7 +111,7 @@ function inDateRange(iso, key) {
 }
 
 /** Estrella de cuatro puntas (acento de marca). */
-function Star({ size = 8, color = "#8B5CF6" }) {
+function Star({ size = 8, color = "#4d6add" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 0 L14.6 9.4 L24 12 L14.6 14.6 L12 24 L9.4 14.6 L0 12 L9.4 9.4 Z" fill={color} />
@@ -172,8 +173,8 @@ function SoldRing({ pct }) {
     <svg className="home-ring" viewBox="0 0 342 262" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
         <radialGradient id="hGlow" cx="0.82" cy="0.18" r="0.7">
-          <stop offset="0" stopColor="#8B5CF6" stopOpacity="0.34" />
-          <stop offset="1" stopColor="#8B5CF6" stopOpacity="0" />
+          <stop offset="0" stopColor="#4d6add" stopOpacity="0.34" />
+          <stop offset="1" stopColor="#4d6add" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="hFade" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0.35" stopColor="#101012" stopOpacity="0" />
@@ -191,7 +192,7 @@ function SoldRing({ pct }) {
         cy="86"
         r={r}
         fill="none"
-        stroke="#B7A3FF"
+        stroke="#b0bbe8"
         strokeWidth="2"
         strokeLinecap="round"
         strokeDasharray={`${(shown / 100) * c} ${c}`}
@@ -300,8 +301,8 @@ function Heart({ filled }) {
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M12 20s-7-4.6-7-9.5A3.9 3.9 0 0 1 12 7a3.9 3.9 0 0 1 7 3.5C19 15.4 12 20 12 20z"
-        fill={filled ? "#7C3AED" : "none"}
-        stroke={filled ? "#7C3AED" : "currentColor"}
+        fill={filled ? "#3d5cd6" : "none"}
+        stroke={filled ? "#3d5cd6" : "currentColor"}
         strokeWidth="1.6"
         strokeLinejoin="round"
       />
@@ -343,7 +344,7 @@ export default function HomePage() {
   // Contador de reintentos: cambiar el valor vuelve a disparar el fetch sin
   // duplicar la lógica de carga (mismo efecto, misma limpieza).
   const [reload, setReload] = useState(0);
-  // La vitrina es nocturna por diseno (negro + violeta). Sin el candado, un
+  // La vitrina es nocturna por diseno (negro + azul). Sin el candado, un
   // visitante con tema claro veia la cartelera como una tarjeta negra sobre
   // blanco: el tema del sistema no aplica a una pantalla publica de marca.
   useEffect(() => forceDarkOnce(), []);
@@ -467,9 +468,12 @@ export default function HomePage() {
     <div className="home motion-reduced">
       <header className="home-head">
         <div className="home-head-left">
-          <Link to="/inicio" className="home-wordmark" aria-label="Celestial Strokes, inicio">
-            <span>Celestial Strokes</span>
-            <Star />
+          <Link to="/inicio" className="home-wordmark">
+            <img
+              src="/logo-vpass.jpg"
+              alt={SITE.name}
+              className="home-wordmark-logo"
+            />
           </Link>
           {/* Nav de escritorio: en móvil vive la barra inferior (FanNav). */}
           <nav className="home-topnav" aria-label="Secciones">
@@ -608,8 +612,8 @@ export default function HomePage() {
 
       {error ? (
         <div className="home-empty">
-          <span className="enty-spark" aria-hidden="true">
-            <Star size={20} color="#BB5CF6" />
+          <span className="vp-spark" aria-hidden="true">
+            <Star size={20} color="#4f6bdb" />
           </span>
           <p>No pudimos cargar la cartelera</p>
           <span>{error}</span>
@@ -623,16 +627,16 @@ export default function HomePage() {
         </div>
       ) : !data ? (
         <div className="home-grid">
-          <div className="enty-skel" style={{ height: "16.4rem" }} />
+          <div className="vp-skel" style={{ height: "16.4rem" }} />
           <div className="home-list">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="enty-skel" style={{ height: "5.4rem" }} />
+              <div key={i} className="vp-skel" style={{ height: "5.4rem" }} />
             ))}
           </div>
         </div>
       ) : !featured ? (
         <div className="home-empty">
-          <span className="enty-spark" aria-hidden="true">
+          <span className="vp-spark" aria-hidden="true">
             <Star size={20} color="#00E6AB" />
           </span>
           <p>{narrowed ? "Sin resultados" : "No hay eventos próximos"}</p>
@@ -706,7 +710,7 @@ export default function HomePage() {
 
           {/* El troquel: la línea perforada de la boletería separa el
               destacado de la lista — el mismo corte que la entrada. */}
-          <span className="enty-perf" aria-hidden="true" />
+          <span className="vp-perf" aria-hidden="true" />
 
           <div className="home-subhead">
             <span>Próximos</span>
@@ -759,7 +763,7 @@ export default function HomePage() {
 
       <footer className="home-foot">
         <p className="home-foot-brand">
-          <span>Celestial Strokes</span>
+          <span>{SITE.name}</span>
           <i aria-hidden="true" />
         </p>
         <nav className="home-foot-links" aria-label="Enlaces legales">

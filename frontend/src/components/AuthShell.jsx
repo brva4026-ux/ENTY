@@ -53,7 +53,7 @@ export function AuthShell({ children }) {
         {/* Rayos del logo, a la misma opacidad que el isotipo: textura que
             se siente, no que se ve. Reemplazan a los doodles sueltos. */}
         <svg className="auth-brand-rays" viewBox="0 0 512 512" aria-hidden="true">
-          <g fill="#BB5CF6" opacity="0.06">
+          <g fill="#4f6bdb" opacity="0.06">
             <path d="M256 256 96 24h92zM256 256 268 0h64zM256 256 480 128v84zM256 256 416 488h-92zM256 256 44 384v-84z" />
           </g>
         </svg>
@@ -61,7 +61,7 @@ export function AuthShell({ children }) {
         {/* La estrella de cuatro puntas, como marca de agua de esquina. */}
         <svg className="auth-brand-mark" viewBox="0 0 512 512" aria-hidden="true">
           <path
-            fill="#BB5CF6"
+            fill="#4f6bdb"
             d="M256 40 l58 158 158 58 -158 58 -58 158 -58 -158 -158 -58 158 -58 z"
           />
         </svg>

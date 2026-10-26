@@ -1,10 +1,15 @@
 /**
- * Datos del sitio que aparecen en superficies públicas (legales, footer).
- * Un solo lugar para el nombre y los contactos: si cambian, no hay que
- * buscarlos por las páginas.
+ * Identidad y contactos del sitio en un solo lugar.
+ *
+ * Todo texto visible que nombre la marca (wordmark, footer, <title>, boletas)
+ * o exponga un correo debe leer de aquí. Antes el nombre vivía copiado en
+ * media docena de componentes y el renombrado dejó tres marcas distintas
+ * conviviendo ("Enty", "Celestial Strokes", "V-Pass").
+ *
+ * Al cambiar de marca o de dominio, este es el único archivo que se toca.
  */
 export const SITE = {
-  name: "Celestial Strokes",
-  legalEmail: "legal@enty.app",
-  supportEmail: "soporte@enty.app",
+  name: "V-Pass",
+  legalEmail: "legal@vpass.app",
+  supportEmail: "soporte@vpass.app",
 };

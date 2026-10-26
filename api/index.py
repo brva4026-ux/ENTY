@@ -1,4 +1,4 @@
-"""Entry point serverless de Vercel para la API Enty (FastAPI ASGI).
+"""Entry point serverless de Vercel para la API V-Pass (FastAPI ASGI).
 
 Vercel invoca /api/index.py para las rutas reescritas desde /api/* (ver
 vercel.json). Este wrapper:

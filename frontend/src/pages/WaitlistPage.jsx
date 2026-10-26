@@ -7,6 +7,7 @@ import {
 } from "../lib/api";
 import Icon from "../components/Icon";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { SITE } from "../lib/site";
 
 /**
  * Lista de espera del evento (E2, mig 022). Publica, sin cuentas: el fan
@@ -239,7 +240,7 @@ export default function WaitlistPage() {
           </div>
 
           <p className="mt-4 text-center text-xs text-dim-2">
-            Sin cuentas ni pagos por adelantado · Celestial Strokes
+            Sin cuentas ni pagos por adelantado · {SITE.name}
           </p>
         </div>
       </div>
@@ -397,7 +398,7 @@ export default function WaitlistPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-dim-2">
-          Tu lugar es personal: se valida por tu celular · Celestial Strokes
+          Tu lugar es personal: se valida por tu celular · {SITE.name}
         </p>
       </div>
     </div>

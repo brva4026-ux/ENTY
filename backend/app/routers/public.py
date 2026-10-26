@@ -785,17 +785,17 @@ def _share_event_html(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title} — Enty</title>
+    <title>{title} — V-Pass</title>
     <meta name="description" content="{escape(desc)}" />
     <link rel="canonical" href="{escape(url)}" />
     <meta property="og:type" content="article" />
-    <meta property="og:site_name" content="Enty" />
+    <meta property="og:site_name" content="V-Pass" />
     <meta property="og:locale" content="es_CO" />
     <meta property="og:title" content="{title}" />
     <meta property="og:description" content="{escape(desc)}" />
     <meta property="og:url" content="{escape(url)}" />
     <meta property="og:image" content="{escape(image)}" />
-    <meta property="og:image:alt" content="{title} — boletas en Enty" />
+    <meta property="og:image:alt" content="{title} — boletas en V-Pass" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="{title}" />
     <meta name="twitter:description" content="{escape(desc)}" />

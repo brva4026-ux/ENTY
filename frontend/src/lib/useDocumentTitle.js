@@ -1,15 +1,16 @@
 import { useEffect } from "react";
+import { SITE } from "./site";
 
 /**
  * Titulo de documento por ruta. Sin esto TODAS las pantallas comparten el
  * <title> estatico de index.html: una pestana abierta en un evento, un enlace
  * compartido por WhatsApp y el anuncio del lector de pantalla mostraban todos
- * "Enty — Boleteria y Aforo", nunca el nombre del evento.
+ * el nombre de la app, nunca el del evento.
  *
- * `title` sin marca se sufija con " · Enty". Pasar `null` mientras cargan los
+ * `title` sin marca se sufija con " · V-Pass". Pasar `null` mientras cargan los
  * datos deja el titulo actual (no parpadea a un texto generico).
  */
-const BRAND = "Celestial Strokes";
+const BRAND = SITE.name;
 
 export default function useDocumentTitle(title) {
   useEffect(() => {

@@ -3,13 +3,13 @@ import useDocumentTitle from "../lib/useDocumentTitle";
 import { SITE } from "../lib/site";
 
 /**
- * Páginas legales de CELESTIAL STROKES (Términos y Privacidad). Eran el bloqueante para
+ * Páginas legales de V-Pass (Términos y Privacidad). Eran el bloqueante para
  * operar de verdad: se cobra a través de la plataforma y no había dónde
  * asentarlo.
  *
  * Se separan de la app interna a propósito: son públicas, sin login, y su
  * contenido es PROSA (no producto). Un único layout `.legal` (ver
- * enty-fan.css) les da la misma voz que la vitrina sin reusar el chrome del
+ * vp-fan.css) les da la misma voz que la vitrina sin reusar el chrome del
  * fan. Sora es la única tipografía, los colores salen de tokens --e-*, y el
  * texto pasa AA en ambos temas (lo verifica a11y.spec.js).
  *
@@ -25,8 +25,8 @@ export function LegalLayout({ title, intro, children }) {
   return (
     <div className="legal">
       <header className="legal-top">
-        <Link to="/inicio" className="legal-brand" aria-label="Celestial Strokes, inicio">
-          <span>Celestial Strokes</span>
+        <Link to="/inicio" className="legal-brand" aria-label={`${SITE.name}, inicio`}>
+          <span>{SITE.name}</span>
           <i aria-hidden="true" />
         </Link>
         <Link to="/inicio" className="legal-back">

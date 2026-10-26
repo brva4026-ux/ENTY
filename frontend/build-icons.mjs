@@ -1,13 +1,10 @@
 /**
- * Genera los iconos de la PWA desde los SVG maestros y sincroniza el favicon
- * inline del index.html.
+ * Genera los iconos de la PWA y el favicon desde la imagen de marca.
  *
- * Por que existe: los PNG son build artifact, no fuente. Editarlos a mano
- * era como se desincronizaron del logo (el navegador tenia el azul viejo
- * mientras el header tenia el navy). Ademas .gitignore traia `*.png` global,
- * asi que los PNG de public/ NUNCA entraron al repo y en produccion esos 4
- * archivos devolvian el index.html de la SPA en vez de la imagen: el
- * manifiesto declaraba 5 iconos y 4 no existian.
+ * Por que existe: los PNG son build artifact, no fuente. Editarlos a mano era
+ * como se desincronizaron del logo. Y el logo es un raster (JPEG) subido por
+ * el usuario: NO se vectoriza — se recorta cuadrado, se escala y se rasteriza
+ * con Chromium, el mismo motor que ya usan los e2e (sin dependencias nuevas).
  *
  * Uso:  npm run icons
  */
@@ -21,76 +18,84 @@ const pub = join(root, "public");
 const outDir = join(pub, "icons");
 mkdirSync(outDir, { recursive: true });
 
-/**
- * Favicon de 32px: REDUCCION, no miniatura. A 16px reales el ojo (1.8px) y
- * el codigo de barras (1.5px) son ruido, asi que se caen. Quedan las tres
- * formas que la marca necesita: el campo navy, la boleta con su troquel y
- * la llama. Mismo path que public/icon.svg — 512/32 = 16.
- */
-const FAVICON_MARKUP = [
-  "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>",
-  "<rect width='32' height='32' rx='7' fill='#16255c'/>",
-  "<g transform='scale(0.0625)'>",
-  // la llama
-  "<path fill='#f97316' d='M256 40c40 64 88 108 88 168a88 88 0 0 1-176 0c0-36 18-58 42-70-4 30 5 46 23 53-14-49-9-95 23-151Z'/>",
-  // la boleta
-  "<rect x='112' y='292' width='288' height='132' rx='20' fill='#f5e6c8'/>",
-  // troquel (a 16px son 1.7px: se ven como muescas, y esa es la firma)
-  "<circle cx='112' cy='353' r='27' fill='#16255c'/>",
-  "<circle cx='400' cy='353' r='27' fill='#16255c'/>",
-  "</g></svg>",
-].join("");
+const SOURCE = join(pub, "logo-vpass.jpg");
+const SOURCE_URI = "data:image/jpeg;base64," + readFileSync(SOURCE).toString("base64");
+/** Crema de la ilustracion: rellena la zona segura de los iconos maskable. */
+const CREAM = "#faf9f6";
 
-/** Mismo SVG, en un data-URI que no necesita encodeURIComponent. */
-const svgToDataUri = (svg) =>
-  "data:image/svg+xml;base64," + Buffer.from(svg, "utf8").toString("base64");
-
-/** Reemplaza el <link rel="icon"> con data-URI del index.html. */
-function syncFavicon() {
-  const file = join(root, "index.html");
-  let html = readFileSync(file, "utf8");
-  const tag = `<link rel="icon" href="${svgToDataUri(FAVICON_MARKUP)}" />`;
-  const re = /<link rel="icon" href="data:image\/svg\+xml,[^"]*" \/>/;
-  if (!re.test(html)) throw new Error("index.html: no se encontro el favicon data-URI");
-  html = html.replace(re, tag);
-  writeFileSync(file, html);
-  console.log("[icons] favicon inline sincronizado en index.html");
-}
+/** Carga la imagen una vez por pagina y devuelve sus dimensiones reales. */
+const measure = (page) =>
+  page.evaluate(
+    (src) =>
+      new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+        img.onerror = () => reject(new Error("no se pudo cargar " + src.slice(0, 40)));
+        img.src = src;
+      }),
+    SOURCE_URI,
+  );
 
 /**
- * Rasteriza un SVG al tamano exacto. Chromium no escala el SVG si el
- * contenedor no esta exacto, asi que se fija width/height en px y se
- * captura sin margenes ni scrollbar.
+ * Rasteriza el recorte cuadrado centrado, escalado a `size`.
+ * `inset` (0..1] encoge el arte dentro del lienzo: los maskable necesitan
+ * ~20% de margen o el launcher recorta la ilustracion.
  */
-async function render(page, svg, size, file) {
-  const uri = svgToDataUri(svg);
+async function render(page, size, file, inset = 1) {
+  const { w, h } = await measure(page);
+  const side = Math.min(w, h);
+  const inner = Math.round(size * inset);
+  const offset = Math.round((size - inner) / 2);
+
+  // object-fit:cover sobre un cuadrado hace el recorte centrado sin deformar.
   await page.setViewportSize({ width: size, height: size });
   await page.setContent(
-    `<!doctype html><html><body style="margin:0;background:transparent">
-       <img src="${uri}" width="${size}" height="${size}"
-            style="display:block;width:${size}px;height:${size}px" />
+    `<!doctype html><html><body style="margin:0;background:${CREAM}">
+       <div style="position:relative;width:${size}px;height:${size}px;overflow:hidden">
+         <img src="${SOURCE_URI}" alt="" style="
+           position:absolute;top:${offset}px;left:${offset}px;
+           width:${inner}px;height:${inner}px;
+           object-fit:cover;object-position:center;display:block" />
+       </div>
      </body></html>`,
     { waitUntil: "load" },
   );
   await page.locator("img").waitFor({ state: "visible" });
   await page.screenshot({ path: join(outDir, file), omitBackground: true });
-  console.log(`[icons] ${file} (${size}x${size})`);
+  console.log(`[icons] ${file} (${size}x${size}${inset < 1 ? ", maskable" : ""})`);
+}
+
+/** Favicon de 32px embebido como data-URI PNG en index.html. */
+async function syncFavicon(page) {
+  await page.setViewportSize({ width: 32, height: 32 });
+  await page.setContent(
+    `<!doctype html><html><body style="margin:0">
+       <img src="${SOURCE_URI}" alt="" style="
+         width:32px;height:32px;object-fit:cover;object-position:center;display:block" />
+     </body></html>`,
+    { waitUntil: "load" },
+  );
+  const png = await page.locator("img").screenshot();
+  const uri = "data:image/png;base64," + png.toString("base64");
+
+  const file = join(root, "index.html");
+  let html = readFileSync(file, "utf8");
+  const re = /<link rel="icon" href="data:image\/(?:svg\+xml|png);base64,[^"]*" \/>/;
+  if (!re.test(html)) throw new Error("index.html: no se encontro el favicon data-URI");
+  writeFileSync(file, html.replace(re, `<link rel="icon" href="${uri}" />`));
+  console.log("[icons] favicon inline sincronizado en index.html");
 }
 
 const main = async () => {
-  const icon = readFileSync(join(pub, "icon.svg"), "utf8");
-  const maskable = readFileSync(join(pub, "icon-maskable.svg"), "utf8");
-
-  syncFavicon();
-
   const browser = await chromium.launch();
   const page = await browser.newPage({ deviceScaleFactor: 1 });
 
-  await render(page, icon, 192, "icon-192.png");
-  await render(page, icon, 512, "icon-512.png");
-  await render(page, icon, 180, "apple-touch-icon.png");
-  await render(page, maskable, 192, "icon-maskable-192.png");
-  await render(page, maskable, 512, "icon-maskable-512.png");
+  await render(page, 192, "icon-192.png");
+  await render(page, 512, "icon-512.png");
+  await render(page, 180, "apple-touch-icon.png");
+  await render(page, 192, "icon-maskable-192.png", 0.8);
+  await render(page, 512, "icon-maskable-512.png", 0.8);
+  await syncFavicon(page);
 
   await browser.close();
 };

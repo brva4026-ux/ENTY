@@ -13,14 +13,14 @@ import {
 import "./tokens.css";
 import "./index.css";
 import "./aesthetic-refresh.css";
-import "./enty-system.css";
+import "./vp-system.css";
 // Voz de OPERACIÓN del panel (tiras de cifras, medidores, cola de puerta y
 // tabla de promotores). Va al final: es la capa más específica del panel y
 // consume los tokens de las anteriores. La vitrina del fan no la usa.
 import "./panel-cockpit.css";
 // Capa de experiencia del fan (vitrina editorial responsive): se importa al
 // final para llevar la marca a su forma definitiva sin reescribir el sistema.
-import "./enty-fan.css";
+import "./vp-fan.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";
@@ -146,7 +146,7 @@ function App() {
               fragmento (#), que el navegador no envia al servidor. */}
               <Route path="/t" element={<PublicTicketPage />} />
               {/* Inicio: la vitrina publica del fan (catalogo de eventos).
-              Sin login — es la cara de consumidor de Celestial Strokes. */}
+              Sin login — es la cara de consumidor de V-Pass. */}
               <Route path="/inicio" element={<HomePage />} />
               {/* Detalle del evento: la pantalla de compra, publica como la
               vitrina. Se llega tocando un evento del catalogo. */}
@@ -234,7 +234,7 @@ function App() {
 function HomeRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <SplashScreen />;
-  // La raíz es la VITRINA, no el login: Enty vende boletas al fan y la
+  // La raíz es la VITRINA, no el login: V-Pass vende boletas al fan y la
   // mayoría de quien abre un enlace compartido no tiene cuenta. Mandarlo a
   // /login lo dejaba sin catálogo y sin forma de volver. El staff no pierde
   // entrada: "Acceso" en la cabecera y "Perfil" en la barra inferior.

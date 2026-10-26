@@ -1,5 +1,5 @@
 /**
- * Guardarraíl de CSS del design system Enty (Fase 0 del plan estético).
+ * Guardarraíl de CSS del design system V-Pass (Fase 0 del plan estético).
  *
  * Objetivo: que la estética no se degrade en silencio. No es un formateador
  * (no hay prettier-style), es un conjunto de reglas de CORRECCIÓN + las

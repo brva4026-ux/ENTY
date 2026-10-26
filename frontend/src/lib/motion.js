@@ -3,7 +3,7 @@
  *
  * 1. El sistema operativo (`prefers-reduced-motion`): el default de la casa.
  *    Quien ya pidió menos movimiento en su teléfono no tiene que repetirlo.
- * 2. La app (este módulo): para quien quiere quietud en Enty aunque su
+ * 2. La app (este módulo): para quien quiere quietud en V-Pass aunque su
  *    sistema no lo pida. Es un ajuste real, no decoración.
  *
  * El SO SIEMPRE gana: si el dispositivo pide menos movimiento, elegir

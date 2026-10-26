@@ -3,14 +3,14 @@
 **Slug:** `encargo-datos` · **Versión:** 1.2 · **Vigente desde:** 17 de octubre de 2026
 
 **Cambio en la 1.1:** se declara el domicilio y el canal de contacto del
-Encargado (Enty). La razón social y el NIT siguen pendientes de constitución.
+Encargado (V-Pass). La razón social y el NIT siguen pendientes de constitución.
 
 **Cambio en la 1.2:** se completa el plazo de devolución de datos que la 1.1
 dejaba como `[X]`.
 
-> Suscrito entre el Organizador (el **Responsable**) y Enty (el **Encargado**),
+> Suscrito entre el Organizador (el **Responsable**) y V-Pass (el **Encargado**),
 > conforme al artículo 25 del Decreto 1377 de 2013. Hace parte integral de los
-> Términos y Condiciones de la Plataforma y aplica cuando Enty trata datos
+> Términos y Condiciones de la Plataforma y aplica cuando V-Pass trata datos
 > personales de los Asistentes por cuenta del Organizador.
 
 ---
@@ -20,7 +20,7 @@ dejaba como `[X]`.
 | | |
 |---|---|
 | **Responsable** | **[COMPLETAR: razón social del Organizador]**, NIT **[COMPLETAR]**, domicilio **[COMPLETAR]** |
-| **Encargado** | **[COMPLETAR: razón social de Enty]** (entidad en constitución), NIT **[COMPLETAR]**, domicilio **Calle 128 A BIS 88B-22**, Colombia. Atención por datos: vargasblancobrayan@gmail.com · 310 276 5347 |
+| **Encargado** | **[COMPLETAR: razón social de V-Pass]** (entidad en constitución), NIT **[COMPLETAR]**, domicilio **Calle 128 A BIS 88B-22**, Colombia. Atención por datos: vargasblancobrayan@gmail.com · 310 276 5347 |
 
 ## 2. Objeto
 
@@ -126,7 +126,7 @@ Colombia, conforme al artículo 26 de la Ley 1581 de 2012.
 tratamiento de datos que correspondan y mantendrá las garantías de seguridad y
 confidencialidad exigidas por la normativa colombiana.
 
-## 8. Alcance del servicio: Enty no es Responsable
+## 8. Alcance del servicio: V-Pass no es Responsable
 
 8.1. El Responsable reconoce que la Plataforma es una herramienta tecnológica y
 que **la decisión sobre el acceso al evento, la edad de los asistentes, el aforo

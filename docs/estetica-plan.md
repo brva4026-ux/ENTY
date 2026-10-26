@@ -1,11 +1,11 @@
 ---
-title: Plan de elevación estética — Enty
+title: Plan de elevación estética — V-Pass
 version: 1
 scope: frontend (vitrina del fan + interior admin/promotor/puerta + auth)
 principle: la marca se unifica en tokens; la cascada se aplana; la calidad se mide
 ---
 
-# Plan de elevación estética avanzada — Enty
+# Plan de elevación estética avanzada — V-Pass
 
 > Objetivo: llevar **toda** la estética del producto a nivel avanzado (no solo la
 > vitrina del fan, que ya se rediseñó). El resultado debe sentirse como **un solo
@@ -23,15 +23,15 @@ Medido sobre el árbol actual (`frontend/src`, 8 424 líneas de CSS en 4 hojas):
 
 | Síntoma | Evidencia | Impacto |
 | --- | --- | --- |
-| **Cascada apilada** | `index.css` (5 076) → `aesthetic-refresh.css` (2 433) → `enty-system.css` (348) → `enty-fan.css` (567). Cada hoja "eleva sin reescribir" la anterior. | Gana el último que escribe; depurar una regla exige revisar 4 archivos. |
-| **Tokens duplicados** | 150 custom props distintas; conviven los espacios de nombres `--color-zinc-*` (Tailwind), `--tf-*`, `--home-*`, `--evd-*`, `--tkt-*`, `--vh-*`, `--enty-*`. | La misma decisión de diseño vive en 3–4 nombres; divergen. |
+| **Cascada apilada** | `index.css` (5 076) → `aesthetic-refresh.css` (2 433) → `vp-system.css` (348) → `vp-fan.css` (567). Cada hoja "eleva sin reescribir" la anterior. | Gana el último que escribe; depurar una regla exige revisar 4 archivos. |
+| **Tokens duplicados** | 150 custom props distintas; conviven los espacios de nombres `--color-zinc-*` (Tailwind), `--tf-*`, `--home-*`, `--evd-*`, `--tkt-*`, `--vh-*`, `--vp-*`. | La misma decisión de diseño vive en 3–4 nombres; divergen. |
 | **Color hardcodeado** | 44 × `#BB5CF6`, 20 × `#7C3AED`, 16 × `#6D28D9`, 15 × `#34D399`, 14 × `#D29BF9`, 23 × `#e4e4e7`, 12 × `#0B0B0F`… dentro del CSS. | La marca no se puede re-afinar en un punto. |
 | **Escala tipográfica difusa** | ~24 tamaños distintos (0.5rem → 1.75rem) y **7 micro-tamaños** ≤ 0.6875rem (0.5/0.55/0.6/0.625/0.66/0.68/0.6875rem). | Sin ritmo vertical; los textos diminutos comprometen legibilidad. |
 | **Escala de radios difusa** | 999px (40), 1rem (16), 0.5rem (13) + ~15 valores de una sola aparición (0.375/0.4/0.55/0.6/0.7/0.8/0.9/1.05/1.1/1.15/1.4/1.5…). | El "radio" no es un lenguaje, es una lotería. |
 | **Breakpoints dispersos** | 768, 1024, 640, 900, 480, 1280, 560, 420, 400, 360 **más** candados de teléfono en `26rem`/`27rem`. | Rejillas que saltan distinto por página. |
 | **Modo claro reactivo** | ~430 líneas de remapeo `html[data-theme="light"]` solo en `index.css` (2974→3400s). | El claro se parcha caso por caso → se escapan bugs. |
 | **Estilos en línea** | 27 `style={{…}}` en JSX (tamaños de esqueleto, colores de gráfico). | Rompe el sistema; imposible de tematizar. |
-| **`!important`** | 11 (index 7, enty-system 3, refresh 1). | Síntoma de pugna de especificidad. |
+| **`!important`** | 11 (index 7, vp-system 3, refresh 1). | Síntoma de pugna de especificidad. |
 | **Sin guardarraíles** | No hay stylelint/eslint, ni regresión visual (Chromatic/Percy/backstop). Los E2E (4 specs, 6 tests) solo cubren flujos. | Nada impide que la estética se degrade con el próximo commit. |
 | **Motion desparejo** | 26 `@keyframes` (index 23, fan 2, refresh 1) y solo 9 bloques `prefers-reduced-motion`. | Animaciones que no se apagan con la preferencia del SO. |
 | **Contraste en claro (2 bugs reales)** | `/waitlist`: `<p class="text-white">` sobre `.card` blanco (1:1). `/login`: el título del panel de marca hereda `#171a20` sobre el navy del panel (1.07:1). | Texto **invisible** en tema claro. |
@@ -39,7 +39,7 @@ Medido sobre el árbol actual (`frontend/src`, 8 424 líneas de CSS en 4 hojas):
 | **Foco de teclado desparejo** | `:focus-visible` global (radio 0.375rem) vs controles redondos/pill. | El anillo no sigue la forma del control. |
 
 **Lo que ya está bien y hay que proteger**: la marca es coherente y distintiva
-(matte black, violeta, verde/rosa con significado, Sora única voz); la boleta
+(carbón cálido, azul, verde/rosa con significado, Sora única voz); la boleta
 pública `.tkt` es un artefacto troquelado de primera; el motivo de boleto
 perforado y el ticker del fan ya existen; el modo oscuro por defecto y la puerta
 forzada oscura son decisiones correctas.
@@ -60,7 +60,7 @@ Cinco principios que gobiernan cada decisión:
    **eligen**, no se inventan por página.
 2. **La marca en un punto.** Ningún hex de marca dentro de un componente; todo
    sale de un token. Cambiar `--brand` debe re-vestir el producto entero.
-3. **El acento significa.** Violeta = acción; verde = validado/disponible; rosa =
+3. **El acento significa.** Azul = acción; verde = validado/disponible; rosa =
    urgencia/últimas; ámbar = atención; rojo = rechazo. Nunca decoración.
 4. **Profundidad por materia, no por brillo.** Superficies con relieve de 1px,
    grano sutil, auras radiales contenidas y sombras de contacto (no `box-shadow`
@@ -72,7 +72,7 @@ Cinco principios que gobiernan cada decisión:
 **Elevación por rol** (misma marca, distinta densidad):
 
 - **Fan** (público): editorial y aireado. Es la vitrina.
-- **Admin**: denso, monocromo, con el violeta reservado a la acción primaria.
+- **Admin**: denso, monocromo, con el azul reservado a la acción primaria.
 - **Promotor**: densidad media, tinte de marca en cupos/ranking.
 - **Puerta**: máximo contraste, siempre oscuro, tap targets grandes, cero adornos.
 
@@ -81,15 +81,15 @@ Cinco principios que gobiernan cada decisión:
 ## 3. Sistema de tokens (la base de todo)
 
 Se crea `frontend/src/tokens.css`, importado **primero** en `main.jsx`. Tres
-niveles, con prefijo único `--e-*` (Enty) para no chocar con Tailwind ni con los
+niveles, con prefijo único `--e-*` (V-Pass) para no chocar con Tailwind ni con los
 espacios legacy:
 
 ```
 Nivel 1 · PRIMITIVAS  (crudo, no se usa en componentes)
-  --e-ink-0 #050507  --e-ink-1 #0B0B0F  --e-ink-2 #14121C  --e-ink-3 #1C1730
-  --e-violet-500 #7C3AED  --e-violet-400 #BB5CF6  --e-violet-600 #6D28D9
+  --e-ink-0 #050505  --e-ink-1 #0E0D0C  --e-ink-2 #141312  --e-ink-3 #1B1A18
+  --e-blue-500 #3D5CD6  --e-blue-400 #4F6BDB  --e-blue-600 #203EB6
   --e-green-500 #00E6AB   --e-pink-500 #FF2D98     --e-amber-500 #F5A524
-  --e-red-500 #EF4444     --e-paper #F5F5F7
+  --e-red-500 #EF4444     --e-paper #F5EEDD
 
 Nivel 2 · SEMÁNTICAS  (lo que usan los componentes)
   --e-canvas / --e-surface / --e-surface-2 / --e-surface-3 / --e-overlay
@@ -240,7 +240,7 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   refresh 1→0 — sus animaciones ahora reusan `enter`/`logo-pop`/`shimmer`/`spin`
   de la capa base). Fusiones reales, no alias vacíos: `toast-in`/`rise`/`scale-in`
   /`dialog-in` → un solo `enter`; `dialog-backdrop` → `fade`; `splash-breathe`
-  /`halo-breathe` → `breathe`; `ptr-spin`/`enty-spin` → `spin`; `fav-pop` →
+  /`halo-breathe` → `breathe`; `ptr-spin`/`vp-spin` → `spin`; `fav-pop` →
   `logo-pop`; `scan-verdict-ok` → `pop`. Se eliminan keyframes muertos
   (`ab-breathe`, `splash-breathe`, `live-glow`) y los alias de curva duplicados
   (`--ease-out-expo`/`--ease-spring` en `:root`).
@@ -265,7 +265,7 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 ### Fase 6 — Elevación por rol (interior) y cierre
 
 - **Admin**: densidad y jerarquía de datos; tablas/listas con zebra sutil,
-  cabeceras pegajosas, cifras tabulares, violeta solo en la acción primaria.
+  cabeceras pegajosas, cifras tabulares, azul solo en la acción primaria.
 - **Promotor**: tinte de marca en cupos/ranking; estados de comisión claros.
 - **Puerta**: contraste máximo, targets grandes, feedback de escaneo inconfundible.
   En el cierre, el veredicto `ALREADY_REDEEMED` ("YA USADA") dejó de ser un
@@ -273,8 +273,8 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   hora del primer canje** (zona del evento), y el escáner lo muestra — la
   discusión clásica "¿ya la usé?" se resuelve con datos, igual que `NOT_ACTIVE`
   (hora de apertura del QR) y `WRONG_TYPE` (fila real). La retícula del escáner
-  pasó sus literales de marca a `color-mix(var(--e-violet-400))`: la única hoja
-  con violeta crudo era la de la puerta.
+  pasó sus literales de marca a `color-mix(var(--e-blue-400))`: la única hoja
+  con azul crudo era la de la puerta.
 - Retirar el bloque `@layer compat`; borrar los namespaces legacy.
 - Actualizar `AGENTS.md` y `DESIGN.md` (ver nota abajo).
 - *Aceptación*: E2E 6/6 verdes; regresión visual aprobada; stylelint y a11y verdes.
@@ -292,7 +292,7 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 - **Promotor**: la tarjeta "Mis noches" (`.e-meter` / `.e-meter-fill` con
   `.is-warn`/`.is-full`) muestra la proporción del cupo por noche; el seed demo
   ahora siembra `event_staff` para que la tarjeta exista en la demo.
-- **`DESIGN.md`**: sustituido por un design system real de Enty; el análisis de
+- **`DESIGN.md`**: sustituido por un design system real de V-Pass; el análisis de
   Apple se movió a `docs/referencia-apple.md`.
 - **Verificación**: backend 354/354, E2E Playwright 11/11 (incluye a11y
   claro/oscuro y targets ≥ 44px en puerta), stylelint 0 errores / 30 warnings,
@@ -327,7 +327,7 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 ## 7. Nota sobre la documentación de diseño
 
 `DESIGN.md` **ya no es el análisis de Apple**. En Fase 6 se sustituyó por un
-design system real de Enty (identidad, paleta, tipografía, tokens, superficies
+design system real de V-Pass (identidad, paleta, tipografía, tokens, superficies
 por rol, motivos, movimiento y guardarraíles). El análisis de Apple que lo
 ocupaba se conserva como referencia histórica en `docs/referencia-apple.md`.
 

@@ -308,7 +308,7 @@ function RetentionCard({ buyers, returning }) {
         De {buyers} {buyers === 1 ? "comprador" : "compradores"} con teléfono
         este mes.
       </p>
-      {/* Barra partida: recurrente (violeta, el valor que se quiere crecer)
+      {/* Barra partida: recurrente (azul, el valor que se quiere crecer)
           vs nuevo (gris). Una cifra sola no dice la PROPORCIÓN. */}
       <div
         className="flex h-3 overflow-hidden rounded-full bg-zinc-800"

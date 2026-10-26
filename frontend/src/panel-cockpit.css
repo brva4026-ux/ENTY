@@ -11,7 +11,7 @@
  *    · medidores con marcas (`.pc-gauge`) donde el aforo se ve, no se adivina;
  *    · una cola de escaneos que muestra la puerta pasando.
  *
- *  Se importa DESPUÉS de index.css y enty-system.css: consume sus tokens
+ *  Se importa DESPUÉS de index.css y vp-system.css: consume sus tokens
  *  (--e-*) y solo redefine lo que es del panel. La vitrina del fan no se
  *  toca: son dos contextos, no dos marcas.
  * ========================================================================== */
@@ -44,7 +44,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--e-violet-300);
+  color: var(--e-blue-300);
 }
 
 .pc-sec .pc-aside {
@@ -161,7 +161,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
-  background: var(--e-violet-500);
+  background: var(--e-blue-500);
   opacity: 0.85;
 }
 
@@ -224,7 +224,7 @@
   flex: 1;
   min-height: 2px;
   border-radius: 2px 2px 0 0;
-  background: color-mix(in srgb, var(--e-violet-500) 45%, transparent);
+  background: color-mix(in srgb, var(--e-blue-500) 45%, transparent);
 }
 
 .pc-dcard.is-in .pc-spark i { background: color-mix(in srgb, var(--e-green-500) 38%, transparent); }
@@ -232,7 +232,7 @@
 .pc-dcard.is-hot .pc-spark i { background: color-mix(in srgb, var(--e-pink-500) 40%, transparent); }
 
 .pc-spark i.is-now {
-  background: var(--e-violet-400);
+  background: var(--e-blue-400);
 }
 
 .pc-dcard.is-in .pc-spark i.is-now { background: var(--e-green-500); }
@@ -257,7 +257,7 @@
 .pc-gauge-fill {
   height: 100%;
   border-radius: var(--e-radius-sm);
-  background: linear-gradient(90deg, var(--e-violet-600), var(--e-violet-400));
+  background: linear-gradient(90deg, var(--e-blue-600), var(--e-blue-400));
   transition: width var(--e-dur-slow) ease;
 }
 
@@ -429,7 +429,7 @@
   font-weight: 800;
   letter-spacing: 0.02em;
   color: var(--e-white);
-  background: linear-gradient(150deg, var(--e-violet-500), var(--e-violet-400));
+  background: linear-gradient(150deg, var(--e-blue-500), var(--e-blue-400));
 }
 
 .pc-prow .pc-pnum {
@@ -472,7 +472,7 @@
   display: block;
   height: 100%;
   border-radius: var(--e-radius-pill);
-  background: linear-gradient(90deg, var(--e-violet-600), var(--e-violet-400));
+  background: linear-gradient(90deg, var(--e-blue-600), var(--e-blue-400));
 }
 
 .pc-pbar i.is-warn { background: linear-gradient(90deg, var(--e-amber-500), var(--e-amber-300)); }
@@ -501,11 +501,11 @@
 
 /* ---------------------------------------------------------------- 7 · TEMA CLARO
    Los acentos del cockpit son NEÓN: pensados para tinta oscura. Sobre papel
-   el violeta claro (#d29bf9) da 1.9:1 y el verde neón 1.5:1 — ilegibles. Se
+   el azul claro (#8e9fe1) da 1.9:1 y el verde neón 1.5:1 — ilegibles. Se
    remapean a los pasos profundos que el sistema ya define "para texto sobre
-   claro" (--e-emerald-600, --e-violet-600/700). Mismo patrón que el resto
+   claro" (--e-emerald-600, --e-blue-600/700). Mismo patrón que el resto
    del proyecto: solo se reescribe lo que no voltea bien, no cada regla. */
-html[data-theme="light"] .pc-sec .pc-when { color: var(--e-violet-600); }
+html[data-theme="light"] .pc-sec .pc-when { color: var(--e-blue-600); }
 
 html[data-theme="light"] .pc-tally .is-good { color: var(--e-emerald-600); }
 html[data-theme="light"] .pc-tally .is-warn { color: var(--e-amber-500); }

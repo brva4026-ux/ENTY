@@ -22,7 +22,7 @@ def _tag() -> str:
 
 def _html(**over) -> str:
     base = dict(
-        base_url="https://enty.test",
+        base_url="https://vpass.test",
         event_id=42,
         name="Noche Electrónica",
         starts_at=datetime(2026, 11, 20, 1, 0, tzinfo=timezone.utc),
@@ -44,9 +44,9 @@ def test_meta_tags_are_absolute_and_describe_the_event():
     assert '<meta property="og:title" content="Noche Electrónica" />' in html
     # Sin flyer se cae a la portada de marca, siempre absoluta: WhatsApp no
     # resuelve rutas relativas.
-    assert '<meta property="og:image" content="https://enty.test/og-cover.png" />' in html
-    assert '<link rel="canonical" href="https://enty.test/evento/42" />' in html
-    assert '<meta property="og:url" content="https://enty.test/evento/42" />' in html
+    assert '<meta property="og:image" content="https://vpass.test/og-cover.png" />' in html
+    assert '<link rel="canonical" href="https://vpass.test/evento/42" />' in html
+    assert '<meta property="og:url" content="https://vpass.test/evento/42" />' in html
     assert '<meta name="twitter:card" content="summary_large_image" />' in html
     # La descripcion lleva fecha local del evento y lugar.
     assert "Bar Esquina" in html and "Bogotá, Colombia" in html
@@ -57,7 +57,7 @@ def test_flyer_url_is_used_and_normalized_to_absolute():
     assert "https://cdn.test/flyer.jpg" in _html(flyer_url="https://cdn.test/flyer.jpg")
     # Un flyer servido por la propia API llega sin host: se le pone el base.
     assert (
-        '<meta property="og:image" content="https://enty.test/api/media/9.jpg" />'
+        '<meta property="og:image" content="https://vpass.test/api/media/9.jpg" />'
         in _html(flyer_url="/api/media/9.jpg")
     )
 
@@ -74,7 +74,7 @@ def test_json_ld_is_valid_event_schema():
     assert data["location"]["address"] == "Bogotá, Colombia"
     assert data["offers"]["price"] == "30000.00"
     assert data["offers"]["priceCurrency"] == "COP"
-    assert data["url"] == "https://enty.test/evento/42"
+    assert data["url"] == "https://vpass.test/evento/42"
 
 
 def test_free_event_has_no_offer():

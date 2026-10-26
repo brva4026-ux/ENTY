@@ -5,7 +5,7 @@
 //   node scripts/design-gate.mjs [--update] [--json]
 //
 // El lint del skill banea ~560 cosas en este repo, pero casi todas son la
-// identidad deliberada de TicketFlow (violeta de marca, gradientes del shell
+// identidad deliberada de TicketFlow (azul de marca, gradientes del shell
 // nocturno, glass, sombras de overlay, emoji de la demo). La allowlist de marca
 // esta en design-gate.baseline.json con el motivo de cada una.
 //
