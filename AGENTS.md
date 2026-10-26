@@ -508,6 +508,11 @@ avisar.
 
   Por eso el repo tiene `git config user.email brva4026@gmail.com`. **No**
   commitear como `openhands` (el default del entorno), o el deploy se bloquea.
+  Verificá `git config user.email` **antes de commitear**: una sesión nueva
+  puede haber vuelto al default `openhands@all-hands.dev`. Tampoco pongas
+  `Co-authored-by: openhands <openhands@all-hands.dev>` en el mensaje: aunque
+  Vercel mira el email del **autor**, el trailer mete el email bloqueado en el
+  historial y es ruido innecesario.
   Si ya hay commits con el autor equivocado, reescribir solo los autores:
 
   ```bash
