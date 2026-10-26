@@ -1,137 +1,227 @@
 import { useEffect, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
 
-/** Marca Enty: logotipo, indicadores vivos y cifras animadas. */
+/** Marca V-Pass: logotipo, indicadores vivos y cifras animadas.
 
-/**
- * Destello de marca: estrella de cuatro puntas asimetrica. Es la firma de
- * Enty y se reutiliza como bullet, indicador de carga y centro del QR.
+ * Isotipo único: la mano en señal de paz sobre las ondas del agua, con las
+ * llamas encendidas en los dedos y el nombre escrito sobre la marca.
+ * Se reutiliza como miniatura, indicador de carga y centro del QR.
  */
-export function Spark({ size = 12, color = "var(--e-green-500)", className = "" }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M12 0.5 L15 9 L23.5 12 L15 15 L12 23.5 L9 15 L0.5 12 L9 9 Z"
-        fill={color}
-      />
-    </svg>
-  );
-}
 
-export function Logo({ size = "md", animated = true }) {
-  const hero = size === "hero";
-  const box = hero
-    ? "h-16 w-16"
-    : size === "xl"
-      ? "h-14 w-14"
-      : size === "lg"
+/** Marcador de marca: la mano + las ondas + las llamas, en tinta negra
+ *  sobre un fondo parchment, a cualquier tamaño. El nombre está grabado
+ *  dentro de la imagen, como el de un pegatina. */
+export function LogoMark({ size = "md", className = "" }) {
+  const box =
+    size === "lg"
+      ? "h-16 w-16"
+      : size === "md"
         ? "h-12 w-12"
-        : "h-8 w-8";
-  const text =
-    size === "xl"
-      ? "text-4xl"
-      : size === "lg"
-        ? "text-3xl"
-        : "text-base";
-  const radius =
-    size === "md"
-      ? "rounded-[0.6rem]"
-      : hero
-        ? "rounded-[1.15rem]"
-        : "rounded-[0.95rem]";
+        : size === "sm"
+          ? "h-8 w-8"
+          : "h-6 w-6";
   return (
-    <span className="inline-flex items-center gap-3">
-      {/* ISOTIPO UNICO. La misma marca que public/icon.svg y que el favicon
-          del index.html: icono cuadrado muy redondeado, negro mate con filo
-          violeta brillante, la "E" blanca y la estrella de cuatro puntas en
-          el lateral derecho. Los colores van planos a proposito — un <defs>
-          con id se duplicaria en cada render del Logo y el segundo svg del
-          DOM quedaria sin gradiente. */}
+    <span
+      className={`relative ${className}`}
+      style={{ display: "inline-flex" }}
+    >
       <span
-        className={`${box} relative ${animated ? "logo-pop" : ""} grid place-items-center`}
+        className={`brand-tile relative grid h-full w-full place-items-center overflow-hidden ${box}`}
       >
-        <span
-          className={`brand-tile relative grid h-full w-full place-items-center overflow-hidden ${radius}`}
+        <svg
+          viewBox="0 0 512 512"
+          className="relative h-full w-full"
+          role="img"
+          aria-label="CELESTIAL STROKES"
         >
-          <svg
-            viewBox="0 0 512 512"
-            className="relative h-full w-full"
-            aria-hidden="true"
-          >
-            {/* Filo violeta brillante del tile. */}
-            <rect
-              x="9"
-              y="9"
-              width="494"
-              height="494"
-              rx="118"
-              fill="none"
-              stroke="var(--e-violet-400)"
-              strokeWidth="16"
-              strokeOpacity="0.85"
-            />
-            {/* La "E": asta + tres brazos redondeados. */}
-            <g
-              stroke="var(--e-white)"
-              strokeWidth="60"
-              strokeLinecap="round"
-              fill="none"
+          <defs>
+            <linearGradient id="cs-parchment" x1="0" y1="0" x2="512" y2="512">
+              <stop offset="0" stopColor="#FAF9F6" />
+              <stop offset="1" stopColor="#E8E6DF" />
+            </linearGradient>
+            <linearGradient id="cs-water" x1="0" y1="0" x2="0" y2="512">
+              <stop offset="0" stopColor="#4A90E2" />
+              <stop offset="1" stopColor="#2C5AA0" />
+            </linearGradient>
+            <linearGradient
+              id="cs-peace"
+              x1="0"
+              y1="0"
+              x2="512"
+              y2="512"
             >
-              <path d="M186 156 H318" />
-              <path d="M186 256 H292" />
-              <path d="M186 356 H318" />
-              <path d="M186 156 V356" />
-            </g>
-            {/* La estrella de cuatro puntas, integrada al lateral derecho. */}
-            <path
-              fill="var(--e-violet-400)"
-              d="M356 196 l13 34 34 13 -34 13 -13 34 -13 -34 -34 -13 34 -13 z"
-            />
-          </svg>
-        </span>
+              <stop offset="0" stopColor="#FFD700" />
+              <stop offset="1" stopColor="#FF6B6B" />
+            </linearGradient>
+          </defs>
+
+          {/* Fondo parchment */}
+          <rect
+            width="512"
+            height="512"
+            rx="118"
+            fill="url(#cs-parchment)"
+          />
+
+          {/* Ondas concéntricas del agua */}
+          <g fill="none" stroke="rgba(44, 90, 160, 0.35)" strokeWidth="1">
+            <circle cx="256" cy="380" r="80" />
+            <circle cx="256" cy="380" r="60" />
+            <circle cx="256" cy="380" r="40" />
+            <circle cx="256" cy="380" r="20" />
+          </g>
+
+          {/* Mano: antebrazo + dedos en señal de paz */}
+          <g stroke="#1A1A1A" strokeWidth="3.2" strokeLinecap="round" fill="none">
+            <path d="M256 360 Q256 336 256 316" />
+            <path d="M240 274 C230 256 218 244 206 258 Q194 272 190 288" />
+            <path d="M272 274 C282 256 292 244 304 258 Q314 272 318 288" />
+            <path d="M256 316 Q256 292 260 282" />
+            <path d="M256 316 Q256 292 252 282" />
+          </g>
+
+          {/* Puntos y lunares de la mano */}
+          <circle cx="230" cy="258" r="4.5" fill="#FF6B6B" />
+          <circle cx="270" cy="258" r="4.5" fill="#FF6B6B" />
+          <path
+            d="M208 246 Q196 236 192 226"
+            stroke="#FFD700"
+            strokeWidth="2"
+            fill="none"
+          />
+          <path
+            d="M306 258 Q316 248 318 240"
+            stroke="#FFD700"
+            strokeWidth="2"
+            fill="none"
+          />
+
+          {/* Llamas de los dos dedos extendidos */}
+          <g fill="none" stroke="url(#cs-peace)" strokeWidth="4" strokeLinecap="round">
+            <path d="M204 250 C196 232 188 218 186 206" />
+            <path d="M210 262 C218 246 230 232 240 220" />
+          </g>
+          <g fill="#FFD700">
+            <circle cx="188" cy="200" r="3" />
+            <circle cx="244" cy="214" r="3" />
+          </g>
+
+          {/* Texto del nombre */}
+          <text
+            x="256"
+            y="186"
+            textAnchor="middle"
+            fontFamily="Georgia, serif"
+            fontSize="42"
+            fontWeight="bold"
+            fill="#1A1A1A"
+          >
+            V-PASS
+          </text>
+
+          {/* Subtítulo */}
+          <text
+            x="256"
+            y="236"
+            textAnchor="middle"
+            fontFamily="Apple Garamond, Baskerville, serif"
+            fontSize="19"
+            fill="#6B6B6B"
+          >
+            La mano señal de paz, la llama que arde
+          
+          </text>
+
+          {/* Firma Ray */}
+          <text
+            x="460"
+            y="490"
+            textAnchor="end"
+            fontFamily="Segoe Script, cursive"
+            fontSize="17"
+            fill="#4A90E2"
+          >
+            V-Pass.
+          </text>
+        </svg>
       </span>
-      {hero ? (
-        /* Wordmark hero: tipografia redondeada y futurista (la voz amable de
-           la marca) — "Ent" en tinta blanca y la "y" en el violeta de acento,
-           con la estrella de cuatro puntas sobre la "t". */
-        <span className="brand-chip animate-fade">
-          <span className="brand-wordmark brand-wordmark-hero">
-            <span className="brand-shine">En</span>
-            <span className="brand-star">
-              t
-              <svg
-                viewBox="0 0 24 24"
-                className="brand-star-mark"
-                aria-hidden="true"
-              >
-                <path
-                  fill="var(--e-violet-400)"
-                  d="M12 1 l2.6 6.8 6.8 2.6 -6.8 2.6 -2.6 6.8 -2.6 -6.8 -6.8 -2.6 6.8 -2.6 z"
-                />
-              </svg>
-            </span>
-            <span className="brand-shine">y</span>
-          </span>
-        </span>
-      ) : (
-        <span className={`${text} brand-wordmark brand-shine leading-none`}>
-          Enty
-        </span>
-      )}
     </span>
   );
 }
 
-/**
- * Cifra que cuenta desde su valor anterior hasta el nuevo (easing expo).
- * `format` recibe el número interpolado (para moneda, %, etc.).
- * Con prefers-reduced-motion pinta el valor sin animar.
+/** Palabra de marca: "V-PASS" en tipografía redondeada y
+ *  finita (la voz amable de la marca). */
+export function Wordmark({
+  size = "md",
+  className = "",
+  animated = true,
+}) {
+  const sm = size === "sm";
+  const md = size === "md";
+  const lg = size === "lg";
+  const display =
+    lg ||
+    (md && !sm) ||
+    (sm && !md);
+  return (
+    <span
+      className={`brand-wordmark inline-flex items-center leading-none tracking-wide ${className} ${
+        animated ? "animate-fade" : ""
+      }`}
+      style={
+        {
+          fontSize:
+            lg || md
+              ? "1.45rem"
+              : sm
+                ? "1rem"
+                : "1.2rem",
+          letterSpacing: "0.06em",
+        } as React.CSSProperties
+      }
+    >
+      <svg
+        viewBox="0 0 512 512"
+        className={`brand-star-mark relative inline-block align-middle ${sm ? "h-6 w-6" : "h-8 w-8"}`}
+        aria-hidden="true"
+      >
+        <path
+          fill="#BB5CF6"
+          d="M356 196 l13 34 34 13 -34 13 -13 34 -13 -34 -34 -13 34 -13 z"
+        />
+      </svg>
+      <span className="uppercase tracking-[0.22em] text-zinc-900">
+        V-PASS
+      </span>
+    </span>
+  );
+}
+
+/** Logotipo completo: marcador + palabra de marca. */
+export function Logo({
+  size = "md",
+  animated = true,
+  showWordmark = true,
+}) {
+  const box =
+    size === "xl"
+      ? "h-16 w-16"
+      : size === "lg"
+        ? "h-12 w-12"
+        : size === "md"
+          ? "h-8 w-8"
+          : "h-6 w-6";
+  return (
+    <span className="inline-flex items-center gap-3">
+      <LogoMark size={size} />
+      {showWordmark && <Wordmark size={size} animated={animated} />}
+    </span>
+  );
+}
+
+/** Cifra que cuenta desde su valor anterior hasta el nuevo
+ *  (easing expo). `format` recibe el número interpolado (para moneda,
+ *  %, etc.). Con prefers-reduced-motion pinta el valor sin animar.
  */
 export function AnimatedNumber({
   value,
@@ -203,9 +293,7 @@ export function EventStatusBadge({ status }) {
   const s = STATUS_STYLES[status] ?? STATUS_STYLES.draft;
   return (
     <span className={`badge ${s.badge}`}>
-      <span
-        className={`badge-dot ${s.dot} ${status === "live" ? "live-dot" : ""}`}
-      />
+      <span className={`badge-dot ${s.dot} ${status === "live" ? "live-dot" : ""}`} />
       {s.label}
     </span>
   );

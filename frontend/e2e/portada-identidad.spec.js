@@ -96,7 +96,7 @@ test("el color de marca del negocio se puede elegir y tiñe la portada", async (
   await page.getByRole("button", { name: "Guardar negocio" }).click();
   await expect(page.getByText("Datos del negocio actualizados.")).toBeVisible();
 
-  // De vuelta en el panel, la portada lleva SU color (no el violeta de Enty).
+  // De vuelta en el panel, la portada lleva SU color (no el violeta de V-Pass).
   await page.goto("/admin");
   await expect(page.locator(".venue-header")).toBeVisible();
   await expect
@@ -114,7 +114,7 @@ test("el color de marca del negocio se puede elegir y tiñe la portada", async (
   // Y el tile de iniciales deja de usar el navy por defecto.
   await expect(page.locator(".venue-header")).toHaveAttribute("data-brand", "1");
 
-  // Restaurar el estado del seed: otros specs asumen el violeta de Enty.
+  // Restaurar el estado del seed: otros specs asumen el violeta de V-Pass.
   await page.goto("/perfil?tab=negocio");
   await page.getByRole("button", { name: "Quitar" }).click();
   await page.getByRole("button", { name: "Guardar negocio" }).click();

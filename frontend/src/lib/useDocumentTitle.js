@@ -9,7 +9,7 @@ import { useEffect } from "react";
  * `title` sin marca se sufija con " · Enty". Pasar `null` mientras cargan los
  * datos deja el titulo actual (no parpadea a un texto generico).
  */
-const BRAND = "Enty";
+const BRAND = "Celestial Strokes";
 
 export default function useDocumentTitle(title) {
   useEffect(() => {

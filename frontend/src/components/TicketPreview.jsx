@@ -55,7 +55,7 @@ export default function TicketPreview({ rawToken, ticketId, name, eventName }) {
       </div>
       <div className="border-t border-dashed border-zinc-700/60 px-5 py-2.5">
         <p className="text-2xs font-medium text-zinc-500">
-          Presenta este QR en la entrada · Enty
+          Presenta este QR en la entrada · Celestial Strokes
         </p>
       </div>
     </div>

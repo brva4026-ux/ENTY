@@ -27,8 +27,8 @@ function readToken() {
   }
 }
 
-/** Isotipo Enty: la "E" con muesca de boleto, en blanco sobre la boleta. */
-function EntyMark({ className }) {
+/** Isotipo: la "C" con muesca de boleto, en blanco sobre la boleta. */
+function CelestialMark({ className }) {
   return (
     <svg viewBox="0 0 64 84" className={className} aria-hidden="true">
       <path
@@ -254,8 +254,8 @@ export default function PublicTicketPage() {
         <div className="tkt">
           <div className="tkt-head">
             <div className="tkt-brand-lock">
-              <EntyMark className="tkt-mark" />
-              <span>Enty</span>
+              <CelestialMark className="tkt-mark" />
+              <span>Celestial Strokes</span>
             </div>
             <p className="tkt-connect">
               Music
@@ -408,8 +408,8 @@ export default function PublicTicketPage() {
                   <div className="tkt-admit">
                     <p className="tkt-admit-k">General Admission</p>
                     <div className="tkt-brand-lock tkt-brand-lock--sm">
-                      <EntyMark className="tkt-mark" />
-                      <span>Enty</span>
+                      <CelestialMark className="tkt-mark" />
+                      <span>Celestial Strokes</span>
                     </div>
                   </div>
                 </div>
@@ -426,7 +426,7 @@ export default function PublicTicketPage() {
                     <svg viewBox="0 0 190 40" preserveAspectRatio="none">
                       <Barcode />
                     </svg>
-                    <p className="tkt-barcode-cap">Enty App — Your Next Event</p>
+                    <p className="tkt-barcode-cap">Celestial Strokes — Tu próxima boleta</p>
                   </div>
                   <p className="tkt-sign">See You There!</p>
                 </div>
@@ -521,7 +521,7 @@ export default function PublicTicketPage() {
 
         <div className="tkt-brandline">
           <img src="/icon.svg" alt="" aria-hidden="true" />
-          <span>Enty</span>
+          <span>Celestial Strokes</span>
         </div>
         <p className="tkt-footer">Guarda esta página: la necesitas en la entrada</p>
       </div>

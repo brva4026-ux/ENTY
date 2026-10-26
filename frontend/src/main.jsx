@@ -146,7 +146,7 @@ function App() {
               fragmento (#), que el navegador no envia al servidor. */}
               <Route path="/t" element={<PublicTicketPage />} />
               {/* Inicio: la vitrina publica del fan (catalogo de eventos).
-              Sin login — es la cara de consumidor de Enty. */}
+              Sin login — es la cara de consumidor de Celestial Strokes. */}
               <Route path="/inicio" element={<HomePage />} />
               {/* Detalle del evento: la pantalla de compra, publica como la
               vitrina. Se llega tocando un evento del catalogo. */}

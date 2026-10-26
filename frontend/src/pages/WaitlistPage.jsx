@@ -239,7 +239,7 @@ export default function WaitlistPage() {
           </div>
 
           <p className="mt-4 text-center text-xs text-dim-2">
-            Sin cuentas ni pagos por adelantado · Enty
+            Sin cuentas ni pagos por adelantado · Celestial Strokes
           </p>
         </div>
       </div>
@@ -397,7 +397,7 @@ export default function WaitlistPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-dim-2">
-          Tu lugar es personal: se valida por tu celular · Enty
+          Tu lugar es personal: se valida por tu celular · Celestial Strokes
         </p>
       </div>
     </div>

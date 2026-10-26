@@ -1,6 +1,6 @@
 {
-  "name": "Enty — Boletería y Aforo",
-  "short_name": "Enty",
+  "name": "V-Pass — Boletería y Aforo",
+  "short_name": "V-Pass",
   "description": "Boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso.",
   "start_url": "/",
   "scope": "/",

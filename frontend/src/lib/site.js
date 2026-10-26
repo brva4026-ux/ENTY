@@ -4,7 +4,7 @@
  * buscarlos por las páginas.
  */
 export const SITE = {
-  name: "Enty",
+  name: "Celestial Strokes",
   legalEmail: "legal@enty.app",
   supportEmail: "soporte@enty.app",
 };

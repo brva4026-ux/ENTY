@@ -1,5 +1,5 @@
 /**
- * Guardarraíl de accesibilidad del design system Enty (Fase 0 del plan
+ * Guardarraíl de accesibilidad del design system V-Pass (Fase 0 del plan
  * estético). Corre contra el backend REAL con seed demo (E2E_BASE_URL), igual
  * que el resto de specs; si la app no responde, se salta solo.
  *
@@ -341,10 +341,10 @@ test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", 
     if (r.skip) fails.push({ path, issue: `salto ${r.skip}` });
     if (r.overflow) fails.push({ path, issue: "scroll horizontal @320px" });
     // Titulo de documento propio de la ruta: sin esto todas comparten el
-    // <title> estatico ("Enty — Boletería y Aforo") en pestanas y enlaces.
+    // <title> estatico ("V-Pass — Boletería y Aforo") en pestanas y enlaces.
     const title = await page.title();
     seenTitles.add(title);
-    if (!title.endsWith("· Enty")) fails.push({ path, issue: `title generico: ${title}` });
+    if (!title.endsWith("· V-Pass")) fails.push({ path, issue: `title generico: ${title}` });
   }
   // Y no puede ser el MISMO titulo en todas (dos rutas = dos titulos distintos).
   if (seenTitles.size < 2) fails.push({ "": "publicas", issue: `todas comparten title: ${[...seenTitles][0]}` });
@@ -364,7 +364,7 @@ test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", 
     const r = await page.evaluate(headingReport);
     if (r.h1 !== 1) fails.push({ path, issue: `h1=${r.h1}` });
     const title = await page.title();
-    if (!title.endsWith("· Enty")) fails.push({ path, issue: `title generico: ${title}` });
+    if (!title.endsWith("· V-Pass")) fails.push({ path, issue: `title generico: ${title}` });
   }
 
   await ctx.close();

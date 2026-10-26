@@ -131,7 +131,7 @@ export default function MotionChooser() {
           deshabilitado parece un fallo y no una decisión del dispositivo. */}
       {sysReduce && (
         <p className="pf-hint" role="status">
-          Tu dispositivo pide menos movimiento, así que Enty lo respeta: la
+          Tu dispositivo pide menos movimiento, así que Celestial Strokes lo respeta: la
           opción "Completo" vuelve a estar disponible si lo cambias en los
           ajustes de tu sistema.
         </p>

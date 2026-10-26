@@ -371,7 +371,7 @@ export default function PromoterDashboard() {
       <div className="reveal space-y-6">
         <div className="promo-hero">
           <div>
-            <p className="eyebrow">Enty</p>
+            <p className="eyebrow">Celestial Strokes</p>
             <h1
               className="display promo-hero-title"
               style={{ fontVariationSettings: '"opsz" 32' }}

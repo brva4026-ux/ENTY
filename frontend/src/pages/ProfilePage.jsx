@@ -106,7 +106,7 @@ export default function ProfilePage() {
   );
   const [venueName, setVenueName] = useState(adminVenue?.name || "");
   const [venueLogo, setVenueLogo] = useState(adminVenue?.logo_url || "");
-  // Color de marca: viaja como #RRGGBB. "" = sin color propio (violeta de Enty).
+  // Color de marca: viaja como #RRGGBB. "" = sin color propio (violeta de Celestial Strokes).
   const [venueColor, setVenueColor] = useState(adminVenue?.primary_color || "");
   const [venueCommission, setVenueCommission] = useState(
     adminVenue?.commission_pct != null ? String(adminVenue.commission_pct) : "0",
@@ -747,7 +747,7 @@ export default function ProfilePage() {
           <div className="pf-sub">
             <h3 className="pf-sub-title">Tus datos</h3>
             <p className="pf-hint pf-hint-block">
-              Descarga una copia de lo que Enty sabe de tu cuenta: tus datos,
+              Descarga una copia de lo que Celestial Strokes sabe de tu cuenta: tus datos,
               tus negocios y los documentos que aceptaste. Tus contraseñas y
               los datos de tus clientes no se incluyen.
             </p>
@@ -823,13 +823,13 @@ export default function ProfilePage() {
             </Field>
 
             {/* Color de marca: tiñe la portada del panel (banner, tile y viga
-                del KPI). Vacío = violeta de Enty. El <input type="color"> no
+                del KPI). Vacío = violeta de Celestial Strokes. El <input type="color"> no
                 admite "sin valor", así que el botón "Quitar" es el que vuelve
                 al color por defecto. */}
             <Field
               id="venue-color"
               label="Color de marca"
-              hint="Se usa en la portada de tu panel. Sin elegir, usa el violeta de Enty."
+              hint="Se usa en la portada de tu panel. Sin elegir, usa el violeta de Celestial Strokes."
             >
               <div className="pf-color-row">
                 <input

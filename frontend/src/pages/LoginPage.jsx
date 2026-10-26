@@ -313,13 +313,18 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
-          ¿Nuevo en Enty?{" "}
+          ¿Nuevo en Celestial Strokes?{" "
           <Link
             to="/register"
             className="link-underline font-semibold text-brand-300"
           >
             Crea tu negocio
           </Link>
+          <span className="inline-flex items-center gap-1.5 text-xs font-normal text-zinc-500">
+            · <Link to="/instrucciones" className="link-underline text-zinc-400">
+              Ver instrucciones de uso
+            </Link>
+          </span>
         </p>
 
         {/* Salidas de la pantalla: sin ellas, un visitante que llega a /login

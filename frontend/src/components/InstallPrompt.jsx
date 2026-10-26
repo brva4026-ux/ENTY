@@ -67,7 +67,7 @@ export function InstallPrompt() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">
-            Instala Enty en tu teléfono
+            Instala Celestial Strokes en tu teléfono
           </p>
           {available ? (
             <>

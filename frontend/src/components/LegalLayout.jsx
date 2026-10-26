@@ -3,7 +3,7 @@ import useDocumentTitle from "../lib/useDocumentTitle";
 import { SITE } from "../lib/site";
 
 /**
- * Páginas legales de Enty (Términos y Privacidad). Eran el bloqueante para
+ * Páginas legales de CELESTIAL STROKES (Términos y Privacidad). Eran el bloqueante para
  * operar de verdad: se cobra a través de la plataforma y no había dónde
  * asentarlo.
  *
@@ -25,8 +25,8 @@ export function LegalLayout({ title, intro, children }) {
   return (
     <div className="legal">
       <header className="legal-top">
-        <Link to="/inicio" className="legal-brand" aria-label="Enty, inicio">
-          <span>Enty</span>
+        <Link to="/inicio" className="legal-brand" aria-label="Celestial Strokes, inicio">
+          <span>Celestial Strokes</span>
           <i aria-hidden="true" />
         </Link>
         <Link to="/inicio" className="legal-back">

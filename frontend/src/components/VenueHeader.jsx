@@ -63,7 +63,7 @@ export default function VenueHeader({
 
   // Color de marca del negocio. Ya venía en /auth/me y no se usaba: el panel
   // de cada venue puede llevar SU color. Se expone como variables CSS y el CSS
-  // decide dónde aplicarlas; sin color, todo cae al violeta de Enty. El valor
+  // decide dónde aplicarlas; sin color, todo cae al violeta de Celestial Strokes. El valor
   // llega validado como #RRGGBB desde el backend, pero se re-verifica aquí:
   // una venue vieja pudo guardarse antes de esa validación y este string
   // termina dentro de un `style`.
