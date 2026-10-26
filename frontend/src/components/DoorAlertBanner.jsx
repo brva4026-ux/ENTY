@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Icon from "./Icon";
+import { withViewTransition } from "../lib/viewTransition";
 
 /**
  * Aviso EN VIVO de duplicados en puerta.
@@ -30,7 +31,7 @@ export default function DoorAlertBanner({ alert, onOpen, onDismiss }) {
 
   const open = () => {
     onOpen?.(alert);
-    navigate(alert.link || "/admin");
+    withViewTransition(() => navigate(alert.link || "/admin"));
   };
 
   return createPortal(

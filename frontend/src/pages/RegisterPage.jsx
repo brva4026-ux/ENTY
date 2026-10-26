@@ -10,6 +10,7 @@ import PasswordMeter from "../components/PasswordMeter";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { withViewTransition } from "../lib/viewTransition";
 
 const STRENGTH = [
   { max: 2, label: "Débil", color: "bg-red-500", width: "w-1/4" },
@@ -90,7 +91,7 @@ export default function RegisterPage() {
       });
       // La cuenta nueva es admin de su venue: el mismo criterio de redirect
       // que el login (lib/roles.js) decide a dónde aterriza.
-      nav(homeForRole(user), { replace: true });
+      withViewTransition(() => nav(homeForRole(user), { replace: true }));
     } catch (err) {
       const raw = (err?.message || "").toLowerCase();
       if (raw.includes("terminos") || raw.includes("términos")) {
@@ -216,7 +217,7 @@ export default function RegisterPage() {
                 <div className="flex items-center gap-2">
                   <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
                     <div
-                      className={`h-full ${strength.color} ${strength.width} transition-all`}
+                      className={`h-full ${strength.color} ${strength.width} transition-[width,background-color] duration-300`}
                     />
                   </div>
                   <span className="text-2xs font-semibold text-zinc-400">
@@ -245,7 +246,7 @@ export default function RegisterPage() {
                 Acepto los{" "}
                 <button
                   type="button"
-                  onClick={() => nav("/terminos")}
+                  onClick={() => withViewTransition(() => nav("/terminos"))}
                   className="font-semibold text-brand-300 underline decoration-brand-300/40 underline-offset-2 transition hover:text-brand-200"
                 >
                   Términos y Condiciones
@@ -253,7 +254,7 @@ export default function RegisterPage() {
                 y autorizo el tratamiento de mis datos personales conforme a la{" "}
                 <button
                   type="button"
-                  onClick={() => nav("/privacidad")}
+                  onClick={() => withViewTransition(() => nav("/privacidad"))}
                   className="font-semibold text-brand-300 underline decoration-brand-300/40 underline-offset-2 transition hover:text-brand-200"
                 >
                   Política de Tratamiento de Datos Personales
@@ -309,7 +310,7 @@ export default function RegisterPage() {
         <p className="mt-5 text-center text-sm text-zinc-400">
           ¿Ya tienes cuenta?{" "}
           <button
-            onClick={() => nav("/login")}
+            onClick={() => withViewTransition(() => nav("/login"))}
             className="font-semibold text-brand-300 transition hover:text-brand-200"
           >
             Ingresar

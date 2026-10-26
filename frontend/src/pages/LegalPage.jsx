@@ -5,6 +5,7 @@ import { Markdown } from "../lib/markdown";
 import { Logo } from "../components/Brand";
 import { LegalLinks } from "../components/LegalLinks";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { withViewTransition } from "../lib/viewTransition";
 
 /**
  * Documento legal público.
@@ -75,7 +76,7 @@ export default function LegalPage({ slug }) {
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <button
             type="button"
-            onClick={() => nav("/")}
+            onClick={() => withViewTransition(() => nav("/"))}
             className="flex items-center gap-2 rounded-lg px-1 py-1 transition hover:opacity-80"
             aria-label="Ir al inicio"
           >
@@ -83,7 +84,7 @@ export default function LegalPage({ slug }) {
           </button>
           <nav className="legal-links">
             {LEGAL_DOCS.filter((d) => d.slug !== slug).map((d) => (
-              <button key={d.slug} type="button" onClick={() => nav(d.path)}>
+              <button key={d.slug} type="button" onClick={() => withViewTransition(() => nav(d.path))}>
                 {d.label}
               </button>
             ))}

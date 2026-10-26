@@ -6,6 +6,7 @@ import { haptics } from "../lib/haptics";
 import { Logo } from "../components/Brand";
 import { AuthBackdrop } from "../components/AuthBackdrop";
 import Icon from "../components/Icon";
+import { withViewTransition } from "../lib/viewTransition";
 
 /**
  * /puerta?token=… — el link que el admin le manda a quien abre la puerta.
@@ -56,7 +57,7 @@ export default function DoorLinkPage() {
       );
       haptics.success();
       // El evento queda atado a esta persona: el escaner abre en su noche.
-      nav(`/bouncer?evento=${r.event_id}`, { replace: true });
+      withViewTransition(() => nav(`/bouncer?evento=${r.event_id}`, { replace: true }));
     } catch (e) {
       setError(e.message);
       setPreview(null);
@@ -79,7 +80,7 @@ export default function DoorLinkPage() {
               esta noche y volvé a abrirlo.
             </p>
             <button
-              onClick={() => nav("/login")}
+              onClick={() => withViewTransition(() => nav("/login"))}
               className="btn-primary mt-5 w-full"
             >
               Ir al inicio de sesión

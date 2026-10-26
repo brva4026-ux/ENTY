@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { withViewTransition } from "../lib/viewTransition";
 
 /**
  * Aviso de cookies (informativo, no bloqueante).
@@ -70,7 +71,7 @@ export function CookieNotice() {
           type="button"
           onClick={() => {
             close();
-            nav("/cookies");
+            withViewTransition(() => nav("/cookies"));
           }}
           className="hidden min-h-11 items-center underline decoration-zinc-600 underline-offset-2 hover:text-ink sm:inline-flex"
         >

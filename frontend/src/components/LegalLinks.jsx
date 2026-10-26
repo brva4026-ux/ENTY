@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { LEGAL_DOCS } from "../lib/legal";
+import { withViewTransition } from "../lib/viewTransition";
 
 /**
  * Enlaces a los documentos legales.
@@ -19,7 +20,7 @@ export function LegalLinks({ current, className = "legal-links" }) {
         <button
           key={d.slug}
           type="button"
-          onClick={() => nav(d.path)}
+          onClick={() => withViewTransition(() => nav(d.path))}
           aria-current={d.slug === current ? "page" : undefined}
           className={d.slug === current ? "font-semibold" : undefined}
         >

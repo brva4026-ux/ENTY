@@ -108,7 +108,7 @@ function RevenueBars({ events, onOpen }) {
               a 0 y el gráfico se veia vacio). */}
             <span className="flex min-h-0 w-full flex-1 items-end justify-center">
               <span
-                className={`revbar w-full max-w-10 rounded-t-md transition-all duration-500 group-hover:brightness-125 ${
+                className={`revbar w-full max-w-10 rounded-t-md transition-[height,filter] duration-500 group-hover:brightness-125 ${
                   e.status === "live" ? "is-live" : ""
                 } ${
                   e.status === "live"
@@ -190,7 +190,7 @@ function PromoterBars({ promoters }) {
                 competir con las cifras (que quedan alineadas en columna). */}
             <div className="revbar ml-8.5 mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-brand-700/70 to-brand-500 transition-all duration-500"
+                className="h-full rounded-full bg-gradient-to-r from-brand-700/70 to-brand-500 transition-[width] duration-500"
                 style={{
                   width: `${w}%`,
                   transitionDelay: `${i * 60}ms`,
@@ -268,7 +268,7 @@ function SalesCurve({ curve }) {
               </div>
               <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-brand-700/70 to-brand-500 transition-all duration-500"
+                  className="h-full rounded-full bg-gradient-to-r from-brand-700/70 to-brand-500 transition-[width] duration-500"
                   style={{ width: `${w}%`, transitionDelay: `${i * 60}ms` }}
                 />
               </div>

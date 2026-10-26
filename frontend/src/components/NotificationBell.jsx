@@ -10,6 +10,7 @@ import {
   markNotificationsRead,
 } from "../lib/notifications";
 import { timeAgo } from "../lib/useLiveRefresh";
+import { withViewTransition } from "../lib/viewTransition";
 
 /**
  * Campana de notificaciones in-app (mig 012, transplante de unicall-blue).
@@ -146,7 +147,7 @@ export default function NotificationBell() {
       markNotificationsRead([n.id]).catch(() => {});
     }
     setOpen(false);
-    if (n.link) navigate(n.link);
+    if (n.link) withViewTransition(() => navigate(n.link));
   };
 
   return (

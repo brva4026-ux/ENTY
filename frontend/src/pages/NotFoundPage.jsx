@@ -1,8 +1,10 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { homeForRole } from "../lib/roles";
 import { Logo } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import TransitionLink from "../components/TransitionLink";
+import { withViewTransition } from "../lib/viewTransition";
 
 /**
  * Pantalla de ruta inexistente.
@@ -46,12 +48,12 @@ export default function NotFoundPage() {
         </p>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <button onClick={() => nav(-1)} className="btn-ghost">
+          <button onClick={() => withViewTransition(() => nav(-1))} className="btn-ghost">
             Volver atrás
           </button>
-          <Link to={home} className="btn-primary">
+          <TransitionLink to={home} className="btn-primary">
             {homeLabel}
-          </Link>
+          </TransitionLink>
         </div>
       </div>
     </div>

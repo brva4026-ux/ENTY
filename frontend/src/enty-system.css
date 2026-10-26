@@ -288,6 +288,9 @@ html[data-theme="light"] .e-meter {
   height: 100%;
   border-radius: var(--e-radius-pill);
   background: linear-gradient(90deg, rgba(124, 58, 237, 0.45), var(--e-brand-glow));
+  /* El cupo que baja tiene que VERSE bajar: sin esto la barra salta de un
+     ancho al otro mientras el resto de barras de la app si anima. */
+  transition: width var(--e-dur-slow) var(--e-ease-expo);
 }
 .e-meter-fill.is-warn {
   background: var(--e-amber-400);

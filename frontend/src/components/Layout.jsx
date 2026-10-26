@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import TransitionLink from "./TransitionLink";
 import { useAuth } from "../lib/auth";
 import { hasRole, navTabsFor, topRoleLabel } from "../lib/roles";
@@ -10,6 +10,7 @@ import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 import { LegalLinks } from "./LegalLinks";
 import { LegalGate } from "./LegalGate";
+import { withViewTransition } from "../lib/viewTransition";
 
 /** Iconos de pestaña (trazo 1.8, 20px): mismo lenguaje visual en toda la app. */
 const TAB_ICONS = {
@@ -110,9 +111,9 @@ export default function Layout({ children }) {
       <header className="topbar sticky top-0 z-20">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-6">
-            <Link to="/" aria-label="Inicio">
+            <TransitionLink to="/" aria-label="Inicio">
               <Logo />
-            </Link>
+            </TransitionLink>
             <nav className="hidden items-center gap-0.5 md:flex">
               {tabs.map((t) => {
                 const active = pathname === t.to;
@@ -144,14 +145,14 @@ export default function Layout({ children }) {
                 {venueNames && ` · ${venueNames}`}
               </p>
             </div>
-            <Link
+            <TransitionLink
               to="/perfil"
               data-tip="Tu perfil"
               aria-label="Tu perfil"
               className="topbar-avatar topbar-hit"
             >
               {initials}
-            </Link>
+            </TransitionLink>
             <button
               onClick={() => {
                 logout();
@@ -160,7 +161,7 @@ export default function Layout({ children }) {
                 // corria despues y sembraba from=/perfil (o la ruta actual) —
                 // el siguiente login aterrizaba en el perfil en vez del panel
                 // de tu rol.
-                nav("/login", { replace: true });
+                withViewTransition(() => nav("/login", { replace: true }));
               }}
               className="topbar-hit btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs"
             aria-label="Cerrar sesión"
@@ -230,7 +231,7 @@ export default function Layout({ children }) {
                   </span>
                   {t.label}
                   <span
-                    className={`h-0.5 w-5 rounded-full transition-all duration-300 ${active ? "bg-brand-400" : "bg-transparent"}`}
+                    className={`h-0.5 w-5 rounded-full transition-colors duration-300 ${active ? "bg-brand-400" : "bg-transparent"}`}
                   />
                 </TransitionLink>
               );

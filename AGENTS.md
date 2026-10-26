@@ -692,6 +692,20 @@ avisar.
   `nav()` con `document.startViewTransition` + `flushSync`. Si tocás `.btn-primary`
   recuerda que `enty-system.css` carga después y lo redefine: cualquier estado
   nuevo necesita especificidad `.auth-shell` (o `.app-shell`) para ganar.
+- **La transición de vista es para TODA navegación interna, no solo el login.**
+  El helper `withViewTransition` no alcanza a un `<Link>` de react-router (el Link
+  navega por su cuenta y la API no lo ve), y por eso existe
+  `components/TransitionLink.jsx`: intercepta el clic y hace la misma navegación
+  dentro de `startViewTransition`. Regla: **un `<Link>` interno se escribe como
+  `<TransitionLink>`**, y un `nav(...)` de página se envuelve con
+  `withViewTransition(() => nav(...))`. Un `<Link>` pelado rompe la consistencia
+  (el wordmark cruzaba animado y la tarjeta de evento no, siendo el mismo gesto).
+  `TransitionLink` respeta las salidas que NO deben interceptarse: clic con
+  modificador o botón del medio, `target="_blank"` y `preventDefault` del
+  consumidor. Sin soporte del navegador o con movimiento reducido, navega directo
+  (el fallback vive en `withViewTransition`). El contrato E2E no cambia:
+  `TransitionLink` pasa `...rest`, así que `role="link"`, `className` y
+  `aria-current` siguen intactos.
 - **Entrada de las pantallas de la casa**: `.home`, `.evd` y `.door-shell`
   entran con `screen-rise` en cascada de 35ms (aesthetic-refresh.css). Dos
   reglas al tocarlas: (1) los hijos `position: fixed` quedan fuera del selector

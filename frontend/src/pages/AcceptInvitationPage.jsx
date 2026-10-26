@@ -6,10 +6,11 @@
  * como una boleta.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Logo } from "../components/Brand";
 import { apiFetch } from "../lib/api";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import TransitionLink from "../components/TransitionLink";
 
 const ROLE_LABEL = { promotor: "Promotor", bouncer: "Portero", admin: "Administrador" };
 
@@ -172,7 +173,7 @@ export default function AcceptInvitationPage() {
                   {password.length > 0 && (
                     <div className="mt-1.5 flex items-center gap-2">
                       <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
-                        <div className={`h-full rounded-full transition-all ${strengthMeta.cls}`} style={{ width: strengthMeta.width }} />
+                        <div className={`h-full rounded-full transition-[width,background-color] duration-300 ${strengthMeta.cls}`} style={{ width: strengthMeta.width }} />
                       </div>
                       <span className="text-2xs uppercase tracking-wide text-zinc-500">{strengthMeta.label}</span>
                     </div>
@@ -235,12 +236,12 @@ export default function AcceptInvitationPage() {
                 </p>
               </div>
 
-              <Link
+              <TransitionLink
                 to={ROLE_HOME[preview?.role] || "/"}
                 className="btn-primary inline-block px-5 py-2.5 text-sm font-bold"
               >
                 Ir a mi panel
-              </Link>
+              </TransitionLink>
             </div>
           )}
         </div>

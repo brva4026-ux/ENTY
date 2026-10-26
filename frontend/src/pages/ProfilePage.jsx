@@ -13,6 +13,7 @@ import ThemeChooser from "../components/ThemeChooser";
 import MotionChooser from "../components/MotionChooser";
 import { PushToggle } from "../components/PushToggle";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { withViewTransition } from "../lib/viewTransition";
 
 const roleLabel = (role) => ROLE_LABELS[role] ?? role;
 
@@ -382,7 +383,7 @@ export default function ProfilePage() {
         body: JSON.stringify({ password: delPass, confirm: delConfirm }),
       });
       logout();
-      nav("/login", { state: { deleted: true } });
+      withViewTransition(() => nav("/login", { state: { deleted: true } }));
     } catch (err) {
       setDelErr(err.message);
     } finally {
@@ -445,7 +446,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => {
                 logout();
-                nav("/login", { replace: true });
+                withViewTransition(() => nav("/login", { replace: true }));
               }}
               className="btn-ghost pf-action"
             >

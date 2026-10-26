@@ -1,6 +1,7 @@
-import { Link } from "react-router-dom";
+
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { SITE } from "../lib/site";
+import TransitionLink from "./TransitionLink";
 
 /**
  * Páginas legales de Enty (Términos y Privacidad). Eran el bloqueante para
@@ -25,13 +26,13 @@ export function LegalLayout({ title, intro, children }) {
   return (
     <div className="legal">
       <header className="legal-top">
-        <Link to="/inicio" className="legal-brand" aria-label="Enty, inicio">
+        <TransitionLink to="/inicio" className="legal-brand" aria-label="Enty, inicio">
           <span>Enty</span>
           <i aria-hidden="true" />
-        </Link>
-        <Link to="/inicio" className="legal-back">
+        </TransitionLink>
+        <TransitionLink to="/inicio" className="legal-back">
           Volver
-        </Link>
+        </TransitionLink>
       </header>
 
       <main className="legal-wrap">
@@ -50,9 +51,9 @@ export function LegalLayout({ title, intro, children }) {
             .
           </p>
           <nav className="legal-nav" aria-label="Documentos legales">
-            <Link to="/terminos">Términos y condiciones</Link>
-            <Link to="/privacidad">Política de privacidad</Link>
-            <Link to="/inicio">Inicio</Link>
+            <TransitionLink to="/terminos">Términos y condiciones</TransitionLink>
+            <TransitionLink to="/privacidad">Política de privacidad</TransitionLink>
+            <TransitionLink to="/inicio">Inicio</TransitionLink>
           </nav>
         </footer>
       </main>

@@ -5,6 +5,7 @@ import { missingList } from "../lib/passwordPolicy";
 import { Logo } from "../components/Brand";
 import PasswordMeter from "../components/PasswordMeter";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { withViewTransition } from "../lib/viewTransition";
 
 /**
  * Reset self-service: el usuario llega desde el correo con ?token=...
@@ -63,7 +64,7 @@ export default function ResetPasswordPage() {
                 completo desde tu correo, o pide uno nuevo desde la pantalla
                 de ingreso.
               </p>
-              <button onClick={() => nav("/login")} className="btn-primary mt-4 w-full">
+              <button onClick={() => withViewTransition(() => nav("/login"))} className="btn-primary mt-4 w-full">
                 Ir a ingresar
               </button>
             </>
@@ -73,7 +74,7 @@ export default function ResetPasswordPage() {
               <p className="text-sm leading-relaxed text-zinc-400">
                 Ya puedes iniciar sesión con tu nueva contraseña.
               </p>
-              <button onClick={() => nav("/login")} className="btn-primary mt-4 w-full">
+              <button onClick={() => withViewTransition(() => nav("/login"))} className="btn-primary mt-4 w-full">
                 Ingresar
               </button>
             </>

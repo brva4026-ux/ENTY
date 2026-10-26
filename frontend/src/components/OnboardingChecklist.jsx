@@ -186,7 +186,7 @@ export function OnboardingChecklist({
           const body = (
             <>
               <span
-                className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold transition-all duration-300 ${
+                className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold transition-[transform,background-color] duration-300 ${
                   s.done
                     ? "scale-110 bg-emerald-500 text-white"
                     : "bg-zinc-800 text-zinc-500 ring-1 ring-zinc-700"
