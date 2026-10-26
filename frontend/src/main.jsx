@@ -13,14 +13,14 @@ import {
 import "./tokens.css";
 import "./index.css";
 import "./aesthetic-refresh.css";
-import "./enty-system.css";
+import "./vp-system.css";
 // Voz de OPERACIÓN del panel (tiras de cifras, medidores, cola de puerta y
 // tabla de promotores). Va al final: es la capa más específica del panel y
 // consume los tokens de las anteriores. La vitrina del fan no la usa.
 import "./panel-cockpit.css";
 // Capa de experiencia del fan (vitrina editorial responsive): se importa al
 // final para llevar la marca a su forma definitiva sin reescribir el sistema.
-import "./enty-fan.css";
+import "./vp-fan.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";

@@ -145,7 +145,7 @@ Cada rol es un "volumen" distinto del mismo lenguaje.
 - `.e-pill--ok` = verde (validado). `.e-pill--hot` = rosa (urgencia).
   `.e-pill--brand` = azul tenue (estado de marca).
 - `.e-meter` / `.e-meter-fill` (+ `.is-warn`, `.is-full`): medidor de cupo.
-- El **troquel** (`.enty-perf`) es el corte perforado de la boletería: separa
+- El **troquel** (`.vp-perf`) es el corte perforado de la boletería: separa
   bloques como el corte de una entrada.
 - La **boleta** (`.tkt`) es un artefacto troquelado; conserva su forma y solo
   hereda tokens (radio/sombra).

@@ -11,7 +11,7 @@
  *    · medidores con marcas (`.pc-gauge`) donde el aforo se ve, no se adivina;
  *    · una cola de escaneos que muestra la puerta pasando.
  *
- *  Se importa DESPUÉS de index.css y enty-system.css: consume sus tokens
+ *  Se importa DESPUÉS de index.css y vp-system.css: consume sus tokens
  *  (--e-*) y solo redefine lo que es del panel. La vitrina del fan no se
  *  toca: son dos contextos, no dos marcas.
  * ========================================================================== */

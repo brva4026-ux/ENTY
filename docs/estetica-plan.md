@@ -23,15 +23,15 @@ Medido sobre el árbol actual (`frontend/src`, 8 424 líneas de CSS en 4 hojas):
 
 | Síntoma | Evidencia | Impacto |
 | --- | --- | --- |
-| **Cascada apilada** | `index.css` (5 076) → `aesthetic-refresh.css` (2 433) → `enty-system.css` (348) → `enty-fan.css` (567). Cada hoja "eleva sin reescribir" la anterior. | Gana el último que escribe; depurar una regla exige revisar 4 archivos. |
-| **Tokens duplicados** | 150 custom props distintas; conviven los espacios de nombres `--color-zinc-*` (Tailwind), `--tf-*`, `--home-*`, `--evd-*`, `--tkt-*`, `--vh-*`, `--enty-*`. | La misma decisión de diseño vive en 3–4 nombres; divergen. |
+| **Cascada apilada** | `index.css` (5 076) → `aesthetic-refresh.css` (2 433) → `vp-system.css` (348) → `vp-fan.css` (567). Cada hoja "eleva sin reescribir" la anterior. | Gana el último que escribe; depurar una regla exige revisar 4 archivos. |
+| **Tokens duplicados** | 150 custom props distintas; conviven los espacios de nombres `--color-zinc-*` (Tailwind), `--tf-*`, `--home-*`, `--evd-*`, `--tkt-*`, `--vh-*`, `--vp-*`. | La misma decisión de diseño vive en 3–4 nombres; divergen. |
 | **Color hardcodeado** | 44 × `#BB5CF6`, 20 × `#7C3AED`, 16 × `#6D28D9`, 15 × `#34D399`, 14 × `#D29BF9`, 23 × `#e4e4e7`, 12 × `#0B0B0F`… dentro del CSS. | La marca no se puede re-afinar en un punto. |
 | **Escala tipográfica difusa** | ~24 tamaños distintos (0.5rem → 1.75rem) y **7 micro-tamaños** ≤ 0.6875rem (0.5/0.55/0.6/0.625/0.66/0.68/0.6875rem). | Sin ritmo vertical; los textos diminutos comprometen legibilidad. |
 | **Escala de radios difusa** | 999px (40), 1rem (16), 0.5rem (13) + ~15 valores de una sola aparición (0.375/0.4/0.55/0.6/0.7/0.8/0.9/1.05/1.1/1.15/1.4/1.5…). | El "radio" no es un lenguaje, es una lotería. |
 | **Breakpoints dispersos** | 768, 1024, 640, 900, 480, 1280, 560, 420, 400, 360 **más** candados de teléfono en `26rem`/`27rem`. | Rejillas que saltan distinto por página. |
 | **Modo claro reactivo** | ~430 líneas de remapeo `html[data-theme="light"]` solo en `index.css` (2974→3400s). | El claro se parcha caso por caso → se escapan bugs. |
 | **Estilos en línea** | 27 `style={{…}}` en JSX (tamaños de esqueleto, colores de gráfico). | Rompe el sistema; imposible de tematizar. |
-| **`!important`** | 11 (index 7, enty-system 3, refresh 1). | Síntoma de pugna de especificidad. |
+| **`!important`** | 11 (index 7, vp-system 3, refresh 1). | Síntoma de pugna de especificidad. |
 | **Sin guardarraíles** | No hay stylelint/eslint, ni regresión visual (Chromatic/Percy/backstop). Los E2E (4 specs, 6 tests) solo cubren flujos. | Nada impide que la estética se degrade con el próximo commit. |
 | **Motion desparejo** | 26 `@keyframes` (index 23, fan 2, refresh 1) y solo 9 bloques `prefers-reduced-motion`. | Animaciones que no se apagan con la preferencia del SO. |
 | **Contraste en claro (2 bugs reales)** | `/waitlist`: `<p class="text-white">` sobre `.card` blanco (1:1). `/login`: el título del panel de marca hereda `#171a20` sobre el navy del panel (1.07:1). | Texto **invisible** en tema claro. |
@@ -240,7 +240,7 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   refresh 1→0 — sus animaciones ahora reusan `enter`/`logo-pop`/`shimmer`/`spin`
   de la capa base). Fusiones reales, no alias vacíos: `toast-in`/`rise`/`scale-in`
   /`dialog-in` → un solo `enter`; `dialog-backdrop` → `fade`; `splash-breathe`
-  /`halo-breathe` → `breathe`; `ptr-spin`/`enty-spin` → `spin`; `fav-pop` →
+  /`halo-breathe` → `breathe`; `ptr-spin`/`vp-spin` → `spin`; `fav-pop` →
   `logo-pop`; `scan-verdict-ok` → `pop`. Se eliminan keyframes muertos
   (`ab-breathe`, `splash-breathe`, `live-glow`) y los alias de curva duplicados
   (`--ease-out-expo`/`--ease-spring` en `:root`).

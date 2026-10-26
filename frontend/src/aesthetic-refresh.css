@@ -1,5 +1,5 @@
 /*
-  Enty brand refresh layer.
+  V-Pass brand refresh layer.
   Direction: nocturnal premium ticketing, rounded futuristic typography,
   black/white base, blue glow (var(--e-brand-glow)), and neon event accents used with
   restraint. This file is imported after index.css on purpose.
@@ -1340,7 +1340,7 @@ html[data-theme="light"] .bizdock-count {
   transition: fill 0.15s ease, stroke 0.15s ease;
 }
 .home-nav a.is-on {
-  color: var(--e-brand-glow);
+  color: var(--e-brand-text);
   font-weight: 600;
 }
 .home-nav a.is-on svg path,
@@ -1657,13 +1657,13 @@ html[data-theme="light"] .bizdock-count {
   transition: color 0.15s ease, transform 0.1s ease;
 }
 .home-row-fav:hover {
-  color: var(--e-brand-glow);
+  color: var(--e-brand-text);
 }
 .home-row-fav:active {
   transform: scale(0.9);
 }
 .home-row-fav.is-on {
-  color: var(--e-brand-glow);
+  color: var(--e-brand-text);
 }
 /* Rebote solo al marcar (el JS pone `is-pop` en la tarjeta pulsada), no en
    la carga de la lista: un favorito guardado no debe saltar al abrir. */
@@ -1774,7 +1774,7 @@ html[data-theme="light"] .bizdock-count {
   font-weight: 600;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--e-brand-glow);
+  color: var(--e-brand-text);
 }
 .evd-title {
   margin: 0.5rem 0 0;
@@ -1809,7 +1809,7 @@ html[data-theme="light"] .bizdock-count {
 .evd-cell-icon {
   width: 1.1rem;
   height: 1.1rem;
-  color: var(--e-brand-glow);
+  color: var(--e-brand-text);
   margin-bottom: 0.15rem;
 }
 .evd-cell-k {
@@ -1940,7 +1940,7 @@ html[data-theme="light"] .bizdock-count {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--e-brand-glow);
+  color: var(--e-brand-text);
   background: rgba(61, 92, 214, 0.16);
 }
 
@@ -1961,7 +1961,7 @@ html[data-theme="light"] .bizdock-count {
   width: 100%;
   height: 13rem;
   border: 0;
-  /* El embed de OSM es claro; el filtro lo lleva al modo nocturno de Enty
+  /* El embed de OSM es claro; el filtro lo lleva al modo nocturno de V-Pass
      sin pedir una capa oscura al servidor (no hay API key). */
   filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.7);
 }
@@ -1990,7 +1990,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-dim-400);
 }
 .evd-address svg {
-  color: var(--e-brand-glow);
+  color: var(--e-brand-text);
   flex: none;
 }
 
@@ -2275,7 +2275,7 @@ html[data-theme="light"] .bizdock-count {
 }
 
 /* ===========================================================================
-   INTERIOR — Admin · Promotor · Puerta ("la casa" de Enty).
+   INTERIOR — Admin · Promotor · Puerta ("la casa" de V-Pass).
    El fan ya tiene su vitrina editorial; estas pantallas son el backstage.
    Aquí el sistema se vuelve más DENSO, no más decorado: cristal esmerilado
    sobre negro mate, un encuadre de luz nocturna en las esquinas del viewport

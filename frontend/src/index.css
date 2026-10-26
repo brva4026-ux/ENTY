@@ -3,7 +3,7 @@
    @import a Google Fonts: cero requests bloqueantes, cero FOUT de terceros.
    Las voces de cartel (Shrikhand/Baloo/Gochi/Permanent Marker/Anton) se
    retiraron del sistema: la jerarquía la hace el peso de Sora, no otra
-   familia. Ver src/enty-system.css. */
+   familia. Ver src/vp-system.css. */
 @import "tailwindcss";
 
 /* stylelint-disable color-no-hex --
@@ -19,14 +19,13 @@
     "Sora", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, sans-serif;
   /* MARCA V-PASS. La paleta sale del logotipo: carbon calido, azul de las
-     ondas concentricas y crema de fondo. Los nombres `enty-*` se conservan
-     como alias historico (nada en JSX los usa), pero apuntan a la marca
-     nueva. */
-  --color-enty-bg: #0E0D0C;
+     ondas concentricas y crema de fondo. Los nombres `vp-*` son alias
+     historicos (nada en JSX los usa), pero apuntan a la marca nueva. */
+  --color-vp-bg: #0E0D0C;
 
-  --color-enty-green: #00E6AB;
-  --color-enty-pink: #FF2D98;
-  --color-enty-white: #F5EEDD; /* crema del logotipo */
+  --color-vp-green: #00E6AB;
+  --color-vp-pink: #FF2D98;
+  --color-vp-white: #F5EEDD; /* crema del logotipo */
   /* Espejo de --e-blue-* (tokens.css). 500 = accion: blanco encima 5.68:1. */
   --color-brand-200: #ced4ee;
   --color-brand-300: #8e9fe1;
@@ -1764,7 +1763,7 @@ html[data-theme="light"] .bizdock-desc {
     0 10px 22px -12px rgba(3, 7, 18, 0.75);
 }
 /* Con color de marca, el tile deja el navy por el color del negocio: es su
-   sello, no el de Enty. El canto y las sombras se conservan (el material es
+   sello, no el de V-Pass. El canto y las sombras se conservan (el material es
    el mismo, solo cambia el relleno). */
 .venue-header[data-brand] .vh-logo-fallback {
   background: linear-gradient(
@@ -5059,7 +5058,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   font-size: var(--e-text-xs);
   color: var(--color-zinc-500);
 }
-/* Firma Enty centrada bajo el ticket */
+/* Firma V-Pass centrada bajo el ticket */
 .tkt-brandline {
   margin: 1.1rem auto 0;
   display: flex;
@@ -5123,7 +5122,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
      Por eso el corte va en 500: 50–400 es SOLO texto (0 usos de fondo o
      borde en todo src/), 500–950 es superficie/borde. Cada tema invierte su
      mitad de texto; la superficie se queda como esta. */
-  /* Lienzo -> tarjeta: pasos de negro mate Enty, del mas profundo al mas
+  /* Lienzo -> tarjeta: pasos de negro mate V-Pass, del mas profundo al mas
      alto. Un susurro azul en los altos, para casar con el filo del logo. */
   --color-zinc-950: var(--e-ink-950);
   --color-zinc-940: var(--e-zinc-940);
@@ -5194,7 +5193,7 @@ html[data-theme="light"] .brand-suffix {
 }
 
 /* --- La estrella de cuatro puntas del wordmark ------------------------
-   Va sobre la "t" de "Enty". El <span> reserva el hueco de la letra y el
+   Va sobre la "t" de "V-Pass". El <span> reserva el hueco de la letra y el
    svg se ancla encima, a la altura del travesaño. */
 .brand-star {
   position: relative;
@@ -5571,6 +5570,28 @@ html[data-theme="light"] .auth-shell .auth-card {
 .auth-brand .brand-shine,
 html[data-theme="light"] .auth-brand .brand-shine {
   color: var(--e-text-primary);
+}
+/* El panel navy es oscuro en AMBOS temas, así que el wordmark nunca puede
+   heredar la tinta del tema claro (quedaba oscuro sobre oscuro). */
+.auth-brand .brand-wordmark,
+html[data-theme="light"] .auth-brand .brand-wordmark {
+  color: var(--e-paper);
+}
+
+/* El gate legal es otra superficie SIEMPRE oscura (#0b0b0f): su tinta no
+   puede seguir al tema. Las utilidades text-zinc-* del modal leen los tokens
+   --color-zinc-*, que en claro se voltean a tinta oscura; se fijan aquí a los
+   valores oscuros para todo el subárbol. `.eyebrow` se fija aparte porque en
+   claro no usa un zinc sino --e-blue-500 (3.46:1 sobre el modal, bajo AA). */
+.legal-gate {
+  --color-zinc-50: var(--e-zinc-50);
+  --color-zinc-100: var(--e-zinc-100);
+  --color-zinc-400: var(--e-zinc-400);
+  --color-zinc-500: var(--e-zinc-500);
+}
+.legal-gate .eyebrow,
+html[data-theme="light"] .legal-gate .eyebrow {
+  color: var(--e-blue-300);
 }
 
 /* Candado oscuro de la puerta: va al cierre de la hoja para ganar por orden

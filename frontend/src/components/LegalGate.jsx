@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchLegalStatus, recordAcceptance } from "../lib/legal";
 import { captureError } from "../lib/sentry";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
  * Gate de aceptación legal para cuentas existentes.
@@ -30,6 +31,13 @@ export function LegalGate({ onCleared }) {
   const [checked, setChecked] = useState({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // La pantalla de aceptación SUSTITUYE al contenido de Layout, así que la
+  // página de destino nunca monta su propio título: sin esto la pestaña queda
+  // con el <title> genérico de index.html justo cuando más importa.
+  useDocumentTitle(
+    pending === null ? "Revisando documentos" : "Documentos legales",
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -83,7 +91,7 @@ export function LegalGate({ onCleared }) {
   const allChecked = pending.every((d) => checked[d.slug]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#0b0b0f] px-4 py-10">
+    <div className="legal-gate fixed inset-0 z-50 overflow-y-auto bg-[#0b0b0f] px-4 py-10">
       <div className="mx-auto max-w-xl">
         <p className="eyebrow">Documentos legales</p>
         <h1 className="display mt-1 text-2xl">Hay cambios en los términos</h1>

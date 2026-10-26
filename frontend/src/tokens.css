@@ -1,10 +1,10 @@
 /*
  * ==========================================================================
- *  ENTY · TOKENS (Fase 1 del plan estético)
+ *  V-PASS · TOKENS (Fase 1 del plan estético)
  * --------------------------------------------------------------------------
  *  La ÚNICA fuente de color/forma/movimiento del producto. Se importa PRIMERO
- *  (main.jsx), antes de index.css / aesthetic-refresh.css / enty-system.css /
- *  enty-fan.css: las hojas consumen estos tokens, no inventan valores.
+ *  (main.jsx), antes de index.css / aesthetic-refresh.css / vp-system.css /
+ *  vp-fan.css: las hojas consumen estos tokens, no inventan valores.
  *
  *  Tres niveles:
  *    1. PRIMITIVAS  (--e-<familia>-<paso>): el valor crudo de la marca. No se
@@ -22,7 +22,7 @@
 :root {
   /* ---------------------------------------------------------------- 1 · PRIMITIVAS */
   /* Tinta: el negro del logotipo y sus pasos de superficie (canon de producto:
-     los mismos pasos mate que usaba enty-system.css). */
+     los mismos pasos mate que usaba vp-system.css). */
   --e-ink-0: #050505;
   --e-ink-1: #0e0d0c; /* negro mate de marca (carbón cálido del logotipo) */
   --e-ink-2: #141312;
@@ -184,7 +184,11 @@
   --e-border-strong: rgba(245, 238, 221, 0.28);
 
   --e-brand: var(--e-blue-500);
-  --e-brand-glow: var(--e-blue-400);
+  --e-brand-glow: var(--e-blue-400); /* solo halo/luz: nunca sostiene texto */
+  /* Azul de TEXTO de marca: --e-blue-400 da 4.12:1 sobre el canvas oscuro
+     (por debajo de AA a tamaños pequeños). --e-blue-350 sube a 5.35:1 y sigue
+     leyéndose azul. El tema claro lo redefine con un azul más profundo. */
+  --e-brand-text: var(--e-blue-350);
   --e-success: var(--e-green-500);
   --e-urgent: var(--e-pink-500);
   --e-warn: var(--e-amber-500);
@@ -298,6 +302,10 @@ html[data-theme="light"] {
   --e-border-hairline: rgba(23, 26, 32, 0.1);
   --e-border-soft: rgba(23, 26, 32, 0.16);
   --e-border-strong: rgba(23, 26, 32, 0.28);
+
+  /* Sobre papel claro el azul de marca necesita más profundidad: --e-blue-500
+     da 5.03:1 sobre --e-canvas (AA a cualquier tamaño). */
+  --e-brand-text: var(--e-blue-500);
 
   --e-shadow-1: 0 1px 2px rgba(23, 26, 32, 0.08);
   --e-shadow-2: 0 8px 20px -14px rgba(23, 26, 32, 0.22);

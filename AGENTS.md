@@ -262,9 +262,9 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
 ## Capas de diseño (auditoría)
 
 El frontend importa **cinco** hojas en este orden (main.jsx):
-`tokens.css` → `index.css` → `aesthetic-refresh.css` → `enty-system.css` →
-`enty-fan.css`. `tokens.css` es la fuente única de color/forma/movimiento; las
-demás elevan la anterior sin reescribirla y `enty-fan.css` es la última palabra
+`tokens.css` → `index.css` → `aesthetic-refresh.css` → `vp-system.css` →
+`vp-fan.css`. `tokens.css` es la fuente única de color/forma/movimiento; las
+demás elevan la anterior sin reescribirla y `vp-fan.css` es la última palabra
 sobre las superficies del fan.
 
 | Capa | Alcance |
@@ -272,8 +272,8 @@ sobre las superficies del fan.
 | `tokens.css` | **Tokens del design system V-Pass** (`--e-*`): primitivas, semánticas (voltean con el tema) y escalas cerradas (espacio, radio, tipo, motion, elevación). Ver "Tokens y guardarraíles". |
 | `index.css` | Base del design system (clases `.card`, `.field`, `.btn-*`), tema claro/oscuro y la vitrina del fan (`.home`, `.evd`). |
 | `aesthetic-refresh.css` | Marca aplicada: `.home` (Inicio/boletas), `.evd` (detalle), `.tkt` (boleta pública) y la capa `.app-shell` del interior. |
-| `enty-system.css` | Retoques del sistema ("eleva sin reescribir"). |
-| `enty-fan.css` | **Experiencia del fan (vitrina editorial)**: responsive real, motivo de boleto perforado, ticker cinético y estados completos. |
+| `vp-system.css` | Retoques del sistema ("eleva sin reescribir"). |
+| `vp-fan.css` | **Experiencia del fan (vitrina editorial)**: responsive real, motivo de boleto perforado, ticker cinético y estados completos. |
 
 **Clasificación del rediseño (qué se conservó y qué se rehízo):**
 
@@ -292,8 +292,8 @@ sobre las superficies del fan.
 
 **Motivos exclusivos de V-Pass** (reconocibles sin el logotipo):
 
-1. **Boleto perforado** — `.enty-perf` (troquel de línea discontinua) y
-   `.enty-notch` (canto festoneado por máscara radial). Se usan como separador
+1. **Boleto perforado** — `.vp-perf` (troquel de línea discontinua) y
+   `.vp-notch` (canto festoneado por máscara radial). Se usan como separador
    editorial y canto del rail de compra. La boleta pública y `.fan-ticket` ya
    traen su propio corte rasgado.
 2. **Ticker cinético** — `.home-ticker` en Inicio: banda de palabras de la noche
@@ -625,7 +625,7 @@ avisar.
   desde `frontend/` (donde está `node_modules`), no desde `/tmp`.
 - El sistema visual vive en `frontend/src/aesthetic-refresh.css` (tokens del fan
   en `.home`, estilos de la app del fan al final). Tokens globales en `@theme`
-  de `index.css` (`--color-enty-*`, fuente `Sora`).
+  de `index.css` (`--color-vp-*`, fuente `Sora`).
 - El dev server sirve `frontend/dist`: **corré `npm run build`** antes de mirar
   cambios en `http://127.0.0.1:12000`.
 - **E2E: correr contra el dev server, no contra el backend.** `playwright.config.js`
@@ -789,9 +789,9 @@ avisar.
   del aviso de cookies (z-45 vs z-40) o el botón queda inclickeable.
 - **La portada del panel (`.venue-header`) la definen TRES hojas** y gana la
   última en cargar (`main.jsx`: tokens → index.css → aesthetic-refresh.css →
-  enty-system.css → enty-fan.css). Editar `index.css` sin comprobar la cascada
+  vp-system.css → vp-fan.css). Editar `index.css` sin comprobar la cascada
   es silenciosamente inútil: una regla posterior lo anula. El material de la
-  portada vive scopeado a `.app-shell` en `enty-system.css`, en ambos temas.
+  portada vive scopeado a `.app-shell` en `vp-system.css`, en ambos temas.
   Comprobar con `getComputedStyle` en el navegador, no leyendo el CSS.
 - **El panel renderiza en tema CLARO por defecto** (`tf_theme` sin guardar →
   `data-theme="light"`). Cualquier maqueta o medición visual debe partir de

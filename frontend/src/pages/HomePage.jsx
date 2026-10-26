@@ -612,7 +612,7 @@ export default function HomePage() {
 
       {error ? (
         <div className="home-empty">
-          <span className="enty-spark" aria-hidden="true">
+          <span className="vp-spark" aria-hidden="true">
             <Star size={20} color="#4f6bdb" />
           </span>
           <p>No pudimos cargar la cartelera</p>
@@ -627,16 +627,16 @@ export default function HomePage() {
         </div>
       ) : !data ? (
         <div className="home-grid">
-          <div className="enty-skel" style={{ height: "16.4rem" }} />
+          <div className="vp-skel" style={{ height: "16.4rem" }} />
           <div className="home-list">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="enty-skel" style={{ height: "5.4rem" }} />
+              <div key={i} className="vp-skel" style={{ height: "5.4rem" }} />
             ))}
           </div>
         </div>
       ) : !featured ? (
         <div className="home-empty">
-          <span className="enty-spark" aria-hidden="true">
+          <span className="vp-spark" aria-hidden="true">
             <Star size={20} color="#00E6AB" />
           </span>
           <p>{narrowed ? "Sin resultados" : "No hay eventos próximos"}</p>
@@ -710,7 +710,7 @@ export default function HomePage() {
 
           {/* El troquel: la línea perforada de la boletería separa el
               destacado de la lista — el mismo corte que la entrada. */}
-          <span className="enty-perf" aria-hidden="true" />
+          <span className="vp-perf" aria-hidden="true" />
 
           <div className="home-subhead">
             <span>Próximos</span>

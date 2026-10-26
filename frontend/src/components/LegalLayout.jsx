@@ -9,7 +9,7 @@ import { SITE } from "../lib/site";
  *
  * Se separan de la app interna a propósito: son públicas, sin login, y su
  * contenido es PROSA (no producto). Un único layout `.legal` (ver
- * enty-fan.css) les da la misma voz que la vitrina sin reusar el chrome del
+ * vp-fan.css) les da la misma voz que la vitrina sin reusar el chrome del
  * fan. Sora es la única tipografía, los colores salen de tokens --e-*, y el
  * texto pasa AA en ambos temas (lo verifica a11y.spec.js).
  *

@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { fetchMyTickets, fetchMyTicketToken } from "../lib/api";
 import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
-import { Spark } from "../components/Brand";
+import { Logo, Spark } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**

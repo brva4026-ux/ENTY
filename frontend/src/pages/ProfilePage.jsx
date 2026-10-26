@@ -930,7 +930,7 @@ export default function ProfilePage() {
       {/* Zona de peligro: lo destructivo no vive "a la vista" junto a lo demás.
           Se separa con el troquel de la casa y arranca colapsado. */}
       <div className="pf-danger-wrap" ref={dangerRef}>
-        <div className="enty-perf" aria-hidden="true" />
+        <div className="vp-perf" aria-hidden="true" />
         <section className="card pf-danger" aria-labelledby="pf-danger-title">
           <h2 id="pf-danger-title" className="pf-danger-title">
             Zona de peligro

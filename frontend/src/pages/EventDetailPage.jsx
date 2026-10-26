@@ -365,7 +365,7 @@ export default function EventDetailPage() {
 
             {/* Rail de compra: el canto troquelado del boleto. El precio se
                 repite aquí en grande — la decisión no obliga a scrollear. */}
-            <div className="evd-buy enty-notch">
+            <div className="evd-buy vp-notch">
               <div className="evd-buy-row">
                 <span className="evd-buy-label">Entrada desde</span>
                 <span className="evd-buy-price tnum">

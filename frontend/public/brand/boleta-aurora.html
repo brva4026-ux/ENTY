@@ -53,8 +53,8 @@
 
   /* --- Cabecera -------------------------------------------------------- */
   .row-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
-  .enty{display:flex;align-items:center;gap:7px;font-weight:700;font-size:19px;letter-spacing:-.02em}
-  .enty .mark{width:15px;height:19px;display:block}
+  .vp{display:flex;align-items:center;gap:7px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+  .vp .mark{width:15px;height:19px;display:block}
   .connect{
     text-align:right;font-size:8.5px;font-weight:600;letter-spacing:.24em;
     line-height:1.9;color:var(--dim);text-transform:uppercase;
@@ -116,7 +116,7 @@
   .seat .v{font-family:"Anton",sans-serif;font-size:22px;line-height:1.1;color:#fff;margin-top:3px}
   .admit{text-align:right}
   .admit .k{font-size:8.5px;font-weight:700;letter-spacing:.2em;color:#fff}
-  .admit .enty{justify-content:flex-end;margin-top:8px;font-size:16px}
+  .admit .vp{justify-content:flex-end;margin-top:8px;font-size:16px}
 
   /* --- Pie: código de barras + firma ----------------------------------- */
   .foot{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end;margin-top:22px}
@@ -138,7 +138,7 @@
   <article class="ticket" id="ticket">
     <!-- Cabecera -->
     <div class="row-top">
-      <div class="enty">
+      <div class="vp">
         <svg class="mark" viewBox="0 0 64 84" aria-hidden="true">
           <path d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z" fill="#fff"/>
           <g fill="#0A0A0D"><rect x="20" y="24" width="26" height="6" rx="3"/><rect x="20" y="40" width="26" height="6" rx="3"/><rect x="20" y="56" width="26" height="6" rx="3"/></g>
@@ -208,7 +208,7 @@
       </div>
       <div class="admit">
         <p class="k">General Admission</p>
-        <div class="enty">
+        <div class="vp">
           <svg class="mark" viewBox="0 0 64 84" aria-hidden="true">
             <path d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z" fill="#fff"/>
             <g fill="#0A0A0D"><rect x="20" y="24" width="26" height="6" rx="3"/><rect x="20" y="40" width="26" height="6" rx="3"/><rect x="20" y="56" width="26" height="6" rx="3"/></g>

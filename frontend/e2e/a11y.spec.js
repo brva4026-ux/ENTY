@@ -129,7 +129,10 @@ function auditInPage() {
         });
       }
     }
-    if (el.tagName === "IMG" && !el.getAttribute("alt")) noAlt++;
+    // `alt=""` es un alt VÁLIDO (imagen decorativa): la regla exige el
+    // ATRIBUTO, no un valor no vacío. Se usa hasAttribute para no marcar como
+    // fallo un logo decorativo correctamente anotado.
+    if (el.tagName === "IMG" && !el.hasAttribute("alt")) noAlt++;
   });
   return { contrastFails, tapSmall, noAlt };
 }
