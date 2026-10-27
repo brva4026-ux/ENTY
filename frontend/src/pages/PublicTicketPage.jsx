@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { fetchPublicTicket, fetchTicketImage, returnTicket } from "../lib/api";
 import { eventDate, clockTime } from "../lib/format";
-import { forceDarkOnce } from "../lib/theme";
 import Icon from "../components/Icon";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { SITE } from "../lib/site";
@@ -90,10 +89,6 @@ export default function PublicTicketPage() {
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  // La boleta pública SIEMPRE es oscura (es la credencial de la noche: se
-  // muestra en la puerta a oscuras, igual que el escáner). Sin el candado,
-  // un invitado con tema claro ve texto blanco sobre blanco.
-  useEffect(() => forceDarkOnce(), []);
   // Devolucion (mig 021): confirmacion en dos pasos — es irreversible.
   const [confirming, setConfirming] = useState(false);
   const [returning, setReturning] = useState(false);

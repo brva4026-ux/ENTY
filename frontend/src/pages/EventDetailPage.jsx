@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { fetchPublicEventDetail } from "../lib/api";
 import FanCheckoutModal from "../components/FanCheckoutModal";
 import { money } from "../lib/format";
-import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
@@ -167,11 +166,6 @@ export default function EventDetailPage() {
       </>
     );
   }
-
-  useEffect(() => {
-    const restore = forceDarkOnce();
-    return restore;
-  }, []);
 
   useEffect(() => {
     let alive = true;

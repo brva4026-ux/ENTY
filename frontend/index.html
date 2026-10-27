@@ -57,11 +57,25 @@
       // retrasaba el anti-flash (el bloque quedaba despues del div#root).
       try {
         var t = localStorage.getItem("tf_theme");
+        // Rutas de superficie SIEMPRE oscura (vitrina, detalle, boleta,
+        // escaner). En ellas no se aplica el tema claro: su candado oscuro
+        // (forceDarkOnce) corre en React, DESPUES del primer paint, y hasta
+        // entonces la pagina se pintaba clara y saltaba a negra (FOLT). Al
+        // no marcar claro aqui, el primer paint ya sale oscuro. Mantener en
+        // sincronia con las paginas que llaman forceDarkOnce.
+        var p = location.pathname;
+        var dark =
+          p === "/inicio" ||
+          p === "/boletas" ||
+          p === "/t" ||
+          p === "/bouncer" ||
+          p.indexOf("/evento/") === 0;
         if (
-          t === "light" ||
-          (t !== "dark" &&
-            window.matchMedia &&
-            window.matchMedia("(prefers-color-scheme: light)").matches)
+          !dark &&
+          (t === "light" ||
+            (t !== "dark" &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: light)").matches))
         ) {
           document.documentElement.dataset.theme = "light";
           document.documentElement.style.colorScheme = "light";

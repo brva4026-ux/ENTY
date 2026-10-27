@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import QRCode from "qrcode";
 import { fetchMyTickets, fetchMyTicketToken } from "../lib/api";
-import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
 import { Logo, Spark } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
@@ -40,7 +39,6 @@ export default function MyTicketsPage() {
   const mounted = useRef(true);
 
   useEffect(() => {
-    const restore = forceDarkOnce();
     mounted.current = true;
     try {
       const saved = localStorage.getItem(STORE_KEY);
@@ -53,7 +51,6 @@ export default function MyTicketsPage() {
     }
     return () => {
       mounted.current = false;
-      restore();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

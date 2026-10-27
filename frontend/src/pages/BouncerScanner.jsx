@@ -11,7 +11,6 @@ import {
 } from "../lib/wakeLock";
 import { useAuth } from "../lib/auth";
 import { useUI } from "../lib/ui";
-import { forceDarkOnce } from "../lib/theme";
 import { haptics } from "../lib/haptics";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import {
@@ -141,14 +140,6 @@ export default function BouncerScanner() {
   const { user, logout } = useAuth();
   const ui = useUI();
   const venueId = firstVenueId(user);
-
-  // La puerta SIEMPRE oscura: en un recinto a oscuras un flash de fondo
-  // blanco ciega al portero. forceDarkOnce pone el candado y devuelve el
-  // restaurador que se ejecuta al desmontar (sale el tema del usuario).
-  useEffect(() => {
-    const restore = forceDarkOnce();
-    return restore;
-  }, []);
 
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)
   // Evento YA FIJO por el link de puerta. Si vino, esta persona está

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useLayoutEffect } from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
@@ -27,7 +27,7 @@ import { initFrontendSentry, captureError } from "./lib/sentry";
 initFrontendSentry();
 // Tema ANTES del primer render: cero flash (el html ya trae su script inline
 // anti-flash; esto re-aplica y deja el listener del sistema listo).
-import { initTheme } from "./lib/theme";
+import { initTheme, isForcedDarkPath, forceDarkOnce } from "./lib/theme";
 initTheme();
 // Movimiento ANTES del primer render, por el mismo motivo que el tema: la
 // primera animación del hero ya sale apagada si la persona pidió quietud.
@@ -119,12 +119,30 @@ function RequireAuth({ children }) {
   return children;
 }
 
+/** Dueño único del candado oscuro. Las rutas de superficie SIEMPRE oscura
+ *  (vitrina, detalle, boleta publica, escaner) fijan el tema oscuro ANTES
+ *  del paint, en useLayoutEffect. Vive fuera del <Suspense> a propósito: si
+ *  el candado dependiera de la pagina, el splash de carga (fallback del
+ *  Suspense) se pintaria con el tema claro un instante y la pantalla
+ *  saltaria a negra (FOLT, ~300ms medido). Aqui el primer frame de la ruta
+ *  ya sale oscuro. Ver isForcedDarkPath. */
+function DarkRouteLock() {
+  const { pathname } = useLocation();
+  const dark = isForcedDarkPath(pathname);
+  useLayoutEffect(() => {
+    if (!dark) return undefined;
+    return forceDarkOnce();
+  }, [dark]);
+  return null;
+}
+
 function App() {
   return (
     <AuthProvider>
       <UIProvider>
         <OfflineBanner />
         <BrowserRouter>
+          <DarkRouteLock />
           <Suspense fallback={<SplashScreen />}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />

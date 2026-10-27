@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
-import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
@@ -344,11 +343,6 @@ export default function HomePage() {
   // Contador de reintentos: cambiar el valor vuelve a disparar el fetch sin
   // duplicar la lógica de carga (mismo efecto, misma limpieza).
   const [reload, setReload] = useState(0);
-  // La vitrina es nocturna por diseno (negro + azul). Sin el candado, un
-  // visitante con tema claro veia la cartelera como una tarjeta negra sobre
-  // blanco: el tema del sistema no aplica a una pantalla publica de marca.
-  useEffect(() => forceDarkOnce(), []);
-
   useEffect(() => setFavs(readFavs()), []);
 
   // Ciudad opcional por URL (?city=Bogotá): permite enlazar/compartir una
