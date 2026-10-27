@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { fetchPublicTicket, fetchTicketImage, returnTicket } from "../lib/api";
 import { eventDate, clockTime } from "../lib/format";
 import Icon from "../components/Icon";
+import { MarkGlyph } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { SITE } from "../lib/site";
 
@@ -516,7 +517,7 @@ export default function PublicTicketPage() {
         )}
 
         <div className="tkt-brandline">
-          <img src="/logo-vpass.jpg" alt="" aria-hidden="true" />
+          <MarkGlyph className="tkt-brand-mark" />
           <span>{SITE.name}</span>
         </div>
         <p className="tkt-footer">Guarda esta página: la necesitas en la entrada</p>

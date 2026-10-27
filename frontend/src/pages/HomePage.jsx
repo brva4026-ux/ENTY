@@ -4,6 +4,7 @@ import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
 import { track } from "../lib/analytics";
 import FanNav from "../components/FanNav";
+import { Logo } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { SITE } from "../lib/site";
 
@@ -463,11 +464,7 @@ export default function HomePage() {
       <header className="home-head">
         <div className="home-head-left">
           <Link to="/inicio" className="home-wordmark">
-            <img
-              src="/logo-vpass.jpg"
-              alt={SITE.name}
-              className="home-wordmark-logo"
-            />
+            <Logo size="sm" animated={false} />
           </Link>
           {/* Nav de escritorio: en móvil vive la barra inferior (FanNav). */}
           <nav className="home-topnav" aria-label="Secciones">
