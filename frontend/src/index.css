@@ -5076,7 +5076,8 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   --hy: 0%;
   z-index: 0;
 }
-.tkt-brandline img {
+.tkt-brandline img,
+.tkt-brandline .tkt-brand-mark {
   width: 1.15rem;
   height: 1.15rem;
   border-radius: 0.375rem;

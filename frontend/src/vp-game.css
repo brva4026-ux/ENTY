@@ -1,0 +1,314 @@
+/*
+ * ==========================================================================
+ *  V-PASS · CAPA "MODO JUEGO" (arcade / HUD)
+ * --------------------------------------------------------------------------
+ *  La app se juega, no se "usa": cada panel es un instrumento de cabina, cada
+ *  accion tiene respuesta fisica y la energia de la marca (cian/violeta) es la
+ *  luz del sistema. Se importa ULTIMA (main.jsx): es la capa de acabado, no
+ *  reescribe el sistema de tokens, lo viste.
+ *
+ *  Reglas que gobiernan esta capa:
+ *   1. El azul de marca sigue siendo el UNICO color interactivo. El cian y el
+ *      violeta son luz y acento decorativo (halo, filo, energia), nunca el
+ *      relleno de un boton ni el color de un texto de interfaz.
+ *   2. Verde = validado/disponible/en vivo. Rosa = urgencia/ultimas. No se
+ *      repintan: son semantica del producto.
+ *   3. Motion solo con transform/opacity. Nada de animar filter ni
+ *      backdrop-filter (mata el compositor en movil).
+ *   4. Todo respeta prefers-reduced-motion: sin movimiento, la calma es el lujo.
+ *   5. Ningun hex aqui: todo sale de tokens --e-* (stylelint color-no-hex).
+ * ==========================================================================
+ */
+
+/* --------------------------------------------------------------------------
+ *  1. ATMOSFERA · la rejilla del tablero
+ *  El lienzo deja de ser un color plano: es la superficie de una cabina.
+ *  Vive en `body::before` (global y fuera del flujo del documento), asi que
+ *  cubre TODA la app — panel, vitrina del fan y boleta — sin tocar el JSX ni
+ *  competir con los pseudo-elementos que ya usan `.home` y `.app-shell` para
+ *  su aurora y su grano.
+ * -------------------------------------------------------------------------- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--e-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--e-grid-line) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(130% 95% at 50% 0%, var(--e-mask) 18%, transparent 76%);
+  -webkit-mask-image: radial-gradient(130% 95% at 50% 0%, var(--e-mask) 18%, transparent 76%);
+}
+
+/* El contenido del root vive por encima de la rejilla. */
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+/* --------------------------------------------------------------------------
+ *  2. PANEL HUD · la superficie de instrumento
+ *  El bisel es lo que hace que un rectangulo se lea como "panel de cabina":
+ *  filo interior claro arriba, sombra interior abajo, y un canto de neón.
+ *  Se aplica a `.hud-panel` (opt-in) y a las superficies que ya existen
+ *  (`.card`, `.evx-card`) para que el acabado llegue a toda la app sin tocar el
+ *  JSX de cada pantalla.
+ * -------------------------------------------------------------------------- */
+.hud-panel,
+html:not([data-theme="light"]) .app-shell .card,
+html:not([data-theme="light"]) .app-shell .evx-card {
+  position: relative;
+  border-radius: var(--e-radius-lg);
+  border: 1px solid var(--e-border-soft);
+  background:
+    linear-gradient(180deg, var(--e-glass-1), transparent 42%),
+    var(--e-surface);
+  box-shadow: var(--e-elev-hud);
+}
+
+/* Esquinas de encuadre: los cuatro angulos marcados, como la mira de un HUD.
+   Se dibujan con dos pseudo-elementos (arriba-izquierda y abajo-derecha). */
+.hud-panel::before,
+.hud-panel::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--e-edge-neon);
+  border-style: solid;
+  opacity: 0.75;
+  pointer-events: none;
+}
+.hud-panel::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+  border-top-left-radius: var(--e-radius-lg);
+}
+.hud-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+  border-bottom-right-radius: var(--e-radius-lg);
+}
+
+/* --------------------------------------------------------------------------
+ *  3. BOTON DE ENERGIA · el CTA del juego
+ *  Conserva el azul de marca (unico color interactivo) y gana el bisel y el
+ *  golpe de presion de un boton de arcade.
+ * -------------------------------------------------------------------------- */
+.btn-primary,
+.app-shell .btn-primary {
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Barrido de luz al pasar el cursor: el boton "carga" antes del golpe. */
+.btn-primary::after,
+.app-shell .btn-primary::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    var(--e-glass-2),
+    transparent
+  );
+  transform: skewX(-18deg);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .btn-primary:hover::after,
+  .app-shell .btn-primary:hover::after {
+    animation: vp-sheen 620ms var(--e-ease-expo);
+  }
+}
+
+/* --------------------------------------------------------------------------
+ *  4. BARRA DE ENERGIA · el medidor de cupo como "HP/XP"
+ *  El `.e-meter` del panel del promotor ya existe; aqui se convierte en el
+ *  medidor de un juego: riel hundido, relleno de energia y halo. El color
+ *  semantico no cambia (verde disponible, ambar aviso, rojo agotado).
+ * -------------------------------------------------------------------------- */
+.xp-bar,
+.app-shell .e-meter,
+.app-shell .evx-meter {
+  display: block;
+  height: 8px;
+  border-radius: var(--e-radius-pill);
+  background: var(--e-xp-track);
+  border: 1px solid var(--e-border-hairline);
+  overflow: hidden;
+}
+.xp-bar-fill,
+.app-shell .e-meter .e-meter-fill,
+.app-shell .evx-meter .evx-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--e-radius-pill);
+  box-shadow: 0 0 10px -1px var(--e-cyan-400);
+}
+.xp-bar-fill {
+  background: var(--e-xp-fill);
+}
+/* El relleno del panel conserva su gradiente de marca; solo gana el brillo. */
+.app-shell .e-meter .e-meter-fill {
+  background: var(--e-xp-fill);
+}
+.app-shell .e-meter .e-meter-fill.is-warn {
+  background: var(--e-amber-400);
+}
+.app-shell .e-meter .e-meter-fill.is-full {
+  background: var(--e-red-500);
+}
+
+/* --------------------------------------------------------------------------
+ *  5. CIFRA DE INSTRUMENTO · los numeros de negocio como marcador de puntaje
+ *  `.score` (opt-in) usa la voz mono del panel; `.evx-stat-value` conserva su
+ *  tipografia y solo gana el halo de "puntaje" y cifras tabulares. Se evita
+ *  cambiar la fuente de la cifra: Sora es la voz del sistema y el panel ya la
+ *  eligio con su peso optico.
+ * -------------------------------------------------------------------------- */
+.score {
+  font-family: var(--e-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--e-cyan-400) 45%, transparent);
+}
+.app-shell .evx-stat-value {
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--e-cyan-400) 40%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+ *  6. NAVEGACION · la barra de instrumentos
+ *  El item activo no solo cambia de color: se enciende (halo de energia) y
+ *  gana un indicador, como el selector de un mando.
+ *  `.is-on` es el estado activo real de la app (FanNav y categorias).
+ * -------------------------------------------------------------------------- */
+.home-nav a,
+.home-cats button,
+.home-chip {
+  position: relative;
+  transition:
+    color var(--e-dur-base) var(--e-ease-standard),
+    transform var(--e-dur-fast) var(--e-ease-standard),
+    border-color var(--e-dur-base) var(--e-ease-standard),
+    box-shadow var(--e-dur-base) var(--e-ease-standard);
+}
+
+/* Item de navegacion activo: conserva el azul de marca (unico color
+   interactivo) y gana una barra de energia cian encendida, como el selector
+   iluminado de un mando. */
+.home-nav a.is-on::after {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.25rem;
+  height: 2px;
+  border-radius: var(--e-radius-pill);
+  background: var(--e-cyan-400);
+  box-shadow: 0 0 10px 1px var(--e-cyan-400);
+}
+
+/* Categoria activa: filo de neon + halo de energia. */
+.home-cats button.is-on {
+  box-shadow:
+    0 0 0 1px var(--e-edge-neon),
+    var(--e-glow-cyan);
+}
+.home-chip.is-on {
+  border-color: var(--e-cyan-400);
+  box-shadow:
+    0 0 0 1px var(--e-edge-neon),
+    var(--e-glow-cyan);
+}
+.home-chip:hover,
+.home-cats button:hover {
+  border-color: var(--e-edge-neon);
+}
+
+/* --------------------------------------------------------------------------
+ *  6b. MOVIMIENTO
+ * -------------------------------------------------------------------------- */
+@keyframes vp-sheen {
+  0% {
+    left: -60%;
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    left: 120%;
+    opacity: 0;
+  }
+}
+
+@keyframes vp-pulse-glow {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 var(--e-bevel-light),
+      0 0 0 1px var(--e-edge-neon),
+      0 8px 22px -14px var(--e-cyan-400);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 var(--e-bevel-light),
+      0 0 0 1px var(--e-edge-neon),
+      0 12px 30px -12px var(--e-cyan-400);
+  }
+}
+
+.brand-tile {
+  background:
+    radial-gradient(120% 120% at 30% 0%, var(--e-glass-2), transparent 60%),
+    var(--e-ink-950);
+  border: 1px solid var(--e-border-hairline);
+  animation: vp-pulse-glow 4.5s var(--e-ease-standard) infinite;
+}
+
+/* --------------------------------------------------------------------------
+ *  7. TEMA CLARO · el juego de dia
+ *  El claro no es "menos juego": baja la luz (los halos y el neón saturan en
+ *  papel) pero conserva bisel, esquinas y barra de energia.
+ * -------------------------------------------------------------------------- */
+html[data-theme="light"] body::before {
+  background-image:
+    linear-gradient(var(--e-border-hairline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--e-border-hairline) 1px, transparent 1px);
+}
+html[data-theme="light"] .hud-panel {
+  box-shadow:
+    inset 0 1px 0 var(--e-highlight-inset),
+    var(--e-elev-card);
+}
+html[data-theme="light"] .brand-tile {
+  box-shadow:
+    inset 0 1px 0 var(--e-highlight-inset),
+    0 1px 2px -1px rgba(9, 15, 38, 0.2);
+  animation: none;
+}
+
+/* --------------------------------------------------------------------------
+ *  8. MOVIMIENTO REDUCIDO · respeto absoluto
+ * -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .brand-tile,
+  .btn-primary::after,
+  .app-shell .btn-primary::after {
+    animation: none !important;
+  }
+}

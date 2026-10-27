@@ -261,11 +261,12 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
 
 ## Capas de diseño (auditoría)
 
-El frontend importa **cinco** hojas en este orden (main.jsx):
+El frontend importa **siete** hojas en este orden (main.jsx):
 `tokens.css` → `index.css` → `aesthetic-refresh.css` → `vp-system.css` →
-`vp-fan.css`. `tokens.css` es la fuente única de color/forma/movimiento; las
-demás elevan la anterior sin reescribirla y `vp-fan.css` es la última palabra
-sobre las superficies del fan.
+`panel-cockpit.css` → `vp-fan.css` → `vp-game.css`. `tokens.css` es la fuente
+única de color/forma/movimiento; las demás elevan la anterior sin reescribirla,
+`panel-cockpit.css` es la voz de operación del panel, `vp-fan.css` la última
+palabra sobre las superficies del fan y `vp-game.css` sobre el interior.
 
 | Capa | Alcance |
 | --- | --- |
@@ -273,7 +274,9 @@ sobre las superficies del fan.
 | `index.css` | Base del design system (clases `.card`, `.field`, `.btn-*`), tema claro/oscuro y la vitrina del fan (`.home`, `.evd`). |
 | `aesthetic-refresh.css` | Marca aplicada: `.home` (Inicio/boletas), `.evd` (detalle), `.tkt` (boleta pública) y la capa `.app-shell` del interior. |
 | `vp-system.css` | Retoques del sistema ("eleva sin reescribir"). |
+| `panel-cockpit.css` | **Voz de operación del panel**: tiras de cifras, medidores (`.evx-meter`), cola de puerta y tabla de promotores. |
 | `vp-fan.css` | **Experiencia del fan (vitrina editorial)**: responsive real, motivo de boleto perforado, ticker cinético y estados completos. |
+| `vp-game.css` | **Capa "modo juego" del interior**: rejilla de tablero global (`body::before`), bisel/esquinas de HUD en `.hud-panel` y las superficies existentes (`.card`, `.evx-card`), barra de energía sobre `.evx-meter`, halo de "puntaje" en `.evx-stat-value` y la barra de energía del item activo de `.home-nav`. **Nunca cambia el color de estado**: el azul sigue siendo el único color interactivo y verde/ámbar/rojo conservan su significado. |
 
 **Clasificación del rediseño (qué se conservó y qué se rehízo):**
 
@@ -302,6 +305,16 @@ sobre las superficies del fan.
    ≥1024px; la fila de evento se vuelve tarjeta con la fecha como sello.
 4. **Acento con significado** — verde = disponible/validado, rosa = urgencia.
    El azul es la única voz interactiva.
+
+**Artefactos de marca (PNG = build artifact, no fuente):**
+
+El isotipo vive en `src/lib/brandMark.js` (`markSvg`, compartido con el
+componente React). `npm run icons` rasteriza con Chromium, desde ese vector,
+los iconos PWA (`public/icons/*`), el favicon inline de `index.html` y la
+tarjeta social `public/og-cover.png` (1200×630, la que el backend sirve por
+defecto como `og:image` en `app/routers/public.py`). **No editar los PNG a
+mano**: se desincronizan de la marca, que es como el JPEG viejo quedó con la
+paleta crema de la fase anterior. Se regeneran con `npm run icons`.
 
 **Verificación de la vitrina** (la que falla si se rompe):
 - Cero scroll horizontal a 320/420/768/1440px en `/inicio`, `/evento/:id`,

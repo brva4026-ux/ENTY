@@ -21,6 +21,10 @@ import "./panel-cockpit.css";
 // Capa de experiencia del fan (vitrina editorial responsive): se importa al
 // final para llevar la marca a su forma definitiva sin reescribir el sistema.
 import "./vp-fan.css";
+// Capa "modo juego" (arcade/HUD): el acabado de cabina — bisel de panel,
+// esquinas de mira, barra de energía y marca viva. Va ÚLTIMA: viste el sistema
+// sin reescribirlo y consume los tokens de las capas anteriores.
+import "./vp-game.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";

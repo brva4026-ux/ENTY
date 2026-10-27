@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
+import { BADGE, SPARK, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
 
-/** Marca V-Pass: logotipo, indicadores vivos y cifras animadas.
+/** Marca V-Pass: isotipo vectorial, indicadores vivos y cifras animadas.
 
- * Isotipo único: la mano en señal de paz sobre las ondas del agua, con las
- * llamas encendidas en los dedos y el nombre escrito sobre la marca.
- * Se reutiliza como miniatura, indicador de carga y centro del QR.
+ * El isotipo es la "V" luminosa sobre una placa de carbón, con el destello de
+ * la marca arriba a la derecha. Vectorial: se ve igual de filoso a 16px
+ * (favicon) que a 512px (icono de app), y hereda el glow del tema. Antes era
+ * un JPEG de 1.8 MB que se recortaba mal en el tile cuadrado.
  */
 
 /** Destello de marca: estrella de cuatro puntas asimetrica. Se reutiliza como
@@ -27,12 +29,62 @@ export function Spark({ size = 12, color = "var(--e-green-500)", className = "" 
   );
 }
 
-/** Marcador de marca: la ilustración de la mano en "V" con llamas grises,
- *  saliendo de ondas azules concéntricas sobre fondo crema.
- *
- *  Se usa la IMAGEN TAL CUAL (public/logo-vpass.jpg) como <img>: es un
- *  original raster y vectorizarlo a mano solo producía aproximaciones rotas.
- *  El nombre ya viene grabado dentro de la imagen. */
+/** Isotipo vectorial: la "V" luminosa sobre la placa de carbón, con destello.
+ *  Los ids de gradiente llevan un sufijo unico por instancia para que varias
+ *  copias en la misma pagina no se pisen. */
+export function MarkGlyph({ className = "" }) {
+  const uid = useId().replace(/:/g, "");
+  return (
+    <svg
+      viewBox={VIEWBOX}
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <linearGradient id={`${uid}-badge`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="var(--e-mark-badge-top)" />
+          <stop offset="1" stopColor="var(--e-mark-badge-bottom)" />
+        </linearGradient>
+        <linearGradient id={`${uid}-v`} x1="0" y1="0" x2="0.35" y2="1">
+          <stop offset="0" stopColor="var(--e-mark-v-top)" />
+          <stop offset="1" stopColor="var(--e-mark-v-bottom)" />
+        </linearGradient>
+      </defs>
+      <rect
+        x={BADGE.x}
+        y={BADGE.y}
+        width={BADGE.w}
+        height={BADGE.h}
+        rx={BADGE.r}
+        fill={`url(#${uid}-badge)`}
+      />
+      <rect
+        x={BADGE.x}
+        y={BADGE.y}
+        width={BADGE.w}
+        height={BADGE.h}
+        rx={BADGE.r}
+        fill="none"
+        stroke="var(--e-mark-ring)"
+        strokeOpacity="0.45"
+        strokeWidth="1.5"
+      />
+      <path
+        d={V_PATH}
+        fill="none"
+        stroke={`url(#${uid}-v)`}
+        strokeWidth={V_WIDTH}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d={sparkPath(SPARK)} fill="var(--e-mark-spark)" />
+    </svg>
+  );
+}
+
+/** Marcador de marca: el isotipo en un tile con glow, filo de neón y un
+ *  destello que barre al entrar. Es el elemento "vivo" de la cabecera. */
 export function LogoMark({ size = "md", className = "" }) {
   const box =
     size === "hero"
@@ -48,12 +100,7 @@ export function LogoMark({ size = "md", className = "" }) {
     <span
       className={`relative brand-tile grid shrink-0 place-items-center overflow-hidden rounded-lg ${box} ${className}`}
     >
-      <img
-        src="/logo-vpass.jpg"
-        alt=""
-        aria-hidden="true"
-        className="h-full w-full object-cover"
-      />
+      <MarkGlyph className="h-full w-full" />
     </span>
   );
 }

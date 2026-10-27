@@ -1937,7 +1937,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
                 {closing && (
-                  <div className="card p-4 lg:col-span-2">
+                  <div className="card hud-panel p-4 lg:col-span-2">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="eyebrow">Cierre de noche</p>
@@ -2044,7 +2044,7 @@ export default function AdminDashboard() {
                 )}
                 {/* Tips operativos: el qué-hacer-now del evento, sin duplicar
                   el ciclo de vida (que vive siempre visible en el header). */}
-                <div className="card p-4">
+                <div className="card hud-panel p-4">
                   <p className="eyebrow">Puerta</p>
                   <p className="display mb-3 mt-0.5 text-base">
                     Cómo va la puerta
