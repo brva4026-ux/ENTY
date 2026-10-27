@@ -659,7 +659,7 @@ html[data-theme="light"] select.field option {
   left: 50%;
   transform: translateX(-50%) translateY(3px);
   padding: 0.3rem 0.55rem;
-  border-radius: 0.4rem;
+  border-radius: 0.375rem;
   background: var(--color-zinc-900);
   color: var(--color-zinc-200);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -728,7 +728,7 @@ html[data-theme="light"] select.field option {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  border-radius: 0.55rem;
+  border-radius: 0.5rem;
   padding: 0.42rem 0.85rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
@@ -1418,7 +1418,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   flex-shrink: 0;
   width: 2.1rem;
   height: 2.1rem;
-  border-radius: 0.6rem;
+  border-radius: 0.5rem;
   color: var(--color-zinc-400);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -1723,7 +1723,7 @@ html[data-theme="light"] .bizdock-desc {
   --venue-logo-ring: 0 0 0 0 rgba(255, 255, 255, 0);
   width: 3rem;
   height: 3rem;
-  border-radius: 0.875rem;
+  border-radius: 0.75rem;
   object-fit: cover;
   flex-shrink: 0;
   box-shadow:
@@ -2100,7 +2100,7 @@ html[data-theme="light"] .vh-mesnav-hoy {
    perforación punteada y halo de marca. Invita a emitir — nunca un rectángulo
    gris muerto. */
 .ticket-ghost {
-  border-radius: 1.1rem;
+  border-radius: 1rem;
   background:
     radial-gradient(
       120% 90% at 50% 0%,
@@ -2235,7 +2235,7 @@ html[data-theme="light"] .ec-when-soon {
      el minimo de tap target con el dedo; el buscador tambien mide eso. */
   min-height: 2.75rem;
   padding: 0.35rem 0.6rem;
-  border-radius: 0.4rem 0.4rem 0 0;
+  border-radius: 0.375rem 0.4rem 0 0;
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-500);
@@ -2482,7 +2482,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     box-shadow 0.18s ease;
   /* Misma superficie sutil de los ítems del dock Del negocio: la tarjeta
      se lee como tarjeta sin competir con el card de la portada. */
-  border-radius: 0.9rem;
+  border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0) 42%),
@@ -2635,7 +2635,7 @@ html[data-theme="light"] .evx-livepill {
   width: 3.5rem;
   height: 3.5rem;
   flex-shrink: 0;
-  border-radius: 0.7rem;
+  border-radius: 0.75rem;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--color-zinc-940);
@@ -2952,7 +2952,7 @@ html[data-theme="light"] .evx-open-label {
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0.55rem;
-  border-radius: 0.55rem;
+  border-radius: 0.5rem;
   font-size: var(--e-text-sm);
   transition:
     background 0.12s,
@@ -3132,7 +3132,7 @@ html[data-theme="light"] .wb-kpis > * + * {
 /* Flyer del backstage: marco con sombra propia — la imagen del evento es
    contenido, no un adorno suelto con ring genérico. */
 .wb-flyer {
-  border-radius: 0.9rem;
+  border-radius: 0.75rem;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
@@ -3169,7 +3169,7 @@ html[data-theme="light"] .wb-flyer {
   position: relative;
 }
 .dp-num {
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   line-height: 1;
   color: var(--color-zinc-400);
@@ -3195,7 +3195,7 @@ html[data-theme="light"] .wb-flyer {
   bottom: -1.1rem;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   color: var(--color-zinc-600);
   white-space: nowrap;
 }
@@ -3303,7 +3303,7 @@ html[data-theme="light"] .card-hero {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 40%),
     var(--e-panel-650);
-  border-radius: 1.15rem;
+  border-radius: 1rem;
   box-shadow:
     var(--e-elev-overlay),
     var(--e-highlight-inset);
@@ -3361,7 +3361,7 @@ html[data-theme="light"] .topbar {
 }
 .topnav-item {
   position: relative;
-  border-radius: 0.45rem;
+  border-radius: 0.5rem;
   padding: 0.4rem 0.8rem;
   font-size: var(--e-text-sm);
   font-weight: 500;
@@ -3448,7 +3448,7 @@ html[data-theme="light"] .topbar-avatar {
    ---------------------------------------------------------------------- */
 .ticket-qr-frame {
   position: relative;
-  border-radius: 1.1rem;
+  border-radius: 1rem;
   padding: 0.8rem;
   background:
     linear-gradient(160deg, var(--e-white), var(--color-zinc-100) 70%),
@@ -3521,7 +3521,7 @@ html[data-theme="light"] .onboard-hero {
   font-variant-numeric: tabular-nums;
 }
 .onboard-progress-total {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   color: var(--color-zinc-500);
 }
 .onboard-progress-bar {
@@ -3697,7 +3697,7 @@ html[data-theme="light"] .list-row:hover {
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  border-radius: 0.6rem;
+  border-radius: 0.5rem;
   padding: 0.375rem 0.75rem;
   font-size: var(--e-text-2xs);
   font-weight: 600;
@@ -4557,7 +4557,7 @@ html[data-theme="light"] .halftone::before {
   align-items: center;
   gap: 0.35rem;
   transform: rotate(-2.2deg);
-  border-radius: 0.6rem;
+  border-radius: 0.5rem;
   padding: 0.28rem 0.65rem;
   background: var(--e-green-500);
   color: var(--e-panel-750);
@@ -4630,7 +4630,7 @@ html[data-theme="light"] .sticker-pop {
    Para tips y micro-copy: nunca para datos serios. */
 .paper-note {
   position: relative;
-  border-radius: 0.6rem;
+  border-radius: 0.5rem;
   background: var(--e-brasa-100);
   color: var(--e-brasa-800);
   padding: 0.75rem 1rem;
@@ -4891,7 +4891,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   display: block;
   width: 12.5rem;
   height: 12.5rem;
-  border-radius: 0.6rem;
+  border-radius: 0.5rem;
 }
 /* Sello "ADMIT ONE" bajo el QR */
 .tkt-admit {
@@ -4962,7 +4962,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 
 /* --- Estados no-canjeables: panel de aviso sobre el ambar --------------- */
 .tkt-note {
-  border-radius: 0.9rem;
+  border-radius: 0.75rem;
   padding: 1.1rem 1rem;
   text-align: center;
   background: rgba(255, 255, 255, 0.55);
@@ -5079,7 +5079,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 .tkt-brandline img {
   width: 1.15rem;
   height: 1.15rem;
-  border-radius: 0.3rem;
+  border-radius: 0.375rem;
 }
 .tkt-brandline span {
   font-size: var(--e-text-xs);
@@ -5615,7 +5615,7 @@ html[data-theme-lock="dark"] body {
 .pf-hero {
   position: relative;
   overflow: hidden;
-  border-radius: 1.4rem;
+  border-radius: 1.5rem;
   border: 1px solid var(--e-border-hairline);
   padding: 1.4rem 1.5rem;
   background:
@@ -6104,11 +6104,11 @@ html[data-theme="light"] .pf-logo-empty {
 }
 .pf-color-input::-webkit-color-swatch {
   border: none;
-  border-radius: 0.3rem;
+  border-radius: 0.375rem;
 }
 .pf-color-input::-moz-color-swatch {
   border: none;
-  border-radius: 0.3rem;
+  border-radius: 0.375rem;
 }
 .pf-color-value {
   min-width: 0;
@@ -6339,70 +6339,64 @@ html[data-motion="reduce"] *::after {
    son documentos que se LEEN, y una linea de 120 caracteres no se lee.
    ---------------------------------------------------------------------- */
 .legal-page {
-  background: var(--color-zinc-950);
-  color: var(--color-zinc-200);
+  background: var(--e-canvas);
+  color: var(--e-text-primary);
 }
+/* El papel de estos documentos es la crema del logotipo: son la cara de la
+   marca que se lee sin cuenta, y el tema claro es su soporte natural. */
 html[data-theme="light"] .legal-page {
-  background: var(--color-cream);
-  color: #27272a;
+  background: var(--e-paper);
 }
 
 .legal-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(11, 11, 15, 0.9);
-  backdrop-filter: blur(8px);
-}
-html[data-theme="light"] .legal-header {
-  border-bottom-color: rgba(0, 0, 0, 0.1);
-  background: rgba(245, 245, 247, 0.9);
+  border-bottom: 1px solid var(--e-border-hairline);
+  background: color-mix(in srgb, var(--e-canvas) 90%, transparent);
+  backdrop-filter: blur(var(--e-glass-blur));
 }
 
 .legal-muted {
-  color: #a1a1aa;
-}
-html[data-theme="light"] .legal-muted {
-  color: #52525b;
+  color: var(--e-text-muted);
 }
 
 .legal-note {
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  background: rgba(120, 53, 15, 0.18);
-  color: #fcd34d;
+  border: 1px solid color-mix(in srgb, var(--e-brasa-200) 35%, transparent);
+  background: color-mix(in srgb, var(--e-brasa-600) 18%, transparent);
+  color: var(--e-amber-300);
 }
 html[data-theme="light"] .legal-note {
-  border-color: rgba(180, 83, 9, 0.35);
-  background: rgba(254, 243, 199, 0.6);
-  color: #92400e;
+  border-color: color-mix(in srgb, var(--e-brasa-500) 35%, transparent);
+  background: color-mix(in srgb, var(--e-amber-300) 30%, transparent);
+  color: var(--e-brasa-600);
 }
 
 .legal-doc {
   max-width: 68ch;
-  font-size: 0.95rem;
+  font-size: var(--e-text-base);
   line-height: 1.75;
 }
 .legal-doc p {
-  margin: 0.75rem 0;
+  margin: var(--e-space-3) 0;
 }
 .legal-doc .legal-h1 {
-  font-size: 1.6rem;
+  font-size: var(--e-text-2xl);
   font-weight: 700;
   letter-spacing: -0.01em;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--e-space-4);
 }
 .legal-doc .legal-h2 {
-  font-size: 1.15rem;
+  font-size: var(--e-text-lg);
   font-weight: 650;
-  margin: 2rem 0 0.75rem;
+  margin: var(--e-space-8) 0 var(--e-space-3);
 }
 .legal-doc .legal-h3 {
-  font-size: 1rem;
+  font-size: var(--e-text-base);
   font-weight: 650;
-  margin: 1.5rem 0 0.5rem;
+  margin: var(--e-space-6) 0 var(--e-space-2);
 }
 .legal-doc ul,
 .legal-doc ol {
-  margin: 0.75rem 0;
-  padding-left: 1.25rem;
+  margin: var(--e-space-3) 0;
+  padding-left: var(--e-space-5);
 }
 .legal-doc ul {
   list-style: disc;
@@ -6411,55 +6405,48 @@ html[data-theme="light"] .legal-note {
   list-style: decimal;
 }
 .legal-doc li {
-  margin: 0.35rem 0;
+  margin: var(--e-space-1) 0;
 }
 .legal-doc blockquote {
-  margin: 1rem 0;
-  padding: 0.25rem 0 0.25rem 1rem;
-  border-left: 3px solid #3d5cd6;
+  margin: var(--e-space-4) 0;
+  padding: var(--e-space-1) 0 var(--e-space-1) var(--e-space-4);
+  border-left: 3px solid var(--e-brand);
   font-style: italic;
   opacity: 0.88;
 }
 .legal-doc hr {
-  margin: 2rem 0;
+  margin: var(--e-space-8) 0;
   border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-html[data-theme="light"] .legal-doc hr {
-  border-top-color: rgba(0, 0, 0, 0.12);
+  border-top: 1px solid var(--e-border-hairline);
 }
 .legal-table-wrap {
-  margin: 1rem 0;
+  margin: var(--e-space-4) 0;
   overflow-x: auto;
 }
 .legal-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: var(--e-text-sm);
 }
 .legal-table th,
 .legal-table td {
   text-align: left;
-  padding: 0.5rem 0.65rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: var(--e-space-2) var(--e-space-3);
+  border-bottom: 1px solid var(--e-border-hairline);
   vertical-align: top;
-}
-html[data-theme="light"] .legal-table th,
-html[data-theme="light"] .legal-table td {
-  border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 .legal-table th {
   font-weight: 600;
 }
 .legal-doc code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--e-font-mono);
   font-size: 0.85em;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--e-glass-2);
   padding: 0.1em 0.35em;
-  border-radius: 0.35rem;
+  border-radius: var(--e-radius-sm);
 }
 html[data-theme="light"] .legal-doc code {
-  background: rgba(0, 0, 0, 0.06);
+  background: color-mix(in srgb, var(--e-ink-1) 6%, transparent);
 }
 .legal-doc strong {
   font-weight: 650;
@@ -6471,18 +6458,21 @@ html[data-theme="light"] .legal-doc code {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem 0.9rem;
-  font-size: 0.72rem;
+  gap: var(--e-space-1) var(--e-space-4);
+  font-size: var(--e-text-xs);
 }
+/* Enlaces del pie legal. El estado normal usa una tinta que YA pasa AA
+   (--e-text-muted); antes llevaban opacity 0.75, que sobre el papel claro
+   dejaba el texto en 3.48:1 (mínimo 4.5). El hover sube a tinta secundaria
+   en vez de recuperar opacidad. */
 .legal-links a,
 .legal-links button {
-  color: inherit;
-  opacity: 0.75;
-  transition: opacity 0.2s;
+  color: var(--e-text-muted);
+  transition: color var(--e-dur-base) var(--e-ease-standard);
 }
 .legal-links a:hover,
 .legal-links button:hover {
-  opacity: 1;
+  color: var(--e-text-secondary);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -6501,7 +6491,7 @@ html[data-theme="light"] .legal-doc code {
   gap: 0.375rem;
   padding: 0.125rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -6646,7 +6636,7 @@ html[data-theme="light"] .legal-doc code {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   color: var(--e-text-secondary);
 }
 
@@ -6671,7 +6661,7 @@ html[data-theme="light"] .legal-doc code {
 
 .prow-hd {
   background: var(--e-surface-2);
-  font-size: 0.59375rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -6693,8 +6683,8 @@ html[data-theme="light"] .legal-doc code {
   width: 1.625rem;
   height: 1.625rem;
   flex: none;
-  border-radius: 0.4375rem;
-  font-size: 0.6875rem;
+  border-radius: 0.375rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   color: var(--e-white);
   /* blue-500 primero: el 400 está marcado "solo halo/glow" y no llega a
@@ -6790,7 +6780,7 @@ html[data-theme="light"] .legal-doc code {
   .vh-logo {
     width: 2.5rem;
     height: 2.5rem;
-    border-radius: 0.7rem;
+    border-radius: 0.75rem;
   }
   .vh-nombre-titulo {
     font-size: var(--e-text-base);
@@ -6811,7 +6801,7 @@ html[data-theme="light"] .legal-doc code {
     border-top: 0;
   }
   .vh-kpi-label {
-    font-size: 0.5625rem;
+    font-size: var(--e-text-2xs);
     letter-spacing: 0.06em;
   }
   .vh-kpi-meta { display: none; }
@@ -6819,7 +6809,7 @@ html[data-theme="light"] .legal-doc code {
   /* La tira de 4 cifras del mes: 2×2 con menos aire (sigue completa). */
   .vh-tally > div { padding: 0.55rem 0.7rem; }
   .vh-tally .pc-t-value { font-size: var(--e-text-lg); }
-  .vh-tally .pc-t-label { font-size: 0.5625rem; }
+  .vh-tally .pc-t-label { font-size: var(--e-text-2xs); }
 
   /* --- 2b · La guía de primeros pasos, de bloque a aviso ---------------- */
   /* El texto explicativo se recorta a dos líneas: en un teléfono el párrafo
@@ -6848,7 +6838,7 @@ html[data-theme="light"] .legal-doc code {
   .evx-card .evx-thumb {
     width: 2.5rem;
     height: 2.5rem;
-    border-radius: 0.55rem;
+    border-radius: 0.5rem;
   }
   .evx-card .evx-datecal-day { font-size: var(--e-text-lg); }
   .evx-card .evx-name { font-size: var(--e-text-lg); }

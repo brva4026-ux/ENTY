@@ -404,12 +404,29 @@ html:not([data-theme="light"]) .app-shell .bottomnav {
   .home-avatar {
     position: relative;
   }
+  /* -5px, no -4px: la caja de 2.25rem es border-box, así que el área real de
+     toque es 34px (36 − 2×1px de borde) + 2×5px = 44px exactos. Con -4px
+     quedaba en 42px, por debajo del mínimo. */
   .home-avatar::after {
     content: "";
     position: absolute;
-    inset: -4px;
+    inset: -5px;
   }
   .home-cta {
     min-height: 2.75rem;
   }
+}
+
+/* El aviso de cookies se ancla abajo en todos los anchos: arriba tapaba la
+   cabecera (el avatar y el boton de cerrar quedaban debajo del aviso entre
+   640px y 1024px). Cuando hay una barra de navegacion inferior sube por encima
+   de ella en vez de cubrirla: la barra es la navegacion principal y no puede
+   quedar debajo. Son dos barras distintas — .home-nav (app del fan, 4.9rem) y
+   .bottomnav (paneles, 4.5rem) — y cada una ya reserva el safe-area inferior,
+   asi que se suma. */
+body:has(.home-nav) .cookie-notice {
+  bottom: calc(4.9rem + env(safe-area-inset-bottom));
+}
+body:has(.bottomnav) .cookie-notice {
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
 }

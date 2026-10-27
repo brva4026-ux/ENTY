@@ -23,7 +23,17 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 const NOTICE_VERSION = "1.1";
 const STORE_KEY = "tf_cookie_notice";
-const SKIP_PREFIX = ["/bouncer", "/t"];
+const SKIP_PREFIX = ["/bouncer"];
+
+/**
+ * La boleta publica es `/t/:token`. Se comprueba por segmento exacto y no con
+ * un prefijo suelto `/t`: `startsWith("/t")` tambien capturaba `/terminos`,
+ * `/terminos-boleta` y `/tratamiento-datos`, y el aviso desaparecia en las
+ * paginas que precisamente lo citan.
+ */
+function isPublicTicket(pathname) {
+  return pathname === "/t" || pathname.startsWith("/t/");
+}
 
 export function CookieNotice() {
   const location = useLocation();
@@ -32,6 +42,7 @@ export function CookieNotice() {
 
   useEffect(() => {
     if (SKIP_PREFIX.some((p) => location.pathname.startsWith(p))) return;
+    if (isPublicTicket(location.pathname)) return;
     try {
       setVisible(localStorage.getItem(STORE_KEY) !== NOTICE_VERSION);
     } catch {
@@ -55,7 +66,7 @@ export function CookieNotice() {
     <div
       role="note"
       aria-label="Aviso de cookies"
-      className="cookie-notice fixed inset-x-0 top-0 z-40 flex flex-row items-center gap-2 border-b border-zinc-700/60 bg-zinc-900/95 px-4 py-2.5 text-[11px] leading-tight text-zinc-200 shadow-lg sm:inset-x-3 sm:top-3 sm:mx-auto sm:max-w-3xl sm:gap-3 sm:rounded-xl sm:border sm:py-3 sm:text-xs sm:leading-relaxed"
+      className="cookie-notice fixed inset-x-0 bottom-0 z-40 flex flex-row items-center gap-2 border-t border-zinc-700/60 bg-zinc-900/95 px-4 py-2.5 text-[11px] leading-tight text-zinc-200 shadow-lg sm:inset-x-3 sm:bottom-3 sm:mx-auto sm:max-w-3xl sm:gap-3 sm:rounded-xl sm:border sm:py-3 sm:text-xs sm:leading-relaxed"
     >
       <p className="min-w-0 flex-1">
         Esta app guarda en tu navegador lo necesario para la sesión y el modo
