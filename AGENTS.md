@@ -316,6 +316,22 @@ defecto como `og:image` en `app/routers/public.py`). **No editar los PNG a
 mano**: se desincronizan de la marca, que es como el JPEG viejo quedó con la
 paleta crema de la fase anterior. Se regeneran con `npm run icons`.
 
+El isotipo se dibuja **por capas**, de atrás hacia adelante: placa con
+degradado, brillo cenital y suelo (ambos recortados con el `clipPath` de la
+placa para que no se salgan de las esquinas redondeadas), aro de filo, halo
+del destello, la V (degradado + núcleo claro, que la convierte en un tubo de
+neón) y el destello. Todo sale de `markSvg()`; el componente React
+(`MarkGlyph`) repite las mismas capas con tokens `--e-mark-*`, así que hay que
+mantener las dos en sincronía. La cintura del destello es 0.32 en los dos
+caminos: el bullet `Spark` también sale de `sparkPath()`, no lleva path propio.
+
+**Al cambiar la geometría, medir, no estimar.** El trazo de la V es un `path`
+con `stroke`, así que su caja real no es la del `d`: con unión redonda
+(`round`) el centro cae exacto en 32.0, pero con `miter` el vértice se estira
+3.03 unidades y descentra la V. Por eso la unión es `round`. Lo mismo con el
+núcleo de neón a 16px: se midió que sube los píxeles brillantes (0.20 → 0.25)
+en vez de emborronar, que era la suposición contraria.
+
 **Pieza de marca interactiva** — `public/brand/vpass-terminal.html` es una
 página autónoma (un solo archivo, sin build) con la estética neo-brutalista
 del emblema: radio 0, bordes de tinta 3px, sombras de bloque sólidas y

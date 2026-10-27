@@ -449,7 +449,7 @@
           V-PASS
           <span class="spark" aria-hidden="true">
             <svg viewBox="0 0 24 24">
-              <path fill="#4FE3FF" d="M12 0 L15.6 8.4 L24 12 L15.6 15.6 L12 24 L8.4 15.6 L0 12 L8.4 8.4 Z"/>
+              <path fill="#4FE3FF" d="M12 0 L15.84 8.16 L24 12 L15.84 15.84 L12 24 L8.16 15.84 L0 12 L8.16 8.16 Z"/>
             </svg>
           </span>
         </div>
@@ -582,7 +582,7 @@
             V-PASS
             <span class="spark" aria-hidden="true">
               <svg viewBox="0 0 24 24">
-                <path fill="#4FE3FF" d="M12 0 L15.6 8.4 L24 12 L15.6 15.6 L12 24 L8.4 15.6 L0 12 L8.4 8.4 Z"/>
+                <path fill="#4FE3FF" d="M12 0 L15.84 8.16 L24 12 L15.84 15.84 L12 24 L8.16 15.84 L0 12 L8.16 8.16 Z"/>
               </svg>
             </span>
           </div>
@@ -607,11 +607,11 @@
           <div class="spark-spec">
             <div class="big" aria-hidden="true">
               <svg viewBox="0 0 24 24">
-                <path fill="#4FE3FF" d="M12 0 L15.6 8.4 L24 12 L15.6 15.6 L12 24 L8.4 15.6 L0 12 L8.4 8.4 Z"/>
+                <path fill="#4FE3FF" d="M12 0 L15.84 8.16 L24 12 L15.84 15.84 L12 24 L8.16 15.84 L0 12 L8.16 8.16 Z"/>
               </svg>
             </div>
             <p style="font-size:12.5px;color:var(--dim);line-height:1.55">
-              Estrella de <b style="color:#fff">cuatro puntas simétrica</b> (cintura 0.3), el
+              Estrella de <b style="color:#fff">cuatro puntas simétrica</b> (cintura 0.32), el
               destello de la marca. Firma el logo, el isotipo y el centro del QR.
             </p>
           </div>
@@ -622,9 +622,23 @@
             <div>
               <div class="app-icon lg" aria-label="V-Pass app icon">
                 <svg viewBox="0 0 512 512">
-                  <rect x="12" y="12" width="488" height="488" rx="120" fill="none" stroke="#3D5CD6" stroke-width="16" stroke-opacity=".85"/>
-                  <path d="M164 156 L256 356 L348 156" fill="none" stroke="#7AA2FF" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path fill="#4FE3FF" d="M392 64 L410 106 L452 124 L410 142 L392 184 L374 142 L332 124 L374 106 Z"/>
+                  <defs>
+                    <linearGradient id="gi-lg-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#181C2A"/><stop offset="1" stop-color="#0A0D16"/></linearGradient>
+                    <linearGradient id="gi-lg-v" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#A8C2FF"/><stop offset="0.55" stop-color="#5B8CFF"/><stop offset="1" stop-color="#4FE3FF"/></linearGradient>
+                    <linearGradient id="gi-lg-sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+                    <radialGradient id="gi-lg-halo"><stop offset="0" stop-color="#4FE3FF" stop-opacity="0.7"/><stop offset="1" stop-color="#4FE3FF" stop-opacity="0"/></radialGradient>
+                    <clipPath id="gi-lg-clip"><rect x="12" y="12" width="488" height="488" rx="120"/></clipPath>
+                  </defs>
+                  <rect x="12" y="12" width="488" height="488" rx="120" fill="url(#gi-lg-bg)"/>
+                  <g clip-path="url(#gi-lg-clip)">
+                    <rect x="12" y="12" width="488" height="488" fill="url(#gi-lg-sh)"/>
+                    <rect x="12" y="360" width="488" height="140" fill="#000" opacity="0.3"/>
+                  </g>
+                  <rect x="12" y="12" width="488" height="488" rx="120" fill="none" stroke="#5B8CFF" stroke-width="13" stroke-opacity="0.5"/>
+                  <circle cx="444" cy="84" r="68" fill="url(#gi-lg-halo)"/>
+                  <path d="M152 152 L256 360 L360 152" fill="none" stroke="url(#gi-lg-v)" stroke-width="80" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M152 152 L256 360 L360 152" fill="none" stroke="#EAF4FF" stroke-opacity="0.4" stroke-width="25.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path fill="#4FE3FF" d="M444 84 L454.6 118.4 L489 129 L454.6 139.6 L444 174 L433.4 139.6 L399 129 L433.4 118.4 Z"/>
                 </svg>
               </div>
               <p class="icon-cap">App icon</p>
@@ -632,9 +646,23 @@
             <div>
               <div class="app-icon md" aria-hidden="true">
                 <svg viewBox="0 0 512 512">
-                  <rect x="12" y="12" width="488" height="488" rx="120" fill="none" stroke="#3D5CD6" stroke-width="16" stroke-opacity=".85"/>
-                  <path d="M164 156 L256 356 L348 156" fill="none" stroke="#7AA2FF" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path fill="#4FE3FF" d="M392 64 L410 106 L452 124 L410 142 L392 184 L374 142 L332 124 L374 106 Z"/>
+                  <defs>
+                    <linearGradient id="gi-md-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#181C2A"/><stop offset="1" stop-color="#0A0D16"/></linearGradient>
+                    <linearGradient id="gi-md-v" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#A8C2FF"/><stop offset="0.55" stop-color="#5B8CFF"/><stop offset="1" stop-color="#4FE3FF"/></linearGradient>
+                    <linearGradient id="gi-md-sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+                    <radialGradient id="gi-md-halo"><stop offset="0" stop-color="#4FE3FF" stop-opacity="0.7"/><stop offset="1" stop-color="#4FE3FF" stop-opacity="0"/></radialGradient>
+                    <clipPath id="gi-md-clip"><rect x="12" y="12" width="488" height="488" rx="120"/></clipPath>
+                  </defs>
+                  <rect x="12" y="12" width="488" height="488" rx="120" fill="url(#gi-md-bg)"/>
+                  <g clip-path="url(#gi-md-clip)">
+                    <rect x="12" y="12" width="488" height="488" fill="url(#gi-md-sh)"/>
+                    <rect x="12" y="360" width="488" height="140" fill="#000" opacity="0.3"/>
+                  </g>
+                  <rect x="12" y="12" width="488" height="488" rx="120" fill="none" stroke="#5B8CFF" stroke-width="13" stroke-opacity="0.5"/>
+                  <circle cx="444" cy="84" r="68" fill="url(#gi-md-halo)"/>
+                  <path d="M152 152 L256 360 L360 152" fill="none" stroke="url(#gi-md-v)" stroke-width="80" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M152 152 L256 360 L360 152" fill="none" stroke="#EAF4FF" stroke-opacity="0.4" stroke-width="25.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path fill="#4FE3FF" d="M444 84 L454.6 118.4 L489 129 L454.6 139.6 L444 174 L433.4 139.6 L399 129 L433.4 118.4 Z"/>
                 </svg>
               </div>
               <p class="icon-cap">64 px</p>
@@ -642,18 +670,34 @@
             <div>
               <div class="app-icon sm" aria-hidden="true">
                 <svg viewBox="0 0 512 512">
-                  <rect x="12" y="12" width="488" height="488" rx="120" fill="none" stroke="#3D5CD6" stroke-width="16" stroke-opacity=".85"/>
-                  <path d="M164 156 L256 356 L348 156" fill="none" stroke="#7AA2FF" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path fill="#4FE3FF" d="M392 64 L410 106 L452 124 L410 142 L392 184 L374 142 L332 124 L374 106 Z"/>
+                  <defs>
+                    <linearGradient id="gi-sm-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#181C2A"/><stop offset="1" stop-color="#0A0D16"/></linearGradient>
+                    <linearGradient id="gi-sm-v" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#A8C2FF"/><stop offset="0.55" stop-color="#5B8CFF"/><stop offset="1" stop-color="#4FE3FF"/></linearGradient>
+                    <linearGradient id="gi-sm-sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+                    <radialGradient id="gi-sm-halo"><stop offset="0" stop-color="#4FE3FF" stop-opacity="0.7"/><stop offset="1" stop-color="#4FE3FF" stop-opacity="0"/></radialGradient>
+                    <clipPath id="gi-sm-clip"><rect x="12" y="12" width="488" height="488" rx="120"/></clipPath>
+                  </defs>
+                  <rect x="12" y="12" width="488" height="488" rx="120" fill="url(#gi-sm-bg)"/>
+                  <g clip-path="url(#gi-sm-clip)">
+                    <rect x="12" y="12" width="488" height="488" fill="url(#gi-sm-sh)"/>
+                    <rect x="12" y="360" width="488" height="140" fill="#000" opacity="0.3"/>
+                  </g>
+                  <rect x="12" y="12" width="488" height="488" rx="120" fill="none" stroke="#5B8CFF" stroke-width="13" stroke-opacity="0.5"/>
+                  <circle cx="444" cy="84" r="68" fill="url(#gi-sm-halo)"/>
+                  <path d="M152 152 L256 360 L360 152" fill="none" stroke="url(#gi-sm-v)" stroke-width="80" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M152 152 L256 360 L360 152" fill="none" stroke="#EAF4FF" stroke-opacity="0.4" stroke-width="25.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path fill="#4FE3FF" d="M444 84 L454.6 118.4 L489 129 L454.6 139.6 L444 174 L433.4 139.6 L399 129 L433.4 118.4 Z"/>
                 </svg>
               </div>
               <p class="icon-cap">40 px</p>
             </div>
           </div>
           <p style="font-size:12.5px;color:var(--dim);line-height:1.55;margin-top:16px">
-            Cuadrado de bordes muy redondeados, fondo negro, la <b style="color:#fff">“e”
-            “V”</b> en degradado azul→cian sobre placa de carbón, con el
-            <b style="color:#fff">destello cian</b> en la esquina superior derecha.
+            Cuadrado de bordes muy redondeados sobre placa de carbón con
+            degradado y brillo cenital, la <b style="color:#fff">“V”</b> en degradado
+            azul→cian con <b style="color:#fff">núcleo luminoso</b> (efecto de tubo de
+            neón) y el <b style="color:#fff">destello cian</b> con halo en la esquina
+            superior derecha.
           </p>
         </div>
       </div>
@@ -750,7 +794,7 @@
           <div class="tk-head">
             <div class="tk-logo">V-PASS
               <span class="spark" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path fill="#4FE3FF" d="M12 0 L15.6 8.4 L24 12 L15.6 15.6 L12 24 L8.4 15.6 L0 12 L8.4 8.4 Z"/></svg>
+                <svg viewBox="0 0 24 24"><path fill="#4FE3FF" d="M12 0 L15.84 8.16 L24 12 L15.84 15.84 L12 24 L8.16 15.84 L0 12 L8.16 8.16 Z"/></svg>
               </span>
             </div>
             <span class="idx">No. 00128</span>
@@ -777,7 +821,7 @@
           <div class="tk-qr">
             <div class="qr"></div>
             <span class="spark" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path fill="#00E6AB" d="M12 0 L15.6 8.4 L24 12 L15.6 15.6 L12 24 L8.4 15.6 L0 12 L8.4 8.4 Z"/></svg>
+              <svg viewBox="0 0 24 24"><path fill="#00E6AB" d="M12 0 L15.84 8.16 L24 12 L15.84 15.84 L12 24 L8.16 15.84 L0 12 L8.16 8.16 Z"/></svg>
             </span>
           </div>
 
