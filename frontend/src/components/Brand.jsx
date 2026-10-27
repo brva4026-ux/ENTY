@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
-import { BADGE, SPARK, SPARK_HALO, V_CORE_WIDTH, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
+import { APERTURE, BADGE, SPARK, SPARK_HALO, V_CORE_WIDTH, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
 
 /** Marca V-Pass: isotipo vectorial, indicadores vivos y cifras animadas.
 
@@ -58,6 +58,11 @@ export function MarkGlyph({ className = "" }) {
           <stop offset="0" stopColor="var(--e-mark-spark)" stopOpacity="0.7" />
           <stop offset="1" stopColor="var(--e-mark-spark)" stopOpacity="0" />
         </radialGradient>
+        <radialGradient id={`${uid}-aperture`}>
+          <stop offset="0" stopColor="var(--e-mark-aperture)" stopOpacity={APERTURE.opacity} />
+          <stop offset="0.5" stopColor="var(--e-mark-aperture)" stopOpacity={APERTURE.mid} />
+          <stop offset="1" stopColor="var(--e-mark-aperture)" stopOpacity="0" />
+        </radialGradient>
         <clipPath id={`${uid}-clip`}>
           <rect x={BADGE.x} y={BADGE.y} width={BADGE.w} height={BADGE.h} rx={BADGE.r} />
         </clipPath>
@@ -97,6 +102,13 @@ export function MarkGlyph({ className = "" }) {
         stroke="var(--e-mark-ring)"
         strokeOpacity="0.5"
         strokeWidth="1.6"
+      />
+      <ellipse
+        cx={APERTURE.cx}
+        cy={APERTURE.cy}
+        rx={APERTURE.rx}
+        ry={APERTURE.ry}
+        fill={`url(#${uid}-aperture)`}
       />
       <circle
         cx={SPARK.cx}

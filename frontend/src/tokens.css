@@ -187,6 +187,7 @@
   --e-mark-v-bottom: #4fe3ff;
   --e-mark-v-core: #eaf4ff;
   --e-mark-spark: #4fe3ff;
+  --e-mark-aperture: #7ff0ff;
 
   /* ---------------------------------------------------------------- 2 · SEMÁNTICAS (oscuro = default) */
   --e-canvas: var(--e-ink-1);

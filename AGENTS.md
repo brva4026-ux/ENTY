@@ -332,6 +332,18 @@ con `stroke`, así que su caja real no es la del `d`: con unión redonda
 núcleo de neón a 16px: se midió que sube los píxeles brillantes (0.20 → 0.25)
 en vez de emborronar, que era la suposición contraria.
 
+**El concepto del isotipo: la V es un pase y por ella pasa la luz.** No es
+decoración: el destello es la fuente y el hueco entre los brazos se ilumina
+(`APERTURE`, un resplandor radial en el negativo de la V). Se probaron otras
+direcciones y se descartaron con medición: un cono direccional desde el
+destello (solo añade neblina a 16px) y un umbral bajo el vértice (se lee como
+un guion suelto). La intensidad del resplandor está medida: a 0.6 rellena el
+hueco y **funde los dos brazos** en un triángulo macizo a 16px; a 0.35/0.10 la
+V conserva los brazos separados y además mejora el contraste (brillantes 0.27
+frente a 0.26, medios tonos 0.23 frente a 0.24). Ese es el valor que se usa.
+Regla general: cualquier luz añadida al hueco se verifica contando brazos a
+16px, porque el resplandor es justo lo que puede cerrarlos.
+
 **Pieza de marca interactiva** — `public/brand/vpass-terminal.html` es una
 página autónoma (un solo archivo, sin build) con la estética neo-brutalista
 del emblema: radio 0, bordes de tinta 3px, sombras de bloque sólidas y
