@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="es" data-theme="cream">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>V-PASS // TERMINAL DE ACCESO</title>
+<meta name="description" content="V-PASS Access Terminal: HUD neo-brutalista con estética de videojuego y streetwear. Pieza de marca de una sola página." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   V-PASS // ACCESS TERMINAL
+   Neo-brutalismo de alta gama + cyberpunk callejero.
+   Reglas duras: radius 0, bordes de tinta 2-3px, sombras de
+   bloque sin difuminar, tipografia industrial + monoespaciada.
+   Paleta cerrada: crema, tinta, azul marino, blanco, negro.
+   ============================================================ */
+
+:root{
+  --cream:#F4F1EA;
+  --ink:#1A1A1A;
+  --blue:#25448C;
+  --white:#FFFFFF;
+  --black:#0D0D0D;
+
+  --bg:var(--cream);
+  --fg:var(--ink);
+  --panel:var(--cream);
+  --line:var(--ink);
+  --shadow:var(--ink);
+  --accent:var(--blue);
+  --accent-fg:var(--white);
+  /* Acento para TEXTO sobre el fondo del tema: el azul marino funciona sobre
+     crema, pero sobre negro da 2.04:1. En terminal el texto de acento pasa a
+     blanco puro (20.4:1) sin salir de la paleta. */
+  --accent-ink:var(--blue);
+  --dim:rgba(26,26,26,.62);
+
+  --bd:3px;
+  --sh:6px 6px 0 var(--shadow);
+  --sh-sm:4px 4px 0 var(--shadow);
+  --gap:18px;
+
+  --f-head:"Bebas Neue","Oswald","Anton",Impact,sans-serif;
+  --f-ui:"Oswald","Anton",system-ui,sans-serif;
+  --f-mono:"Space Mono","JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --hazard:repeating-linear-gradient(45deg,var(--ink) 0 7px,transparent 7px 14px);
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+html[data-theme="terminal"]{
+  --bg:var(--black);
+  --fg:var(--cream);
+  --panel:#121212;
+  --line:var(--cream);
+  --shadow:var(--cream);
+  --accent-ink:var(--white);
+  --dim:rgba(244,241,234,.66);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+button,input,select,textarea{
+  appearance:none;-webkit-appearance:none;
+  border-radius:0;font:inherit;color:inherit;background:none;
+}
+
+html,body{min-height:100%}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--f-mono);
+  font-size:14px;
+  line-height:1.5;
+  letter-spacing:.01em;
+  padding:var(--gap);
+  display:flex;
+  flex-direction:column;
+  gap:var(--gap);
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background-color .18s steps(3),color .18s steps(3);
+}
+
+/* --- Textura impresa + scanlines de terminal ------------------------- */
+.grain,.scan{position:fixed;inset:0;pointer-events:none;z-index:60}
+.grain{background-image:var(--grain);opacity:.14;mix-blend-mode:multiply}
+html[data-theme="terminal"] .grain{mix-blend-mode:screen;opacity:.10}
+.scan{
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px);
+  opacity:.5;
+}
+
+/* --- Tipografia ------------------------------------------------------ */
+h1,h2,h3,.head{font-family:var(--f-head);font-weight:400;letter-spacing:.02em;text-transform:uppercase;line-height:.9}
+.kicker{
+  font-family:var(--f-mono);font-size:11px;font-weight:700;
+  letter-spacing:.24em;text-transform:uppercase;color:var(--dim);
+}
+.mono{font-family:var(--f-mono)}
+.blue{color:var(--accent-ink)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+/* --- Controles ------------------------------------------------------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  min-height:48px;padding:0 20px;
+  background:var(--panel);color:var(--fg);
+  border:var(--bd) solid var(--line);
+  box-shadow:var(--sh);
+  font-family:var(--f-ui);font-weight:700;font-size:15px;
+  letter-spacing:.14em;text-transform:uppercase;
+  cursor:pointer;user-select:none;
+  transition:transform .05s steps(2),box-shadow .05s steps(2),background-color .1s;
+}
+.btn:hover{background:var(--fg);color:var(--bg)}
+.btn:active{transform:translate(6px,6px);box-shadow:0 0 0 var(--shadow)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--line)}
+.btn.primary:hover{background:var(--fg);color:var(--bg)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:var(--sh)}
+.btn:disabled:hover{background:var(--panel);color:var(--fg)}
+.btn.sm{min-height:40px;padding:0 14px;font-size:13px}
+
+.field{
+  display:flex;align-items:center;gap:0;
+  border:var(--bd) solid var(--line);
+  background:var(--panel);
+  box-shadow:var(--sh-sm);
+}
+.field input{
+  flex:1;min-height:52px;padding:0 16px;
+  font-family:var(--f-mono);font-size:16px;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;
+  background:transparent;border:0;
+}
+.field input::placeholder{color:var(--dim);letter-spacing:.1em}
+.field input:focus{outline:none}
+.field:focus-within{background:var(--fg)}
+.field:focus-within input{color:var(--bg)}
+.field:focus-within input::placeholder{color:var(--bg);opacity:.6}
+.field .unit{
+  padding:0 14px;align-self:stretch;display:grid;place-items:center;
+  border-left:var(--bd) solid var(--line);
+  font-size:11px;font-weight:700;letter-spacing:.2em;
+  background:var(--accent);color:var(--accent-fg);
+}
+
+/* --- Estructura ------------------------------------------------------ */
+.wrap{width:100%;max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:var(--gap)}
+
+.card{
+  background:var(--panel);
+  border:var(--bd) solid var(--line);
+  box-shadow:var(--sh);
+}
+.card .cap{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 16px;border-bottom:var(--bd) solid var(--line);
+}
+.card .cap h2{font-size:22px}
+.card .body{padding:16px}
+
+/* --- Cabecera -------------------------------------------------------- */
+.hdr{
+  display:flex;align-items:stretch;justify-content:space-between;gap:var(--gap);
+  flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:16px}
+.mark{
+  width:78px;height:78px;flex:none;display:block;
+  border:var(--bd) solid var(--line);
+  box-shadow:var(--sh-sm);
+  background:var(--cream);
+}
+.word{display:flex;flex-direction:column;gap:2px}
+.word .t{font-family:var(--f-head);font-size:52px;line-height:.82;letter-spacing:.04em}
+.word .s{font-size:10px;font-weight:700;letter-spacing:.34em;text-transform:uppercase;color:var(--dim)}
+
+.readouts{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
+.ro{
+  border:var(--bd) solid var(--line);background:var(--panel);
+  padding:8px 14px;min-width:132px;box-shadow:var(--sh-sm);
+}
+.ro .k{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.ro .v{font-family:var(--f-ui);font-weight:700;font-size:20px;letter-spacing:.06em}
+.live{display:inline-block;width:9px;height:9px;background:var(--accent);margin-right:7px;
+  animation:blink 1.1s steps(1,end) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* --- Marquesina ------------------------------------------------------ */
+.ticker{
+  border:var(--bd) solid var(--line);background:var(--accent);color:var(--accent-fg);
+  box-shadow:var(--sh-sm);overflow:hidden;white-space:nowrap;
+}
+.ticker .run{
+  display:inline-block;padding:9px 0;font-family:var(--f-ui);font-weight:700;
+  font-size:14px;letter-spacing:.22em;text-transform:uppercase;
+  animation:run 26s linear infinite;
+}
+@keyframes run{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* --- HUD de estadisticas --------------------------------------------- */
+.hud{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap)}
+.stat{padding:14px 16px;position:relative;overflow:hidden}
+.stat .k{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.stat .v{font-family:var(--f-head);font-size:46px;line-height:1;margin:4px 0 8px;letter-spacing:.02em}
+.stat .bar{height:10px;border:2px solid var(--line);background:var(--panel)}
+.stat .bar > i{display:block;height:100%;background:var(--accent);transition:width .35s steps(6)}
+.stat .corner{position:absolute;top:0;right:0;width:18px;height:18px;background:var(--blue);
+  clip-path:polygon(100% 0,0 0,100% 100%)}
+
+/* --- Columnas -------------------------------------------------------- */
+.cols{display:grid;grid-template-columns:1.15fr .85fr;gap:var(--gap);align-items:start}
+
+/* --- Acceso ---------------------------------------------------------- */
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+.log{
+  margin-top:16px;border:var(--bd) solid var(--line);background:var(--panel);
+  height:230px;overflow-y:auto;padding:10px 12px;box-shadow:var(--sh-sm) inset;
+}
+.log ol{list-style:none;display:flex;flex-direction:column;gap:6px}
+.log li{display:flex;gap:10px;font-size:12.5px;line-height:1.45;animation:in .18s steps(3)}
+.log li .ts{color:var(--dim);flex:none}
+.log li .tag{
+  flex:none;font-weight:700;font-size:11px;padding:1px 6px;border:2px solid var(--line);
+  letter-spacing:.1em;
+}
+.log li.ok .tag{background:var(--accent);color:var(--accent-fg)}
+.log li.no .tag{background:var(--ink);color:var(--cream)}
+.log li.sys .tag{background:var(--panel)}
+@keyframes in{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+
+/* --- Panel de sistema ------------------------------------------------ */
+.meters{display:flex;flex-direction:column;gap:14px}
+.meter .top{display:flex;justify-content:space-between;font-size:11px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px}
+.meter .track{height:20px;border:var(--bd) solid var(--line);background:var(--panel);position:relative}
+.meter .track > i{display:block;height:100%;background:var(--accent);transition:width .3s steps(8)}
+.meter.hot .track > i{background:var(--hazard)}
+.meter .pips{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 11px,var(--line) 11px 13px);opacity:.28}
+
+.wave{display:flex;align-items:flex-end;gap:4px;height:88px;border:var(--bd) solid var(--line);
+  background:var(--panel);padding:8px;box-shadow:var(--sh-sm) inset}
+.wave i{flex:1;background:var(--accent);min-height:3px}
+
+.sysgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.kv{border:2px solid var(--line);padding:8px 10px}
+.kv .k{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.kv .v{font-family:var(--f-ui);font-weight:700;font-size:18px}
+
+/* --- Pie ------------------------------------------------------------- */
+.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  border-top:var(--bd) solid var(--line);padding-top:12px;font-size:11px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+
+/* --- Toasts ---------------------------------------------------------- */
+.toasts{position:fixed;right:var(--gap);bottom:var(--gap);z-index:70;display:flex;
+  flex-direction:column;gap:10px;width:min(360px,calc(100vw - 2*var(--gap)))}
+.toast{
+  border:var(--bd) solid var(--line);background:var(--panel);color:var(--fg);
+  box-shadow:var(--sh);padding:12px 14px;
+  font-family:var(--f-ui);font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  font-size:13px;animation:in .16s steps(3);
+}
+.toast.bad{background:var(--ink);color:var(--cream)}
+.toast.good{background:var(--accent);color:var(--accent-fg)}
+html[data-theme="terminal"] .toast.bad{background:var(--cream);color:var(--black)}
+
+/* --- Arranque -------------------------------------------------------- */
+.boot{
+  position:fixed;inset:0;z-index:90;background:var(--bg);color:var(--fg);
+  display:grid;place-items:center;padding:var(--gap);
+}
+.boot .panel{
+  width:min(680px,100%);border:var(--bd) solid var(--line);background:var(--panel);
+  box-shadow:10px 10px 0 var(--shadow);padding:26px;
+}
+.boot .crest{width:120px;height:120px;margin:0 auto 18px;display:block;
+  border:var(--bd) solid var(--line);box-shadow:var(--sh-sm);background:var(--cream);
+  animation:pulse 1.6s steps(2) infinite}
+@keyframes pulse{50%{transform:scale(.94)}}
+.boot h1{font-size:clamp(38px,9vw,66px);text-align:center;margin-bottom:4px}
+.boot .sub{text-align:center;font-size:11px;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:20px}
+.boot .out{height:132px;border:2px solid var(--line);padding:10px 12px;overflow:hidden;
+  font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+.boot .pbar{height:16px;border:var(--bd) solid var(--line);margin:16px 0 18px}
+.boot .pbar > i{display:block;height:100%;width:0;background:var(--accent)}
+.boot .go{width:100%}
+.boot.gone{display:none}
+
+/* --- Efectos de estado ----------------------------------------------- */
+body.flash-ok::after,body.flash-no::after{
+  content:"";position:fixed;inset:0;z-index:65;pointer-events:none;animation:fl .32s steps(2);
+}
+body.flash-ok::after{background:var(--accent)}
+body.flash-no::after{background:var(--ink)}
+html[data-theme="terminal"] body.flash-no::after{background:var(--cream)}
+@keyframes fl{from{opacity:.5}to{opacity:0}}
+.shake{animation:sh .32s steps(4)}
+@keyframes sh{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+@media (max-width:900px){
+  .cols{grid-template-columns:1fr}
+  .hud{grid-template-columns:1fr 1fr}
+  .word .t{font-size:42px}
+}
+@media (max-width:560px){
+  body{padding:12px}
+  .hud{grid-template-columns:1fr}
+  .brand{gap:12px}
+  .mark{width:62px;height:62px}
+  .word .t{font-size:36px}
+  .ro{min-width:0;flex:1}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+</style>
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+<div class="scan" aria-hidden="true"></div>
+
+<!-- ============ EMBLEMA (tinta gruesa, estilo tatuaje/underground) ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="haz" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="14" height="14" fill="var(--cream)"/>
+      <rect width="7" height="14" fill="var(--ink)"/>
+    </pattern>
+    <!-- Emblema V-PASS: placa de tinta, banda de peligro, "V" con contorno
+         grueso (dos pasadas: tinta + azul) y destello de cuatro puntas. -->
+    <symbol id="emblem" viewBox="0 0 100 100">
+      <rect x="4" y="4" width="92" height="92" fill="var(--cream)" stroke="var(--ink)" stroke-width="8"/>
+      <path d="M8 8 H32 L8 32 Z" fill="var(--blue)"/>
+      <rect x="12" y="82" width="76" height="10" fill="url(#haz)" stroke="var(--ink)" stroke-width="3"/>
+      <path d="M30 38 L50 72 L70 38" fill="none" stroke="var(--ink)" stroke-width="15"
+            stroke-linecap="butt" stroke-linejoin="miter"/>
+      <path d="M30 38 L50 72 L70 38" fill="none" stroke="var(--blue)" stroke-width="7"
+            stroke-linecap="butt" stroke-linejoin="miter"/>
+      <path d="M81 12 L83.56 17.44 L89 20 L83.56 22.56 L81 28 L78.44 22.56 L73 20 L78.44 17.44 Z" fill="var(--ink)"/>
+      <path d="M81 15.5 L82.44 18.56 L85.5 20 L82.44 21.44 L81 24.5 L79.56 21.44 L76.5 20 L79.56 18.56 Z" fill="var(--blue)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ============ ARRANQUE ============ -->
+<div class="boot" id="boot">
+  <div class="panel">
+    <svg class="crest" viewBox="0 0 100 100" aria-hidden="true"><use href="#emblem"/></svg>
+    <h1>V-PASS</h1>
+    <p class="sub">Terminal de acceso &middot; More than tickets</p>
+    <div class="out" id="bootOut"></div>
+    <div class="pbar"><i id="bootBar"></i></div>
+    <button class="btn primary go" id="bootGo" type="button" disabled>Iniciar sistema</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ============ CABECERA ============ -->
+  <header class="hdr">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 100 100" role="img" aria-label="Emblema V-Pass"><use href="#emblem"/></svg>
+      <span class="word">
+        <span class="t">V-PASS</span>
+        <span class="s">Access Terminal</span>
+      </span>
+    </div>
+    <div class="readouts">
+      <div class="ro">
+        <div class="k"><span class="live" aria-hidden="true"></span>Enlace</div>
+        <div class="v" id="roLink">EN LÍNEA</div>
+      </div>
+      <div class="ro">
+        <div class="k">Reloj</div>
+        <div class="v mono" id="roClock">--:--:--</div>
+      </div>
+      <div class="ro">
+        <div class="k">Operador</div>
+        <div class="v">VP-01</div>
+      </div>
+      <button class="btn sm" id="themeBtn" type="button" aria-pressed="false">Modo terminal</button>
+    </div>
+  </header>
+
+  <!-- ============ MARQUESINA ============ -->
+  <div class="ticker" aria-hidden="true">
+    <span class="run">More than tickets &#9733; V-Pass access terminal &#9733; Validando aforo en tiempo real &#9733; More than tickets &#9733; V-Pass access terminal &#9733; Validando aforo en tiempo real &#9733;&nbsp;</span>
+  </div>
+
+  <!-- ============ HUD ============ -->
+  <section class="hud" aria-label="Indicadores del sistema">
+    <div class="card stat">
+      <div class="corner" aria-hidden="true"></div>
+      <div class="k">Accesos validados</div>
+      <div class="v" id="stAccesos">0</div>
+      <div class="bar" role="progressbar" aria-label="Progreso de accesos" aria-valuemin="0" aria-valuemax="100"><i id="barAccesos" style="width:42%"></i></div>
+    </div>
+    <div class="card stat">
+      <div class="corner" aria-hidden="true"></div>
+      <div class="k">Aforo ocupado</div>
+      <div class="v" id="stAforo">0%</div>
+      <div class="bar" role="progressbar" aria-label="Aforo ocupado" aria-valuemin="0" aria-valuemax="100"><i id="barAforo" style="width:62%"></i></div>
+    </div>
+    <div class="card stat">
+      <div class="corner" aria-hidden="true"></div>
+      <div class="k">En cola</div>
+      <div class="v" id="stCola">0</div>
+      <div class="bar" role="progressbar" aria-label="Personas en cola" aria-valuemin="0" aria-valuemax="400"><i id="barCola" style="width:32%"></i></div>
+    </div>
+    <div class="card stat">
+      <div class="corner" aria-hidden="true"></div>
+      <div class="k">Integridad</div>
+      <div class="v" id="stIntegridad">0%</div>
+      <div class="bar" role="progressbar" aria-label="Integridad del sistema" aria-valuemin="0" aria-valuemax="100"><i id="barIntegridad" style="width:97%"></i></div>
+    </div>
+  </section>
+
+  <!-- ============ COLUMNAS ============ -->
+  <div class="cols">
+
+    <!-- Control de acceso -->
+    <section class="card" aria-labelledby="capAcceso" id="accessCard">
+      <div class="cap">
+        <h2 id="capAcceso">Control de acceso</h2>
+        <span class="kicker" id="accessMode">Modo normal</span>
+      </div>
+      <div class="body">
+        <label class="kicker" for="code">Código de pase</label>
+        <div class="field" style="margin-top:8px">
+          <input id="code" type="text" inputmode="latin" autocomplete="off" spellcheck="false"
+                 placeholder="VPASS" aria-describedby="hint" />
+          <span class="unit" aria-hidden="true">ID</span>
+        </div>
+        <p id="hint" class="kicker" style="margin-top:8px">
+          Prueba: <b class="blue">VPASS</b> &middot; <b class="blue">AURORA</b> &middot; <b class="blue">MORE-THAN-TICKETS</b>
+        </p>
+
+        <div class="actions">
+          <button class="btn primary" id="btnValidar" type="button">Validar pase</button>
+          <button class="btn" id="btnScan" type="button">Escanear QR</button>
+          <button class="btn" id="btnCargar" type="button">Recargar energía</button>
+          <button class="btn" id="btnPurgar" type="button">Purgar cola</button>
+        </div>
+
+        <div class="log" id="log" role="log" aria-live="polite" aria-label="Registro de eventos">
+          <ol id="logList"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sistema -->
+    <section class="card" aria-labelledby="capSys">
+      <div class="cap">
+        <h2 id="capSys">Sistema</h2>
+        <span class="kicker">VP-OS 2.5</span>
+      </div>
+      <div class="body">
+        <div class="meters">
+          <div class="meter" id="mEnergy">
+            <div class="top"><span>Energía del lector</span><span id="txtEnergy">78%</span></div>
+            <div class="track"><i id="barEnergy" style="width:78%"></i><span class="pips" aria-hidden="true"></span></div>
+          </div>
+          <div class="meter" id="mXp">
+            <div class="top"><span>Nivel operador <b class="blue" id="txtLevel">3</b></span><span id="txtXp">12 / 100</span></div>
+            <div class="track"><i id="barXp" style="width:12%"></i><span class="pips" aria-hidden="true"></span></div>
+          </div>
+        </div>
+
+        <div class="wave" id="wave" aria-hidden="true"></div>
+
+        <div class="sysgrid">
+          <div class="kv"><div class="k">Lector QR</div><div class="v" id="kvQr">ACTIVO</div></div>
+          <div class="kv"><div class="k">Latencia</div><div class="v mono" id="kvPing">14 ms</div></div>
+          <div class="kv"><div class="k">Pases hoy</div><div class="v mono" id="kvHoy">12.480</div></div>
+          <div class="kv"><div class="k">Estado</div><div class="v" id="kvEstado">NOMINAL</div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ PIE ============ -->
+  <footer class="foot">
+    <span>V-Pass / Pieza de marca</span>
+    <span>Neo-brutalismo &middot; Streetwear &middot; HUD</span>
+    <span class="mono" id="footStamp">SESIÓN --:--:--</span>
+  </footer>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var $  = function(s,r){ return (r||document).querySelector(s); };
+  var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var pad = function(n){ return n<10 ? "0"+n : ""+n; };
+  var nf  = new Intl.NumberFormat("es-ES");
+
+  /* ---- Estado del sistema ---- */
+  var S = {
+    accesos: 12480, aforo: 62, cola: 128, integridad: 97,
+    energy: 78, xp: 12, level: 3, hoy: 12480,
+    safe: false, live: true
+  };
+
+  /* ---- Códigos válidos ---- */
+  var CODES = {
+    "VPASS":             { label: "Pase VIP \u00b7 Palco A",      xp: 22, aforo: 1 },
+    "AURORA":            { label: "Pase general \u00b7 Aurora",   xp: 14, aforo: 2 },
+    "MORE-THAN-TICKETS": { label: "Pase de prensa",              xp: 30, aforo: 1 },
+    "0000":              { label: "Pase revocado por seguridad", xp: 0,  aforo: 0, bad: true }
+  };
+
+  /* ---- Contadores animados ---- */
+  function tween(from, to, ms, onFrame, done){
+    if (reduce || from === to){ onFrame(to); if (done) done(); return; }
+    var t0 = performance.now();
+    (function step(now){
+      var p = Math.min(1, (now - t0) / ms);
+      var e = 1 - Math.pow(1 - p, 3);
+      onFrame(from + (to - from) * e);
+      if (p < 1) requestAnimationFrame(step);
+      else if (done) done();
+    })(t0);
+  }
+
+  var shown = { accesos: 0, cola: 0, integridad: 0, aforo: 0 };
+  function paint(){
+    var a = Math.round(S.accesos), c = Math.round(S.cola);
+    var i = Math.round(S.integridad), af = Math.round(S.aforo);
+    $("#stAccesos").textContent    = nf.format(a);
+    $("#stCola").textContent       = nf.format(c);
+    $("#stIntegridad").textContent = i + "%";
+    $("#stAforo").textContent      = af + "%";
+    $("#barAccesos").style.width   = Math.min(100, (a % 400) / 4) + "%";
+    $("#barAforo").style.width     = af + "%";
+    $("#barCola").style.width      = Math.min(100, c / 4) + "%";
+    $("#barIntegridad").style.width= i + "%";
+    $("#kvHoy").textContent        = nf.format(Math.round(S.hoy));
+  }
+  function setStat(key, value){
+    var from = shown[key] || 0;
+    shown[key] = value;
+    if (key === "accesos" || key === "hoy"){
+      tween(from, value, 500, function(v){ if(key==="accesos") S.accesos=v; else S.hoy=v; paint(); });
+    } else {
+      tween(from, value, 420, function(v){ S[key]=v; paint(); });
+    }
+  }
+  function meters(){
+    var e = Math.max(0, Math.min(100, S.energy));
+    var x = Math.max(0, Math.min(100, S.xp));
+    $("#barEnergy").style.width = e + "%";
+    $("#txtEnergy").textContent = Math.round(e) + "%";
+    $("#mEnergy").classList.toggle("hot", e < 25);
+    $("#barXp").style.width = x + "%";
+    $("#txtXp").textContent = Math.round(S.xp) + " / 100";
+    $("#txtLevel").textContent = S.level;
+  }
+
+  /* ---- Registro ---- */
+  function stamp(){
+    var d = new Date();
+    return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+  }
+  function log(text, kind){
+    var kindMap = { ok:"OK", no:"DENY", sys:"SYS" };
+    var k = kind || "sys";
+    var li = document.createElement("li");
+    li.className = k;
+    li.innerHTML = '<span class="ts">'+stamp()+'</span><span class="tag">'+
+                   (kindMap[k]||"SYS")+'</span><span class="msg"></span>';
+    li.lastChild.textContent = text;
+    var list = $("#logList");
+    list.insertBefore(li, list.firstChild);
+    while (list.children.length > 40) list.removeChild(list.lastChild);
+  }
+
+  /* ---- Toasts ---- */
+  function toast(text, kind){
+    var el = document.createElement("div");
+    el.className = "toast " + (kind || "");
+    el.textContent = text;
+    $("#toasts").appendChild(el);
+    setTimeout(function(){
+      el.style.transition = "opacity .2s";
+      el.style.opacity = "0";
+      setTimeout(function(){ el.remove(); }, 220);
+    }, 2600);
+  }
+
+  /* ---- Efectos ---- */
+  function flash(kind){
+    if (reduce) return;
+    var cls = "flash-" + kind;
+    document.body.classList.add(cls);
+    setTimeout(function(){ document.body.classList.remove(cls); }, 340);
+  }
+  function shake(){
+    if (reduce) return;
+    var card = $("#accessCard");
+    card.classList.add("shake");
+    setTimeout(function(){ card.classList.remove("shake"); }, 340);
+  }
+
+  /* ---- Reloj ---- */
+  function clock(){
+    var d = new Date(), t = pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+    $("#roClock").textContent = t;
+    $("#footStamp").textContent = "SESIÓN " + t;
+  }
+  setInterval(clock, 1000); clock();
+
+  /* ---- Visualizador de onda (efecto de sonido visual) ---- */
+  var bars = [];
+  (function buildWave(){
+    var w = $("#wave");
+    for (var i=0;i<28;i++){ var b=document.createElement("i"); w.appendChild(b); bars.push(b); }
+  })();
+  var phase = 0;
+  (function animateWave(){
+    phase += 0.11;
+    for (var i=0;i<bars.length;i++){
+      var base = S.live ? 14 : 4;
+      var v = base + Math.abs(Math.sin(phase + i*0.42)) * (S.live ? 62 : 8);
+      bars[i].style.height = Math.max(3, v) + "%";
+    }
+    requestAnimationFrame(animateWave);
+  })();
+
+  /* ---- Drenaje de energía ---- */
+  setInterval(function(){
+    if (S.safe) return;
+    S.energy = Math.max(0, S.energy - 1.2);
+    if (S.energy < 25 && S.energy + 1.2 >= 25) log("Energía del lector baja (" + Math.round(S.energy) + "%).", "sys");
+    if (S.energy === 0 && !S.safe) enterSafe();
+    meters();
+  }, 2200);
+
+  function enterSafe(){
+    S.safe = true;
+    S.integridad = Math.max(40, S.integridad - 18);
+    setStat("integridad", S.integridad);
+    $("#accessMode").textContent = "Modo seguro";
+    $("#kvEstado").textContent = "DEGRADADO";
+    $("#kvQr").textContent = "INACTIVO";
+    S.live = false;
+    $("#roLink").textContent = "BLOQUEADO";
+    $("#btnValidar").disabled = true;
+    log("Energía agotada. Sistema en modo seguro.", "no");
+    toast("Modo seguro activado", "bad");
+    flash("no");
+  }
+  function exitSafe(){
+    S.safe = false; S.live = true; S.integridad = 97;
+    setStat("integridad", 97);
+    $("#accessMode").textContent = "Modo normal";
+    $("#kvEstado").textContent = "NOMINAL";
+    $("#kvQr").textContent = "ACTIVO";
+    $("#roLink").textContent = "EN LÍNEA";
+    $("#btnValidar").disabled = false;
+    log("Sistema restaurado. Operación nominal.", "ok");
+    toast("Sistema en línea", "good");
+  }
+
+  /* ---- Acciones ---- */
+  function addXp(n){
+    S.xp += n;
+    while (S.xp >= 100){ S.xp -= 100; S.level++; log("Ascenso a nivel " + S.level + ".", "ok"); toast("Nivel " + S.level, "good"); }
+    meters();
+  }
+
+  function validar(){
+    if (S.safe) return;
+    var raw = $("#code").value.trim().toUpperCase();
+    if (!raw){ log("Sin código: introduce un identificador de pase.", "no"); shake(); toast("Falta el código", "bad"); return; }
+    var hit = CODES[raw];
+    if (hit && !hit.bad){
+      setStat("accesos", S.accesos + 1);
+      setStat("hoy", S.hoy + 1);
+      setStat("aforo", Math.min(100, S.aforo + hit.aforo));
+      S.energy = Math.max(0, S.energy - 2); meters();
+      addXp(hit.xp);
+      log("ACCESO CONCEDIDO \u2014 " + raw + " \u00b7 " + hit.label + " (+" + hit.xp + " XP)", "ok");
+      toast("Acceso concedido", "good");
+      flash("ok");
+      $("#code").value = "";
+    } else {
+      S.integridad = Math.max(30, S.integridad - 3);
+      setStat("integridad", S.integridad);
+      log(hit ? ("PASE DENEGADO \u2014 " + raw + " \u00b7 " + hit.label) : ("PASE DESCONOCIDO \u2014 " + raw), "no");
+      toast(hit ? "Pase revocado" : "Código inválido", "bad");
+      shake(); flash("no");
+    }
+  }
+
+  function escanear(){
+    if (S.safe) return;
+    var r = Math.random();
+    if (r < 0.55){
+      var code = Object.keys(CODES)[Math.floor(Math.random()*3)];
+      setStat("accesos", S.accesos + 1);
+      setStat("hoy", S.hoy + 1);
+      setStat("aforo", Math.min(100, S.aforo + 1));
+      addXp(10);
+      log("QR leído \u00b7 " + code + " \u00b7 firma verificada.", "ok");
+      toast("QR verificado", "good"); flash("ok");
+    } else if (r < 0.8){
+      setStat("cola", S.cola + 9);
+      log("QR ilegible. Reintento enviado a cola manual.", "sys");
+      toast("QR ilegible", "");
+    } else {
+      S.integridad = Math.max(30, S.integridad - 4);
+      setStat("integridad", S.integridad);
+      log("Firma alterada. Intento registrado en auditoría.", "no");
+      toast("Firma no válida", "bad"); shake(); flash("no");
+    }
+    S.energy = Math.max(0, S.energy - 1.5); meters();
+  }
+
+  function cargar(){
+    S.energy = Math.min(100, S.energy + 20);
+    S.integridad = Math.min(100, S.integridad + 2);
+    setStat("integridad", S.integridad);
+    meters();
+    if (S.safe && S.energy >= 25) exitSafe();
+    log("Celdas recargadas. Energía del lector al " + Math.round(S.energy) + "%.", "ok");
+    toast("Energía recargada", "good"); flash("ok");
+  }
+
+  function purgar(){
+    var before = S.cola;
+    S.cola = Math.max(0, S.cola - 34);
+    setStat("cola", S.cola);
+    log("Cola purgada: " + Math.round(before) + " \u2192 " + Math.round(S.cola) + " en espera.", "sys");
+    toast("Cola purgada", "");
+  }
+
+  /* ---- Enlace de botones ---- */
+  $("#btnValidar").addEventListener("click", validar);
+  $("#btnScan").addEventListener("click", escanear);
+  $("#btnCargar").addEventListener("click", cargar);
+  $("#btnPurgar").addEventListener("click", purgar);
+  $("#code").addEventListener("keydown", function(e){ if (e.key === "Enter") validar(); });
+
+  /* ---- Tema ---- */
+  var root = document.documentElement;
+  var saved = null;
+  try { saved = localStorage.getItem("vp_terminal_theme"); } catch(e){}
+  if (saved === "terminal") applyTheme("terminal");
+  function applyTheme(mode){
+    root.setAttribute("data-theme", mode);
+    var btn = $("#themeBtn");
+    btn.textContent = mode === "terminal" ? "Modo crema" : "Modo terminal";
+    btn.setAttribute("aria-pressed", String(mode === "terminal"));
+    try { localStorage.setItem("vp_terminal_theme", mode); } catch(e){}
+  }
+  $("#themeBtn").addEventListener("click", function(){
+    var next = root.getAttribute("data-theme") === "terminal" ? "cream" : "terminal";
+    applyTheme(next);
+    log("Tema cambiado a " + (next === "terminal" ? "terminal" : "crema") + ".", "sys");
+  });
+
+  /* ---- Secuencia de arranque ---- */
+  var BOOT = [
+    "V-PASS ACCESS TERMINAL v2.5",
+    "Cargando módulo de acceso................ OK",
+    "Enlazando lector QR...................... OK",
+    "Sincronizando aforo en vivo.............. OK",
+    "Calibrando HUD........................... OK",
+    "Verificando firma de marca............... OK",
+    "Sistema listo."
+  ];
+  (function boot(){
+    var out = $("#bootOut"), bar = $("#bootBar"), go = $("#bootGo");
+    var li = 0, ci = 0, line = null;
+    function tick(){
+      if (li >= BOOT.length){
+        go.disabled = false;
+        go.focus();
+        return;
+      }
+      if (ci === 0){
+        line = document.createElement("div");
+        out.appendChild(line);
+        if (out.children.length > 8) out.removeChild(out.firstChild);
+      }
+      line.textContent = BOOT[li].slice(0, ci + 1);
+      ci++;
+      var prog = ((li + ci / BOOT[li].length) / BOOT.length) * 100;
+      bar.style.width = prog + "%";
+      if (ci >= BOOT[li].length){ li++; ci = 0; setTimeout(tick, reduce ? 0 : 240); }
+      else setTimeout(tick, reduce ? 0 : 14);
+    }
+    if (reduce){ BOOT.forEach(function(t){ var d=document.createElement("div"); d.textContent=t; out.appendChild(d); }); bar.style.width="100%"; go.disabled=false; }
+    else tick();
+  })();
+
+  $("#bootGo").addEventListener("click", function(){
+    $("#boot").classList.add("gone");
+    $("#code").focus();
+    log("Sesión iniciada por operador VP-01.", "sys");
+    toast("Bienvenido, VP-01", "good");
+  });
+
+  /* ---- Arranque de datos ---- */
+  setStat("accesos", S.accesos);
+  setStat("hoy", S.hoy);
+  setStat("cola", S.cola);
+  setStat("integridad", S.integridad);
+  setStat("aforo", S.aforo);
+  paint(); meters();
+  log("Terminal V-Pass operativa. Esperando pases.", "sys");
+})();
+</script>
+</body>
+</html>

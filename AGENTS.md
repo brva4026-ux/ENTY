@@ -316,6 +316,14 @@ defecto como `og:image` en `app/routers/public.py`). **No editar los PNG a
 mano**: se desincronizan de la marca, que es como el JPEG viejo quedó con la
 paleta crema de la fase anterior. Se regeneran con `npm run icons`.
 
+**Pieza de marca interactiva** — `public/brand/vpass-terminal.html` es una
+página autónoma (un solo archivo, sin build) con la estética neo-brutalista
+del emblema: radio 0, bordes de tinta 3px, sombras de bloque sólidas y
+tipografía industrial + monoespaciada. No forma parte de la app React y no
+comparte CSS con ella; es material de marca para presentar el logo y el
+lenguaje visual. Si se cambia el isotipo en `brandMark.js`, el emblema SVG
+de esa página (símbolo `#emblem`) hay que ajustarlo a mano — no se genera.
+
 **Verificación de la vitrina** (la que falla si se rompe):
 - Cero scroll horizontal a 320/420/768/1440px en `/inicio`, `/evento/:id`,
   `/boletas` (un elemento cuenta como desborde solo si NINGÚN ancestro lo

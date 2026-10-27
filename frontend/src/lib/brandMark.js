@@ -19,12 +19,28 @@ export const VIEWBOX = "0 0 64 64";
 /** Placa de fondo: cuadrado de esquinas muy redondeadas (forma de app icon). */
 export const BADGE = { x: 1.5, y: 1.5, w: 61, h: 61, r: 15 };
 
-/** La "V": dos brazos al vertice central. Trazo grueso con puntas redondas. */
-export const V_PATH = "M20.5 19.5 L32 44.5 L43.5 19.5";
-export const V_WIDTH = 9.5;
+/**
+ * La "V": dos brazos al vertice central. Trazo grueso con puntas redondas.
+ *
+ * Geometria corregida. La version anterior tenia el vertice en y=44.5 y los
+ * brazos en x=20.5/43.5, lo que dejaba el destello SOLAPADO 6.25px sobre el
+ * brazo derecho (se veia como una mancha pegada a la V) y la V ocupaba solo
+ * el 37% del ancho de la placa. Ahora:
+ *   bbox del trazo: x 14..50, y 14..50  -> margen parejo de 12.5 en los 4 lados
+ *   (placa util: 2.5..61.5)
+ */
+export const V_PATH = "M19 19 L32 45 L45 19";
+export const V_WIDTH = 10;
 
-/** Destello de marca: estrella de cuatro puntas asimetrica. */
-export const SPARK = { cx: 49, cy: 15.5, r: 7.5, waist: 0.3 };
+/**
+ * Destello de marca: estrella de cuatro puntas simetrica.
+ *
+ * Flota fuera del trazo de la V (4px de aire hasta la punta redondeada del
+ * brazo derecho) y entra entero en la placa respetando la esquina redondeada
+ * (10 al centro del arco + 4.5 de radio = 14.5 <= 15). Antes medía r=7.5 y se
+ * comía el brazo.
+ */
+export const SPARK = { cx: 55.5, cy: 10.5, r: 4.5, waist: 0.32 };
 
 /** Path de la estrella de cuatro puntas (el "sparkle" de la marca). */
 export function sparkPath({ cx, cy, r, waist = 0.3 }) {
