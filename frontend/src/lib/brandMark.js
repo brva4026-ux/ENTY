@@ -33,6 +33,14 @@ export const V_PATH = "M19 19 L32 45 L45 19";
 export const V_WIDTH = 10;
 
 /**
+ * Nucleo luminoso del trazo: una pasada interior clara sobre el degradado.
+ * Convierte la V de una forma plana en un tubo de neon. A 16px aporta filo
+ * (medido: sube la proporcion de pixeles brillantes de 0.20 a 0.25 y baja el
+ * emborronado de medios tonos), asi que no se omite en tamanos chicos.
+ */
+export const V_CORE_WIDTH = 3.2;
+
+/**
  * Destello de marca: estrella de cuatro puntas simetrica.
  *
  * Flota fuera del trazo de la V (4px de aire hasta la punta redondeada del
@@ -41,6 +49,9 @@ export const V_WIDTH = 10;
  * comía el brazo.
  */
 export const SPARK = { cx: 55.5, cy: 10.5, r: 4.5, waist: 0.32 };
+
+/** Radio del halo cian que se enciende detras del destello. */
+export const SPARK_HALO = 8.5;
 
 /** Path de la estrella de cuatro puntas (el "sparkle" de la marca). */
 export function sparkPath({ cx, cy, r, waist = 0.3 }) {
@@ -58,34 +69,64 @@ export function sparkPath({ cx, cy, r, waist = 0.3 }) {
  * que la marca del icono y la de la app son la misma.
  */
 export const MARK_COLORS = {
-  badgeTop: "#161a26",
-  badgeBottom: "#080a12",
+  badgeTop: "#181c2a",
+  badgeBottom: "#0a0d16",
   badgeRing: "#5b8cff",
-  vTop: "#7aa2ff",
+  sheen: "#ffffff",
+  floor: "#000000",
+  vTop: "#a8c2ff",
+  vMid: "#5b8cff",
   vBottom: "#4fe3ff",
+  vCore: "#eaf4ff",
   spark: "#4fe3ff",
 };
 
 /**
  * SVG del isotipo como cadena, para el generador de iconos PWA.
  * `idp` prefija los ids de gradiente para poder incrustar varias copias.
+ *
+ * El dibujo va por capas, de atras hacia adelante: placa con degradado, brillo
+ * cenital y suelo, aro de filo, halo del destello, la V (degradado + nucleo
+ * claro) y por ultimo el destello. Todo entra por el mismo clipPath de la placa
+ * para que el brillo no se salga de las esquinas redondeadas.
  */
 export function markSvg({ idp = "vp", size = 512 } = {}) {
-  const { badgeTop, badgeBottom, badgeRing, vTop, vBottom, spark } = MARK_COLORS;
+  const {
+    badgeTop, badgeBottom, badgeRing, sheen, floor,
+    vTop, vMid, vBottom, vCore, spark,
+  } = MARK_COLORS;
+  const badge = `x="${BADGE.x}" y="${BADGE.y}" width="${BADGE.w}" height="${BADGE.h}" rx="${BADGE.r}"`;
+  const vPath = `d="${V_PATH}" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEWBOX}" width="${size}" height="${size}">
   <defs>
     <linearGradient id="${idp}-badge" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="${badgeTop}"/>
       <stop offset="1" stop-color="${badgeBottom}"/>
     </linearGradient>
-    <linearGradient id="${idp}-v" x1="0" y1="0" x2="0.35" y2="1">
+    <linearGradient id="${idp}-sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${sheen}" stop-opacity="0.16"/>
+      <stop offset="0.55" stop-color="${sheen}" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="${idp}-v" x1="0" y1="0" x2="0.4" y2="1">
       <stop offset="0" stop-color="${vTop}"/>
+      <stop offset="0.55" stop-color="${vMid}"/>
       <stop offset="1" stop-color="${vBottom}"/>
     </linearGradient>
+    <radialGradient id="${idp}-halo">
+      <stop offset="0" stop-color="${spark}" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="${spark}" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="${idp}-clip"><rect ${badge}/></clipPath>
   </defs>
-  <rect x="${BADGE.x}" y="${BADGE.y}" width="${BADGE.w}" height="${BADGE.h}" rx="${BADGE.r}" fill="url(#${idp}-badge)"/>
-  <rect x="${BADGE.x}" y="${BADGE.y}" width="${BADGE.w}" height="${BADGE.h}" rx="${BADGE.r}" fill="none" stroke="${badgeRing}" stroke-opacity="0.45" stroke-width="1.5"/>
-  <path d="${V_PATH}" fill="none" stroke="url(#${idp}-v)" stroke-width="${V_WIDTH}" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect ${badge} fill="url(#${idp}-badge)"/>
+  <g clip-path="url(#${idp}-clip)">
+    <rect ${badge} fill="url(#${idp}-sheen)"/>
+    <rect x="${BADGE.x}" y="45" width="${BADGE.w}" height="17.5" fill="${floor}" opacity="0.3"/>
+  </g>
+  <rect ${badge} fill="none" stroke="${badgeRing}" stroke-opacity="0.5" stroke-width="1.6"/>
+  <circle cx="${SPARK.cx}" cy="${SPARK.cy}" r="${SPARK_HALO}" fill="url(#${idp}-halo)"/>
+  <path ${vPath} stroke="url(#${idp}-v)" stroke-width="${V_WIDTH}"/>
+  <path ${vPath} stroke="${vCore}" stroke-opacity="0.4" stroke-width="${V_CORE_WIDTH}"/>
   <path d="${sparkPath(SPARK)}" fill="${spark}"/>
 </svg>`;
 }

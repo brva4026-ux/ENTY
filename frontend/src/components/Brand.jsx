@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
-import { BADGE, SPARK, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
+import { BADGE, SPARK, SPARK_HALO, V_CORE_WIDTH, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
 
 /** Marca V-Pass: isotipo vectorial, indicadores vivos y cifras animadas.
 
@@ -10,8 +10,10 @@ import { BADGE, SPARK, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandM
  * un JPEG de 1.8 MB que se recortaba mal en el tile cuadrado.
  */
 
-/** Destello de marca: estrella de cuatro puntas asimetrica. Se reutiliza como
- *  bullet, indicador de carga y centro del QR. */
+/** Destello de marca: la misma estrella de cuatro puntas del isotipo, en
+ *  viewBox 24. Se reutiliza como bullet, indicador de carga y centro del QR.
+ *  Sale de sparkPath() para que el bullet no derive del logo: antes llevaba un
+ *  path escrito a mano con otra cintura (0.369 frente a 0.32). */
 export function Spark({ size = 12, color = "var(--e-green-500)", className = "" }) {
   return (
     <svg
@@ -21,10 +23,7 @@ export function Spark({ size = 12, color = "var(--e-green-500)", className = "" 
       className={className}
       aria-hidden="true"
     >
-      <path
-        d="M12 0.5 L15 9 L23.5 12 L15 15 L12 23.5 L9 15 L0.5 12 L9 9 Z"
-        fill={color}
-      />
+      <path d={sparkPath({ cx: 12, cy: 12, r: 11.5, waist: SPARK.waist })} fill={color} />
     </svg>
   );
 }
@@ -46,10 +45,22 @@ export function MarkGlyph({ className = "" }) {
           <stop offset="0" stopColor="var(--e-mark-badge-top)" />
           <stop offset="1" stopColor="var(--e-mark-badge-bottom)" />
         </linearGradient>
-        <linearGradient id={`${uid}-v`} x1="0" y1="0" x2="0.35" y2="1">
+        <linearGradient id={`${uid}-sheen`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="var(--e-mark-sheen)" stopOpacity="0.16" />
+          <stop offset="0.55" stopColor="var(--e-mark-sheen)" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id={`${uid}-v`} x1="0" y1="0" x2="0.4" y2="1">
           <stop offset="0" stopColor="var(--e-mark-v-top)" />
+          <stop offset="0.55" stopColor="var(--e-mark-v-mid)" />
           <stop offset="1" stopColor="var(--e-mark-v-bottom)" />
         </linearGradient>
+        <radialGradient id={`${uid}-halo`}>
+          <stop offset="0" stopColor="var(--e-mark-spark)" stopOpacity="0.7" />
+          <stop offset="1" stopColor="var(--e-mark-spark)" stopOpacity="0" />
+        </radialGradient>
+        <clipPath id={`${uid}-clip`}>
+          <rect x={BADGE.x} y={BADGE.y} width={BADGE.w} height={BADGE.h} rx={BADGE.r} />
+        </clipPath>
       </defs>
       <rect
         x={BADGE.x}
@@ -59,6 +70,23 @@ export function MarkGlyph({ className = "" }) {
         rx={BADGE.r}
         fill={`url(#${uid}-badge)`}
       />
+      <g clipPath={`url(#${uid}-clip)`}>
+        <rect
+          x={BADGE.x}
+          y={BADGE.y}
+          width={BADGE.w}
+          height={BADGE.h}
+          fill={`url(#${uid}-sheen)`}
+        />
+        <rect
+          x={BADGE.x}
+          y="45"
+          width={BADGE.w}
+          height="17.5"
+          fill="var(--e-mark-floor)"
+          opacity="0.3"
+        />
+      </g>
       <rect
         x={BADGE.x}
         y={BADGE.y}
@@ -67,14 +95,29 @@ export function MarkGlyph({ className = "" }) {
         rx={BADGE.r}
         fill="none"
         stroke="var(--e-mark-ring)"
-        strokeOpacity="0.45"
-        strokeWidth="1.5"
+        strokeOpacity="0.5"
+        strokeWidth="1.6"
+      />
+      <circle
+        cx={SPARK.cx}
+        cy={SPARK.cy}
+        r={SPARK_HALO}
+        fill={`url(#${uid}-halo)`}
       />
       <path
         d={V_PATH}
         fill="none"
         stroke={`url(#${uid}-v)`}
         strokeWidth={V_WIDTH}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d={V_PATH}
+        fill="none"
+        stroke="var(--e-mark-v-core)"
+        strokeOpacity="0.4"
+        strokeWidth={V_CORE_WIDTH}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
