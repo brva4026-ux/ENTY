@@ -368,6 +368,31 @@ Un boleto blanco relleno con contorno blanco sobre fondo oscuro sería invisible
 Por eso en la guía la variante negra va sobre fondo claro (`.app-icon.light`): es
 line art, y necesita el fondo del color contrario. Lo mismo vale para el isotipo.
 
+**El isotipo no tiene papel fijo: se pinta con `currentColor`.** Es lo que lo hace
+funcionar sobre CUALQUIER fondo sin variante que mantener — oscuro sobre claro,
+claro sobre oscuro —. Antes el boleto era papel crema fijo, y medido daba 1.16:1
+sobre blanco: el isotipo desaparecía en papelería, imprenta y cualquier fondo
+claro (el mínimo para un gráfico es 3:1, WCAG 1.4.11). Ahora: 19.4:1 sobre blanco,
+17.1:1 sobre el canvas de la app, 16.8:1 sobre crema. `markSvg({ink})` existe
+solo para los rasterizados (iconos PWA, og-cover), donde `currentColor` no
+resuelve fuera del DOM y caería a negro.
+
+**Una sola tinta es una opción del isotipo, no un SVG reescrito.** `markSvg({mono:
+true})` colapsa el talón al mismo color y lo diferencia por tono (55%): sirve para
+imprenta, bordado y fax, que no reproducen un segundo color. Antes `flatMark()`
+rastreaba y sustituía cada hex del markup a mano, y se rompía en cuanto el isotipo
+cambiaba de capas. Ahora es un parámetro.
+
+**El kit y la guía se generan, no se editan.** Los SVG de la sección 04 de
+`guidelines.html` salen de `markSvg()`, y los del kit de `build-logo-kit.mjs`. Si
+alguien edita a mano uno de esos bloques, la próxima regeneración lo pisa. Por eso
+la guía incrusta la salida canónica y no una copia.
+
+**En JSX, las comillas dobles son literal, no plantilla.** `fill="var(--x, ${Y})"`
+deja el `${Y}` como texto y el navegador descarta la declaración entera. Hay que
+usar `fill={`var(--x, ${Y})`}`. Ya pasó una vez: el talón quedaba sin color y no
+saltaba ningún error, porque CSS ignora en silencio lo que no entiende.
+
 **Por qué papel crema y no placa oscura.** Una placa oscura sobre el canvas
 oscuro de la app es invisible a 16px —por eso la versión anterior tenía que
 dibujarse "solo con la V" por debajo de cierto tamaño, y aun así el isotipo se

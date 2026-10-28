@@ -176,13 +176,11 @@
   --e-cyan-600: #0e9fbe;
   --e-violet-400: #a06bff;
   --e-violet-600: #6d3ad6;
-  /* Tinta del isotipo: el boleto (papel crema), su filo y su talón. El papel no
-     cambia con el tema —un boleto es claro en la mano— y por eso el isotipo se ve
-     entero sobre el canvas oscuro, donde una placa oscura desaparecía. La V no
-     lleva tinta: es un canal calado, y por eso el isotipo aguanta una sola tinta. */
-  --e-mark-paper-top: #fdf9f0;
-  --e-mark-paper-bottom: #efe4c9;
-  --e-mark-edge: #3d5cd6;
+  /* Tinta del isotipo: el boleto se pinta con `currentColor`, asi que hereda la
+     tinta del contexto y funciona sobre cualquier fondo — oscuro en claro, claro
+     en oscuro — sin variante que mantener. Antes era papel crema fijo, y medido
+     daba 1.16:1 sobre blanco: el isotipo desaparecia en papelería e imprenta.
+     El talon es lo unico que lleva color propio de marca. */
   --e-mark-talon: #3d5cd6;
   /* El destello ya no es parte del isotipo, pero sigue siendo marca de la app. */
   --e-mark-spark: #4fe3ff;

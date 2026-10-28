@@ -2,32 +2,33 @@
  * Geometria del isotipo V-Pass.
  *
  * Un solo lugar define la forma; la consumen dos consumidores que no comparten
- * runtime: el componente React (src/components/Brand.jsx) y el generador de
- * iconos PWA (build-icons.mjs, Node + Chromium) y el del kit de logotipo
- * (build-logo-kit.mjs).
+ * runtime: el componente React (src/components/Brand.jsx), el generador de
+ * iconos PWA (build-icons.mjs) y el del kit de logotipo (build-logo-kit.mjs).
  *
  * LA IDEA: el troquel calado. El isotipo es un boleto, y su linea de
  * perforacion —la que separa el talon— no es recta: es una V. Y la V no esta
  * pintada encima del boleto: es un CANAL VACIO que lo atraviesa. El desgarro no
  * es un color, es un corte.
  *
- * Por que calado y no trazo: porque asi funciona en UNA SOLA TINTA. Un trazo
+ * POR QUE CALADO Y NO TRAZO: porque asi funciona en UNA SOLA TINTA. Un trazo
  * necesita un color distinto del fondo para verse; un corte no — el corte ES el
- * fondo, y el fondo siempre existe. Se probo: con la V como trazo, la version de
- * una tinta desaparecia (trazo y papel caian al mismo negro). Con la V calada,
- * la version de una tinta es un boleto negro con una V blanca. No hay parche ni
- * version degradada: la restriccion la resuelve la construccion.
+ * fondo, y el fondo siempre existe. Con la V como trazo, la version de una tinta
+ * desaparecia (trazo y papel caian al mismo negro). Con la V calada, la version
+ * de una tinta es un boleto negro con una V blanca. La restriccion la resuelve
+ * la construccion, no una version degradada.
+ *
+ * POR QUE `currentColor` Y NO PAPEL CREMA. La version anterior rellenaba el
+ * boleto de crema. Medido: crema sobre el canvas oscuro de la app da 17:1 de
+ * contraste, pero crema sobre BLANCO da 1.16:1 — el isotipo desaparecia en
+ * papelería, imprenta y cualquier fondo claro (el minimo para un grafico es 3:1,
+ * WCAG 1.4.11). Ahora el boleto se pinta con `currentColor`: hereda la tinta del
+ * contexto, asi que es oscuro sobre claro y claro sobre oscuro, sin variante que
+ * mantener ni fondo que se le resista. El talon lleva el acento de marca, que es
+ * el unico color propio del isotipo.
  *
  * De donde sale: del objeto central del producto. El boleto de la app (.tkt en
- * aesthetic-refresh.css) perfora su borde con muescas semicirculares
- * (`radial-gradient(circle at 50% 0, transparent 0 var(--notch), ...)`). El
- * isotipo usa esa misma muesca en los bordes laterales, y el troquel convertido
- * en V.
- *
- * Por que papel crema: una placa oscura sobre el canvas oscuro de la app es
- * invisible a 16px. El papel crema se ve entero, con sus muescas y su V, a
- * cualquier tamano. Sobre fondos claros el isotipo pide su version invertida
- * (papel azul, talon crema), como cualquier marca.
+ * aesthetic-refresh.css) perfora su borde con muescas semicirculares. El isotipo
+ * usa esa misma muesca en los bordes laterales, y el troquel convertido en V.
  */
 
 /** Lienzo cuadrado del isotipo. */
@@ -40,8 +41,7 @@ export const TICKET = { x: 4, y: 11, w: 56, h: 42, r: 7 };
  * Muescas del pase: dos semicirculos mordidos en los bordes laterales.
  *
  * Salen del boleto real de la app. Centradas en el borde: el circulo queda mitad
- * dentro, mitad fuera, y el recorte es media luna. Aqui van caladas (se ve el
- * fondo), no pintadas.
+ * dentro, mitad fuera, y el recorte es media luna. Van caladas (se ve el fondo).
  */
 export const NOTCH = { r: 3.1, cy: 32 };
 
@@ -63,10 +63,13 @@ export const TEAR_WIDTH = 5.4;
  *
  * Medido, no elegido: a 16px la perforacion (r=0.9) cae por debajo del pixel y
  * los puntos se funden en una linea gris que ensucia el canal; las lineas de
- * serial (1.5 de alto) quedan a medio pixel. El boleto, su V calada, sus muescas
- * y su talon no cambian: lo unico que se simplifica es el detalle impreso.
+ * serial (1.5 de alto) quedan a medio pixel. El boleto, su V calada y sus
+ * muescas no cambian: lo unico que se simplifica es el detalle impreso.
  */
 export const SIMPLE_BELOW = 20;
+
+/** Acento de marca: la tinta del talon, el unico color propio del isotipo. */
+export const MARK_ACCENT = "#3d5cd6";
 
 /**
  * Destello de marca: estrella de cuatro puntas simetrica.
@@ -87,23 +90,11 @@ export function sparkPath({ cx, cy, r, waist }) {
 }
 
 /**
- * Colores del isotipo para el rasterizado (Node no lee var(--e-*)).
- * En el componente React los mismos pasos se consumen como tokens CSS, asi
- * que la marca del icono y la de la app son la misma.
- */
-const MARK_COLORS = {
-  paperTop: "#fdf9f0",
-  paperBottom: "#efe4c9",
-  edge: "#3d5cd6",
-  talon: "#3d5cd6",
-};
-
-/**
  * Los cortes del boleto, como DATOS.
  *
  * Se exportan como datos y no como SVG para que los dos consumidores construyan
  * los mismos elementos sin duplicar la aritmetica: antes la geometria vivia dos
- * veces y se desincronizaba (ver AGENTS.md). Un corte = un agujero en el papel.
+ * veces y se desincronizaba. Un corte = un agujero en el papel.
  */
 export function markCuts() {
   const rows = [
@@ -168,30 +159,34 @@ const TALON_CLIP =
 
 /**
  * SVG del isotipo como cadena, para el generador de iconos PWA y el kit.
- * `idp` prefija los ids de gradiente para poder incrustar varias copias.
  *
- * Capas, de atras hacia adelante: el boleto de papel recortado por los cortes
- * (muescas, canal, serial, perforacion), el talon en el color de marca —tambien
- * recortado, para que el canal quede vacio de lado a lado— y el filo.
+ * `ink` es la tinta del boleto. Por defecto `currentColor`: el isotipo hereda el
+ * color del texto, asi que funciona sobre cualquier fondo sin variante aparte.
+ * Los rasterizados (iconos, og-cover) pasan un color explicito, porque fuera del
+ * DOM `currentColor` no resuelve y caeria a negro.
+ *
+ * `mono` colapsa el isotipo a UNA tinta: el talon pierde el acento y se
+ * diferencia por tono (55%). Es lo que necesitan la imprenta, el bordado y el
+ * fax, que no reproducen un segundo color.
  */
-export function markSvg({ idp = "vp", size = 512 } = {}) {
-  const { paperTop, paperBottom, edge, talon } = MARK_COLORS;
+export function markSvg({
+  idp = "vp",
+  size = 512,
+  ink = "currentColor",
+  accent = MARK_ACCENT,
+  mono = false,
+} = {}) {
   const ticket = `x="${TICKET.x}" y="${TICKET.y}" width="${TICKET.w}" height="${TICKET.h}" rx="${TICKET.r}"`;
   const cuts = cutouts({ withDetail: size >= SIMPLE_BELOW });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEWBOX}" width="${size}" height="${size}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEWBOX}" width="${size}" height="${size}" role="img" aria-label="V-Pass">
   <defs>
-    <linearGradient id="${idp}-paper" x1="0" y1="0" x2="0.25" y2="1">
-      <stop offset="0" stop-color="${paperTop}"/>
-      <stop offset="1" stop-color="${paperBottom}"/>
-    </linearGradient>
     <mask id="${idp}-m" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
       <rect width="64" height="64" fill="#fff"/>
       <g fill="#000">${cuts}</g>
     </mask>
-    <clipPath id="${idp}-talon"><path d="${TALON_CLIP}"/></clipPath>
+    <clipPath id="${idp}-t"><path d="${TALON_CLIP}"/></clipPath>
   </defs>
-  <rect ${ticket} fill="url(#${idp}-paper)" mask="url(#${idp}-m)"/>
-  <rect ${ticket} fill="${talon}" clip-path="url(#${idp}-talon)" mask="url(#${idp}-m)"/>
-  <rect ${ticket} fill="none" stroke="${edge}" stroke-opacity="0.45" stroke-width="1.5" mask="url(#${idp}-m)"/>
+  <rect ${ticket} fill="${ink}" mask="url(#${idp}-m)"/>
+  <rect ${ticket} fill="${mono ? ink : accent}"${mono ? ' opacity="0.55"' : ""} clip-path="url(#${idp}-t)" mask="url(#${idp}-m)"/>
 </svg>`;
 }

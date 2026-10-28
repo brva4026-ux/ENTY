@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
-import { NOTCH, SIMPLE_BELOW, SPARK, TEAR, TEAR_WIDTH, TICKET, VIEWBOX, markCuts, sparkPath } from "../lib/brandMark";
+import { MARK_ACCENT, NOTCH, SIMPLE_BELOW, SPARK, TEAR, TEAR_WIDTH, TICKET, VIEWBOX, markCuts, sparkPath } from "../lib/brandMark";
 
 /** Marca V-Pass: isotipo vectorial, indicadores vivos y cifras animadas.
 
@@ -58,10 +58,6 @@ export function MarkGlyph({ className = "", size = 0 }) {
       focusable="false"
     >
       <defs>
-        <linearGradient id={`${uid}-paper`} x1="0" y1="0" x2="0.25" y2="1">
-          <stop offset="0" stopColor="var(--e-mark-paper-top)" />
-          <stop offset="1" stopColor="var(--e-mark-paper-bottom)" />
-        </linearGradient>
         <mask id={`${uid}-m`} maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
           <rect width="64" height="64" fill="#fff" />
           <g fill="#000">
@@ -86,14 +82,11 @@ export function MarkGlyph({ className = "", size = 0 }) {
           <path d={talon} />
         </clipPath>
       </defs>
-      <rect {...ticket} fill={`url(#${uid}-paper)`} mask={`url(#${uid}-m)`} />
-      <rect {...ticket} fill="var(--e-mark-talon)" clipPath={`url(#${uid}-talon)`} mask={`url(#${uid}-m)`} />
+      <rect {...ticket} fill="currentColor" mask={`url(#${uid}-m)`} />
       <rect
         {...ticket}
-        fill="none"
-        stroke="var(--e-mark-edge)"
-        strokeOpacity="0.45"
-        strokeWidth="1.5"
+        fill={`var(--e-mark-talon, ${MARK_ACCENT})`}
+        clipPath={`url(#${uid}-talon)`}
         mask={`url(#${uid}-m)`}
       />
     </svg>

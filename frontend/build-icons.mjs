@@ -28,13 +28,19 @@ mkdirSync(outDir, { recursive: true });
 const BADGE_BG = "#0b0d16";
 
 /**
+ * Tinta del boleto dentro del icono. Los iconos van sobre la placa oscura, y
+ * `currentColor` no resuelve fuera del DOM: aqui hay que dar la tinta explicita.
+ */
+const ICON_INK = "#f5eedd";
+
+/**
  * Rasteriza el isotipo a `size`.
  * `inset` (0..1] encoge el arte dentro del lienzo: los maskable necesitan
  * ~20% de margen o el launcher recorta la placa.
  */
 async function render(page, size, file, inset = 1) {
   const inner = Math.round(size * inset);
-  const svg = markSvg({ idp: "ic", size: inner });
+  const svg = markSvg({ idp: "ic", size: inner, ink: ICON_INK });
   await page.setViewportSize({ width: size, height: size });
   await page.setContent(
     `<!doctype html><html><body style="margin:0;background:${BADGE_BG};display:grid;place-items:center;width:${size}px;height:${size}px">
@@ -103,7 +109,7 @@ async function syncFavicon(page) {
   const size = 32;
   await page.setContent(
     `<!doctype html><html><body style="margin:0;width:${size}px;height:${size}px">
-       ${markSvg({ idp: "fav", size })}
+       ${markSvg({ idp: "fav", size, ink: ICON_INK })}
      </body></html>`,
     { waitUntil: "load" },
   );

@@ -104,20 +104,18 @@ const bar = (color, opacity = "") =>
 const svg = (w, h, body) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="V-Pass"><title>V-Pass</title>${body}</svg>`;
 
-/** El isotipo aplanado a una sola tinta. */
+/**
+ * El isotipo aplanado a una sola tinta.
+ *
+ * `mono` ya vive en markSvg: el talon se diferencia por tono (55%) en vez de por
+ * color, asi que no hay que reescribir el SVG a mano. La version anterior
+ * rastreaba y sustituia cada hex del markup, y se rompia en cuanto el isotipo
+ * cambiaba de capas.
+ */
 function flatMark(ink) {
-  let m = markSvg({ idp: "mono", size: 64 })
+  return markSvg({ idp: "mono", size: 64, ink, mono: true })
     .replace(/^<svg[^>]*>/, "")
     .replace(/<\/svg>$/, "");
-  m = m.replace(/<defs>[\s\S]*?<\/defs>/, "");
-  m = m.replace(/clip-path="url\([^)]*\)"/g, ""); // sin degradado no hay nada que recortar
-  m = m.replace(/fill="url\([^)]*\)"/g, `fill="${ink}"`);
-  m = m.replace(/stroke="url\([^)]*\)"/g, `stroke="${ink}"`);
-  // Quedan tintas directas (nucleo, destello, anillo): tambien son una tinta.
-  m = m.replace(/#[0-9a-fA-F]{6}\b/g, ink);
-  m = m.replace(/#[0-9a-fA-F]{3}\b/g, ink);
-  m = m.replace(/\s(?:opacity|fill-opacity|stroke-opacity)="[^"]*"/g, "");
-  return m;
 }
 
 const H = 64;
@@ -126,7 +124,7 @@ const scale = CAP_TARGET / cap;
 const gap = 16;
 const lockupW = H + gap + Math.round(total * scale);
 const yOff = Math.round((H - CAP_TARGET) / 2);
-const mark = markSvg({ idp: "lk", size: H })
+const mark = markSvg({ idp: "lk", size: H, ink: INK })
   .replace(/^<svg[^>]*>/, "")
   .replace(/<\/svg>$/, "");
 
