@@ -8,6 +8,11 @@
  * este instalada. Los contornos salen de Sora 800 (el peso de marca) instanciado
  * con fontTools desde public/fonts/sora-latin.woff2.
  *
+ * Ademas de los lockups, genera la PIEZA ILUSTRADA (brandFlash.js): el boleto
+ * troquelado dibujado a mano, para portada e imprenta. No sustituye al isotipo:
+ * el isotipo se lee a 16px, la pieza ilustrada no (medido). Son objetivos
+ * distintos y por eso son dos archivos.
+ *
  * Los monocromos aplanan el isotipo a UNA tinta: fuera degradados, resplandores
  * y transparencias, que la imprenta, el bordado y el fax no reproducen. Si el
  * isotipo cambia, hay que volver a auditar que el monocromo siga teniendo un
@@ -21,6 +26,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { markSvg } from "./src/lib/brandMark.js";
+import { flashSvg } from "./src/lib/brandFlash.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const pub = join(root, "public");
@@ -124,6 +130,27 @@ const mark = markSvg({ idp: "lk", size: H })
   .replace(/^<svg[^>]*>/, "")
   .replace(/<\/svg>$/, "");
 
+/** El cuerpo de la pieza ilustrada, sin el envoltorio <svg>. */
+function flashBody(tone, size) {
+  return flashSvg({ idp: `fl-${tone}`, size, tone })
+    .replace(/^<svg[^>]*>/, "")
+    .replace(/<\/svg>\s*$/, "");
+}
+
+/**
+ * Envuelve la pieza ilustrada en su propio SVG.
+ *
+ * El viewBox es 64x64 (el lienzo de brandFlash), no size x size: la pieza esta
+ * dibujada en unidades de 64 y `size` es solo el tamano de presentacion. Con el
+ * viewBox en size, la pieza saldria diminuta en la esquina.
+ */
+function flashPiece(tone, size) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="${size}" height="${size}" role="img" aria-label="V-Pass"><title>V-Pass</title>${flashBody(
+    tone,
+    size,
+  )}</svg>`;
+}
+
 const written = [];
 const write = (name, content) => {
   writeFileSync(join(outDir, name), content);
@@ -176,6 +203,11 @@ for (const [name, ink] of [
     ),
   );
 }
+
+// La pieza ilustrada: portada e imprenta. Tres tintas, un solo archivo cada una.
+write("vpass-flash.svg", flashPiece("color", 512));
+write("vpass-flash-black.svg", flashPiece("ink", 512));
+write("vpass-flash-white.svg", flashPiece("white", 512));
 
 console.log(`[logo-kit] ${written.length} archivos en public/brand/`);
 for (const n of written) console.log(`  · ${n}`);

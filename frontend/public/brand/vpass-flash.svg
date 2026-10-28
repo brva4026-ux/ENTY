@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512" role="img" aria-label="V-Pass"><title>V-Pass</title>
+  <defs>
+    <mask id="fl-color-c" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <g fill="#000"><path d="M4.5 31.5 L32 46 L59.5 undefined" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="4.5" cy="31.5" r="3" fill="#000"/><circle cx="59.5" cy="31.5" r="3" fill="#000" /><rect x="11" y="16.4" width="17" height="1.5" rx="0.75" fill="#000"/><rect x="11" y="19.6" width="12" height="1.4" rx="0.75" fill="#000"/><rect x="11" y="22.8" width="17" height="1.5" rx="0.75" fill="#000"/><rect x="36" y="16.4" width="17" height="1.5" rx="0.75" fill="#000"/><rect x="41" y="19.6" width="12" height="1.4" rx="0.75" fill="#000"/><rect x="36" y="22.8" width="17" height="1.5" rx="0.75" fill="#000"/></g>
+    </mask>
+    <clipPath id="fl-color-t"><path d="M32 46 L59.5 undefined V53 H4.5 V31.5 Z"/></clipPath>
+  </defs>
+  <rect x="4.5" y="11" width="55" height="42" rx="6.5" fill="#f5eedd" mask="url(#fl-color-c)"/>
+  <g clip-path="url(#fl-color-t)" mask="url(#fl-color-c)">
+    <line x1="5.79" y1="54.21" x2="14.83" y2="39.74" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="6.77" y1="54.82" x2="15.81" y2="40.35" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="7.74" y1="55.43" x2="16.78" y2="40.96" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="8.72" y1="56.04" x2="17.76" y2="41.57" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="9.69" y1="56.65" x2="18.73" y2="42.18" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="10.67" y1="57.26" x2="19.71" y2="42.79" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/>
+    <line x1="49.17" y1="39.74" x2="58.21" y2="54.21" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="48.19" y1="40.35" x2="57.23" y2="54.82" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="47.22" y1="40.96" x2="56.26" y2="55.43" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="46.24" y1="41.57" x2="55.28" y2="56.04" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="45.27" y1="42.18" x2="54.31" y2="56.65" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="44.29" y1="42.79" x2="53.33" y2="57.26" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/>
+    <line x1="19.84" y1="49.54" x2="44.52" y2="51.27" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="19.75" y1="50.84" x2="44.43" y2="52.57" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="19.66" y1="52.14" x2="44.34" y2="53.86" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="19.57" y1="53.43" x2="44.25" y2="55.16" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/><line x1="19.48" y1="54.73" x2="44.16" y2="56.46" stroke="#0d0d12" stroke-width="0.7" stroke-linecap="round"/>
+  </g>
+  <rect x="4.5" y="11" width="55" height="42" rx="6.5" fill="none" stroke="#0d0d12" stroke-width="2.5" mask="url(#fl-color-c)"/>
+  <path d="M4.5 31.5 L7.65 33.85 L11.71 34.48 L14.42 37.68 L18.69 37.91 L21.19 41.50 L25.67 41.34 L27.96 45.33 L32.65 44.76" fill="none" stroke="#0d0d12" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 46 LNaN NaN LNaN NaN LNaN NaN LNaN NaN LNaN NaN LNaN NaN LNaN NaN LNaN NaN" fill="none" stroke="#0d0d12" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="26.48" y1="41.37" x2="22.50" y2="38.03" stroke="#0d0d12" stroke-width="1.1" stroke-linecap="round" opacity="0.95"/><line x1="28.96" y1="39.47" x2="27.52" y2="36.39" stroke="#0d0d12" stroke-width="1.1" stroke-linecap="round" opacity="0.6"/><line x1="32.00" y1="38.80" x2="32.00" y2="33.60" stroke="#0d0d12" stroke-width="1.1" stroke-linecap="round" opacity="0.95"/><line x1="35.04" y1="39.47" x2="36.48" y2="36.39" stroke="#0d0d12" stroke-width="1.1" stroke-linecap="round" opacity="0.6"/><line x1="37.52" y1="41.37" x2="41.50" y2="38.03" stroke="#0d0d12" stroke-width="1.1" stroke-linecap="round" opacity="0.95"/>
+  <circle cx="51.5" cy="41" r="4" fill="none" stroke="#0d0d12" stroke-width="1.4"/>
+  <path d="M48.6 39.2 L51.5 42.8 L54.4 39.2" fill="none" stroke="#0d0d12" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="51.5" cy="41" r="6.2" fill="none" stroke="#0d0d12" stroke-width="0.65" opacity="0.45"/>
+  <circle cx="12.6" cy="16.5" r="1.15" fill="#4fe3ff"/>
+</svg>

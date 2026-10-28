@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { chromium } from "@playwright/test";
 import { markSvg } from "./src/lib/brandMark.js";
+import { flashSvg } from "./src/lib/brandFlash.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const pub = join(root, "public");
@@ -56,7 +57,9 @@ async function renderSocialCard(page) {
   const W = 1200;
   const H = 630;
   const font = readFileSync(join(pub, "fonts", "sora-latin.woff2")).toString("base64");
-  const svg = markSvg({ idp: "og", size: 340 });
+  // La pieza ilustrada, no el isotipo: el og-cover es la portada, y a 340px la
+  // pieza se ve entera — es justo el tamano para el que esta dibujada.
+  const svg = flashSvg({ idp: "og", size: 340 });
   await page.setViewportSize({ width: W, height: H });
   await page.setContent(
     `<!doctype html><html><head><style>

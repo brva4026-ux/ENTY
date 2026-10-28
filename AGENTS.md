@@ -345,6 +345,29 @@ desaparecía (trazo y papel caían al mismo negro); con la V calada, la versión
 una tinta es un boleto negro con una V blanca. La restricción la resuelve la
 construcción, no una versión degradada.
 
+**La marca tiene DOS piezas, y son objetivos distintos.** El isotipo
+(`brandMark.js`) es la marca funcional: 4 trazos, se lee a 16px, va en la barra y
+el favicon. La pieza ilustrada (`brandFlash.js`) es la portada: el boleto
+troquelado dibujado a mano, para og-cover, imprenta y packaging. No se pueden
+fusionar y está medido: la pieza ilustrada tiene ~40 trazos, y a 16px el desgarro
+cae por debajo del píxel — se ve un rectángulo con una mancha. Un logo que tiene
+que funcionar a 16px no puede permitirse el detalle que hace buena a una
+ilustración. Conviven: una es la marca, la otra es la reducción dura.
+
+**Qué hace que la pieza ilustrada parezca dibujada y no ensamblada.** Contorno
+grueso y seguro; los CANTOS DEL DESGARRO SON IRREGULARES (dientes de amplitud
+creciente hacia el vértice: un borde recto lee vectorial, un borde roto lee
+arrancado a mano); HACHURADO a mano en el talón, que es el recurso del grabado;
+y chispas de movimiento en el vértice, recurso de flash. Y aguanta una tinta POR
+CONSTRUCCIÓN: el desgarro es un canal calado, no un trazo de color — el cian es
+un único punto en el serial y quitarlo no cambia la lectura.
+
+**Las variantes de una tinta son LINE ART, no masa rellena.** `flashSvg({tone})`
+con `paper: null` no dibuja la masa del papel: solo el contorno y el hachurado.
+Un boleto blanco relleno con contorno blanco sobre fondo oscuro sería invisible.
+Por eso en la guía la variante negra va sobre fondo claro (`.app-icon.light`): es
+line art, y necesita el fondo del color contrario. Lo mismo vale para el isotipo.
+
 **Por qué papel crema y no placa oscura.** Una placa oscura sobre el canvas
 oscuro de la app es invisible a 16px —por eso la versión anterior tenía que
 dibujarse "solo con la V" por debajo de cierto tamaño, y aun así el isotipo se
