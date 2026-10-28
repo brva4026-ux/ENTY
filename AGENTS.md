@@ -316,36 +316,45 @@ defecto como `og:image` en `app/routers/public.py`). **No editar los PNG a
 mano**: se desincronizan de la marca, que es como el JPEG viejo quedó con la
 paleta crema de la fase anterior. Se regeneran con `npm run icons`.
 
-El isotipo se dibuja **por capas**, de atrás hacia adelante: placa de carbón
-recortada por las muescas del pase, aro de filo (también recortado), la V
-(degradado de luz) y el destello. Todo sale de `markSvg()`; el componente React
-(`MarkGlyph`) repite las mismas capas con tokens `--e-mark-*`, así que hay que
-mantener las dos en sincronía. La cintura del destello es 0.32 en los dos
-caminos: el bullet `Spark` también sale de `sparkPath()`, no lleva path propio.
+El isotipo se dibuja **por capas**, de atrás hacia adelante: el boleto de papel
+recortado por las muescas del pase, el talón tintado (la parte que el desgarro
+separa), el filo, el desgarro en V y la perforación punteada. Todo sale de
+`markSvg()`; el componente React (`MarkGlyph`) repite las mismas capas con
+tokens `--e-mark-*`, así que hay que mantener las dos en sincronía. El destello
+ya no es parte del isotipo, pero sigue siendo marca de la app: el bullet `Spark`
+sale de `sparkPath()`, no lleva path propio.
 
-**Al cambiar la geometría, medir, no estimar.** El trazo de la V es un `path`
-con `stroke`, así que su caja real no es la del `d`: con unión redonda
-(`round`) el centro cae exacto en 32.0, pero con `miter` el vértice se estira
-3.03 unidades y descentra la V. Por eso la unión es `round`. Lo mismo con el
-núcleo de neón a 16px: se midió que sube los píxeles brillantes (0.20 → 0.25)
-en vez de emborronar, que era la suposición contraria.
+**Al cambiar la geometría, medir, no estimar.** El desgarro es un `path` con
+`stroke`, así que su caja real no es la del `d`: con unión redonda (`round`) el
+centro cae exacto en 32.0, pero con `miter` el vértice se estira y descentra la
+V. Por eso la unión es `round`. Los extremos del desgarro caen sobre el centro
+de cada muesca (x=3 y x=61, y=32): el trazo empieza donde el borde ya está
+cortado, y la lectura es "el boleto se rasga de muesca a muesca".
 
-**El concepto del isotipo: la V es la luz.** La placa es el pase —lleva las
-mismas muescas semicirculares que el boleto real de la app (`.tkt` en
-`aesthetic-refresh.css`)— y la V es la luz que lo atraviesa. El destello, arriba
-a la derecha, es la fuente de esa luz: por eso es cian y la V azul.
+**El concepto del isotipo: el troquel.** El isotipo es un boleto, y su línea de
+perforación —la que separa el talón— no es recta: es una V. La V no está pegada
+encima del boleto; ES el desgarro por el que se separa. Un boleto real no lleva
+la marca dentro: la marca es cómo se rompe. De ahí que el isotipo no sea "una V
+en una caja", que es genérico, sino el objeto central del producto.
+
+**Por qué papel crema y no placa oscura.** Una placa oscura sobre el canvas
+oscuro de la app es invisible a 16px —por eso la versión anterior tenía que
+dibujarse "solo con la V" por debajo de cierto tamaño, y aun así el isotipo se
+perdía—. El papel crema se ve entero, con sus muescas y su V, a cualquier
+tamaño, y no depende del tema. Un boleto es claro en la mano.
 
 **La restricción es el diseño.** La versión anterior sumaba cuatro luces sobre
 la misma placa (resplandor de abertura, halo del destello, brillo cenital y
 suelo) y ninguna se leía: a 16px eran niebla compitiendo con la V. El concepto
-era bueno; sobraban tres elementos. Ahora lo dice uno solo. Al tocar la marca,
-la pregunta no es "¿qué añado?" sino "¿qué sobra?".
+era bueno; sobraban tres elementos. Al tocar la marca, la pregunta no es
+"¿qué añado?" sino "¿qué sobra?".
 
-**A 16px el isotipo se dibuja solo con la V** (`SIMPLE_BELOW`). Está medido: el
-destello (r=4.4) toca la punta del brazo derecho de la V a ese tamaño y los dos
-se funden en una mancha; la V sola lee limpia —dos brazos y un vértice—. Desde
-24px hay píxeles de sobra y el destello aporta. Regla general: cada elemento de
-la marca se verifica a 16px, y si no sobrevive, se cae en vez de encogerse.
+**A 16px el desgarro va macizo** (`SIMPLE_BELOW`). Está medido: el paso de la
+perforación punteada cae por debajo de un píxel y los puntos se funden en una
+línea gris que ensucia el desgarro; el talón tintado, por lo mismo, deja de
+leerse como talón y solo baja el contraste. El boleto y su V no cambian: lo
+único que se simplifica es el detalle fino. Regla general: cada elemento de la
+marca se verifica a 16px, y si no sobrevive, se cae en vez de encogerse.
 
 **El isotipo tiene un solo camino de render.** La guía de marca repetía la
 geometría a mano (tres copias en `guidelines.html`) y se quedó con el resplandor
