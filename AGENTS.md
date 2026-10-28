@@ -331,11 +331,19 @@ V. Por eso la unión es `round`. Los extremos del desgarro caen sobre el centro
 de cada muesca (x=3 y x=61, y=32): el trazo empieza donde el borde ya está
 cortado, y la lectura es "el boleto se rasga de muesca a muesca".
 
-**El concepto del isotipo: el troquel.** El isotipo es un boleto, y su línea de
-perforación —la que separa el talón— no es recta: es una V. La V no está pegada
-encima del boleto; ES el desgarro por el que se separa. Un boleto real no lleva
-la marca dentro: la marca es cómo se rompe. De ahí que el isotipo no sea "una V
-en una caja", que es genérico, sino el objeto central del producto.
+**El concepto del isotipo: el troquel calado.** El isotipo es un boleto, y su
+línea de perforación —la que separa el talón— no es recta: es una V. Y la V no
+está pintada encima: es un CANAL VACÍO que lo atraviesa. El desgarro no es un
+color, es un corte. Un boleto real no lleva la marca dentro: la marca es cómo se
+rompe. De ahí que el isotipo no sea "una V en una caja", que es genérico, sino el
+objeto central del producto.
+
+**Calado, no trazo: así se resuelve una sola tinta.** Un trazo necesita un color
+distinto del fondo para verse; un corte no — el corte ES el fondo, y el fondo
+siempre existe. Está probado: con la V como trazo, la versión de una tinta
+desaparecía (trazo y papel caían al mismo negro); con la V calada, la versión de
+una tinta es un boleto negro con una V blanca. La restricción la resuelve la
+construcción, no una versión degradada.
 
 **Por qué papel crema y no placa oscura.** Una placa oscura sobre el canvas
 oscuro de la app es invisible a 16px —por eso la versión anterior tenía que
@@ -349,12 +357,17 @@ suelo) y ninguna se leía: a 16px eran niebla compitiendo con la V. El concepto
 era bueno; sobraban tres elementos. Al tocar la marca, la pregunta no es
 "¿qué añado?" sino "¿qué sobra?".
 
-**A 16px el desgarro va macizo** (`SIMPLE_BELOW`). Está medido: el paso de la
-perforación punteada cae por debajo de un píxel y los puntos se funden en una
-línea gris que ensucia el desgarro; el talón tintado, por lo mismo, deja de
-leerse como talón y solo baja el contraste. El boleto y su V no cambian: lo
-único que se simplifica es el detalle fino. Regla general: cada elemento de la
-marca se verifica a 16px, y si no sobrevive, se cae en vez de encogerse.
+**A 16px se caen el serial y la perforación** (`SIMPLE_BELOW`). Está medido: la
+perforación (r=0.9) cae por debajo del píxel y los puntos se funden en una línea
+gris que ensucia el canal; las líneas de serial (1.5 de alto) quedan a medio
+píxel. El boleto, su V calada, sus muescas y su talón no cambian: lo único que se
+simplifica es el detalle impreso. Regla general: cada elemento de la marca se
+verifica a 16px, y si no sobrevive, se cae en vez de encogerse.
+
+**Los cortes son datos, no SVG** (`markCuts()`). `markSvg()` (Node) y `MarkGlyph`
+(React) construyen los mismos elementos desde ahí, así que la aritmética de la
+perforación y el serial vive una sola vez. Antes la geometría vivía dos veces y se
+desincronizaba.
 
 **El isotipo tiene un solo camino de render.** La guía de marca repetía la
 geometría a mano (tres copias en `guidelines.html`) y se quedó con el resplandor

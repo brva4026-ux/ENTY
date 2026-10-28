@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
-import { NOTCH, PERF_WIDTH, SIMPLE_BELOW, SPARK, TICKET, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
+import { NOTCH, SIMPLE_BELOW, SPARK, TEAR, TEAR_WIDTH, TICKET, VIEWBOX, markCuts, sparkPath } from "../lib/brandMark";
 
 /** Marca V-Pass: isotipo vectorial, indicadores vivos y cifras animadas.
 
@@ -28,21 +28,28 @@ export function Spark({ size = 12, color = "var(--e-green-500)", className = "" 
   );
 }
 
-/** Isotipo vectorial: el boleto y su troquel.
+/** Isotipo vectorial: el boleto y su troquel calado.
  *
  *  Un boleto de papel, con las muescas del boleto real en los bordes laterales,
- *  y un desgarro en V que separa el talon: la marca es como se rompe. El papel
- *  crema (no una placa oscura) es lo que hace que el isotipo se vea entero
- *  sobre el canvas oscuro de la app, a cualquier tamano.
+ *  y su troquel —la linea que separa el talon— convertido en V. La V no esta
+ *  pintada encima: es un CANAL VACIO. El desgarro no es un color, es un corte.
  *
- *  `size` decide el detalle: por debajo de SIMPLE_BELOW el desgarro va macizo,
- *  sin perforacion punteada ni talon tintado, porque a 16px los puntos se funden
- *  en una linea gris (medido, ver brandMark.js). El boleto y su V no cambian. */
+ *  Por eso el isotipo funciona en una sola tinta sin version degradada: el canal
+ *  es el fondo, y el fondo siempre existe. Los cortes (muescas, canal, serial,
+ *  perforacion) salen de `markCuts()` —datos, no SVG— para no duplicar la
+ *  aritmetica con `markSvg()`.
+ *
+ *  `size` decide el detalle: por debajo de SIMPLE_BELOW se caen el serial y la
+ *  perforacion, que a 16px quedan por debajo del pixel (medido, ver
+ *  brandMark.js). El boleto, su V, sus muescas y su talon no cambian. */
 export function MarkGlyph({ className = "", size = 0 }) {
   const uid = useId().replace(/:/g, "");
   const conDetalle = size >= SIMPLE_BELOW;
   const ticket = { x: TICKET.x, y: TICKET.y, width: TICKET.w, height: TICKET.h, rx: TICKET.r };
-  const talon = `M32 47 L61 32 L61 ${TICKET.y + TICKET.h} L32 ${TICKET.y + TICKET.h} Z`;
+  const { serial, dots } = conDetalle ? markCuts() : { serial: [], dots: [] };
+  const talon =
+    `M${TEAR.x0} ${TEAR.y0} L${TEAR.apexX} ${TEAR.apexY} L${TEAR.x1} ${TEAR.y1} ` +
+    `V${TICKET.y + TICKET.h} H${TICKET.x} V${TEAR.y0} Z`;
   return (
     <svg
       viewBox={VIEWBOX}
@@ -51,68 +58,48 @@ export function MarkGlyph({ className = "", size = 0 }) {
       focusable="false"
     >
       <defs>
-        <linearGradient id={`${uid}-paper`} x1="0" y1="0" x2="0.3" y2="1">
+        <linearGradient id={`${uid}-paper`} x1="0" y1="0" x2="0.25" y2="1">
           <stop offset="0" stopColor="var(--e-mark-paper-top)" />
           <stop offset="1" stopColor="var(--e-mark-paper-bottom)" />
         </linearGradient>
-        <linearGradient id={`${uid}-v`} x1="0.1" y1="0" x2="0.5" y2="1">
-          <stop offset="0" stopColor="var(--e-mark-v-top)" />
-          <stop offset="0.45" stopColor="var(--e-mark-v-mid)" />
-          <stop offset="1" stopColor="var(--e-mark-v-bottom)" />
-        </linearGradient>
-        <mask id={`${uid}-notch`} maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+        <mask id={`${uid}-m`} maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
           <rect width="64" height="64" fill="#fff" />
-          <circle cx={TICKET.x} cy={NOTCH.cy} r={NOTCH.r} fill="#000" />
-          <circle cx={TICKET.x + TICKET.w} cy={NOTCH.cy} r={NOTCH.r} fill="#000" />
+          <g fill="#000">
+            <circle cx={TICKET.x} cy={NOTCH.cy} r={NOTCH.r} />
+            <circle cx={TICKET.x + TICKET.w} cy={NOTCH.cy} r={NOTCH.r} />
+            <path
+              d={`M${TEAR.x0} ${TEAR.y0} L${TEAR.apexX} ${TEAR.apexY} L${TEAR.x1} ${TEAR.y1}`}
+              fill="none"
+              strokeWidth={TEAR_WIDTH}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {serial.map((s, i) => (
+              <rect key={`s${i}`} x={s.x} y={s.y} width={s.w} height={s.h} rx="0.75" />
+            ))}
+            {dots.map((d, i) => (
+              <circle key={`d${i}`} cx={d.cx.toFixed(2)} cy={d.cy.toFixed(2)} r="0.9" />
+            ))}
+          </g>
         </mask>
         <clipPath id={`${uid}-talon`}>
           <path d={talon} />
         </clipPath>
       </defs>
-      <rect {...ticket} fill={`url(#${uid}-paper)`} mask={`url(#${uid}-notch)`} />
-      {conDetalle && (
-        <rect
-          {...ticket}
-          fill="var(--e-mark-stub)"
-          fillOpacity="0.1"
-          mask={`url(#${uid}-notch)`}
-          clipPath={`url(#${uid}-talon)`}
-        />
-      )}
+      <rect {...ticket} fill={`url(#${uid}-paper)`} mask={`url(#${uid}-m)`} />
+      <rect {...ticket} fill="var(--e-mark-talon)" clipPath={`url(#${uid}-talon)`} mask={`url(#${uid}-m)`} />
       <rect
         {...ticket}
         fill="none"
         stroke="var(--e-mark-edge)"
-        strokeOpacity="0.55"
-        strokeWidth="1.7"
-        mask={`url(#${uid}-notch)`}
+        strokeOpacity="0.45"
+        strokeWidth="1.5"
+        mask={`url(#${uid}-m)`}
       />
-      <path
-        d={V_PATH}
-        fill="none"
-        stroke={`url(#${uid}-v)`}
-        strokeWidth={V_WIDTH}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {conDetalle && (
-        <path
-          d={V_PATH}
-          fill="none"
-          stroke="var(--e-mark-perf)"
-          strokeOpacity="0.4"
-          strokeWidth={PERF_WIDTH}
-          strokeDasharray="3 2.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
     </svg>
   );
 }
 
-/** Marcador de marca: el isotipo en un tile con glow, filo de neón y un
- *  destello que barre al entrar. Es el elemento "vivo" de la cabecera. */
 export function LogoMark({ size = "md", className = "" }) {
   const box =
     size === "hero"
