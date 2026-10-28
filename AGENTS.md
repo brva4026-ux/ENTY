@@ -344,6 +344,26 @@ frente a 0.26, medios tonos 0.23 frente a 0.24). Ese es el valor que se usa.
 Regla general: cualquier luz añadida al hueco se verifica contando brazos a
 16px, porque el resplandor es justo lo que puede cerrarlos.
 
+**El logotipo es la palabra, no solo el isotipo.** `Wordmark` en
+`src/components/Brand.jsx` escribe "V-PASS" con jerarquía: la **V** va en tinta
+de acento (`--e-brand-text`) y abre la palabra — es la letra del isotipo — y el
+resto en tinta primaria. El guion no es tipográfico: es `.brand-wordmark-sep`,
+una barra de marca (bloque al 9% de la altura de la palabra, radio completo,
+55% de opacidad) que es el corte del pase. Un solo tracking, 0.04em, medido:
+para mayúsculas de marca el rango legible está entre 0.02 y 0.08em. Antes había
+dos tracking en conflicto (0.22em por estilo en línea y -0.01em en el CSS) y
+ninguno era correcto.
+
+**El kit de producción vive en `public/brand/*.svg`** y es la fuente para
+terceros: `vpass-lockup` (horizontal), `vpass-lockup-stacked` (el horizontal es
+6:1 y se encoge mal, por eso hay apilado), `vpass-wordmark`, y los monocromos
+`vpass-lockup-black`/`-white`. **El texto va trazado a curvas** (Sora 800
+instanciado con fontTools, no texto vivo): escala, se corta y se reproduce igual
+en cualquier sistema. Los monocromos son obligatorios porque el isotipo lleva
+degradados y resplandores que la imprenta y el bordado no reproducen. Al
+cambiarlos, auditarlos con el criterio de que el monocromo tenga **un solo
+color y cero degradados**.
+
 **Pieza de marca interactiva** — `public/brand/vpass-terminal.html` es una
 página autónoma (un solo archivo, sin build) con la estética neo-brutalista
 del emblema: radio 0, bordes de tinta 3px, sombras de bloque sólidas y

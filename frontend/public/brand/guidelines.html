@@ -94,6 +94,11 @@
     font-family:"Sora",system-ui,sans-serif;
     font-size:64px;font-weight:800;letter-spacing:-.02em;color:#fff;
   }
+  .wordmark .wv{color:#4FE3FF}
+  .wordmark .wsep{
+    display:inline-block;width:.5em;height:.09em;margin:0 .34em;
+    border-radius:999px;background:#4FE3FF;opacity:.55;vertical-align:middle;
+  }
   .wordmark .spark{
     position:absolute;top:-.18em;right:-.62em;width:.62em;height:.62em;
     filter:drop-shadow(0 0 10px rgba(61,92,214,.9));
@@ -446,7 +451,7 @@
 
       <div class="brandmark">
         <div class="wordmark" role="img" aria-label="V-Pass">
-          V-PASS
+          <span class="wv">V</span><span class="wsep" aria-hidden="true"></span>PASS
           <span class="spark" aria-hidden="true">
             <svg viewBox="0 0 24 24">
               <path fill="#4FE3FF" d="M12 0 L15.84 8.16 L24 12 L15.84 15.84 L12 24 L8.16 15.84 L0 12 L8.16 8.16 Z"/>
@@ -579,7 +584,7 @@
       <div class="logo-grid">
         <div class="logo-showcase">
           <div class="logo-3d" role="img" aria-label="V-Pass">
-            V-PASS
+            <span class="wv">V</span><span class="wsep" aria-hidden="true"></span>PASS
             <span class="spark" aria-hidden="true">
               <svg viewBox="0 0 24 24">
                 <path fill="#4FE3FF" d="M12 0 L15.84 8.16 L24 12 L15.84 15.84 L12 24 L8.16 15.84 L0 12 L8.16 8.16 Z"/>
@@ -590,15 +595,38 @@
         <div class="logo-notes">
           <div class="note">
             <p class="sub">Wordmark</p>
-            <p>“V-PASS” en <b>Sora mayúsculas</b> con tracking amplio (la misma voz
-              del sistema). El <b>destello</b> flota en la parte superior derecha.</p>
+            <p>“V-PASS” en <b>Sora 800</b>, mayúsculas, un solo tracking (0.04em). La
+              <b>V</b> va en tinta de acento y abre la palabra: es la letra del
+              isotipo, y el ojo entra por ahí.</p>
           </div>
           <div class="note">
-            <p class="sub">Versión 3D</p>
-            <p>Render flotante con textura <b>metálica/vidrio</b>, reflejo sobre el piso
-              negro y un <b>glow azul</b> que emana del destello.</p>
+            <p class="sub">Separador</p>
+            <p>El guion no es tipográfico: es una <b>barra de marca</b>, un bloque al
+              9% de la altura de la palabra al 55% de opacidad. Es el corte del pase,
+              el mismo gesto que la luz que atraviesa la V.</p>
           </div>
         </div>
+      </div>
+
+      <div style="margin-top:34px">
+        <p class="sub">Kit de producción</p>
+        <p style="font-size:12.5px;color:var(--dim);line-height:1.6;max-width:70ch">
+          Archivos vectoriales con el texto <b style="color:#fff">trazado a curvas</b>
+          (Sora 800), no texto vivo: escalan, se cortan y se reproducen igual en
+          cualquier sistema. Viven en <code>public/brand/</code>.
+        </p>
+        <div class="icon-row" style="margin-top:16px;align-items:flex-start;gap:26px;flex-wrap:wrap">
+          <div><img src="vpass-lockup.svg" alt="Lockup horizontal" style="height:52px;display:block"><p class="sub" style="margin-top:8px">Lockup horizontal</p></div>
+          <div><img src="vpass-lockup-stacked.svg" alt="Lockup apilado" style="height:92px;display:block"><p class="sub" style="margin-top:8px">Lockup apilado</p></div>
+          <div><img src="vpass-wordmark.svg" alt="Wordmark" style="height:34px;display:block"><p class="sub" style="margin-top:8px">Wordmark</p></div>
+          <div style="background:#f1f1f4;padding:10px;border-radius:6px"><img src="vpass-lockup-black.svg" alt="Monocromo negro" style="height:40px;display:block"></div>
+          <div style="background:#0b0d16;padding:10px;border-radius:6px"><img src="vpass-lockup-white.svg" alt="Monocromo blanco" style="height:40px;display:block"></div>
+        </div>
+        <p style="font-size:12px;color:var(--dim);margin-top:10px">
+          El <b style="color:#fff">monocromo</b> es obligatorio: el isotipo lleva
+          degradados y resplandores que la imprenta, el bordado y el fax no
+          reproducen. Para eso están las versiones de una sola tinta.
+        </p>
       </div>
 
       <div class="two" style="margin-top:34px">

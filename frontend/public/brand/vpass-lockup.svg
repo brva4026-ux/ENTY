@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 385 64" width="385" height="64" role="img" aria-label="V-Pass"><title>V-Pass</title>
+  <defs>
+    <linearGradient id="lk-badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#181c2a"/>
+      <stop offset="1" stop-color="#0a0d16"/>
+    </linearGradient>
+    <linearGradient id="lk-sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lk-v" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#a8c2ff"/>
+      <stop offset="0.55" stop-color="#5b8cff"/>
+      <stop offset="1" stop-color="#4fe3ff"/>
+    </linearGradient>
+    <radialGradient id="lk-halo">
+      <stop offset="0" stop-color="#4fe3ff" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#4fe3ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lk-aperture">
+      <stop offset="0" stop-color="#7ff0ff" stop-opacity="0.35"/>
+      <stop offset="0.5" stop-color="#7ff0ff" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#7ff0ff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="lk-clip"><rect x="1.5" y="1.5" width="61" height="61" rx="15"/></clipPath>
+  </defs>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="url(#lk-badge)"/>
+  <g clip-path="url(#lk-clip)">
+    <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="url(#lk-sheen)"/>
+    <rect x="1.5" y="45" width="61" height="17.5" fill="#000000" opacity="0.3"/>
+  </g>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="none" stroke="#5b8cff" stroke-opacity="0.5" stroke-width="1.6"/>
+  <ellipse cx="32" cy="32" rx="14" ry="16" fill="url(#lk-aperture)"/>
+  <circle cx="55.5" cy="10.5" r="8.5" fill="url(#lk-halo)"/>
+  <path d="M19 19 L32 45 L45 19" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="url(#lk-v)" stroke-width="10"/>
+  <path d="M19 19 L32 45 L45 19" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#eaf4ff" stroke-opacity="0.4" stroke-width="3.2"/>
+  <path d="M55.5 6 L56.94 9.06 L60 10.5 L56.94 11.94 L55.5 15 L54.06 11.94 L51 10.5 L54.06 9.06 Z" fill="#4fe3ff"/>
+<g transform="translate(80 9) scale(0.06301)"><path d="M232 730 20 0H212L371 599L336 582H432L396 599L544 0H730L532 730Z" fill="#4fe3ff"/><path d="M2170 536V376H2290Q2324 376 2349 362.5Q2374 349 2388 324Q2402 299 2402 265Q2402 230 2388 205Q2374 180 2349 167Q2324 154 2290 154H2170V-6H2285Q2379 -6 2447.5 25.5Q2516 57 2553 116Q2590 175 2590 257V273Q2590 354 2553 413Q2516 472 2447.5 504Q2379 536 2285 536ZM2004 730V-6H2190V730Z" fill="#f5eedd"/><path d="M2654 730 2888 0H3186L3428 730H3236L3048 130L3101 150H2969L3023 130L2840 730ZM2845 561 2901 409H3178L3234 561Z" fill="#f5eedd"/><path d="M3810 750Q3708 750 3638.5 718Q3569 686 3533.5 630.5Q3498 575 3498 503H3678Q3678 529 3692.5 550.5Q3707 572 3736 584Q3765 596 3810 596Q3849 596 3876.5 586Q3904 576 3918.5 558Q3933 540 3933 515Q3933 483 3906 465.5Q3879 448 3815 443L3768 439Q3655 429 3588 368Q3521 307 3521 206Q3521 134 3554.5 83Q3588 32 3649 5Q3710 -22 3793 -22Q3883 -22 3945.5 8Q4008 38 4041 92.5Q4074 147 4074 219H3894Q3894 195 3882 175Q3870 155 3847.5 143.5Q3825 132 3793 132Q3763 132 3742.5 141.5Q3722 151 3711.5 168Q3701 185 3701 206Q3701 234 3720 254Q3739 274 3786 278L3833 282Q3915 289 3978 317.5Q4041 346 4077 395Q4113 444 4113 515Q4113 586 4076.5 639Q4040 692 3972.5 721Q3905 750 3810 750Z" fill="#f5eedd"/><path d="M4509 750Q4407 750 4337.5 718Q4268 686 4232.5 630.5Q4197 575 4197 503H4377Q4377 529 4391.5 550.5Q4406 572 4435 584Q4464 596 4509 596Q4548 596 4575.5 586Q4603 576 4617.5 558Q4632 540 4632 515Q4632 483 4605 465.5Q4578 448 4514 443L4467 439Q4354 429 4287 368Q4220 307 4220 206Q4220 134 4253.5 83Q4287 32 4348 5Q4409 -22 4492 -22Q4582 -22 4644.5 8Q4707 38 4740 92.5Q4773 147 4773 219H4593Q4593 195 4581 175Q4569 155 4546.5 143.5Q4524 132 4492 132Q4462 132 4441.5 141.5Q4421 151 4410.5 168Q4400 185 4400 206Q4400 234 4419 254Q4438 274 4485 278L4532 282Q4614 289 4677 317.5Q4740 346 4776 395Q4812 444 4812 515Q4812 586 4775.5 639Q4739 692 4671.5 721Q4604 750 4509 750Z" fill="#f5eedd"/><rect x="1090" y="320" width="500" height="90" rx="45" fill="#4fe3ff" opacity="0.55"/></g></svg>

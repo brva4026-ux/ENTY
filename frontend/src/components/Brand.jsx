@@ -160,9 +160,17 @@ export function LogoMark({ size = "md", className = "" }) {
   );
 }
 
-/** Palabra de marca: "V-PASS" en tipografía sans, mayúsculas y espaciada.
- *  Provisional: la imagen de marca no trae texto, así que el nombre se
- *  escribe aparte junto al marcador. */
+/** Palabra de marca: "V-PASS" con jerarquía y separador de marca.
+ *
+ * Antes era texto liso con tracking uniforme y un guion tipográfico, y además
+ * tenía dos tracking en conflicto: el componente forzaba 0.22em y el CSS
+ * `.brand-wordmark` pedía -0.01em. Ninguno de los dos es correcto para
+ * mayúsculas de marca; se midió y se fija uno solo (ver `.brand-wordmark`).
+ *
+ * La "V" va en tinta de acento y el resto en tinta primaria: el ojo entra por
+ * la V, que es la letra del isotipo. El guion tipográfico se sustituye por una
+ * barra de marca (`brand-wordmark-sep`), el corte del pase.
+ */
 export function Wordmark({ size = "md", className = "", animated = true }) {
   const fontSize =
     size === "hero" || size === "xl" || size === "lg"
@@ -175,9 +183,11 @@ export function Wordmark({ size = "md", className = "", animated = true }) {
       className={`brand-wordmark inline-flex items-center leading-none ${className} ${
         animated ? "animate-fade" : ""
       }`}
-      style={{ fontSize, letterSpacing: "0.06em" }}
+      style={{ fontSize }}
     >
-      <span className="font-semibold uppercase tracking-[0.22em]">V-PASS</span>
+      <span className="brand-wordmark-v">V</span>
+      <span className="brand-wordmark-sep" aria-hidden="true" />
+      <span className="brand-wordmark-rest">PASS</span>
     </span>
   );
 }
