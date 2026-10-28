@@ -896,3 +896,16 @@ avisar.
   franja NO llama `refreshEventData()` (el POST ya devuelve el evento) y el
   backstage sí (necesita releer cifras). `.evx-actions` tiene `flex-wrap`:
   con el ciclo completo caben cuatro botones y deben poder caer a otra línea.
+
+## Skills instaladas
+
+`.agents/skills/` trae tres skills de [ponytail](https://github.com/DietrichGebert/ponytail)
+(MIT): `ponytail` (modo senior vago: el cambio mas pequeno que resuelve la tarea),
+`ponytail-review` (revision de un cambio) y `ponytail-audit` (auditoria del repo).
+Se activan solas por descripcion, o a pedido: "ponytail", "be lazy", "simplest
+solution", "review this", "audit this codebase". Niveles: lite, full (default),
+ultra. No traen dependencias ni hooks propios: son solo texto de instrucciones.
+
+Su regla de cierre vale para este repo: al terminar, decir en una o dos lineas
+que se omitio y que riesgo queda. Y su regla de tamano: cada linea de mas hay que
+leerla, probarla y arreglarla despues — borrar gana a anadir.
