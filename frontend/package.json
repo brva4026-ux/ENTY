@@ -11,7 +11,8 @@
     "icons": "node build-icons.mjs",
     "test:e2e": "playwright test",
     "lint:css": "stylelint \"src/**/*.css\" --max-warnings 35",
-    "lint:design": "node scripts/design-gate.mjs"
+    "lint:design": "node scripts/design-gate.mjs",
+    "logo-kit": "node build-logo-kit.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.75.0",
