@@ -65,7 +65,7 @@ export const SPARK = { cx: 51, cy: 12, r: 4.4, waist: 0.32 };
 export const SIMPLE_BELOW = 24;
 
 /** Path de la estrella de cuatro puntas (el "sparkle" de la marca). */
-export function sparkPath({ cx, cy, r, waist = 0.3 }) {
+export function sparkPath({ cx, cy, r, waist }) {
   const i = r * waist;
   return (
     `M${cx} ${cy - r} L${cx + i} ${cy - i} L${cx + r} ${cy} ` +
@@ -79,7 +79,7 @@ export function sparkPath({ cx, cy, r, waist = 0.3 }) {
  * En el componente React los mismos pasos se consumen como tokens CSS, asi
  * que la marca del icono y la de la app son la misma.
  */
-export const MARK_COLORS = {
+const MARK_COLORS = {
   badgeTop: "#1c2133",
   badgeBottom: "#0a0d16",
   badgeRing: "#5b8cff",
