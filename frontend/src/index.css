@@ -4309,10 +4309,6 @@ html[data-theme="light"] .brand-chip {
   background: none;
   box-shadow: none;
 }
-html[data-theme="light"] .brand-flow {
-  color: var(--e-blue-400);
-  -webkit-text-fill-color: var(--e-blue-400);
-}
 html[data-theme="light"] .auth-field-icon {
   color: var(--color-zinc-400);
 }
@@ -4381,20 +4377,35 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
 .brand-tile {
   background: var(--e-ink-950);
 }
-/* Wordmark: Sora es la voz de la marca en todo el sistema. */
+/* Wordmark: Sora es la voz de la marca en todo el sistema.
+   Un solo tracking para toda la palabra. Antes el componente forzaba 0.22em
+   por estilo en línea y este bloque pedía -0.01em: dos reglas en conflicto y
+   ninguna correcta. Para mayúsculas de marca el rango legible está entre 0.02
+   y 0.08em; se mide con 0.04em, que separa sin deshilachar la palabra. */
 .brand-wordmark {
   font-family: var(--font-sans);
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
-.brand-wordmark-hero {
-  font-size: var(--e-text-display);
-  line-height: 1;
+/* La V abre la palabra y lleva la tinta de acento (la letra del isotipo). */
+.brand-wordmark-v {
+  color: var(--e-brand-text);
 }
-/* "Flow": tinta sólida del acento — un solo color de marca, sin degradado. */
-.brand-flow {
-  color: var(--e-blue-400);
-  -webkit-text-fill-color: var(--e-blue-400);
+.brand-wordmark-rest {
+  color: inherit;
+}
+/* Separador: no es un guion tipográfico, es la barra de marca (el corte del
+   pase). Un bloque de tinta al 34% de la altura de la palabra, centrado
+   ópticamente, en vez de un carácter con su propio espaciado. */
+.brand-wordmark-sep {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.09em;
+  margin: 0 0.34em;
+  border-radius: 999px;
+  background: var(--e-brand-text);
+  opacity: 0.55;
 }
 
 /* Iconos de campo (correo/candado): el formulario habla el mismo idioma
@@ -5577,6 +5588,17 @@ html[data-theme="light"] .auth-brand .brand-shine {
 .auth-brand .brand-wordmark,
 html[data-theme="light"] .auth-brand .brand-wordmark {
   color: var(--e-paper);
+}
+/* La V de acento usa --e-brand-text (azul de marca del tema), que en claro es
+   azul oscuro: sobre el panel navy quedaría ilegible. En esta superficie fija
+   se cambia al cian del isotipo, el mismo que ya usa la marca sobre negro. */
+.auth-brand .brand-wordmark-v,
+html[data-theme="light"] .auth-brand .brand-wordmark-v {
+  color: var(--e-cyan-400);
+}
+.auth-brand .brand-wordmark-sep,
+html[data-theme="light"] .auth-brand .brand-wordmark-sep {
+  background: var(--e-cyan-400);
 }
 
 /* El gate legal es otra superficie SIEMPRE oscura (#0b0b0f): su tinta no

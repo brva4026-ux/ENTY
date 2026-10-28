@@ -71,12 +71,20 @@ async function renderSocialCard(page) {
          background:linear-gradient(90deg,#3d5cd6,#4fe3ff)}
        .mark{position:relative;flex:none;filter:drop-shadow(0 24px 48px rgba(79,227,255,.28))}
        .copy{position:relative;min-width:0}
-       h1{color:#f4f6fb;font-size:118px;font-weight:800;letter-spacing:-.035em;line-height:1}
+       /* El logotipo social usa los mismos elementos que la app — la V en tinta
+          de acento y la barra de marca — pero con tracking negativo: a 118px el
+          espaciado positivo del wordmark pequeño deshilacharia la palabra. El
+          tracking escala al revés que el tamano. */
+       h1{color:#f4f6fb;font-size:118px;font-weight:800;letter-spacing:-.03em;line-height:1;
+         display:flex;align-items:center;text-transform:uppercase}
+       h1 .v{color:#4fe3ff}
+       h1 .sep{display:inline-block;width:.5em;height:.09em;margin:0 .34em;
+         border-radius:999px;background:#4fe3ff;opacity:.55}
        p{color:#a9bbdb;font-size:36px;font-weight:400;margin-top:22px;max-width:620px;line-height:1.25}
      </style></head><body>
        <div class="mark">${svg}</div>
        <div class="copy">
-         <h1>V-Pass</h1>
+         <h1><span class="v">V</span><span class="sep" aria-hidden="true"></span>PASS</h1>
          <p>Boletas, cortesias y control de aforo</p>
        </div>
      </body></html>`,
