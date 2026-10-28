@@ -53,6 +53,23 @@ export const SPARK = { cx: 55.5, cy: 10.5, r: 4.5, waist: 0.32 };
 /** Radio del halo cian que se enciende detras del destello. */
 export const SPARK_HALO = 8.5;
 
+/**
+ * Luz de la abertura: el hueco entre los brazos de la V se ilumina, como si el
+ * destello la atravesara. Es el concepto de la marca — la V es un pase y por
+ * ella pasa la luz — resuelto con un resplandor en el negativo de la V.
+ *
+ * Centrado en el triangulo hueco (vertice abajo, borde superior en y=19). Se
+ * probaron el cono direccional desde el destello y un umbral bajo el vertice:
+ * el cono solo anade neblina a 16px y el umbral se lee como un guion suelto.
+ * El resplandor, en cambio, sube la luz sin romper la silueta de la V.
+ *
+ * La intensidad esta medida, no elegida a ojo: a 0.6 el resplandor rellena el
+ * hueco a 16px y funde los dos brazos en un triangulo macizo. A 0.35/0.10 la V
+ * conserva los brazos separados y ademas mejora el contraste (brillantes 0.27
+ * frente a 0.26, medios tonos 0.23 frente a 0.24), asi que es la que se usa.
+ */
+export const APERTURE = { cx: 32, cy: 32, rx: 14, ry: 16, opacity: 0.35, mid: 0.1 };
+
 /** Path de la estrella de cuatro puntas (el "sparkle" de la marca). */
 export function sparkPath({ cx, cy, r, waist = 0.3 }) {
   const i = r * waist;
@@ -79,6 +96,7 @@ export const MARK_COLORS = {
   vBottom: "#4fe3ff",
   vCore: "#eaf4ff",
   spark: "#4fe3ff",
+  aperture: "#7ff0ff",
 };
 
 /**
@@ -93,7 +111,7 @@ export const MARK_COLORS = {
 export function markSvg({ idp = "vp", size = 512 } = {}) {
   const {
     badgeTop, badgeBottom, badgeRing, sheen, floor,
-    vTop, vMid, vBottom, vCore, spark,
+    vTop, vMid, vBottom, vCore, spark, aperture,
   } = MARK_COLORS;
   const badge = `x="${BADGE.x}" y="${BADGE.y}" width="${BADGE.w}" height="${BADGE.h}" rx="${BADGE.r}"`;
   const vPath = `d="${V_PATH}" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
@@ -116,6 +134,11 @@ export function markSvg({ idp = "vp", size = 512 } = {}) {
       <stop offset="0" stop-color="${spark}" stop-opacity="0.7"/>
       <stop offset="1" stop-color="${spark}" stop-opacity="0"/>
     </radialGradient>
+    <radialGradient id="${idp}-aperture">
+      <stop offset="0" stop-color="${aperture}" stop-opacity="${APERTURE.opacity}"/>
+      <stop offset="0.5" stop-color="${aperture}" stop-opacity="${APERTURE.mid}"/>
+      <stop offset="1" stop-color="${aperture}" stop-opacity="0"/>
+    </radialGradient>
     <clipPath id="${idp}-clip"><rect ${badge}/></clipPath>
   </defs>
   <rect ${badge} fill="url(#${idp}-badge)"/>
@@ -124,6 +147,7 @@ export function markSvg({ idp = "vp", size = 512 } = {}) {
     <rect x="${BADGE.x}" y="45" width="${BADGE.w}" height="17.5" fill="${floor}" opacity="0.3"/>
   </g>
   <rect ${badge} fill="none" stroke="${badgeRing}" stroke-opacity="0.5" stroke-width="1.6"/>
+  <ellipse cx="${APERTURE.cx}" cy="${APERTURE.cy}" rx="${APERTURE.rx}" ry="${APERTURE.ry}" fill="url(#${idp}-aperture)"/>
   <circle cx="${SPARK.cx}" cy="${SPARK.cy}" r="${SPARK_HALO}" fill="url(#${idp}-halo)"/>
   <path ${vPath} stroke="url(#${idp}-v)" stroke-width="${V_WIDTH}"/>
   <path ${vPath} stroke="${vCore}" stroke-opacity="0.4" stroke-width="${V_CORE_WIDTH}"/>
