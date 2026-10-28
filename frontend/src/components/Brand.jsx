@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
-import { APERTURE, BADGE, SPARK, SPARK_HALO, V_CORE_WIDTH, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
+import { BADGE, NOTCH, SIMPLE_BELOW, SPARK, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
 
 /** Marca V-Pass: isotipo vectorial, indicadores vivos y cifras animadas.
 
@@ -28,11 +28,19 @@ export function Spark({ size = 12, color = "var(--e-green-500)", className = "" 
   );
 }
 
-/** Isotipo vectorial: la "V" luminosa sobre la placa de carbón, con destello.
- *  Los ids de gradiente llevan un sufijo unico por instancia para que varias
- *  copias en la misma pagina no se pisen. */
-export function MarkGlyph({ className = "" }) {
+/** Isotipo vectorial: la V de luz sobre la placa del pase.
+ *
+ *  La placa es el pase —recortada por las muescas del boleto real— y la V es la
+ *  luz que lo atraviesa. El destello, arriba a la derecha, es la fuente de esa
+ *  luz. Los ids de gradiente llevan un sufijo unico por instancia para que
+ *  varias copias en la misma pagina no se pisen.
+ *
+ *  `size` decide si entra el destello: por debajo de SIMPLE_BELOW el isotipo se
+ *  dibuja solo con la V, porque a 16px el destello toca el brazo derecho y los
+ *  dos se funden en una mancha (medido, ver brandMark.js). */
+export function MarkGlyph({ className = "", size = 0 }) {
   const uid = useId().replace(/:/g, "");
+  const conDestello = size >= SIMPLE_BELOW;
   return (
     <svg
       viewBox={VIEWBOX}
@@ -45,27 +53,16 @@ export function MarkGlyph({ className = "" }) {
           <stop offset="0" stopColor="var(--e-mark-badge-top)" />
           <stop offset="1" stopColor="var(--e-mark-badge-bottom)" />
         </linearGradient>
-        <linearGradient id={`${uid}-sheen`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--e-mark-sheen)" stopOpacity="0.16" />
-          <stop offset="0.55" stopColor="var(--e-mark-sheen)" stopOpacity="0" />
-        </linearGradient>
         <linearGradient id={`${uid}-v`} x1="0" y1="0" x2="0.4" y2="1">
           <stop offset="0" stopColor="var(--e-mark-v-top)" />
-          <stop offset="0.55" stopColor="var(--e-mark-v-mid)" />
+          <stop offset="0.4" stopColor="var(--e-mark-v-mid)" />
           <stop offset="1" stopColor="var(--e-mark-v-bottom)" />
         </linearGradient>
-        <radialGradient id={`${uid}-halo`}>
-          <stop offset="0" stopColor="var(--e-mark-spark)" stopOpacity="0.7" />
-          <stop offset="1" stopColor="var(--e-mark-spark)" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id={`${uid}-aperture`}>
-          <stop offset="0" stopColor="var(--e-mark-aperture)" stopOpacity={APERTURE.opacity} />
-          <stop offset="0.5" stopColor="var(--e-mark-aperture)" stopOpacity={APERTURE.mid} />
-          <stop offset="1" stopColor="var(--e-mark-aperture)" stopOpacity="0" />
-        </radialGradient>
-        <clipPath id={`${uid}-clip`}>
-          <rect x={BADGE.x} y={BADGE.y} width={BADGE.w} height={BADGE.h} rx={BADGE.r} />
-        </clipPath>
+        <mask id={`${uid}-notch`} maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+          <rect width="64" height="64" fill="#fff" />
+          <circle cx={BADGE.x} cy={NOTCH.cy} r={NOTCH.r} fill="#000" />
+          <circle cx={BADGE.x + BADGE.w} cy={NOTCH.cy} r={NOTCH.r} fill="#000" />
+        </mask>
       </defs>
       <rect
         x={BADGE.x}
@@ -74,24 +71,8 @@ export function MarkGlyph({ className = "" }) {
         height={BADGE.h}
         rx={BADGE.r}
         fill={`url(#${uid}-badge)`}
+        mask={`url(#${uid}-notch)`}
       />
-      <g clipPath={`url(#${uid}-clip)`}>
-        <rect
-          x={BADGE.x}
-          y={BADGE.y}
-          width={BADGE.w}
-          height={BADGE.h}
-          fill={`url(#${uid}-sheen)`}
-        />
-        <rect
-          x={BADGE.x}
-          y="45"
-          width={BADGE.w}
-          height="17.5"
-          fill="var(--e-mark-floor)"
-          opacity="0.3"
-        />
-      </g>
       <rect
         x={BADGE.x}
         y={BADGE.y}
@@ -102,19 +83,7 @@ export function MarkGlyph({ className = "" }) {
         stroke="var(--e-mark-ring)"
         strokeOpacity="0.5"
         strokeWidth="1.6"
-      />
-      <ellipse
-        cx={APERTURE.cx}
-        cy={APERTURE.cy}
-        rx={APERTURE.rx}
-        ry={APERTURE.ry}
-        fill={`url(#${uid}-aperture)`}
-      />
-      <circle
-        cx={SPARK.cx}
-        cy={SPARK.cy}
-        r={SPARK_HALO}
-        fill={`url(#${uid}-halo)`}
+        mask={`url(#${uid}-notch)`}
       />
       <path
         d={V_PATH}
@@ -124,16 +93,7 @@ export function MarkGlyph({ className = "" }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path
-        d={V_PATH}
-        fill="none"
-        stroke="var(--e-mark-v-core)"
-        strokeOpacity="0.4"
-        strokeWidth={V_CORE_WIDTH}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d={sparkPath(SPARK)} fill="var(--e-mark-spark)" />
+      {conDestello && <path d={sparkPath(SPARK)} fill="var(--e-mark-spark)" />}
     </svg>
   );
 }
@@ -151,11 +111,13 @@ export function LogoMark({ size = "md", className = "" }) {
           : size === "md"
             ? "h-8 w-8"
             : "h-6 w-6";
+  // El isotipo necesita el tamano en px para decidir si entra el destello.
+  const px = { hero: 96, xl: 64, lg: 48, md: 32 }[size] ?? 24;
   return (
     <span
       className={`relative brand-tile grid shrink-0 place-items-center overflow-hidden rounded-lg ${box} ${className}`}
     >
-      <MarkGlyph className="h-full w-full" />
+      <MarkGlyph className="h-full w-full" size={px} />
     </span>
   );
 }

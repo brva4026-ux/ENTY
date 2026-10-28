@@ -177,17 +177,13 @@
   --e-violet-400: #a06bff;
   --e-violet-600: #6d3ad6;
   /* Tinta del isotipo (la placa de carbón del icono). */
-  --e-mark-badge-top: #181c2a;
+  --e-mark-badge-top: #1c2133;
   --e-mark-badge-bottom: #0a0d16;
   --e-mark-ring: #5b8cff;
-  --e-mark-sheen: #ffffff;
-  --e-mark-floor: #000000;
-  --e-mark-v-top: #a8c2ff;
-  --e-mark-v-mid: #5b8cff;
-  --e-mark-v-bottom: #4fe3ff;
-  --e-mark-v-core: #eaf4ff;
+  --e-mark-v-top: #eaf6ff;
+  --e-mark-v-mid: #8bbcff;
+  --e-mark-v-bottom: #3b5fe0;
   --e-mark-spark: #4fe3ff;
-  --e-mark-aperture: #7ff0ff;
 
   /* ---------------------------------------------------------------- 2 · SEMÁNTICAS (oscuro = default) */
   --e-canvas: var(--e-ink-1);
