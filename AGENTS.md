@@ -316,11 +316,9 @@ defecto como `og:image` en `app/routers/public.py`). **No editar los PNG a
 mano**: se desincronizan de la marca, que es como el JPEG viejo quedó con la
 paleta crema de la fase anterior. Se regeneran con `npm run icons`.
 
-El isotipo se dibuja **por capas**, de atrás hacia adelante: placa con
-degradado, brillo cenital y suelo (ambos recortados con el `clipPath` de la
-placa para que no se salgan de las esquinas redondeadas), aro de filo, halo
-del destello, la V (degradado + núcleo claro, que la convierte en un tubo de
-neón) y el destello. Todo sale de `markSvg()`; el componente React
+El isotipo se dibuja **por capas**, de atrás hacia adelante: placa de carbón
+recortada por las muescas del pase, aro de filo (también recortado), la V
+(degradado de luz) y el destello. Todo sale de `markSvg()`; el componente React
 (`MarkGlyph`) repite las mismas capas con tokens `--e-mark-*`, así que hay que
 mantener las dos en sincronía. La cintura del destello es 0.32 en los dos
 caminos: el bullet `Spark` también sale de `sparkPath()`, no lleva path propio.
@@ -332,17 +330,27 @@ con `stroke`, así que su caja real no es la del `d`: con unión redonda
 núcleo de neón a 16px: se midió que sube los píxeles brillantes (0.20 → 0.25)
 en vez de emborronar, que era la suposición contraria.
 
-**El concepto del isotipo: la V es un pase y por ella pasa la luz.** No es
-decoración: el destello es la fuente y el hueco entre los brazos se ilumina
-(`APERTURE`, un resplandor radial en el negativo de la V). Se probaron otras
-direcciones y se descartaron con medición: un cono direccional desde el
-destello (solo añade neblina a 16px) y un umbral bajo el vértice (se lee como
-un guion suelto). La intensidad del resplandor está medida: a 0.6 rellena el
-hueco y **funde los dos brazos** en un triángulo macizo a 16px; a 0.35/0.10 la
-V conserva los brazos separados y además mejora el contraste (brillantes 0.27
-frente a 0.26, medios tonos 0.23 frente a 0.24). Ese es el valor que se usa.
-Regla general: cualquier luz añadida al hueco se verifica contando brazos a
-16px, porque el resplandor es justo lo que puede cerrarlos.
+**El concepto del isotipo: la V es la luz.** La placa es el pase —lleva las
+mismas muescas semicirculares que el boleto real de la app (`.tkt` en
+`aesthetic-refresh.css`)— y la V es la luz que lo atraviesa. El destello, arriba
+a la derecha, es la fuente de esa luz: por eso es cian y la V azul.
+
+**La restricción es el diseño.** La versión anterior sumaba cuatro luces sobre
+la misma placa (resplandor de abertura, halo del destello, brillo cenital y
+suelo) y ninguna se leía: a 16px eran niebla compitiendo con la V. El concepto
+era bueno; sobraban tres elementos. Ahora lo dice uno solo. Al tocar la marca,
+la pregunta no es "¿qué añado?" sino "¿qué sobra?".
+
+**A 16px el isotipo se dibuja solo con la V** (`SIMPLE_BELOW`). Está medido: el
+destello (r=4.4) toca la punta del brazo derecho de la V a ese tamaño y los dos
+se funden en una mancha; la V sola lee limpia —dos brazos y un vértice—. Desde
+24px hay píxeles de sobra y el destello aporta. Regla general: cada elemento de
+la marca se verifica a 16px, y si no sobrevive, se cae en vez de encogerse.
+
+**El isotipo tiene un solo camino de render.** La guía de marca repetía la
+geometría a mano (tres copias en `guidelines.html`) y se quedó con el resplandor
+viejo cuando el isotipo cambió. Ahora la guía incrusta la salida de `markSvg()`.
+No volver a escribir la geometría a mano en HTML.
 
 **El logotipo es la palabra, no solo el isotipo.** `Wordmark` en
 `src/components/Brand.jsx` escribe "V-PASS" con jerarquía: la **V** va en tinta
