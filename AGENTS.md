@@ -388,6 +388,24 @@ cambiaba de capas. Ahora es un parámetro.
 alguien edita a mano uno de esos bloques, la próxima regeneración lo pisa. Por eso
 la guía incrusta la salida canónica y no una copia.
 
+**Los commits van firmados con la identidad del repo, no con una inventada.**
+El `user.name`/`user.email` local ya es el correcto (`brva4026-ux
+<brva4026@gmail.com>`) y Vercel lo reconoce como colaborador del proyecto. Pasar
+`git -c user.name=openhands` a un commit — o usar `--reset-author` sin motivo —
+reescribe la autoría a `openhands@all-hands.dev`, que Vercel NO reconoce, y el
+deploy se bloquea con "the commit author did not have contributing access to the
+project on Vercel". El síntoma engaña: el push funciona y el PR se abre; lo que
+no llega es el preview. Si hay que reescribir historia, hacerlo conservando el
+autor del repo. Y para commits de agente, la convención es `Co-authored-by:
+openhands <openhands@all-hands.dev>` en el mensaje, no en el campo autor.
+
+**Un CI que falla en 2 segundos con 0 pasos no es un fallo de código.** Es
+infraestructura. La anotación del check-run lo dice: "The job was not started
+because recent account payments have failed or your spending limit needs to be
+increased". Antes de tocar el código, mirar `steps: []` y las anotaciones
+(`GET /repos/{o}/{r}/check-runs/{id}/annotations`); si el job no arrancó, el
+problema es facturación o runners, no el diff.
+
 **En JSX, las comillas dobles son literal, no plantilla.** `fill="var(--x, ${Y})"`
 deja el `${Y}` como texto y el navegador descarta la declaración entera. Hay que
 usar `fill={`var(--x, ${Y})`}`. Ya pasó una vez: el talón quedaba sin color y no
