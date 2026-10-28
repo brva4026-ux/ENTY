@@ -176,13 +176,18 @@
   --e-cyan-600: #0e9fbe;
   --e-violet-400: #a06bff;
   --e-violet-600: #6d3ad6;
-  /* Tinta del isotipo (la placa de carbón del icono). */
-  --e-mark-badge-top: #1c2133;
-  --e-mark-badge-bottom: #0a0d16;
-  --e-mark-ring: #5b8cff;
-  --e-mark-v-top: #eaf6ff;
-  --e-mark-v-mid: #8bbcff;
-  --e-mark-v-bottom: #3b5fe0;
+  /* Tinta del isotipo: el boleto (papel crema) y su troquel en V. El papel no
+     cambia con el tema —un boleto es claro en la mano— y por eso el isotipo se
+     ve entero sobre el canvas oscuro, donde una placa oscura desaparecía. */
+  --e-mark-paper-top: #fdf9f0;
+  --e-mark-paper-bottom: #efe4c9;
+  --e-mark-edge: #3d5cd6;
+  --e-mark-v-top: #7d9dff;
+  --e-mark-v-mid: #3d5cd6;
+  --e-mark-v-bottom: #1d2f6e;
+  --e-mark-stub: #3d5cd6;
+  --e-mark-perf: #22357f;
+  /* El destello ya no es parte del isotipo, pero sigue siendo marca de la app. */
   --e-mark-spark: #4fe3ff;
 
   /* ---------------------------------------------------------------- 2 · SEMÁNTICAS (oscuro = default) */

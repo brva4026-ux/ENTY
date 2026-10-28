@@ -524,7 +524,7 @@
           <div class="chip" style="background:#4FE3FF"></div>
           <p class="name">Cian energía</p>
           <p class="hex">#4FE3FF</p>
-          <p class="use">Acento de energía: destello del isotipo, barra de aforo y glow. Nunca es interactivo.</p>
+          <p class="use">Acento de energía: destellos de marca, barra de aforo y glow. Nunca es interactivo.</p>
         </div>
         <div class="swatch">
           <div class="chip" style="background:#F5EEDD"></div>
@@ -597,7 +597,7 @@
             <p class="sub">Wordmark</p>
             <p>“V-PASS” en <b>Sora 800</b>, mayúsculas, un solo tracking (0.04em). La
               <b>V</b> va en tinta de acento y abre la palabra: es la letra del
-              isotipo, y el ojo entra por ahí.</p>
+              desgarro del isotipo, y el ojo entra por ahí.</p>
           </div>
           <div class="note">
             <p class="sub">Separador</p>
@@ -640,7 +640,8 @@
             </div>
             <p style="font-size:12.5px;color:var(--dim);line-height:1.55">
               Estrella de <b style="color:#fff">cuatro puntas simétrica</b> (cintura 0.32), el
-              destello de la marca. Firma el logo, el isotipo y el centro del QR.
+              destello de la marca. Firma el logo, los bullets y el centro del QR; ya
+              no forma parte del isotipo, que ahora es el boleto.
             </p>
           </div>
         </div>
@@ -649,91 +650,97 @@
           <div class="icon-row">
             <div>
               <div class="app-icon lg" aria-label="V-Pass app icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="gi512-badge" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1c2133"/>
-      <stop offset="1" stop-color="#0a0d16"/>
+    <linearGradient id="gi512-paper" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#fdf9f0"/>
+      <stop offset="1" stop-color="#efe4c9"/>
     </linearGradient>
-    <linearGradient id="gi512-v" x1="0" y1="0" x2="0.4" y2="1">
-      <stop offset="0" stop-color="#eaf6ff"/>
-      <stop offset="0.4" stop-color="#8bbcff"/>
-      <stop offset="1" stop-color="#3b5fe0"/>
+    <linearGradient id="gi512-v" x1="0.1" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#7d9dff"/>
+      <stop offset="0.45" stop-color="#3d5cd6"/>
+      <stop offset="1" stop-color="#1d2f6e"/>
     </linearGradient>
     <mask id="gi512-m" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
       <rect width="64" height="64" fill="#fff"/>
-      <circle cx="1.5" cy="32" r="5.2" fill="#000"/><circle cx="62.5" cy="32" r="5.2" fill="#000"/>
+      <circle cx="3" cy="32" r="3.2" fill="#000"/><circle cx="61" cy="32" r="3.2" fill="#000"/>
     </mask>
+    <clipPath id="gi512-stub"><path d="M32 47 L61 32 L61 53.5 L32 53.5 Z"/></clipPath>
   </defs>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="url(#gi512-badge)" mask="url(#gi512-m)"/>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="none" stroke="#5b8cff" stroke-opacity="0.5" stroke-width="1.6" mask="url(#gi512-m)"/>
-  <path d="M18.5 16.5 L32 41 L45.5 16.5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="url(#gi512-v)" stroke-width="10.5"/>
-  <path d="M51 7.6 L52.408 10.592 L55.4 12 L52.408 13.408 L51 16.4 L49.592 13.408 L46.6 12 L49.592 10.592 Z" fill="#4fe3ff"/>
+  <rect x="3" y="10.5" width="58" height="43" rx="7.5" fill="url(#gi512-paper)" mask="url(#gi512-m)"/>
+  <rect x="3" y="10.5" width="58" height="43" rx="7.5" fill="#3d5cd6" fill-opacity="0.1" mask="url(#gi512-m)" clip-path="url(#gi512-stub)"/>
+  <rect x="3" y="10.5" width="58" height="43" rx="7.5" fill="none" stroke="#3d5cd6" stroke-opacity="0.55" stroke-width="1.7" mask="url(#gi512-m)"/>
+  <path d="M3 32 L32 47 L61 32" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="url(#gi512-v)" stroke-width="4.6"/>
+  <path d="M3 32 L32 47 L61 32" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#22357f" stroke-opacity="0.4" stroke-width="1.9" stroke-dasharray="3 2.6"/>
 </svg>
               </div>
               <p class="icon-cap">App icon</p>
             </div>
             <div>
               <div class="app-icon md" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="gi64-badge" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1c2133"/>
-      <stop offset="1" stop-color="#0a0d16"/>
+    <linearGradient id="gi64-paper" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#fdf9f0"/>
+      <stop offset="1" stop-color="#efe4c9"/>
     </linearGradient>
-    <linearGradient id="gi64-v" x1="0" y1="0" x2="0.4" y2="1">
-      <stop offset="0" stop-color="#eaf6ff"/>
-      <stop offset="0.4" stop-color="#8bbcff"/>
-      <stop offset="1" stop-color="#3b5fe0"/>
+    <linearGradient id="gi64-v" x1="0.1" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#7d9dff"/>
+      <stop offset="0.45" stop-color="#3d5cd6"/>
+      <stop offset="1" stop-color="#1d2f6e"/>
     </linearGradient>
     <mask id="gi64-m" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
       <rect width="64" height="64" fill="#fff"/>
-      <circle cx="1.5" cy="32" r="5.2" fill="#000"/><circle cx="62.5" cy="32" r="5.2" fill="#000"/>
+      <circle cx="3" cy="32" r="3.2" fill="#000"/><circle cx="61" cy="32" r="3.2" fill="#000"/>
     </mask>
+    <clipPath id="gi64-stub"><path d="M32 47 L61 32 L61 53.5 L32 53.5 Z"/></clipPath>
   </defs>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="url(#gi64-badge)" mask="url(#gi64-m)"/>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="none" stroke="#5b8cff" stroke-opacity="0.5" stroke-width="1.6" mask="url(#gi64-m)"/>
-  <path d="M18.5 16.5 L32 41 L45.5 16.5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="url(#gi64-v)" stroke-width="10.5"/>
-  <path d="M51 7.6 L52.408 10.592 L55.4 12 L52.408 13.408 L51 16.4 L49.592 13.408 L46.6 12 L49.592 10.592 Z" fill="#4fe3ff"/>
+  <rect x="3" y="10.5" width="58" height="43" rx="7.5" fill="url(#gi64-paper)" mask="url(#gi64-m)"/>
+  <rect x="3" y="10.5" width="58" height="43" rx="7.5" fill="#3d5cd6" fill-opacity="0.1" mask="url(#gi64-m)" clip-path="url(#gi64-stub)"/>
+  <rect x="3" y="10.5" width="58" height="43" rx="7.5" fill="none" stroke="#3d5cd6" stroke-opacity="0.55" stroke-width="1.7" mask="url(#gi64-m)"/>
+  <path d="M3 32 L32 47 L61 32" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="url(#gi64-v)" stroke-width="4.6"/>
+  <path d="M3 32 L32 47 L61 32" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#22357f" stroke-opacity="0.4" stroke-width="1.9" stroke-dasharray="3 2.6"/>
 </svg>
               </div>
               <p class="icon-cap">64 px</p>
             </div>
             <div>
               <div class="app-icon sm" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="gi40-badge" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1c2133"/>
-      <stop offset="1" stop-color="#0a0d16"/>
+    <linearGradient id="gi40-paper" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#fdf9f0"/>
+      <stop offset="1" stop-color="#efe4c9"/>
     </linearGradient>
-    <linearGradient id="gi40-v" x1="0" y1="0" x2="0.4" y2="1">
-      <stop offset="0" stop-color="#eaf6ff"/>
-      <stop offset="0.4" stop-color="#8bbcff"/>
-      <stop offset="1" stop-color="#3b5fe0"/>
+    <linearGradient id="gi40-v" x1="0.1" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#7d9dff"/>
+      <stop offset="0.45" stop-color="#3d5cd6"/>
+      <stop offset="1" stop-color="#1d2f6e"/>
     </linearGradient>
     <mask id="gi40-m" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
       <rect width="64" height="64" fill="#fff"/>
-      <circle cx="1.5" cy="32" r="5.2" fill="#000"/><circle cx="62.5" cy="32" r="5.2" fill="#000"/>
+      <circle cx="3" cy="32" r="3.2" fill="#000"/><circle cx="61" cy="32" r="3.2" fill="#000"/>
     </mask>
+    <clipPath id="gi40-stub"><path d="M32 47 L61 32 L61 53.5 L32 53.5 Z"/></clipPath>
   </defs>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="url(#gi40-badge)" mask="url(#gi40-m)"/>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="none" stroke="#5b8cff" stroke-opacity="0.5" stroke-width="1.6" mask="url(#gi40-m)"/>
-  <path d="M18.5 16.5 L32 41 L45.5 16.5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="url(#gi40-v)" stroke-width="10.5"/>
-  <path d="M51 7.6 L52.408 10.592 L55.4 12 L52.408 13.408 L51 16.4 L49.592 13.408 L46.6 12 L49.592 10.592 Z" fill="#4fe3ff"/>
+  <rect x="3" y="10.5" width="58" height="43" rx="7.5" fill="url(#gi40-paper)" mask="url(#gi40-m)"/>
+  <rect x="3" y="10.5" width="58" height="43" rx="7.5" fill="#3d5cd6" fill-opacity="0.1" mask="url(#gi40-m)" clip-path="url(#gi40-stub)"/>
+  <rect x="3" y="10.5" width="58" height="43" rx="7.5" fill="none" stroke="#3d5cd6" stroke-opacity="0.55" stroke-width="1.7" mask="url(#gi40-m)"/>
+  <path d="M3 32 L32 47 L61 32" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="url(#gi40-v)" stroke-width="4.6"/>
+  <path d="M3 32 L32 47 L61 32" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#22357f" stroke-opacity="0.4" stroke-width="1.9" stroke-dasharray="3 2.6"/>
 </svg>
               </div>
               <p class="icon-cap">40 px</p>
             </div>
           </div>
           <p style="font-size:12.5px;color:var(--dim);line-height:1.55;margin-top:16px">
-            Cuadrado de bordes muy redondeados: <b style="color:#fff">la placa es el
-            pase</b>, recortada por las mismas muescas semicirculares del boleto real
-            de la app. La <b style="color:#fff">V es la luz</b> que lo atraviesa, en
-            degradado de hielo a azul. El <b style="color:#fff">destello cian</b>,
-            arriba a la derecha, es la fuente de esa luz. <b style="color:#fff">A 16px
-            el isotipo se dibuja solo con la V</b>: a ese tamaño el destello toca el
-            brazo derecho y los dos se funden en una mancha.
+            Un boleto de papel: <b style="color:#fff">el isotipo es el boleto</b>, con
+            las muescas semicirculares del boleto real de la app en los bordes
+            laterales. Y su <b style="color:#fff">troquel no es recto: es una V</b>.
+            La marca no va dentro del boleto —la marca es cómo se rompe—.
+            <b style="color:#fff">A 16px el desgarro va macizo</b>: a ese tamaño la
+            perforación punteada cae por debajo de un píxel y los puntos se funden en
+            una línea gris. El boleto y su V no cambian.
           </p>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { timeAgo } from "../lib/useLiveRefresh";
-import { BADGE, NOTCH, SIMPLE_BELOW, SPARK, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
+import { NOTCH, PERF_WIDTH, SIMPLE_BELOW, SPARK, TICKET, V_PATH, V_WIDTH, VIEWBOX, sparkPath } from "../lib/brandMark";
 
 /** Marca V-Pass: isotipo vectorial, indicadores vivos y cifras animadas.
 
@@ -28,19 +28,21 @@ export function Spark({ size = 12, color = "var(--e-green-500)", className = "" 
   );
 }
 
-/** Isotipo vectorial: la V de luz sobre la placa del pase.
+/** Isotipo vectorial: el boleto y su troquel.
  *
- *  La placa es el pase —recortada por las muescas del boleto real— y la V es la
- *  luz que lo atraviesa. El destello, arriba a la derecha, es la fuente de esa
- *  luz. Los ids de gradiente llevan un sufijo unico por instancia para que
- *  varias copias en la misma pagina no se pisen.
+ *  Un boleto de papel, con las muescas del boleto real en los bordes laterales,
+ *  y un desgarro en V que separa el talon: la marca es como se rompe. El papel
+ *  crema (no una placa oscura) es lo que hace que el isotipo se vea entero
+ *  sobre el canvas oscuro de la app, a cualquier tamano.
  *
- *  `size` decide si entra el destello: por debajo de SIMPLE_BELOW el isotipo se
- *  dibuja solo con la V, porque a 16px el destello toca el brazo derecho y los
- *  dos se funden en una mancha (medido, ver brandMark.js). */
+ *  `size` decide el detalle: por debajo de SIMPLE_BELOW el desgarro va macizo,
+ *  sin perforacion punteada ni talon tintado, porque a 16px los puntos se funden
+ *  en una linea gris (medido, ver brandMark.js). El boleto y su V no cambian. */
 export function MarkGlyph({ className = "", size = 0 }) {
   const uid = useId().replace(/:/g, "");
-  const conDestello = size >= SIMPLE_BELOW;
+  const conDetalle = size >= SIMPLE_BELOW;
+  const ticket = { x: TICKET.x, y: TICKET.y, width: TICKET.w, height: TICKET.h, rx: TICKET.r };
+  const talon = `M32 47 L61 32 L61 ${TICKET.y + TICKET.h} L32 ${TICKET.y + TICKET.h} Z`;
   return (
     <svg
       viewBox={VIEWBOX}
@@ -49,40 +51,40 @@ export function MarkGlyph({ className = "", size = 0 }) {
       focusable="false"
     >
       <defs>
-        <linearGradient id={`${uid}-badge`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--e-mark-badge-top)" />
-          <stop offset="1" stopColor="var(--e-mark-badge-bottom)" />
+        <linearGradient id={`${uid}-paper`} x1="0" y1="0" x2="0.3" y2="1">
+          <stop offset="0" stopColor="var(--e-mark-paper-top)" />
+          <stop offset="1" stopColor="var(--e-mark-paper-bottom)" />
         </linearGradient>
-        <linearGradient id={`${uid}-v`} x1="0" y1="0" x2="0.4" y2="1">
+        <linearGradient id={`${uid}-v`} x1="0.1" y1="0" x2="0.5" y2="1">
           <stop offset="0" stopColor="var(--e-mark-v-top)" />
-          <stop offset="0.4" stopColor="var(--e-mark-v-mid)" />
+          <stop offset="0.45" stopColor="var(--e-mark-v-mid)" />
           <stop offset="1" stopColor="var(--e-mark-v-bottom)" />
         </linearGradient>
         <mask id={`${uid}-notch`} maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
           <rect width="64" height="64" fill="#fff" />
-          <circle cx={BADGE.x} cy={NOTCH.cy} r={NOTCH.r} fill="#000" />
-          <circle cx={BADGE.x + BADGE.w} cy={NOTCH.cy} r={NOTCH.r} fill="#000" />
+          <circle cx={TICKET.x} cy={NOTCH.cy} r={NOTCH.r} fill="#000" />
+          <circle cx={TICKET.x + TICKET.w} cy={NOTCH.cy} r={NOTCH.r} fill="#000" />
         </mask>
+        <clipPath id={`${uid}-talon`}>
+          <path d={talon} />
+        </clipPath>
       </defs>
+      <rect {...ticket} fill={`url(#${uid}-paper)`} mask={`url(#${uid}-notch)`} />
+      {conDetalle && (
+        <rect
+          {...ticket}
+          fill="var(--e-mark-stub)"
+          fillOpacity="0.1"
+          mask={`url(#${uid}-notch)`}
+          clipPath={`url(#${uid}-talon)`}
+        />
+      )}
       <rect
-        x={BADGE.x}
-        y={BADGE.y}
-        width={BADGE.w}
-        height={BADGE.h}
-        rx={BADGE.r}
-        fill={`url(#${uid}-badge)`}
-        mask={`url(#${uid}-notch)`}
-      />
-      <rect
-        x={BADGE.x}
-        y={BADGE.y}
-        width={BADGE.w}
-        height={BADGE.h}
-        rx={BADGE.r}
+        {...ticket}
         fill="none"
-        stroke="var(--e-mark-ring)"
-        strokeOpacity="0.5"
-        strokeWidth="1.6"
+        stroke="var(--e-mark-edge)"
+        strokeOpacity="0.55"
+        strokeWidth="1.7"
         mask={`url(#${uid}-notch)`}
       />
       <path
@@ -93,7 +95,18 @@ export function MarkGlyph({ className = "", size = 0 }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {conDestello && <path d={sparkPath(SPARK)} fill="var(--e-mark-spark)" />}
+      {conDetalle && (
+        <path
+          d={V_PATH}
+          fill="none"
+          stroke="var(--e-mark-perf)"
+          strokeOpacity="0.4"
+          strokeWidth={PERF_WIDTH}
+          strokeDasharray="3 2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
     </svg>
   );
 }
