@@ -129,7 +129,7 @@ body {
   padding: 0.5rem 1rem;
   font-size: var(--e-text-sm);
   font-weight: 600;
-  transition: transform 0.15s ease;
+  transition: transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .skip-link:focus-visible {
   transform: translate(-50%, 0);
@@ -231,9 +231,8 @@ body {
   font-size: var(--e-text-base);
   color: var(--color-zinc-50);
   outline: none;
-  transition:
-    border-color 0.33s cubic-bezier(0.5, 0, 0, 0.75),
-    box-shadow 0.25s;
+  transition: border-color var(--e-dur-slow) cubic-bezier(0.5, 0, 0, 0.75),
+    box-shadow var(--e-dur-base);
 }
 .field::placeholder {
   color: var(--color-zinc-500);
@@ -266,12 +265,11 @@ body {
   font-weight: 500;
   letter-spacing: 0;
   cursor: pointer;
-  transition:
-    border-color 0.33s cubic-bezier(0.5, 0, 0, 0.75),
-    background-color 0.33s cubic-bezier(0.5, 0, 0, 0.75),
-    color 0.33s cubic-bezier(0.5, 0, 0, 0.75),
-    box-shadow 0.25s,
-    transform 0.1s ease;
+  transition: border-color var(--e-dur-slow) cubic-bezier(0.5, 0, 0, 0.75),
+    background-color var(--e-dur-slow) cubic-bezier(0.5, 0, 0, 0.75),
+    color var(--e-dur-slow) cubic-bezier(0.5, 0, 0, 0.75),
+    box-shadow var(--e-dur-base),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .btn-primary:hover {
   background: var(--e-violet-800);
@@ -311,11 +309,10 @@ body {
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-300);
-  transition:
-    background 0.12s,
-    border-color 0.12s,
-    color 0.12s,
-    transform 0.1s ease;
+  transition: background var(--e-dur-fast),
+    border-color var(--e-dur-fast),
+    color var(--e-dur-fast),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .btn-ghost:hover {
   background: color-mix(in srgb, var(--e-violet-400) 8%, transparent);
@@ -349,9 +346,8 @@ body {
   font-weight: 500;
   color: var(--e-red-600);
   cursor: pointer;
-  transition:
-    background 0.12s,
-    transform 0.1s ease;
+  transition: background var(--e-dur-fast),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .btn-danger-text:hover {
   background: rgba(239, 68, 68, 0.09);
@@ -379,10 +375,9 @@ body {
   padding: 0.55rem 1rem;
   font-size: var(--e-text-sm);
   font-weight: 600;
-  transition:
-    background 0.12s,
-    border-color 0.12s,
-    transform 0.1s ease;
+  transition: background var(--e-dur-fast),
+    border-color var(--e-dur-fast),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .btn-danger:hover {
   background: var(--e-red-500);
@@ -435,10 +430,9 @@ body {
   font-weight: 600;
   color: var(--color-zinc-400);
   cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    transform 0.1s ease;
+  transition: background var(--e-dur-fast),
+    color var(--e-dur-fast),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .btn-mini:hover {
   background: rgba(255, 255, 255, 0.07);
@@ -557,11 +551,10 @@ html[data-theme="light"] .btn-ghost.btn-success {
   color: var(--color-zinc-400);
   background: transparent;
   cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    transform 0.1s ease;
+  transition: background var(--e-dur-fast),
+    border-color var(--e-dur-fast),
+    color var(--e-dur-fast),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .opt-chip:hover {
   border-color: var(--color-zinc-500);
@@ -606,17 +599,16 @@ input[type="checkbox"].accent-brand-500 {
   place-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    transform 0.1s ease;
+  transition: background var(--e-dur-fast),
+    border-color var(--e-dur-fast),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 input[type="checkbox"].accent-brand-500::before {
   content: "";
   width: 0.62rem;
   height: 0.62rem;
   transform: scale(0);
-  transition: transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+  transition: transform var(--e-dur-base) var(--e-ease-spring);
   clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
   background: var(--e-white);
 }
@@ -660,10 +652,9 @@ html[data-theme="light"] select.field option {
 /* Chips de evento: pill sobria, activa = superficie clara */
 .chip {
   border-radius: 999px;
-  transition:
-    background 0.12s,
-    border-color 0.12s,
-    color 0.12s;
+  transition: background var(--e-dur-fast),
+    border-color var(--e-dur-fast),
+    color var(--e-dur-fast);
 }
 .chip-active {
   background: var(--color-zinc-50);
@@ -703,9 +694,8 @@ html[data-theme="light"] select.field option {
      Invisible que empuja la pagina es la peor de las dos opciones. */
   display: none;
   z-index: 60;
-  transition:
-    opacity 0.15s ease 0.35s,
-    transform 0.15s ease 0.35s;
+  transition: opacity var(--e-dur-fast) var(--e-ease-standard) var(--e-dur-slow),
+    transform var(--e-dur-fast) var(--e-ease-standard) var(--e-dur-slow);
 }
 [data-tip]:focus-visible::after {
   display: block;
@@ -762,10 +752,9 @@ html[data-theme="light"] select.field option {
   font-weight: 500;
   color: var(--color-zinc-400);
   white-space: nowrap;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    box-shadow 0.18s ease;
+  transition: background var(--e-dur-base) var(--e-ease-standard),
+    color var(--e-dur-base) var(--e-ease-standard),
+    box-shadow var(--e-dur-base) var(--e-ease-standard);
 }
 .tabbar-item:hover {
   color: var(--color-zinc-200);
@@ -823,7 +812,7 @@ html[data-theme="light"] select.field option {
 /* Filas de lista (boletas, tipos, cupos): hover perceptible, no chillón */
 .row {
   border-radius: 0.5rem;
-  transition: background 0.1s;
+  transition: background var(--e-dur-fast);
 }
 .row:hover {
   background: var(--e-panel-650);
@@ -1034,7 +1023,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 .animate-fade {
-  animation: fade 0.3s ease-out both;
+  animation: fade var(--e-dur-slow) ease-out both;
 }
 
 /* Entrada con escala para modales, tarjetas y el revelado del QR. */
@@ -1124,10 +1113,9 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 
 /* Tarjeta interactiva: flota 2px al pasar, se asienta al pulsar */
 .card-interactive {
-  transition:
-    transform 0.25s var(--e-ease-expo),
-    border-color 0.2s,
-    box-shadow 0.25s var(--e-ease-expo);
+  transition: transform var(--e-dur-base) var(--e-ease-expo),
+    border-color var(--e-dur-base),
+    box-shadow var(--e-dur-base) var(--e-ease-expo);
 }
 .card-interactive:hover {
   transform: translateY(-2px);
@@ -1145,7 +1133,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   background-size: 0% 1px;
   background-repeat: no-repeat;
   background-position: left bottom;
-  transition: background-size 0.25s var(--e-ease-expo);
+  transition: background-size var(--e-dur-base) var(--e-ease-expo);
 }
 .link-underline:hover {
   background-size: 100% 1px;
@@ -1182,7 +1170,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 .splash-exit {
-  animation: splash-out 0.25s ease-out forwards;
+  animation: splash-out var(--e-dur-base) ease-out forwards;
 }
 
 /* Pull-to-refresh: spinner de trazo que gira mientras se carga. */
@@ -1212,24 +1200,24 @@ html[data-theme="light"] header nav a[aria-current="page"] {
    TOASTS Y DIÁLOGOS (lib/ui.jsx) — reemplazan window.confirm/prompt/alert
    =========================================================================== */
 .toast-in {
-  animation: enter 0.32s var(--e-ease-expo) both;
+  animation: enter var(--e-dur-slow) var(--e-ease-expo) both;
 }
 
 .dialog-backdrop {
   background: rgba(0, 0, 0, 0.62);
   backdrop-filter: blur(2px);
-  animation: fade 0.2s ease-out both;
+  animation: fade var(--e-dur-base) ease-out both;
 }
 .dialog-backdrop-out {
   background: rgba(0, 0, 0, 0.62);
-  animation: fade 0.15s ease-in reverse both;
+  animation: fade var(--e-dur-fast) ease-in reverse both;
 }
 
 .dialog-in {
-  animation: enter 0.3s var(--e-ease-expo) both;
+  animation: enter var(--e-dur-slow) var(--e-ease-expo) both;
 }
 .dialog-out {
-  animation: enter 0.14s ease-in reverse both;
+  animation: enter var(--e-dur-fast) ease-in reverse both;
 }
 
 /* Banner offline: baja desde arriba con easing expo */
@@ -1242,7 +1230,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   }
 }
 .offline-in {
-  animation: offline-in 0.35s var(--e-ease-expo) both;
+  animation: offline-in var(--e-dur-slow) var(--e-ease-expo) both;
 }
 
 /* Aviso en vivo de duplicados en puerta (mig 026/027): baja y hace un pulso
@@ -1417,11 +1405,10 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.02);
   cursor: pointer;
-  transition:
-    background 0.2s,
-    border-color 0.2s,
-    box-shadow 0.25s var(--e-ease-expo),
-    transform 0.15s ease;
+  transition: background var(--e-dur-base),
+    border-color var(--e-dur-base),
+    box-shadow var(--e-dur-base) var(--e-ease-expo),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .bizdock-item:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -1450,10 +1437,9 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   color: var(--color-zinc-400);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  transition:
-    color 0.2s,
-    border-color 0.2s,
-    background 0.2s;
+  transition: color var(--e-dur-base),
+    border-color var(--e-dur-base),
+    background var(--e-dur-base);
 }
 .bizdock-item:hover .bizdock-icon {
   color: var(--color-zinc-300);
@@ -1532,7 +1518,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   color: var(--e-amber-300);
   background: rgba(251, 191, 36, 0.12);
   box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.32);
-  transition: background 0.2s;
+  transition: background var(--e-dur-base);
 }
 .bizdock-chip:hover {
   background: rgba(251, 191, 36, 0.2);
@@ -1673,7 +1659,7 @@ html[data-theme="light"] .bizdock-desc {
   gap: 0.7rem;
   min-width: 0;
   border-radius: 0.75rem;
-  transition: opacity 0.2s var(--e-ease-expo);
+  transition: opacity var(--e-dur-base) var(--e-ease-expo);
 }
 @media (hover: hover) {
   .vh-identidad:hover {
@@ -2099,7 +2085,7 @@ html[data-theme="light"] .vh-embedded {
     var(--color-brand-700),
     var(--color-brand-500)
   );
-  transition: width 0.5s ease;
+  transition: width 0.5s var(--e-ease-standard);
 }
 html[data-theme="light"] .vh-cuenta,
 html[data-theme="light"] .vh-rank {
@@ -2154,10 +2140,9 @@ html[data-theme="light"] .vh-mesnav-hoy {
 /* Tarjeta de evento de la franja: lift + glow de marca al hover. El evento
    EN PUERTA lleva borde esmeralda vivo: se encuentra de un vistazo. */
 .event-card {
-  transition:
-    transform 0.15s var(--e-ease-expo),
-    box-shadow 0.15s ease,
-    border-color 0.15s ease;
+  transition: transform var(--e-dur-fast) var(--e-ease-expo),
+    box-shadow var(--e-dur-fast) var(--e-ease-standard),
+    border-color var(--e-dur-fast) var(--e-ease-standard);
 }
 .event-card:hover {
   transform: translateY(-2px);
@@ -2267,9 +2252,8 @@ html[data-theme="light"] .ec-when-soon {
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-500);
-  transition:
-    color 0.15s,
-    background 0.15s;
+  transition: color var(--e-dur-fast),
+    background var(--e-dur-fast);
 }
 .evx-tab:hover {
   color: var(--color-zinc-300);
@@ -2307,9 +2291,8 @@ html[data-theme="light"] .ec-when-soon {
   background: var(--color-brand-500);
   opacity: 0;
   transform: scaleX(0.4);
-  transition:
-    opacity 0.2s ease,
-    transform 0.25s var(--e-ease-expo);
+  transition: opacity var(--e-dur-base) var(--e-ease-standard),
+    transform var(--e-dur-base) var(--e-ease-expo);
 }
 .evx-tab.is-active::after {
   opacity: 1;
@@ -2504,10 +2487,9 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  transition:
-    transform 0.18s var(--e-ease-expo),
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+  transition: transform var(--e-dur-base) var(--e-ease-expo),
+    border-color var(--e-dur-base) var(--e-ease-standard),
+    box-shadow var(--e-dur-base) var(--e-ease-standard);
   /* Misma superficie sutil de los ítems del dock Del negocio: la tarjeta
      se lee como tarjeta sin competir con el card de la portada. */
   border-radius: 0.9rem;
@@ -2550,7 +2532,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     transparent 62%
   );
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity var(--e-dur-base) var(--e-ease-standard);
   pointer-events: none;
   z-index: 0;
 }
@@ -2746,7 +2728,7 @@ html[data-theme="light"] .evx-livepill {
   border-left: 2px solid rgba(255, 255, 255, 0.07);
   padding-left: 0.55rem;
   min-width: 0;
-  transition: border-color 0.2s ease;
+  transition: border-color var(--e-dur-base) var(--e-ease-standard);
 }
 .evx-card:hover .evx-stat:first-child {
   border-left-color: rgba(52, 211, 153, 0.55);
@@ -2982,9 +2964,8 @@ html[data-theme="light"] .evx-open-label {
   padding: 0.65rem 0.55rem;
   border-radius: 0.55rem;
   font-size: var(--e-text-sm);
-  transition:
-    background 0.12s,
-    border-color 0.12s;
+  transition: background var(--e-dur-fast),
+    border-color var(--e-dur-fast);
   /* Rail de estado: la fila pinta su ciclo de vida como la tarjeta (verde
      vivo = en puerta). El listado se lee como pulso, no como tabla. */
   border-left: 2px solid transparent;
@@ -3394,7 +3375,7 @@ html[data-theme="light"] .topbar {
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-400);
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: color var(--e-dur-fast) var(--e-ease-standard), background var(--e-dur-fast) var(--e-ease-standard);
 }
 .topnav-item:hover {
   color: var(--color-zinc-200);
@@ -3416,7 +3397,7 @@ html[data-theme="light"] .topbar {
   border-radius: 2px;
   background: var(--e-violet-400);
   transform: scaleX(0);
-  transition: transform 0.22s var(--e-ease-expo);
+  transition: transform var(--e-dur-base) var(--e-ease-expo);
 }
 .topnav-item.is-active::after {
   transform: scaleX(1);
@@ -3456,7 +3437,7 @@ html[data-theme="light"] .topnav-item.is-active {
   box-shadow:
     inset 0 0 0 1px rgba(187, 92, 246, 0.35),
     0 2px 8px -3px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: box-shadow var(--e-dur-base) var(--e-ease-standard), transform var(--e-dur-base) var(--e-ease-standard);
 }
 .topbar-avatar:hover {
   transform: scale(1.08);
@@ -3595,11 +3576,10 @@ html[data-theme="light"] .onboard-progress-bar {
   box-shadow:
     0 0 0 2px var(--e-violet-400),
     0 0 0 9999px rgba(9, 9, 11, 0.72);
-  transition:
-    top 0.28s var(--e-ease-expo),
-    left 0.28s var(--e-ease-expo),
-    width 0.28s var(--e-ease-expo),
-    height 0.28s var(--e-ease-expo);
+  transition: top var(--e-dur-slow) var(--e-ease-expo),
+    left var(--e-dur-slow) var(--e-ease-expo),
+    width var(--e-dur-slow) var(--e-ease-expo),
+    height var(--e-dur-slow) var(--e-ease-expo);
 }
 html[data-theme="light"] .tour-hole {
   box-shadow:
@@ -3687,10 +3667,9 @@ html[data-theme="light"] .tour-confirm-panel {
    LISTAS: filas que responden al hover (lift sutil + hairline de marca).
    ---------------------------------------------------------------------- */
 .list-row {
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease,
-    transform 0.15s ease;
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard),
+    background var(--e-dur-fast) var(--e-ease-standard),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .list-row:hover {
   border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
@@ -3730,7 +3709,7 @@ html[data-theme="light"] .list-row:hover {
   font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-500);
-  transition: color 0.18s ease, background 0.18s ease;
+  transition: color var(--e-dur-base) var(--e-ease-standard), background var(--e-dur-base) var(--e-ease-standard);
 }
 .bottomnav-item:active {
   background: rgba(255, 255, 255, 0.05);
@@ -4038,10 +4017,10 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   }
 }
 .scan-result[data-result="ok"] {
-  animation: pop 0.32s var(--e-ease-spring) both;
+  animation: pop var(--e-dur-slow) var(--e-ease-spring) both;
 }
 .scan-result[data-result="no"] {
-  animation: scan-verdict-no 0.32s var(--e-ease-standard) both;
+  animation: scan-verdict-no var(--e-dur-slow) var(--e-ease-standard) both;
 }
 @media (prefers-reduced-motion: reduce) {
   .scan-result[data-result] {
@@ -4438,7 +4417,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   height: 1.15rem;
   width: 1.15rem;
   color: var(--color-zinc-500);
-  transition: color 0.15s;
+  transition: color var(--e-dur-fast);
 }
 .auth-field-has-icon {
   padding-left: 2.6rem;
@@ -5044,7 +5023,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   font-weight: 700;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: transform 0.1s ease, filter 0.15s ease;
+  transition: transform var(--e-dur-fast) var(--e-ease-standard), filter var(--e-dur-fast) var(--e-ease-standard);
 }
 .tkt-btn:active {
   transform: translateY(1px);
@@ -5911,7 +5890,7 @@ html[data-theme="light"] .pf-label {
   font-size: var(--e-text-xs);
   font-weight: 600;
   color: var(--color-zinc-400);
-  transition: color 0.15s;
+  transition: color var(--e-dur-fast);
 }
 .pf-input-btn:hover {
   color: var(--color-zinc-100);
@@ -6005,9 +5984,8 @@ html[data-theme="light"] .pf-readonly {
   border: 1px solid var(--e-border-hairline);
   padding: 0.75rem;
   text-align: left;
-  transition:
-    border-color 0.15s,
-    background 0.15s;
+  transition: border-color var(--e-dur-fast),
+    background var(--e-dur-fast);
 }
 .pf-venue:hover {
   border-color: var(--e-border-strong);
@@ -6174,7 +6152,7 @@ html[data-theme="light"] .pf-delete-warn {
   font-size: var(--e-text-sm);
   font-weight: 700;
   color: var(--e-white);
-  transition: background 0.15s;
+  transition: background var(--e-dur-fast);
 }
 .pf-delete-btn:hover {
   background: var(--e-red-500);
@@ -6239,7 +6217,7 @@ html[data-theme="light"] .pf-delete-warn {
 /* El panel entra al visitarlo. Como cada panel se monta al activarse la
    pestaña, la animación corre sola en cada cambio — sin JS que la dispare. */
 .pf-panel {
-  animation: pf-rise 0.32s var(--e-ease-expo) both;
+  animation: pf-rise var(--e-dur-slow) var(--e-ease-expo) both;
 }
 
 /* Indicador deslizante de la pestaña activa.
@@ -6266,8 +6244,7 @@ html[data-theme="light"] .pf-delete-warn {
     transparent
   );
   transform: translateX(var(--pf-tab-x, 0px));
-  transition:
-    transform var(--e-dur-base) var(--e-ease-expo),
+  transition: transform var(--e-dur-base) var(--e-ease-expo),
     width var(--e-dur-base) var(--e-ease-expo);
   pointer-events: none;
 }
@@ -6485,7 +6462,7 @@ html[data-theme="light"] .legal-doc code {
 .legal-links button {
   color: inherit;
   opacity: 0.75;
-  transition: opacity 0.2s;
+  transition: opacity var(--e-dur-base);
 }
 .legal-links a:hover,
 .legal-links button:hover {
@@ -6560,7 +6537,7 @@ html[data-theme="light"] .legal-doc code {
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0;
-  transition: width 0.5s ease;
+  transition: width 0.5s var(--e-ease-standard);
 }
 
 .door-meter-sold {
@@ -6602,7 +6579,7 @@ html[data-theme="light"] .legal-doc code {
   border: 1px solid var(--e-border-hairline);
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.18s ease, transform 0.18s ease;
+  transition: border-color var(--e-dur-base) var(--e-ease-standard), transform var(--e-dur-base) var(--e-ease-standard);
 }
 
 .door-night:hover {

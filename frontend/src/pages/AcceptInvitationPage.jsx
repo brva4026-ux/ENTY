@@ -172,7 +172,7 @@ export default function AcceptInvitationPage() {
                   {password.length > 0 && (
                     <div className="mt-1.5 flex items-center gap-2">
                       <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
-                        <div className={`h-full rounded-full transition-all ${strengthMeta.cls}`} style={{ width: strengthMeta.width }} />
+                        <div className={`h-full rounded-full transition-[width,background-color] ${strengthMeta.cls}`} style={{ width: strengthMeta.width }} />
                       </div>
                       <span className="text-2xs uppercase tracking-wide text-zinc-500">{strengthMeta.label}</span>
                     </div>

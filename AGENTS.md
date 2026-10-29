@@ -446,6 +446,32 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   son contratos que usan los E2E (renombrarlos rompería la suite). El design
   system vive documentado en `DESIGN.md` (el análisis de Apple que ocupaba ese
   archivo se movió a `docs/referencia-apple.md`).
+- **Estado Fase 7 (HECHA, movimiento/tempo)**: las hojas dejan de escribir
+  duraciones y curvas sueltas y consumen la escala de movimiento de
+  `tokens.css`. Antes: 3 de 88 `transition` y 0 de 86 `animation` usaban
+  `--e-dur-*`. Ahora: 158 usos de `--e-dur-*` y 133 de `--e-ease-*`. La regla
+  aplicada es **el token más cercano con desvío ≤ 60ms** (`fast` 120 / `base`
+  200 / `slow` 320); por encima de ~360ms la duración se deja literal, porque
+  ahí no hay tempo de interfaz sino atmósfera (tickers de 38s, shimmer, confeti,
+  respiración). Solo se tocó `transition`/`animation`, nunca `@keyframes`.
+  - Los **easings con nombre solo se convierten en `transition`**, no en
+    `animation`: en un bucle `linear`/`ease-in-out` es la elección correcta, y
+    `ease-in` + `reverse` (salidas de diálogo) ya equivale a `ease-out`. Las
+    curvas `cubic-bezier` explícitas se conservan tal cual, salvo las tres que
+    ya eran idénticas a un token (`--e-ease-expo/-spring/-standard`).
+  - `ease` (el default del navegador) sí pasa a `--e-ease-standard`: es un
+    **cambio de feel** deliberado (los hover ganan el tempo del producto, no el
+    del navegador), no una sustitución neutra. Si un hover se siente distinto,
+    el punto a revisar es ese.
+  - **`transition-all` bajó 8 → 0** (eran la última deuda de la regla): ahora
+    las propiedades se nombran (`transition-[width]`, `transition-colors`,
+    `transition-[transform,background-color]`…). Se retiró la entrada
+    `transition-all` de `design-gate.baseline.json` (allowed y brand), porque el
+    trinquete solo admite bajar.
+  - **Pendiente de esta fase** (no incluido): los 7 `transition` sobre `width`/
+    `height` (barras y medidores) siguen animando layout; el canon pide
+    `transform: scaleX()`. Y los 2 `ease-in` de `dialog-*-out` se conservan
+    porque van con `reverse`.
 - **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
   (oscuro y claro, 6 rutas + detalle), interior (admin/promotor, + alt de
   imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado

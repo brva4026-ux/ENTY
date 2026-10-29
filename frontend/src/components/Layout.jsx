@@ -230,7 +230,7 @@ export default function Layout({ children }) {
                   </span>
                   {t.label}
                   <span
-                    className={`h-0.5 w-5 rounded-full transition-all duration-300 ${active ? "bg-brand-400" : "bg-transparent"}`}
+                    className={`h-0.5 w-5 rounded-full transition-colors duration-300 ${active ? "bg-brand-400" : "bg-transparent"}`}
                   />
                 </TransitionLink>
               );

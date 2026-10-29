@@ -258,7 +258,7 @@
   height: 100%;
   border-radius: var(--e-radius-sm);
   background: linear-gradient(90deg, var(--e-violet-600), var(--e-violet-400));
-  transition: width var(--e-dur-slow) ease;
+  transition: width var(--e-dur-slow) var(--e-ease-standard);
 }
 
 .pc-gauge-fill.is-warn { background: linear-gradient(90deg, var(--e-amber-500), var(--e-amber-300)); }

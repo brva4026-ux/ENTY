@@ -486,11 +486,11 @@ html[data-theme="light"] .bizdock-count {
 }
 
 ::view-transition-old(root) {
-  animation: vt-leave 0.2s var(--e-ease-standard) both;
+  animation: vt-leave var(--e-dur-base) var(--e-ease-standard) both;
 }
 
 ::view-transition-new(root) {
-  animation: vt-enter 0.32s var(--e-ease-expo) both;
+  animation: vt-enter var(--e-dur-slow) var(--e-ease-expo) both;
 }
 
 /* ----------------------------------------------------------------------
@@ -518,7 +518,7 @@ html[data-theme="light"] .bizdock-count {
 }
 
 .auth-error {
-  animation: auth-shake 0.36s var(--e-ease-standard) both;
+  animation: auth-shake var(--e-dur-slow) var(--e-ease-standard) both;
 }
 
 @keyframes auth-check-pop {
@@ -536,7 +536,7 @@ html[data-theme="light"] .bizdock-count {
   width: 1em;
   height: 1em;
   flex-shrink: 0;
-  animation: auth-check-pop 0.32s var(--e-ease-spring) both;
+  animation: auth-check-pop var(--e-dur-slow) var(--e-ease-spring) both;
 }
 
 /* El botón confirmado se tinta de "validado" (el verde tiene significado en
@@ -1213,7 +1213,7 @@ html[data-theme="light"] .bizdock-count {
   align-items: center;
   justify-content: center;
   color: var(--e-dim-500);
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard), color var(--e-dur-fast) var(--e-ease-standard);
 }
 .home-avatar:hover {
   border-color: rgba(255, 255, 255, 0.35);
@@ -1259,7 +1259,7 @@ html[data-theme="light"] .bizdock-count {
   border-bottom: 1.5px solid transparent;
   margin-bottom: -1px;
   white-space: nowrap;
-  transition: color 0.15s ease;
+  transition: color var(--e-dur-fast) var(--e-ease-standard);
 }
 .home-tabs button.is-on {
   color: var(--e-text-primary);
@@ -1376,7 +1376,7 @@ html[data-theme="light"] .bizdock-count {
   box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
     0 14px 30px -12px rgba(124, 58, 237, 0.9),
     0 0 22px -4px rgba(124, 58, 237, 0.65);
-  transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  transition: filter var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
 }
 .home-cta:hover {
   filter: brightness(1.08);
@@ -1429,7 +1429,7 @@ html[data-theme="light"] .bizdock-count {
      El cristal queda para lo fijo (nav) y el hero; acá manda el rendimiento. */
   background: rgba(23, 22, 34, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.2s ease;
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
 }
 .home-list .home-row:last-child {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -1545,12 +1545,12 @@ html[data-theme="light"] .bizdock-count {
   font-size: var(--e-text-2xs);
   font-weight: 400;
   color: var(--e-neutral-650);
-  transition: color 0.15s ease;
+  transition: color var(--e-dur-fast) var(--e-ease-standard);
 }
 /* Icono de linea fina que se rellena de morado al estar activo. */
 .home-nav a svg path,
 .home-nav a svg circle {
-  transition: fill 0.15s ease, stroke 0.15s ease;
+  transition: fill var(--e-dur-fast) var(--e-ease-standard), stroke var(--e-dur-fast) var(--e-ease-standard);
 }
 .home-nav a.is-on {
   color: var(--e-brand-glow);
@@ -1590,7 +1590,7 @@ html[data-theme="light"] .bizdock-count {
   align-items: center;
   justify-content: center;
   color: var(--e-dim-500);
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard), color var(--e-dur-fast) var(--e-ease-standard);
 }
 .home-bell:hover {
   border-color: rgba(255, 255, 255, 0.35);
@@ -1612,7 +1612,7 @@ html[data-theme="light"] .bizdock-count {
   border-radius: 1.1rem;
   background: rgba(23, 22, 34, 0.92);
   border: 1px solid var(--e-glass-line);
-  animation: enter 0.28s var(--e-ease-expo, ease) both;
+  animation: enter var(--e-dur-slow) var(--e-ease-expo, ease) both;
 }
 .home-bell-title {
   margin: 0 0 0.6rem;
@@ -1636,7 +1636,7 @@ html[data-theme="light"] .bizdock-count {
   gap: 2px;
   padding: 0.5rem 0.6rem;
   border-radius: 0.7rem;
-  transition: background 0.15s ease;
+  transition: background var(--e-dur-fast) var(--e-ease-standard);
 }
 .home-bell-panel li a:hover {
   background: rgba(124, 58, 237, 0.14);
@@ -1668,7 +1668,7 @@ html[data-theme="light"] .bizdock-count {
   background: var(--e-glass-1);
   border: 1px solid var(--e-glass-line-strong);
   color: var(--e-text-secondary);
-  transition: border-color 0.15s ease, box-shadow 0.2s ease;
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
 }
 .home-search:focus-within {
   border-color: rgba(124, 58, 237, 0.6);
@@ -1716,7 +1716,7 @@ html[data-theme="light"] .bizdock-count {
   font-size: var(--e-text-xs);
   font-weight: 400;
   color: var(--e-text-secondary);
-  transition: color 0.15s ease;
+  transition: color var(--e-dur-fast) var(--e-ease-standard);
 }
 .home-cat-dot {
   width: 3.4rem;
@@ -1727,8 +1727,8 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-text-muted);
   background: var(--e-glass-1);
   border: 1px solid var(--e-glass-line);
-  transition: color 0.15s ease, border-color 0.15s ease,
-    background 0.15s ease, box-shadow 0.2s ease;
+  transition: color var(--e-dur-fast) var(--e-ease-standard), border-color var(--e-dur-fast) var(--e-ease-standard),
+    background var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
 }
 .home-cats button.is-on {
   color: var(--e-text-primary);
@@ -1774,7 +1774,7 @@ html[data-theme="light"] .bizdock-count {
   font-size: var(--e-text-xs);
   font-weight: 600;
   white-space: nowrap;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: color var(--e-dur-fast) var(--e-ease-standard), border-color var(--e-dur-fast) var(--e-ease-standard), background var(--e-dur-fast) var(--e-ease-standard);
 }
 .home-chip.is-on {
   color: var(--e-white);
@@ -1867,7 +1867,7 @@ html[data-theme="light"] .bizdock-count {
   display: grid;
   place-items: center;
   color: var(--e-text-secondary);
-  transition: color 0.15s ease, transform 0.1s ease;
+  transition: color var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .home-row-fav:hover {
   color: var(--e-brand-glow);
@@ -1960,7 +1960,7 @@ html[data-theme="light"] .bizdock-count {
   border: 1px solid rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: background var(--e-dur-fast) var(--e-ease-standard), color var(--e-dur-fast) var(--e-ease-standard), border-color var(--e-dur-fast) var(--e-ease-standard);
 }
 .evd-round:hover {
   background: rgba(11, 11, 15, 0.75);
@@ -2065,7 +2065,7 @@ html[data-theme="light"] .bizdock-count {
   box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
     0 16px 34px -14px rgba(124, 58, 237, 0.95),
     0 0 26px -6px rgba(124, 58, 237, 0.7);
-  transition: filter 0.15s ease, transform 0.1s ease;
+  transition: filter var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .evd-cta:hover {
   filter: brightness(1.08);
@@ -2092,7 +2092,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-text-secondary);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color var(--e-dur-fast) var(--e-ease-standard), border-color var(--e-dur-fast) var(--e-ease-standard);
 }
 .evd-tabs button.is-on {
   color: var(--e-text-primary);
@@ -2235,7 +2235,7 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-white);
   background: rgba(124, 58, 237, 0.92);
   box-shadow: 0 12px 30px -12px rgba(124, 58, 237, 0.95);
-  animation: enter 0.25s ease both;
+  animation: enter var(--e-dur-base) ease both;
   z-index: 20;
 }
 
@@ -2321,7 +2321,7 @@ html[data-theme="light"] .bizdock-count {
   font-family: inherit;
   box-shadow: 0 12px 26px -12px rgba(124, 58, 237, 0.9),
     0 0 20px -6px rgba(124, 58, 237, 0.6);
-  transition: filter 0.15s ease, box-shadow 0.2s ease;
+  transition: filter var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
 }
 .fan-lookup button:hover:not(:disabled) {
   filter: brightness(1.08);

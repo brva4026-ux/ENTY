@@ -216,7 +216,7 @@ export default function RegisterPage() {
                 <div className="flex items-center gap-2">
                   <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
                     <div
-                      className={`h-full ${strength.color} ${strength.width} transition-all`}
+                      className={`h-full ${strength.color} ${strength.width} transition-[width,background-color]`}
                     />
                   </div>
                   <span className="text-2xs font-semibold text-zinc-400">
