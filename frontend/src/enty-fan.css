@@ -855,10 +855,23 @@ html[data-theme="light"] .legal-link {
   .legal-links button,
   .home-foot-links a,
   .link-underline,
-  .home-wordmark {
+  .home-wordmark,
+  .home-subhead a {
     display: inline-flex;
     align-items: center;
     min-height: 2.75rem;
+  }
+  /* El boton redondo del detalle conserva su caja de 40px (estirarla
+     deformaria la pildora) y gana el area que falta con un ::after invisible:
+     -2px da los 44px exactos sin que dos botones contiguos (gap 8px) se
+     pisen. */
+  .evd-round {
+    position: relative;
+  }
+  .evd-round::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
   }
 }
 
