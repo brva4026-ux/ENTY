@@ -14,13 +14,13 @@
  * mira primero (el neto), el recaudado baja a línea de contexto.
  */
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { money, labelMonth, shiftMonth, currentYM } from "../lib/format";
 import CountUpNumber from "./CountUpNumber";
 import Icon from "./Icon";
 import { Skeleton } from "./Skeleton";
 import { Star5 } from "./Doodles";
+import TransitionLink from "./TransitionLink";
 
 /** Iniciales del negocio para el tile y la marca de agua: dos letras.
  *
@@ -160,7 +160,7 @@ export default function VenueHeader({
         {/* Identidad: logo (o iniciales si no tiene) + nombre + eyebrow. El
           lockup entero lleva al perfil del negocio: la portada es también el
           camino para editar el nombre, el logo y el color. */}
-        <Link
+        <TransitionLink
           to="/perfil?tab=negocio"
           className="vh-identidad"
           data-tip="Editar el negocio"
@@ -202,7 +202,7 @@ export default function VenueHeader({
               </p>
             )}
           </div>
-        </Link>
+        </TransitionLink>
 
         {/* KPI headline: la cuenta del mes. La cifra grande es el NETO (lo
             que le queda al negocio); el recaudado baja a la línea de

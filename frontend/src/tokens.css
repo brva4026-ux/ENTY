@@ -273,6 +273,14 @@
   --e-dur-base: 200ms;
   --e-dur-slow: 320ms;
 
+  /* Magnitud del gesto: cuánto se mueve, no cuánto tarda. Faltaba, y por eso
+     la casa mezclaba valores a ojo: ocho pulsaciones usaban translateY(1px)
+     —un movimiento que el ojo no registra— mientras el panel usaba
+     scale(0.97). El mismo gesto debe sentirse igual en toda la app. */
+  --e-press-scale: 0.97; /* hundimiento al pulsar */
+  --e-press-card: 0.985; /* tarjetas: menos, porque son superficies grandes */
+  --e-lift: -2px; /* vuelo al pasar el cursor */
+
   /* Elevación (contacto → flotante) + halos de marca. La elevación es un
      par tema-aware: mismo hueco visual, distinta materia (oscuro = sombra,
      claro = papel). */

@@ -529,7 +529,7 @@ function MemberRow({
       </div>
 
       {isOpen && (
-        <div className="space-y-3 border-t border-zinc-800 px-3 pb-3 pt-2.5">
+        <div className="sheet-pop space-y-3 border-t border-zinc-800 px-3 pb-3 pt-2.5">
           {err && <p className="text-xs text-red-400">{err}</p>}
 
           {/* Panel de métricas productivas */}

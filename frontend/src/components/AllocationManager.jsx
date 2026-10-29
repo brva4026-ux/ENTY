@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
 import EmptyState from "./EmptyState";
 import { QuotaMeter } from "./Brand";
+import TransitionLink from "./TransitionLink";
 
 export default function AllocationManager({
   venueId,
@@ -144,12 +144,12 @@ export default function AllocationManager({
         </div>
         {/* El cuello de botella real: sin promotores creados no hay cupo que
           asignar. El enlace evita el ida-y-vuelta a Invitaciones. */}
-        <Link
+        <TransitionLink
           to="?tab=invitaciones"
           className="text-xs font-semibold text-brand-300 transition hover:text-brand-200"
         >
           Invitar promotor →
-        </Link>
+        </TransitionLink>
       </div>
       <ul className="mb-4 space-y-2">
         {(allocations || []).map((a) => {

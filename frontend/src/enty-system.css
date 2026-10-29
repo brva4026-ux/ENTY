@@ -236,7 +236,7 @@ html[data-theme="light"] .app-shell .venue-header[data-brand] {
 }
 .app-shell .btn-primary:active,
 .btn-primary:active {
-  transform: scale(0.975);
+  transform: scale(var(--e-press-scale));
 }
 
 /* --------------------------------------------------------------------------

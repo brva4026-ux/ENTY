@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import TransitionLink from "./TransitionLink";
 
 /**
  * Barra inferior de la app del fan (mockup "1 · Inicio"): Inicio · Explorar ·
@@ -59,10 +59,10 @@ export default function FanNav({ active }) {
   return (
     <nav className="home-nav" aria-label="Navegación principal">
       {TABS.map((t) => (
-        <Link key={t.key} to={t.to} className={t.key === active ? "is-on" : ""}>
+        <TransitionLink key={t.key} to={t.to} className={t.key === active ? "is-on" : ""}>
           <NavIcon name={t.key} />
           {t.label}
-        </Link>
+        </TransitionLink>
       ))}
     </nav>
   );

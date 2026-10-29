@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
@@ -8,6 +8,7 @@ import { AuthShell } from "../components/AuthShell";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { withViewTransition } from "../lib/viewTransition";
 import { prefersReducedMotion } from "../lib/motion";
+import TransitionLink from "../components/TransitionLink";
 
 /** Traduce errores técnicos del backend a mensajes que una persona entiende
  *  y sabe qué hacer después. */
@@ -346,12 +347,12 @@ export default function LoginPage() {
 
         <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
           ¿Nuevo en Enty?{" "}
-          <Link
+          <TransitionLink
             to="/register"
             className="link-underline font-semibold text-brand-300"
           >
             Crea tu negocio
-          </Link>
+          </TransitionLink>
         </p>
 
         {/* Salidas de la pantalla: sin ellas, un visitante que llega a /login
@@ -361,24 +362,24 @@ export default function LoginPage() {
           aria-label="Enlaces útiles"
           className="mt-2 flex flex-wrap items-center justify-center gap-x-5 text-xs text-zinc-400"
         >
-          <Link
+          <TransitionLink
             to="/inicio"
             className="inline-flex min-h-11 items-center transition hover:text-zinc-200"
           >
             Ver eventos
-          </Link>
-          <Link
+          </TransitionLink>
+          <TransitionLink
             to="/terminos"
             className="inline-flex min-h-11 items-center transition hover:text-zinc-200"
           >
             Términos
-          </Link>
-          <Link
+          </TransitionLink>
+          <TransitionLink
             to="/privacidad"
             className="inline-flex min-h-11 items-center transition hover:text-zinc-200"
           >
             Privacidad
-          </Link>
+          </TransitionLink>
         </nav>
       </div>
     </AuthShell>

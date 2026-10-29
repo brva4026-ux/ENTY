@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { fetchMyTickets, fetchMyTicketToken, fetchFanTicketsWithAccess } from "../lib/api";
 import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
 import { Spark } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import TransitionLink from "../components/TransitionLink";
 
 /**
  * Mis boletas — la entrada del fan (magic link, sin cuenta).
@@ -150,11 +151,11 @@ export default function MyTicketsPage() {
             <path d="M12 0 L14.6 9.4 L24 12 L14.6 14.6 L12 24 L9.4 14.6 L0 12 L9.4 9.4 Z" fill="#8B5CF6" />
           </svg>
         </div>
-        <Link to="/inicio" className="home-avatar" aria-label="Cartelera">
+        <TransitionLink to="/inicio" className="home-avatar" aria-label="Cartelera">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
             <path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
           </svg>
-        </Link>
+        </TransitionLink>
       </header>
 
       <div className="home-title">

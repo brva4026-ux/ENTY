@@ -10,11 +10,11 @@
  */
 import { useState } from "react";
 import { useTabKeys } from "../lib/useTabKeys";
-import { Link } from "react-router-dom";
 import { LiveIndicator } from "./Brand";
 import CountUpNumber from "./CountUpNumber";
 import EmptyState from "./EmptyState";
 import Icon from "./Icon";
+import TransitionLink from "./TransitionLink";
 
 /* Etiqueta y color por estado — compartidos con la franja de eventos del
  * admin y el selector del promotor (un solo vocabulario en toda la app). */
@@ -418,13 +418,13 @@ export function EventNotFound({ onBack }) {
     <EmptyState icon="alert" title="Este evento no existe">
       Puede que el enlace sea viejo o que el evento se haya eliminado.
       <span className="mt-3 block">
-        <Link
+        <TransitionLink
           to="/admin"
           onClick={() => onBack?.()}
           className="btn-primary inline-block px-4 py-2 text-xs font-bold"
         >
           Ver mis eventos
-        </Link>
+        </TransitionLink>
       </span>
     </EmptyState>
   );

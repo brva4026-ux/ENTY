@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import TransitionLink from "./TransitionLink";
 import { useAuth } from "../lib/auth";
 import { hasRole, navTabsFor, topRoleLabel } from "../lib/roles";
@@ -110,9 +110,9 @@ export default function Layout({ children }) {
       <header className="topbar sticky top-0 z-20">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-6">
-            <Link to="/" aria-label="Inicio">
+            <TransitionLink to="/" aria-label="Inicio">
               <Logo />
-            </Link>
+            </TransitionLink>
             <nav className="hidden items-center gap-0.5 md:flex">
               {tabs.map((t) => {
                 const active = pathname === t.to;
@@ -144,14 +144,14 @@ export default function Layout({ children }) {
                 {venueNames && ` · ${venueNames}`}
               </p>
             </div>
-            <Link
+            <TransitionLink
               to="/perfil"
               data-tip="Tu perfil"
               aria-label="Tu perfil"
               className="topbar-avatar topbar-hit"
             >
               {initials}
-            </Link>
+            </TransitionLink>
             <button
               onClick={() => {
                 logout();

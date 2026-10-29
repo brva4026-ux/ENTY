@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import TransitionLink from "../components/TransitionLink";
 
 const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -467,19 +467,19 @@ export default function HomePage() {
     <div className="home motion-reduced">
       <header className="home-head">
         <div className="home-head-left">
-          <Link to="/inicio" className="home-wordmark" aria-label="Enty, inicio">
+          <TransitionLink to="/inicio" className="home-wordmark" aria-label="Enty, inicio">
             <span>Enty</span>
             <Star />
-          </Link>
+          </TransitionLink>
           {/* Nav de escritorio: en móvil vive la barra inferior (FanNav). */}
           <nav className="home-topnav" aria-label="Secciones">
-            <Link to="/inicio" aria-current="page">
+            <TransitionLink to="/inicio" aria-current="page">
               Inicio
-            </Link>
-            <Link to="/boletas">Mis boletos</Link>
+            </TransitionLink>
+            <TransitionLink to="/boletas">Mis boletos</TransitionLink>
             {/* El staff necesita una entrada visible al panel: en movil la da
                 la barra inferior (Perfil), en escritorio no hay barra. */}
-            <Link to="/login">Acceso</Link>
+            <TransitionLink to="/login">Acceso</TransitionLink>
           </nav>
         </div>
         <div className="home-head-right">
@@ -505,10 +505,10 @@ export default function HomePage() {
             <ul>
               {soon.slice(0, 4).map((e) => (
                 <li key={e.id}>
-                  <Link to={`/evento/${e.id}`} onClick={() => setBellOpen(false)}>
+                  <TransitionLink to={`/evento/${e.id}`} onClick={() => setBellOpen(false)}>
                     <strong>{e.name}</strong>
                     <em>{shortDate(e.starts_at, e.timezone)} · {e.where}</em>
-                  </Link>
+                  </TransitionLink>
                 </li>
               ))}
             </ul>
@@ -660,7 +660,7 @@ export default function HomePage() {
         </div>
       ) : (
         <div className="home-grid">
-          <Link to={`/evento/${featured.id}`} className="home-feature">
+          <TransitionLink to={`/evento/${featured.id}`} className="home-feature">
             {/* El flyer del destacado es el LCP de la vitrina: se pide ya y con
                 prioridad alta en vez de competir con el resto de la página. */}
             {featured.flyer_url ? (
@@ -701,7 +701,7 @@ export default function HomePage() {
                 </span>
               </div>
             </div>
-          </Link>
+          </TransitionLink>
 
           {/* El troquel: la línea perforada de la boletería separa el
               destacado de la lista — el mismo corte que la entrada. */}
@@ -709,7 +709,7 @@ export default function HomePage() {
 
           <div className="home-subhead">
             <span>Próximos</span>
-            <Link to="/boletas">Mis boletos</Link>
+            <TransitionLink to="/boletas">Mis boletos</TransitionLink>
           </div>
 
           <div className="home-list">
@@ -718,7 +718,7 @@ export default function HomePage() {
               const fav = favs.has(e.id);
               return (
                 <div key={e.id} className="home-row">
-                  <Link to={`/evento/${e.id}`} className="home-row-main">
+                  <TransitionLink to={`/evento/${e.id}`} className="home-row-main">
                     <span className="home-row-thumb">
                       {e.flyer_url ? (
                         <img
@@ -739,7 +739,7 @@ export default function HomePage() {
                       <em>{shortDate(e.starts_at, e.timezone)} · {e.where}</em>
                     </span>
                     <span className="home-row-price">{priceLabel(e.price_cents)}</span>
-                  </Link>
+                  </TransitionLink>
                   <button
                     type="button"
                     className={"home-row-fav transition-colors" + (fav ? " is-on" : "") + (favPop === e.id ? " is-pop" : "")}
@@ -762,8 +762,8 @@ export default function HomePage() {
           <i aria-hidden="true" />
         </p>
         <nav className="home-foot-links" aria-label="Enlaces legales">
-          <Link to="/terminos">Términos</Link>
-          <Link to="/privacidad">Privacidad</Link>
+          <TransitionLink to="/terminos">Términos</TransitionLink>
+          <TransitionLink to="/privacidad">Privacidad</TransitionLink>
         </nav>
       </footer>
 

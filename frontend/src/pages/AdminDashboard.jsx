@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch, publicTicketPageUrl } from "../lib/api";
 import ContactEditsHistory from "../components/ContactEditsHistory";
 import { useAuth } from "../lib/auth";
@@ -21,7 +21,6 @@ import { useUI } from "../lib/ui";
 import { activeVenueId } from "../lib/venue";
 import { money, currentYM } from "../lib/format";
 import CountUpNumber from "../components/CountUpNumber";
-
 import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
 import {
@@ -55,6 +54,7 @@ import BusinessDock from "../components/BusinessDock";
 import PaymentsPanel from "../components/PaymentsPanel";
 import VenueHeader from "../components/VenueHeader";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import TransitionLink from "../components/TransitionLink";
 
 function firstVenueId(user) {
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
@@ -1189,7 +1189,7 @@ export default function AdminDashboard() {
                           const live = ev.status === "live";
                           return (
                             <li key={ev.id} className="evx-row">
-                              <Link
+                              <TransitionLink
                                 to={`/admin?event=${ev.id}`}
                                 onClick={() => haptics.tick()}
                                 className="absolute inset-0"
@@ -1326,7 +1326,7 @@ export default function AdminDashboard() {
                               {/* Link superpuesto: la TARJETA entera abre el
                             backstage y deja libres las esquinas para acciones
                             (duplicar) sin anidar botones dentro del <a>. */}
-                              <Link
+                              <TransitionLink
                                 to={`/admin?event=${ev.id}`}
                                 onClick={() => haptics.tick()}
                                 className="absolute inset-0 rounded-xl"

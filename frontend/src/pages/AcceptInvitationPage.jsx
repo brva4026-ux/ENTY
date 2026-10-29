@@ -6,10 +6,11 @@
  * como una boleta.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Logo } from "../components/Brand";
 import { apiFetch } from "../lib/api";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import TransitionLink from "../components/TransitionLink";
 
 const ROLE_LABEL = { promotor: "Promotor", bouncer: "Portero", admin: "Administrador" };
 
@@ -235,12 +236,12 @@ export default function AcceptInvitationPage() {
                 </p>
               </div>
 
-              <Link
+              <TransitionLink
                 to={ROLE_HOME[preview?.role] || "/"}
                 className="btn-primary inline-block px-5 py-2.5 text-sm font-bold"
               >
                 Ir a mi panel
-              </Link>
+              </TransitionLink>
             </div>
           )}
         </div>

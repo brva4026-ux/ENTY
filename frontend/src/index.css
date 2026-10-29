@@ -280,7 +280,7 @@ body {
 }
 .btn-primary:active {
   background: var(--e-violet-600);
-  transform: translateY(1px);
+  transform: scale(var(--e-press-scale));
   box-shadow: none;
 }
 .btn-primary:disabled {
@@ -320,7 +320,7 @@ body {
   color: var(--color-zinc-50);
 }
 .btn-ghost:active {
-  transform: translateY(1px);
+  transform: scale(var(--e-press-scale));
 }
 
 /* Objetivo táctil: la caja crece a 44px solo en punteros gruesos. Es un botón
@@ -354,7 +354,7 @@ body {
   color: var(--e-red-400);
 }
 .btn-danger-text:active {
-  transform: translateY(1px);
+  transform: scale(var(--e-press-scale));
 }
 .btn-danger-text:disabled {
   opacity: 0.45;
@@ -439,7 +439,7 @@ body {
   color: var(--color-zinc-200);
 }
 .btn-mini:active {
-  transform: translateY(1px);
+  transform: scale(var(--e-press-scale));
 }
 
 /* Objetivo táctil. La caja visual sigue siendo compacta (densidad de tabla),
@@ -559,10 +559,10 @@ html[data-theme="light"] .btn-ghost.btn-success {
 .opt-chip:hover {
   border-color: var(--color-zinc-500);
   color: var(--color-zinc-200);
-  transform: translateY(-1px);
+  transform: translateY(var(--e-lift));
 }
 .opt-chip:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(var(--e-press-scale));
 }
 .opt-chip[aria-pressed="true"] {
   border-color: rgba(187, 92, 246, 0.55);
@@ -1111,20 +1111,88 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   animation-delay: 0.47s;
 }
 
-/* Tarjeta interactiva: flota 2px al pasar, se asienta al pulsar */
+/* Tarjeta interactiva: flota al pasar, se asienta al pulsar. El hover va
+   tras `(hover: hover)`: en táctil no existe "pasar por encima" y dejarlo
+   suelto dejaba la tarjeta elevada tras el toque. */
 .card-interactive {
   transition: transform var(--e-dur-base) var(--e-ease-expo),
     border-color var(--e-dur-base),
     box-shadow var(--e-dur-base) var(--e-ease-expo);
 }
-.card-interactive:hover {
-  transform: translateY(-2px);
-  border-color: var(--color-zinc-800);
-  box-shadow: var(--e-elev-raised);
+@media (hover: hover) and (pointer: fine) {
+  .card-interactive:hover {
+    transform: translateY(var(--e-lift));
+    border-color: var(--color-zinc-800);
+    box-shadow: var(--e-elev-raised);
+  }
 }
 .card-interactive:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(var(--e-press-card));
   transition-duration: 0.08s;
+}
+
+/* ----------------------------------------------------------------------
+   GESTOS DE LA CASA
+   Un solo lugar define cómo responde lo pulsable. Antes cada hoja lo hacía
+   a su manera: la cabecera (campana, tema, avatar) no respondía en absoluto,
+   los botones se hundían 1px —imperceptible— y los chips saltaban sin
+   transición. Aquí el gesto es uno: se hunde al pulsar y flota al pasar.
+   El hover va tras `(hover: hover)`: en pantalla táctil no existe el
+   "pasar por encima", y dejarlo suelto deja el elemento elevado después del
+   toque, como si se hubiera quedado a medio camino.
+   ---------------------------------------------------------------------- */
+.topbar-hit,
+.tabbar-item,
+.bottomnav-item,
+.topnav-item {
+  transition:
+    transform var(--e-dur-fast) var(--e-ease-standard),
+    background var(--e-dur-base) var(--e-ease-standard),
+    color var(--e-dur-base) var(--e-ease-standard),
+    border-color var(--e-dur-base) var(--e-ease-standard);
+}
+.topbar-hit:active,
+.tabbar-item:active,
+.bottomnav-item:active,
+.topnav-item:active {
+  transform: scale(var(--e-press-scale));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .topbar-hit:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* ----------------------------------------------------------------------
+   ENTRADA DE SUPERFICIES SIN CLASE PROPIA
+   Menús, paneles y tarjetas que React monta al abrir (campana, tema,
+   historial) aparecían de golpe: no tienen una clase que animar y añadir
+   un keyframe por cada uno sería repetir el mismo gesto seis veces.
+   `@starting-style` define el estado ANTERIOR al primer frame, así que el
+   navegador interpola solo: la superficie nace un punto más pequeña y
+   transparente, y se asienta. No hay que tocar el JSX.
+   Nunca `scale(0)`: un elemento que aparece de la nada no existe en la
+   naturaleza; 0.96 con opacidad se lee como "llega", no como "salta".
+   ---------------------------------------------------------------------- */
+@starting-style {
+  .menu-pop {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  .sheet-pop {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+/* Origen arriba: el menú crece DESDE su botón, no desde su propio centro.
+   Es la diferencia entre "aparece" y "sale de aquí". */
+.menu-pop,
+.sheet-pop {
+  transform-origin: top center;
+  transition:
+    opacity var(--e-dur-base) var(--e-ease-standard),
+    transform var(--e-dur-base) var(--e-ease-expo);
 }
 
 /* Enlaces con subrayado animado (footer/login auxiliares) */
@@ -1335,11 +1403,18 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   .btn-mini,
   .opt-chip,
   .bizdock-item,
-  .bizdock-icon {
+  .bizdock-icon,
+  .topbar-hit,
+  .tabbar-item,
+  .bottomnav-item,
+  .topnav-item,
+  .menu-pop,
+  .sheet-pop {
     transition: none;
   }
   .card-interactive:hover,
-  .bizdock-item:hover {
+  .bizdock-item:hover,
+  .topbar-hit:hover {
     transform: none;
     box-shadow: none;
   }
@@ -1348,7 +1423,11 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   .btn-danger:active,
   .btn-danger-text:active,
   .btn-mini:active,
-  .opt-chip:active {
+  .opt-chip:active,
+  .topbar-hit:active,
+  .tabbar-item:active,
+  .bottomnav-item:active,
+  .topnav-item:active {
     transform: none;
   }
   .btn-mini:hover,
@@ -1412,10 +1491,10 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 .bizdock-item:hover {
   background: rgba(255, 255, 255, 0.05);
-  transform: translateY(-1px);
+  transform: translateY(var(--e-lift));
 }
 .bizdock-item:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(var(--e-press-scale));
 }
 .bizdock-item.is-active {
   /* Activo: superficie teñida de marca + hairline de marca. Nada de un
@@ -3375,7 +3454,9 @@ html[data-theme="light"] .topbar {
   font-size: var(--e-text-sm);
   font-weight: 500;
   color: var(--color-zinc-400);
-  transition: color var(--e-dur-fast) var(--e-ease-standard), background var(--e-dur-fast) var(--e-ease-standard);
+  transition: color var(--e-dur-fast) var(--e-ease-standard),
+    background var(--e-dur-fast) var(--e-ease-standard),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .topnav-item:hover {
   color: var(--color-zinc-200);
@@ -3674,7 +3755,7 @@ html[data-theme="light"] .tour-confirm-panel {
 .list-row:hover {
   border-color: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
   background: rgba(255, 255, 255, 0.05);
-  transform: translateY(-1px);
+  transform: translateY(var(--e-lift));
 }
 html[data-theme="light"] .list-row:hover {
   border-color: rgba(187, 92, 246, 0.35);
@@ -5036,7 +5117,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   transition: transform var(--e-dur-fast) var(--e-ease-standard), filter var(--e-dur-fast) var(--e-ease-standard);
 }
 .tkt-btn:active {
-  transform: translateY(1px);
+  transform: scale(var(--e-press-scale));
 }
 .tkt-btn:disabled {
   opacity: 0.55;
@@ -6594,7 +6675,7 @@ html[data-theme="light"] .legal-doc code {
 
 .door-night:hover {
   border-color: var(--e-border-soft);
-  transform: translateY(-1px);
+  transform: translateY(var(--e-lift));
 }
 
 .door-night.is-live {

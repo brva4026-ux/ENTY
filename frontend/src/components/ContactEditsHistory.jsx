@@ -53,7 +53,7 @@ export default function ContactEditsHistory({ venueId, eventId, ticket, ticketId
           : `Correcciones de contacto${hasEdits ? ` (${rows.length})` : ""} ▼`}
       </button>
       {open && (
-        <div className="mt-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+        <div className="menu-pop mt-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
           {error && <p className="text-xs text-red-400">{error}</p>}
           {rows === null && !error && <p className="text-xs text-zinc-500">Cargando…</p>}
           {rows !== null && rows.length === 0 && (
