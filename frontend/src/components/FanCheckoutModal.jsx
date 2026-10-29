@@ -87,8 +87,14 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
   async function submit(e) {
     e.preventDefault();
     if (!typeId || busy) return;
-    if (name.trim().length < 1 || phone.trim().length < 5) {
-      setError("Escribe tu nombre y un teléfono para enviarte la boleta.");
+    // El aviso nombra solo lo que falta: decir "nombre y telefono" cuando el
+    // fallo es uno solo manda al usuario a revisar un campo que ya estaba bien.
+    if (name.trim().length < 1) {
+      setError("Escribe tu nombre: va impreso en la boleta.");
+      return;
+    }
+    if (phone.trim().length < 5) {
+      setError("Escribe tu teléfono de WhatsApp (al menos 5 dígitos).");
       return;
     }
     setBusy(true);
@@ -213,7 +219,7 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
             Este evento no tiene localidades de pago disponibles por ahora.
           </p>
         ) : (
-          <form onSubmit={submit} className="space-y-3">
+          <form onSubmit={submit} noValidate className="space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-semibold text-zinc-400">
                 Localidad
