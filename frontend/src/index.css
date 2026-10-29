@@ -46,14 +46,15 @@
   /* Brasa: peligro y estado "en puerta". */
   --color-ember: #ef4444;
   /* ESCALA TIPOGRÁFICA (Fase 2): fuente única para las utilidades `text-*`
-     de Tailwind y espejo de `--e-text-*` en tokens.css. Ratio 1.25; el piso
-     es 2xs (0.6875rem = 11px): se retiran los micro-tamaños. Las líneas
-     mantienen la proporción previa para no alterar el ritmo vertical. */
-  --text-2xs: 0.6875rem;
+     de Tailwind y espejo de `--e-text-*` en tokens.css. El piso es 2xs
+     (0.75rem = 12px), igual que la hoja de tokens; antes iba un paso por
+     debajo (11px) y las dos escalas no coincidian. Las líneas mantienen la
+     proporción previa para no alterar el ritmo vertical. */
+  --text-2xs: 0.75rem;
   --text-2xs--line-height: 1.35;
-  --text-xs: 0.75rem;
+  --text-xs: 0.8125rem;
   --text-xs--line-height: 1.3333;
-  --text-sm: 0.8125rem;
+  --text-sm: 0.875rem;
   --text-sm--line-height: 1.4286;
   --text-base: 0.9375rem;
   --text-base--line-height: 1.5;
@@ -6547,7 +6548,7 @@ html[data-theme="light"] .legal-doc code {
   align-items: center;
   justify-content: center;
   gap: 0.35rem 0.9rem;
-  font-size: 0.72rem;
+  font-size: var(--e-text-2xs);
 }
 .legal-links a,
 .legal-links button {
