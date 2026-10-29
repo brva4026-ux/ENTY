@@ -468,10 +468,29 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
     `transition-[transform,background-color]`…). Se retiró la entrada
     `transition-all` de `design-gate.baseline.json` (allowed y brand), porque el
     trinquete solo admite bajar.
-  - **Pendiente de esta fase** (no incluido): los 7 `transition` sobre `width`/
-    `height` (barras y medidores) siguen animando layout; el canon pide
-    `transform: scaleX()`. Y los 2 `ease-in` de `dialog-*-out` se conservan
-    porque van con `reverse`.
+  - **Fase 2 (movimiento por layout) — auditada, y la conversión mecánica
+    NO se hizo**: el canon dice "no animar `width`/`height`/`top`/`left`, solo
+    `transform` + `opacity`", pero convertirlas a `scaleX` **no es un refactor
+    neutro** en este repo. Medido en Chromium a 4× con las reglas reales:
+    las barras tipo píldora (`border-radius: 999px`) acaban con el borde
+    **plano** (altura del borde derecho 20/40px → 38/40px) y el degradado se
+    comprime. Es decir, se cambia el diseño, no la implementación. Solo es
+    neutro cuando el relleno es **cuadrado** y el radio lo pone el contenedor
+    que recorta (ahí `width` y `scaleX` son idénticos píxel a píxel).
+  - **Lo que sí se hizo en la Fase 2**: `scan-sweep` pasó de animar `top` a
+    `translateY`. Es el único caso donde el canon y el diseño coinciden: es una
+    animación **infinita** (repinta el encuadre entero en cada frame) y el
+    barrido no tiene radio propio. Ahora el contenedor ocupa el encuadre y la
+    línea es su `::before`; verificado en Chromium que `translateY(14%)` cae en
+    el mismo píxel que el antiguo `top: 14%` (44.5px de 318px), que con
+    `reduced-motion` queda en 50% y que `is-busy` la sigue pausando.
+  - **Deuda viva, con motivo**: los 7 `transition` de `width` (barras y
+    medidores) y los 4 de `tour-hole` (`top`/`left`/`width`/`height`) se
+    conservan. En las barras es lo que mantiene la tapa redondeada; en
+    `tour-hole` el elemento se posiciona desde JS con `getBoundingClientRect`
+    y animar `transform` exigiría reescribir el cálculo. No son "pendiente de
+    arreglar": son una decisión con evidencia detrás.
+  - Los 2 `ease-in` de `dialog-*-out` se conservan porque van con `reverse`.
 - **`e2e/a11y.spec.js`** es la red de accesibilidad: contraste AA en público
   (oscuro y claro, 6 rutas + detalle), interior (admin/promotor, + alt de
   imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado

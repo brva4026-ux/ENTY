@@ -3922,9 +3922,22 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
   border-bottom-right-radius: 10px;
 }
 /* Línea que barre el encuadre de arriba a abajo: la señal clásica de
-   "escáner activo". Se pausa mientras se valida (el pulso toma el turno). */
+   "escáner activo". Se pausa mientras se valida (el pulso toma el turno).
+   Viaja con transform, no con top: es una animación infinita, así que animar
+   una propiedad de layout repinta el encuadre entero en cada frame. El
+   contenedor ocupa todo el encuadre y la línea es su ::before, de modo que
+   translateY mide lo mismo que medía top (mismo porcentaje, misma geometría). */
 .scan-sweep {
   position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  animation: scan-sweep 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.scan-sweep::before {
+  content: "";
+  position: absolute;
+  top: 0;
   left: 14px;
   right: 14px;
   height: 2px;
@@ -3936,18 +3949,15 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
     transparent
   );
   box-shadow: 0 0 12px 2px color-mix(in srgb, var(--e-violet-400) 45%, transparent);
-  z-index: 20;
-  pointer-events: none;
-  animation: scan-sweep 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 @keyframes scan-sweep {
   0%,
   100% {
-    top: 14%;
+    transform: translateY(14%);
     opacity: 0.9;
   }
   50% {
-    top: 86%;
+    transform: translateY(86%);
     opacity: 0.55;
   }
 }
@@ -3988,7 +3998,7 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
 @media (prefers-reduced-motion: reduce) {
   .scan-sweep {
     animation: none;
-    top: 50%;
+    transform: translateY(50%);
     opacity: 0.4;
   }
   .scan-frame.is-busy::after {
