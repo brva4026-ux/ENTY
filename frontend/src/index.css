@@ -3258,7 +3258,7 @@ html[data-theme="light"] .wb-flyer {
   position: relative;
 }
 .dp-num {
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   line-height: 1;
   color: var(--color-zinc-400);
@@ -3284,7 +3284,7 @@ html[data-theme="light"] .wb-flyer {
   bottom: -1.1rem;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   color: var(--color-zinc-600);
   white-space: nowrap;
 }
@@ -3612,7 +3612,7 @@ html[data-theme="light"] .onboard-hero {
   font-variant-numeric: tabular-nums;
 }
 .onboard-progress-total {
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   color: var(--color-zinc-500);
 }
 .onboard-progress-bar {
@@ -6579,7 +6579,7 @@ html[data-theme="light"] .legal-doc code {
   gap: 0.375rem;
   padding: 0.125rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.625rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -6724,7 +6724,7 @@ html[data-theme="light"] .legal-doc code {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   color: var(--e-text-secondary);
 }
 
@@ -6749,7 +6749,7 @@ html[data-theme="light"] .legal-doc code {
 
 .prow-hd {
   background: var(--e-surface-2);
-  font-size: 0.59375rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -6772,7 +6772,7 @@ html[data-theme="light"] .legal-doc code {
   height: 1.625rem;
   flex: none;
   border-radius: 0.4375rem;
-  font-size: 0.6875rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   color: var(--e-white);
   /* violet-500 primero: el 400 está marcado "solo halo/glow" y no llega a
@@ -6889,7 +6889,7 @@ html[data-theme="light"] .legal-doc code {
     border-top: 0;
   }
   .vh-kpi-label {
-    font-size: 0.5625rem;
+    font-size: var(--e-text-2xs);
     letter-spacing: 0.06em;
   }
   .vh-kpi-meta { display: none; }
@@ -6897,7 +6897,7 @@ html[data-theme="light"] .legal-doc code {
   /* La tira de 4 cifras del mes: 2×2 con menos aire (sigue completa). */
   .vh-tally > div { padding: 0.55rem 0.7rem; }
   .vh-tally .pc-t-value { font-size: var(--e-text-lg); }
-  .vh-tally .pc-t-label { font-size: 0.5625rem; }
+  .vh-tally .pc-t-label { font-size: var(--e-text-2xs); }
 
   /* --- 2b · La guía de primeros pasos, de bloque a aviso ---------------- */
   /* El texto explicativo se recorta a dos líneas: en un teléfono el párrafo
