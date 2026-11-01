@@ -681,7 +681,7 @@ export default function HomePage() {
               )}
               <div className="home-feature-body">
                 <div className="home-feature-top">
-                  <span className="home-eyebrow">Featured</span>
+                  <span className="home-eyebrow">Destacado</span>
                   {/* h2: el h1 de la página es el encabezado estable de arriba
                       (siempre presente). El destacado ES el titular visual, pero
                       la jerarquía de documento necesita un h1 que no dependa de
