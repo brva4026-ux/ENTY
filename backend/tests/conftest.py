@@ -8,6 +8,7 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import psycopg
 import pytest
@@ -304,15 +305,28 @@ class Api:
         # +29h: dentro de la ventana de activación del QR (default 60 min
         # antes, mig 013) pero con la apertura a futuro para poder publicar.
         # Los tests que necesitan la ventana CERRADA la crean explícita.
+        #
+        # OJO con la zona: el mes del evento es el del NEGOCIO, no el de UTC.
+        # Los tests que agrupan por mes deben preguntar por `month` (abajo) en
+        # vez de asumir el mes actual: en los últimos minutos de un mes, +29h
+        # cae ya en el mes siguiente y la aserción falla sin que nada esté roto.
+        starts_at = datetime.now(timezone.utc) + timedelta(hours=29)
         payload = {
             "name": name,
-            "starts_at": (datetime.now(timezone.utc) + timedelta(hours=29)).isoformat(),
+            "starts_at": starts_at.isoformat(),
             "capacity": capacity,
         }
         payload.update(extra)  # description, flyer_url, ends_at, event_timezone...
         res = self.post(f"/venues/{venue_id}/events", who, payload)
         assert res.status_code == 201, res.text
-        return res.json()
+        body = res.json()
+        # Mes del evento en la zona del negocio, para /overview y /promoters.
+        tz = ZoneInfo(body.get("event_timezone") or "America/Bogota")
+        body["month"] = starts_at.astimezone(tz).strftime("%Y-%m")
+        # Mes en curso del negocio: no todo lo que agrupa /overview por mes se
+        # fecha con el evento (una liquidación se fecha al crearse).
+        body["current_month"] = datetime.now(tz).strftime("%Y-%m")
+        return body
 
     def publish(self, who: str, venue_id: int, event_id: int) -> dict:
         res = self.post(f"/venues/{venue_id}/events/{event_id}/publish", who)
@@ -429,6 +443,12 @@ class Api:
             "event": event["id"],
             "type": ttype["id"],
             "allocation": alloc,
+            # Mes del evento en la zona del negocio: los tests que agrupan por
+            # mes (/overview, /promoters) deben pedirlo, no asumir el actual.
+            "month": event["month"],
+            # Mes en curso del negocio: para lo que se fecha al crearse (una
+            # liquidación), no con el evento.
+            "current_month": event["current_month"],
         }
 
     # ------------------------------------------------------------------

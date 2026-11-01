@@ -23,7 +23,7 @@ def test_overview_counts_live_tickets_only(api, db):
     )
     assert res.status_code == 200, res.text
 
-    res = api.get(f"/venues/{venue}/overview", "admin")
+    res = api.get(f"/venues/{venue}/overview?month={s['month']}", "admin")
     assert res.status_code == 200, res.text
     body = res.json()
     # El evento del scenario es de este mes (starts_at +29h).
@@ -52,7 +52,7 @@ def test_overview_commissions_null_without_payouts(api):
     inventarse: null significa "no aplica", 0 significaría "la comisión fue 0".
     """
     s = api.scenario()
-    res = api.get(f"/venues/{s['venue']}/overview", "admin")
+    res = api.get(f"/venues/{s['venue']}/overview?month={s['month']}", "admin")
     assert res.status_code == 200, res.text
     body = res.json()
     assert "commissions_cents" in body
@@ -84,7 +84,7 @@ def test_overview_commissions_sum_of_month_payouts(api):
     assert res.status_code in (200, 201), res.text
     commission = res.json()["commission_cents"]
 
-    body = api.get(f"/venues/{venue}/overview", "admin").json()
+    body = api.get(f"/venues/{venue}/overview?month={s['current_month']}", "admin").json()
     assert body["commissions_cents"] == commission
 
 
@@ -99,7 +99,7 @@ def test_overview_invalid_month(api):
 def test_overview_sales_curve_has_all_buckets_in_order(api):
     """La curva viaja con los 5 tramos SIEMPRE, aunque no haya venta."""
     s = api.scenario()
-    body = api.get(f"/venues/{s['venue']}/overview", "admin").json()
+    body = api.get(f"/venues/{s['venue']}/overview?month={s['month']}", "admin").json()
     assert [b["bucket"] for b in body["sales_curve"]] == [
         "30+", "15-29", "8-14", "2-7", "0-1",
     ]
@@ -142,7 +142,7 @@ def test_overview_sales_curve_buckets_by_anticipation(api):
         f"WHERE id = {t_door['ticket_id']}"
     )
 
-    body = api.get(f"/venues/{venue}/overview", "admin").json()
+    body = api.get(f"/venues/{venue}/overview?month={s['month']}", "admin").json()
     by_bucket = {b["bucket"]: b["tickets"] for b in body["sales_curve"]}
     assert by_bucket["15-29"] == 1
     assert by_bucket["2-7"] == 1
@@ -163,7 +163,7 @@ def test_overview_sales_curve_door_sale_counts_as_0_1(api):
         f"UPDATE tickets SET issued_at = (SELECT starts_at FROM events WHERE id={event}) + interval '2 hours' "
         f"WHERE id = {t['ticket_id']}"
     )
-    body = api.get(f"/venues/{venue}/overview", "admin").json()
+    body = api.get(f"/venues/{venue}/overview?month={s['month']}", "admin").json()
     by_bucket = {b["bucket"]: b["tickets"] for b in body["sales_curve"]}
     assert by_bucket["0-1"] == 1
     assert sum(by_bucket.values()) == 1
@@ -214,7 +214,7 @@ def test_overview_retention_identifies_returning_buyer(api):
     _emit_phone(api, venue, event, s["type"], s["allocation"]["id"], "3001234567")
     _emit_phone(api, venue, event, s["type"], s["allocation"]["id"], "3009998888")
 
-    body = api.get(f"/venues/{venue}/overview", "admin").json()
+    body = api.get(f"/venues/{venue}/overview?month={s['month']}", "admin").json()
     assert body["retention_buyers"] == 2
     assert body["retention_returning"] == 1
 
@@ -227,7 +227,7 @@ def test_overview_retention_ignores_buyers_without_phone(api):
     # por otras vías) se siembra directo en DB.
     t = api.emit("promoter", venue, event, ticket_type_id=s["type"], allocation_id=s["allocation"]["id"])
     api.run_sql(f"UPDATE tickets SET customer_phone = NULL WHERE id = {t['ticket_id']}")
-    body = api.get(f"/venues/{venue}/overview", "admin").json()
+    body = api.get(f"/venues/{venue}/overview?month={s['month']}", "admin").json()
     assert body["retention_buyers"] == 0
     assert body["retention_returning"] == 0
 
@@ -241,7 +241,7 @@ def test_overview_csv_includes_sales_curve(api):
         f"UPDATE tickets SET issued_at = (SELECT starts_at FROM events WHERE id={event}) - interval '20 days' "
         f"WHERE id = {t['ticket_id']}"
     )
-    res = api.get(f"/venues/{venue}/overview.csv", "admin")
+    res = api.get(f"/venues/{venue}/overview.csv?month={s['month']}", "admin")
     assert res.status_code == 200, res.text
     text = res.content.decode("utf-8-sig")
     assert "Ritmo de venta" in text

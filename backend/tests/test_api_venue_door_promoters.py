@@ -205,7 +205,7 @@ def test_venue_promoters_advance_against_capacity(api):
             allocation_id=alloc["id"], customer_name=f"Asistente {i}",
         )
 
-    res = api.get(f"/venues/{venue}/promoters", "admin")
+    res = api.get(f"/venues/{venue}/promoters?month={ev['month']}", "admin")
     assert res.status_code == 200, res.text
     p = res.json()["promoters"]
     fila = next(x for x in p if x["promoter_id"] == promoter)
@@ -240,7 +240,7 @@ def test_venue_promoters_archived_allocation_loses_capacity_but_keeps_tickets(ap
         allocation_id=alloc["id"],
     )
     # Con el cupo vigente, el avance es 1/10 = 10%.
-    p = api.get(f"/venues/{venue}/promoters", "admin").json()["promoters"]
+    p = api.get(f"/venues/{venue}/promoters?month={ev['month']}", "admin").json()["promoters"]
     fila = next(x for x in p if x["promoter_id"] == promoter)
     assert fila["capacity"] == 10 and fila["issued"] == 1
     assert fila["advance_pct"] == 10.0
@@ -249,7 +249,7 @@ def test_venue_promoters_archived_allocation_loses_capacity_but_keeps_tickets(ap
     res = api.delete(f"/venues/{venue}/events/{ev['id']}/allocations/{alloc['id']}", "admin")
     assert res.status_code == 200, res.text
 
-    p = api.get(f"/venues/{venue}/promoters", "admin").json()["promoters"]
+    p = api.get(f"/venues/{venue}/promoters?month={ev['month']}", "admin").json()["promoters"]
     fila = next(x for x in p if x["promoter_id"] == promoter)
     assert fila["issued"] == 1
     assert fila["capacity"] == 0
