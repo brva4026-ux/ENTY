@@ -30,6 +30,10 @@ export default function RegisterPage() {
   });
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
+  // Que campo falta: enlaza el aviso con el input (aria-describedby) y se
+  // limpia al escribir. El form lleva noValidate para que el aviso salga en
+  // espanol y no con el "Please fill out this field." del navegador.
+  const [errorField, setErrorField] = useState(null);
   const [busy, setBusy] = useState(false);
   // Aceptación de los términos (mig 028). El checkbox NO viene marcado por
   // defecto: un consentimiento premarcado no es un consentimiento.
@@ -68,6 +72,18 @@ export default function RegisterPage() {
 
   async function submit(e) {
     e.preventDefault();
+    const faltante = [
+      ["venue_name", form.venue_name, "Escribe el nombre de tu negocio."],
+      ["full_name", form.full_name, "Escribe tu nombre completo."],
+      ["email", form.email, "Escribe tu correo."],
+      ["password", form.password, "Escribe una contraseña."],
+    ].find(([, v]) => !String(v).trim());
+    if (faltante) {
+      setErrorField(faltante[0]);
+      setError(faltante[2]);
+      return;
+    }
+    setErrorField(null);
     if (issues.length > 0) {
       setError(`A la contraseña le falta: ${issues.join(", ")}.`);
       return;
@@ -125,18 +141,26 @@ export default function RegisterPage() {
             Crea el panel de tu negocio en un minuto. Serás su administrador.
           </p>
 
-          <form onSubmit={submit}>
+          <form onSubmit={submit} noValidate>
             <label htmlFor="reg-venue-name" className="mb-1.5 block text-xs font-medium text-zinc-400">
               Nombre de tu negocio
             </label>
             <input
               id="reg-venue-name"
               value={form.venue_name}
-              onChange={(e) => set("venue_name", e.target.value)}
+              onChange={(e) => {
+                set("venue_name", e.target.value);
+                if (errorField === "venue_name") {
+                  setErrorField(null);
+                  setError("");
+                }
+              }}
               placeholder="Bar La Esquina"
               className="field mb-4"
               maxLength={120}
               required
+                aria-invalid={errorField === "venue_name" ? "true" : undefined}
+                aria-describedby={errorField === "venue_name" ? "register-error" : undefined}
             />
 
             <label htmlFor="reg-full-name" className="mb-1.5 block text-xs font-medium text-zinc-400">
@@ -145,11 +169,19 @@ export default function RegisterPage() {
             <input
               id="reg-full-name"
               value={form.full_name}
-              onChange={(e) => set("full_name", e.target.value)}
+              onChange={(e) => {
+                set("full_name", e.target.value);
+                if (errorField === "full_name") {
+                  setErrorField(null);
+                  setError("");
+                }
+              }}
               placeholder="Ana Gómez"
               className="field mb-4"
               maxLength={120}
               required
+                aria-invalid={errorField === "full_name" ? "true" : undefined}
+                aria-describedby={errorField === "full_name" ? "register-error" : undefined}
             />
 
             <label htmlFor="reg-email" className="mb-1.5 block text-xs font-medium text-zinc-400">
@@ -161,11 +193,19 @@ export default function RegisterPage() {
               id="reg-email"
                 type="email"
                 value={form.email}
-                onChange={(e) => set("email", e.target.value)}
+                onChange={(e) => {
+                  set("email", e.target.value);
+                  if (errorField === "email") {
+                    setErrorField(null);
+                    setError("");
+                  }
+                }}
                 placeholder="tu@negocio.com"
                 className="field auth-field-has-icon"
                 autoComplete="email"
                 required
+                aria-invalid={errorField === "email" ? "true" : undefined}
+                aria-describedby={errorField === "email" ? "register-error" : undefined}
               />
             </div>
 
@@ -178,11 +218,19 @@ export default function RegisterPage() {
               id="reg-password"
                 type={showPass ? "text" : "password"}
                 value={form.password}
-                onChange={(e) => set("password", e.target.value)}
+                onChange={(e) => {
+                  set("password", e.target.value);
+                  if (errorField === "password") {
+                    setErrorField(null);
+                    setError("");
+                  }
+                }}
                 placeholder="Mínimo 8 caracteres"
                 className="field mb-0 !pr-12 auth-field-has-icon"
                 autoComplete="new-password"
                 required
+                aria-invalid={errorField === "password" ? "true" : undefined}
+                aria-describedby={errorField === "password" ? "register-error" : undefined}
               />
               <button
                 type="button"
@@ -274,6 +322,7 @@ export default function RegisterPage() {
 
             {error && (
               <div
+                id="register-error"
                 role="alert"
                 className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm leading-relaxed text-red-300"
               >

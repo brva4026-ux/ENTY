@@ -34,6 +34,9 @@ export default function MyTicketsPage() {
   const [contact, setContact] = useState("");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  // Solo el error de validacion del campo (no los fallos de red) marca el input
+  // como invalido: "No pudimos abrir tus boletas" no es culpa del valor escrito.
+  const [contactInvalid, setContactInvalid] = useState(false);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   // Credencial vigente: el enlace firmado del correo o el token de una boleta.
@@ -85,9 +88,11 @@ export default function MyTicketsPage() {
   async function requestLink() {
     const q = contact.trim();
     if (q.length < 5) {
+      setContactInvalid(true);
       setError("Escribe el correo o teléfono con que compraste.");
       return;
     }
+    setContactInvalid(false);
     setBusy(true);
     setError("");
     setNotice("");
@@ -179,8 +184,14 @@ export default function MyTicketsPage() {
           autoComplete="email"
           placeholder="tucorreo@ejemplo.com o 300 123 4567"
           value={contact}
-          onChange={(e) => setContact(e.target.value)}
+          onChange={(e) => {
+            setContact(e.target.value);
+            if (contactInvalid) setContactInvalid(false);
+            if (error) setError("");
+          }}
           aria-label="Correo o teléfono"
+          aria-invalid={contactInvalid ? "true" : undefined}
+          aria-describedby={error ? "fan-lookup-error" : undefined}
         />
         <button type="submit" disabled={busy}>
           {busy ? "Enviando…" : "Enviar enlace"}
@@ -188,7 +199,7 @@ export default function MyTicketsPage() {
       </form>
 
       {error ? (
-        <div className="home-empty" role="alert">
+        <div className="home-empty" role="alert" id="fan-lookup-error">
           <p>No pudimos continuar</p>
           <span>{error}</span>
         </div>

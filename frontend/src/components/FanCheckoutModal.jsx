@@ -32,6 +32,9 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Que campo provoco el aviso: el mensaje se enlaza a ESE campo con
+  // aria-describedby y se limpia en cuanto el fan lo corrige.
+  const [errorField, setErrorField] = useState(null);
 
   // Modo "en curso": venimos de vuelta de Wompi con una referencia. Se sondea
   // el estado hasta que el webhook resuelva (aprobado/rechazado). El primer
@@ -84,21 +87,44 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
 
   const selected = types.find((t) => t.id === typeId) || null;
 
+  // Marca un campo como culpable del aviso. `field` alimenta aria-describedby.
+  function fail(field, message) {
+    setErrorField(field);
+    setError(message);
+  }
+
+  // Corregir un campo destraba el aviso: sin esto el error se quedaba pegado
+  // aunque el fan ya hubiera escrito lo que faltaba.
+  function clearErrorOn(field) {
+    if (errorField === field) {
+      setErrorField(null);
+      setError("");
+    }
+  }
+
   async function submit(e) {
     e.preventDefault();
     if (!typeId || busy) return;
     // El aviso nombra solo lo que falta: decir "nombre y telefono" cuando el
     // fallo es uno solo manda al usuario a revisar un campo que ya estaba bien.
     if (name.trim().length < 1) {
-      setError("Escribe tu nombre: va impreso en la boleta.");
+      fail("name", "Escribe tu nombre: va impreso en la boleta.");
       return;
     }
     if (phone.trim().length < 5) {
-      setError("Escribe tu teléfono de WhatsApp (al menos 5 dígitos).");
+      fail("phone", "Escribe tu teléfono de WhatsApp (al menos 5 dígitos).");
+      return;
+    }
+    // El form lleva noValidate para que el aviso salga en español, no en inglés
+    // como el nativo. Eso deja el correo sin validar: se comprueba aquí.
+    const emailTrim = email.trim();
+    if (emailTrim && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
+      fail("email", "Ese correo no parece válido. Revísalo o déjalo vacío.");
       return;
     }
     setBusy(true);
     setError("");
+    setErrorField(null);
     try {
       const res = await startPublicCheckout(event.id, {
         ticket_type_id: typeId,
@@ -245,10 +271,17 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
               <input
                 className="field"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearErrorOn("name");
+                }}
                 maxLength={200}
                 autoComplete="name"
                 required
+                aria-invalid={errorField === "name" ? "true" : undefined}
+                aria-describedby={
+                  errorField === "name" ? "checkout-error" : undefined
+                }
               />
             </label>
 
@@ -259,11 +292,19 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
               <input
                 className="field"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  clearErrorOn("phone");
+                }}
                 maxLength={30}
                 autoComplete="tel"
                 placeholder="300 123 4567"
+                inputMode="tel"
                 required
+                aria-invalid={errorField === "phone" ? "true" : undefined}
+                aria-describedby={
+                  errorField === "phone" ? "checkout-error" : undefined
+                }
               />
             </label>
 
@@ -275,9 +316,17 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
                 className="field"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  clearErrorOn("email");
+                }}
                 maxLength={200}
                 autoComplete="email"
+                inputMode="email"
+                aria-invalid={errorField === "email" ? "true" : undefined}
+                aria-describedby={
+                  errorField === "email" ? "checkout-error" : undefined
+                }
               />
             </label>
 
@@ -287,7 +336,11 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
             </p>
 
             {error && (
-              <p className="text-xs text-rose-300" role="alert">
+              <p
+                id="checkout-error"
+                className="text-xs text-rose-300"
+                role="alert"
+              >
                 {error}
               </p>
             )}

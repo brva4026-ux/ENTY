@@ -101,6 +101,20 @@ export default function LoginPage() {
 
   async function submit(e) {
     e.preventDefault();
+    // El form lleva noValidate: sin el, el navegador corta el envio con
+    // "Please fill out this field." en ingles antes de que corra este codigo.
+    if (!email.trim()) {
+      setError("Escribe tu correo.");
+      setErrorTick((n) => n + 1);
+      emailRef.current?.focus();
+      return;
+    }
+    if (!password) {
+      setError("Escribe tu contraseña.");
+      setErrorTick((n) => n + 1);
+      passRef.current?.focus();
+      return;
+    }
     setError("");
     setBusy(true);
     try {
@@ -164,7 +178,7 @@ export default function LoginPage() {
             Entra con tu correo de trabajo para manejar la venta y la puerta.
           </p>
 
-          <form onSubmit={submit}>
+          <form onSubmit={submit} noValidate>
             <label
               htmlFor="login-email"
               className="mb-1.5 block text-xs font-medium text-zinc-400"

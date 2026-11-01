@@ -41,6 +41,9 @@ export default function WaitlistPage() {
   const [token, setToken] = useState(readToken);
   const [state, setState] = useState(null);
   const [error, setError] = useState("");
+  // Que campo provoco el aviso: se enlaza con aria-describedby y se limpia al
+  // corregirlo (mismo patron que el checkout del fan).
+  const [errorField, setErrorField] = useState(null);
   const [loading, setLoading] = useState(false);
   const [joining, setJoining] = useState(false);
   const [name, setName] = useState("");
@@ -97,10 +100,31 @@ export default function WaitlistPage() {
 
   async function doJoin(e) {
     e.preventDefault();
+    // El form lleva noValidate para que el aviso salga en español: sin el, el
+    // navegador corta el envio con "Please fill out this field." en ingles.
+    // Por eso los required/minLength se comprueban aqui.
+    const nombre = name.trim();
+    const celular = phone.trim();
+    if (nombre.length < 2) {
+      setErrorField("name");
+      setError("Escribe tu nombre (al menos 2 letras).");
+      return;
+    }
+    if (celular.length < 5) {
+      setErrorField("phone");
+      setError("Escribe tu celular: con el guardamos tu lugar.");
+      return;
+    }
+    if (!String(eventId).trim()) {
+      setErrorField("event");
+      setError("Falta el evento: pega el enlace o escribe su numero.");
+      return;
+    }
+    setErrorField(null);
     setJoining(true);
     setError("");
     try {
-      const d = await waitlistJoin(Number(eventId), name, phone);
+      const d = await waitlistJoin(Number(eventId), nombre, celular);
       if (d.token) {
         localStorage.setItem(STORE_KEY, d.token);
         setToken(d.token);
@@ -170,13 +194,17 @@ export default function WaitlistPage() {
               </div>
             </div>
 
-            {error && (
-              <div className="mb-3 rounded-xl bg-red-500/10 p-3 text-center text-xs font-medium text-red-300 ring-1 ring-red-500/30">
-                {error}
-              </div>
-            )}
+              {error && (
+                <div
+                  id="waitlist-error"
+                  role="alert"
+                  className="mb-3 rounded-xl bg-red-500/10 p-3 text-center text-xs font-medium text-red-300 ring-1 ring-red-500/30"
+                >
+                  {error}
+                </div>
+              )}
 
-            <form onSubmit={doJoin} className="space-y-3">
+              <form onSubmit={doJoin} noValidate className="space-y-3">
               <div>
                 <label htmlFor="wl-name" className="mb-1 block text-xs font-medium text-zinc-400">
                   Tu nombre
@@ -184,10 +212,20 @@ export default function WaitlistPage() {
                 <input
                   id="wl-name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (errorField === "name") {
+                      setErrorField(null);
+                      setError("");
+                    }
+                  }}
                   required
                   minLength={2}
-                  className="w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-600 focus:ring-brand-500"
+                  aria-invalid={errorField === "name" ? "true" : undefined}
+                  aria-describedby={
+                    errorField === "name" ? "waitlist-error" : undefined
+                  }
+                  className="w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink min-h-11 ring-1 ring-zinc-600 focus:ring-brand-500"
                   placeholder="Nombre y apellido"
                 />
               </div>
@@ -198,10 +236,20 @@ export default function WaitlistPage() {
                 <input
                   id="wl-phone"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (errorField === "phone") {
+                      setErrorField(null);
+                      setError("");
+                    }
+                  }}
                   required
                   inputMode="tel"
-                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-600 focus:ring-brand-500"
+                  aria-invalid={errorField === "phone" ? "true" : undefined}
+                  aria-describedby={
+                    errorField === "phone" ? "waitlist-error" : undefined
+                  }
+                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink min-h-11 ring-1 ring-zinc-600 focus:ring-brand-500"
                   placeholder="300 000 0000"
                 />
               </div>
@@ -215,6 +263,10 @@ export default function WaitlistPage() {
                   onChange={(e) => {
                     const raw = e.target.value;
                     setEventId(raw);
+                    if (errorField === "event") {
+                      setErrorField(null);
+                      setError("");
+                    }
                     // Auto-detectar el id desde un enlace pegado
                     // (<origin>/waitlist#<id>): evita el error clasico de
                     // que la persona pegue el enlace completo y el join
@@ -224,7 +276,11 @@ export default function WaitlistPage() {
                   }}
                   required
                   inputMode="numeric"
-                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink ring-1 ring-zinc-600 focus:ring-brand-500"
+                  aria-invalid={errorField === "event" ? "true" : undefined}
+                  aria-describedby={
+                    errorField === "event" ? "waitlist-error" : undefined
+                  }
+                  className="tnum w-full rounded-xl bg-zinc-900 px-3 py-2.5 text-sm text-ink min-h-11 ring-1 ring-zinc-600 focus:ring-brand-500"
                   placeholder="Link del evento o su número"
                 />
                 <p className="mt-1 text-2xs text-zinc-500">
