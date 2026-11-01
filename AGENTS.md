@@ -530,6 +530,18 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado
   visible y de un solo color** en ambos temas. Corre con `E2E_BASE_URL=http://127.0.0.1:12000
   npx playwright test e2e/a11y.spec.js`.
+  **Punto ciego del contraste: el texto sobre una FOTO.** El audit camina los
+  fondos de los ancestros, y el flyer del destacado no es un fondo CSS sino un
+  `<img>` absoluto: para el audit el fondo del titular es el hero (negro de
+  marca), así que aprobaba un texto que en la vida real queda encima de una foto.
+  Con un flyer claro el eyebrow caía a **1.7:1** (AA pide 4.5:1) y nadie lo veía
+  porque el seed demo **no trae flyers**. El spec `el texto del destacado es
+  legible sobre un flyer claro` cierra el agujero: inyecta un flyer claro (peor
+  caso), oculta el texto y **muestrea el píxel real** detrás de cada texto con el
+  scrim aplicado. Si el scrim deja de cubrir la zona del titular, falla. El scrim
+  de `.home-feature::after` arranca transparente en 0-15% (la foto se ve entera
+  arriba) y baja a 0.55 en 30% y 0.85 en 60%: por eso el texto vive legible sin
+  comerse el flyer. No lo "simplifiques" a un degradado que empiece más abajo.
   **Trampa del area tactil con `inset` (auditoria oct-2026).** El parche
   `::after { inset: -Npx }` se calcula sobre el *padding box*, no sobre la caja
   visible. Si el control tiene borde y `box-sizing: border-box`, el borde no
@@ -816,6 +828,25 @@ avisar.
   debilitaría el guardarraíl. Se apaga con `prefers-reduced-motion` Y con
   `html[data-motion="reduce"]` (el reset global solo anula la duración; con
   `both` + delay el bloque igual parpadearía).
+  **`/inicio` envuelve su contenido en `<main className="home-main">`** (axe:
+  `landmark-one-main` + `region`; sin landmark un lector no puede saltar al
+  contenido). El `<main>` es solo semántica, no un bloque visual: la cascada
+  escala ahora a `.home-main > :nth-child(n)` (con `.home-main` excluido del
+  selector de animación, porque no debe animarse como bloque) y `.home > .home-foot`
+  recupera su turno explícito, que antes le daba el índice de hermano. El
+  `position/z-index: 1` de los bloques se extendió a `.home-main > *`. Si movés
+  bloques dentro o fuera del `<main>`, revisá esas dos listas de delays.
+  **La `region` de axe NO se cierra con `<main>` si algo queda fuera**: el spec
+  `/inicio tiene un único landmark principal con el contenido` exige 1 solo
+  landmark, con el h1 y la cartelera dentro y cero contenido suelto.
+  **Antes de "arreglar" un objetivo táctil, medilo en un perfil de teléfono
+  real.** Un contexto de Playwright de 390px sin `hasTouch`/`isMobile` reporta
+  `pointer: fine`, así que las reglas de 44px bajo `@media (pointer: coarse)` no
+  aplican y parece que el wordmark (20px) o los enlaces del pie fallan. En un
+  `devices["Pixel 7"]` (coarse real) el wordmark mide 52x44, el pie 76x44 y el
+  botón de campana 44x44: **no hay bug**. Además axe `target-size` (WCAG 2.2 SC
+  2.5.8, el umbral AA real es 24x24, no 44) **pasa**. Los 44px se reservan a
+  puntero grueso a propósito: en escritorio esos enlaces son densos por diseño.
 - **Grillas con datos del usuario**: todo item de `.evd-grid` lleva
   `min-width: 0` + `overflow-wrap: anywhere`. Sin eso, un valor sin espacios
   (una sede o localidad con un token largo) ensancha su pista y empuja las

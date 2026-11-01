@@ -598,3 +598,162 @@ test("el texto de la home no baja de 14px (legibilidad 45-58)", async ({ browser
   if (chicos.length) console.log("Texto bajo 14px en la home:", JSON.stringify(chicos, null, 2));
   expect(chicos, "texto de la home por debajo del piso de 14px").toEqual([]);
 });
+
+/**
+ * Guardarraíl del hero de la vitrina (/inicio): el texto del destacado tiene
+ * que seguir siendo legible CUANDO HAY FLYER.
+ *
+ * Por qué existe este spec aparte: el audit de contraste de arriba camina los
+ * fondos de los ANCESTROS. El flyer del destacado no es un fondo CSS: es un
+ * <img> posicionado absoluto dentro del hero. Para el audit, el ancestro opaco
+ * del texto es el hero (negro de marca), así que daba por bueno un titular que
+ * en la vida real queda encima de una foto. Con un flyer claro el eyebrow caía
+ * a 1.7:1 (AA pide 4.5:1) y nadie lo veía porque el seed demo NO trae flyers.
+ *
+ * Este spec no adivina: pinta el hero con un flyer claro (peor caso), oculta el
+ * texto, y muestrea el PÍXEL real que hay detrás de cada texto con el scrim
+ * aplicado. Si el scrim deja de cubrir la zona del titular, esto falla.
+ */
+test("el texto del destacado es legible sobre un flyer claro", async ({ browser }) => {
+  const ok = await available(await browser.newPage(), "/inicio");
+  test.skip(!ok, "App no disponible");
+
+  // Flyer CLARO: el peor caso realista para texto blanco sobre foto.
+  const LIGHT_FLYER =
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><rect width="1200" height="800" fill="#f2f0ea"/></svg>',
+    );
+
+  for (const [name, viewport] of [
+    ["móvil", { width: 390, height: 844 }],
+    ["escritorio", { width: 1440, height: 900 }],
+  ]) {
+    const ctx = await browser.newContext({ viewport });
+    const page = await ctx.newPage();
+    await page.route("**/api/public/events**", async (route) => {
+      const res = await route.fetch();
+      const body = await res.json();
+      for (const ev of body.events || []) ev.flyer_url = LIGHT_FLYER;
+      await route.fulfill({ response: res, json: body });
+    });
+    await page.goto("/inicio");
+    await page.waitForTimeout(1200);
+    await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+    await page.waitForTimeout(400);
+
+    const hero = page.locator(".home-feature");
+    if ((await hero.count()) === 0) {
+      await ctx.close();
+      test.skip(true, "sin destacado en el catálogo");
+      return;
+    }
+
+    // Punto de muestreo por texto, ANTES de ocultarlo.
+    const targets = await page.evaluate(() => {
+      const out = {};
+      for (const sel of [".home-eyebrow", ".home-feature-top h1, .home-feature-top h2", ".home-feature-meta"]) {
+        const el = document.querySelector(sel);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        out[sel] = {
+          x: Math.round(r.left + r.width / 2),
+          y: Math.round(r.top + r.height * 0.4),
+          color: cs.color,
+          size: parseFloat(cs.fontSize),
+          weight: parseInt(cs.fontWeight, 10) || 400,
+        };
+      }
+      return out;
+    });
+
+    // Ocultar el texto para leer el fondo puro (scrim + flyer) sin letras.
+    await page.addStyleTag({ content: ".home-feature-body{visibility:hidden !important;}" });
+    await page.waitForTimeout(150);
+
+    const fails = [];
+    for (const [sel, t] of Object.entries(targets)) {
+      const shot = await page.screenshot({ clip: { x: t.x, y: t.y, width: 1, height: 1 } });
+      const { bg, ratio } = await page.evaluate(
+        async ({ dataUrl, color }) => {
+          const parse = (c) => {
+            const m = c.match(/rgba?\(([^)]+)\)/);
+            const p = m[1].split(",").map(parseFloat);
+            return { r: p[0], g: p[1], b: p[2], a: p[3] === undefined ? 1 : p[3] };
+          };
+          const lum = ({ r, g, b }) => {
+            const f = (v) => {
+              v /= 255;
+              return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            };
+            return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+          };
+          const img = new Image();
+          img.src = dataUrl;
+          await img.decode();
+          const cv = document.createElement("canvas");
+          cv.width = 1;
+          cv.height = 1;
+          const cx = cv.getContext("2d");
+          cx.drawImage(img, 0, 0);
+          const d = cx.getImageData(0, 0, 1, 1).data;
+          const bg = { r: d[0], g: d[1], b: d[2] };
+          const fg = parse(color);
+          const la = lum(fg);
+          const lb = lum(bg);
+          const ratio = (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+          return { bg, ratio };
+        },
+        { dataUrl: `data:image/png;base64,${shot.toString("base64")}`, color: t.color },
+      );
+      const large = t.size >= 24 || (t.size >= 18.66 && t.weight >= 700);
+      const need = large ? 3 : 4.5;
+      if (ratio < need) {
+        fails.push({
+          viewport: name,
+          sel,
+          ratio: +ratio.toFixed(2),
+          need,
+          fondo: `rgb(${bg.r},${bg.g},${bg.b})`,
+        });
+      }
+    }
+    await ctx.close();
+
+    if (fails.length) console.log("Hero ilegible sobre flyer claro:", JSON.stringify(fails, null, 2));
+    expect(fails, "texto del destacado por debajo de AA sobre un flyer claro").toEqual([]);
+  }
+});
+
+/**
+ * El <main> de la vitrina: /inicio debe tener UN landmark principal que
+ * contenga el contenido (axe: landmark-one-main + region). Sin él, un lector
+ * de pantalla no puede saltar al contenido ni ubicarse en la página.
+ */
+test("/inicio tiene un único landmark principal con el contenido", async ({ browser }) => {
+  const ok = await available(await browser.newPage(), "/inicio");
+  test.skip(!ok, "App no disponible");
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  await page.goto("/inicio");
+  await page.waitForTimeout(800);
+  await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+  await page.waitForTimeout(400);
+  const r = await page.evaluate(() => {
+    const mains = [...document.querySelectorAll("main, [role=main]")];
+    const first = mains[0];
+    return {
+      count: mains.length,
+      tieneH1: !!first?.querySelector("h1"),
+      tieneLista: !!first?.querySelector(".home-list, .home-grid, .home-empty"),
+      // el contenido no puede quedar fuera del landmark
+      sueltos: [...document.querySelectorAll(".home > .home-search, .home > .home-cats, .home > .home-ticker")].length,
+    };
+  });
+  await ctx.close();
+  expect(r.count, "landmarks principales en /inicio").toBe(1);
+  expect(r.tieneH1, "el h1 debe vivir dentro del landmark principal").toBe(true);
+  expect(r.tieneLista, "la cartelera debe vivir dentro del landmark principal").toBe(true);
+  expect(r.sueltos, "contenido fuera del landmark principal").toBe(0);
+});

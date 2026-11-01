@@ -1132,7 +1132,8 @@ html[data-theme="light"] .bizdock-count {
       transparent 60%
     );
 }
-.home > * {
+.home > *,
+.home-main > * {
   position: relative;
   z-index: 1;
 }
@@ -1207,7 +1208,14 @@ html[data-theme="light"] .bizdock-count {
   box-shadow: var(--e-elev-card);
 }
 /* El flyer se funde con el negro por abajo: transicion imperceptible entre la
-   foto del artista y la interfaz (nunca un corte duro). */
+   foto del artista y la interfaz (nunca un corte duro).
+
+   El scrim arranca mas arriba de lo que parece necesario a proposito: el
+   eyebrow y el titulo viven en el tercio superior, y con el degradado viejo
+   (opaco recien desde el 34%) quedaban sobre el flyer crudo. Medido con un
+   flyer claro, el eyebrow daba 1.7:1 (AA pide 4.5:1) y el meta 4.4:1. El
+   tramo 0-15% sigue transparente para que la foto se vea entera arriba; de
+   ahi baja rapido para que el texto tenga fondo propio. */
 .home-feature::after {
   content: "";
   position: absolute;
@@ -1215,8 +1223,10 @@ html[data-theme="light"] .bizdock-count {
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(11, 11, 15, 0) 34%,
-    rgba(11, 11, 15, 0.72) 78%,
+    rgba(11, 11, 15, 0) 0%,
+    rgba(11, 11, 15, 0) 15%,
+    rgba(11, 11, 15, 0.55) 30%,
+    rgba(11, 11, 15, 0.85) 60%,
     var(--e-ink-1) 100%
   );
 }
@@ -2604,7 +2614,8 @@ html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
 /* Los fijos quedan fuera: un `transform` en un ancestro los ancla a él y
    dejan de flotar sobre el scroll (el dock de la cartelera, el aviso de
    enlace copiado, el modal de compra del detalle). */
-.home > :not(.home-nav, .sr-only),
+.home > :not(.home-nav, .sr-only, .home-main),
+.home-main > *,
 .evd > :not(.dialog-backdrop, .evd-copied),
 .door-shell > * {
   animation: screen-rise 0.42s var(--e-ease-expo) both;
@@ -2651,8 +2662,39 @@ html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
   animation-delay: 0.245s;
 }
 
+/* El <main> es un landmark de a11y, no un bloque visual: la cascada escalona
+   sus hijos para conservar la entrada bloque a bloque que tenían cuando eran
+   hijos directos de .home. */
+.home-main > :nth-child(1) {
+  animation-delay: 0.035s;
+}
+.home-main > :nth-child(2) {
+  animation-delay: 0.07s;
+}
+.home-main > :nth-child(3) {
+  animation-delay: 0.105s;
+}
+.home-main > :nth-child(4) {
+  animation-delay: 0.14s;
+}
+.home-main > :nth-child(5) {
+  animation-delay: 0.175s;
+}
+.home-main > :nth-child(6) {
+  animation-delay: 0.21s;
+}
+.home-main > :nth-child(n + 7) {
+  animation-delay: 0.245s;
+}
+/* El pie cerraba la cascada cuando era el 8.o hijo de .home; con el <main> en
+   medio paso a ser el 3.o, asi que recupera su turno explicito. */
+.home > .home-foot {
+  animation-delay: 0.245s;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .home > :not(.home-nav, .sr-only),
+  .home > :not(.home-nav, .sr-only, .home-main),
+  .home-main > *,
   .evd > :not(.dialog-backdrop, .evd-copied),
   .door-shell > * {
     animation: none;
@@ -2662,7 +2704,8 @@ html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
    index.css solo anula la DURACIÓN (0.001ms); con `both` + delay el bloque
    igual parpadearía invisible esos 50-400ms, así que acá se quita la
    animación entera. */
-html[data-motion="reduce"] .home > :not(.home-nav, .sr-only),
+html[data-motion="reduce"] .home > :not(.home-nav, .sr-only, .home-main),
+html[data-motion="reduce"] .home-main > *,
 html[data-motion="reduce"] .evd > :not(.dialog-backdrop, .evd-copied),
 html[data-motion="reduce"] .door-shell > * {
   animation: none;

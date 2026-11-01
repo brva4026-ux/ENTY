@@ -516,245 +516,247 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="home-search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7" />
-          <path d="M20 20l-3.5-3.5" />
-        </svg>
-        <input
-          type="search"
-          value={query}
-          onChange={(ev) => setQuery(ev.target.value)}
-          placeholder="Busca conciertos, eventos, artistas…"
-          aria-label="Buscar eventos"
-        />
-      </div>
+      <main className="home-main">
+        <div className="home-search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3.5-3.5" />
+          </svg>
+          <input
+            type="search"
+            value={query}
+            onChange={(ev) => setQuery(ev.target.value)}
+            placeholder="Busca conciertos, eventos, artistas…"
+            aria-label="Buscar eventos"
+          />
+        </div>
 
-      <div role="group" aria-label="Categorías" className="home-cats">
-        {CATEGORY_CHIPS.map((c) => (
-          <button
-            key={c.key}
-            aria-pressed={c.key === cat}
-            onClick={() => setCat(c.key)}
-            className={"relative" + (c.key === cat ? " is-on" : "")}
-          >
-            <span className="home-cat-dot">
-              {c.icon ? <CatIcon name={c.icon} /> : <Star size={16} color="currentColor" />}
-            </span>
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Filtros: fecha (ventana movil, recortada en cliente) y ciudad (la del
-          catalogo ya descargado). Van juntos y debajo de las categorias para
-          no empujar el hero fuera de pantalla en movil. */}
-      <div className="home-filters" role="group" aria-label="Filtros de la cartelera">
-        <div className="home-filter-dates">
-          {DATE_CHIPS.map((d) => (
+        <div role="group" aria-label="Categorías" className="home-cats">
+          {CATEGORY_CHIPS.map((c) => (
             <button
-              key={d.key}
-              type="button"
-              aria-pressed={range === d.key}
-              className={"home-chip transition-colors" + (range === d.key ? " is-on" : "")}
-              onClick={() => setRange(d.key)}
+              key={c.key}
+              aria-pressed={c.key === cat}
+              onClick={() => setCat(c.key)}
+              className={"relative" + (c.key === cat ? " is-on" : "")}
             >
-              {d.label}
+              <span className="home-cat-dot">
+                {c.icon ? <CatIcon name={c.icon} /> : <Star size={16} color="currentColor" />}
+              </span>
+              {c.label}
             </button>
           ))}
         </div>
-        {cities.length > 1 && (
-          <div className="home-filter-city">
-            <select
-              value={city}
-              onChange={(ev) => setCity(ev.target.value)}
-            aria-label="Filtrar por ciudad"
-            >
-              <option value="">Todas las ciudades</option>
-              {cities.map(([name]) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
+
+        {/* Filtros: fecha (ventana movil, recortada en cliente) y ciudad (la del
+            catalogo ya descargado). Van juntos y debajo de las categorias para
+            no empujar el hero fuera de pantalla en movil. */}
+        <div className="home-filters" role="group" aria-label="Filtros de la cartelera">
+          <div className="home-filter-dates">
+            {DATE_CHIPS.map((d) => (
+              <button
+                key={d.key}
+                type="button"
+                aria-pressed={range === d.key}
+                className={"home-chip transition-colors" + (range === d.key ? " is-on" : "")}
+                onClick={() => setRange(d.key)}
+              >
+                {d.label}
+              </button>
+            ))}
           </div>
-        )}
-      </div>
-
-      {/* Ticker cinético: la energía de la noche entre el troquel y la rejilla.
-          Decorativo (aria-hidden): repite la marca, no aporta datos. La lista
-          va duplicada para que el loop sea continuo (el keyframe mueve -50%). */}
-      <div className="home-ticker" aria-hidden="true">
-        <div className="home-ticker-track">
-          {TICKER.concat(TICKER).map((w, i) => (
-            <span key={`${w}-${i}`}>{w}</span>
-          ))}
+          {cities.length > 1 && (
+            <div className="home-filter-city">
+              <select
+                value={city}
+                onChange={(ev) => setCity(ev.target.value)}
+              aria-label="Filtrar por ciudad"
+              >
+                <option value="">Todas las ciudades</option>
+                {cities.map(([name]) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* h1 único de la vitrina, presente en TODOS los estados (cargando, error,
-          vacío y con cartelera). El destacado es el titular cuando existe, pero
-          sin eventos la página se quedaba sin encabezado: cualquier búsqueda sin
-          resultados dejaba el documento sin h1 (a11y.spec.js solo probaba la
-          vista con seed, donde siempre hay destacado). */}
-      <h1 className="sr-only">
-        {error
-          ? "Cartelera no disponible"
-          : narrowed
-            ? "Sin resultados en la cartelera"
-            : "Cartelera de eventos"}
-      </h1>
-
-      {error ? (
-        <div className="home-empty">
-          <span className="enty-spark" aria-hidden="true">
-            <Star size={20} color="#BB5CF6" />
-          </span>
-          <p>No pudimos cargar la cartelera</p>
-          <span>{error}</span>
-          <button
-            type="button"
-            className="btn-ghost mt-3"
-            onClick={() => setReload((n) => n + 1)}
-          >
-            Reintentar
-          </button>
-        </div>
-      ) : !data ? (
-        <div className="home-grid">
-          <div className="enty-skel" style={{ height: "16.4rem" }} />
-          <div className="home-list">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="enty-skel" style={{ height: "5.4rem" }} />
+        {/* Ticker cinético: la energía de la noche entre el troquel y la rejilla.
+            Decorativo (aria-hidden): repite la marca, no aporta datos. La lista
+            va duplicada para que el loop sea continuo (el keyframe mueve -50%). */}
+        <div className="home-ticker" aria-hidden="true">
+          <div className="home-ticker-track">
+            {TICKER.concat(TICKER).map((w, i) => (
+              <span key={`${w}-${i}`}>{w}</span>
             ))}
           </div>
         </div>
-      ) : !featured ? (
-        <div className="home-empty">
-          <span className="enty-spark" aria-hidden="true">
-            <Star size={20} color="#00E6AB" />
-          </span>
-          <p>{narrowed ? "Sin resultados" : "No hay eventos próximos"}</p>
-          <span>
-            {narrowed
-              ? "Prueba con otro nombre, categoría, fecha o ciudad."
-              : "Vuelve pronto: la cartelera se actualiza cada semana."}
-          </span>
-          {narrowed ? (
-            <button
-              type="button"
-              className="btn-ghost mt-3"
-              onClick={resetFilters}
-            >
-              Ver todos los eventos
-            </button>
-          ) : (
+
+        {/* h1 único de la vitrina, presente en TODOS los estados (cargando, error,
+            vacío y con cartelera). El destacado es el titular cuando existe, pero
+            sin eventos la página se quedaba sin encabezado: cualquier búsqueda sin
+            resultados dejaba el documento sin h1 (a11y.spec.js solo probaba la
+            vista con seed, donde siempre hay destacado). */}
+        <h1 className="sr-only">
+          {error
+            ? "Cartelera no disponible"
+            : narrowed
+              ? "Sin resultados en la cartelera"
+              : "Cartelera de eventos"}
+        </h1>
+
+        {error ? (
+          <div className="home-empty">
+            <span className="enty-spark" aria-hidden="true">
+              <Star size={20} color="#BB5CF6" />
+            </span>
+            <p>No pudimos cargar la cartelera</p>
+            <span>{error}</span>
             <button
               type="button"
               className="btn-ghost mt-3"
               onClick={() => setReload((n) => n + 1)}
             >
-              Actualizar cartelera
+              Reintentar
             </button>
-          )}
-        </div>
-      ) : (
-        <div className="home-grid">
-          <TransitionLink to={`/evento/${featured.id}`} className="home-feature">
-            {/* El flyer del destacado es el LCP de la vitrina: se pide ya y con
-                prioridad alta en vez de competir con el resto de la página. */}
-            {featured.flyer_url ? (
-              <img
-                className="home-feature-flyer transition-opacity duration-300"
-                src={featured.flyer_url}
-                alt=""
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-              />
-            ) : (
-              <>
-                <NeonStrokes />
-                <SoldRing pct={featured.sold_pct} />
-              </>
-            )}
-            <div className="home-feature-body">
-              <div className="home-feature-top">
-                <span className="home-eyebrow">Featured</span>
-                {/* h2: el h1 de la página es el encabezado estable de arriba
-                    (siempre presente). El destacado ES el titular visual, pero
-                    la jerarquía de documento necesita un h1 que no dependa de
-                    que existan eventos publicados. Visualmente no cambia: la
-                    regla es .home-feature-top h1/h2 (misma tipografía). */}
-                <h2>{featured.name}</h2>
-              </div>
-              <div className="home-feature-bottom">
-                <span className="home-feature-meta">
-                  {shortDate(featured.starts_at, featured.timezone)} · {featured.where}
-                  <b>{priceLabel(featured.price_cents)}</b>
-                </span>
-                <span className="home-cta">
-                  Ver boletos
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h13M13 6l6 6-6 6" />
-                  </svg>
-                </span>
-              </div>
+          </div>
+        ) : !data ? (
+          <div className="home-grid">
+            <div className="enty-skel" style={{ height: "16.4rem" }} />
+            <div className="home-list">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="enty-skel" style={{ height: "5.4rem" }} />
+              ))}
             </div>
-          </TransitionLink>
-
-          {/* El troquel: la línea perforada de la boletería separa el
-              destacado de la lista — el mismo corte que la entrada. */}
-          <span className="enty-perf" aria-hidden="true" />
-
-          <div className="home-subhead">
-            <span>Próximos</span>
-            <TransitionLink to="/boletas">Mis boletos</TransitionLink>
           </div>
-
-          <div className="home-list">
-            {rest.map((e) => {
-              const b = dayBadge(e.starts_at, e.timezone);
-              const fav = favs.has(e.id);
-              return (
-                <div key={e.id} className="home-row">
-                  <TransitionLink to={`/evento/${e.id}`} className="home-row-main">
-                    <span className="home-row-thumb">
-                      {e.flyer_url ? (
-                        <img
-                          src={e.flyer_url}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <span className="home-row-thumb-date">
-                          <b>{b.day}</b>
-                          <i>{b.month}</i>
-                        </span>
-                      )}
-                    </span>
-                    <span className="home-row-info">
-                      <strong>{e.name}</strong>
-                      <em>{shortDate(e.starts_at, e.timezone)} · {e.where}</em>
-                    </span>
-                    <span className="home-row-price">{priceLabel(e.price_cents)}</span>
-                  </TransitionLink>
-                  <button
-                    type="button"
-                    className={"home-row-fav transition-colors" + (fav ? " is-on" : "") + (favPop === e.id ? " is-pop" : "")}
-                    aria-label={fav ? `Quitar ${e.name} de favoritos` : `Guardar ${e.name} en favoritos`}
-                    aria-pressed={fav}
-                    onClick={() => toggleFav(e.id)}
-                  >
-                    <Heart filled={fav} />
-                  </button>
+        ) : !featured ? (
+          <div className="home-empty">
+            <span className="enty-spark" aria-hidden="true">
+              <Star size={20} color="#00E6AB" />
+            </span>
+            <p>{narrowed ? "Sin resultados" : "No hay eventos próximos"}</p>
+            <span>
+              {narrowed
+                ? "Prueba con otro nombre, categoría, fecha o ciudad."
+                : "Vuelve pronto: la cartelera se actualiza cada semana."}
+            </span>
+            {narrowed ? (
+              <button
+                type="button"
+                className="btn-ghost mt-3"
+                onClick={resetFilters}
+              >
+                Ver todos los eventos
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-ghost mt-3"
+                onClick={() => setReload((n) => n + 1)}
+              >
+                Actualizar cartelera
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="home-grid">
+            <TransitionLink to={`/evento/${featured.id}`} className="home-feature">
+              {/* El flyer del destacado es el LCP de la vitrina: se pide ya y con
+                  prioridad alta en vez de competir con el resto de la página. */}
+              {featured.flyer_url ? (
+                <img
+                  className="home-feature-flyer transition-opacity duration-300"
+                  src={featured.flyer_url}
+                  alt=""
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                />
+              ) : (
+                <>
+                  <NeonStrokes />
+                  <SoldRing pct={featured.sold_pct} />
+                </>
+              )}
+              <div className="home-feature-body">
+                <div className="home-feature-top">
+                  <span className="home-eyebrow">Featured</span>
+                  {/* h2: el h1 de la página es el encabezado estable de arriba
+                      (siempre presente). El destacado ES el titular visual, pero
+                      la jerarquía de documento necesita un h1 que no dependa de
+                      que existan eventos publicados. Visualmente no cambia: la
+                      regla es .home-feature-top h1/h2 (misma tipografía). */}
+                  <h2>{featured.name}</h2>
                 </div>
-              );
-            })}
+                <div className="home-feature-bottom">
+                  <span className="home-feature-meta">
+                    {shortDate(featured.starts_at, featured.timezone)} · {featured.where}
+                    <b>{priceLabel(featured.price_cents)}</b>
+                  </span>
+                  <span className="home-cta">
+                    Ver boletos
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M5 12h13M13 6l6 6-6 6" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </TransitionLink>
+
+            {/* El troquel: la línea perforada de la boletería separa el
+                destacado de la lista — el mismo corte que la entrada. */}
+            <span className="enty-perf" aria-hidden="true" />
+
+            <div className="home-subhead">
+              <span>Próximos</span>
+              <TransitionLink to="/boletas">Mis boletos</TransitionLink>
+            </div>
+
+            <div className="home-list">
+              {rest.map((e) => {
+                const b = dayBadge(e.starts_at, e.timezone);
+                const fav = favs.has(e.id);
+                return (
+                  <div key={e.id} className="home-row">
+                    <TransitionLink to={`/evento/${e.id}`} className="home-row-main">
+                      <span className="home-row-thumb">
+                        {e.flyer_url ? (
+                          <img
+                            src={e.flyer_url}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <span className="home-row-thumb-date">
+                            <b>{b.day}</b>
+                            <i>{b.month}</i>
+                          </span>
+                        )}
+                      </span>
+                      <span className="home-row-info">
+                        <strong>{e.name}</strong>
+                        <em>{shortDate(e.starts_at, e.timezone)} · {e.where}</em>
+                      </span>
+                      <span className="home-row-price">{priceLabel(e.price_cents)}</span>
+                    </TransitionLink>
+                    <button
+                      type="button"
+                      className={"home-row-fav transition-colors" + (fav ? " is-on" : "") + (favPop === e.id ? " is-pop" : "")}
+                      aria-label={fav ? `Quitar ${e.name} de favoritos` : `Guardar ${e.name} en favoritos`}
+                      aria-pressed={fav}
+                      onClick={() => toggleFav(e.id)}
+                    >
+                      <Heart filled={fav} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </main>
 
       <footer className="home-foot">
         <p className="home-foot-brand">
