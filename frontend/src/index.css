@@ -3784,6 +3784,10 @@ html[data-theme="light"] .list-row:hover {
      gesto de "atrás" se comen el ultimo renglon si no se reserva espacio.
      env() es 0 en escritorio, asi que ahi no cambia nada. */
   padding-bottom: env(safe-area-inset-bottom);
+  /* En horizontal el notch/isla tapa la izquierda: sin esto, el primer item
+     cae debajo de la isla (viewport-fit=cover ya esta activo). */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 .bottomnav-item {
   display: flex;
@@ -4547,9 +4551,26 @@ body {
   .auth-field-has-icon {
     padding-left: 2.6rem;
   }
+}
+
+/* Objetivos táctiles: la condición incluye el DEDO (pointer: coarse) además del
+   ancho. Antes vivían solo dentro de `max-width: 640px`, así que un teléfono en
+   horizontal (844px) las perdía TODAS: los botones volvían a 28-33px justo cuando
+   el pulgar es el único puntero. La lista con coma es una unión: las pantallas
+   angostas conservan la protección de siempre y cualquier dispositivo táctil la
+   gana también en horizontal. El desktop ancho de puntero fino no cambia. */
+@media (max-width: 640px), (pointer: coarse) {
   .btn-primary,
   .btn-ghost,
   .btn-danger-text {
+    min-height: 44px;
+  }
+  /* Campos de formulario: con densidad de escritorio el buscador de eventos
+     medía 41px (el `!py-2` lo dejaba corto). El dedo no distingue 41 de 44, así
+     que el mínimo sube aquí, no en la regla de ancho. */
+  input.field,
+  select.field,
+  textarea.field {
     min-height: 44px;
   }
   .chip {
@@ -4813,6 +4834,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
    =========================================================================== */
 .tkt-stage {
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 2rem 1rem 3rem;
   background:
     radial-gradient(46rem 30rem at 50% -10rem, rgba(187, 92, 246, 0.16), transparent 62%),
@@ -5438,6 +5460,7 @@ html[data-theme="light"] .evx-name {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 @media (min-width: 1024px) {
   .auth-shell {
@@ -5614,6 +5637,7 @@ html[data-theme="light"] .evx-name {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 2rem 1.25rem;
 }
 .auth-panel-inner {
@@ -6904,7 +6928,12 @@ html[data-theme="light"] .legal-doc code {
      la cifra es bruta o neta de comisiones, y sin él el número miente. La
      meta ("8 eventos · 5 boletas") sí baja: la repite la tira de cifras. */
   .vh-kpi {
-    flex-shrink: 0;
+    /* Antes flex-shrink: 0: el rótulo ("Recaudado del mes", 202px en una
+       línea) se quedaba con la fila entera y el nombre del negocio colapsaba a
+       0px — invisible — a 320 y 360px. Con shrink y tope del 52%, el rótulo se
+       parte en dos líneas y la identidad conserva la mitad de la fila. */
+    flex-shrink: 1;
+    max-width: 52%;
     text-align: right;
     width: auto;
     padding-top: 0;
@@ -6917,6 +6946,14 @@ html[data-theme="light"] .legal-doc code {
   }
   .vh-kpi-meta { display: none; }
   .vh-kpi-amount { font-size: var(--e-text-2xl); }
+  /* El eyebrow ("Panel de la venue") partía en 3 líneas a 320px: con el nombre
+     ya recortado a una, esto devolvía el "muro de letras" de la cabecera. Una
+     línea con "…" mantiene la identidad legible sin robarle altura al KPI. */
+  .vh-nombre .eyebrow {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   /* La tira de 4 cifras del mes: 2×2 con menos aire (sigue completa). */
   .vh-tally > div { padding: 0.55rem 0.7rem; }
   .vh-tally .pc-t-value { font-size: var(--e-text-lg); }

@@ -617,6 +617,7 @@
  * ------------------------------------------------------------------------- */
 .legal {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--e-canvas);
   color: var(--e-text-primary);
   padding: 0 var(--e-space-5) var(--e-space-20);

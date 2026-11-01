@@ -176,6 +176,12 @@ input[type="checkbox"].accent-brand-500:checked {
   border-bottom: 1px solid var(--e-border-hairline);
   background: color-mix(in srgb, var(--e-canvas) 82%, transparent);
   backdrop-filter: blur(22px) saturate(1.35);
+  /* PWA instalada (display: standalone + black-translucent): la barra de estado
+     flota SOBRE el contenido y la marca quedaba bajo el reloj. En Safari normal
+     el inset es 0, asi que aqui no cambia nada. */
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .topnav-item {
@@ -1140,6 +1146,7 @@ html[data-theme="light"] .bizdock-count {
    =========================================================================== */
 .home {
   min-height: 100vh;
+  min-height: 100dvh;
   max-width: 26rem;
   margin: 0 auto;
   padding: 1.6rem 1.5rem 6rem;
@@ -1568,6 +1575,7 @@ html[data-theme="light"] .bizdock-count {
 @media (min-width: 480px) {
   .home {
     min-height: 100vh;
+    min-height: 100dvh;
     padding-bottom: 7rem;
   }
 }
@@ -1890,6 +1898,7 @@ html[data-theme="light"] .bizdock-count {
    ---------------------------------------------------------------------- */
 .evd {
   min-height: 100vh;
+  min-height: 100dvh;
   max-width: 26rem;
   margin: 0 auto;
   padding-bottom: 3rem;
