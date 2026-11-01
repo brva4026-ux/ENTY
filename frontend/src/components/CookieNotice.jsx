@@ -53,7 +53,7 @@ export function CookieNotice() {
 
   return (
     <div
-      role="note"
+      role="region"
       aria-label="Aviso de cookies"
       className="cookie-notice relative z-40 flex flex-row items-center gap-2 border-b border-zinc-700/60 bg-zinc-900/95 px-4 py-2.5 text-xs leading-snug text-zinc-200 shadow-lg sm:gap-3 sm:py-3"
     >

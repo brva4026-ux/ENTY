@@ -791,3 +791,23 @@ test("el panel de avisos de /inicio se cierra con Escape y devuelve el foco", as
   await ctx.close();
   expect(foco, "el foco vuelve a la campana tras cerrar").toBe("Notificaciones");
 });
+
+/**
+ * El aviso de cookies vive fuera de <main> (es chrome global, en main.jsx). Con
+ * role="note" no era un landmark: axe lo marcaba como `region` (contenido fuera
+ * de todo landmark) en TODAS las páginas, incluida /inicio. Al ser `region`
+ * con nombre, el aviso pasa a ser un landmark navegable: el usuario de lector
+ * de pantalla puede saltar a él y ubicarlo en el mapa de la página.
+ */
+test("el aviso de cookies es un landmark navegable", async ({ browser }) => {
+  const ok = await available(await browser.newPage(), "/inicio");
+  test.skip(!ok, "App no disponible");
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  // Primer render, sin descartar el aviso: es cuando un visitante nuevo lo ve.
+  await page.goto("/inicio");
+  await page.waitForTimeout(600);
+  const aviso = page.getByRole("region", { name: "Aviso de cookies" });
+  await expect(aviso, "el aviso se expone como landmark con nombre").toBeVisible();
+  await ctx.close();
+});
