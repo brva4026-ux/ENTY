@@ -20,7 +20,12 @@ _PNG_1PX = (
 def _post_event(api, venue_id, **extra):
     payload = {
         "name": "Noche Electrónica",
-        "starts_at": "2026-11-20T20:00:00-05:00",  # = 01:00 UTC del 21
+        # Fecha MUY futura y fija, igual que test_api_event_edit (FUTURE_STARTS):
+        # el guardia "la apertura no puede estar en el pasado" devuelve 400, así que
+        # una fecha que envejece convierte estos 201 en 400 sin que el producto
+        # cambie. La fecha vieja (2026-11-20) era una bomba de tiempo: al pasar el
+        # día, toda la suite fallaba. 2099 no caduca en la práctica.
+        "starts_at": "2099-11-20T20:00:00-05:00",  # = 01:00 UTC del 21
         "capacity": 250,
     }
     payload.update(extra)
@@ -41,7 +46,7 @@ def test_create_event_with_date_description_and_flyer(api, world):
         world["venue_a"],
         description="DJ set + open bar",
         flyer_url=flyer,
-        ends_at="2026-11-21T02:00:00-05:00",  # = 07:00 UTC
+        ends_at="2099-11-21T02:00:00-05:00",  # = 07:00 UTC
         event_timezone="America/Bogota",
     )
     assert res.status_code == 201, res.text
@@ -55,10 +60,10 @@ def test_create_event_with_date_description_and_flyer(api, world):
 
     # Lo que importa: queda guardado como INSTANTE, no como texto local.
     assert datetime.fromisoformat(body["starts_at"]) == datetime(
-        2026, 11, 21, 1, 0, tzinfo=timezone.utc
+        2099, 11, 21, 1, 0, tzinfo=timezone.utc
     )
     assert datetime.fromisoformat(body["ends_at"]) == datetime(
-        2026, 11, 21, 7, 0, tzinfo=timezone.utc
+        2099, 11, 21, 7, 0, tzinfo=timezone.utc
     )
 
 
@@ -117,8 +122,8 @@ def test_transition_returns_the_full_event(api, world):
 @pytest.mark.parametrize(
     "extra",
     [
-        {"ends_at": "2026-11-20T19:00:00-05:00"},  # cierre antes de abrir
-        {"ends_at": "2026-11-20T20:00:00-05:00"},  # cierre igual a la apertura
+        {"ends_at": "2099-11-20T19:00:00-05:00"},  # cierre antes de abrir
+        {"ends_at": "2099-11-20T20:00:00-05:00"},  # cierre igual a la apertura
         {"flyer_url": "no-es-una-url"},
         {"flyer_url": "javascript:alert(1)"},
         {"capacity": 0},

@@ -15,6 +15,7 @@ FALLA sin el fix correspondiente.
 """
 import time
 import uuid
+from datetime import datetime, timedelta, timezone
 
 import psycopg
 import pytest
@@ -232,13 +233,21 @@ def test_sync_persiste_la_hora_real_del_escaneo(api, world):
 
     Antes, todo canje offline quedaba con el now() del sync: el reporte de
     puerta mentía sobre CUÁNDO entró cada persona.
+
+    La marca es RELATIVA (hace 3 días a las 02:30 UTC), no una fecha clavada en
+    el código: redeem_ticket() sanea a now() todo lo anterior a now() - 7 días,
+    así que una fecha fija se vuelve bomba de tiempo — el día que envejece, el
+    sync la pisa con now() y el test falla sin que el producto haya cambiado.
     """
     venue, ev, t, tk = _door_event(api, world)
+    scanned = (datetime.now(timezone.utc) - timedelta(days=3)).replace(
+        hour=2, minute=30, second=0, microsecond=0
+    )
     body = [
         {
             "raw_token": tk["raw_token"],
             "scan_id": str(uuid.uuid4()),
-            "scanned_at": "2026-10-25T02:30:00+00:00",
+            "scanned_at": scanned.isoformat(),
         }
     ]
     out = api.post(

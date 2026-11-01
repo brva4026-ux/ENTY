@@ -414,6 +414,18 @@
   font-variant-numeric: tabular-nums;
     font-size: var(--e-text-sm);
   }
+  /* En táctil el favorito flotante NO puede quedar en 36px: a partir de 640px
+     (tablet y teléfono en horizontal) es un objetivo de dedo, y este público
+     tiene 45-58 años. El área visible crece a 44px; el icono de dentro no
+     cambia. El desktop de puntero fino conserva los 36px de siempre. */
+  @media (pointer: coarse) {
+    .home-row-fav {
+      width: 2.75rem;
+      height: 2.75rem;
+      top: 1.3rem;
+      right: 1.3rem;
+    }
+  }
 }
 
 /* --------------------------------------------------------------------------
