@@ -317,6 +317,67 @@ test("la puerta: contraste AA y objetivos táctiles ≥ 44px", async ({ browser 
   expect(r.tapSmall, "objetivos táctiles < 44px en la puerta").toEqual([]);
 });
 
+/**
+ * El topbar del shell autenticado (marca, tema, notificaciones, avatar y
+ * salir) no tenía cobertura táctil: la auditoría de 44px solo miraba la puerta,
+ * así que cuatro controles de 30-39px pasaban desapercibidos. Aquí se mide solo
+ * el topbar, y el área real incluye el ::after con el que los iconos crecen sin
+ * cambiar su caja visible. Los enlaces de texto en línea (footer legal) quedan
+ * fuera: la WCAG 2.5.8 los exime.
+ */
+test("el topbar autenticado: objetivos táctiles ≥ 44px", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 860 } });
+  const page = await ctx.newPage();
+  const ok = await available(page, "/login");
+  test.skip(!ok, "App no disponible");
+
+  await login(page, "admin@bar.test");
+  await page.goto("/admin");
+
+  // El gate legal tapa el panel cuando hay documentos pendientes (CI aplica
+  // solo schema.sql y no los tiene): se acepta si aparece, no se exige.
+  const gate = page.getByRole("heading", { name: "Hay cambios en los términos" });
+  await page.waitForTimeout(1_000);
+  if (await gate.isVisible().catch(() => false)) {
+    const cajas = page.locator('input[type="checkbox"]');
+    for (let i = 0; i < (await cajas.count()); i++) await cajas.nth(i).check();
+    await page.getByRole("button", { name: "Acepto y continúo" }).click();
+    await expect(gate).toHaveCount(0, { timeout: 10_000 });
+  }
+
+  const small = await page.evaluate(() => {
+    const out = [];
+    const topbar = document.querySelector(".topbar");
+    if (!topbar) return out;
+    for (const el of topbar.querySelectorAll("a,button")) {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden") continue;
+      let w = r.width;
+      let h = r.height;
+      const af = getComputedStyle(el, "::after");
+      if (af.content && af.content !== "none" && af.position === "absolute") {
+        w -= (parseFloat(af.left) || 0) + (parseFloat(af.right) || 0);
+        h -= (parseFloat(af.top) || 0) + (parseFloat(af.bottom) || 0);
+      }
+      if (w < 44 || h < 44)
+        out.push({
+          label: (el.getAttribute("aria-label") || el.textContent || el.tagName)
+            .trim()
+            .slice(0, 30),
+          w: Math.round(w),
+          h: Math.round(h),
+        });
+    }
+    return out;
+  });
+  await ctx.close();
+
+  if (small.length) console.log("Objetivos pequeños (topbar):", JSON.stringify(small, null, 2));
+  expect(small, "objetivos táctiles < 44px en el topbar autenticado").toEqual([]);
+});
+
 test("el foco de teclado es visible y de un solo color (ambos temas)", async ({
   browser,
 }) => {
@@ -506,3 +567,34 @@ test("estructura: /inicio conserva un h1 sin cartelera (vacio y error)", async (
   expect(fails, "/inicio sin h1 unico cuando no hay cartelera").toEqual([]);
 });
 
+
+test("el texto de la home no baja de 14px (legibilidad 45-58)", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 860 } });
+  const page = await ctx.newPage();
+  const ok = await available(page, "/inicio");
+  test.skip(!ok, "App no disponible");
+  await page.waitForTimeout(2_500);
+
+  // Cuenta los nodos de texto visibles por debajo del piso tipográfico. El
+  // público mayoritario de la entrada (45-58) leía la home como un muro de
+  // letra diminuta: 63% del texto estaba bajo 14px antes del arreglo.
+  const chicos = await page.evaluate(() => {
+    const out = [];
+    for (const el of document.querySelectorAll("body *")) {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const txt = (el.textContent || "").trim();
+      if (!txt || el.children.length) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === "hidden" || cs.display === "none") continue;
+      const px = parseFloat(cs.fontSize);
+      if (px < 14)
+        out.push({ txt: txt.slice(0, 30), px, clase: (el.className || el.tagName).toString().slice(0, 40) });
+    }
+    return out;
+  });
+  await ctx.close();
+
+  if (chicos.length) console.log("Texto bajo 14px en la home:", JSON.stringify(chicos, null, 2));
+  expect(chicos, "texto de la home por debajo del piso de 14px").toEqual([]);
+});

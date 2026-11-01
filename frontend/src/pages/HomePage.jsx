@@ -200,7 +200,7 @@ function SoldRing({ pct }) {
       <text x="266" y="92" textAnchor="middle" fontSize="22" fontWeight="300" fill="#F3F1EC" letterSpacing="-1">
         {shown}%
       </text>
-      <text x="266" y="109" textAnchor="middle" fontSize="10" fill="#A8A8B0" letterSpacing="1.2">
+      <text x="266" y="109" textAnchor="middle" fontSize="14" fill="#A8A8B0" letterSpacing="1.2">
         VENDIDO
       </text>
       <rect width="342" height="262" fill="url(#hFade)" />

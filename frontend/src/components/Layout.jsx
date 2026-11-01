@@ -110,7 +110,11 @@ export default function Layout({ children }) {
       <header className="topbar sticky top-0 z-20">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-6">
-            <TransitionLink to="/" aria-label="Inicio">
+            <TransitionLink
+              to="/"
+              aria-label="Inicio"
+              className="topbar-brand"
+            >
               <Logo />
             </TransitionLink>
             <nav className="hidden items-center gap-0.5 md:flex">

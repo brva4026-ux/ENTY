@@ -47,18 +47,18 @@
   --color-ember: #ef4444;
   /* ESCALA TIPOGRÁFICA (Fase 2): fuente única para las utilidades `text-*`
      de Tailwind y espejo de `--e-text-*` en tokens.css. El piso es 2xs
-     (0.75rem = 12px), igual que la hoja de tokens; antes iba un paso por
-     debajo (11px) y las dos escalas no coincidian. Las líneas mantienen la
-     proporción previa para no alterar el ritmo vertical. */
-  --text-2xs: 0.75rem;
+     (0.875rem = 14px), igual que la hoja de tokens: por debajo de 14px el texto
+     de apoyo se vuelve ilegible para el público de 45-58 años. Las líneas
+     mantienen la proporción previa para no alterar el ritmo vertical. */
+  --text-2xs: 0.875rem;
   --text-2xs--line-height: 1.35;
-  --text-xs: 0.8125rem;
+  --text-xs: 0.9375rem;
   --text-xs--line-height: 1.3333;
-  --text-sm: 0.875rem;
+  --text-sm: 1rem;
   --text-sm--line-height: 1.4286;
-  --text-base: 0.9375rem;
+  --text-base: 1.0625rem;
   --text-base--line-height: 1.5;
-  --text-lg: 1.0625rem;
+  --text-lg: 1.125rem;
   --text-lg--line-height: 1.5556;
   --text-xl: 1.25rem;
   --text-xl--line-height: 1.4;
@@ -127,6 +127,11 @@ body {
   color: var(--color-zinc-200);
   border: 1px solid var(--color-zinc-700);
   border-radius: 0.5rem;
+  /* Objetivo tactil: con el padding solo media 39px de alto. El minimo va en la
+     base porque el link es de teclado y no depende del breakpoint. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 0.5rem 1rem;
   font-size: var(--e-text-sm);
   font-weight: 600;
@@ -3315,7 +3320,7 @@ html[data-theme="light"] .wb-flyer {
   border-radius: 0.75rem;
   background: var(--color-zinc-940);
   padding: 0.85rem 1rem;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-2xs);
   color: var(--color-zinc-500);
 }
 html[data-theme="light"] .dp-num {
@@ -3606,7 +3611,7 @@ html[data-theme="light"] .onboard-hero {
   margin-bottom: 0.35rem;
 }
 .onboard-progress-done {
-  font-size: 0.75rem;
+  font-size: var(--e-text-2xs);
   font-weight: 700;
   color: var(--e-violet-400);
   font-variant-numeric: tabular-nums;
@@ -3696,7 +3701,7 @@ html[data-theme="light"] .tour-tip {
 }
 .tour-copy {
   margin-top: 0.35rem;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-2xs);
   line-height: 1.45;
   color: var(--color-zinc-400);
 }
@@ -4579,6 +4584,24 @@ body {
     content: "";
     position: absolute;
     inset: -6px;
+  }
+  /* El avatar mide 1.85rem (29.6px), no 32px como los otros iconos: con -6px
+     se quedaba en 41.6px y con -7px en 43.6px. -7.5px lo deja en 44.6px sin
+     tocar el layout. Solo el avatar necesita el inset extra. */
+  .topbar-avatar::after {
+    inset: -7.5px;
+  }
+  /* La marca enlaza a Inicio, pero media 39px de alto: el alto del propio logo.
+     Sube el area tactil a 44px sin tocar el tamano del logo. */
+  .topbar-brand {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  /* "Cerrar sesion" en movil esconde el verbo y deja solo el icono: 38px de
+     ancho. El minimo lo devuelve a 44px. */
+  .topbar button[aria-label="Cerrar sesión"] {
+    min-width: 44px;
   }
   /* Pestañas de la app (Vender / Mis boletas / Liquidaciones, filtros del
      escáner): 33px de alto con la densidad de escritorio. En móvil suben a
@@ -6511,7 +6534,7 @@ html[data-theme="light"] .legal-doc hr {
 .legal-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: var(--e-text-2xs);
 }
 .legal-table th,
 .legal-table td {
@@ -6695,7 +6718,7 @@ html[data-theme="light"] .legal-doc code {
 
 .door-night-name {
   font-weight: 600;
-  font-size: 0.8125rem;
+  font-size: var(--e-text-2xs);
   color: var(--e-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -6741,7 +6764,7 @@ html[data-theme="light"] .legal-doc code {
   align-items: center;
   padding: 0.75rem 1.125rem;
   border-bottom: 1px solid var(--e-border-hairline);
-  font-size: 0.8125rem;
+  font-size: var(--e-text-2xs);
   color: var(--e-text-secondary);
 }
 

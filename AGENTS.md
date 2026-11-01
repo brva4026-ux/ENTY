@@ -417,10 +417,18 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
 - **Estado Fase 2 (HECHA, corte de escala)**: la tipografía es **una escala
   cerrada de 9 pasos**, compartida entre CSS (`--e-text-*` en `tokens.css`) y
   Tailwind (`--text-*` en el `@theme`). Los 179 `font-size` de las hojas usan
-  `var(--e-text-*)`; **el piso es 12px** (`--e-text-2xs`, `tokens.css`) — no
+  `var(--e-text-*)`; **el piso es 14px** (`--e-text-2xs`, `tokens.css`) — no
   quedan micro-tamaños ni `text-[Npx]` en JSX. Display por `--e-text-display`
   y `tabular-nums` en cifras. Queda pendiente el patrón editorial fino
   (eyebrow→display→lead→meta).
+  **Legibilidad 45-58 (oct-2026)**: el piso sube de 12px a 14px y el cuerpo a
+  17px porque el público mayoritario de la entrada leía la home como un "muro
+  de letra diminuta" (63% del texto bajo 14px). Se subieron los dos espejos de
+  la escala (`--e-text-*` y `--text-*`) y se convirtieron a token 5 reglas que
+  se saltaban el piso (`onboard-progress-done` a 0.75rem, y `.tour-copy`,
+  `.legal-table`, `.door-night-name` y una fila de puerta a 0.8125-0.85rem). El
+  rótulo "VENDIDO" del medidor SVG subió de 10px a 14px (era el único texto del
+  DOM por debajo del piso). `a11y.spec.js` fija el piso con un test de regresión.
   **Auditoría oct-2026**: 14 reglas escribían `rem` fijo por debajo del piso
   (0.5625–0.6875rem, 9–11px): las etiquetas del panel de la venue
   (`vh-kpi-label`, `pc-t-label`, `pc-dcard h3`, `pc-prow.is-head`) y varias

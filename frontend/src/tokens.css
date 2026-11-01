@@ -249,14 +249,15 @@
   --e-radius-2xl: 1.5rem;
   --e-radius-pill: 999px;
 
-  /* Tipografía (ratio 1.25; display fluida). Piso de legibilidad 0.75rem:
-     por debajo de 12px el texto de apoyo (chips, etiquetas de la barra) se
-     vuelve ilegible en móvil a pleno sol, que es donde se usa la entrada. */
-  --e-text-2xs: 0.75rem;
-  --e-text-xs: 0.8125rem;
-  --e-text-sm: 0.875rem;
-  --e-text-base: 0.9375rem;
-  --e-text-lg: 1.0625rem;
+  /* Tipografía (display fluida). Piso de legibilidad 0.875rem: por debajo de
+     14px el texto de apoyo (chips, etiquetas de la barra) se vuelve ilegible
+     para el público de 45-58 años, que es el grueso de la entrada, y más aún en
+     móvil a pleno sol. El cuerpo sube a 17px por el mismo motivo. */
+  --e-text-2xs: 0.875rem;
+  --e-text-xs: 0.9375rem;
+  --e-text-sm: 1rem;
+  --e-text-base: 1.0625rem;
+  --e-text-lg: 1.125rem;
   --e-text-xl: 1.25rem;
   --e-text-2xl: 1.5rem;
   --e-text-3xl: 1.875rem;
