@@ -39,12 +39,14 @@ for f in db/schema.sql db/migrations/*.sql; do PGPASSWORD=devpassword psql -h 12
 cd backend && (set -a; . ./.env.local; set +a; nohup .venv/bin/python run.py >/tmp/backend.log 2>&1 &)
 cd frontend && (VITE_BACKEND_URL=http://127.0.0.1:8001 nohup npm run dev >/tmp/vite.log 2>&1 &)
 
-# 3. Seed + navegador de Playwright (por defecto NO viene instalado)
-curl -s -X POST http://127.0.0.1:12000/api/seed
+# 3. Navegador de Playwright (por defecto NO viene instalado)
 cd frontend && npx playwright install chromium
 ```
 
 Sin el paso 3 los e2e fallan con `Executable doesn't exist ... chrome-headless-shell`.
+El seed demo ya **no** hay que lanzarlo a mano: `e2e/global-setup.js` hace
+`POST /seed` antes de la suite (idempotente, no borra nada). Solo necesitás que
+el backend corra con `IS_DEMO=true`; si no, avisa y las specs se saltan solas.
 La home del fan vive en **`/inicio`** (`/` redirige a `/login`).
 
 ## Tests
@@ -194,8 +196,11 @@ como gate en CI deja el pipeline rojo.
   un pooler en modo transaction (Supabase `:6543`, pgBouncer), o `redeem`
   falla con `cached plan must not change result type` (HTTP 500).
   Hay dos sitios en `app/core/db.py`: `_CONNECT_KWARGS` e `init_pool`.
-- **Seed**: `POST /seed` solo responde si `IS_DEMO=true`. Borra y recrea los
-  datos demo; no hay endpoint de borrado.
+- **Seed**: `POST /seed` solo responde si `IS_DEMO=true`. Es **idempotente y no
+  destructivo**: no hay `DELETE`/`TRUNCATE`/`DROP`; solo inserta lo que falta
+  (`ON CONFLICT DO NOTHING`) y refresca la fecha del evento `Prueba de QR` a
+  `now() + 20 min` (para que su QR siga escaneable). No hay endpoint de borrado.
+  La suite E2E lo invoca sola vía `e2e/global-setup.js`.
 - **La puerta y el cierre de eventos (mig 034)**: el auto-cierre tiene 6 h de
   **gracia** (`ends_at` es una estimación del organizador, no una orden de
   desalojo). No la quites: sin ella, un bar que cierra más tarde de lo previsto

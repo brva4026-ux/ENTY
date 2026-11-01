@@ -14,6 +14,9 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   testDir: here,
+  // Garantiza el seed demo antes de correr: en CI lo hace un paso propio, pero
+  // en local faltaba y las specs de catalogo fallaban por datos ausentes.
+  globalSetup: "./e2e/global-setup.js",
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "line" : "list",
