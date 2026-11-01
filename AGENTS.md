@@ -747,6 +747,13 @@ avisar.
   los `style={{}}` de geometría dinámica; `img-src` permite `data:`/`blob:`/
   `https:` (flyers y blobs de QR); `connect-src` incluye Sentry y Nominatim
   (geocodificación del detalle del evento).
+  `backend/tests/test_csp_hashes.py` compara los hashes declarados en ambas
+  cabeceras contra los `<script>` inline reales de `index.html`, así que la
+  deriva falla en el test y no en producción. Ya pasó una vez: `bb32a40` agregó
+  el bloque `tf_motion` al script de tema y dejó el hash viejo, con lo que la CSP
+  bloqueaba el script entero (se perdía el anti-flash **y** el pre-paint de
+  movimiento reducido, que es accesibilidad). El `<script type="application/
+  ld+json">` es un data block y `script-src` no lo gobierna: el test lo excluye.
 - **Probar la CSP en navegador real, no solo `curl`**: un test Playwright
   escuchando `console` por "Content Security Policy"/"Refused to", con login +
   visita pública, debe dar 0 violaciones. Repetir ese patrón al tocar cabeceras.
