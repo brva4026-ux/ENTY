@@ -33,6 +33,10 @@ initTheme();
 // primera animación del hero ya sale apagada si la persona pidió quietud.
 import { applyMotion } from "./lib/motion";
 applyMotion();
+// Avisos de validación nativa en español. El navegador los redacta en SU
+// idioma ("Please fill out this field."), no en el de la página: se conserva
+// la validación nativa y se traduce el texto. Ver lib/validationMessages.js.
+import "./lib/validationMessages";
 import { AuthProvider, useAuth, consumeLoggedOut } from "./lib/auth";
 import { UIProvider } from "./lib/ui";
 import { hasRole, homeForRole } from "./lib/roles";

@@ -496,6 +496,34 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   imágenes), la puerta (+ objetivos táctiles ≥ 44px) y el **foco de teclado
   visible y de un solo color** en ambos temas. Corre con `E2E_BASE_URL=http://127.0.0.1:12000
   npx playwright test e2e/a11y.spec.js`.
+  **Trampa del area tactil con `inset` (auditoria oct-2026).** El parche
+  `::after { inset: -Npx }` se calcula sobre el *padding box*, no sobre la caja
+  visible. Si el control tiene borde y `box-sizing: border-box`, el borde no
+  cuenta: un boton de 40px con `border: 1px` e `inset: -2px` da **42px, no 44**.
+  Medido en el navegador: `.evd-round` (40px + 1px de borde, `-2px`) y
+  `.home-avatar` (36px + 1px, `-4px`) daban ambos 42px. La forma robusta es un
+  pseudo-elemento de tamano fijo y centrado, inmune al borde y al `box-sizing`:
+  `top: 50%; left: 50%; width: 2.75rem; height: 2.75rem; transform: translate(-50%, -50%)`.
+  Ese es el patron que ya usaba `.topbar-hit` (y va en `::before`, no `::after`,
+  porque `[data-tip]::after` pisa el area). Verificar el area *efectiva* con
+  `document.elementFromPoint` a +-N px del centro, no con `getBoundingClientRect`.
+  **Avisos de validacion nativa en espanol (auditoria oct-2026).** El navegador
+  redacta `validationMessage` en SU idioma, no en el de la pagina: `lang="es"`
+  no lo cambia, y el usuario ve "Please fill out this field." en medio de una
+  UI en espanol. Traducirlo form por form obligaba a quitar `required` y
+  reimplementar la validacion — y en 6 formularios internos (`createAllocation`,
+  `createInvitation`, `generate`, `createType`, `emit`, `submitCloseSessions`)
+  ese atributo es la **unica** barrera: el handler va directo a la API. La
+  solucion es global (`lib/validationMessages.js`, importado en `main.jsx`): se
+  conserva la validacion nativa (sigue bloqueando el envio) y solo se sustituye
+  el texto con un listener de `invalid` **en captura** (el evento no burbujea).
+  `setCustomValidity` deja el campo invalido para siempre, asi que se limpia en
+  `input`/`change`. Con esto `noValidate` deja de hacer falta en los formularios
+  nuevos; los 4 que ya lo llevan validan en JS y muestran su propio mensaje.
+  Para saber si un aviso nativo es **alcanzable**: vaciar los campos y comprobar
+  si el boton de envio sigue habilitado — si esta `disabled` (p. ej. `/reset` y
+  `/register` mientras la contrasena no cumple la politica), el mensaje nunca
+  aparece y no hay nada que arreglar.
 
 ### Gate de diseno (skill design-taste-frontend)
 
