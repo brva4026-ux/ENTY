@@ -53,20 +53,21 @@ Reglas de color:
 **Sora es la única voz del sistema** (variable, auto-hospedada, `--font-sans`).
 No hay segunda tipografía, ni display alternativo.
 
-Escala cerrada (ratio 1.25, `tokens.css`). 7 micro-tamaños fueron retirados; el
-piso de legibilidad es `--e-text-2xs` (`0.6875rem` / 11px).
+Escala cerrada (`tokens.css`). El piso de legibilidad es `--e-text-2xs`
+(`0.875rem` / 14px): ninguna etiqueta baja de ahí. La escala se comprime en la
+zona de UI (14→18px) y se abre en la de titulares (20→30px).
 
-| Token | rem | Rol |
-|---|---|---|
-| `--e-text-2xs` | 0.6875 | Micro-etiqueta, piso absoluto |
-| `--e-text-xs` | 0.75 | Etiqueta, contador |
-| `--e-text-sm` | 0.8125 | Texto denso de UI |
-| `--e-text-base` | 0.9375 | Cuerpo |
-| `--e-text-lg` | 1.0625 | Cuerpo destacado |
-| `--e-text-xl` | 1.25 | Subtítulo |
-| `--e-text-2xl` | 1.5 | Título de sección |
-| `--e-text-3xl` | 1.875 | Título de pantalla |
-| `--e-text-display` | `clamp(2.25rem, 6vw, 3.5rem)` | Wordmark / hero |
+| Token | rem | px | Rol |
+|---|---|---|---|
+| `--e-text-2xs` | 0.875 | 14 | Micro-etiqueta, piso absoluto |
+| `--e-text-xs` | 0.9375 | 15 | Etiqueta, contador |
+| `--e-text-sm` | 1 | 16 | Texto denso de UI |
+| `--e-text-base` | 1.0625 | 17 | Cuerpo |
+| `--e-text-lg` | 1.125 | 18 | Cuerpo destacado |
+| `--e-text-xl` | 1.25 | 20 | Subtítulo |
+| `--e-text-2xl` | 1.5 | 24 | Título de sección |
+| `--e-text-3xl` | 1.875 | 30 | Título de pantalla |
+| `--e-text-display` | `clamp(2.25rem, 6vw, 3.5rem)` | 36–56 | Wordmark / hero |
 
 Cifras **siempre tabulares** en datos de negocio: `.tnum` o
 `font-variant-numeric: tabular-nums` (recaudo, vendidas, cupos, contadores).

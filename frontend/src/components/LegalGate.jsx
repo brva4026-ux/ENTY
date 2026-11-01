@@ -85,7 +85,7 @@ export function LegalGate({ onCleared }) {
 
   if (pending === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0b0b0f] text-sm text-zinc-400">
+      <div className="flex min-h-screen items-center justify-center bg-enty-bg text-sm text-zinc-400">
         Revisando tus documentos…
       </div>
     );
@@ -95,7 +95,7 @@ export function LegalGate({ onCleared }) {
   const allChecked = pending.every((d) => checked[d.slug]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#0b0b0f] px-4 py-10">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-enty-bg px-4 py-10">
       <div className="mx-auto max-w-xl">
         <p className="eyebrow">Documentos legales</p>
         <h1 className="display mt-1 text-2xl">Hay cambios en los términos</h1>
@@ -118,7 +118,7 @@ export function LegalGate({ onCleared }) {
                   onChange={(e) =>
                     setChecked((c) => ({ ...c, [d.slug]: e.target.checked }))
                   }
-                  className="mt-1 h-4 w-4 shrink-0 accent-[#7C3AED]"
+                  className="mt-1 h-4 w-4 shrink-0 accent-enty-violet"
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-zinc-100">

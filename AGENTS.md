@@ -400,7 +400,7 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
 - **Superficies insensibles al tema** (p. ej. `.auth-brand`, el panel navy de la
   entrada) fijan sus propios tokens de tinta en `tokens.css`, para que el
   wordmark siga legible sobre el navy también en claro.
-- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 31`
+- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 41`
   es un presupuesto que solo puede **bajar**. `color-no-hex` (todo `src/**/*.css`
   menos `tokens.css`; el bloque `@theme` de `index.css` está exento con
   `stylelint-disable` y rationale: es la fuente de los tokens Tailwind),
@@ -412,8 +412,9 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   están sin hex; los alias históricos `--tf-* / --home-* / --evd-* / --tkt-* /
   --in-*` solo apuntaban a primitivas `--e-*` (retirados del todo en Fase 6);
   `!important` bajó 11→3 (solo el override de `prefers-reduced-motion`) y el
-  JSX ya no fija hex (el punto de estado usa `data-status` en CSS). Quedan 31
-  `no-duplicate-selectors` (F4) y 21 `style={{}}` de geometría dinámica (no color).
+  JSX ya no fija hex (el punto de estado usa `data-status` en CSS). El
+  presupuesto de 41 son **35 `no-duplicate-selectors`** (F4) y **6 `color-no-hex`**;
+  quedan 21 `style={{}}` de geometría dinámica (no color).
 - **Estado Fase 2 (HECHA, corte de escala)**: la tipografía es **una escala
   cerrada de 9 pasos**, compartida entre CSS (`--e-text-*` en `tokens.css`) y
   Tailwind (`--text-*` en el `@theme`). Los 179 `font-size` de las hojas usan

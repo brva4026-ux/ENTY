@@ -872,13 +872,6 @@ html[data-theme="light"] header nav a[aria-current="page"] {
    - .ticket-timeline: ciclo de vida de la boleta (emitida → en puerta →
      usada) con línea y puntos, como el timeline de reportes del original.
    =========================================================================== */
-.text-gradient {
-  background: linear-gradient(120deg, var(--color-zinc-50) 0%, var(--e-violet-300) 55%, var(--e-violet-400) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
 
 .empty-state {
   text-align: center;
@@ -914,9 +907,6 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   font-size: var(--e-text-sm);
   line-height: 1.55;
   color: var(--color-zinc-400);
-}
-.empty-state-cta {
-  margin-top: 1rem;
 }
 
 .ticket-timeline {
@@ -1361,31 +1351,7 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-rise,
-  .animate-fade,
-  .animate-scale-in,
-  .animate-pop,
-  .logo-pop,
-  .reveal-qr,
-  .brand-shine,
-  .ab-aurora,
-  .ab-orb,
-  .ab-spot,
-  .skeleton,
-  .live-dot,
-  .live-ping,
-  .vh-live-dot,
-  .splash-logo,
-  .ptr-spinner,
-  .toast-in,
-  .dialog-in,
-  .dialog-backdrop,
-  .dialog-backdrop-out,
-  .dialog-out,
-  .offline-in,
-  .door-alert-in,
-  .confetti,
-  .empty-state-icon {
+  .animate-rise, .animate-fade, .animate-scale-in, .animate-pop, .logo-pop, .reveal-qr, .brand-shine, .skeleton, .live-dot, .live-ping, .vh-live-dot, .splash-logo, .ptr-spinner, .toast-in, .dialog-in, .dialog-backdrop, .dialog-backdrop-out, .dialog-out, .offline-in, .door-alert-in, .confetti, .empty-state-icon {
     animation: none;
   }
   .ticket-step.current .ticket-step-dot::after {
@@ -2172,15 +2138,8 @@ html[data-theme="light"] .vh-embedded {
   );
   transition: width 0.5s var(--e-ease-standard);
 }
-html[data-theme="light"] .vh-cuenta,
 html[data-theme="light"] .vh-rank {
   border-top-color: var(--e-neutral-300);
-}
-html[data-theme="light"] .vh-cuenta-val.is-out {
-  color: var(--e-red-700);
-}
-html[data-theme="light"] .vh-cuenta-val.is-net {
-  color: var(--e-emerald-600);
 }
 html[data-theme="light"] .vh-mesnav-hoy {
   color: var(--color-brand-700);
@@ -2246,32 +2205,6 @@ html[data-theme="light"] .vh-mesnav-hoy {
    preguntas de la noche (cuántas vendí, cuántas entraron, cuánto recaudé)
    sin abrir el evento. Separadores verticales finos, no cajas: la cifra
    manda, el ruido sobra. */
-.ec-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.5rem;
-}
-.ec-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  border-left: 2px solid rgba(255, 255, 255, 0.07);
-  padding-left: 0.55rem;
-  min-width: 0;
-}
-.ec-stat-label {
-  font-size: var(--e-text-2xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-zinc-500);
-}
-html[data-theme="light"] .ec-stat {
-  border-left-color: var(--e-neutral-300);
-}
-html[data-theme="light"] .ec-stat-label {
-  color: var(--color-zinc-500);
-}
 
 /* Píldora de apertura ("Hoy 8 p.m."): cuándo arranca sin leer la fecha.
    Hoy = acento de marca; esta semana = tinta clara; lejana/pasada = neutra. */
@@ -3542,40 +3475,6 @@ html[data-theme="light"] .topbar-avatar {
    BOLETA PUBLICA (invitado): la pagina mas vista por alguien que NO trabaja
    en la app — merece la misma Firma. QR con marco de credencial.
    ---------------------------------------------------------------------- */
-.ticket-qr-frame {
-  position: relative;
-  border-radius: 1.1rem;
-  padding: 0.8rem;
-  background:
-    linear-gradient(160deg, var(--e-white), var(--color-zinc-100) 70%),
-    var(--e-white);
-  box-shadow:
-    inset 0 0 0 1px rgba(9, 9, 11, 0.08),
-    0 20px 50px -18px rgba(0, 0, 0, 0.65),
-    0 0 40px -12px rgba(187, 92, 246, 0.35);
-}
-.ticket-qr-frame::before,
-.ticket-qr-frame::after {
-  content: "";
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  border-color: var(--e-violet-400);
-  border-style: solid;
-  opacity: 0.85;
-}
-.ticket-qr-frame::before {
-  top: -6px;
-  left: -6px;
-  border-width: 3px 0 0 3px;
-  border-top-left-radius: 12px;
-}
-.ticket-qr-frame::after {
-  bottom: -6px;
-  right: -6px;
-  border-width: 0 3px 3px 0;
-  border-bottom-right-radius: 12px;
-}
 
 /* ----------------------------------------------------------------------
    ONBOARDING: card de bienvenida con lavado de marca y progreso real.
@@ -4213,8 +4112,7 @@ html[data-theme="light"] .skip-link {
 html[data-theme="light"] .eyebrow {
   color: var(--e-violet-500);
 }
-html[data-theme="light"] .display,
-html[data-theme="light"] .text-gradient {
+html[data-theme="light"] .display {
   color: var(--color-zinc-50);
   background: none;
   -webkit-text-fill-color: currentColor;
@@ -4406,21 +4304,10 @@ html[data-theme="light"] .event-card.is-live {
 
 /* Entrada en claro: showroom blanco. Sin orbes ni texturas — solo la
    luz sutil del showroom en azul acento, apenas perceptible. */
-html[data-theme="light"] .ab-aurora {
-  background: radial-gradient(
-    60rem 32rem at 50% -14rem,
-    rgba(187, 92, 246, 0.05),
-    transparent 62%
-  );
-}
 html[data-theme="light"] .brand-chip {
   border: none;
   background: none;
   box-shadow: none;
-}
-html[data-theme="light"] .brand-flow {
-  color: var(--e-violet-400);
-  -webkit-text-fill-color: var(--e-violet-400);
 }
 html[data-theme="light"] .auth-field-icon {
   color: var(--color-zinc-400);
@@ -4453,28 +4340,10 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
 /* 1. Showroom: la única luz permitida es un lavado MUY sutil desde arriba,
       como la luz de un showroom. Es el análogo plano de la "fotografía
       de producto": atmósfera, no decoración. */
-.ab-aurora {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    60rem 32rem at 50% -14rem,
-    color-mix(in srgb, var(--e-violet-400) 8%, transparent),
-    transparent 62%
-  );
-}
 
 /* 2-5. Orbes, rejilla, foco y grano: eliminados. Un showroom no tiene
       manchas de luz ni texturas — la calma ES el lujo. Los selectores
       quedan vacíos para no romper el JSX (que ya no los renderiza). */
-.ab-orb,
-.ab-orb-1,
-.ab-orb-2,
-.ab-orb-3,
-.ab-grid,
-.ab-spot,
-.ab-grain {
-  display: none;
-}
 
 /* Wordmark hero: SOLO tipografía flotante (Tesla): sin píldora, sin blur,
    sin glow. El lujo es la calma. */
@@ -4501,10 +4370,6 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   line-height: 1;
 }
 /* "Flow": tinta sólida del acento — un solo color de marca, sin degradado. */
-.brand-flow {
-  color: var(--e-violet-400);
-  -webkit-text-fill-color: var(--e-violet-400);
-}
 
 /* Iconos de campo (correo/candado): el formulario habla el mismo idioma
    visual que el resto del sistema. El wrapper .auth-field enciende el
@@ -4525,13 +4390,6 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
 }
 .auth-field:focus-within .auth-field-icon {
   color: var(--e-violet-400);
-}
-/* Móvil: sin orbes ni blurs que abaratar el showroom; la píldora ya no
-   existe, no hay padding que ajustar. */
-@media (max-width: 640px) {
-  .ab-orb {
-    filter: none;
-  }
 }
 
 body {
@@ -4677,45 +4535,9 @@ html[data-theme="light"] .brush-mark::after {
 
 /* Halftone (manga de Absolut): puntadas de tinta que se desvanecen.
    Se usa como capa decorativa de esquinas y fondos de escenario. */
-.halftone {
-  position: relative;
-}
-.halftone::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1.2px, transparent 1.3px);
-  background-size: 13px 13px;
-  -webkit-mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), var(--e-mask) 0%, transparent 72%);
-  mask-image: radial-gradient(70% 70% at var(--hx, 0%) var(--hy, 0%), var(--e-mask) 0%, transparent 72%);
-}
-html[data-theme="light"] .halftone::before {
-  background-image: radial-gradient(rgba(9, 9, 11, 0.14) 1.2px, transparent 1.3px);
-}
 
 /* Sticker: chip amarillo rotado con borde de tinta, como los stickers del
    portfolio de referencia. Sirve para "EN VIVO" y contadas cosas mas. */
-.sticker-pop {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  transform: rotate(-2.2deg);
-  border-radius: 0.6rem;
-  padding: 0.28rem 0.65rem;
-  background: var(--e-green-500);
-  color: var(--e-panel-750);
-  border: 2px solid var(--color-zinc-925);
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
-  font-family: "Sora", system-ui, sans-serif;
-  font-weight: 800;
-  font-size: var(--e-text-xs);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-html[data-theme="light"] .sticker-pop {
-  box-shadow: 3px 3px 0 rgba(9, 9, 11, 0.18);
-}
 
 /* Doodle flotante: los garabatos del portfolio neon (corona, rayo,
    estrella) posicionados absolutos dentro de un contenedor .doodle-host */
@@ -4747,9 +4569,6 @@ html[data-theme="light"] .sticker-pop {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   clip-path: polygon(3% 0, 97% 6%, 100% 94%, 0 100%);
   z-index: 2;
-}
-.washi-warm {
-  background: rgba(255, 45, 152, 0.32);
 }
 
 /* Sello de goma: pill con borde doble y rotacion, tipo "GET IN TOUCH". */
@@ -4885,36 +4704,6 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   justify-content: space-between;
   gap: 0.75rem;
 }
-.tkt-date {
-  font-family: "Sora", system-ui, sans-serif;
-  font-weight: 800;
-  font-size: var(--e-text-sm);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--e-brasa-700);
-}
-.tkt-venue {
-  margin-top: 0.15rem;
-  font-family: "Sora", system-ui, sans-serif;
-  font-size: var(--e-text-xs);
-  font-weight: 700;
-  color: rgba(74, 47, 5, 0.75);
-}
-.tkt-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-shrink: 0;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  background: rgba(22, 37, 92, 0.14);
-  color: var(--e-ink-800);
-  font-family: "Sora", system-ui, sans-serif;
-  font-size: var(--e-text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
 /* Nombre del evento: la estrella del cartel. Sora en 800 con tracking
    cerrado sostiene el rol display sin segunda familia; el contorno claro
    tipo sticker hace que el titular se lea impreso. */
@@ -4934,55 +4723,9 @@ html[data-theme="light"] .ribbon-divider .rd-star {
     0 2px 10px rgba(255, 255, 255, 0.22);
   overflow-wrap: anywhere;
 }
-.tkt-sub {
-  position: relative;
-  z-index: 1;
-  margin: 0.45rem 1.25rem 0;
-  font-family: "Sora", system-ui, sans-serif;
-  font-size: var(--e-text-xs);
-  font-weight: 800;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--e-brasa-700);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.tkt-sub::after {
-  content: "";
-  flex: 1;
-  height: 2px;
-  border-radius: 2px;
-  background: rgba(74, 47, 5, 0.25);
-}
 
 /* --- Perforacion troquelada --------------------------------------------- */
-.tkt-tear {
-  position: relative;
-  z-index: 1;
-  margin: 1rem 0 0;
-  height: 0;
-}
 /* Muescas laterales (discos del fondo oscuro) + linea punteada */
-.tkt-tear::before {
-  content: "";
-  position: absolute;
-  top: -0.55rem;
-  left: -0.55rem;
-  right: -0.55rem;
-  height: 1.1rem;
-  background:
-    radial-gradient(circle 0.55rem at 0 50%, var(--color-zinc-950) 98%, transparent),
-    radial-gradient(circle 0.55rem at 100% 50%, var(--color-zinc-950) 98%, transparent);
-}
-.tkt-tear::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0.7rem;
-  right: 0.7rem;
-  border-top: 2px dashed rgba(74, 47, 5, 0.4);
-}
 /* Cuerpo bajo la perforacion: ambar un poco mas profundo */
 .tkt-body {
   position: relative;
@@ -5053,57 +4796,7 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 }
 
 /* --- Datos del asistente (fila tipo talon ROW/SEAT/GATE) ---------------- */
-.tkt-grid {
-  margin-top: 1.1rem;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border: 1.5px solid rgba(22, 37, 92, 0.35);
-  border-radius: 0.75rem;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.4);
-}
-.tkt-cell {
-  padding: 0.55rem 0.5rem;
-  text-align: center;
-}
-.tkt-cell + .tkt-cell {
-  border-left: 1.5px dashed rgba(22, 37, 92, 0.3);
-}
-.tkt-cell-label {
-  font-family: "Sora", system-ui, sans-serif;
-  font-size: var(--e-text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(74, 47, 5, 0.7);
-}
-.tkt-cell-value {
-  margin-top: 0.15rem;
-  font-family: "Sora", system-ui, sans-serif;
-  font-weight: 800;
-  font-size: var(--e-text-sm);
-  color: var(--e-brasa-900);
-  overflow-wrap: anywhere;
-}
 /* Celda de nombre a lo ancho (debajo de la fila de 3) */
-.tkt-name-row {
-  margin-top: 0.6rem;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.55rem 0.75rem;
-  border-radius: 0.75rem;
-  background: rgba(22, 37, 92, 0.1);
-  border: 1.5px solid rgba(22, 37, 92, 0.25);
-}
-.tkt-name-row .tkt-cell-label {
-  flex-shrink: 0;
-}
-.tkt-name-row .tkt-cell-value {
-  text-align: right;
-  font-size: var(--e-text-base);
-}
 
 /* --- Estados no-canjeables: panel de aviso sobre el ambar --------------- */
 .tkt-note {
@@ -5216,11 +4909,6 @@ html[data-theme="light"] .ribbon-divider .rd-star {
 
 /* Escenario de la boleta con halftone (manga de Absolut): las esquinas
    del fondo se llenan de trama de puntos, tipo impreso de festival. */
-.tkt-stage.halftone::before {
-  --hx: 50%;
-  --hy: 0%;
-  z-index: 0;
-}
 .tkt-brandline img {
   width: 1.15rem;
   height: 1.15rem;
@@ -5330,12 +5018,6 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
    El violeta de marca sobre el lienzo claro daba bajo contraste: es un color
    de acento, no de texto. En claro se apaga al violeta profundo, el mismo
    tono que ya usa --color-brand-300 para texto de marca. */
-.brand-suffix {
-  color: var(--e-violet-400);
-}
-html[data-theme="light"] .brand-suffix {
-  color: var(--e-violet-500);
-}
 
 /* --- La estrella de cuatro puntas del wordmark ------------------------
    Va sobre la "t" de "Enty". El <span> reserva el hueco de la letra y el
@@ -6664,33 +6346,17 @@ html[data-theme="light"] .legal-doc code {
    Dos capas sobre la misma pista: el fondo es "vendido" y encima va lo que
    ya entró. Así se ve de un golpe cuánto falta por entrar, que es lo que
    decide si la puerta necesita otro lector. */
-.door-meter {
-  position: relative;
-  height: 1.25rem;
-  border-radius: 0.375rem;
-  overflow: hidden;
-  background: var(--e-surface-3);
-  border: 1px solid var(--e-border-hairline);
-}
 
-.door-meter-sold,
 .door-meter-in {
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0;
   transition: width 0.5s var(--e-ease-standard);
-}
-
-.door-meter-sold {
-  background: color-mix(in srgb, var(--e-violet-500) 42%, transparent);
-}
-
-.door-meter-in {
   background: var(--e-green-500);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .door-meter-sold, .door-meter-in { transition: none; }
+  .door-meter-in { transition: none; }
 }
 
 .door-key {
@@ -6776,86 +6442,7 @@ html[data-theme="light"] .legal-doc code {
 }
 
 /* --- Promotores: la tabla de avance --- */
-.ptable {
-  padding: 0;
-  overflow: hidden;
-}
 
-.prow {
-  display: grid;
-  grid-template-columns: 1.6fr 0.7fr 0.7fr 0.7fr 1fr 1.4fr;
-  gap: 0.625rem;
-  align-items: center;
-  padding: 0.75rem 1.125rem;
-  border-bottom: 1px solid var(--e-border-hairline);
-  font-size: var(--e-text-2xs);
-  color: var(--e-text-secondary);
-}
-
-.prow:last-child { border-bottom: 0; }
-
-.prow-hd {
-  background: var(--e-surface-2);
-  font-size: var(--e-text-2xs);
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--e-text-muted);
-}
-
-.prow-name {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-  font-weight: 600;
-  color: var(--e-text-primary);
-}
-
-.prow-av {
-  display: grid;
-  place-items: center;
-  width: 1.625rem;
-  height: 1.625rem;
-  flex: none;
-  border-radius: 0.4375rem;
-  font-size: var(--e-text-2xs);
-  font-weight: 700;
-  color: var(--e-white);
-  /* violet-500 primero: el 400 está marcado "solo halo/glow" y no llega a
-     AA con texto blanco encima (3.5:1). Mismo orden que el resto de la app. */
-  background: linear-gradient(150deg, var(--e-violet-500), var(--e-violet-400));
-}
-
-.padv-track {
-  flex: 1;
-  height: 0.375rem;
-  border-radius: 999px;
-  background: var(--e-surface-3);
-  overflow: hidden;
-}
-
-.padv-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--e-violet-500), var(--e-violet-400));
-}
-
-.padv-fill.is-warn { background: linear-gradient(90deg, var(--e-amber-500), var(--e-amber-400)); }
-.padv-fill.is-full { background: linear-gradient(90deg, var(--e-emerald-500), var(--e-green-500)); }
-
-/* En móvil la tabla de 6 columnas no cabe: se apila por filas de datos.
-   Mobile-first real, no una tabla con scroll horizontal. */
-@media (max-width: 640px) {
-  .prow {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.375rem 0.75rem;
-  }
-
-  .prow-hd { display: none; }
-
-  .prow-name { grid-column: 1 / -1; }
-}
 
 /* ===========================================================================
    OPERACIÓN PRIMERO · la portada deja de enterrar los eventos (≤640px)

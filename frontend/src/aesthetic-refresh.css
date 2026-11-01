@@ -27,23 +27,12 @@ body {
   color: var(--e-text-primary);
 }
 
-.eyebrow,
-.vh-kpi-label,
-.tkt-cell-label {
+.eyebrow, .vh-kpi-label {
   letter-spacing: 0.18em;
 }
 
-.eyebrow,
-.brand-suffix,
-.btn-mini[data-variant="brand"],
-.tabbar-item[aria-selected="true"] .text-brand-300 {
+.eyebrow, .btn-mini[data-variant="brand"], .tabbar-item[aria-selected="true"] .text-brand-300 {
   color: var(--e-violet-200);
-}
-
-.text-gradient {
-  background: linear-gradient(120deg, var(--e-white) 0%, var(--e-white) 36%, var(--e-violet-200) 72%, var(--e-brand) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
 }
 
 .card,
@@ -610,30 +599,8 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-white);
 }
 
-.tkt-title,
-.tkt-event,
-.tkt-main-title {
-  color: var(--e-white);
-  text-shadow: 0 2px 18px rgba(255, 255, 255, 0.12);
-}
-
-.tkt-sub,
-.tkt-venue,
-.tkt-date,
-.tkt-footer,
-.tkt-brandline {
+.tkt-footer, .tkt-brandline {
   color: rgba(247, 247, 251, 0.72);
-}
-
-.tkt-brand,
-.tkt-admit {
-  background: rgba(187, 92, 246, 0.16);
-  color: var(--e-white);
-  border-color: rgba(187, 92, 246, 0.42);
-}
-
-.tkt-tear::after {
-  border-top-color: rgba(255, 255, 255, 0.22);
 }
 
 .tkt-body {
@@ -654,24 +621,7 @@ html[data-theme="light"] .bizdock-count {
   filter: drop-shadow(0 0 8px rgba(0, 230, 171, 0.45));
 }
 
-.tkt-grid,
-.tkt-name-row,
-.tkt-note {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.055);
-  color: var(--e-white);
-}
-
-.tkt-cell + .tkt-cell {
-  border-left-color: rgba(255, 255, 255, 0.18);
-}
-
-.tkt-cell-label,
-.tkt-cell-value,
-.tkt-note strong,
-.tkt-note p,
-.tkt-name-row .tkt-cell-label,
-.tkt-name-row .tkt-cell-value {
+.tkt-note strong, .tkt-note p {
   color: var(--e-white);
 }
 
@@ -1117,10 +1067,6 @@ html[data-theme="light"] .bizdock-count {
   background: rgba(187, 92, 246, 0.18);
   color: var(--e-white);
 }
-.tkt-note strong,
-.tkt-note p {
-  color: var(--e-white);
-}
 .tkt-note p {
   color: var(--e-ticket-dim);
 }
@@ -1246,33 +1192,6 @@ html[data-theme="light"] .bizdock-count {
 }
 
 /* Tabs de categoria */
-.home-tabs {
-  margin-top: 1.35rem;
-  display: flex;
-  gap: 1.6rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.home-tabs::-webkit-scrollbar {
-  display: none;
-}
-.home-tabs button {
-  height: 2.75rem;
-  min-height: 2.75rem;
-  font-size: var(--e-text-sm);
-  font-weight: 400;
-  color: var(--e-text-secondary);
-  border-bottom: 1.5px solid transparent;
-  margin-bottom: -1px;
-  white-space: nowrap;
-  transition: color var(--e-dur-fast) var(--e-ease-standard);
-}
-.home-tabs button.is-on {
-  color: var(--e-text-primary);
-  font-weight: 600;
-  border-bottom-color: var(--e-text-primary);
-}
 
 /* Card destacada (glassmorphism sobre el hero) */
 .home-feature {
@@ -1445,26 +1364,6 @@ html[data-theme="light"] .bizdock-count {
   border-color: rgba(124, 58, 237, 0.5);
   transform: translateY(var(--e-lift));
   box-shadow: 0 16px 34px -26px rgba(124, 58, 237, 0.9);
-}
-.home-row-date {
-  flex: none;
-  width: 2.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-.home-row-date b {
-  font-size: var(--e-text-2xl);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-.home-row-date i {
-  font-size: var(--e-text-2xs);
-  font-style: normal;
-  letter-spacing: 0.16em;
-  color: var(--e-text-secondary);
 }
 .home-row-info {
   flex: 1;
@@ -2784,20 +2683,7 @@ html[data-motion="reduce"] .door-shell > * {
   .fan-qr-loading svg {
     animation: none;
   }
-  .home-tabs button,
-  .home-cats button,
-  .home-cat-dot,
-  .home-row,
-  .home-row-fav,
-  .home-row-thumb,
-  .home-nav a,
-  .evd-round,
-  .evd-round:hover,
-  .evd-copy,
-  .home-bell,
-  .home-bell-panel,
-  [class*="home-"] button,
-  [class*="evd-"] button {
+  .home-cats button, .home-cat-dot, .home-row, .home-row-fav, .home-row-thumb, .home-nav a, .evd-round, .evd-round:hover, .home-bell, .home-bell-panel, [class*="home-"] button, [class*="evd-"] button {
     transition: none;
   }
   .home-row-fav:active,
