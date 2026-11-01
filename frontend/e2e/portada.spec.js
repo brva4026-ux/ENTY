@@ -142,7 +142,7 @@ test("el estado vacío dice el motivo y la miniatura sin flyer es una fecha", as
   });
   test.skip(!emptyTab, "el seed no tiene ningún estado vacío");
 
-  await page.getByRole("tab", { name: new RegExp(emptyTab) }).click();
+  await page.getByRole("button", { name: new RegExp(emptyTab) }).click();
   await expect(page.getByText("No hay eventos en este estado")).toBeVisible({
     timeout: 5_000,
   });

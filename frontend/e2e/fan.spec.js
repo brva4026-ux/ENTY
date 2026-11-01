@@ -24,8 +24,8 @@ test("Inicio -> detalle -> Mis boletos", async ({ page }) => {
 
   // Inicio: header de marca, buscador y el carrusel de categorias del mockup.
   await expect(page.getByPlaceholder(/Busca conciertos/)).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Conciertos" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Comedia" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Conciertos" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Comedia" })).toBeVisible();
 
   // El evento del seed, no "el primero de la lista": otras specs corren en
   // paralelo y crean eventos publicados (E2E-*) que pueden caer antes. El
