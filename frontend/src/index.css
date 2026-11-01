@@ -6529,7 +6529,9 @@ html[data-theme="light"] .legal-table td {
 }
 .legal-doc code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.85em;
+  /* 0.85em sobre la prosa (13.6px) caia en 11.56px, por debajo del suelo de
+     12px. max() lo deja algo menor que el texto corrido sin bajar de ahi. */
+  font-size: max(0.85em, var(--e-text-2xs));
   background: rgba(255, 255, 255, 0.08);
   padding: 0.1em 0.35em;
   border-radius: 0.35rem;

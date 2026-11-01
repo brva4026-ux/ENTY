@@ -862,16 +862,18 @@ html[data-theme="light"] .legal-link {
     min-height: 2.75rem;
   }
   /* El boton redondo del detalle conserva su caja de 40px (estirarla
-     deformaria la pildora) y gana el area que falta con un ::after invisible:
-     -2px da los 44px exactos sin que dos botones contiguos (gap 8px) se
-     pisen. */
+     deformaria la pildora) y gana el area que falta con un ::after invisible.
+     Ojo: inset se mide sobre el padding box, y el boton tiene 1px de borde con
+     box-sizing border-box, asi que su padding box son 38px. -3px da los 44px
+     reales (-2px se quedaba en 42). Con gap de 8px, los 3px de cada vecino no
+     se pisan (6px < 8px). */
   .evd-round {
     position: relative;
   }
   .evd-round::after {
     content: "";
     position: absolute;
-    inset: -2px;
+    inset: -3px;
   }
 }
 

@@ -398,14 +398,22 @@ html:not([data-theme="light"]) .app-shell .bottomnav {
     inset: -14px -8px; /* 16px de renglón → 44px de toque */
   }
 
-  /* App del fan: avatar y CTA a 44px. */
+  /* App del fan: avatar y CTA a 44px.
+     El avatar mide 36px y va pegado al borde derecho, asi que inset: -4px daba
+     42px (el borde de 1px no cuenta para el padding box) y ademas se recortaba
+     contra el viewport. Un ::after de 44x44 centrado da el area exacta sin
+     depender del borde ni del box-sizing. */
   .home-avatar {
     position: relative;
   }
   .home-avatar::after {
     content: "";
     position: absolute;
-    inset: -4px;
+    top: 50%;
+    left: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    transform: translate(-50%, -50%);
   }
   .home-cta {
     min-height: 2.75rem;
