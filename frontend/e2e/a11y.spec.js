@@ -757,3 +757,37 @@ test("/inicio tiene un único landmark principal con el contenido", async ({ bro
   expect(r.tieneLista, "la cartelera debe vivir dentro del landmark principal").toBe(true);
   expect(r.sueltos, "contenido fuera del landmark principal").toBe(0);
 });
+
+/**
+ * El panel de avisos de /inicio (la campana) es un `role="dialog"`: un diálogo
+ * que no se cierra con Escape deja al usuario de teclado atrapado mirándolo (no
+ * hay overlay que toque, y el botón de la campana ya está "detrás"). El patrón
+ * dropdown del resto de la app (NotificationBell) cierra con Escape Y con clic
+ * fuera; este panel solo cerraba con el botón de la campana o al elegir un
+ * aviso. Se prueba lo que el usuario percibe: Escape cierra, y el foco vuelve a
+ * la campana (no se queda en el body).
+ */
+test("el panel de avisos de /inicio se cierra con Escape y devuelve el foco", async ({ browser }) => {
+  const ok = await available(await browser.newPage(), "/inicio");
+  test.skip(!ok, "App no disponible");
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 860 } });
+  const page = await ctx.newPage();
+  await page.goto("/inicio");
+  await page.waitForTimeout(800);
+  await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+  await page.waitForTimeout(300);
+
+  const campana = page.getByRole("button", { name: "Notificaciones" });
+  await campana.focus();
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(250);
+  await expect(page.locator(".home-bell-panel"), "el panel abre con la campana").toHaveCount(1);
+
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(250);
+  await expect(page.locator(".home-bell-panel"), "Escape cierra el panel").toHaveCount(0);
+
+  const foco = await page.evaluate(() => document.activeElement?.getAttribute("aria-label"));
+  await ctx.close();
+  expect(foco, "el foco vuelve a la campana tras cerrar").toBe("Notificaciones");
+});

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
@@ -340,6 +340,13 @@ export default function HomePage() {
   // Solo la última tarjeta marcada celebra (rebote): no todas al montar.
   const [favPop, setFavPop] = useState(null);
   const [bellOpen, setBellOpen] = useState(false);
+  // El panel de avisos es un role="dialog" (dropdown, no modal): cierra con
+  // Escape y con clic fuera, como el resto de campanas de la app. Sin esto el
+  // usuario de teclado quedaba mirando un panel que solo cerraba el botón.
+  // El panel vive fuera de `.home-head-right` (es hermano del header), así que
+  // el "clic fuera" mira los dos nodos: botón y panel.
+  const bellRef = useRef(null);
+  const bellPanelRef = useRef(null);
   // Contador de reintentos: cambiar el valor vuelve a disparar el fetch sin
   // duplicar la lógica de carga (mismo efecto, misma limpieza).
   const [reload, setReload] = useState(0);
@@ -385,6 +392,31 @@ export default function HomePage() {
     else url.searchParams.delete("city");
     window.history.replaceState(null, "", url);
   }, [city]);
+
+  // Cerrar el panel de avisos con Escape (y devolver el foco a la campana) y con
+  // clic fuera. Patrón dropdown, igual que NotificationBell: es un role="dialog"
+  // de contenido, no un modal, así que no atrapa el foco ni bloquea el scroll.
+  useEffect(() => {
+    if (!bellOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setBellOpen(false);
+        bellRef.current?.querySelector(".home-bell")?.focus();
+      }
+    };
+    const onDoc = (e) => {
+      const enBoton = bellRef.current?.contains(e.target);
+      const enPanel = bellPanelRef.current?.contains(e.target);
+      if (!enBoton && !enPanel) setBellOpen(false);
+    };
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("mousedown", onDoc);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("mousedown", onDoc);
+    };
+  }, [bellOpen]);
 
   // Embudo, paso 1: vio la vitrina. Solo cuando el catálogo cargó: si la API
   // falló, esa visita no es una oportunidad de venta y no debe contarla.
@@ -482,7 +514,7 @@ export default function HomePage() {
             <TransitionLink to="/login">Acceso</TransitionLink>
           </nav>
         </div>
-        <div className="home-head-right">
+        <div className="home-head-right" ref={bellRef}>
           <button
             type="button"
             className="home-bell"
@@ -497,7 +529,7 @@ export default function HomePage() {
       </header>
 
       {bellOpen && (
-        <div className="home-bell-panel" role="dialog" aria-label="Avisos">
+        <div className="home-bell-panel" role="dialog" aria-label="Avisos" ref={bellPanelRef}>
           <p className="home-bell-title">Próximos 7 días</p>
           {soon.length === 0 ? (
             <p className="home-bell-empty">Sin eventos a la vuelta de la esquina.</p>
