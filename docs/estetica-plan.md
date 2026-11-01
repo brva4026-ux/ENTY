@@ -109,6 +109,10 @@ Escalas cerradas (se acaban los valores de una sola aparición):
 - **Tipografía** (ratio 1.25, fluida con `clamp()` para display):
   `--e-text-2xs .6875 · xs .75 · sm .8125 · base .9375 · lg 1.0625 · xl 1.25 · 2xl 1.5 · 3xl 1.875 · display clamp(2.25rem,6vw,3.5rem)`.
   Se **retiran los 7 micro-tamaños**; el mínimo de texto baja a 0.6875rem.
+  > **Superado (oct-2026)**: el piso subió a **0.875rem (14px)** y el cuerpo a
+  > 1.0625rem (17px) por legibilidad del público 45-58. La escala vigente está
+  > en `tokens.css` (`--e-text-*`) y `DESIGN.md` §2; esta línea refleja el plan
+  > original.
 - **Peso**: 400/500/600/700 (Sora variable ya cubre 100–800).
 - **Motion**: `--e-dur-fast 120ms · base 200ms · slow 320ms`; curvas
   `--e-ease-standard cubic-bezier(.2,.8,.2,1)` (la única del producto),
@@ -182,6 +186,9 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   `text-2xs`, 34×`text-[10px]` + 5×`text-[9px]` + `text-[8px]` → `text-2xs`,
   `text-[13px]` → `text-sm`, etc. **El piso de legibilidad es 11px** (medido en
   navegador: 0 elementos por debajo en home/login, sin overflow a 320px).
+  > **Superado (oct-2026)**: el piso subió a **14px** (y el cuerpo a 17px); ver
+  > `DESIGN.md` §2 y `AGENTS.md` ("Legibilidad 45-58"). El corte de micro-tamaños
+  > aquí descrito es el del plan original.
 - [x] `clamp()` en display: los 6 clamps ad-hoc → `--e-text-display`
   (`clamp(2.25rem, 6vw, 3.5rem)`); de paso el hero dejó de tener techos de
   8.5vw (hasta 46px en móvil) y bajó a 36px, más contenido.
