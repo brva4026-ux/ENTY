@@ -230,7 +230,7 @@ como gate en CI deja el pipeline rojo.
 
 ## Datos demo
 
-Venue `Bar Esquina` (id 31), evento `Noche Electrónica` (id 31).
+Venue `Bar Esquina` (slug `bar-esquina`), evento `Noche Electrónica`.
 Usuarios con contraseña `demo1234`:
 
 | email | rol |
@@ -247,12 +247,35 @@ para ver el aviso de espera) y otra al evento `Prueba de QR` (en +20 min → QR
 teléfono. El seed es idempotente: `events` no tiene UNIQUE(venue_id, name), así
 que busca antes de insertar (no confíes en `ON CONFLICT` ahí).
 
+### El evento demo se re-fecha al re-sembrar (vitrina vacía)
+
+El seed **re-fecha** el evento demo en cada corrida (`_ensure_event` hace un
+`UPDATE ... SET starts_at = now() + interval ...` sobre el existente). Antes solo
+insertaba la primera vez y salía: a los pocos días el `starts_at` quedaba en el
+pasado y la vitrina `/inicio` salía **VACÍA**, porque `/public/events` filtra
+`status IN ('published','live') AND starts_at >= now()`. Re-sembrar no lo
+arreglaba — el seed veía el evento y no lo tocaba. Síntoma real (nov-2026): 9
+eventos publicados/live, **0 futuros**, catálogo en cero. El filtro del endpoint
+era correcto; el dato era el problema. Un demo en estado terminal
+(`ended`/`cancelled`) no se republica (el trigger lo bloquea), así que la
+búsqueda se acota a `published`/`live` y el seed inserta uno nuevo.
+
+`scripts/seed_prod.sql` (el camino de producción, con `IS_DEMO=false`) tenía el
+mismo bug de "solo la primera vez"; ya re-fecha con un `UPDATE` guardado a
+`published`/`live`. Regresión cubierta por `backend/tests/test_seed_demo.py`
+(sembrar dos veces deja el demo futuro, sin duplicar, y visible en el catálogo).
+
 Ojo: los ids son `GENERATED ALWAYS AS IDENTITY`, así que **cambian en cada
 seed**. No los fijes en scripts; consúltalos. Además, correr `pytest` **borra
 estos datos** (el `conftest` hace `DROP TABLE`), así que después de testear hay
 que re-sembrar. La DB local de desarrollo se levanta con el Postgres portable
 (`.local/pgsql/`, ver `docs/despliegue.md`) y los tests pueden apuntar a una
 base desechable del mismo servidor con `TEST_DATABASE_URL`.
+
+**Nunca corras la suite E2E contra producción.** La suite crea eventos `E2E-*`
+reales, les emite boletas y los deja en la DB. En nov-2026 quedaron 8 eventos
+`E2E-*` (más boletas, escaneos y waitlist) en la Supabase de producción, y como
+los `E2E-WAIT-*` nacen publicados y futuros, aparecían en la vitrina del fan.
 
 ```bash
 cd backend && .venv/bin/python -c "

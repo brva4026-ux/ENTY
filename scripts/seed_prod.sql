@@ -25,15 +25,32 @@ JOIN users u ON u.email = x.email
 WHERE v.slug = 'bar-esquina'
 ON CONFLICT DO NOTHING;
 
--- Evento demo publicado (visible para promotores y listo para abrir puertas)
+-- Evento demo publicado (visible para promotores y listo para abrir puertas).
+-- Se RE-FECHA en cada corrida. Antes solo se insertaba la primera vez: a los
+-- pocos dias su starts_at quedaba en el pasado y la vitrina publica
+-- (/public/events, que filtra starts_at >= now()) mostraba la cartelera VACIA.
+-- Re-ejecutar el seed no lo arreglaba, porque el NOT EXISTS veia el evento
+-- existente y salia sin tocar la fecha. El UPDATE lo revive; si el demo quedo
+-- en un estado terminal (ended/cancelled, que el trigger no deja republicar),
+-- el INSERT de abajo crea uno nuevo en vez de resucitar la historia.
+UPDATE events
+   SET starts_at = now() + interval '7 days'
+ WHERE name = 'Noche Electronica'
+   AND status IN ('published', 'live');
+
 INSERT INTO events (venue_id, name, description, starts_at, capacity, status)
 SELECT v.id, 'Noche Electronica', 'Evento demo de TicketFlow',
        now() + interval '7 days', 120, 'published'
 FROM venues v
 WHERE v.slug = 'bar-esquina'
-  AND NOT EXISTS (SELECT 1 FROM events e WHERE e.name = 'Noche Electronica');
+  AND NOT EXISTS (
+    SELECT 1 FROM events e
+    WHERE e.name = 'Noche Electronica' AND e.status IN ('published', 'live')
+  );
 
--- Tipos de boleta: cortesía (para cupos de promotor) y general de pago
+-- Tipos de boleta: cortesía (para cupos de promotor) y general de pago.
+-- Se acotan al evento demo VISIBLE: si hay historia (un demo viejo 'ended'),
+-- no se le cuelgan tipos nuevos.
 INSERT INTO ticket_types (event_id, name, price_cents, quantity, is_courtesy)
 SELECT e.id, x.name, x.price, x.qty, x.cour
 FROM events e
@@ -42,6 +59,7 @@ CROSS JOIN (VALUES
   ('General',  3000000, 60, FALSE)
 ) AS x(name, price, qty, cour)
 WHERE e.name = 'Noche Electronica'
+  AND e.status IN ('published', 'live')
   AND NOT EXISTS (
     SELECT 1 FROM ticket_types tt
     WHERE tt.event_id = e.id AND tt.name = x.name
@@ -58,4 +76,5 @@ JOIN users u ON u.email = x.email
 CROSS JOIN events e
 JOIN ticket_types tt ON tt.event_id = e.id AND tt.name = 'Cortesia'
 WHERE e.name = 'Noche Electronica'
+  AND e.status IN ('published', 'live')
 ON CONFLICT (event_id, ticket_type_id, promoter_id) DO NOTHING;

@@ -61,23 +61,39 @@ async def _ensure_event(
     interval_sql: str,
     capacity: int,
 ) -> int:
-    """Devuelve el id de un evento del seed, creandolo la primera vez.
+    """Devuelve el id de un evento del seed, creandolo o re-fechandolo.
 
     `events` no tiene UNIQUE(venue_id, name), asi que `ON CONFLICT DO NOTHING`
     no evita duplicados: hay que buscar antes de insertar. `interval_sql` es un
     literal constante del seed (no entrada del usuario).
+
+    El evento demo se RE-FECHA en cada corrida. Antes solo se insertaba la
+    primera vez, asi que a los pocos dias su `starts_at` quedaba en el pasado y
+    la vitrina publica (`/public/events`, que filtra `starts_at >= now()`)
+    mostraba la cartelera VACIA. Volver a sembrar no lo arreglaba: el seed veia
+    el evento existente y salia sin tocarlo.
+
+    La busqueda se acota a `published`/`live`: un demo terminado o cancelado no
+    se puede republicar (el trigger `events_check_transition` lo bloquea), asi
+    que si solo queda historia se inserta uno nuevo en vez de revivirla.
     """
+    starts_sql = f"now() + interval '{interval_sql}'"
     await cur.execute(
-        "SELECT id FROM events WHERE venue_id=%s AND name=%s ORDER BY id LIMIT 1",
+        "SELECT id FROM events WHERE venue_id=%s AND name=%s "
+        "AND status IN ('published', 'live') ORDER BY id LIMIT 1",
         (venue_id, name),
     )
     row = await cur.fetchone()
     if row:
+        await cur.execute(
+            f"UPDATE events SET starts_at = {starts_sql} WHERE id = %s",
+            (row["id"],),
+        )
         return row["id"]
     await cur.execute(
         f"""
         INSERT INTO events (venue_id, name, description, starts_at, capacity, status)
-        VALUES (%s, %s, %s, now() + interval '{interval_sql}', %s, 'published')
+        VALUES (%s, %s, %s, {starts_sql}, %s, 'published')
         RETURNING id
         """,
         (venue_id, name, description, capacity),
@@ -189,12 +205,6 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
         soon_event_id = await _ensure_event(
             cur, venue_id, "Prueba de QR",
             "Evento que empieza en 20 min para probar el QR activo", "20 minutes", 50,
-        )
-        # Reafina la hora en cada corrida: el evento debe quedar inminente para
-        # que el QR siga activo cuando se vuelva a sembrar mas tarde.
-        await cur.execute(
-            "UPDATE events SET starts_at = now() + interval '20 minutes' WHERE id = %s",
-            (soon_event_id,),
         )
 
         await cur.execute(
