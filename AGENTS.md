@@ -104,6 +104,18 @@ compran y abren la puerta. Al segundo `npx playwright test` contra la misma DB:
   (`_MAX_FAILURES=8` en 15 min, `backend/app/routers/auth.py`). El 9.º intento
   devuelve **429** y todo test que entre al panel falla.
 
+  **La contaminación no viene solo de los `E2E-*`**: `pytest` también siembra
+  eventos con nombres de fixture (`Evento de prueba`, `Puerta grace`, `Dos
+  Filas`, `Embudo *`). En una sesión de auditoría la DB llegó a 330 eventos, 134
+  de ellos `Evento de prueba`; como `/inicio` corta en 50, la cartelera real
+  quedaba fuera de la primera pantalla y specs de portada/estado vacío fallaban
+  por datos, no por código. Si no tenés `psql`, borralos con el `psycopg` del
+  venv del backend (mismo `database_url` de `app/core/config.py`) y respetá el
+  orden hijo→padre: `redemptions`, `ticket_returns`, `ticket_payments`,
+  `tickets`, `promoter_allocations`, `event_waitlist`, `event_staff`,
+  `event_access_tokens`, `analytics_events`, `ticket_types` (los `tickets`
+  referencian `ticket_types`, así que van ANTES).
+
 Antes de culpar a tu diff, limpiá y volvé a correr:
 
 ```bash
