@@ -38,6 +38,7 @@ export default function LoginPage() {
   // (("Hola, Ana")), así que se guarda el objeto completo, no solo un booleano.
   const [entered, setEntered] = useState(null);
   const emailRef = useRef(null);
+  const passwordRef = useRef(null);
 
   // autoFocus fijo abría el teclado al entrar en móvil y provocaba salto de
   // layout y zoom. Solo se enfoca donde hay puntero fino (escritorio).
