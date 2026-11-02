@@ -5,6 +5,11 @@
  * Con prefers-reduced-motion nada se mueve: la calma es el lujo.
  *
  * Capas: una sola (la luz del showroom). La calma ES el lujo.
+ *
+ * Video de fondo sutil: movimiento fluido de partículas/burst sintonizado
+ * con la identidad de Enty. Nunca roza lo distractivo; el foco siempre
+ * está en el formulario. El video se desactiva completamente con
+ * prefers-reduced-motion.
  */
 
 export function MailIcon({ className = "" }) {
@@ -46,6 +51,10 @@ export function LockIcon({ className = "" }) {
 
 export function AuthBackdrop() {
   return (
-    <div className="auth-backdrop" aria-hidden="true" />
+    <div
+      className="auth-backdrop"
+      aria-hidden="true"
+      data-reveal-motion="reduce" // señal para CSS prefers-reduced-motion
+    />
   );
 }

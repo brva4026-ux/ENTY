@@ -233,7 +233,7 @@ export default function LoginPage() {
   return (
     <AuthShell>
       <div className="relative w-full">
-        <div className="auth-card reveal p-6 sm:p-7">
+        <div className="auth-card reveal p-6 sm:p-7 auth-card-enter">
           <p className="eyebrow">Tu panel</p>
           <h1 className="display mt-1 mb-1 text-2xl">Ingresar</h1>
           <p className="mb-5 text-sm leading-relaxed text-zinc-400">
