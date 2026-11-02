@@ -1,7 +1,7 @@
 import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
 import { useAuth } from "../lib/auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
 import { WelcomeOverlay } from "../components/WelcomeOverlay";
