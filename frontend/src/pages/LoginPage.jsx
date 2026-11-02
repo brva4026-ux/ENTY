@@ -382,7 +382,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onclick={() => window.alert('Funcionalidad de contacto en desarrollo')}
+              onClick={() => window.open('https://wa.me/qr/H4SZ7YBWO266O1', '_blank')}
               className="mb-2 inline-flex min-h-11 items-center text-xs font-medium text-brand-300 transition hover:text-brand-200"
             >
               ¿Problemas para entrar? Contáctanos
