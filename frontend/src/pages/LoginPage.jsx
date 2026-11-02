@@ -238,8 +238,7 @@ export default function LoginPage() {
       <div className="relative w-full">
         <LoginVideo />
         <div className="auth-card reveal p-6 sm:p-7 auth-card-enter">
-          <p className="eyebrow">Tu panel</p>
-          <h1 className="display mt-1 mb-1 text-2xl">Ingresar</h1>
+          <h1 className="display mt-1 mb-1 text-2xl">Iniciar sesión</h1>
           <p className="mb-5 text-sm leading-relaxed text-zinc-400">
             Entra con tu usuario o tu correo para manejar la venta y la puerta.
           </p>
@@ -380,6 +379,14 @@ export default function LoginPage() {
                 )}
               </div>
             )}
+
+            <button
+              type="button"
+              onclick={() => window.alert('Funcionalidad de contacto en desarrollo')}
+              className="mb-2 inline-flex min-h-11 items-center text-xs font-medium text-brand-300 transition hover:text-brand-200"
+            >
+              ¿Problemas para entrar? Contáctanos
+            </button>
 
             {error && (
               <div
