@@ -1105,8 +1105,15 @@ avisar.
   `python3 scripts/generate_login_video.py` (necesita ffmpeg + numpy/Pillow).
   Lo monta `LoginVideo.jsx` encima del fondo CSS (`LoginAurora`), que queda de
   respaldo: si el navegador no reproduce, si hay `prefers-reduced-motion` o
-  `html[data-motion="reduce"]`, si `navigator.connection.saveData`, o si el
-  tema es claro (el clip es de marca oscura), NO se descarga y se ve el CSS.
+  `html[data-motion="reduce"]`, o si el usuario ahorra datos, NO se descarga y
+  se ve el CSS.
+  **El fondo del login es de marca, no de tema**: el clip y el aurora son
+  nocturnos, así que `.auth-shell--minimal` sigue oscuro (`--e-ink-950`) en
+  ambos temas y el video se ve siempre (la app arranca en `system`; en la
+  mayoria de los equipos eso es claro, y el video no debe depender de eso). La
+  TARJETA sí respeta el tema: en claro queda blanca flotando sobre la escena
+  oscura. La regla clara de `.auth-shell--minimal` va DESPUÉS de
+  `html[data-theme="light"] .auth-shell` (misma especificidad: gana por orden).
   Con el video activo, `server.mjs` DEBE servir `video/*` con su MIME (no
   `application/octet-stream`, que con `nosniff` el navegador rechaza) y
   responder `Range` con 206: sin eso Safari/iOS no reproduce y no hay seek.

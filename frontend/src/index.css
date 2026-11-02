@@ -5160,9 +5160,6 @@ html[data-theme="light"] .evx-name {
   overflow: hidden;
   background: var(--e-ink-950);
 }
-html[data-theme="light"] .auth-shell--minimal {
-  background: var(--e-neutral-150);
-}
 
 /* --------------------------------------------------------------------------
    Fondo en movimiento del login (LoginAurora)
@@ -5276,16 +5273,8 @@ html[data-theme="light"] .auth-shell--minimal {
     transform: translate3d(240%, 0, 0) rotate(18deg);
   }
 }
-/* Claro: el violeta sobre crema pesa mas, así que se baja la intensidad. */
-html[data-theme="light"] .auth-aurora-blob {
-  opacity: 0.42;
-}
-html[data-theme="light"] .auth-aurora-blob--c {
-  opacity: 0.28;
-}
-html[data-theme="light"] .auth-aurora-sheen {
-  opacity: 0.3;
-}
+/* El lienzo del login es oscuro en ambos temas, así que el aurora no
+   necesita una variante clara: se ve igual. */
 /* Movimiento reducido: el fondo queda como una escena quieta, no desaparece. */
 @media (prefers-reduced-motion: reduce) {
   .auth-aurora-blob,
@@ -5354,10 +5343,8 @@ html[data-motion="reduce"] .auth-aurora-sheen {
       color-mix(in srgb, var(--e-ink-950) 48%, transparent)
     );
 }
-html[data-theme="light"] .auth-video-el {
-  /* En claro el clip oscuro desentona: se desvanece y manda el fondo crema. */
-  opacity: 0.5;
-}
+/* El lienzo del login es oscuro en ambos temas, así que el clip se ve igual
+   en claro y en oscuro; no necesita override. */
 
 /* --- Panel de marca (solo desktop). Superficie = navy de la boleta, el
        mismo material del logo y del talon. No sigue el tema: la marca es
@@ -5596,6 +5583,14 @@ html[data-theme="light"] .auth-brand .eyebrow {
 
 html[data-theme="light"] .auth-shell {
   background: var(--e-neutral-150);
+}
+/* El fondo del login es de MARCA, no de tema: el video y el aurora son
+   nocturnos, así que en claro el lienzo sigue oscuro (una foto de producto
+   no se invierte). Va DESPUÉS de la regla de arriba, que tiene la misma
+   especificidad y si no ganaría por orden de fuente. La tarjeta sí respeta
+   el tema: en claro queda blanca flotando sobre la escena oscura. */
+html[data-theme="light"] .auth-shell--minimal {
+  background: var(--e-ink-950);
 }
 html[data-theme="light"] .auth-shell .auth-card {
   background: var(--e-white);

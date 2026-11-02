@@ -24,10 +24,7 @@ export function LoginVideo() {
     const appReduced = document.documentElement.dataset.motion === "reduce";
     // Ahorro de datos (móvil con plan medido): no descargamos el video.
     const saveData = navigator.connection?.saveData === true;
-    // Tema claro: el clip es de marca oscura y sobre crema desentona; ahí manda
-    // el fondo CSS claro, así que ni lo bajamos.
-    const lightTheme = document.documentElement.dataset.theme === "light";
-    if (prefersReduced || appReduced || saveData || lightTheme) return;
+    if (prefersReduced || appReduced || saveData) return;
     setEnabled(true);
   }, []);
 
