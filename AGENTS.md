@@ -92,51 +92,49 @@ nueva con `CREATE TABLE IF NOT EXISTS` (para que un re-run no rompa).
 ### Correr la suite E2E dos veces seguidas (importante)
 
 La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los
-compran y abren la puerta. Al segundo `npx playwright test` contra la misma DB:
+compran y abren la puerta. Al segundo `npx playwright test` contra la misma DB
+aparecen fallos que **no tienen nada que ver con el cambio que estás probando**.
+Hay dos culpables, y los dos se ven idénticos a una regresión real:
 
-- El catálogo de `/inicio` se llena de eventos `E2E-*`. Los tests que asumían
-  que la primera fila era la del seed (`Noche Electrónica`) fallaban por un
-  motivo que **no tiene nada que ver con el cambio que estás probando**.
-  Síntoma real observado: 10 fallos con el mismo código que antes daba 30/31.
-  **Ya no**: `fan.spec.js` y `fan-checkout.spec.js` seleccionan el seed
-  explícitamente (por nombre) en vez de "el primero de la lista", así que dan
-  30/31 con la base contaminada. Si aparecen fallos de orden en otro test,
-  aplicá el mismo patrón: anclá al seed, no a la posición.
-- Los logins del admin chocan con el lockout de `login_attempts`
-  (`_MAX_FAILURES=8` en 15 min, `backend/app/routers/auth.py`). El 9.º intento
-  devuelve **429** y todo test que entre al panel falla.
+1. **El catálogo público se llena de eventos de prueba.** `/inicio` pide
+   `/public/events`, que devuelve como máximo **50 eventos ordenados por fecha**
+   (`limit` en `backend/app/routers/public.py`). Con la base sucia, el evento del
+   seed (`Noche Electrónica`) puede quedar **fuera de esa página**.
 
-  **La contaminación no viene solo de los `E2E-*`**: `pytest` también siembra
-  eventos con nombres de fixture (`Evento de prueba`, `Puerta grace`, `Dos
-  Filas`, `Embudo *`). En una sesión de auditoría la DB llegó a 330 eventos, 134
-  de ellos `Evento de prueba`; como `/inicio` corta en 50, la cartelera real
-  quedaba fuera de la primera pantalla y specs de portada/estado vacío fallaban
-  por datos, no por código. Si no tenés `psql`, borralos con el `psycopg` del
-  venv del backend (mismo `database_url` de `app/core/config.py`) y respetá el
-  orden hijo→padre: `redemptions`, `ticket_returns`, `ticket_payments`,
-  `tickets`, `promoter_allocations`, `event_waitlist`, `event_staff`,
-  `event_access_tokens`, `analytics_events`, `ticket_types` (los `tickets`
-  referencian `ticket_types`, así que van ANTES).
+   Anclar al seed por nombre —como hacen `fan.spec.js` y `fan-checkout.spec.js`
+   en vez de "el primero de la lista"— **no alcanza**: si el seed no está en la
+   respuesta, el ancla falla igual. Síntoma real observado: `fan.spec.js:34`,
+   `element(s) not found`, con el **mismo fallo en el código de `HEAD` sin
+   tocar**. Verificalo con `git stash` antes de culpar a tu diff.
 
-Antes de culpar a tu diff, limpiá y volvé a correr:
+2. **El lockout de login.** `_MAX_FAILURES=8` en 15 min por `(identificador,
+   IP)`, en `backend/app/routers/auth.py`. El 9.º intento devuelve **429** y todo
+   test que entre al panel falla. También lo disparan las corridas de `pytest`,
+   que usan la **misma** DB que los E2E (el DSN sale de `TEST_DATABASE_URL`, con
+   default a la DB de desarrollo).
+
+**La contaminación no viene solo de los `E2E-*`**: `pytest` siembra eventos con
+nombres de fixture (`Evento de prueba` ×134, `Puerta grace`, `Dos Filas`,
+`Embudo *`) y cada spec nueva aporta el suyo (`Viernes Electronico`, `Listado
+Filtrable`, `Puerta offline`…). En una sesión la DB llegó a **331 eventos de 16
+patrones distintos**. Enumerar nombres para borrarlos es un juego perdido.
+
+Lo que funciona es **recrear la base** con el esquema consolidado, igual que el
+job `e2e` de CI. No hay `psql` en la imagen: se usa el `psycopg` del venv.
 
 ```bash
-export PGPASSWORD=devpassword
-psql -h 127.0.0.1 -U postgres -d ticketflow -c "DELETE FROM login_attempts;"
-# los E2E-* primero sus dependencias (tickets cuelga de ticket_types, etc.)
-for t in analytics_events event_waitlist redemptions tickets ticket_types \
-         promoter_allocations event_staff event_access_tokens \
-         ticket_payments ticket_returns; do
-  psql -h 127.0.0.1 -U postgres -d ticketflow -c \
-    "DELETE FROM $t WHERE event_id IN (SELECT id FROM events WHERE name LIKE 'E2E-%');"
-done
-psql -h 127.0.0.1 -U postgres -d ticketflow -c "DELETE FROM events WHERE name LIKE 'E2E-%';"
+# 1) Recrear el esquema (schema.sql + las 35 migraciones).
+cd backend && .venv/bin/python scripts/reset_dev_db.py
 ```
 
-Si un test falla, **reproducí el fallo en la DB limpia antes de tocar el
-código**: hoy los dos culpables (contaminación y lockout) se veían idénticos a
-una regresión real.
+El script `scripts/reset_dev_db.py` hace las dos cosas: recrea el esquema y
+vuelve a sembrar los datos demo. El `POST /api/seed` que invoca
+`e2e/global-setup.js` **no** sirve para esto: si el backend corre con `IS_DEMO`
+apagado responde **403** y no siembra nada (la suite se salta sola, pero vos te
+quedás sin datos).
 
+Si un test falla, **reproducí el fallo en la base limpia antes de tocar el
+código**.
 ### stylelint: hoy NO está en CI y el presupuesto está mal
 
 `npm run lint:css` es `stylelint "src/**/*.css" --max-warnings 31`, pero hay
@@ -858,6 +856,19 @@ avisar.
   server con proxy `/api`). Local:
   `E2E_BASE_URL=http://127.0.0.1:12000 npx playwright test`. Si apuntás al 8001,
   los specs de UI pasan el `test.skip` por "App no disponible" y parece que no corren.
+  - **Re-correr la suite muchas veces bloquea el login (429), y NO es una
+    regresión.** El lockout de auth (mig 016) corta a los 8 fallos por par
+    (email, IP) en 15 min. Pasadas unas cuantas corridas, el `login()` de las
+    specs empieza a recibir `429 Demasiados intentos fallidos` y ~24 tests caen
+    con `waitForURL: Timeout` (admin, puerta, onboarding, portada). Un login
+    exitoso limpia solo su propio par (email, IP), así que no se destraba solo.
+    Se limpia la tabla: `DELETE FROM login_attempts;`
+    (`/usr/lib/postgresql/17/bin/psql -U postgres -d ticketflow`, `PGPASSWORD=devpassword`).
+  - **Ojo con apuntar los E2E al :12001.** Ese puerto puede ser un
+    `vite preview` sirviendo `dist/`, que queda congelado en el último build: un
+    cambio en `src/` no se ve hasta recompilar, y los tests pasan en verde sobre
+    código viejo. Verificá con `curl -s http://127.0.0.1:12001/ | grep @vite/client`
+    (ausente = estático). El target con HMR es el :12000.
 - **Los E2E de admin/puerta necesitan el seed demo**, no los datos que deja la
   suite de pytest. `POST /seed` exige `IS_DEMO=true` en el entorno del backend;
   credenciales `admin@bar.test` / `demo1234`. Sin seed, `puerta.spec`/`portada.spec`
