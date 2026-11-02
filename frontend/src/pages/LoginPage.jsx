@@ -55,6 +55,7 @@ export default function LoginPage() {
   // Usuario que acaba de entrar. Con él se pinta la bienvenida personalizada
   // (("Hola, Ana")), así que se guarda el objeto completo, no solo un booleano.
   const [entered, setEntered] = useState(null);
+  const [capsLock, setCapsLock] = useState(false);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
 
