@@ -66,7 +66,7 @@ export function WelcomeOverlay({ user, done }) {
   const name = firstNameOf(user);
 
   return (
-    <div className="welcome-scrim" aria-hidden={!!done}>
+    <div className="welcome-scrim">
       <div
         className="welcome-card"
         role="status"

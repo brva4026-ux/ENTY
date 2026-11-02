@@ -6642,7 +6642,7 @@ html[data-theme="light"] .legal-doc code {
   padding: 1.25rem;
   background: color-mix(in srgb, var(--e-ink-950) 72%, transparent);
   backdrop-filter: blur(6px);
-  animation: welcome-scrim-in var(--e-dur-base) ease-out both;
+  animation: welcome-scrim-in var(--e-dur-slow) ease-out both;
 }
 
 .welcome-card {
@@ -6663,7 +6663,7 @@ html[data-theme="light"] .legal-doc code {
   box-shadow:
     var(--e-highlight-inset),
     var(--e-elev-card);
-  animation: welcome-card-in var(--e-dur-base) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: welcome-card-in var(--e-dur-slow) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 /* Check de confirmacion: circulo lavanda + trazo violeta. */
@@ -6735,7 +6735,12 @@ html[data-theme="light"] .legal-doc code {
     var(--e-violet-500),
     var(--e-violet-400)
   );
-  transition: width 160ms linear;
+  /* El ancho va con la llegada, no con un parpadeo: la barra debe LEERSE
+     llenandose. 160ms era más corto que un parpadeo y, como el overlay se
+     monta con el login ya resuelto (progress salta a 100 de una), esa
+     transición era toda la animación visible. Ahora dura lo que dura la
+     espera (ver `pause` en LoginPage). */
+  transition: width 1000ms var(--e-ease-expo);
 }
 
 @keyframes welcome-scrim-in {

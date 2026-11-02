@@ -193,10 +193,13 @@ export default function LoginPage() {
       // el salto es directo: la preferencia manda.
       setOk(true);
       // La bienvenida se queda visible un momento para que el saludo y la barra
-      // se lean antes de cruzar. Con movimiento reducido el margen es minimo:
-      // la preferencia manda y no se hace esperar a nadie.
+      // se lean antes de cruzar. El overlay se monta con el login YA resuelto,
+      // así que su única animación visible es el llenado de la barra (CSS,
+      // 1000ms): el margen debe cubrirlo o la persona ve un parpadeo y un
+      // panel. Con movimiento reducido el margen es mínimo: la preferencia
+      // manda y no se hace esperar a nadie.
       setEntered(user);
-      const pause = prefersReducedMotion() ? 320 : 1150;
+      const pause = prefersReducedMotion() ? 320 : 1600;
       await new Promise((r) => setTimeout(r, pause));
       withViewTransition(() => nav(from || home, { replace: true }));
     } catch (err) {
