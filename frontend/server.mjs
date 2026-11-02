@@ -32,6 +32,10 @@ const MIME = {
   ".woff": "font/woff",
   ".woff2": "font/woff2",
   ".webp": "image/webp",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".ogv": "video/ogg",
+  ".mp3": "audio/mpeg",
   ".map": "application/json",
 };
 
@@ -67,10 +71,41 @@ async function serveStatic(req, res, pathname) {
   try {
     const data = await readFile(filePath);
     const ext = extname(filePath).toLowerCase();
-    res.writeHead(200, {
+    const type = MIME[ext] || "application/octet-stream";
+
+    // Video/audio: el navegador pide por rangos (buscar, reanudar, saltar al
+    // loop). Sin 206 + Accept-Ranges, Safari/iOS se niega a reproducir y el
+    // resto no puede hacer seek. Se responde al Range con el tramo pedido.
+    const range = req.headers.range;
+    if (range && (type.startsWith("video/") || type.startsWith("audio/"))) {
+      const m = /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+      if (m) {
+        const size = data.length;
+        let start = m[1] === "" ? size - parseInt(m[2], 10) : parseInt(m[1], 10);
+        let end = m[1] === "" || m[2] === "" ? size - 1 : parseInt(m[2], 10);
+        start = Math.max(0, Math.min(start, size - 1));
+        end = Math.max(start, Math.min(end, size - 1));
+        const chunk = data.subarray(start, end + 1);
+        res.writeHead(206, {
+          ...SECURITY_HEADERS,
+          "Content-Type": type,
+          "Content-Range": `bytes ${start}-${end}/${size}`,
+          "Accept-Ranges": "bytes",
+          "Content-Length": chunk.length,
+        });
+        res.end(chunk);
+        return;
+      }
+    }
+
+    const headers = {
       ...SECURITY_HEADERS,
-      "Content-Type": MIME[ext] || "application/octet-stream",
-    });
+      "Content-Type": type,
+    };
+    if (type.startsWith("video/") || type.startsWith("audio/")) {
+      headers["Accept-Ranges"] = "bytes";
+    }
+    res.writeHead(200, headers);
     res.end(data);
   } catch {
     // SPA fallback: cualquier ruta que no sea archivo devuelve index.html

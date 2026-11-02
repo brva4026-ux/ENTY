@@ -1,5 +1,6 @@
 import { AuthBackdrop } from "./AuthBackdrop";
 import { LoginAurora } from "./LoginAurora";
+import { LoginVideo } from "./LoginVideo";
 import { Logo } from "./Brand";
 import { LegalLinks } from "./LegalLinks";
 
@@ -44,7 +45,10 @@ export function AuthShell({ children, minimal = false }) {
   if (minimal) {
     return (
       <div className="auth-shell auth-shell--minimal">
+        {/* El video va encima del fondo CSS; si no carga o el usuario pide
+            menos movimiento, el CSS (LoginAurora) queda de respaldo. */}
         <LoginAurora />
+        <LoginVideo />
         <main className="auth-panel">
           <div className="auth-panel-inner">{children}</div>
         </main>

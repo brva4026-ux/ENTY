@@ -5318,6 +5318,47 @@ html[data-motion="reduce"] .auth-aurora-sheen {
   }
 }
 
+/* --- Video de fondo del login (LoginVideo) ---
+   Se monta SOBRE el fondo CSS: si carga, cubre el aurora con el clip de marca;
+   si no, el aurora queda visible. `object-fit: cover` llena cualquier pantalla
+   sin deformar. El velo deja el clip como atmósfera y garantiza el contraste
+   de la tarjeta encima. */
+.auth-video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.auth-video-el {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Un pelín más oscuro que el clip crudo: el video es textura, no protagonista. */
+  filter: brightness(0.92) saturate(1.05);
+}
+.auth-video-scrim {
+  position: absolute;
+  inset: 0;
+  /* Radial: más limpio en el centro (donde va la tarjeta) y más denso en los
+     bordes, para que la luz del clip no compita con el texto del formulario. */
+  background: radial-gradient(
+      120% 90% at 50% 42%,
+      transparent 0%,
+      color-mix(in srgb, var(--e-ink-950) 55%, transparent) 62%,
+      color-mix(in srgb, var(--e-ink-950) 82%, transparent) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--e-ink-950) 30%, transparent),
+      color-mix(in srgb, var(--e-ink-950) 48%, transparent)
+    );
+}
+html[data-theme="light"] .auth-video-el {
+  /* En claro el clip oscuro desentona: se desvanece y manda el fondo crema. */
+  opacity: 0.5;
+}
+
 /* --- Panel de marca (solo desktop). Superficie = navy de la boleta, el
        mismo material del logo y del talon. No sigue el tema: la marca es
        oscura por definicion. --- */

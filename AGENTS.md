@@ -1095,3 +1095,20 @@ avisar.
   franja NO llama `refreshEventData()` (el POST ya devuelve el evento) y el
   backstage sí (necesita releer cifras). `.evx-actions` tiene `flex-wrap`:
   con el ciclo completo caben cuatro botones y deben poder caer a otra línea.
+- **El fondo del login es un video SINTETIZADO, no material de stock.**
+  `scripts/generate_login_video.py` dibuja el clip con la paleta y los motivos
+  de la marca (negro `#0B0B0F`, destellos morados, verde/rosa neón, el grid del
+  QR de la boleta y la estrella del logo) y lo deja en
+  `frontend/public/media/` (mp4 + webm + poster, ~730 KB en total). Todas las
+  animaciones usan un número entero de ciclos sobre la duración del clip, así
+  el loop es PERFECTO; no rompas eso al retocar tiempos. Regenerar:
+  `python3 scripts/generate_login_video.py` (necesita ffmpeg + numpy/Pillow).
+  Lo monta `LoginVideo.jsx` encima del fondo CSS (`LoginAurora`), que queda de
+  respaldo: si el navegador no reproduce, si hay `prefers-reduced-motion` o
+  `html[data-motion="reduce"]`, si `navigator.connection.saveData`, o si el
+  tema es claro (el clip es de marca oscura), NO se descarga y se ve el CSS.
+  Con el video activo, `server.mjs` DEBE servir `video/*` con su MIME (no
+  `application/octet-stream`, que con `nosniff` el navegador rechaza) y
+  responder `Range` con 206: sin eso Safari/iOS no reproduce y no hay seek.
+  Vercel sirve el estático con MIME y ranges correctos por su cuenta; el
+  cuidado es para el self-hosting con `node server.mjs`.
