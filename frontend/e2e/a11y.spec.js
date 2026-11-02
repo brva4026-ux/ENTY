@@ -182,12 +182,31 @@ function auditInPage() {
         const size = parseFloat(cs.fontSize);
         const bold = parseInt(cs.fontWeight, 10) >= 700;
         const large = size >= 24 || (size >= 18.66 && bold);
-        const cr = ratio(fg, bgOf(el));
+        // La opacidad del propio elemento (y de sus ancestros) aclara la tinta:
+        // sin componerla, un texto con opacity 0.75 se medía con su color puro y
+        // pasaba el guardarraíl aunque en pantalla quedara por debajo de AA (así
+        // se escapó el pie legal del login en tema claro).
+        let op = 1;
+        for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+          op *= parseFloat(getComputedStyle(n).opacity);
+        }
+        const bg = bgOf(el);
+        const ink =
+          op >= 1
+            ? fg
+            : {
+                r: fg.r * op + bg.r * (1 - op),
+                g: fg.g * op + bg.g * (1 - op),
+                b: fg.b * op + bg.b * (1 - op),
+                a: 1,
+              };
+        const cr = ratio(ink, bg);
         if (cr < (large ? 3 : 4.5)) {
           contrastFails.push({
             text: (el.textContent || "").trim().slice(0, 40),
             ratio: +cr.toFixed(2),
             size: Math.round(size),
+            opacity: +op.toFixed(2),
           });
         }
       }
@@ -210,6 +229,17 @@ function auditInPage() {
 
 async function audit(page) {
   await page.waitForTimeout(700);
+  // La cascada de entrada anima opacidad: medir a mitad de frame compondría la
+  // tinta contra una opacidad que en reposo no existe (falso positivo). Se
+  // espera a que ninguna animación siga corriendo, con tope por si alguna fuese
+  // infinita (entonces sí debe auditarse en su estado real).
+  await page
+    .waitForFunction(
+      () => document.getAnimations().every((a) => a.playState !== "running"),
+      null,
+      { timeout: 3000 }
+    )
+    .catch(() => {});
   return page.evaluate(auditInPage);
 }
 
@@ -810,4 +840,38 @@ test("el aviso de cookies es un landmark navegable", async ({ browser }) => {
   const aviso = page.getByRole("region", { name: "Aviso de cookies" });
   await expect(aviso, "el aviso se expone como landmark con nombre").toBeVisible();
   await ctx.close();
+});
+
+/**
+ * /boletas tenía el mismo hueco que /inicio antes del fix: el título y el
+ * buscador vivían fuera de todo landmark (axe: landmark-one-main + region). Es
+ * la pantalla donde el fan recupera sus entradas, así que necesita el mismo
+ * landmark principal que la vitrina. El <main> es semántica: la cascada de
+ * entrada (.home-main > *) conserva el escalonado bloque a bloque.
+ */
+test("/boletas tiene un único landmark principal con el contenido", async ({ browser }) => {
+  const ok = await available(await browser.newPage(), "/boletas");
+  test.skip(!ok, "App no disponible");
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  await page.goto("/boletas");
+  await page.waitForTimeout(600);
+  await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    const mains = [...document.querySelectorAll("main, [role=main]")];
+    const first = mains[0];
+    return {
+      count: mains.length,
+      tieneH1: !!first?.querySelector("h1"),
+      tieneBuscador: !!first?.querySelector(".fan-lookup"),
+      // el buscador no puede quedar fuera del landmark
+      sueltos: [...document.querySelectorAll(".home > .fan-lookup, .home > .home-title")].length,
+    };
+  });
+  await ctx.close();
+  expect(r.count, "landmarks principales en /boletas").toBe(1);
+  expect(r.tieneH1, "el h1 debe vivir dentro del landmark principal").toBe(true);
+  expect(r.tieneBuscador, "el buscador debe vivir dentro del landmark principal").toBe(true);
+  expect(r.sueltos, "contenido fuera del landmark principal").toBe(0);
 });

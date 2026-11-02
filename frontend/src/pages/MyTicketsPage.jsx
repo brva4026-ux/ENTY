@@ -163,138 +163,140 @@ export default function MyTicketsPage() {
         </TransitionLink>
       </header>
 
-      <div className="home-title">
-        <h1>Mis boletas</h1>
-        <p>
-          Escribe el correo o teléfono con que compraste. Te enviamos un enlace
-          seguro para verlas — así nadie más puede abrirlas.
-        </p>
-      </div>
+        <main className="home-main">
+        <div className="home-title">
+          <h1>Mis boletas</h1>
+          <p>
+            Escribe el correo o teléfono con que compraste. Te enviamos un enlace
+            seguro para verlas — así nadie más puede abrirlas.
+          </p>
+        </div>
 
-      <form
-        className="fan-lookup"
-        onSubmit={(e) => {
-          e.preventDefault();
-          requestLink();
-        }}
-      >
-        <input
-          type="text"
-          inputMode="email"
-          autoComplete="email"
-          placeholder="tucorreo@ejemplo.com o 300 123 4567"
-          value={contact}
-          onChange={(e) => {
-            setContact(e.target.value);
-            if (contactInvalid) setContactInvalid(false);
-            if (error) setError("");
+        <form
+          className="fan-lookup"
+          onSubmit={(e) => {
+            e.preventDefault();
+            requestLink();
           }}
-          aria-label="Correo o teléfono"
-          aria-invalid={contactInvalid ? "true" : undefined}
-          aria-describedby={error ? "fan-lookup-error" : undefined}
-        />
-        <button type="submit" disabled={busy}>
-          {busy ? "Enviando…" : "Enviar enlace"}
-        </button>
-      </form>
+        >
+          <input
+            type="text"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="tucorreo@ejemplo.com o 300 123 4567"
+            value={contact}
+            onChange={(e) => {
+              setContact(e.target.value);
+              if (contactInvalid) setContactInvalid(false);
+              if (error) setError("");
+            }}
+            aria-label="Correo o teléfono"
+            aria-invalid={contactInvalid ? "true" : undefined}
+            aria-describedby={error ? "fan-lookup-error" : undefined}
+          />
+          <button type="submit" disabled={busy}>
+            {busy ? "Enviando…" : "Enviar enlace"}
+          </button>
+        </form>
 
-      {error ? (
-        <div className="home-empty" role="alert" id="fan-lookup-error">
-          <p>No pudimos continuar</p>
-          <span>{error}</span>
-        </div>
-      ) : notice && !data ? (
-        <div className="home-empty" role="status">
-          <p>Revisa tu correo</p>
-          <span>{notice}</span>
-        </div>
-      ) : data && tickets.length === 0 ? (
-        <div className="home-empty">
-          <p>No encontramos boletas</p>
-          <span>Revisa que sea el mismo contacto con el que te las emitieron.</span>
-        </div>
-      ) : (
-        <div className="fan-list">
-          {tickets.map((t) => {
-            const s = STATUS[t.status] ?? { label: t.status, tone: "warn" };
-            const isOpen = openId === t.ticket_id;
-            return (
-              <article key={t.ticket_id} className="fan-ticket">
-                <div className="fan-ticket-head">
-                  <div className="fan-ticket-info">
-                    <strong>{t.event_name}</strong>
-                    <em>
-                      {t.starts_at}
-                      {t.location ? ` · ${t.location}` : ""}
-                      {t.venue_name ? ` · ${t.venue_name}` : ""}
-                    </em>
+        {error ? (
+          <div className="home-empty" role="alert" id="fan-lookup-error">
+            <p>No pudimos continuar</p>
+            <span>{error}</span>
+          </div>
+        ) : notice && !data ? (
+          <div className="home-empty" role="status">
+            <p>Revisa tu correo</p>
+            <span>{notice}</span>
+          </div>
+        ) : data && tickets.length === 0 ? (
+          <div className="home-empty">
+            <p>No encontramos boletas</p>
+            <span>Revisa que sea el mismo contacto con el que te las emitieron.</span>
+          </div>
+        ) : (
+          <div className="fan-list">
+            {tickets.map((t) => {
+              const s = STATUS[t.status] ?? { label: t.status, tone: "warn" };
+              const isOpen = openId === t.ticket_id;
+              return (
+                <article key={t.ticket_id} className="fan-ticket">
+                  <div className="fan-ticket-head">
+                    <div className="fan-ticket-info">
+                      <strong>{t.event_name}</strong>
+                      <em>
+                        {t.starts_at}
+                        {t.location ? ` · ${t.location}` : ""}
+                        {t.venue_name ? ` · ${t.venue_name}` : ""}
+                      </em>
+                    </div>
+                    <span className={`fan-badge is-${s.tone}`}>{s.label}</span>
                   </div>
-                  <span className={`fan-badge is-${s.tone}`}>{s.label}</span>
-                </div>
 
-                {t.has_link ? (
-                  <div className="fan-ticket-foot">
-                    <span className="fan-ticket-num">Boleta #{t.ticket_id}</span>
-                    {isOpen ? (
-                      <button
-                        type="button"
-                        className="fan-link"
-                        onClick={() => {
-                          setOpenId(null);
-                          setQr(null);
-                        }}
-                      >
-                        Ocultar QR
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="home-cta fan-cta"
-                        onClick={() => showQr(t)}
-                        disabled={!t.qr_active}
-                      >
-                        {t.qr_active ? "Ver mi QR" : "Aún no activo"}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="fan-ticket-foot">
-                    <span className="fan-ticket-num">Boleta #{t.ticket_id}</span>
-                  </div>
-                )}
+                  {t.has_link ? (
+                    <div className="fan-ticket-foot">
+                      <span className="fan-ticket-num">Boleta #{t.ticket_id}</span>
+                      {isOpen ? (
+                        <button
+                          type="button"
+                          className="fan-link"
+                          onClick={() => {
+                            setOpenId(null);
+                            setQr(null);
+                          }}
+                        >
+                          Ocultar QR
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="home-cta fan-cta"
+                          onClick={() => showQr(t)}
+                          disabled={!t.qr_active}
+                        >
+                          {t.qr_active ? "Ver mi QR" : "Aún no activo"}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="fan-ticket-foot">
+                      <span className="fan-ticket-num">Boleta #{t.ticket_id}</span>
+                    </div>
+                  )}
 
-                {isOpen && t.qr_active ? (
-                  <div className="fan-qr">
-                    {qrBusy ? (
-                      <p className="fan-qr-hint fan-qr-loading">
-                        <Spark size={14} color="var(--e-green-500)" />
-                        Generando tu QR…
-                      </p>
-                    ) : qrError ? (
-                      <p className="fan-qr-hint is-bad">{qrError}</p>
-                    ) : qr ? (
-                      <>
-                        <span className="fan-qr-frame reveal-qr">
-                          <img src={qr} alt="Código QR de tu boleta" />
-                          <Spark size={34} color="var(--e-green-500)" className="fan-qr-spark" />
-                        </span>
-                        <p className="fan-qr-hint">
-                          Presenta este QR en la puerta junto con tu documento.
+                  {isOpen && t.qr_active ? (
+                    <div className="fan-qr">
+                      {qrBusy ? (
+                        <p className="fan-qr-hint fan-qr-loading">
+                          <Spark size={14} color="var(--e-green-500)" />
+                          Generando tu QR…
                         </p>
-                      </>
-                    ) : null}
-                  </div>
-                ) : null}
+                      ) : qrError ? (
+                        <p className="fan-qr-hint is-bad">{qrError}</p>
+                      ) : qr ? (
+                        <>
+                          <span className="fan-qr-frame reveal-qr">
+                            <img src={qr} alt="Código QR de tu boleta" />
+                            <Spark size={34} color="var(--e-green-500)" className="fan-qr-spark" />
+                          </span>
+                          <p className="fan-qr-hint">
+                            Presenta este QR en la puerta junto con tu documento.
+                          </p>
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
 
-                {t.has_link && !t.qr_active ? (
-                  <p className="fan-qr-hint fan-qr-wait">{t.qr_message}</p>
-                ) : null}
-              </article>
-            );
-          })}
-        </div>
-      )}
+                  {t.has_link && !t.qr_active ? (
+                    <p className="fan-qr-hint fan-qr-wait">{t.qr_message}</p>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        )}
 
+        </main>
       <FanNav active="boletos" />
     </div>
   );
