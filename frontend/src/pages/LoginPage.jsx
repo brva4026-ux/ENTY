@@ -141,7 +141,6 @@ export default function LoginPage() {
         <div className="auth-card reveal p-6 sm:p-7 auth-card-enter">
           <h1 className="display mt-1 mb-1 text-2xl">Iniciar sesión</h1>
           <p className="mb-5 text-sm leading-relaxed text-zinc-400">
-            Entra con tu usuario o tu correo para manejar la venta y la puerta.
           </p>
 
           <form onSubmit={submit} noValidate>
