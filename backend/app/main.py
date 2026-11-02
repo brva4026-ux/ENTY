@@ -1,5 +1,10 @@
-"""TicketFlow API — FastAPI application factory."""
+"""TicketFlow API — FastAPI application factory.
+
+Usa SQLite en entorno local y PostgreSQL en producción (Vercel/serverless).
+"""
+
 import asyncio
+import os
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -16,10 +21,10 @@ from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-import psycopg
+import sqlite3
 
 from app.core.config import get_settings
-from app.core.db import _CONNECT_KWARGS, close_pool, init_pool
+from app.core.db import get_db, close_connection, _SERVERLESS
 from app.core.observability import capture_exception, init_sentry
 from app.core.push_worker import push_outbox_worker
 from app.core.limiter import limiter
@@ -55,11 +60,18 @@ async def lifespan(app: FastAPI):
     # también el fallo de import; init_sentry es idempotente.
     init_sentry()
     settings = get_settings()
-    await init_pool(settings.database_url)
+
+    # En serverless (Vercel), no usamos pool: cada invocacion es un proceso
+    # independiente y el pool se perderia en el freeze. Usamos conexiones
+    # efimeras por request en su lugar.
+    if os.environ.get("VERCEL") == "1":
+        # En serverless, la BD se crea al importar db.py; no hacemos nada especial aqui
+        pass
+
     # Worker del outbox de push (mig 014): las notificaciones in-app nacen en
-    # triggers SQL; este loop envía el Web Push de cada una fuera de la
-    # transacción de negocio. Solo corre con VAPID configurado; en serverless
-    # cada arranque de función drena lo pendiente y el intervalo acota la
+    # triggers SQL; este loop envia el Web Push de cada una fuera de la
+    # transaccion de negocio. Solo corre con VAPID configurado; en serverless
+    # cada arranque de funcion drena lo pendiente y el intervalo acota la
     # ventana de espera.
     push_stop = asyncio.Event()
     push_task = asyncio.create_task(push_outbox_worker(push_stop))
@@ -69,12 +81,13 @@ async def lifespan(app: FastAPI):
         push_stop.set()
         push_task.cancel()
         results = await asyncio.gather(push_task, return_exceptions=True)
-        # Un worker que murió con excepción es un hallazgo real: sin esto, el
-        # push se apaga silenciosamente hasta el próximo arranque.
+        # Un worker que murio con excepcion es un hallazgo real: sin esto, el
+        # push se apaga silenciosamente hasta el proximo arranque.
         for r in results:
             if isinstance(r, BaseException):
                 capture_exception(r, context={"component": "push_outbox_worker"})
-        await close_pool()
+        # Cerrar conexion de BD
+        close_connection()
 
 
 def create_app() -> FastAPI:
@@ -103,8 +116,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Headers de seguridad en las respuestas de la API. La UI estática los
-    # recibe de vercel.json; la función serverless es un origen aparte y los
+    # Headers de seguridad en las respuestas de la API. La UI estatica los
+    # recibe de vercel.json; la funcion serverless es un origen aparte y los
     # necesita propios (un error HTML crudo no debe poder renderizarse en un
     # iframe ajeno, ni sniffearse como otro tipo).
     @app.middleware("http")
@@ -114,11 +127,12 @@ def create_app() -> FastAPI:
         h.setdefault("X-Content-Type-Options", "nosniff")
         h.setdefault("X-Frame-Options", "DENY")
         h.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-        # La puerta usa cámara (escáner) y geolocalización (check-in); nada
-        # más necesita permisos potentes desde el origen de la API.
+        # La puerta usa camara (escaneo) y geolocalizacion (check-in); nada
+        # mas necesita permisos potentes desde el origen de la API.
         h.setdefault("Permissions-Policy", "camera=(self), geolocation=(self)")
         return response
 
+    # Incluir routers
     app.include_router(invitations.router)
     app.include_router(auth.router)
     app.include_router(legal.router)
@@ -154,8 +168,6 @@ def create_app() -> FastAPI:
         El resultado se cachea 5 s por instancia: una salva de probes no debe
         abrir una connection storm contra el pooler (el endpoint es publico).
         """
-        # push_enabled / email_enabled: telemetria operativa — que canales de
-        # aviso estan ENCENDIDOS de verdad (sus env vars configuradas).
         push_enabled = bool(
             settings.vapid_public_key_b64 and settings.vapid_private_key_b64
         )
@@ -172,16 +184,14 @@ def create_app() -> FastAPI:
         else:
             t0 = time.perf_counter()
             try:
-                conn = await psycopg.AsyncConnection.connect(
-                    settings.database_url,
-                    **{**_CONNECT_KWARGS, "connect_timeout": 3},
-                )
+                conn = await get_db()
                 try:
                     async with conn.cursor() as cur:
                         await cur.execute("SELECT 1")
                         await cur.fetchone()
                 finally:
-                    await conn.close()
+                    # No cerramos la conexion aqui: se gestiona en close_connection
+                    pass
             except Exception:
                 # No se reporta a Sentry en cada probe: el 503 es la senal y
                 # un monitor caido ya genera su propia alerta.
