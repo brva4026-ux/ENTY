@@ -77,7 +77,7 @@ export default function LegalPage({ slug }) {
             type="button"
             onClick={() => nav("/")}
             className="flex min-h-11 items-center gap-2 rounded-lg px-1 py-1 transition hover:opacity-80"
-            aria-label="Ir al inicio"
+            aria-label="Enty, ir al inicio"
           >
             <Logo size="md" />
           </button>

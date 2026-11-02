@@ -179,7 +179,7 @@ export default function WaitlistPage() {
   // ------------------------------------------------------------------ join
   if (!token) {
     return (
-      <div className="relative min-h-screen bg-canvas px-4 py-8">
+      <main className="relative min-h-screen bg-canvas px-4 py-8">
         <div className="relative mx-auto w-full max-w-sm animate-rise">
           <div className="card card-interactive p-5">
             <div className="mb-4 flex items-center gap-2">
@@ -301,7 +301,7 @@ export default function WaitlistPage() {
             Sin cuentas ni pagos por adelantado · Enty
           </p>
         </div>
-      </div>
+        </main>
     );
   }
 
@@ -309,7 +309,7 @@ export default function WaitlistPage() {
   const offered = state?.status === "offered";
 
   return (
-    <div className="relative min-h-screen bg-canvas px-4 py-8">
+    <main className="relative min-h-screen bg-canvas px-4 py-8">
       <div className="relative mx-auto w-full max-w-sm animate-rise">
         <div className="card card-interactive p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -459,6 +459,6 @@ export default function WaitlistPage() {
           Tu lugar es personal: se valida por tu celular · Enty
         </p>
       </div>
-    </div>
+    </main>
   );
 }

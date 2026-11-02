@@ -145,6 +145,9 @@ function blocks(lines) {
 
 export function Markdown({ text }) {
   const parsed = blocks(String(text ?? "").replace(/\r\n/g, "\n").split("\n"));
+  // Cada tabla con scroll es un `region`; dos regiones con el mismo nombre
+  // accesible violan landmark-unique, así que se numeran.
+  let tableCount = 0;
 
   return (
     <div className="legal-doc">
@@ -181,19 +184,36 @@ export function Markdown({ text }) {
                 ))}
               </ul>
             );
-          case "table":
+          case "table": {
             // Tabla ancha -> scroll horizontal propio: la página nunca se
             // desborda en móvil (el invitado y el dueño del bar leen en celular).
+            // `tabIndex=0` + `role=region` con nombre: un contenedor con scroll
+            // debe poder alcanzarse con el teclado (WCAG 2.1.1); sin esto, quien
+            // navega con teclado no puede desplazarlo. Si la cabecera del markdown
+            // viene vacía (`| | |`), no se emite <thead>: una celda de encabezado
+            // sin texto es una violación (empty-table-header).
+            const hasHeader = b.header.some((h) => String(h ?? "").trim() !== "");
+            const tableNo = (tableCount += 1);
             return (
-              <div key={key} className="legal-table-wrap">
+              <div
+                key={key}
+                className="legal-table-wrap"
+                tabIndex={0}
+                role="region"
+                aria-label={`Tabla de datos ${tableNo}`}
+              >
                 <table className="legal-table">
-                  <thead>
-                    <tr>
-                      {b.header.map((h, j) => (
-                        <th key={`${key}-h-${j}`}>{inline(h, `${key}-h-${j}`)}</th>
-                      ))}
-                    </tr>
-                  </thead>
+                  {hasHeader && (
+                    <thead>
+                      <tr>
+                        {b.header.map((h, j) => (
+                          <th key={`${key}-h-${j}`} scope="col">
+                            {inline(h, `${key}-h-${j}`)}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                  )}
                   <tbody>
                     {b.rows.map((row, j) => (
                       <tr key={`${key}-r-${j}`}>
@@ -208,6 +228,7 @@ export function Markdown({ text }) {
                 </table>
               </div>
             );
+          }
           default:
             return (
               <p key={key} className="legal-p">

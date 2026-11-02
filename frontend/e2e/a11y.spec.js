@@ -875,3 +875,103 @@ test("/boletas tiene un único landmark principal con el contenido", async ({ br
   expect(r.tieneBuscador, "el buscador debe vivir dentro del landmark principal").toBe(true);
   expect(r.sueltos, "contenido fuera del landmark principal").toBe(0);
 });
+
+  /**
+   * /waitlist y /reset quedaron sin landmark principal: todo su contenido
+   * (título, formulario) vivía fuera de `<main>` (axe: landmark-one-main +
+   * region). Son pantallas públicas a las que se llega sin contexto, así que la
+   * región principal es lo que permite saltar el resto con un lector de pantalla.
+   */
+  for (const ruta of ["/waitlist", "/reset"]) {
+    test(`${ruta} tiene un único landmark principal`, async ({ browser }) => {
+      const ok = await available(await browser.newPage(), ruta);
+      test.skip(!ok, "App no disponible");
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const page = await ctx.newPage();
+      await page.goto(ruta);
+      await page.waitForTimeout(700);
+      await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+      await page.waitForTimeout(300);
+      const r = await page.evaluate(() => {
+        const mains = [...document.querySelectorAll("main, [role=main]")];
+        const first = mains[0];
+        return {
+          count: mains.length,
+          tieneH1: !!first?.querySelector("h1"),
+        };
+      });
+      await ctx.close();
+      expect(r.count, `landmarks principales en ${ruta}`).toBe(1);
+      expect(r.tieneH1, "el h1 debe vivir dentro del landmark principal").toBe(true);
+    });
+  }
+
+  /**
+   * El logo del header legal es un botón con texto visible ("Enty") y
+   * `aria-label`: WCAG 2.5.3 exige que el nombre accesible contenga el texto
+   * visible, si no, quien usa control por voz no puede activarlo diciendo
+   * "Enty". Se comprueba en las tres páginas legales, que comparten header.
+   */
+  for (const ruta of ["/terminos", "/privacidad", "/cookies"]) {
+    test(`${ruta}: el botón del logo incluye su texto visible en el nombre accesible`, async ({
+      browser,
+    }) => {
+      const ok = await available(await browser.newPage(), ruta);
+      test.skip(!ok, "App no disponible");
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const page = await ctx.newPage();
+      await page.goto(ruta);
+      await page.waitForTimeout(700);
+      await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+      await page.waitForTimeout(300);
+      const r = await page.evaluate(() => {
+        const btn = document.querySelector("header button[aria-label]");
+        if (!btn) return null;
+        return {
+          label: btn.getAttribute("aria-label"),
+          texto: (btn.textContent || "").trim(),
+        };
+      });
+      await ctx.close();
+      expect(r, `botón de logo en ${ruta}`).not.toBeNull();
+      expect(
+        r.label.toLowerCase().includes(r.texto.toLowerCase()),
+        `el nombre accesible "${r.label}" debe contener el texto visible "${r.texto}"`
+      ).toBe(true);
+    });
+  }
+
+  /**
+   * Las tablas del markdown legal son anchas y hacen scroll horizontal. Un
+   * contenedor con scroll tiene que poder alcanzarse con el teclado (WCAG 2.1.1)
+   * y, si su cabecera viene vacía en el markdown (`| | |`), no debe emitir
+   * `<th>` sin texto (axe: empty-table-header). Dos regiones con el mismo nombre
+   * accesible violan landmark-unique, así que se numeran.
+   */
+  test("las tablas legales son navegables y sin cabeceras vacías", async ({ browser }) => {
+    const ok = await available(await browser.newPage(), "/privacidad");
+    test.skip(!ok, "App no disponible");
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    await page.goto("/privacidad");
+    await page.waitForTimeout(900);
+    await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+    await page.waitForTimeout(300);
+    const r = await page.evaluate(() => {
+      const wraps = [...document.querySelectorAll(".legal-table-wrap")];
+      const labels = wraps.map((w) => w.getAttribute("aria-label"));
+      return {
+        total: wraps.length,
+        sinTabIndex: wraps.filter((w) => w.tabIndex < 0).length,
+        thVacios: [...document.querySelectorAll(".legal-table th")].filter(
+          (th) => !(th.textContent || "").trim()
+        ).length,
+        labelsUnicos: new Set(labels).size === labels.length,
+      };
+    });
+    await ctx.close();
+    expect(r.total, "tablas en /privacidad").toBeGreaterThan(0);
+    expect(r.sinTabIndex, "tablas con scroll inalcanzables por teclado").toBe(0);
+    expect(r.thVacios, "celdas de encabezado sin texto").toBe(0);
+    expect(r.labelsUnicos, "nombres de región duplicados").toBe(true);
+  });
