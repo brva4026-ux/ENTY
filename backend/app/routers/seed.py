@@ -116,28 +116,41 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
             venue_id = (await cur.fetchone())["id"]
 
         # --- users ----------------------------------------------------
+        # El cuarto campo es el nombre de usuario para entrar (mig 035): la
+        # gente de puerta entra desde el celular y "puerta" es mucho mas rapido
+        # de teclear que "puerta@bar.test". Se siembra para poder probar el
+        # flujo de "usuario o correo" sin dar de alta una cuenta a mano.
         demo_users = [
-            ("admin@bar.test", "Admin Bar Esquina", "admin"),
-            ("promo1@bar.test", "Promo Uno", "promotor"),
-            ("promo2@bar.test", "Promo Dos", "promotor"),
-            ("puerta@bar.test", "Bouncer Puerta", "bouncer"),
+            ("admin@bar.test", "Admin Bar Esquina", "admin", "admin"),
+            ("promo1@bar.test", "Promo Uno", "promotor", "promo1"),
+            ("promo2@bar.test", "Promo Dos", "promotor", "promo2"),
+            ("puerta@bar.test", "Bouncer Puerta", "bouncer", "puerta"),
         ]
         user_ids: dict[str, int] = {}
-        for email, name, _role in demo_users:
+        for email, name, _role, username in demo_users:
             await cur.execute(
-                "INSERT INTO users (email, phone, password_hash, full_name) "
-                "VALUES (%s, NULL, %s, %s) ON CONFLICT (email) DO NOTHING RETURNING id",
-                (email, hash_password(_DEFAULT_PASSWORD), name),
+                "INSERT INTO users (email, phone, password_hash, full_name, username) "
+                "VALUES (%s, NULL, %s, %s, %s) ON CONFLICT (email) DO NOTHING RETURNING id",
+                (email, hash_password(_DEFAULT_PASSWORD), name, username),
             )
             row = await cur.fetchone()
             if row:
                 user_ids[email] = row["id"]
             else:
+                # Ya existia: se le completa el username si todavia no tiene uno.
+                # ON CONFLICT DO NOTHING no actualiza, y una base creada antes de
+                # la 035 se quedaria sin el. Solo si esta libre, para no pisar a
+                # otro usuario que ya lo haya reclamado.
+                await cur.execute(
+                    "UPDATE users SET username=%s WHERE email=%s AND username IS NULL "
+                    "AND NOT EXISTS (SELECT 1 FROM users o WHERE lower(o.username)=lower(%s))",
+                    (username, email, username),
+                )
                 await cur.execute("SELECT id FROM users WHERE email=%s", (email,))
                 user_ids[email] = (await cur.fetchone())["id"]
 
         # --- roles ----------------------------------------------------
-        for email, _name, role in demo_users:
+        for email, _name, role, _username in demo_users:
             await cur.execute(
                 "INSERT INTO venue_user_roles (venue_id, user_id, role) "
                 "VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",

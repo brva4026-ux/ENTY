@@ -15,10 +15,25 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
 # Auth
 # --------------------------------------------------------------------------
 class LoginRequest(BaseModel):
-    email: str = Field(min_length=3, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
+    # `identifier` acepta correo O nombre de usuario (mig 035): la gente de
+    # puerta entra desde el celular y escribir "puerta@bar.test" en un teclado
+    # tactil es friccion en el momento mas caliente del dia. El campo se llama
+    # `identifier` y no `email` porque ya no es solo un correo; se mantiene
+    # `email` como alias opcional para no romper a los clientes que ya lo mandan.
+    identifier: str | None = Field(default=None, min_length=3, max_length=200)
+    email: str | None = Field(default=None, min_length=3, max_length=200)
     # max_length=128: sin cota, el cuerpo del login era un vector de DoS barato
     # (bcrypt de un string de megabytes consume CPU real por request).
     password: str = Field(max_length=128)
+
+    @model_validator(mode="after")
+    def _one_identifier(self):
+        """Exige exactamente un identificador y normaliza `identifier`."""
+        value = (self.identifier or self.email or "").strip()
+        if not value:
+            raise ValueError("Falta el usuario o el correo.")
+        self.identifier = value
+        return self
 
 
 class TokenResponse(BaseModel):
@@ -32,6 +47,9 @@ class UserSummary(BaseModel):
     id: int
     email: str
     full_name: str
+    # Nombre de usuario para entrar (mig 035). None en cuentas que aun no
+    # eligieron uno: el login por correo sigue funcionando igual.
+    username: str | None = None
     venues: list["VenueSummary"] = []
     roles: dict[str, list[str]] = {}  # {"<venue_id>": ["admin", ...]}
     # Contexto de cuenta para el perfil: desde cuándo es parte y cuándo entró
@@ -457,6 +475,24 @@ class ChangePasswordRequest(BaseModel):
 class UpdateProfileRequest(BaseModel):
     """Datos propios editables por el usuario (nombre visible en la app)."""
     full_name: str = Field(min_length=2, max_length=120)
+    # El usuario se puede reclamar o cambiar desde el perfil. "" lo libera
+    # (vuelve a entrar solo con correo); None lo deja como esta.
+    username: str | None = Field(default=None, max_length=32)
+
+    @field_validator("username")
+    @classmethod
+    def _username_format(cls, v: str | None) -> str | None:
+        """Mismo formato que el CHECK de la DB (mig 035), validado aqui para
+        dar un mensaje claro en vez de un error de constraint."""
+        if v is None or v == "":
+            return v
+        candidate = v.strip().lower()
+        if not re.fullmatch(r"[a-z0-9._-]{3,32}", candidate):
+            raise ValueError(
+                "El usuario debe tener entre 3 y 32 caracteres: "
+                "letras, numeros, punto, guion o guion bajo."
+            )
+        return candidate
 
 
 class UpdateVenueRequest(BaseModel):

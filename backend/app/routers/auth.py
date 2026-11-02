@@ -117,7 +117,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
     user: dict | None = None
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, email, full_name, created_at, last_login_at "
+            "SELECT id, email, full_name, username, created_at, last_login_at "
             "FROM users WHERE id=%s",
             (user_id,),
         )
@@ -151,6 +151,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         id=user["id"],
         email=user["email"],
         full_name=user["full_name"],
+        username=user.get("username"),
         venues=list(venues.values()),
         roles=roles_by_venue,
         created_at=user["created_at"],
@@ -165,7 +166,12 @@ async def login(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     ip = _client_ip(request)
-    email_norm = body.email.strip().lower()
+    # El identificador puede ser un correo o un nombre de usuario (mig 035).
+    # Se usa tal cual como clave del lockout, en minusculas: el par
+    # (identificador, IP) es lo que cuenta, y asi "Admin" y "admin" no abren
+    # dos cubos distintos de intentos.
+    ident = (body.identifier or body.email or "").strip()
+    email_norm = ident.lower()
     if await _login_locked(db, email_norm, ip):
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
@@ -174,8 +180,14 @@ async def login(
 
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, email, full_name, password_hash, is_active, last_login_at, token_version FROM users WHERE lower(email)=lower(%s)",
-            (body.email,),
+            # Un solo query resuelve ambos casos. La rama de username solo aplica
+            # si el valor NO tiene "@": asi un correo nunca matchea un username
+            # (que por formato no puede tener arroba) ni al reves.
+            "SELECT id, email, full_name, password_hash, is_active, last_login_at, token_version "
+            "FROM users "
+            "WHERE lower(email) = lower(%s) "
+            "   OR (position('@' in %s) = 0 AND lower(username) = lower(%s))",
+            (ident, ident, ident),
         )
         user = await cur.fetchone()
 
@@ -561,12 +573,31 @@ async def update_profile(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Actualiza el nombre visible del usuario autenticado."""
+    """Actualiza el nombre visible y, si se pide, el nombre de usuario.
+
+    `username=None` deja el valor actual; `""` lo libera (la cuenta vuelve a
+    entrar solo con correo). Un usuario ya tomado por otra cuenta responde 409
+    en vez de un 500 por violacion de constraint: el mensaje importa.
+    """
     async with db.cursor() as cur:
-        await cur.execute(
-            "UPDATE users SET full_name=%s WHERE id=%s",
-            (body.full_name.strip(), user["id"]),
-        )
+        if body.username is None:
+            await cur.execute(
+                "UPDATE users SET full_name=%s WHERE id=%s",
+                (body.full_name.strip(), user["id"]),
+            )
+        else:
+            nuevo = body.username or None  # "" -> NULL
+            try:
+                await cur.execute(
+                    "UPDATE users SET full_name=%s, username=%s WHERE id=%s",
+                    (body.full_name.strip(), nuevo, user["id"]),
+                )
+            except psycopg.errors.UniqueViolation:
+                await db.rollback()
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    "Ese nombre de usuario ya esta en uso. Elige otro.",
+                )
         await db.commit()
     return await _build_user_summary(db, user["id"])
 

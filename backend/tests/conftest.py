@@ -51,6 +51,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "032_user_preferences.sql",
     ROOT / "db" / "migrations" / "033_inventory_per_type.sql",
     ROOT / "db" / "migrations" / "034_door_grace_and_sync_truth.sql",
+    ROOT / "db" / "migrations" / "035_username.sql",
 ]
 
 
