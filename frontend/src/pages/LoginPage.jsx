@@ -5,6 +5,7 @@ import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
+import { WelcomeOverlay } from "../components/WelcomeOverlay";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { withViewTransition } from "../lib/viewTransition";
 import { prefersReducedMotion } from "../lib/motion";
@@ -64,7 +65,10 @@ export default function LoginPage() {
   // devolvemos a su destino original en vez de su dashboard por defecto.
   const location = useLocation();
   const from = location.state?.from;
-  const [email, setEmail] = useState("");
+  // `ident` es usuario O correo (mig 035). El nombre del estado no cambia a
+  // `email` porque ya no lo es; el id del input sí se conserva (`login-email`)
+  // para no romper los E2E ni el autocompletado del navegador.
+  const [ident, setIdent] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
@@ -73,6 +77,9 @@ export default function LoginPage() {
   // salió bien. Sin esto, el corte al panel era tan seco que la persona no
   // sabía si su click había registrado.
   const [ok, setOk] = useState(false);
+  // Usuario que acaba de entrar. Con él se pinta la bienvenida personalizada
+  // ("Hola, Ana"), así que se guarda el objeto completo, no solo un booleano.
+  const [entered, setEntered] = useState(null);
   // Sacudida del bloque de error: la señal de rechazo se SIENTE, no solo se
   // lee. `key` remonta el bloque para que la animación corra en cada intento.
   const [errorTick, setErrorTick] = useState(0);
@@ -103,7 +110,7 @@ export default function LoginPage() {
     e.preventDefault();
     // El form lleva noValidate: sin el, el navegador corta el envio con
     // "Please fill out this field." en ingles antes de que corra este codigo.
-    if (!email.trim()) {
+    if (!ident.trim()) {
       setError("Escribe tu correo.");
       setErrorTick((n) => n + 1);
       emailRef.current?.focus();
@@ -118,7 +125,7 @@ export default function LoginPage() {
     setError("");
     setBusy(true);
     try {
-      const user = await login(email, password);
+      const user = await login(ident, password);
       // Un solo criterio de redirect (lib/roles.js): re-hacerlo aquí
       // desincroniza y dejó afuera a super_admin (sus roles no incluyen
       // el string "admin"). homeForRole devuelve "/login" solo si no hay
@@ -134,7 +141,11 @@ export default function LoginPage() {
       // panel aparece). Con movimiento reducido el aviso dura un instante y
       // el salto es directo: la preferencia manda.
       setOk(true);
-      const pause = prefersReducedMotion() ? 0 : 260;
+      // La bienvenida se queda visible un momento para que el saludo y la barra
+      // se lean antes de cruzar. Con movimiento reducido el margen es minimo:
+      // la preferencia manda y no se hace esperar a nadie.
+      setEntered(user);
+      const pause = prefersReducedMotion() ? 320 : 1150;
       await new Promise((r) => setTimeout(r, pause));
       withViewTransition(() => nav(from || home, { replace: true }));
     } catch (err) {
@@ -152,7 +163,7 @@ export default function LoginPage() {
     try {
       await apiFetch("/auth/forgot-password", {
         method: "POST",
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: ident }),
       });
       // Mensaje deliberadamente genérico: repetir el `detail` del backend
       // permitiría enumerar qué correos existen en la plataforma.
@@ -175,7 +186,7 @@ export default function LoginPage() {
           <p className="eyebrow">Tu panel</p>
           <h1 className="display mt-1 mb-1 text-2xl">Ingresar</h1>
           <p className="mb-5 text-sm leading-relaxed text-zinc-400">
-            Entra con tu correo de trabajo para manejar la venta y la puerta.
+            Entra con tu usuario o tu correo para manejar la venta y la puerta.
           </p>
 
           <form onSubmit={submit} noValidate>
@@ -183,20 +194,25 @@ export default function LoginPage() {
               htmlFor="login-email"
               className="mb-1.5 block text-xs font-medium text-zinc-400"
             >
-              Correo
+              Usuario o correo
             </label>
             <div className="auth-field relative mb-4">
               <MailIcon className="auth-field-icon" />
+              {/* El campo acepta usuario O correo (mig 035). Va como
+                  type="text" y no "email": un nombre de usuario no es un
+                  correo y el navegador lo marcaria invalido antes de que el
+                  backend pueda resolverlo. inputMode="email" si trae la fila
+                  con @ y . al teclado movil, que sirve para las dos formas. */}
               <input
                 ref={emailRef}
                 id="login-email"
-                type="email"
-                name="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@negocio.com"
+                type="text"
+                name="username"
+                value={ident}
+                onChange={(e) => setIdent(e.target.value)}
+                placeholder="usuario o tu@negocio.com"
                 className="field auth-field-has-icon"
-                autoComplete="email"
+                autoComplete="username"
                 inputMode="email"
                 enterKeyHint="next"
                 autoCapitalize="none"
@@ -280,7 +296,7 @@ export default function LoginPage() {
                 </p>
                 <button
                   type="button"
-                  disabled={forgotBusy || !email}
+                  disabled={forgotBusy || !ident}
                   onClick={submitForgot}
                   className="btn-ghost w-full text-xs font-bold disabled:opacity-40"
                 >
@@ -396,6 +412,10 @@ export default function LoginPage() {
           </TransitionLink>
         </nav>
       </div>
+      {/* Bienvenida personalizada: se monta al entrar y se va con la ruta
+          cuando el padre navega. `done` es el exito REAL del login: es lo
+          que cierra la barra, no un temporizador decorativo. */}
+      {entered && <WelcomeOverlay user={entered} done={ok} />}
     </AuthShell>
   );
 }

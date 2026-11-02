@@ -97,6 +97,9 @@ export default function ProfilePage() {
 
   // Edición de datos propios
   const [name, setName] = useState(user?.full_name || "");
+  // Nombre de usuario para entrar (mig 035). "" es valido: libera el usuario y
+  // la cuenta vuelve a entrar solo con correo.
+  const [username, setUsername] = useState(user?.username || "");
   const [nameMsg, setNameMsg] = useState(null);
   const [nameBusy, setNameBusy] = useState(false);
 
@@ -271,10 +274,13 @@ export default function ProfilePage() {
     try {
       const updated = await apiFetch("/auth/profile", {
         method: "PATCH",
-        body: JSON.stringify({ full_name: name }),
+        // Nombre y usuario van juntos: el backend valida el formato y responde
+        // 409 si el usuario ya esta tomado. El catch de abajo muestra ese
+        // mensaje real en vez de un texto generico.
+        body: JSON.stringify({ full_name: name, username: username.trim() }),
       });
       setUser(updated);
-      ui.success("Nombre actualizado.");
+      ui.success("Datos actualizados.");
     } catch (err) {
       ui.error(err.message);
     } finally {
@@ -523,6 +529,24 @@ export default function ProfilePage() {
               />
             </Field>
 
+            <Field
+              id="username"
+              label="Usuario"
+              hint="Con esto entras sin escribir el correo. Minúsculas, números, punto, guion o guion bajo (3 a 32). Déjalo vacío para entrar solo con tu correo."
+            >
+              <input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="field"
+                maxLength={32}
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="tu.usuario"
+              />
+            </Field>
+
             {nameMsg && (
               <div role="alert" className="pf-alert pf-alert-bad">
                 {nameMsg.text}
@@ -532,10 +556,14 @@ export default function ProfilePage() {
             <div className="pf-form-actions">
               <button
                 type="submit"
-                disabled={nameBusy || name.trim() === user.full_name}
+                disabled={
+                  nameBusy ||
+                  (name.trim() === (user.full_name || "") &&
+                    username.trim().toLowerCase() === (user.username || ""))
+                }
                 className="btn-primary"
               >
-                {nameBusy ? "Guardando…" : "Guardar nombre"}
+                {nameBusy ? "Guardando…" : "Guardar datos"}
               </button>
             </div>
           </form>
