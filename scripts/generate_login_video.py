@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Genera el video de fondo de la pantalla de ingreso (Enty).
 
-No es material de stock: el fondo se SINTETIZA con la paleta y los motivos de
-la marca (ver frontend/public/brand/guidelines.html):
+No es material de stock: el fondo se SINTETIZA con la paleta y los motivos
+de la marca (ver frontend/public/brand/guidelines.html):
 
   - negro profundo #0B0B0F como lienzo;
   - destellos de luz morados #7C3AED en las esquinas que derivan lento;
@@ -50,6 +50,50 @@ GREEN = np.array([0, 230, 171], dtype=np.float64)  # #00E6AB
 PINK = np.array([255, 45, 152], dtype=np.float64)  # #FF2D98
 WHITE = np.array([245, 245, 247], dtype=np.float64)  # #F5F5F7
 
+# -------------------------------------------------------------------------
+# OTIMIZACIÓN 1: Tabla de lookup para sparkles (pre-computar senos)
+# En lugar de calcular math.sin() 16 veces por frame (128 total), lo hacemos
+# una sola vez al inicio y luego hacemos lookup por índice de frame.
+# -------------------------------------------------------------------------
+_rng = np.random.default_rng(7)
+_SPARKLES = [
+    (
+        float(_rng.uniform(0.08, 0.92)) * WIDTH,
+        float(_rng.uniform(0.10, 0.90)) * HEIGHT,
+        float(_rng.uniform(7.0, 13.0)),
+        float(_rng.uniform(0.0, 2 * math.pi)),
+        1 + int(_rng.uniform(0, 2)),
+        int(_rng.uniform(0, 3)),
+    )
+    for _ in range(16)
+]
+_SPARK_COLORS = [WHITE, np.array([217, 182, 255]), GREEN, PINK]
+
+# Pre-compute sparkle intensities for every frame and every sparkle.
+# sparkle_intensities[sparkle_index][frame_index] = intensity (o 0 si < 0.02)
+_sparkle_intensities: list[list[float]] = []
+for _cx, _cy, _size, _phase, _k, _ci in _SPARKLES:
+    intensities: list[float] = []
+    for i in range(FRAMES):
+        t = i / FPS
+        tw = 0.5 + 0.5 * math.sin(2 * math.pi * _k * t / DURATION + _phase)
+        tw = tw**4  # picos cortos: destello, no lámpara
+        intensities.append(tw if tw >= 0.02 else 0.0)
+    _sparkle_intensities.append(intensities)
+
+# -------------------------------------------------------------------------
+# OTIMIZACIÓN 2: Incremento angular incremental
+# En lugar de recomputar w = 2*pi*t/DURATION cada frame, usamos un paso
+# incremental angle_step = 2*pi/FRAMES y vamos acumulando el ángulo.
+# Esto evita la multiplicación y división por frame.
+# -------------------------------------------------------------------------
+ANGLE_STEP = 2.0 * math.pi / FRAMES
+
+# Pre-compute glow parameters that depend only on the angular phase `w`.
+# Las esquinas moradas usan senos/cosenos de `w`, así que pre-computamos
+# sus posiciones y sigma ya que no cambian (solo la amplitud varia con w).
+# Pero para simplificar, mantemos la función _glow y solo optimizamos el bucle
+# principal usando el ángulo incremental.
 
 def _grid():
     yy, xx = np.mgrid[0:HEIGHT, 0:WIDTH].astype(np.float64)
@@ -128,29 +172,17 @@ def _qr_field(t: float) -> np.ndarray:
     return field
 
 
-# Sparkles: posiciones y fases fijas (deterministas), no aleatorias por frame.
-_rng = np.random.default_rng(7)
-_SPARKLES = [
-    (
-        float(_rng.uniform(0.08, 0.92)) * WIDTH,
-        float(_rng.uniform(0.10, 0.90)) * HEIGHT,
-        float(_rng.uniform(7.0, 13.0)),
-        float(_rng.uniform(0.0, 2 * math.pi)),
-        1 + int(_rng.uniform(0, 2)),
-        int(_rng.uniform(0, 3)),
-    )
-    for _ in range(16)
-]
-_SPARK_COLORS = [WHITE, np.array([217, 182, 255]), GREEN, PINK]
+def render_frame(i: int, w: float) -> np.ndarray:
+    """Renderiza un frame dado el ángulo `w` pre-computado.
 
-
-def render_frame(i: int) -> np.ndarray:
-    t = i / FPS
-    w = 2 * math.pi * t / DURATION
-
+    Args:
+        i: índice del frame (0..FRAMES-1)
+        w: ángulo en radianes (2*pi*i/DURATION), pre-computado por el caller
+    """
     img = np.zeros((HEIGHT, WIDTH, 3), dtype=np.float64)
 
     # 1. Destellos de esquina (el grueso de la atmósfera).
+    # Usamos el `w` pre-computado en lugar de recomputarlo.
     purple_a = _glow(
         WIDTH * (0.26 + 0.10 * math.sin(w)),
         HEIGHT * (0.28 + 0.09 * math.cos(w)),
@@ -178,14 +210,14 @@ def render_frame(i: int) -> np.ndarray:
     img += pink[..., None] * PINK * 0.09
 
     # 2. Grid modular (QR): muy tenue, tinte lavanda.
-    qr = _qr_field(t)
+    qr = _qr_field(i)
     qr = np.clip(qr, 0.0, 1.0)
     img += qr[..., None] * np.array([150, 120, 220]) * 0.055
 
     # 3. Estrellas de la marca titilando.
-    for cx, cy, size, phase, k, ci in _SPARKLES:
-        tw = 0.5 + 0.5 * math.sin(2 * math.pi * k * t / DURATION + phase)
-        tw = tw**4  # picos cortos: destello, no lámpara
+    # Usamos la tabla pre-computada en lugar de calcular sin() cada frame.
+    for idx, (cx, cy, size, phase, k, ci) in enumerate(_SPARKLES):
+        tw = _sparkle_intensities[idx][i]
         if tw < 0.02:
             continue
         img += _star(cx, cy, size, tw * 0.9)[..., None] * _SPARK_COLORS[ci]
@@ -214,12 +246,17 @@ def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     print(f"[*] Renderizando {FRAMES} frames a {WIDTH}x{HEIGHT}@{FPS}...")
+
+    # Bucle principal: iteramos sobre frames, acumulando el ángulo incremental.
+    # w empieza en 0 y aumentamos ANGLE_STEP cada iteración.
+    w = 0.0
     for i in range(FRAMES):
-        img = render_frame(i) + _GRAIN
+        img = render_frame(i, w) + _GRAIN
         np.clip(img, 0, 255, out=img)
         Image.fromarray(img.astype(np.uint8)).save(
             TMP_DIR / f"f{i:04d}.png", optimize=False
         )
+        w += ANGLE_STEP  # incremental angle update
         if i % 24 == 0:
             print(f"    frame {i}/{FRAMES}")
 
@@ -230,11 +267,28 @@ def main() -> int:
     print("[*] Codificando H.264 (mp4)...")
     subprocess.run(
         [
-            "ffmpeg", "-y", "-loglevel", "error",
-            "-framerate", str(FPS), "-i", str(TMP_DIR / "f%04d.png"),
-            "-c:v", "libx264", "-profile:v", "high", "-crf", "24",
-            "-preset", "veryslow", "-pix_fmt", "yuv420p",
-            "-movflags", "+faststart", "-an", str(mp4),
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-framerate",
+            str(FPS),
+            "-i",
+            str(TMP_DIR / "f%04d.png"),
+            "-c:v",
+            "libx264",
+            "-profile:v",
+            "high",
+            "-crf",
+            "24",
+            "-preset",
+            "medium",  # OTIMIZACIÓN: changed from veryslow to medium
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            "-an",
+            str(mp4),
         ],
         check=True,
     )
@@ -242,10 +296,26 @@ def main() -> int:
     print("[*] Codificando VP9 (webm)...")
     subprocess.run(
         [
-            "ffmpeg", "-y", "-loglevel", "error",
-            "-framerate", str(FPS), "-i", str(TMP_DIR / "f%04d.png"),
-            "-c:v", "libvpx-vp9", "-crf", "34", "-b:v", "0",
-            "-pix_fmt", "yuv420p", "-row-mt", "1", "-an", str(webm),
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-framerate",
+            str(FPS),
+            "-i",
+            str(TMP_DIR / "f%04d.png"),
+            "-c:v",
+            "libvpx-vp9",
+            "-crf",
+            "34",
+            "-b:v",
+            "0",
+            "-pix_fmt",
+            "yuv420p",
+            "-row-mt",
+            "1",
+            "-an",
+            str(webm),
         ],
         check=True,
     )
@@ -253,9 +323,15 @@ def main() -> int:
     print("[*] Extrayendo poster...")
     subprocess.run(
         [
-            "ffmpeg", "-y", "-loglevel", "error",
-            "-i", str(TMP_DIR / "f0000.png"),
-            "-q:v", "4", str(poster),
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            str(TMP_DIR / "f0000.png"),
+            "-q:v",
+            "4",
+            str(poster),
         ],
         check=True,
     )
