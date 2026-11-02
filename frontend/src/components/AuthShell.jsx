@@ -36,7 +36,20 @@ function Benefit({ children }) {
   );
 }
 
-export function AuthShell({ children }) {
+export function AuthShell({ children, minimal = false }) {
+  // Variante mínima: solo la tarjeta del formulario, centrada. Sin panel de
+  // marca, sin cabecera compacta, sin pie legal. La usa /login, donde un
+  // visitante solo viene a entrar.
+  if (minimal) {
+    return (
+      <div className="auth-shell auth-shell--minimal">
+        <main className="auth-panel">
+          <div className="auth-panel-inner">{children}</div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-shell">
       {/* Misma atmósfera de showroom que el resto de la entrada. En desktop

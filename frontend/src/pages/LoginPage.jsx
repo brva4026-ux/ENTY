@@ -10,7 +10,6 @@ import { WelcomeOverlay } from "../components/WelcomeOverlay";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { withViewTransition } from "../lib/viewTransition";
 import { prefersReducedMotion } from "../lib/motion";
-import TransitionLink from "../components/TransitionLink";
 
 /** Traduce errores técnicos del backend a mensajes que una persona entiende
  *  y sabe qué hacer después. */
@@ -234,7 +233,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell>
+    <AuthShell minimal>
       <div className="relative w-full">
         <div className="auth-card reveal p-6 sm:p-7">
           <p className="eyebrow">Tu panel</p>
@@ -433,33 +432,6 @@ export default function LoginPage() {
             que cierra la barra, no un temporizador decorativo. */}{entered && (
           <WelcomeOverlay user={entered} done={ok} />
         )}
-
-        {/* Salidas de la pantalla: sin ellas, un visitante que llega a /login
-            desde un enlace compartido (o un fan que no es staff) queda atrapado
-            sin acceso al catálogo ni a la información legal. */}
-        <nav
-          aria-label="Enlaces útiles"
-          className="mt-2 flex flex-wrap items-center justify-center gap-x-5 text-xs text-zinc-400"
-        >
-          <TransitionLink
-            to="/inicio"
-            className="inline-flex min-h-11 items-center transition hover:text-zinc-200"
-          >
-            Ver eventos
-          </TransitionLink>
-          <TransitionLink
-            to="/terminos"
-            className="inline-flex min-h-11 items-center transition hover:text-zinc-200"
-          >
-            Términos
-          </TransitionLink>
-          <TransitionLink
-            to="/privacidad"
-            className="inline-flex min-h-11 items-center transition hover:text-zinc-200"
-          >
-            Privacidad
-          </TransitionLink>
-        </nav>
       </div>
     </AuthShell>
   );

@@ -5150,6 +5150,14 @@ html[data-theme="light"] .evx-name {
   }
 }
 
+/* Variante mínima (login): solo la tarjeta. Va después del media query de
+   arriba para ganarle por orden de fuente y forzar una columna en todo
+   ancho; si no, en desktop la grilla de dos columnas dejaría la tarjeta
+   pegada a la izquierda con una columna vacía al lado. */
+.auth-shell--minimal {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 /* --- Panel de marca (solo desktop). Superficie = navy de la boleta, el
        mismo material del logo y del talon. No sigue el tema: la marca es
        oscura por definicion. --- */
