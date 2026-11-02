@@ -66,7 +66,7 @@ export function WelcomeOverlay({ user, done }) {
   const name = firstNameOf(user);
 
   return (
-    <div className="welcome-scrim" aria-hidden={!!done}>
+    <div className="welcome-scrim">
       <div
         className="welcome-card"
         role="status"
@@ -109,7 +109,7 @@ export function WelcomeOverlay({ user, done }) {
           aria-label="Preparando tu panel"
         >
           <span
-            className="welcome-bar-fill"
+            className={`welcome-bar-fill${done ? " is-complete" : ""}`}
             style={{ width: `${pct}%` }}
           />
         </div>

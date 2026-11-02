@@ -1,4 +1,6 @@
 import { AuthBackdrop } from "./AuthBackdrop";
+import { LoginAurora } from "./LoginAurora";
+import { LoginVideo } from "./LoginVideo";
 import { Logo } from "./Brand";
 import { LegalLinks } from "./LegalLinks";
 
@@ -36,7 +38,24 @@ function Benefit({ children }) {
   );
 }
 
-export function AuthShell({ children }) {
+export function AuthShell({ children, minimal = false }) {
+  // Variante mínima: solo la tarjeta del formulario, centrada, sobre el fondo
+  // en movimiento. Sin panel de marca, sin cabecera compacta, sin pie legal.
+  // La usa /login, donde un visitante solo viene a entrar.
+  if (minimal) {
+    return (
+      <div className="auth-shell auth-shell--minimal">
+        {/* El video va encima del fondo CSS; si no carga o el usuario pide
+            menos movimiento, el CSS (LoginAurora) queda de respaldo. */}
+        <LoginAurora />
+        <LoginVideo />
+        <main className="auth-panel">
+          <div className="auth-panel-inner">{children}</div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-shell">
       {/* Misma atmósfera de showroom que el resto de la entrada. En desktop

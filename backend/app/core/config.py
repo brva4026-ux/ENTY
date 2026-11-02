@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
-    database_url: str = "sqlite+aios:///./dev.db"
+    database_url: str = "postgresql://postgres:devpassword@localhost:5432/ticketflow"
 
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
