@@ -31,18 +31,42 @@ const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";
 const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
 const FAVS_KEY = "tf_fan_favs";
 
-/** Palabras del ticker cinético: el vocabulario de la noche de Enty. Se
- *  duplica en el render para un loop continuo (el keyframe mueve -50%). */
-const TICKER = [
-  "Conciertos",
-  "Festivales",
-  "Deportes",
-  "Teatro",
-  "Comedia",
-  "Cortesías",
-  "Aforo en vivo",
-  "Entrada con QR",
-];
+/**
+ * Fecha larga del hero: "Sáb 8 nov · 21:00". El destacado mostraba solo la
+ * fecha corta ("Dom 8 NOV") al lado del lugar, en 12px y en gris: el dato que
+ * más decide una compra (¿cuándo es?) estaba al mismo nivel que la dirección.
+ * Se parte en dos piezas para poder pintar el día grande y la hora aparte.
+ */
+function longDateParts(iso, tz) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { day: "", time: "" };
+  const fmt = (opts) =>
+    new Intl.DateTimeFormat("es-CO", { ...opts, timeZone: tz || undefined }).format(d);
+  const day = fmt({ weekday: "short", day: "numeric", month: "short" });
+  const time = fmt({ hour: "2-digit", minute: "2-digit", hour12: false });
+  const cap = day.charAt(0).toUpperCase() + day.slice(1);
+  return { day: cap.replace(/\.$/, ""), time };
+}
+
+/** ¿El evento ocurre hoy (día calendario del fan)? Para el sello "HOY". */
+function isToday(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
+/**
+ * Sellos de confianza de la banda cinética. NO repite los nombres de las
+ * categorías: esos ya están en los chips justo encima, y gastar 45px del
+ * primer scroll (el sitio más caro de la página) diciendo dos veces lo mismo
+ * era puro ruido. La banda habla de lo que el catálogo *ofrece*; las ciudades
+ * con oferta real se añaden en el render, que sí es información nueva. */
+const TICKER_TRUST = ["Aforo en vivo", "Entrada con QR", "Cortesías", "Pago seguro"];
 
 /** Fecha corta del evento, en su zona horaria: "Vie 24 oct". */
 function shortDate(iso, tz) {
@@ -163,7 +187,18 @@ function NeonStrokes() {
   );
 }
 
-/** Anillo de progreso: aforo vendido del evento destacado. */
+/** A partir de qué % el aforo vendido es una señal de escasez que vale la pena
+ *  mostrar. Por debajo, "1% VENDIDO" no informa de nada y ocupa el sitio más
+ *  visible del hero; en su lugar va un dato útil (la categoría). */
+const SOLD_ALERT_PCT = 70;
+
+/**
+ * Anillo de aforo del destacado. Solo se pinta cuando el % ya es una señal
+ * ("casi lleno"); con el aforo bajo el hero muestra otra cosa.
+ *
+ * Los colores salen de tokens (`--e-*`), no de literales: antes eran
+ * #F3F1EC / #A8A8B0 / #B7A3FF fijos y el anillo no seguía al tema.
+ */
 function SoldRing({ pct }) {
   const r = 42;
   const c = 2 * Math.PI * r;
@@ -172,16 +207,16 @@ function SoldRing({ pct }) {
     <svg className="home-ring" viewBox="0 0 342 262" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
         <radialGradient id="hGlow" cx="0.82" cy="0.18" r="0.7">
-          <stop offset="0" stopColor="#8B5CF6" stopOpacity="0.34" />
-          <stop offset="1" stopColor="#8B5CF6" stopOpacity="0" />
+          <stop offset="0" stopColor="var(--e-violet-500)" stopOpacity="0.34" />
+          <stop offset="1" stopColor="var(--e-violet-500)" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="hFade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0.35" stopColor="#101012" stopOpacity="0" />
-          <stop offset="1" stopColor="#101012" stopOpacity="0.9" />
+          <stop offset="0.35" stopColor="var(--e-ink-1)" stopOpacity="0" />
+          <stop offset="1" stopColor="var(--e-ink-1)" stopOpacity="0.9" />
         </linearGradient>
       </defs>
       <rect width="342" height="262" fill="url(#hGlow)" />
-      <g fill="none" stroke="#fff">
+      <g fill="none" stroke="var(--e-white)">
         <circle cx="266" cy="86" r="74" strokeOpacity="0.07" />
         <circle cx="266" cy="86" r="58" strokeOpacity="0.1" strokeDasharray="1 6.2" />
         <circle cx="266" cy="86" r="42" strokeOpacity="0.07" />
@@ -191,16 +226,16 @@ function SoldRing({ pct }) {
         cy="86"
         r={r}
         fill="none"
-        stroke="#B7A3FF"
+        stroke="var(--e-violet-250)"
         strokeWidth="2"
         strokeLinecap="round"
         strokeDasharray={`${(shown / 100) * c} ${c}`}
         transform="rotate(-90 266 86)"
       />
-      <text x="266" y="92" textAnchor="middle" fontSize="22" fontWeight="300" fill="#F3F1EC" letterSpacing="-1">
+      <text x="266" y="92" textAnchor="middle" fontSize="22" fontWeight="300" fill="var(--e-text-primary)" letterSpacing="-1">
         {shown}%
       </text>
-      <text x="266" y="109" textAnchor="middle" fontSize="14" fill="#A8A8B0" letterSpacing="1.2">
+      <text x="266" y="109" textAnchor="middle" fontSize="14" fill="var(--e-text-muted)" letterSpacing="1.2">
         VENDIDO
       </text>
       <rect width="342" height="262" fill="url(#hFade)" />
@@ -347,6 +382,11 @@ export default function HomePage() {
   // el "clic fuera" mira los dos nodos: botón y panel.
   const bellRef = useRef(null);
   const bellPanelRef = useRef(null);
+  // La banda de categorias hace scroll horizontal (677px de contenido en 350px
+  // visibles): sin una pista, Teatro y Comedia quedan invisibles. El CSS pinta
+  // un degradado al borde derecho; este efecto lo retira cuando el usuario ya
+  // llego al final, para no sugerir que sigue faltando algo.
+  const catsRef = useRef(null);
   // Contador de reintentos: cambiar el valor vuelve a disparar el fetch sin
   // duplicar la lógica de carga (mismo efecto, misma limpieza).
   const [reload, setReload] = useState(0);
@@ -356,6 +396,24 @@ export default function HomePage() {
   useEffect(() => forceDarkOnce(), []);
 
   useEffect(() => setFavs(readFavs()), []);
+
+  // Pista de scroll de las categorias: `data-scrolled="end"` apaga el degradado
+  // cuando la fila ya se desplazo hasta el final (y "start" en reposo).
+  useEffect(() => {
+    const el = catsRef.current;
+    if (!el) return;
+    const sync = () => {
+      const alFinal = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+      el.dataset.scrolled = alFinal ? "end" : "start";
+    };
+    sync();
+    el.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
+    return () => {
+      el.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+    };
+  }, [data]);
 
   // Ciudad opcional por URL (?city=Bogotá): permite enlazar/compartir una
   // cartelera por ciudad sin cuenta. Se filtra en cliente sobre el catalogo
@@ -458,6 +516,18 @@ export default function HomePage() {
   // Hay un filtro puesto (texto, categoria, fecha o ciudad): cambia el mensaje
   // del vacio y el boton que lo deshace.
   const narrowed = Boolean(query.trim()) || cat !== "todos" || range !== "todos" || Boolean(city);
+
+  // La banda cinética: sellos de confianza + las ciudades con oferta real
+  // (dato que no está en ningún otro sitio del primer scroll).
+  const tickerWords = useMemo(
+    () => [...TICKER_TRUST, ...cities.slice(0, 4).map(([name]) => name)],
+    [cities],
+  );
+
+  // El anillo solo aparece cuando el aforo ya es una señal; si no, el hero
+  // muestra la categoría (ver SOLD_ALERT_PCT).
+  const heroPct = featured?.sold_pct ?? null;
+  const heroCasiLleno = heroPct != null && heroPct >= SOLD_ALERT_PCT;
 
   // Anuncio para lectores de pantalla del resultado de filtrar. Buscar, cambiar
   // de categoría o de fecha re-renderiza la rejilla en silencio: sin esto, quien
@@ -562,6 +632,31 @@ export default function HomePage() {
       )}
 
       <main className="home-main">
+        {/* Titular VISIBLE de la vitrina. Antes era `sr-only`: el h1 existía
+            para el lector de pantalla pero en la pantalla no había ninguna frase
+            que dijera qué es esta página. La primera mitad del scroll era
+            andamiaje de filtros y el único texto grande era el nombre de un
+            evento. Ahora el titular ocupa ese hueco, con el conteo de la
+            cartelera como dato vivo.
+            Sigue presente en TODOS los estados (cargando, error, vacío y con
+            cartelera): sin eventos la página se quedaba sin encabezado. */}
+        <div className="home-hero">
+          <h1>
+            {error
+              ? "Cartelera no disponible"
+              : filtered.length === 0
+                ? "Sin resultados en la cartelera"
+                : "Cartelera de eventos"}
+          </h1>
+          {!error && data && filtered.length > 0 && (
+            <p className="home-hero-count">
+              {filtered.length === 1
+                ? "1 evento por descubrir"
+                : `${filtered.length} eventos por descubrir`}
+            </p>
+          )}
+        </div>
+
         <div className="home-search">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7" />
@@ -571,12 +666,12 @@ export default function HomePage() {
             type="search"
             value={query}
             onChange={(ev) => setQuery(ev.target.value)}
-            placeholder="Busca conciertos, eventos, artistas…"
+            placeholder="Busca eventos o artistas…"
             aria-label="Buscar eventos"
           />
         </div>
 
-        <div role="group" aria-label="Categorías" className="home-cats">
+        <div role="group" aria-label="Categorías" className="home-cats" ref={catsRef}>
           {CATEGORY_CHIPS.map((c) => (
             <button
               key={c.key}
@@ -627,29 +722,18 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Ticker cinético: la energía de la noche entre el troquel y la rejilla.
-            Decorativo (aria-hidden): repite la marca, no aporta datos. La lista
-            va duplicada para que el loop sea continuo (el keyframe mueve -50%). */}
+        {/* Banda cinética: entre el troquel y la rejilla. Decorativa
+            (aria-hidden). Antes repetía los nombres de las categorías que están
+            justo encima en los chips; ahora lleva sellos de confianza y las
+            ciudades con oferta real. La lista va duplicada para que el loop sea
+            continuo (el keyframe mueve -50%). */}
         <div className="home-ticker" aria-hidden="true">
           <div className="home-ticker-track">
-            {TICKER.concat(TICKER).map((w, i) => (
+            {tickerWords.concat(tickerWords).map((w, i) => (
               <span key={`${w}-${i}`}>{w}</span>
             ))}
           </div>
         </div>
-
-        {/* h1 único de la vitrina, presente en TODOS los estados (cargando, error,
-            vacío y con cartelera). El destacado es el titular cuando existe, pero
-            sin eventos la página se quedaba sin encabezado: cualquier búsqueda sin
-            resultados dejaba el documento sin h1 (a11y.spec.js solo probaba la
-            vista con seed, donde siempre hay destacado). */}
-        <h1 className="sr-only">
-          {error
-            ? "Cartelera no disponible"
-            : filtered.length === 0
-              ? "Sin resultados en la cartelera"
-              : "Cartelera de eventos"}
-        </h1>
 
         {/* Región viva: anuncia el resultado de filtrar sin mover el foco.
             `polite` espera a que el lector termine la frase en curso (buscar
@@ -728,24 +812,34 @@ export default function HomePage() {
                   decoding="async"
                 />
               ) : (
-                <>
-                  <NeonStrokes />
-                  <SoldRing pct={featured.sold_pct} />
-                </>
+                <NeonStrokes />
               )}
+              {/* El anillo de aforo solo se pinta cuando el % ya es una señal
+                  ("casi lleno"). Con el aforo bajo, "1% VENDIDO" ocupaba el
+                  sitio más visible del hero sin informar nada. */}
+              {!featured.flyer_url && heroCasiLleno && <SoldRing pct={heroPct} />}
               <div className="home-feature-body">
                 <div className="home-feature-top">
-                  <span className="home-eyebrow">Destacado</span>
-                  {/* h2: el h1 de la página es el encabezado estable de arriba
-                      (siempre presente). El destacado ES el titular visual, pero
-                      la jerarquía de documento necesita un h1 que no dependa de
-                      que existan eventos publicados. Visualmente no cambia: la
-                      regla es .home-feature-top h1/h2 (misma tipografía). */}
+                  <span className="home-eyebrow">
+                    Destacado
+                    {isToday(featured.starts_at) && <b className="home-badge-hoy">HOY</b>}
+                    {heroCasiLleno && <b className="home-badge-sold">{heroPct}% vendido</b>}
+                  </span>
+                  {/* h2: el h1 de la página es el titular visible de arriba
+                      (siempre presente). El destacado ES el nombre del evento,
+                      pero la jerarquía de documento necesita un h1 que no
+                      dependa de que existan eventos publicados. */}
                   <h2>{featured.name}</h2>
+                  {/* La fecha sube a su propia línea, grande: es el dato que más
+                      decide la compra y antes iba en 12px junto a la dirección. */}
+                  <p className="home-feature-when">
+                    <b>{longDateParts(featured.starts_at, featured.timezone).day}</b>
+                    <i>{longDateParts(featured.starts_at, featured.timezone).time}</i>
+                  </p>
                 </div>
                 <div className="home-feature-bottom">
                   <span className="home-feature-meta">
-                    {shortDate(featured.starts_at, featured.timezone)} · {featured.where}
+                    {featured.where}
                     <b>{priceLabel(featured.price_cents)}</b>
                   </span>
                   <span className="home-cta">
@@ -758,14 +852,20 @@ export default function HomePage() {
               </div>
             </TransitionLink>
 
+
             {/* El troquel: la línea perforada de la boletería separa el
                 destacado de la lista — el mismo corte que la entrada. */}
             <span className="enty-perf" aria-hidden="true" />
 
-            <div className="home-subhead">
-              <span>Próximos</span>
-              <TransitionLink to="/boletas">Mis boletos</TransitionLink>
-            </div>
+            {/* "Próximos" solo cuando HAY lista. Con un único evento el hero
+                ES toda la cartelera y el encabezado quedaba colgando sobre un
+                `.home-list` de 0px: la página prometía una lista inexistente. */}
+            {rest.length > 0 && (
+              <div className="home-subhead">
+                <span>Próximos</span>
+                <TransitionLink to="/boletas">Mis boletos</TransitionLink>
+              </div>
+            )}
 
             <div className="home-list">
               {rest.map((e) => {
@@ -810,6 +910,7 @@ export default function HomePage() {
             </div>
           </div>
         )}
+
       </main>
 
       <footer className="home-foot">

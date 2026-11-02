@@ -902,3 +902,148 @@ html[data-theme="light"] .legal-link {
   }
 }
 
+
+/* --------------------------------------------------------------------------
+ *  10. VITRINA · pulido de la primera pantalla (auditoría oct-2026)
+ *
+ *  El primer scroll gastaba 421px en andamiaje (buscador + 6 categorías + 4
+ *  fechas + banda) antes de que apareciera un solo evento, y el titular de la
+ *  página era `sr-only`: en pantalla no había ninguna frase que dijera qué es
+ *  esto. Estas reglas le devuelven el sitio al contenido.
+ * ------------------------------------------------------------------------- */
+
+/* Titular visible: antes era un h1 oculto. Toma el hueco que dejaba la banda
+   y el anillo apagado. */
+.home-hero {
+  margin-top: 1.1rem;
+}
+.home-hero h1 {
+  margin: 0;
+  font-size: var(--e-text-2xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--e-text-primary);
+}
+@media (min-width: 768px) {
+  .home-hero h1 {
+    font-size: var(--e-text-3xl);
+  }
+}
+.home-hero-count {
+  margin: 0.35rem 0 0;
+  font-size: var(--e-text-sm);
+  color: var(--e-text-muted);
+}
+
+/* Fecha del destacado en su propia línea: es el dato que más decide la compra
+   y antes iba en 12px junto a la dirección. */
+.home-feature-when {
+  margin: 0.35rem 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.home-feature-when b {
+  font-size: var(--e-text-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--e-text-primary);
+}
+.home-feature-when i {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-base);
+  font-weight: 600;
+  color: var(--e-text-secondary);
+}
+
+/* Sellos del destacado: HOY y el aforo cuando de verdad es una señal. */
+.home-badge-hoy,
+.home-badge-sold {
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.home-badge-hoy {
+  color: var(--e-ink-1);
+  background: var(--e-white);
+}
+.home-badge-sold {
+  color: var(--e-white);
+  background: var(--e-brand);
+}
+
+/* Pista de scroll en las categorías: 677px de contenido en 350px visibles y
+   ningún indicio de que Teatro y Comedia quedaban fuera de pantalla. El
+   degradado del borde derecho lo dice sin añadir controles. */
+@media (max-width: 767px) {
+  .home-cats {
+    -webkit-mask: linear-gradient(90deg, #000 0, #000 calc(100% - 2.5rem), transparent 100%);
+    mask: linear-gradient(90deg, #000 0, #000 calc(100% - 2.5rem), transparent 100%);
+  }
+  /* Con la fila ya desplazada al final, la pista sobra (y al principio no
+     debe sugerir que falta algo a la izquierda). */
+  .home-cats[data-scrolled="end"] {
+    -webkit-mask: none;
+    mask: none;
+  }
+}
+
+/* En escritorio el buscador ocupaba el 44% del ancho y el hero se estiraba a
+   3.14 de proporción: la vitrina era un móvil agrandado. El hero pasa a la
+   columna izquierda y el titular al lado, para aprovechar el ancho. */
+@media (min-width: 1024px) {
+  .home-hero {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+  .home-hero-count {
+    margin: 0;
+    white-space: nowrap;
+  }
+  .home-search {
+    max-width: 30rem;
+  }
+  /* El destacado se estiraba a 3.14 de proporción (1104×352): una foto
+     apaisada sin sitio para el texto. Con `aspect-ratio` mantiene una
+     proporción de cartel y el alto crece con el ancho en vez de quedarse fijo. */
+  .home-feature {
+    height: auto;
+    aspect-ratio: 21 / 9;
+    max-height: 30rem;
+  }
+  /* La lista deja de ser una tira de tarjetas a lo ancho del viewport. */
+  .home-grid,
+  .home-list {
+    max-width: 76rem;
+  }
+}
+
+/* El andamiaje de filtros venía con márgenes generosos (1.35rem cada uno) que
+   sumaban ~100px de aire antes del primer evento. Se comprimen: siguen
+   separando sin empujar el contenido fuera de la pantalla. */
+.home-search {
+  margin-top: 1rem;
+}
+.home-cats {
+  margin-top: 1rem;
+}
+.home-filters {
+  margin-top: 0.75rem;
+}
+.home-ticker {
+  margin-top: 1rem;
+}
+/* La fecha del destacado no debe romper en dos líneas en móvil estrecho. */
+.home-feature-when b {
+  white-space: nowrap;
+}

@@ -23,7 +23,7 @@ test("Inicio -> detalle -> Mis boletos", async ({ page }) => {
   test.skip(!ok, "App no disponible");
 
   // Inicio: header de marca, buscador y el carrusel de categorias del mockup.
-  await expect(page.getByPlaceholder(/Busca conciertos/)).toBeVisible();
+  await expect(page.getByPlaceholder(/Busca eventos o artistas/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Conciertos" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Comedia" })).toBeVisible();
 

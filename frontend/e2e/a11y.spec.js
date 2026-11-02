@@ -1036,3 +1036,221 @@ test("/boletas tiene un único landmark principal con el contenido", async ({ br
 
     await ctx.close();
   });
+
+/**
+ * Vitrina de /inicio: la presentación de la primera pantalla.
+ *
+ * Auditoría de oct-2026: el primer scroll gastaba 421px en andamiaje (buscador
+ * + 6 categorías + 4 fechas + banda) antes de que apareciera un solo evento, y
+ * el titular de la página era `sr-only`, así que en pantalla no había ninguna
+ * frase que dijera qué es esta página. Además:
+ *   - "Próximos" quedaba colgando sobre un `.home-list` de 0px (con un único
+ *     evento el hero ES toda la cartelera).
+ *   - La banda cinética repetía las 5 categorías que están justo encima.
+ *   - El anillo de aforo mostraba "1% VENDIDO" ocupando el sitio más visible.
+ *   - Las categorías hacían scroll (677px en 350px) sin ninguna pista.
+ *   - El buscador cortaba su propio placeholder en móvil.
+ *
+ * Cada test mide lo que el usuario percibe, no la implementación.
+ */
+/**
+ * Sirve una cartelera fija para que las medidas de layout no dependan del seed
+ * (que se re-ejecuta entre corridas y que otras specs modifican creando
+ * eventos). `n` es cuántos eventos devuelve /public/events.
+ */
+async function sembrarCatalogo(page, n) {
+  const base = new Date(Date.now() + 5 * 86_400_000).toISOString();
+  const events = Array.from({ length: n }, (_, i) => ({
+    id: 900_000 + i,
+    name: `Evento de prueba ${i + 1}`,
+    starts_at: new Date(new Date(base).getTime() + i * 86_400_000).toISOString(),
+    timezone: "America/Bogota",
+    venue: "Bar Esquina",
+    location: "Bogotá, Colombia",
+    category: "Música",
+    price_cents: 30000,
+    sold_pct: 1,
+    flyer_url: null,
+  }));
+  await page.route("**/api/public/events**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ events }) })
+  );
+}
+
+test.describe("vitrina /inicio: presentación de la primera pantalla", () => {
+  test("el titular es visible y la primera pantalla muestra un evento", async ({ browser }) => {
+    const ok = await available(await browser.newPage(), "/inicio");
+    test.skip(!ok, "App no disponible");
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    // Catálogo controlado: el seed cambia entre corridas (y otras specs crean
+    // eventos), así que el layout se mide sobre una cartelera fija.
+    await sembrarCatalogo(page, 1);
+    await page.goto("/inicio");
+    await page.waitForTimeout(1500);
+    await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+    await page.waitForTimeout(400);
+
+    const r = await page.evaluate(() => {
+      const h1 = document.querySelector("h1");
+      const hr = h1?.getBoundingClientRect();
+      const feat = document.querySelector(".home-feature")?.getBoundingClientRect();
+      return {
+        texto: h1?.textContent.trim() ?? "",
+        visible: !!hr && hr.width > 1 && hr.height > 1,
+        // `sr-only` deja 1px: cualquier tamaño real prueba que se pinta.
+        fs: h1 ? parseFloat(getComputedStyle(h1).fontSize) : 0,
+        heroTop: hr ? Math.round(hr.top) : -1,
+        featureTop: feat ? Math.round(feat.top) : -1,
+        vh: window.innerHeight,
+      };
+    });
+    await ctx.close();
+
+    expect(r.visible, "el h1 de la vitrina debe ser visible, no sr-only").toBe(true);
+    expect(r.fs, "el titular debe leerse como titular, no como texto oculto").toBeGreaterThan(20);
+    expect(r.texto.length, "el titular debe decir algo").toBeGreaterThan(0);
+    // El titular va arriba: antes quedaba detrás de 421px de filtros.
+    expect(r.heroTop, "el titular debe ir al principio del contenido").toBeLessThan(200);
+    // Y debe quedar sitio para el contenido dentro del primer scroll.
+    expect(
+      r.featureTop,
+      "el destacado debe empezar dentro del primer scroll"
+    ).toBeLessThan(r.vh);
+  });
+
+  test("el buscador no corta su propio placeholder", async ({ browser }) => {
+    const ok = await available(await browser.newPage(), "/inicio");
+    test.skip(!ok, "App no disponible");
+    // El ancho más estrecho razonable: si aquí cabe, cabe en cualquier teléfono.
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } });
+    const page = await ctx.newPage();
+    await page.goto("/inicio");
+    await page.waitForTimeout(1200);
+    await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+    await page.waitForTimeout(300);
+
+    const r = await page.evaluate(() => {
+      const i = document.querySelector(".home-search input");
+      if (!i) return null;
+      const cs = getComputedStyle(i);
+      const c = document.createElement("canvas").getContext("2d");
+      c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const anchoTexto = c.measureText(i.placeholder).width;
+      const disponible =
+        i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 30;
+      return { ph: i.placeholder, anchoTexto, disponible };
+    });
+    await ctx.close();
+
+    expect(r, "el buscador debe existir").not.toBeNull();
+    expect(
+      r.anchoTexto,
+      `el placeholder "${r.ph}" (${Math.round(r.anchoTexto)}px) no cabe en ${Math.round(r.disponible)}px`
+    ).toBeLessThanOrEqual(r.disponible);
+  });
+
+  test("las categorías avisan de que hay más fuera de pantalla", async ({ browser }) => {
+    const ok = await available(await browser.newPage(), "/inicio");
+    test.skip(!ok, "App no disponible");
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    await page.goto("/inicio");
+    await page.waitForTimeout(1200);
+    await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+    await page.waitForTimeout(300);
+
+    const r = await page.evaluate(() => {
+      const el = document.querySelector(".home-cats");
+      if (!el) return null;
+      const cs = getComputedStyle(el);
+      const mask = cs.maskImage || cs.webkitMaskImage || "";
+      return {
+        desborda: el.scrollWidth > el.clientWidth + 2,
+        tienePista: mask && mask !== "none",
+        marca: el.dataset.scrolled ?? "",
+      };
+    });
+    await ctx.close();
+
+    expect(r, "la banda de categorías debe existir").not.toBeNull();
+    if (!r.desborda) return; // si todo cabe, no hace falta pista
+    expect(r.tienePista, "una fila que desborda debe avisar de que hay más").toBe(true);
+    expect(r.marca, "el estado de scroll debe estar marcado").not.toBe("");
+  });
+
+  test("el destacado prioriza la fecha y no muestra aforo irrelevante", async ({ browser }) => {
+    const ok = await available(await browser.newPage(), "/inicio");
+    test.skip(!ok, "App no disponible");
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    await page.goto("/inicio");
+    await page.waitForTimeout(1500);
+    await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+    await page.waitForTimeout(400);
+
+    const r = await page.evaluate(() => {
+      const when = document.querySelector(".home-feature-when");
+      const ring = document.querySelector(".home-ring");
+      const pct = ring?.querySelector("text")?.textContent.trim() ?? "";
+      return {
+        hayFecha: !!when,
+        textoFecha: when?.textContent.trim() ?? "",
+        fsFecha: when ? parseFloat(getComputedStyle(when.querySelector("b")).fontSize) : 0,
+        hayAnillo: !!ring,
+        pct,
+      };
+    });
+    await ctx.close();
+
+    expect(r.hayFecha, "el destacado debe mostrar la fecha en su propia línea").toBe(true);
+    expect(r.textoFecha.length, "la fecha no puede ir vacía").toBeGreaterThan(0);
+    expect(r.fsFecha, "la fecha debe leerse, no ser letra pequeña").toBeGreaterThanOrEqual(18);
+    // El anillo solo se pinta cuando el aforo ya es una señal (>= 70%).
+    if (r.hayAnillo) {
+      const n = parseInt(r.pct, 10);
+      expect(n, `el anillo no debe aparecer con aforo irrelevante (mostró ${r.pct})`).toBeGreaterThanOrEqual(70);
+    }
+  });
+
+  test("'Próximos' no queda colgando cuando no hay lista", async ({ browser }) => {
+    const ok = await available(await browser.newPage(), "/inicio");
+    test.skip(!ok, "App no disponible");
+
+    const medir = async (n) => {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const page = await ctx.newPage();
+      // El catálogo se fija a mano: con 1 evento no hay lista, con 2 sí. Depender
+      // del seed hacía el test no determinista (otras specs añaden eventos).
+      await sembrarCatalogo(page, n);
+      await page.goto("/inicio");
+      await page.waitForTimeout(1500);
+      await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+      await page.waitForTimeout(400);
+      const r = await page.evaluate(() => {
+        const list = document.querySelector(".home-list");
+        return {
+          filas: document.querySelectorAll(".home-row").length,
+          haySubhead: !!document.querySelector(".home-subhead"),
+          altoLista: list ? Math.round(list.getBoundingClientRect().height) : -1,
+        };
+      });
+      await ctx.close();
+      return r;
+    };
+
+    // Con UN evento el hero ES toda la cartelera: no puede haber encabezado de
+    // lista sobre un `.home-list` vacío.
+    const solo = await medir(1);
+    expect(solo.filas, "el caso base debe tener un único evento").toBe(0);
+    expect(
+      solo.haySubhead,
+      `"Próximos" no debe renderizarse sin filas (lista de ${solo.altoLista}px)`
+    ).toBe(false);
+
+    // Con lista, el encabezado vuelve (el invariante corta en las dos direcciones).
+    const varios = await medir(3);
+    expect(varios.filas, "el segundo caso debe tener lista").toBeGreaterThan(0);
+    expect(varios.haySubhead, "con filas, el encabezado debe existir").toBe(true);
+  });
+});
