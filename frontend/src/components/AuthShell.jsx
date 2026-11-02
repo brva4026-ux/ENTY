@@ -1,4 +1,5 @@
 import { AuthBackdrop } from "./AuthBackdrop";
+import { LoginAurora } from "./LoginAurora";
 import { Logo } from "./Brand";
 import { LegalLinks } from "./LegalLinks";
 
@@ -37,12 +38,13 @@ function Benefit({ children }) {
 }
 
 export function AuthShell({ children, minimal = false }) {
-  // Variante mínima: solo la tarjeta del formulario, centrada. Sin panel de
-  // marca, sin cabecera compacta, sin pie legal. La usa /login, donde un
-  // visitante solo viene a entrar.
+  // Variante mínima: solo la tarjeta del formulario, centrada, sobre el fondo
+  // en movimiento. Sin panel de marca, sin cabecera compacta, sin pie legal.
+  // La usa /login, donde un visitante solo viene a entrar.
   if (minimal) {
     return (
       <div className="auth-shell auth-shell--minimal">
+        <LoginAurora />
         <main className="auth-panel">
           <div className="auth-panel-inner">{children}</div>
         </main>

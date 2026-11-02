@@ -5156,6 +5156,166 @@ html[data-theme="light"] .evx-name {
    pegada a la izquierda con una columna vacía al lado. */
 .auth-shell--minimal {
   grid-template-columns: minmax(0, 1fr);
+  position: relative;
+  overflow: hidden;
+  background: var(--e-ink-950);
+}
+html[data-theme="light"] .auth-shell--minimal {
+  background: var(--e-neutral-150);
+}
+
+/* --------------------------------------------------------------------------
+   Fondo en movimiento del login (LoginAurora)
+
+   Capa de gradientes animados, no un video: cero peso, escala a cualquier
+   pantalla y se apaga con prefers-reduced-motion. Tres manchas de violeta de
+   marca derivan muy lento (26-38s) y un barrido de brillo cruza en diagonal;
+   el ojo lo lee como "vivo" sin llegar a distraer del formulario.
+   -------------------------------------------------------------------------- */
+.auth-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.auth-aurora-blob {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(64px);
+  opacity: 0.5;
+  will-change: transform;
+}
+.auth-aurora-blob--a {
+  width: 44rem;
+  height: 44rem;
+  top: -14rem;
+  left: -12rem;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--e-violet-400) 55%, transparent),
+    transparent 68%
+  );
+  animation: auth-aurora-drift-a 26s ease-in-out infinite;
+}
+.auth-aurora-blob--b {
+  width: 40rem;
+  height: 40rem;
+  right: -12rem;
+  bottom: -16rem;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--e-violet-800) 60%, transparent),
+    transparent 70%
+  );
+  animation: auth-aurora-drift-b 32s ease-in-out infinite;
+}
+.auth-aurora-blob--c {
+  width: 32rem;
+  height: 32rem;
+  top: 28%;
+  left: 42%;
+  opacity: 0.34;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--e-violet-500) 50%, transparent),
+    transparent 72%
+  );
+  animation: auth-aurora-drift-c 38s ease-in-out infinite;
+}
+/* Barrido de brillo: una franja clara muy tenue que cruza en diagonal. Es lo
+   que separa "manchas de color" de "superficie con luz". */
+.auth-aurora-sheen {
+  position: absolute;
+  top: -60%;
+  left: -40%;
+  width: 70%;
+  height: 220%;
+  transform: rotate(18deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--e-violet-100) 12%, transparent),
+    transparent
+  );
+  opacity: 0.5;
+  animation: auth-aurora-sheen 18s ease-in-out infinite;
+}
+@keyframes auth-aurora-drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4rem, 3rem, 0) scale(1.12);
+  }
+}
+@keyframes auth-aurora-drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+  50% {
+    transform: translate3d(-5rem, -3rem, 0) scale(1);
+  }
+}
+@keyframes auth-aurora-drift-c {
+  0%,
+  100% {
+    transform: translate3d(-2rem, 1rem, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3rem, -2rem, 0) scale(1.15);
+  }
+}
+@keyframes auth-aurora-sheen {
+  0% {
+    transform: translate3d(-30%, 0, 0) rotate(18deg);
+  }
+  100% {
+    transform: translate3d(240%, 0, 0) rotate(18deg);
+  }
+}
+/* Claro: el violeta sobre crema pesa mas, así que se baja la intensidad. */
+html[data-theme="light"] .auth-aurora-blob {
+  opacity: 0.42;
+}
+html[data-theme="light"] .auth-aurora-blob--c {
+  opacity: 0.28;
+}
+html[data-theme="light"] .auth-aurora-sheen {
+  opacity: 0.3;
+}
+/* Movimiento reducido: el fondo queda como una escena quieta, no desaparece. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-aurora-blob,
+  .auth-aurora-sheen {
+    animation: none;
+  }
+}
+html[data-motion="reduce"] .auth-aurora-blob,
+html[data-motion="reduce"] .auth-aurora-sheen {
+  animation: none;
+}
+/* Móvil: menos superficie desenfocada y menos blur. Tres capas de 44rem con
+   blur(64px) son caras de rasterizar en un teléfono de gama baja; el efecto
+   se mantiene a la mitad de tamaño y de blur. */
+@media (max-width: 640px) {
+  .auth-aurora-blob {
+    filter: blur(44px);
+  }
+  .auth-aurora-blob--a {
+    width: 26rem;
+    height: 26rem;
+  }
+  .auth-aurora-blob--b {
+    width: 24rem;
+    height: 24rem;
+  }
+  .auth-aurora-blob--c {
+    width: 20rem;
+    height: 20rem;
+  }
 }
 
 /* --- Panel de marca (solo desktop). Superficie = navy de la boleta, el
