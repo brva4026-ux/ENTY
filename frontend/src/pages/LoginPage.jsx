@@ -6,6 +6,7 @@ import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
+import { LoginVideo } from "../components/LoginVideo";
 import { WelcomeOverlay } from "../components/WelcomeOverlay";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { withViewTransition } from "../lib/viewTransition";
@@ -235,6 +236,7 @@ export default function LoginPage() {
   return (
     <AuthShell minimal>
       <div className="relative w-full">
+        <LoginVideo />
         <div className="auth-card reveal p-6 sm:p-7 auth-card-enter">
           <p className="eyebrow">Tu panel</p>
           <h1 className="display mt-1 mb-1 text-2xl">Ingresar</h1>
