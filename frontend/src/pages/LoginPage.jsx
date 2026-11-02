@@ -2,7 +2,7 @@ import { apiFetch } from "../lib/api";
 import { homeForRole } from "../lib/roles";
 import { useAuth } from "../lib/auth";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
 import { WelcomeOverlay } from "../components/WelcomeOverlay";
@@ -37,6 +37,7 @@ export default function LoginPage() {
   // Usuario que acaba de entrar. Con él se pinta la bienvenida personalizada
   // (("Hola, Ana")), así que se guarda el objeto completo, no solo un booleano.
   const [entered, setEntered] = useState(null);
+  const emailRef = useRef(null);
 
   // autoFocus fijo abría el teclado al entrar en móvil y provocaba salto de
   // layout y zoom. Solo se enfoca donde hay puntero fino (escritorio).
