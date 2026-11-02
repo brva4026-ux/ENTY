@@ -6776,14 +6776,18 @@ html[data-theme="light"] .legal-doc code {
    primer render y una transicion depende de que el navegador alcance a pintar
    el 0 antes (carrera que en local se ganaba y en produccion se perdia: la
    barra salia llena de golpe). El keyframe `from` sobreescribe ese 100% inline
-   y se reproduce siempre, sin carrera. 1000ms acompaña el margen de LoginPage. */
+   y se reproduce siempre, sin carrera.
+   `linear` y no un ease-out: las curvas del sistema (expo/standard) llegan al
+   90% en la primera mitad, asi que la barra se llenaba en ~500ms y quedaba
+   quieta el resto. Lineal reparte el avance en los 1000ms completos, que es lo
+   que la hace LEERSE llenandose; el margen de LoginPage la acompaña. */
 @keyframes welcome-bar-fill {
   from {
     width: 0;
   }
 }
 .welcome-bar-fill.is-complete {
-  animation: welcome-bar-fill 1000ms var(--e-ease-expo) both;
+  animation: welcome-bar-fill 1000ms linear both;
 }
 
 /* Movimiento reducido: la tarjeta aparece sin desplazamiento ni escala y el
