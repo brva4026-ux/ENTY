@@ -52,6 +52,9 @@ export default function LoginPage() {
   // salió bien. Sin esto, el corte al panel era tan seco que la persona no
   // sabía si su click había registrado.
   const [ok, setOk] = useState(false);
+  // Estados de validación en tiempo real
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   // Usuario que acaba de entrar. Con él se pinta la bienvenida personalizada
   // (("Hola, Ana")), así que se guarda el objeto completo, no solo un booleano.
   const [entered, setEntered] = useState(null);
@@ -150,6 +153,11 @@ export default function LoginPage() {
             >
               Usuario o correo
             </label>
+            {emailError && (
+              <p className="text-xs text-red-500 mt-1">
+                {emailError}
+              </p>
+            )}
             <div className="auth-field relative mb-4">
               <MailIcon className="auth-field-icon" />
               {/* El campo acepta usuario O correo (mig 035). Va como
@@ -163,7 +171,16 @@ export default function LoginPage() {
                 type="text"
                 name="username"
                 value={ident}
-                onChange={(e) => setIdent(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setIdent(value);
+                  // Validación en tiempo real: email must contain @
+                  if (!value.includes('@') && value.trim().length > 0) {
+                    setEmailError('Por favor ingresa un email o usuario válido');
+                  } else {
+                    setEmailError('');
+                  }
+                }}
                 placeholder="usuario o tu@negocio.com"
                 className="field auth-field-has-icon"
                 inputMode="email"
@@ -171,8 +188,8 @@ export default function LoginPage() {
                 autoCapitalize="none"
                 spellCheck={false}
                 required
-                aria-invalid={error ? "true" : undefined}
-                aria-describedby={error ? "login-error" : undefined}
+                aria-invalid={error || emailError ? "true" : undefined}
+                aria-describedby={error || emailError ? "login-error" : undefined}
               />
             </div>
 
@@ -182,13 +199,27 @@ export default function LoginPage() {
             >
               Contraseña
             </label>
+            {passwordError && (
+              <p className="text-xs text-red-500 mt-1">
+                {passwordError}
+              </p>
+            )}
             <div className="auth-field relative mb-2">
               <LockIcon className="auth-field-icon" />
               <input
                 id="login-password"
                 type={showPass ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPassword(value);
+                  // Validación: password mínima 6 caracteres
+                  if (value.length < 6 && value.trim().length > 0) {
+                    setPasswordError('La contraseña debe tener al menos 6 caracteres');
+                  } else {
+                    setPasswordError('');
+                  }
+                }}
                 placeholder="Tu contraseña"
                 ref={passwordRef}
                 name="password"
@@ -199,8 +230,8 @@ export default function LoginPage() {
                 required
                 onKeyUp={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
                 onKeyDown={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
-                aria-invalid={error ? "true" : undefined}
-                aria-describedby={error ? "login-error" : undefined}
+                aria-invalid={error || passwordError ? "true" : undefined}
+                aria-describedby={error || passwordError ? "login-error" : undefined}
               />
               <button
                 type="button"
