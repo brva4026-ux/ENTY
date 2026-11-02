@@ -975,3 +975,64 @@ test("/boletas tiene un único landmark principal con el contenido", async ({ br
     expect(r.thVacios, "celdas de encabezado sin texto").toBe(0);
     expect(r.labelsUnicos, "nombres de región duplicados").toBe(true);
   });
+
+  /**
+   * /inicio: filtrar (buscar, categoría, fecha, ciudad) re-renderiza la rejilla
+   * en silencio. Sin región viva, quien no ve la pantalla no sabe cuántos eventos
+   * quedaron. Además el h1 decía "Sin resultados" en cuanto hubiera CUALQUIER
+   * filtro puesto, aunque quedaran eventos: se anuncia un resultado que no es.
+   * Ambas cosas se prueban con un filtro que SÍ deja resultados.
+   */
+  test("/inicio anuncia el resultado de filtrar y el h1 refleja la cartelera real", async ({
+    browser,
+  }) => {
+    const ok = await available(await browser.newPage(), "/inicio");
+    test.skip(!ok, "App no disponible");
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    await page.goto("/inicio");
+    await page.waitForTimeout(1200);
+    await page.getByRole("button", { name: "Entendido" }).click().catch(() => {});
+    await page.waitForTimeout(300);
+
+    const leer = () =>
+      page.evaluate(() => ({
+        h1: document.querySelector("h1")?.textContent.trim() ?? "",
+        live: document.querySelector('[role=status][aria-live]')?.textContent.trim() ?? "",
+        filas:
+          document.querySelectorAll(".home-row").length +
+          (document.querySelector(".home-feature") ? 1 : 0),
+      }));
+
+    const inicial = await leer();
+    // La región viva existe en reposo (si se montara solo al escribir, el lector
+    // no la reconocería como región) y ya describe la cartelera.
+    expect(inicial.live, "anuncio inicial de la cartelera").toMatch(/evento/);
+
+    // Filtro por categoría que deja al menos un evento (el seed trae música:
+    // "Conciertos" deja 2). Con "narrowed" el h1 viejo decía "Sin resultados".
+    await page.getByRole("button", { name: "Conciertos", exact: true }).click();
+    await page.waitForTimeout(700);
+    const conFiltro = await leer();
+
+    expect(conFiltro.filas, "el filtro debe dejar eventos (si no, el test no prueba el bug)").toBeGreaterThan(0);
+    expect(
+      conFiltro.h1,
+      "el h1 no debe decir 'Sin resultados' cuando sí hay eventos"
+    ).not.toContain("Sin resultados");
+    expect(conFiltro.live, "el anuncio debe contar los eventos que quedaron").toMatch(
+      /\d+ eventos?/
+    );
+
+    // Filtro sin resultados: ahora sí debe avisarlo, en el h1 y en la región viva.
+    await page.getByLabel("Buscar eventos").fill("zzzz-sin-resultados-zzzz");
+    await page.waitForTimeout(700);
+    const vacio = await leer();
+    expect(vacio.filas, "no debe quedar ningún evento").toBe(0);
+    expect(vacio.h1, "el h1 debe reflejar el vacío").toContain("Sin resultados");
+    expect(vacio.live, "la región viva debe avisar que no hay resultados").toContain(
+      "Sin resultados"
+    );
+
+    await ctx.close();
+  });

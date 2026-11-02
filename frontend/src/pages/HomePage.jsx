@@ -459,6 +459,19 @@ export default function HomePage() {
   // del vacio y el boton que lo deshace.
   const narrowed = Boolean(query.trim()) || cat !== "todos" || range !== "todos" || Boolean(city);
 
+  // Anuncio para lectores de pantalla del resultado de filtrar. Buscar, cambiar
+  // de categoría o de fecha re-renderiza la rejilla en silencio: sin esto, quien
+  // no ve la pantalla no sabe cuántos eventos quedaron (ni que no quedó ninguno).
+  // Solo cuenta con el catálogo cargado y sin error: en carga o fallo el mensaje
+  // visible ya lo comunica el estado correspondiente.
+  const anuncio = !data
+    ? ""
+    : error
+      ? "No se pudo cargar la cartelera."
+      : filtered.length === 0
+        ? "Sin resultados. Prueba con otro nombre, categoría, fecha o ciudad."
+        : `${filtered.length} ${filtered.length === 1 ? "evento" : "eventos"} en la cartelera.`;
+
   function resetFilters() {
     setQuery("");
     setCat("todos");
@@ -633,10 +646,19 @@ export default function HomePage() {
         <h1 className="sr-only">
           {error
             ? "Cartelera no disponible"
-            : narrowed
+            : filtered.length === 0
               ? "Sin resultados en la cartelera"
               : "Cartelera de eventos"}
         </h1>
+
+        {/* Región viva: anuncia el resultado de filtrar sin mover el foco.
+            `polite` espera a que el lector termine la frase en curso (buscar
+            mientras se escribe no debe interrumpir). El nodo queda siempre en el
+            DOM —si se montara solo al haber texto, el lector no lo reconocería
+            como región y no anunciaría nada—; solo cambia su contenido. */}
+        <p className="sr-only" role="status" aria-live="polite">
+          {anuncio}
+        </p>
 
         {error ? (
           <div className="home-empty">
