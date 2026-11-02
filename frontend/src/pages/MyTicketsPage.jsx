@@ -163,7 +163,7 @@ export default function MyTicketsPage() {
         </TransitionLink>
       </header>
 
-        <main className="home-main">
+      <main className="home-main">
         <div className="home-title">
           <h1>Mis boletas</h1>
           <p>
@@ -296,7 +296,7 @@ export default function MyTicketsPage() {
           </div>
         )}
 
-        </main>
+      </main>
       <FanNav active="boletos" />
     </div>
   );
