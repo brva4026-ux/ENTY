@@ -4,6 +4,24 @@ import { useAuth } from "../lib/auth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
+function EyeIcon({ open }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="3.2" />
+      {!open && <path d="M4.5 19.5 19.5 4.5" />}
+    </svg>
+  );
+}
 import { AuthShell } from "../components/AuthShell";
 import { WelcomeOverlay } from "../components/WelcomeOverlay";
 import useDocumentTitle from "../lib/useDocumentTitle";
@@ -39,6 +57,25 @@ export default function LoginPage() {
   const [entered, setEntered] = useState(null);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
+
+  function EyeIcon({ open }) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5"
+        aria-hidden="true"
+      >
+        <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+        <circle cx="12" cy="12" r="3.2" />
+        {!open && <path d="M4.5 19.5 19.5 4.5" />}
+      </svg>
+    );
+  }
 
   // autoFocus fijo abría el teclado al entrar en móvil y provocaba salto de
   // layout y zoom. Solo se enfoca donde hay puntero fino (escritorio).
