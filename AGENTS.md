@@ -594,6 +594,34 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   `/register` mientras la contrasena no cumple la politica), el mensaje nunca
   aparece y no hay nada que arreglar.
 
+  **Barrido axe de las rutas publicas (auditoria oct-2026).** Mas alla del
+  contraste y del foco, la red se cierra con un barrido de `axe-core` sobre las
+  9 rutas publicas (`/inicio`, `/boletas`, `/login`, `/waitlist`, `/register`,
+  `/reset`, `/terminos`, `/privacidad`, `/cookies`) x 2 temas. Hoy da **0
+  violaciones**; si vuelve a aparecer alguna, casi siempre es una de estas tres:
+  - **`landmark-one-main` / `region`**: una pantalla sin `<main>` deja titulo y
+    formulario fuera de todo landmark. Lo tuvieron `/waitlist` (dos ramas de
+    render: hay que envolver **las dos**) y `/reset`.
+  - **`scrollable-region-focusable`**: un contenedor con `overflow:auto`
+    (p. ej. `.legal-table-wrap`) no es alcanzable por teclado. Se arregla con
+    `tabIndex={0}` + `role="region"` **con nombre accesible**. Cuidado: dos
+    regiones con el mismo `aria-label` disparan `landmark-unique` — hay que
+    numerarlas.
+  - **`empty-table-header`**: las tablas del markdown legal traen cabeceras
+    vacias (`| | |` seguido de `|---|---|`). No se debe emitir `<thead>` si no
+    hay cabecera (`hasHeader` en `lib/markdown.jsx`).
+  **`aria-label` vs texto visible (WCAG 2.5.3).** Un control con texto visible
+  ("Enty") y `aria-label` distinto ("Ir al inicio") rompe control por voz: el
+  nombre accesible debe **contener** el texto visible. El boton del logo en las
+  tres paginas legales usa `"Enty, ir al inicio"`; mismo patron en HomePage.
+  **Regiones vivas para resultados de filtro.** Filtrar (`/inicio`: buscar,
+  categoria, fecha, ciudad) re-renderiza en silencio. El nodo
+  `role="status" aria-live="polite"` **vive siempre en el DOM** (montarlo solo
+  al escribir hace que el lector no lo reconozca como region) y solo cambia su
+  contenido; en carga/error queda vacio. Y el `h1` debe depender de
+  `filtered.length`, **no** de `narrowed`: con `narrowed` decia "Sin resultados"
+  aunque quedaran eventos (titular falso; `a11y.spec.js` lo fija).
+
 ### Gate de diseno (skill design-taste-frontend)
 
 `npm run lint:design` corre el lint del skill de diseno con la **allowlist de
