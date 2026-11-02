@@ -2,29 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { prefersReducedMotion } from "../lib/motion";
 
-/**
- * Bienvenida personalizada tras un login correcto.
- *
- * Antes, el exito eran 260 ms de un boton que decia "Listo" y un corte seco al
- * panel: la persona no alcanzaba a registrar que su click habia entrado. Esta
- * capa nombra a quien entro y da una espera visible mientras el resto del
- * arranque termina.
- *
- * Tres reglas que la hacen honesta y no un adorno:
- *
- *  1. La barra es REAL. Avanza mientras la promesa de login sigue viva y solo
- *     se completa cuando termina. No es un temporizador decorativo que se llena
- *     solo: si el backend tarda, la barra espera con el usuario.
- *  2. Nada de "99% y se queda". El avance se acerca asintoticamente a un techo
- *     y el salto a 100 lo da el evento real (exito). Si falla, la capa se cierra
- *     y el error aparece en el formulario, que es donde se corrige.
- *  3. Con movimiento reducido no hay animacion de entrada ni de check: la
- *     tarjeta aparece, la barra avanza y se navega. La preferencia manda.
- *
- * No se puede cerrar a proposito: es un estado de transito, no un dialogo. En
- * cuanto hay error o navegacion, desaparece sola.
- */
-
 /** Primer nombre para el saludo: "Ana Maria Lopez" -> "Ana". */
 function firstNameOf(user) {
   const full = (user?.full_name || "").trim();
@@ -32,6 +9,24 @@ function firstNameOf(user) {
   // Sin nombre cargado: el usuario o la parte local del correo saludan igual.
   return user?.username || (user?.email || "").split("@")[0] || "";
 }
+
+/**
+ * Bienvenida personalizada tras un login correcto.
+ *
+ * Tres reglas que la hacen honesta y no un adorno:
+ *
+ *  1. La barra es REAL. Avanza mientras la promesa de login sigue viva y solo
+ *     se completa cuando termina. No es un temporizador decorativo que se llena
+ *     solo: si el backend tarda, la barra espera con el usuario.
+ *  2. Nada de "99% y se queda". El avance se acerca asintóticamente a un techo
+ *     y el salto a 100 lo da el evento real (éxito). Si falla, la capa se cierra
+ *     y el error aparece en el formulario, que es donde se corrige.
+ *  3. Con movimiento reducido no hay animación de entrada ni de check: la
+ *     tarjeta aparece, la barra avanza y se navega. La preferencia manda.
+ *
+ * No se puede cerrar a propósito: es un estado de transito, no un dialogo. En
+ * cuanto hay error o navegacion, desaparece sola.
+ */
 
 export function WelcomeOverlay({ user, done }) {
   const [progress, setProgress] = useState(0);
@@ -71,7 +66,7 @@ export function WelcomeOverlay({ user, done }) {
   const name = firstNameOf(user);
 
   return (
-    <div className="welcome-scrim">
+    <div className="welcome-scrim" aria-hidden={!!done}>
       <div
         className="welcome-card"
         role="status"
@@ -79,7 +74,14 @@ export function WelcomeOverlay({ user, done }) {
         aria-busy={!done}
       >
         <span className="welcome-check" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path
               d="m5 12.5 4.5 4.5L19 7"
               strokeWidth="3"
@@ -106,7 +108,10 @@ export function WelcomeOverlay({ user, done }) {
           aria-valuenow={pct}
           aria-label="Preparando tu panel"
         >
-          <span className="welcome-bar-fill" style={{ width: `${pct}%` }} />
+          <span
+            className="welcome-bar-fill"
+            style={{ width: `${pct}%` }}
+          />
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import React, { lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/auth";
@@ -56,6 +57,55 @@ function EyeIcon({ open }) {
   );
 }
 
+/** Checkmark que aparece con escala suave. */
+function CheckIcon({ animate }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path
+        d="m5 12.5 4.5 4.5L19 7"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Icono de usuario que entra con desplazamiento suave. */
+function UserIcon({ user }) {
+  const name = firstNameOf(user);
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5 mr-2"
+      aria-hidden="true"
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function firstNameOf(user) {
+  const full = (user?.full_name || "").trim();
+  if (full) return full.split(/\s+/)[0];
+  return user?.username || (user?.email || "").split("@")[0] || "";
+}
+
 export default function LoginPage() {
   useDocumentTitle("Ingresar");
   const { login } = useAuth();
@@ -65,6 +115,7 @@ export default function LoginPage() {
   // devolvemos a su destino original en vez de su dashboard por defecto.
   const location = useLocation();
   const from = location.state?.from;
+
   // `ident` es usuario O correo (mig 035). El nombre del estado no cambia a
   // `email` porque ya no lo es; el id del input sí se conserva (`login-email`)
   // para no romper los E2E ni el autocompletado del navegador.
@@ -212,7 +263,6 @@ export default function LoginPage() {
                 onChange={(e) => setIdent(e.target.value)}
                 placeholder="usuario o tu@negocio.com"
                 className="field auth-field-has-icon"
-                autoComplete="username"
                 inputMode="email"
                 enterKeyHint="next"
                 autoCapitalize="none"
@@ -341,7 +391,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={busy || ok}
-              className={"btn-primary w-full" + (ok ? " is-ok" : "")}
+              className={`btn-primary w-full ${ok ? "is-ok" : ""}`}
             >
               {busy && !ok && (
                 <svg
@@ -375,15 +425,11 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="mt-5 animate-fade text-center text-sm text-zinc-400">
-          ¿Nuevo en Enty?{" "}
-          <TransitionLink
-            to="/register"
-            className="link-underline font-semibold text-brand-300"
-          >
-            Crea tu negocio
-          </TransitionLink>
-        </p>
+        {/* Bienvenida personalizada: se monta al entrar y se va con la ruta
+            cuando el padre navega. `done` es el exito REAL del login: es lo
+            que cierra la barra, no un temporizador decorativo. */}{entered && (
+          <WelcomeOverlay user={entered} done={ok} />
+        )}
 
         {/* Salidas de la pantalla: sin ellas, un visitante que llega a /login
             desde un enlace compartido (o un fan que no es staff) queda atrapado
@@ -412,10 +458,6 @@ export default function LoginPage() {
           </TransitionLink>
         </nav>
       </div>
-      {/* Bienvenida personalizada: se monta al entrar y se va con la ruta
-          cuando el padre navega. `done` es el exito REAL del login: es lo
-          que cierra la barra, no un temporizador decorativo. */}
-      {entered && <WelcomeOverlay user={entered} done={ok} />}
     </AuthShell>
   );
 }
