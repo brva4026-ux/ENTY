@@ -6735,12 +6735,11 @@ html[data-theme="light"] .legal-doc code {
     var(--e-violet-500),
     var(--e-violet-400)
   );
-  /* El ancho va con la llegada, no con un parpadeo: la barra debe LEERSE
-     llenandose. 160ms era más corto que un parpadeo y, como el overlay se
-     monta con el login ya resuelto (progress salta a 100 de una), esa
-     transición era toda la animación visible. Ahora dura lo que dura la
-     espera (ver `pause` en LoginPage). */
-  transition: width 1000ms var(--e-ease-expo);
+  /* Suaviza el avance asintotico (la barra que sube mientras el login corre,
+     cuando el overlay se monta ANTES de que resuelva). El salto final a 100
+     no usa esto: lo anima `.is-complete` (ver keyframes), porque ahi el ancho
+     llega ya resuelto y una transicion seria una carrera. */
+  transition: width 200ms linear;
 }
 
 @keyframes welcome-scrim-in {
@@ -6772,6 +6771,21 @@ html[data-theme="light"] .legal-doc code {
   }
 }
 
+/* El llenado final de la barra. Es una ANIMACION, no una transicion: el overlay
+   se monta con el login ya resuelto, asi que React aplica width:100% en el
+   primer render y una transicion depende de que el navegador alcance a pintar
+   el 0 antes (carrera que en local se ganaba y en produccion se perdia: la
+   barra salia llena de golpe). El keyframe `from` sobreescribe ese 100% inline
+   y se reproduce siempre, sin carrera. 1000ms acompaña el margen de LoginPage. */
+@keyframes welcome-bar-fill {
+  from {
+    width: 0;
+  }
+}
+.welcome-bar-fill.is-complete {
+  animation: welcome-bar-fill 1000ms var(--e-ease-expo) both;
+}
+
 /* Movimiento reducido: la tarjeta aparece sin desplazamiento ni escala y el
    check no rebota. El estado sigue siendo legible (el color y el texto
    comunican el exito), solo se apaga el movimiento. */
@@ -6784,6 +6798,9 @@ html[data-theme="light"] .legal-doc code {
   .welcome-bar-fill {
     transition: none;
   }
+  .welcome-bar-fill.is-complete {
+    animation: none;
+  }
 }
 html[data-motion="reduce"] .welcome-scrim,
 html[data-motion="reduce"] .welcome-card,
@@ -6792,4 +6809,7 @@ html[data-motion="reduce"] .welcome-check {
 }
 html[data-motion="reduce"] .welcome-bar-fill {
   transition: none;
+}
+html[data-motion="reduce"] .welcome-bar-fill.is-complete {
+  animation: none;
 }

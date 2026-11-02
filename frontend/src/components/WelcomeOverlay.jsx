@@ -109,7 +109,7 @@ export function WelcomeOverlay({ user, done }) {
           aria-label="Preparando tu panel"
         >
           <span
-            className="welcome-bar-fill"
+            className={`welcome-bar-fill${done ? " is-complete" : ""}`}
             style={{ width: `${pct}%` }}
           />
         </div>
