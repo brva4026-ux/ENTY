@@ -126,7 +126,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         await cur.execute(
             """
             SELECT v.id AS venue_id, v.name, v.slug, v.logo_url, v.primary_color,
-                   v.commission_pct, vr.role
+                   v.commission_pct, v.contact_name, v.contact_phone, vr.role
             FROM venue_user_roles vr
             JOIN venues v ON v.id = vr.venue_id
             WHERE vr.user_id = %s
@@ -144,6 +144,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
                 id=venue_id, name=row["name"], slug=row["slug"],
                 logo_url=row["logo_url"], primary_color=row["primary_color"],
                 commission_pct=float(row["commission_pct"] or 0),
+                contact_name=row["contact_name"], contact_phone=row["contact_phone"],
             )
         roles_by_venue[str(venue_id)] = roles_by_venue.get(str(venue_id), []) + [row["role"]]
 
@@ -640,10 +641,23 @@ async def update_venue_settings(
                 "UPDATE venues SET primary_color=%s WHERE id=%s",
                 (body.primary_color or None, venue_id),
             )
+        # Contacto del organizador (mig 036). "" limpia (NULL): el bloque
+        # publico de "encarga tu boleta" desaparece sin dejar un telefono vacio.
+        if body.contact_name is not None:
+            await cur.execute(
+                "UPDATE venues SET contact_name=%s WHERE id=%s",
+                (body.contact_name.strip() or None, venue_id),
+            )
+        if body.contact_phone is not None:
+            await cur.execute(
+                "UPDATE venues SET contact_phone=%s WHERE id=%s",
+                (body.contact_phone.strip() or None, venue_id),
+            )
         await db.commit()
 
         await cur.execute(
-            """SELECT id, name, slug, logo_url, primary_color, commission_pct
+            """SELECT id, name, slug, logo_url, primary_color, commission_pct,
+                      contact_name, contact_phone
                FROM venues WHERE id=%s""",
             (venue_id,),
         )
@@ -655,6 +669,8 @@ async def update_venue_settings(
         logo_url=row["logo_url"],
         primary_color=row["primary_color"],
         commission_pct=float(row["commission_pct"] or 0),
+        contact_name=row["contact_name"],
+        contact_phone=row["contact_phone"],
     )
 
 

@@ -21,6 +21,10 @@ import "./panel-cockpit.css";
 // Capa de experiencia del fan (vitrina editorial responsive): se importa al
 // final para llevar la marca a su forma definitiva sin reescribir el sistema.
 import "./enty-fan.css";
+// Presentación pública de la raíz ("/"): extiende el lenguaje de la vitrina
+// (mismo negro mate, violeta y motivo del boleto) para vender el PRODUCTO,
+// no solo la cartelera. Va después de enty-fan.css para heredar sus tokens.
+import "./landing.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";
@@ -67,7 +71,7 @@ const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
 const HomePage = lazyPage(() => import("./pages/HomePage"));
-const InicioPage = lazyPage(() => import("./pages/InicioPage"));
+const LandingPage = lazyPage(() => import("./pages/LandingPage"));
 const EventDetailPage = lazyPage(() => import("./pages/EventDetailPage"));
 const MyTicketsPage = lazyPage(() => import("./pages/MyTicketsPage"));
 const WaitlistPage = lazyPage(() => import("./pages/WaitlistPage"));
@@ -159,7 +163,7 @@ function App() {
               <Route path="/t" element={<PublicTicketPage />} />
               {/* Inicio: la vitrina publica del fan (catalogo de eventos).
               Sin login — es la cara de consumidor de Enty. */}
-              <Route path="/inicio" element={<InicioPage />} />
+              <Route path="/inicio" element={<HomePage />} />
               {/* Detalle del evento: la pantalla de compra, publica como la
               vitrina. Se llega tocando un evento del catalogo. */}
               <Route path="/evento/:id" element={<EventDetailPage />} />
@@ -230,7 +234,7 @@ function App() {
                   </RequireRole>
                 }
               />
-              <Route path="/" element={<HomeRedirect />} />
+              <Route path="/" element={<RootRoute />} />
               {/* Ruta inexistente: pantalla propia, no redirección muda a "/".
                   Un enlace roto o un QR viejo se veían como un aterrizaje
                   normal, sin explicar que la dirección pedida no existe. */}
@@ -243,15 +247,22 @@ function App() {
   );
 }
 
-function HomeRedirect() {
+/**
+ * La raíz "/" es la PÁGINA DE PRESENTACIÓN pública de Enty: qué es la app,
+ * cómo funciona, la cartelera de eventos abiertos, la consulta de boleta y la
+ * entrada al panel del equipo. La ve el invitado (enlace compartido, QR de un
+ * flyer) sin cuenta.
+ *
+ * El staff SÍ tiene cuenta y no necesita que le expliquen el producto: al
+ * abrir "/" se le manda a su panel (misma fuente de verdad que el login,
+ * lib/roles.js). Antes "/" redirigía SIEMPRE a /inicio y el dueño del negocio
+ * no tenía dónde aterrizar con su sesión.
+ */
+function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) return <SplashScreen />;
-  // La raíz es la VITRINA, no el login: Enty vende boletas al fan y la
-  // mayoría de quien abre un enlace compartido no tiene cuenta. Mandarlo a
-  // /login lo dejaba sin catálogo y sin forma de volver. El staff no pierde
-  // entrada: "Acceso" en la cabecera y "Perfil" en la barra inferior.
-  if (!user) return <Navigate to="/inicio" replace />;
-  return <Navigate to={homeForRole(user)} replace />;
+  if (user) return <Navigate to={homeForRole(user)} replace />;
+  return <LandingPage />;
 }
 
 createRoot(document.getElementById("root")).render(

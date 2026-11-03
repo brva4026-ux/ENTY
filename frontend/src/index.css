@@ -4397,7 +4397,7 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   }
 }
 
-/* ---- LOGIN FORM ENTRANCE: escala y flotación suave --- /
+/* ---- LOGIN FORM ENTRANCE: escala y flotación suave --- */
 /* La tarjeta de login flota hacia su lugar, sintiendo la presencia del showroom.
    Usa transform/opacity solo, nunca filter/backdrop-filter.
    Respeta prefers-reduced-motion igual que el resto del sistema. */
@@ -4407,12 +4407,15 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
     opacity: 0;
     transform: translateY(12px) scale(0.96);
   }
-  /* Animación de entrada: se asienta con easing expo */
-  .auth-card-enter {
-    animation: auth-card-enter 0.55s var(--e-ease-expo) forwards;
-  }
   /* Cuando el navegador aplica @starting-style, el elemento nace en su
      estado inicial y el navegador interpola al frame final. */
+}
+/* La animación de entrada se aplica sobre la tarjeta MISMA (el JSX la marca
+   con .auth-card-enter junto a .auth-card). Antes vivía anidada dentro del
+   bloque .auth-card, donde el selector compilaba como descendiente y no
+   coincidía con nada. */
+.auth-card-enter {
+  animation: auth-card-enter 0.55s var(--e-ease-expo) forwards;
 }
 
 @keyframes auth-card-enter {

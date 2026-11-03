@@ -31,7 +31,9 @@ async function login(page, email) {
   await page.goto("/login");
   await page.getByPlaceholder(/negocio/i).fill(email);
   await page.getByPlaceholder(/contraseña/i).fill(DEMO_PASSWORD);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  // `exact` porque el boton "¿Problemas para entrar? Contactanos" tambien
+  // contiene "entrar" y el locator por nombre resuelve a dos elementos.
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 10_000 });
 }
 
@@ -245,6 +247,10 @@ async function audit(page) {
 
 const PUBLIC = [
   "/inicio",
+  // La raiz "/" es la presentacion publica del producto (misma cara que ve
+  // quien llega por un enlace compartido). Entra en la auditoria como
+  // cualquier otra superficie publica.
+  "/",
   "/boletas",
   "/login",
   "/waitlist",
@@ -425,9 +431,10 @@ test("el foco de teclado es visible y de un solo color (ambos temas)", async ({
     const rings = [];
     for (let i = 0; i < 14; i++) {
       await page.keyboard.press("Tab");
-      // El `transition` de Tailwind incluye outline-color: se espera a que
-      // asiente para no leer un color a medio animar.
-      await page.waitForTimeout(220);
+      // El `transition` incluye outline-color (hasta --e-dur-slow = 320ms): con
+      // una espera menor se leia el color a medio animar y el test fallaba de
+      // forma intermitente (dos tonos a 1-2 unidades de distancia).
+      await page.waitForTimeout(450);
       const info = await page.evaluate(() => {
         const el = document.activeElement;
         if (!el || el === document.body) return null;
@@ -499,6 +506,7 @@ test("estructura: un h1 por pantalla, sin saltos de nivel, sin scroll a 320px", 
   const eventPath = await firstEventPath(page);
   const publicPaths = [
     "/inicio",
+    "/",
     "/boletas",
     "/login",
     "/register",

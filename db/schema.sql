@@ -2372,7 +2372,9 @@ CREATE TABLE public.users (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     last_login_at timestamp with time zone,
-    token_version integer DEFAULT 1 NOT NULL
+    token_version integer DEFAULT 1 NOT NULL,
+    username text,
+    CONSTRAINT users_username_format CHECK (((username IS NULL) OR ((username = lower(username)) AND (username ~ '^[a-z0-9._-]{3,32}$'::text))))
 );
 
 --
@@ -2415,7 +2417,9 @@ CREATE TABLE public.venues (
     primary_color text,
     commission_pct numeric(5,2) DEFAULT 0 NOT NULL,
     is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    contact_name text,
+    contact_phone text
 );
 
 --
@@ -3006,6 +3010,14 @@ CREATE INDEX idx_user_preferences_venue ON public.user_preferences USING btree (
 --
 
 CREATE INDEX idx_users_last_login ON public.users USING btree (last_login_at);
+
+
+--
+-- Name: users_username_lower_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX users_username_lower_key ON public.users USING btree (lower(username)) WHERE (username IS NOT NULL);
+
 
 --
 -- Name: events trg_events_check_capacity; Type: TRIGGER; Schema: public; Owner: -

@@ -114,6 +114,14 @@ export default function ProfilePage() {
   const [venueCommission, setVenueCommission] = useState(
     adminVenue?.commission_pct != null ? String(adminVenue.commission_pct) : "0",
   );
+  // Contacto del organizador (mig 036): lo que la pagina publica muestra en
+  // "encargar por WhatsApp". "" lo deja sin publicar.
+  const [venueContactName, setVenueContactName] = useState(
+    adminVenue?.contact_name || "",
+  );
+  const [venueContactPhone, setVenueContactPhone] = useState(
+    adminVenue?.contact_phone || "",
+  );
   const [logoError, setLogoError] = useState("");
   const [venueBusy, setVenueBusy] = useState(false);
 
@@ -300,6 +308,8 @@ export default function ProfilePage() {
           logo_url: venueLogo,
           commission_pct: Number(venueCommission) || 0,
           primary_color: venueColor,
+          contact_name: venueContactName,
+          contact_phone: venueContactPhone,
         }),
       });
       // Refrescar la venue dentro del user del contexto global
@@ -313,6 +323,8 @@ export default function ProfilePage() {
                 logo_url: updated.logo_url,
                 commission_pct: updated.commission_pct,
                 primary_color: updated.primary_color,
+                contact_name: updated.contact_name,
+                contact_phone: updated.contact_phone,
               }
             : v,
         ),
@@ -902,6 +914,40 @@ export default function ProfilePage() {
               />
             </Field>
 
+            {/* Contacto del organizador (mig 036): es lo que la pagina publica
+                muestra en "encargar por WhatsApp". Quien organiza esa noche
+                responde por el telefono; sin el, el evento solo vende en linea. */}
+            <Field
+              id="venue-contact-name"
+              label="Nombre del encargado"
+              hint="Aparece en la pagina publica: a quien le escriben para encargar boleta."
+            >
+              <input
+                id="venue-contact-name"
+                value={venueContactName}
+                onChange={(e) => setVenueContactName(e.target.value)}
+                className="field"
+                maxLength={80}
+                placeholder="Ej: Reservas Bar Esquina"
+              />
+            </Field>
+
+            <Field
+              id="venue-contact-phone"
+              label="WhatsApp del encargado"
+              hint="Con código de país (ej. +57 300 123 4567). Déjalo vacío para no publicar contacto."
+            >
+              <input
+                id="venue-contact-phone"
+                value={venueContactPhone}
+                onChange={(e) => setVenueContactPhone(e.target.value)}
+                className="field"
+                maxLength={40}
+                inputMode="tel"
+                placeholder="+57 300 123 4567"
+              />
+            </Field>
+
             <div className="pf-form-actions">
               <button
                 type="submit"
@@ -910,7 +956,9 @@ export default function ProfilePage() {
                   (venueName.trim() === adminVenue.name &&
                     venueLogo === (adminVenue.logo_url || "") &&
                     venueCommission === String(adminVenue.commission_pct ?? 0) &&
-                    venueColor === (adminVenue.primary_color || ""))
+                    venueColor === (adminVenue.primary_color || "") &&
+                    venueContactName === (adminVenue.contact_name || "") &&
+                    venueContactPhone === (adminVenue.contact_phone || ""))
                 }
                 className="btn-primary"
               >

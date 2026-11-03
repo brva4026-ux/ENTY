@@ -57,6 +57,7 @@ MIGRATIONS=(
   db/migrations/033_inventory_per_type.sql
   db/migrations/034_door_grace_and_sync_truth.sql
     db/migrations/035_username.sql
+    db/migrations/036_venue_contact.sql
 )
 
 echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"

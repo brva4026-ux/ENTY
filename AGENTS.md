@@ -47,7 +47,11 @@ Sin el paso 3 los e2e fallan con `Executable doesn't exist ... chrome-headless-s
 El seed demo ya **no** hay que lanzarlo a mano: `e2e/global-setup.js` hace
 `POST /seed` antes de la suite (idempotente, no borra nada). Solo necesitás que
 el backend corra con `IS_DEMO=true`; si no, avisa y las specs se saltan solas.
-La home del fan vive en **`/inicio`** (`/` redirige a `/login`).
+La home del fan vive en **`/inicio`**. La raíz **`/`** es la página de
+presentación pública (`LandingPage`): qué es Enty, cómo funciona, la cartelera
+de eventos abiertos, el acceso a "mi boleta" y la entrada al panel. Un invitado
+sin cuenta la ve; el staff logueado que abre `/` cae en su panel
+(`homeForRole`).
 
 ## Tests
 
@@ -327,6 +331,10 @@ El fan **no tiene cuenta**: su correo o teléfono ES la identidad. Las pantallas
 públicas viven bajo `.home` (shell nocturno: negro + violeta, Sora 300) y se
 fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO.
 
+- `/` — presentación pública (`LandingPage`): qué es la app, cómo funciona,
+  la cartelera de eventos abiertos, el contacto del organizador por WhatsApp
+  y la entrada al panel. Invitado sin cuenta; staff logueado se redirige a su
+  panel. Fuerza oscuro como la vitrina.
 - `/inicio` — vitrina pública (`HomePage`): catálogo de `/public/events`.
 - `/boletas` — la entrada del fan (`MyTicketsPage`): escribe su contacto y ve
   sus boletas. "Ver mi QR" regenera el enlace de esa boleta.
@@ -940,10 +948,13 @@ avisar.
   pinta fijo arriba). Los specs que hacen clic en el panel deben marcarlo como
   visto: `page.addInitScript(() => localStorage.setItem("tf_cookie_notice", "1.1"))`
   (la versión vive en `CookieNotice.jsx`, `NOTICE_VERSION`).
-- **App del fan (publica, sin login):** `/inicio` (vitrina, `HomePage.jsx`),
+- **App del fan (publica, sin login):** `/` (presentación del producto,
+  `LandingPage.jsx`), `/inicio` (vitrina, `HomePage.jsx`),
   `/evento/:id` (detalle de compra, `EventDetailPage.jsx`), `/t` (boleto),
   `/boletas` (mis boletas por contacto). Backend: `GET /public/events` (catalogo)
   y `GET /public/events/{id}` (detalle; 404 si borrador/pasado/inexistente).
+  El listado y el detalle exponen `contact_name`/`contact_phone` del venue
+  (mig 036): la landing arma el enlace de WhatsApp con ellos.
 - **Categorias:** el backend deriva solo 3 (`Música/Deportes/Teatro`) por texto;
   no hay columna `category`. Las 5 del mockup (Conciertos/Festivales/Deportes/
   Teatro/Comedia) se refinan en cliente sobre `e.category` + `e.name` (ver

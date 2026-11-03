@@ -66,6 +66,10 @@ class VenueSummary(BaseModel):
     logo_url: str | None = None
     primary_color: str | None = None
     commission_pct: float = 0
+    # Contacto del organizador (mig 036): el telefono que la pagina publica
+    # ofrece para "encarga tu boleta". NULL mientras el negocio no lo publique.
+    contact_name: str | None = None
+    contact_phone: str | None = None
 
 
 # --------------------------------------------------------------------------
@@ -505,6 +509,28 @@ class UpdateVenueRequest(BaseModel):
     # Color de marca del negocio (hex #RRGGBB). Se usa para teñir su panel:
     # banner, tile del logo y viga del KPI. "" lo devuelve al violeta de Enty.
     primary_color: str | None = Field(default=None, max_length=7)
+    # Contacto del organizador (mig 036): lo que la pagina publica muestra en
+    # "encarga tu boleta". "" limpia el dato (vuelve a NULL) y el bloque
+    # publico desaparece: un negocio no esta obligado a publicar telefono.
+    contact_name: str | None = Field(default=None, max_length=80)
+    contact_phone: str | None = Field(default=None, max_length=40)
+
+    @model_validator(mode="after")
+    def _contact_phone_shape(self):
+        """Telefono en formato humano: digitos y separadores, 7..20.
+
+        No se normaliza a solo digitos aqui: se guarda como la persona lo
+        escribe ("+57 300 123 4567") para mostrarlo legible. La forma que
+        exige wa.me la arma el frontend (lib/whatsapp.js), que es quien tiene
+        esa regla. "" limpia el dato.
+        """
+        if self.contact_phone is None:
+            return self
+        p = self.contact_phone.strip()
+        if p and not re.fullmatch(r"[0-9+ ()-]{7,20}", p):
+            raise ValueError("contact_phone solo admite digitos y + ( ) -")
+        self.contact_phone = p
+        return self
 
     @model_validator(mode="after")
     def _primary_color_shape(self):

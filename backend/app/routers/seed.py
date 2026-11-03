@@ -104,8 +104,12 @@ async def _ensure_event(
 async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
     async with db.cursor() as cur:
         # --- venue -----------------------------------------------------
+        # contact_name/contact_phone (mig 036): el negocio demo publica a quien
+        # escribirle para encargar boleta. El seed los deja para que la pagina
+        # publica de presentacion muestre el bloque real, no un hueco vacio.
         await cur.execute(
-            "INSERT INTO venues (name, slug) VALUES ('Bar Esquina', 'bar-esquina') "
+            "INSERT INTO venues (name, slug, contact_name, contact_phone) "
+            "VALUES ('Bar Esquina', 'bar-esquina', 'Reservas Bar Esquina', '+57 300 123 4567') "
             "ON CONFLICT (slug) DO NOTHING RETURNING id"
         )
         row = await cur.fetchone()
@@ -114,6 +118,13 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
         else:
             await cur.execute("SELECT id FROM venues WHERE slug='bar-esquina'")
             venue_id = (await cur.fetchone())["id"]
+            # Un negocio demo creado antes de la mig 036 nace sin contacto: se
+            # completa aqui para que re-sembrar deje el dato (idempotente).
+            await cur.execute(
+                "UPDATE venues SET contact_name=COALESCE(contact_name, %s), "
+                "contact_phone=COALESCE(contact_phone, %s) WHERE id=%s",
+                ("Reservas Bar Esquina", "+57 300 123 4567", venue_id),
+            )
 
         # --- users ----------------------------------------------------
         # El cuarto campo es el nombre de usuario para entrar (mig 035): la

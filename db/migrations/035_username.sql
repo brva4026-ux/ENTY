@@ -25,6 +25,12 @@ BEGIN;
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS username text;
 
+-- El constraint se recrea (DROP IF EXISTS + ADD) para que re-aplicar la
+-- migracion sobre un schema.sql que ya lo trae consolidado sea un no-op: un
+-- ADD CONSTRAINT pelado falla con "constraint already exists" y el drift test
+-- re-aplica TODAS las migraciones encima de schema.sql.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_username_format;
+
 ALTER TABLE users
     ADD CONSTRAINT users_username_format
     CHECK (

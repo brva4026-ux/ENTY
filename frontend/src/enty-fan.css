@@ -161,7 +161,7 @@
  *  4. BUSCADOR Y BANDA DE CATEGORÍAS · la tira de la boletería
  * ------------------------------------------------------------------------- */
 .home-search {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 @media (min-width: 768px) {
   .home-search {
@@ -173,7 +173,7 @@
    perforada con las secciones de la noche. */
 .home-cats {
   position: relative;
-  margin-top: 1.15rem;
+  margin-top: 1rem;
   padding-bottom: 0.35rem;
 }
 .home-cats button {
@@ -195,7 +195,7 @@
  * ------------------------------------------------------------------------- */
 .home-ticker {
   position: relative;
-  margin-top: 1.35rem;
+  margin-top: 1rem;
   overflow: hidden;
   border-top: 1px solid var(--enty-line-soft);
   border-bottom: 1px solid var(--enty-line-soft);
@@ -364,6 +364,8 @@
 @media (min-width: 640px) {
   .home-row {
     align-items: stretch;
+    /* El favorito deja de ser una franja lateral: flota sobre la miniatura. */
+    position: relative;
   }
   .home-row-main {
     flex-direction: column;
@@ -377,7 +379,7 @@
     border-radius: 0.9rem;
   }
   .home-row-thumb-date b {
-  font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
     font-size: var(--e-text-display);
   }
   .home-row-thumb-date i {
@@ -389,10 +391,6 @@
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-  }
-  /* El favorito deja de ser una franja lateral: flota sobre la miniatura. */
-  .home-row {
-    position: relative;
   }
   .home-row-fav {
     position: absolute;
@@ -950,6 +948,8 @@ html[data-theme="light"] .legal-link {
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--e-text-primary);
+  /* La fecha del destacado no debe romper en dos líneas en móvil estrecho. */
+  white-space: nowrap;
 }
 .home-feature-when i {
   font-style: normal;
@@ -985,8 +985,10 @@ html[data-theme="light"] .legal-link {
    degradado del borde derecho lo dice sin añadir controles. */
 @media (max-width: 767px) {
   .home-cats {
-    -webkit-mask: linear-gradient(90deg, #000 0, #000 calc(100% - 2.5rem), transparent 100%);
-    mask: linear-gradient(90deg, #000 0, #000 calc(100% - 2.5rem), transparent 100%);
+    /* El negro de la máscara es --e-mask (opaco del canal alfa, no un color
+       visible): el token existe justo para esto. */
+    -webkit-mask: linear-gradient(90deg, var(--e-mask) 0, var(--e-mask) calc(100% - 2.5rem), transparent 100%);
+    mask: linear-gradient(90deg, var(--e-mask) 0, var(--e-mask) calc(100% - 2.5rem), transparent 100%);
   }
   /* Con la fila ya desplazada al final, la pista sobra (y al principio no
      debe sugerir que falta algo a la izquierda). */
@@ -1030,20 +1032,9 @@ html[data-theme="light"] .legal-link {
 
 /* El andamiaje de filtros venía con márgenes generosos (1.35rem cada uno) que
    sumaban ~100px de aire antes del primer evento. Se comprimen: siguen
-   separando sin empujar el contenido fuera de la pantalla. */
-.home-search {
-  margin-top: 1rem;
-}
-.home-cats {
-  margin-top: 1rem;
-}
+   separando sin empujar el contenido fuera de la pantalla. Los márgenes de
+   .home-search / .home-cats / .home-ticker viven en su bloque de origen
+   (sección 4 y 5), ya con el valor comprimido. */
 .home-filters {
   margin-top: 0.75rem;
-}
-.home-ticker {
-  margin-top: 1rem;
-}
-/* La fecha del destacado no debe romper en dos líneas en móvil estrecho. */
-.home-feature-when b {
-  white-space: nowrap;
 }

@@ -208,6 +208,8 @@ async def public_events(
             SELECT e.id, e.name, e.description, e.flyer_url, e.location,
                    e.starts_at, e.event_timezone, e.capacity, e.status,
                    v.name AS venue_name,
+                   v.contact_name AS venue_contact_name,
+                   v.contact_phone AS venue_contact_phone,
                    (SELECT min(tt.price_cents) FROM ticket_types tt
                      WHERE tt.event_id = e.id AND tt.is_active
                        AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price,
@@ -245,6 +247,10 @@ async def public_events(
                 "price_cents": int(r["min_price"]) if r["min_price"] is not None else None,
                 "sold_pct": _sold_pct(r["active"], r["capacity"]),
                 "status": r["status"],
+                # Contacto del organizador (mig 036): lo consume la seccion
+                # publica "encarga tu boleta". Null si el negocio no lo publico.
+                "contact_name": r["venue_contact_name"],
+                "contact_phone": r["venue_contact_phone"],
             }
         )
     events = events[:limit]
@@ -285,6 +291,8 @@ async def public_event_detail(
             SELECT e.id, e.name, e.description, e.flyer_url, e.location,
                    e.starts_at, e.event_timezone, e.capacity, e.status,
                    v.name AS venue_name,
+                   v.contact_name AS venue_contact_name,
+                   v.contact_phone AS venue_contact_phone,
                    (SELECT count(*) FROM tickets t
                      WHERE t.event_id = e.id
                        AND t.status IN ('issued', 'redeemed'))::int AS active
@@ -353,6 +361,10 @@ async def public_event_detail(
         "sold_pct": _sold_pct(row["active"], row["capacity"]),
         "sold_out": sold_out,
         "status": row["status"],
+        # Contacto del organizador (mig 036): la pantalla de compra puede
+        # ofrecer "encarga tu boleta" por WhatsApp al equipo del negocio.
+        "contact_name": row["venue_contact_name"],
+        "contact_phone": row["venue_contact_phone"],
         "ticket_types": [
             {
                 "id": t["id"],
