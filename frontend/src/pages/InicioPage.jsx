@@ -19,6 +19,7 @@ function Heart({ filled }) {
   );
 }
 import { useAuth } from "../lib/auth";
+import useDocumentTitle from "../lib/useDocumentTitle";
 import { useLocation } from "react-router-dom";
 
 const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
