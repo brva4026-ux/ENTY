@@ -201,7 +201,7 @@ export default function InicioPage() {
         <div className="inicio-cta">
           {tieneSesion ? (
             <TransitionLink to="/perfil" className="btn-primary">
-              Hola, {user.name || "Usuario"}
+              Hola, {user?.name || "Usuario"}
             </TransitionLink>
           ) : (
             <button
@@ -210,9 +210,9 @@ export default function InicioPage() {
               className="btn-primary w-full"
               aria-label="Iniciar sesión o crear cuenta"
             >
-              {user.role === "admin"
+              {user?.role === "admin"
                 ? "Panel Admin"
-                : user.role === "promotor"
+                : user?.role === "promotor"
                 ? "Panel Promotor"
                 : "Ingresar"}
             </button>
