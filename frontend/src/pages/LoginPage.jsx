@@ -4,6 +4,13 @@ import { useAuth } from "../lib/auth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
+import { AuthShell } from "../components/AuthShell";
+import { Logo } from "../components/Brand";
+import useDocumentTitle from "../lib/useDocumentTitle";
+import { withViewTransition } from "../lib/viewTransition";
+import { prefersReducedMotion } from "../lib/motion";
+
+/** Icono del ojo (mostrar/ocultar contraseña). Sin dependencias externas. */
 function EyeIcon({ open }) {
   return (
     <svg
@@ -22,29 +29,31 @@ function EyeIcon({ open }) {
     </svg>
   );
 }
-import { AuthShell } from "../components/AuthShell";
-import { WelcomeOverlay } from "../components/WelcomeOverlay";
-import useDocumentTitle from "../lib/useDocumentTitle";
-import { withViewTransition } from "../lib/viewTransition";
-import { prefersReducedMotion } from "../lib/motion";
-import TransitionLink from "../components/TransitionLink";
-import { LoginVideo } from "../components/LoginVideo";
+
+/**
+ * Mensaje de error legible para un fallo de login.
+ * El backend ya devuelve `detail` legible para 4xx; lo que falta es el mapa
+ * de los casos que el usuario sí merece entender: credenciales mal, límite de
+ * intentos y caída de red.
+ */
+function loginErrorMessage(err) {
+  const status = err?.status;
+  if (status === 401) return "Usuario o contraseña incorrectos.";
+  if (status === 429)
+    return "Demasiados intentos. Espera un minuto e intenta de nuevo.";
+  if (!status) return "No hay conexión con el servidor. Revisa tu internet.";
+  return err?.message || "No se pudo iniciar sesión. Intenta de nuevo.";
+}
 
 export default function LoginPage() {
   useDocumentTitle("Ingresar");
   const { login } = useAuth();
   const nav = useNavigate();
-  // Guard que redirige a /login deja de dónde venía: si el usuario quería
-  // entrar a /perfil y no tenía sesión, aterrizó aquí. Al entrar, lo
-  // devolvemos a su destino original en vez de su dashboard por defecto.
   const location = useLocation();
   const from = location.state?.from;
 
-  // `ident` es usuario O correo (mig 035). El nombre del estado no cambia a
-  // `email` porque ya no lo es; el id del input sí se conserva (`login-email`)
-  // para no romper los E2E ni el autocompletado del navegador.
-  // Cargamos el email guardado en localStorage si existe
-  const storedIdent = typeof window !== "undefined" ? localStorage.getItem("enty_last_email") : null;
+  const storedIdent =
+    typeof window !== "undefined" ? localStorage.getItem("enty_last_email") : null;
   const [ident, setIdent] = useState(storedIdent || "");
 
   useEffect(() => {
@@ -52,6 +61,7 @@ export default function LoginPage() {
       localStorage.setItem("enty_last_email", ident);
     }
   }, [ident]);
+
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
@@ -60,34 +70,16 @@ export default function LoginPage() {
   // salió bien. Sin esto, el corte al panel era tan seco que la persona no
   // sabía si su click había registrado.
   const [ok, setOk] = useState(false);
-  // Estados de validación en tiempo real
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  // Usuario que acaba de entrar. Con él se pinta la bienvenida personalizada
-  // (("Hola, Ana")), así que se guarda el objeto completo, no solo un booleano.
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  // Tick fuerza el re-render cuando el MISMO mensaje de error se repite
+  // (dos "contraseña incorrectas" seguidas no cambian el string y React no
+  // repintaría; el estado alterno garantiza que el aviso siempre se lea).
+  const [errorTick, setErrorTick] = useState(0);
   const [entered, setEntered] = useState(null);
   const [capsLock, setCapsLock] = useState(false);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
-
-  function EyeIcon({ open }) {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-        aria-hidden="true"
-      >
-        <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
-        <circle cx="12" cy="12" r="3.2" />
-        {!open && <path d="M4.5 19.5 19.5 4.5" />}
-      </svg>
-    );
-  }
 
   // autoFocus fijo abría el teclado al entrar en móvil y provocaba salto de
   // layout y zoom. Solo se enfoca donde hay puntero fino (escritorio).
@@ -104,11 +96,13 @@ export default function LoginPage() {
     // "Please fill out this field." en ingles antes de que corra este codigo.
     if (!ident.trim()) {
       setError("Escribe tu correo.");
+      setErrorTick((n) => n + 1);
       emailRef.current?.focus();
       return;
     }
     if (!password) {
       setError("Escribe tu contraseña.");
+      setErrorTick((n) => n + 1);
       passwordRef.current?.focus();
       return;
     }
@@ -116,23 +110,14 @@ export default function LoginPage() {
     setBusy(true);
     try {
       const user = await login(ident, password);
-      // Un solo criterio de redirect (lib/roles.js): re-hacerlo aquí
-      // desincroniza y dejó afuera a super_admin (sus roles no incluyen
-      // el string "admin"). homeForRole devuelve "/login" solo si no hay
-      // ningún rol conocido.
       const home = homeForRole(user);
       if (home === "/login") {
         setError("Tu usuario no tiene un rol asignado");
+        setErrorTick((n) => n + 1);
         setBusy(false);
         return;
       }
       setOk(true);
-      // La bienvenida se queda visible un momento para que el saludo y la barra
-      // se lean antes de cruzar. El overlay se monta con el login YA resuelto,
-      // así que su única animación visible es el llenado de la barra (CSS,
-      // 1000ms): el margen debe cubrirlo o la persona ve un parpadeo y un
-      // panel. Con movimiento reducido el margen es mínimo: la preferencia
-      // manda y no se hace esperar a nadie.
       setEntered(user);
       const pause = prefersReducedMotion() ? 320 : 1600;
       await new Promise((r) => setTimeout(r, pause));
@@ -147,32 +132,29 @@ export default function LoginPage() {
 
   return (
     <AuthShell minimal>
-      <div className="relative w-full">
-        <LoginVideo />
-        <div className="auth-card reveal p-6 sm:p-7 auth-card-enter">
-          <h1 className="display mt-1 mb-1 text-2xl">Iniciar sesión</h1>
-          <p className="mb-5 text-sm leading-relaxed text-zinc-400">
+      {/* El video y la aurora ya viven en AuthShell; aquí solo va el
+          formulario sobre el lienzo. */}
+      <div className="auth-login-flow">
+        {/* Marca: la variante mínima no trae panel de marca, así que el
+            logo y el lema encabezan la columna del formulario. */}
+        <div className="auth-compact">
+          <Logo size="hero" />
+          <p className="hand auth-compact-lema">la lista de la puerta, resuelta</p>
+        </div>
+
+        <div className="auth-card auth-card-enter">
+          <p className="eyebrow mb-2">Acceso al panel</p>
+          <h1 className="display text-3xl leading-tight">Iniciar sesión</h1>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+            Entra con tu usuario o correo para continuar.
           </p>
 
-          <form onSubmit={submit} noValidate>
-            <label
-              htmlFor="login-email"
-              className="mb-1.5 block text-xs font-medium text-zinc-400"
-            >
+          <form onSubmit={submit} noValidate className="mt-6">
+            <label htmlFor="login-email" className="auth-label">
               Usuario o correo
             </label>
-            {emailError && (
-              <p className="text-xs text-red-500 mt-1">
-                {emailError}
-              </p>
-            )}
-            <div className="auth-field relative mb-4">
+            <div className="auth-field auth-field--md">
               <MailIcon className="auth-field-icon" />
-              {/* El campo acepta usuario O correo (mig 035). Va como
-                  type="text" y no "email": un nombre de usuario no es un
-                  correo y el navegador lo marcaria invalido antes de que el
-                  backend pueda resolverlo. inputMode="email" si trae la fila
-                  con @ y . al teclado movil, que sirve para las dos formas. */}
               <input
                 ref={emailRef}
                 id="login-email"
@@ -182,11 +164,15 @@ export default function LoginPage() {
                 onChange={(e) => {
                   const value = e.target.value;
                   setIdent(value);
-                  // Validación en tiempo real: email must contain @
-                  if (!value.includes('@') && value.trim().length > 0) {
-                    setEmailError('Por favor ingresa un email o usuario válido');
+                  // Validación en vivo: solo marca cuando hay contenido.
+                  // Un nombre de usuario sin @ es válido (mig 035), así que
+                  // el aviso es suave y nunca bloquea el envío.
+                  if (!value.includes("@") && value.trim().length > 0) {
+                    setEmailError(
+                      "Si usas correo, revisa que incluya @ y el dominio.",
+                    );
                   } else {
-                    setEmailError('');
+                    setEmailError("");
                   }
                 }}
                 placeholder="usuario o tu@negocio.com"
@@ -197,22 +183,19 @@ export default function LoginPage() {
                 spellCheck={false}
                 required
                 aria-invalid={error || emailError ? "true" : undefined}
-                aria-describedby={error || emailError ? "login-error" : undefined}
+                aria-describedby={emailError ? "email-hint" : undefined}
               />
             </div>
-
-            <label
-              htmlFor="login-password"
-              className="mb-1.5 block text-xs font-medium text-zinc-400"
-            >
-              Contraseña
-            </label>
-            {passwordError && (
-              <p className="text-xs text-red-500 mt-1">
-                {passwordError}
+            {emailError && (
+              <p id="email-hint" className="auth-hint auth-hint--soft">
+                {emailError}
               </p>
             )}
-            <div className="auth-field relative mb-2">
+
+            <label htmlFor="login-password" className="auth-label auth-label--gap">
+              Contraseña
+            </label>
+            <div className="auth-field auth-field--md">
               <LockIcon className="auth-field-icon" />
               <input
                 id="login-password"
@@ -221,17 +204,16 @@ export default function LoginPage() {
                 onChange={(e) => {
                   const value = e.target.value;
                   setPassword(value);
-                  // Validación: password mínima 6 caracteres
-                  if (value.length < 6 && value.trim().length > 0) {
-                    setPasswordError('La contraseña debe tener al menos 6 caracteres');
-                  } else {
-                    setPasswordError('');
-                  }
+                  setPasswordError(
+                    value.length > 0 && value.length < 6
+                      ? "La contraseña debe tener al menos 6 caracteres."
+                      : "",
+                  );
                 }}
                 placeholder="Tu contraseña"
                 ref={passwordRef}
                 name="password"
-                className="field mb-0 !pr-12 auth-field-has-icon"
+                className="field auth-field-has-icon"
                 autoComplete="current-password"
                 enterKeyHint="go"
                 spellCheck={false}
@@ -239,12 +221,12 @@ export default function LoginPage() {
                 onKeyUp={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
                 onKeyDown={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
                 aria-invalid={error || passwordError ? "true" : undefined}
-                aria-describedby={error || passwordError ? "login-error" : undefined}
+                aria-describedby={passwordError ? "password-hint" : undefined}
               />
               <button
                 type="button"
                 onClick={() => setShowPass((v) => !v)}
-                className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-800/60 hover:text-zinc-100"
+                className="auth-eye"
                 aria-label={
                   showPass ? "Ocultar contraseña" : "Mostrar contraseña"
                 }
@@ -253,24 +235,53 @@ export default function LoginPage() {
                 <EyeIcon open={showPass} />
               </button>
             </div>
+            {passwordError && (
+              <p id="password-hint" className="auth-hint auth-hint--soft">
+                {passwordError}
+              </p>
+            )}
 
             {capsLock && (
-              <p
-                id="login-caps"
-                role="status"
-                className="mb-2 -mt-1 text-xs font-medium text-zinc-400"
-              >
+              <p id="login-caps" role="status" className="auth-hint auth-hint--warn">
+                <svg
+                  className="auth-hint-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="11" width="18" height="10" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
                 Bloq Mayús está activado.
               </p>
             )}
 
-            <div className="flex items-center mb-4">
+            {/* Error del servidor / credenciales: el único rojo de la
+                pantalla, siempre debajo del campo que lo causó. */}
+            {error && (
+              <p
+                key={errorTick}
+                role="alert"
+                className="auth-hint auth-hint--error auth-shake"
+              >
+                {error}
+              </p>
+            )}
+
+            <div className="auth-row">
               <input
                 type="checkbox"
                 id="remember-me"
                 name="remember-me"
-                className="w-4 h-4 rounded border-zinc-500 focus-visible:outline focus-visible:ring-2 focus-visible:ring-brand-300 cursor-pointer"
-                checked={typeof window !== "undefined" && localStorage.getItem("enty_remember_me") === "1"}
+                className="auth-checkbox"
+                checked={
+                  typeof window !== "undefined" &&
+                  localStorage.getItem("enty_remember_me") === "1"
+                }
                 onChange={(e) => {
                   if (e.target.checked) {
                     localStorage.setItem("enty_remember_me", "1");
@@ -280,55 +291,58 @@ export default function LoginPage() {
                 }}
                 aria-label="Recordarme para la próxima visita"
               />
-              <label htmlFor="remember-me" className="ml-2 text-xs text-zinc-400">Recordarme</label>
+              <label htmlFor="remember-me" className="auth-row-label">
+                Recordarme
+              </label>
             </div>
 
+            <button type="submit" disabled={busy || ok} className="btn-primary btn-primary--lg">
+              {ok ? "¡Listo!" : busy ? "Entrando…" : "Entrar"}
+            </button>
+
+            {busy && (
+              <span className="btn-spinner auth-submit-spinner" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+              </span>
+            )}
+          </form>
+
+          {/* Contacto: queda fuera del form para que Enter no lo dispare. */}
+          <div className="auth-foot">
             <button
               type="button"
               onClick={() => window.open("https://wa.me/qr/H4SZ7YBWO266O1", "_blank")}
-              className="mb-2 inline-flex min-h-11 items-center text-xs font-medium text-brand-300 transition hover:text-brand-200"
+              className="auth-contact"
             >
-              ¿Problemas para entrar? Contáctanos
-            </button>
-
-            <button
-              type="submit"
-              disabled={busy || ok}
-              className={`btn-primary w-full ${ok ? "is-ok" : ""}`}
-            >
-              {ok ? "Listo" : busy ? "Entrando" : "Entrar"}
-            </button>
-
-            {/* Indicador de estado en el botón */}
-            {busy && (
-              <button
-                type="button"
-                disabled
-                className="absolute left-0 top-0 bottom-0 right-0 grid place-items-center opacity-20"
+              <svg
+                className="auth-contact-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
               >
-                <svg
-                  className="h-4 w-4 animate-spin text-white"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="m4 12-8 8" />
-                  <path d="m12 8 8 8" />
-                  <path d="m4 16 8 8" />
-                </svg>
-              </button>
-            )}
+                <path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20.5l1.8-5.2A8.5 8.5 0 1 1 21 11.5z" />
+              </svg>
+              <span className="auth-contact-text">
+                ¿Problemas para entrar?
+                <strong>Contáctanos</strong>
+              </span>
+            </button>
 
-            <p className="mt-3 text-center text-xs leading-relaxed text-zinc-400">
+            <p className="auth-trust">
               Conexión segura. Nunca te pediremos tu contraseña por chat.
             </p>
-          </form>
+          </div>
         </div>
       </div>
+
+      {/* Silenciado: la tarjeta ya está en el overlay de bienvenida. */}
+      {entered && null}
     </AuthShell>
   );
 }
