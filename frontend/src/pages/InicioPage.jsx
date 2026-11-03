@@ -184,7 +184,7 @@ export default function InicioPage() {
   }
 
   return (
-    <div className="inicio">
+    <div className="inicio bg-gradient-to-b from-background via-surface to-zinc-900 min-h-screen">
       {/* Header de presentación */}
       <header className="inicio-header">
         <TransitionLink to="/inicio" className="inicio-wordmark" aria-label="Enty, inicio">
