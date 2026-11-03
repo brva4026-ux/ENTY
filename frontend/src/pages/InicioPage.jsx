@@ -183,7 +183,10 @@ export default function InicioPage() {
   }
 
   return (
-    <div className="inicio bg-[--color-enty-bg] bg-gradient-to-b from-zinc-950 via-zinc-980 to-zinc-900 min-h-screen font-family: var(--font-sans) overflow-x: hidden">
+    {/* OJO: JSX parte className por espacios. Antes llevaba "overflow-x: hidden"
+        (con espacio), que generaba la clase `hidden` de Tailwind = display:none
+        y toda la página salía en blanco. La fuente ya la pone body. */}
+    <div className="inicio min-h-screen overflow-x-hidden">
       {/* Header de presentación */}
       <header className="inicio-header py-8 px-4 max-w-7xl mx-auto">
         <TransitionLink to="/inicio" className="inicio-wordmark flex items-center gap-2" aria-label="Enty, inicio">
