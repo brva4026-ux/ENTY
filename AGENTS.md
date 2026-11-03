@@ -127,7 +127,7 @@ Lo que funciona es **recrear la base** con el esquema consolidado, igual que el
 job `e2e` de CI. No hay `psql` en la imagen: se usa el `psycopg` del venv.
 
 ```bash
-# 1) Recrear el esquema (schema.sql + las 35 migraciones).
+# 1) Recrear el esquema (schema.sql + las migraciones de db/migrations/).
 cd backend && .venv/bin/python scripts/reset_dev_db.py
 ```
 
@@ -139,20 +139,27 @@ quedás sin datos).
 
 Si un test falla, **reproducí el fallo en la base limpia antes de tocar el
 código**.
-### stylelint: hoy NO está en CI y el presupuesto está mal
+### stylelint: el presupuesto es un techo que solo puede BAJAR
 
-`npm run lint:css` es `stylelint "src/**/*.css" --max-warnings 31`, pero hay
-**64 warnings y 22 errores**: el repo está en **exit 2** desde antes de la
-auditoría y nadie lo corre, así que el guardarraíl del design system no está
-vigilando nada. No te fíes del exit code de un `npm run` a través de un pipe
-(`cmd | tail` te da el exit de `tail`): redirigí a archivo y mirá `$?`.
+`npm run lint:css` es `stylelint "src/**/*.css" --max-warnings 41` y **sí es un
+gate de CI** (job `frontend`, paso "Lint CSS"). El número es un techo: si tu
+cambio agrega warnings por encima de 41, el job se pone rojo aunque no haya
+errores (`Max warnings exceeded`). Bajá el presupuesto cuando limpies warnings;
+nunca lo subas para "pasar".
 
-Los 22 errores viven todos en `components/DashboardCover.css`, un componente
-que **nunca se cableó a ninguna página** (`git log -S DashboardCover` sobre
-`pages/`, `main.jsx` y `App.jsx` sale vacío; 0 importadores; ausente del
-bundle). Incluye 7 `@keyframe` mal escritos —que no definen ninguna animación—
-y un `translateY(1)` inválido. Mientras ese archivo exista, poner stylelint
-como gate en CI deja el pipeline rojo.
+No te fíes del exit code de un `npm run` a través de un pipe (`cmd | tail` te da
+el exit de `tail`): redirigí a archivo y mirá `$?`.
+
+### El job `e2e` de CI ahora corre de verdad
+
+Históricamente el job `e2e` estaba **siempre skipped**: dependía de `backend`,
+que estaba rojo, así que nunca ejecutaba sus 57 tests. Con backend en verde
+arranca y corre la suite completa contra un Postgres limpio. Hoy da **53
+passed / 3 failed** de forma reproducible, y los 3 fallos son **flakes de
+aislamiento bajo 2 workers** (pasan aislados, sin 429 en el log): contraste del
+eyebrow de `/inicio` sobre flyer claro (`a11y.spec.js:655`), el asistente de
+evento (`audit-event-create.spec.js:14`) y el cierre de caja
+(`caja-rango.spec.js:43`). Ninguno toca la landing pública de `/`.
 
 ## Convenciones
 
