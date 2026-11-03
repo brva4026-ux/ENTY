@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enty - Arquitectura Completa</title>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --fg: #e8edf5;
+      --muted: #6a7a8c;
+      --primary: #00d4aa;
+      --secondary: #7c3aed;
+      --card: #1a2230;
+      --accent: #ff6b6b;
+      --success: #00d4aa;
+      --warning: #ff6b6b;
+      --progress-bg: #2a3444;
+      --progress-fg: #00d4aa;
+      --db-online: #00d4aa;
+      --db-offline: #ff6b6b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: var(--bg); color: var(--fg); min-height: 100vh;
+    }
+
+    h1 { 
+      text-align: center; margin: 20px 0; font-size: 1.8rem; 
+      background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+    }
+
+    .diagram-container {
+      max-width: 1400px; margin: 0 auto; padding: 20px;
+    }
+
+    .flow-direction { 
+      text-align: center; margin: 30px 0; 
+      font-size: 0.875rem; color: var(--muted); 
+    }
+
+    .flow-direction span { 
+      display: inline-block; 
+      padding: 8px 16px; 
+      background: #1e293b; 
+      margin: 0 4px; 
+      border-radius: 20px; 
+    }
+
+    .module {
+      background: var(--card); 
+      border-radius: 16px; 
+      padding: 24px; 
+      margin: 12px 0; 
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid #2a3444;
+    }
+
+    .module:hover { 
+      transform: translateY(-4px); 
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4); 
+    }
+
+    .module h3 { 
+      margin: 0 0 12px; 
+      font-size: 1rem; 
+      color: var(--primary); 
+    }
+
+    .module p { 
+      margin: 4px 0; 
+      font-size: 0.875rem; 
+      color: var(--muted); 
+    }
+
+    .module-auth { border-left: 4px solid var(--primary); }
+    .module-backend { border-left: 4px solid var(--secondary); }
+    .module-db { border-left: 4px solid #10b981; }
+    .module-frontend { border-left: 4px solid #f59e0b; }
+
+    .icon { 
+      width: 32px; height: 32px; 
+      margin-right: 12px; 
+      vertical-align: middle; 
+      background: #374151; 
+      border-radius: 6px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+    }
+
+    .icon-auth { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+    .icon-backend { background: #dc2626; color: white; }
+    .icon-db { background: #059669; color: white; }
+    .icon-frontend { background: #f59e0b; color: white; }
+
+    .arrow {
+      width: 0; height: 0;
+      border-left: 12px solid #4a5568;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      display: inline-block; margin-left: 8px; 
+      vertical-align: middle;
+    }
+
+    .arrow.success { border-left-color: var(--success); }
+    .arrow.warning { border-left-color: var(--warning); }
+
+    .status-indicator {
+      display: inline-block; 
+      width: 12px; height: 12px; 
+      border-radius: 50%; 
+      margin-right: 6px; 
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-online { background: var(--success); }
+    .status-offline { background: var(--warning); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .status-indicator { animation: none; }
+    }
+
+    .endpoints-table {
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-top: 20px;
+    }
+
+    .endpoints-table th, .endpoints-table td {
+      padding: 8px 12px; 
+      border-bottom: 1px solid #2a3444; 
+      font-size: 0.75rem; 
+    }
+
+    .endpoints-table th {
+      background: #1e293b; 
+      color: var(--primary); 
+      font-size: 0.875rem;
+    }
+
+    .endpoints-table tr:hover { background: #0d1420; }
+
+    .badge {
+      display: inline-block; 
+      padding: 2px 6px; 
+      background: #374151; 
+      border-radius: 3px; 
+      font-size: 0.65rem; 
+      margin-left: 2px;
+    }
+
+    .badge-active { background: var(--success); color: white; }
+    .badge-inactive { background: var(--warning); color: white; }
+  </style>
+</head>
+<body>
+  <div class="diagram-container">
+    <h1>🎨 Enty - Arquitectura Completa</h1>
+
+    <div class="flow-direction">
+      <span>Frontend React</span>
+      <span>Backend FastAPI</span>
+      <span>SQLite DB</span>
+    </div>
+
+    <!-- Frontend Module -->
+    <div class="module module-frontend">
+      <div class="icon icon-frontend"><svg viewBox="0 0 24 24"><rect width="20" height="20" rx="4" fill="currentColor"/><path d="M9 12l2 2 4-4m6 2a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+      <h3>Frontend React (Vite + Tailwind CSS)</h3>
+      <p>Pantallas y componentes clave:</p>
+      <ul style="margin: 8px 0 0; padding-left: 20px;">
+        <li>LoginPage - Pantalla de login con animaciones</li>
+        <li>WelcomeOverlay - Overlay de bienvenida con fade-in, progress bar, checkmark</li>
+        <li>AuthProvider - Contexto de autenticación con token</li>
+        <li>apiFetch - Cliente fetch con manejo de errores</li>
+        <li>AuthShell - Shell que protege rutas</li>
+      </ul>
+      <p style="margin: 12px 0 0; font-size: 0.8rem; color: var(--muted);">
+        Comunicación: <strong>fetch(`${BASE}${path`)</strong> con proxy Vite /api → backend:8001
+      </p>
+    </div>
+
+    <!-- Flecha hacia el backend -->
+    <div style="text-align: center; margin: 16px 0;">
+      <span class="arrow success"></span>
+    </div>
+
+    <!-- Backend Module -->
+    <div class="module module-backend">
+      <div class="icon icon-backend"><svg viewBox="0 0 24 24"><path d="M8 5v2h2v2H5v2h3v2h2v-2h3v-2H8v-2H5c-1.1 0-2 .9-2 2v2h2v-2h2v2h4v-2h2v-2h2v2h2v-2H17c-1.1 0-2-.9-2-2v-2h-2v2H7v-2H5c-1.1 0-2-.9-2-2zM3 6h18v2H3V6zm0 4h18v2H3v-2zm0 4h14v2h-2V10zm-7 8c-1.1 0-2-.9-2-2h-2v20h2v-2zm7.5-17l-1.4 4H12v6h2v-6l-1.4 4C7.2 15 6 14.1 6 13s1.2-2 2.5-2 2.5.9 2.5 2h1c0-1.1.9-2 2-2s2 .9 2 2h1c0-1.1.9-2 2-2s2 .9 2 2h1c0-1.1.9-2 2-2s2 .9 2 2h1c0-1.1.9-2 2-2z"/></svg></div>
+      <h3>Backend FastAPI (Python)</h3>
+      <p>Rutas principales:</p>
+      <table class="endpoints-table">
+        <thead>
+          <tr><th>Endpoint</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>/auth/login</td><td>POST - Login de usuario</td></tr>
+          <tr><td>/auth/me</td><td>GET - Datos del usuario actual</td></tr>
+          <tr><td>/auth/register</td><td>POST - Registro de nuevo usuario</td></tr>
+          <tr><td>/health</td><td>GET - Health check de la API</td></tr>
+          <tr><td>/public/events</td><td>GET - Eventos públicos</td></tr>
+        </tbody>
+      </table>
+      <p style="margin: 12px 0 0; font-size: 0.8rem; color: var(--muted);">
+        Motor: <strong>uvicorn</strong> | Base de datos: <strong>SQLite (aiosqlite)</strong> | Puerto: <strong>8001</strong>
+      </p>
+      <p style="margin: 8px 0 0; font-size: 0.75rem; color: var(--muted);">
+        Sin requiere PostgreSQL - funciona offline con dev.db
+      </p>
+    </div>
+
+    <!-- Flecha hacia la BD -->
+    <div style="text-align: center; margin: 16px 0;">
+      <span class="arrow success"></span>
+    </div>
+
+    <!-- Database Module -->
+    <div class="module module-db">
+      <div class="icon icon-db"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+      <h3>Base de Datos SQLite</h3>
+      <p>Archivo: <strong>dev.db</strong></p>
+      <p>Tablas principales:</p>
+      <ul style="margin: 8px 0 0; padding-left: 20px;">
+        <li><strong>users</strong> - email, password_hash, name, role, active</li>
+        <li><strong>venues</strong> - nombre, capacidad, dirección</li>
+        <li><strong>tickets</strong> - entradas por usuario/venue</li>
+        <li><strong>ticket_status</strong> - estados (issued, voided, refunded, redeemed)</li>
+      </ul>
+      <p style="margin: 12px 0 0; font-size: 0.8rem; color: var(--muted);">
+        <span class="status-indicator status-online"></span>Online
+        | <strong>Sin PostgreSQL requerido</strong> | Funciona en Windows nativo
+      </p>
+      <p style="margin: 8px 0 0; font-size: 0.75rem; color: var(--muted);">
+        Usuario seed: <code>admin@bar.test / demo1234</code>
+      </p>
+    </div>
+
+    <!-- Conexiones con el frontend -->
+    <div style="text-align: center; margin: 30px 0; color: var(--muted);">
+      <p>Flujos de comunicación:</p>
+      <ul style="margin: 8px 0 0; padding-left: 20px;">
+        <li>Frontend → Backend: <code>fetch('/api/auth/login')</code> (POST JSON)</li>
+        <li>Backend → DB: <code>aiosqlite</code> queries asíncronas</li>
+        <li>Backen→ Frontend: <code>JSON { user, access_token }</code></li>
+      </ul>
+    </div>
+
+    <!-- Animaciones implementadas -->
+    <div class="module module-auth" style="margin-top: 30px;">
+      <div class="icon icon-auth"><svg viewBox="0 0 24 24"><path d="M20 6L9 17L4 12"/></svg></div>
+      <h3>🎬 Animaciones Implementadas</h3>
+      <p>Todas las animaciones respetan <code>prefers-reduced-motion</code>:</p>
+      <ul style="margin: 8px 0 0; padding-left: 20px;">
+        <li><strong>cardIn:</strong> Fade-in + slide vertical en tarjeta login (0.6s)</li>
+        <li><strong>checkPop:</strong> Icono checkmark que escala desde 0 a 1 (0.5s)</li>
+        <li><strong>welcomeIn:</strong> Overlay bienvenida escala 0.9→1 (0.5s)</li>
+        <li><strong>progressBar:</strong> Barra avanza al 92% (1.5s ease-out)</li>
+        <li><strong>shake:</strong> Error banner shake en login fallido</li>
+        <li><strong>Efecto focus:</strong> Inputs scale(1.02) al enfocar</li>
+      </ul>
+    </div>
+
+    <!-- Estado actual -->
+    <div class="module module-auth" style="margin-top: 30px; background: #1e293b; border-left-color: #f59e0b;">
+      <div class="icon icon-auth"><svg viewBox="0 0 24 24"><path d="M20 6L9 17L4 12"/></svg></div>
+      <h3>✅ Estado Actual - Resumen</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+        <div>
+          <p><strong>Backend SQLite</strong></p>
+          <p class="badge badge-active">✅ Funciona sin PostgreSQL</p>
+        </div>
+        <div>
+          <p><strong>Usuario admin</strong></p>
+          <p class="badge badge-active">✅ admin@bar.test / demo1234</p>
+        </div>
+        <div>
+          <p><strong>Animaciones</strong></p>
+          <p class="badge badge-active">✅ Commit f7c2da5 en master</p>
+        </div>
+        <div>
+          <p><strong>Login flow</strong></p>
+          <p class="badge badge-active">✅ Flujo completo implementado</p>
+        </div>
+      </div>
+      <p style="margin: 12px 0 0; font-size: 0.8rem; color: var(--muted);">
+        Para probar: Levantar backend → Frontend con VITE_BACKEND_URL → Login con credenciales
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Interacción simple para el diagrama
+    document.querySelectorAll('.module').forEach(module => {
+      module.addEventListener('mouseenter', () => {
+        module.style.borderColor = 'var(--primary)';
+      });
+      module.addEventListener('mouseleave', () => {
+        const colClass = module.classList[1];
+        const colors = {
+          'module-frontend': '#f59e0b',
+          'module-backend': '#dc2626',
+          'module-db': '#059669',
+          'module-auth': 'var(--primary)'
+        };
+        module.style.borderColor = colors[colClass] || '#2a3444';
+      });
+    });
+  </script>
+</body>
+</html>

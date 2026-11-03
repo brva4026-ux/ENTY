@@ -30,7 +30,7 @@ async function available(page, path) {
 async function submitLogin(page, ident, password = DEMO_PASSWORD) {
   await page.getByPlaceholder(/negocio/i).fill(ident);
   await page.getByPlaceholder(/contraseña/i).fill(password);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
 }
 
 /** La tarjeta de bienvenida. */

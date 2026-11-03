@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enty - Vista Completa de la Aplicación</title>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --fg: #e8edf5;
+      --muted: #6a7a8c;
+      --primary: #00d4aa;
+      --secondary: #7c3aed;
+      --card: #1a2230;
+      --accent: #ff6b6b;
+      --success: #00d4aa;
+      --warning: #ff6b6b;
+      --card-bg: #213547;
+      --sidebar-bg: #1b2a3a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: var(--bg); color: var(--fg); min-height: 100vh;
+    }
+
+    h1 { 
+      text-align: center; margin: 20px 0; font-size: 2rem; 
+      background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+      text-transform: uppercase; letter-spacing: 2px;
+    }
+
+    .subtitle { 
+      text-align: center; margin-bottom: 30px; font-size: 1.2rem; 
+      color: var(--muted); max-width: 800px; margin-left: auto; margin-right: auto;
+    }
+
+    /* --- Sidebar de navegación --- */
+    .app-sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0; 
+      width: 260px; 
+      background: var(--sidebar-bg); 
+      padding: 20px 15px; 
+      overflow-y: auto;
+      border-right: 1px solid #2a3e50;
+      z-index: 100;
+    }
+
+    .sidebar-title { 
+      color: var(--primary); 
+      font-size: 1.1rem; 
+      font-weight: 600; 
+      margin-bottom: 25px; 
+      padding-bottom: 15px; 
+      border-bottom: 1px solid #2a3e50;
+    }
+
+    .sidebar-section { 
+      margin-bottom: 20px; 
+    }
+
+    .sidebar-section h4 { 
+      color: var(--secondary); 
+      font-size: 0.75rem; 
+      text-transform: uppercase; 
+      letter-spacing: 1px; 
+      margin-bottom: 12px; 
+      padding-bottom: 8px; 
+      border-bottom: 1px solid #2a3e50;
+      font-weight: 600;
+    }
+
+    .sidebar-link {
+      display: block; 
+      padding: 10px 12px; 
+      color: var(--muted); 
+      text-decoration: none; 
+      margin: 4px 0; 
+      border-radius: 8px; 
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-link:hover {
+      background: #1e3a50; 
+      color: var(--primary); 
+      border-left-color: var(--primary);
+    }
+
+    .sidebar-link.active {
+      background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+      color: white !important;
+    }
+
+    .sidebar-badge {
+      background: #4a5568;
+      padding: 2px 6px; 
+      border-radius: 3px; 
+      font-size: 0.65rem; 
+      margin-left: 8px;
+    }
+
+    /* --- Main content area --- */
+    .main-content { 
+      margin-left: 260px; 
+      padding: 30px 40px; 
+      min-height: 100vh;
+    }
+
+    .page-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+      gap: 20px; 
+      margin-top: 40px;
+    }
+
+    .page-card {
+      background: var(--card-bg); 
+      border-radius: 12px; 
+      padding: 25px; 
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid #2a3e50;
+      cursor: pointer;
+    }
+
+    .page-card:hover {
+      transform: translateY(-4px); 
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      border-color: var(--primary);
+    }
+
+    .page-card h3 {
+      margin: 0 0 10px; 
+      font-size: 1rem; 
+      color: var(--primary);
+    }
+
+    .page-card p {
+      margin: 0; 
+      font-size: 0.8rem; 
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .page-card .route {
+      display: block; 
+      margin-top: 10px; 
+      font-family: monospace; 
+      background: #1e3a50; 
+      padding: 8px; 
+      border-radius: 6px; 
+      font-size: 0.7rem;
+      word-break: break-all;
+    }
+
+    /* --- Tabs de componentes --- */
+    .components-tabs {
+      display: flex; 
+      overflow-x: auto; 
+      margin-bottom: 25px; 
+      scrollbar-width: none;
+    }
+
+    .components-tabs::-webkit-scrollbar { display: none; }
+
+    .component-tab {
+      padding: 12px 20px; 
+      background: #2a3e50; 
+      color: var(--muted); 
+      border-radius: 8px 8px 0 0; 
+      font-size: 0.8rem; 
+      font-weight: 500; 
+      margin-right: 4px; 
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      border: 1px solid #2a3e50;
+      border-bottom: none;
+    }
+
+    .component-tab.active {
+      background: var(--primary); 
+      color: white; 
+      border-color: var(--primary);
+    }
+
+    .component-tab:hover:not(.active) {
+      background: #2d4a60;
+      color: var(--primary);
+    }
+
+    /* --- Tab content --- */
+    .tab-content { 
+      display: none; 
+    }
+
+    .tab-content.active { display: block; }
+
+    /* --- Tables --- */
+    .stats-table {
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-top: 20px;
+    }
+
+    .stats-table th, .stats-table td {
+      padding: 10px; 
+      border-bottom: 1px solid #2a3e50; 
+      text-align: left; 
+      font-size: 0.8rem;
+    }
+
+    .stats-table th {
+      background: #1e3a50; 
+      color: var(--primary); 
+    }
+
+    .stats-table tr:hover { background: #1e3a50; }
+
+    .badge-small {
+      display: inline-block; 
+      padding: 2px 6px; 
+      background: #4a5568; 
+      border-radius: 3px; 
+      font-size: 0.65rem;
+    }
+
+    .badge-active { background: var(--success); color: white; }
+    .badge-warning { background: var(--warning); color: white; }
+
+    /* --- Reduced Motion --- */
+    @media (prefers-reduced-motion: reduce) {
+      .page-card { transition: none; }
+    }
+
+    /* --- Scrollbar custom --- */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div style="position: relative;">
+    <!-- Mobile overlay for sidebar -->
+    <div id="mobileSidebar" style="position: fixed; left: -260px; top: 0; bottom: 0; width: 260px; background: var(--sidebar-bg); z-index: 105; transition: left 0.3s;"></div>
+
+    <!-- Sidebar Navigation -->
+    <div class="app-sidebar" id="sidebar">
+      <div style="color: var(--primary); font-size: 1.2rem; font-weight: 600; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #2a3e50;">Enty App</div>
+      
+      <div class="sidebar-section">
+        <h4>📱 Páginas Publicas</h4>
+        <a href="#" class="sidebar-link active" data-page="public">Públicas <span class="sidebar-badge">12</span></a>
+        <a href="#" class="sidebar-link" data-page="auth">Autenticación <span class="sidebar-badge">4</span></a>
+        <a href="#" class="sidebar-link" data-page="tickets">Tickets <span class="sidebar-badge">8</span></a>
+      </div>
+
+      <div class="sidebar-section">
+        <h4>👥 Roles</h4>
+        <a href="#" class="sidebar-link" data-page="admin">Admin <span class="sidebar-badge">1</span></a>
+        <a href="#" class="sidebar-link" data-page="promoter">Promotor <span class="sidebar-badge">1</span></a>
+        <a href="#" class="sidebar-link" data-page="bouncer">Bouncer <span class="sidebar-badge">1</span></a>
+      </div>
+
+      <div class="sidebar-section">
+        <h4>📋 Funcionalidades</h4>
+        <a href="#" class="sidebar-link" data-page="waitlist">Waitlist <span class="sidebar-badge">3</span></a>
+        <a href="#" class="sidebar-link" data-page="events">Eventos <span class="sidebar-badge">6</span></a>
+        <a href="#" class="sidebar-link" data-page="payments">Pagos <span class="sidebar-badge">4</span></a>
+      </div>
+
+      <div class="sidebar-section">
+        <h4>🔧 APIs y Servicios</h4>
+        <a href="#" class="sidebar-link" data-page="admin-dashboard">Admin Dashboard</a>
+        <a href="#" class="sidebar-link" data-page="analytics">Analytics</a>
+        <a href="#" class="sidebar-link" data-page="notifications">Notificaciones</a>
+      </div>
+
+      <div class="sidebar-section" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #2a3e50;">
+        <div style="font-size: 0.7rem; color: var(--muted); margin-bottom: 15px;">Arquitectura</div>
+        <a href="#" class="sidebar-link" data-page="architecture">Arquitectura Completa</a>
+        <a href="#" class="sidebar-link" data-page="diagrams">Diagramas HTML</a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <h1>Enty - Aplicación Completa</h1>
+      <div class="subtitle">Visión general de todas las páginas, componentes y funcionalidades</div>
+
+      <!-- Stats Overview -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-bottom: 30px;">
+
+        <div style="background: var(--card-bg); padding: 20px; border-radius: 10px; border: 1px solid #2a3e50;">
+          <div style="font-size: 2rem; color: var(--primary);">25+</div>
+          <div style="font-size: 0.8rem; color: var(--muted);">Páginas/Componentes</div>
+        </div>
+
+        <div style="background: var(--card-bg); padding: 20px; border-radius: 10px; border: 1px solid #2a3e50;">
+          <div style="font-size: 2rem; color: var(--secondary);">8+</div>
+          <div style="font-size: 0.8rem; color: var(--muted);">Roles</div>
+        </div>
+
+        <div style="background: var(--card-bg); padding: 20px; border-radius: 10px; border: 1x solid #2a3e50;">
+          <div style="font-size: 2rem; color: #10b981;">15+</div>
+          <div style="font-size: 0.8rem; color: var(--muted);">Endpoints API</div>
+        </div>
+
+        <div style="background: var(--card-bg); padding: 20px; border-radius: 10px; border: 1px solid #2a3e50;">
+          <div style="font-size: 2rem; color: #f59e0b;">5+</div>
+          <div style="font-size: 0.8rem; color: var(--muted);">Integraciones</div>
+        </div>
+      </div>
+
+      <!-- Páginas Grid -->
+      <div style="margin-bottom: 30px;">
+        <h3 style="margin-bottom: 20px; color: var(--primary);">📄 Todas las Páginas de la App</h3>
+        <div class="page-grid" id="pagesGrid">
+          <!-- Páginas se cargarán dinámicamente -->
+        </div>
+      </div>
+
+      <!-- Componentes Tabs -->
+      <div style="margin-bottom: 30px;">
+        <h3 style="margin-bottom: 20px; color: var(--primary);">🧩 Componentes Principales</h3>
+        <div class="components-tabs" id="componentTabs">
+          <div class="component-tab active" data-tab="auth">Autenticación</div>
+          <div class="component-tab" data-tab="ui">Interfaz de Usuario</div>
+          <div class="component-tab" data-tab="admin">Administración</div>
+          <div class="component-tab" data-tab="fan">Fan/Público</div>
+          <div class="component-tab" data-tab="promoter">Promotor</div>
+        </div>
+
+        <div class="tab-content active" id="tabAuth">
+          <h4>Componentes de Autenticación</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>AuthProvider</strong><br><small>Contexto auth global</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>AuthShell</strong><br><small>Protección de rutas</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>WelcomeOverlay</strong><br><small>Animaciones bienvenida</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>LoginPage</strong><br><small>Pantalla login</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tabUI">
+          <h4>Componentes de Interfaz</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>Layout</strong><br><small>Estructura principal</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>WelcomeOverlay</strong><br><small>Animaciones</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>EventWorkbench</strong><br><small>Panel eventos</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>TicketQrModal</strong><br><small>QR tickets</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tabAdmin">
+          <h4>Componentes Admin</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>AdminDashboard</strong><br><small>Panel administrador</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>EventCreateModal</strong><br><small>Crear evento</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>PromoterDashboard</strong><br><small>Panel promotor</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>BusinessDock</strong><br><small>Dock de negocios</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tabFan">
+          <h4>Componentes Fan/Público</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>HomePage</strong><br><small>Pantalla principal</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>PublicTicketPage</strong><br><small>Página boleta pública</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>FunnelPage</strong><br><small>Embudo de ventas</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>BouncerScanner</strong><br><small>Escaneo bouncer</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tabPromoter">
+          <h4>Componentes Promotor</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>PromoterDashboard</strong><br><small>Dashboard promotor</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>DoorLinkPage</strong><br><small>Puerta enlace</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>DoorAlertBanner</strong><br><small>Alerta puerta</small>
+            </div>
+            <div style="background: #1a2230; padding: 15px; border-radius: 8px; border: 1px solid #2a3e50;">
+              <strong>TicketList</strong><br><small>Lista de tickets</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Endpoints Table -->
+      <div style="background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid #2a3e50; margin-bottom: 30px;">
+        <h3 style="margin: 0 0 20px; color: var(--primary);">🔌 Endpoints API Principales</h3>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Método</th>
+              <th>Endpoint</th>
+              <th>Descripción</th>
+              <th>Rol</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>POST</td><td>/auth/login</td><td>Iniciar sesión</td><td>Todos</td></tr>
+            <tr><td>POST</td><td>/auth/register</td><td>Registrarse</td><td>Todos</td></tr>
+            <tr><td>GET</td><td>/auth/me</td><td>Perfil usuario</td><td>Autenticado</td></tr>
+            <tr><td>GET</td><td>/health</td><td>Health check</td><td>Todos</td></tr>
+            <tr><td>GET</td><td>/public/events</td><td>Listar eventos</td><td>Público</td></tr>
+            <tr><td>GET</td><td>/public/events/{id}</td><td>Detalle evento</td><td>Público</td></tr>
+            <tr><td>POST</td><td>/tickets/preview</td><td>Previsualizar boleta</td><td>Público</td></tr>
+            <tr><td>POST</td><td>/waitlist/join</td><td>Unirse waitlist</td><td>Público</td></tr>
+            <tr><td>POST</td><td>/waitlist/claim</td><td>Reclamar oferta</td><td>Público</td></tr>
+            <tr><td>POST</td><td>/auth/login</td><td>Login admin</td><td>Admin</td></tr>
+            <tr><td>GET</td><td>/admin/dashboard</td><td>Panel admin</td><td>Admin</td></tr>
+            <tr><td>GET</td><td>/api/venues</td><td>Listar venues</td><td>Autenticado</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Base de Datos -->
+      <div style="background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid #2a3e50; margin-bottom: 30px;">
+        <h3 style="margin: 0 0 20px; color: var(--primary);">💾 Base de Datos SQLite</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
+          <div>
+            <p><strong>Archivo:</strong> dev.db</p>
+            <p><strong>Motor:</strong> aiosqlite (asíncrono)</p>
+            <p><strong>No requiere:</strong> PostgreSQL</p>
+          </div>
+          <div>
+            <p><strong>Usuarios:</strong> email, password_hash, name, role, active</p>
+            <p><strong>Venues:</strong> nombre, capacidad, dirección</p>
+            <p><strong>Tickets:</strong> tokens, status, user_id, venue_id</p>
+            <p><strong>Status:</strong> issued, voided, refunded, redeemed</p>
+          </div>
+          <div>
+            <p><strong>Usuario test:</strong> admin@bar.test</p>
+            <p><strong>Password:</strong> demo1234</p>
+            <p><strong>Role:</strong> admin</p>
+            <p><strong>Active:</strong> Sí</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flujo de Login -->
+      <div style="background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid #2a3e50; margin-bottom: 30px;">
+        <h3 style="margin: 0 0 20px; color: var(--primary);">🔐 Flujo de Autenticación Completo</h3>
+        <ol style="padding-left: 20px; margin: 0;">
+          <li><strong>Usuario ingresa:</strong> Correo/usuario y contraseña en pantalla login</li>
+          <li><strong>Fetch POST:</strong> `/api/auth/login` con JSON {email, password}</li>
+          <li><strong>Backend:</strong> Valida credenciales contra SQLite (dev.db)</li>
+          <li><strong>✅ Success:</strong> Retorna {user, access_token}</li>
+          <li><strong>📦 Almacenar:</strong> localStorage.setItem('tf_token', token)</li>
+          <li><strong>👤 Cargar usuario:</strong> AuthContext obtiene datos via /auth/me</li>
+          <li><strong>🎬 Animaciones:</strong> cardIn, checkPop, welcomeIn, progressBar</li>
+          <li><strong>📱 Redirigir:</strong> Transición suave al panel principal</li>
+          <li><strong>❌ Error:</strong> Banner shake + mensaje "Credenciales incorrectas"</li>
+        </ol>
+      </div>
+
+      <!-- Estadísticas rápidas -->
+      <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid #2a3e50; margin-top: 30px;">
+        <h4 style="margin: 0 0 15px; color: var(--primary);">📊 Resumen Rápido</h4>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+          <div><strong>25+</strong><br>Páginas</div>
+          <div><strong>8+</strong><br>Roles</div>
+          <div><strong>15+</strong><br>Endpoints</div>
+          <div><strong>5+</strong><br>Integraciones</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Sidebar functionality
+      const sidebar = document.getElementById('sidebar');
+      const mainContent = document.getElementById('mainContent');
+      const mobileSidebar = document.getElementById('mobileSidebar');
+
+      // Toggle sidebar on mobile (simulated - sidebar is fixed)
+      document.querySelectorAll('.sidebar-section').forEach(section => {
+        section.addEventListener('click', (e) => {
+          if (e.target.classList.contains('sidebar-link') || e.target.parentElement.classList.contains('sidebar-link')) {
+            const link = e.target.classList.contains('sidebar-link') ? e.target : e.target.parentElement;
+            const page = link.dataset.page;
+            loadPage(page);
+          }
+        });
+      });
+
+      function loadPage(page) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+        document.querySelectorAll('.page-card').forEach(pc => pc.classList.remove('active'));
+        document.querySelectorAll('.sidebar-link').forEach(sl => sl.classList.remove('active'));
+
+        // Show relevant content based on page
+        switch(page) {
+          case 'auth':
+            document.getElementById('tabAuth').classList.add('active');
+            break;
+          case 'ui':
+            document.getElementById('tabUI').classList.add('active');
+            break;
+          case 'admin':
+            document.getElementById('tabAdmin').classList.add('active');
+            break;
+          case 'fan':
+            document.getElementById('tabFan').classList.add('active');
+            break;
+          case 'promoter':
+            document.getElementById('tabPromoter').classList.add('active');
+            break;
+          case 'public':
+            // Show all pages
+            document.querySelectorAll('.page-card').forEach((pc, i) => {
+              setTimeout(() => pc.classList.add('active'), i * 100);
+            });
+            break;
+        }
+
+        // Update active sidebar link
+        document.querySelectorAll('.sidebar-link').forEach(sl => {
+          if (sl.dataset.page === page || (page === 'public' && sl.dataset.page.startsWith('p'))) {
+            sl.classList.add('active');
+          }
+        });
+      }
+
+      // Generate pages grid
+      const pagesGrid = document.getElementById('pagesGrid');
+      const allPages = [
+        { name: 'LoginPage', route: '/login', desc: 'Pantalla de login con animaciones' },
+        { name: 'WelcomeOverlay', route: '/welcome', desc: 'Overlay bienvenida con fade-in' },
+        { name: 'HomePage', route: '/', desc: 'Pantalla principal - Fan' },
+        { name: 'PublicTicketPage', route: '/ticket', desc: 'Boleta pública con QR' },
+        { name: 'AdminDashboard', route: '/admin', desc: 'Panel de administración' },
+        { name: 'PromoterDashboard', route: '/promoter', desc: 'Dashboard promotor' },
+        { name: 'BouncerScanner', route: '/scan', desc: 'Escaneo con bouncer' },
+        { name: 'EventDetailPage', route: '/event', desc: 'Detalle de evento' },
+        { name: 'FunnelPage', route: '/funnel', desc: 'Embudo de ventas' },
+        { name: 'WaitlistPage', route: '/waitlist', desc: 'Lista de espera' },
+        { name: 'ProfilePage', route: '/profile', desc: 'Perfil de usuario' },
+        { name: 'MyTicketsPage', route: '/mytickets', desc: 'Mis boletas' },
+        { name: 'LegalPage', route: '/legal', desc: 'Página legal' },
+        { name: 'NotFoundPage', route: '/404', desc: 'Página no encontrada' }
+      ];
+
+      allPages.forEach((page, i) => {
+        const card = document.createElement('div');
+        card.className = 'page-card';
+        card.innerHTML = `
+          <h3>${page.name}</h3>
+          <p>${page.desc}</p>
+          <div class="route">${page.route}</div>
+        `;
+        card.style.transitionDelay = `${i * 0.05}s`;
+        pagesGrid.appendChild(card);
+      });
+
+      // Tab functionality
+      document.querySelectorAll('.component-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.component-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+
+          document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+          document.getElementById('tab' + tab.dataset.tab).classList.add('active');
+        });
+      });
+
+      // Initialize - show public pages
+      setTimeout(() => loadPage('public'), 100);
+    </script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enty - Flujo de Login con Animaciones</title>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --fg: #e8edf5;
+      --muted: #6a7a8c;
+      --primary: #00d4aa;
+      --secondary: #7c3aed;
+      --card: #1a2230;
+      --accent: #ff6b6b;
+      --progress-bg: #2a3444;
+      --progress-fg: #00d4aa;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg);
+      min-height: 100vh;
+    }
+
+    /* --- Pantalla de Login --- */
+    .login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--card); padding: 40px 32px; border-radius: 16px; 
+      width: 100%; max-width: 360px; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0; transform: translateY(30px);
+    }
+
+    @keyframes cardIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      width: 48px; height: 48px; margin: 0 auto 24px; 
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: bold; font-size: 1.2rem;
+    }
+
+    .logo svg { width: 24; height: 24; }
+
+    h2 { text-align: center; margin: 0 0 24px; color: var(--fg); font-size: 1.5rem; }
+
+    .input-group { margin-bottom: 20px; }
+
+    .input-group label { display: block; margin-bottom: 8px; font-size: 0.875rem; color: var(--muted); }
+
+    .input-group input {
+      width: 100%; padding: 12px 16px; background: #0d1420; border: 1px solid #1e293b;
+      border-radius: 8px; color: var(--fg); font-size: 1rem; outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-group input:focus { border-color: var(--primary); }
+
+    .btn-login {
+      width: 100%; padding: 12px 24px; background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; margin-top: 8px; transition: transform 0.1s, box-shadow 0.1s;
+      margin-bottom: 20px;
+    }
+
+    .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,212,170,0.3); }
+
+    .btn-login:active { transform: translateY(1px); }
+
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .error-banner {
+      background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; 
+      color: #ff6b6b; padding: 10px 16px; border-radius: 8px; margin-bottom: 20px;
+      text-align: center; animation: shake 0.4s ease-in-out;
+      opacity: 0; transform: translateY(-10px);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+
+    .error-banner.visible { opacity: 1; transform: translateY(0); }
+
+    .toggle-view { text-align: center; font-size: 0.875rem; color: var(--muted); }
+    .toggle-view a { color: var(--primary); text-decoration: none; }
+
+    /* --- Welcome Overlay --- */
+    .welcome-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(8px); z-index: 1000; opacity: 0; visibility: hidden;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    .welcome-overlay.visible { opacity: 1; visibility: visible; }
+
+    .welcome-content {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+      background: var(--card); border-radius: 24px; padding: 40px 32px;
+      text-align: center; box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+      animation: welcomeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+    }
+
+    @keyframes welcomeIn {
+      to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    .welcome-h1 { margin: 0 0 8px; color: var(--fg); font-size: 2.2rem; }
+
+    .welcome-p { color: var(--muted); margin: 0 0 24px; font-size: 1rem; }
+
+    .progress-container {
+      width: 100%; height: 8px; background: var(--progress-bg); border-radius: 4px;
+      overflow: hidden; margin: 0 0 24px;
+    }
+
+    .progress-bar {
+      height: 100%; width: 0%; background: linear-gradient(90deg, var(--progress-fg), #7c3aed);
+      border-radius: 4px; transition: width 1.5s ease-out;
+    }
+
+    .checkmark {
+      width: 60px; height: 60px; border: 4px solid var(--primary); 
+      border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;
+      transform: scale(0); animation: checkPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+      opacity: 0;
+    }
+
+    @keyframes checkPop {
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .checkmark svg { width: 28; height: 28; stroke: var(--primary); fill: none; stroke-width: 3; }
+
+    .user-name { color: var(--primary); font-size: 1.5rem; font-weight: 600; margin: 8px 0 0; }
+
+    /* --- Reduced Motion --- */
+    @media (prefers-reduced-motion: reduce) {
+      .login-card { animation: none; opacity: 1; transform: none; }
+      .checkmark { animation: none; transform: scale(1); opacity: 1; }
+      .progress-bar { transition: width 0.1s linear; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Pantalla de Login -->
+  <div class="login-screen">
+    <div class="login-card" id="loginCard">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width=""><path d="M20 6L9 17L4 12"/></svg></div>
+      <h2>Bienvenido de nuevo</h2>
+      
+      <!-- Mensaje de error -->
+      <div class="error-banner" id="errorBanner" role="alert">
+        <span id="errorText">Correo o contraseña incorrectos. Revisa mayúsculas y vuelve a intentar.</span>
+      </div>
+      
+      <form id="loginForm">
+        <div class="input-group">
+          <label>Correo o nombre de usuario</label>
+          <input type="email" id="identifier" placeholder="admin@bar.test" required>
+        </div>
+        <div class="input-group">
+          <label>Contraseña</label>
+          <input type="password" id="password" placeholder="demo1234" required>
+        </div>
+        <button type="submit" class="btn-login" id="loginBtn">Entrar</button>
+      </form>
+      
+      <div class="toggle-view">
+        ¿No tienes cuenta? <a href="#">Regístrate</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay de Bienvenida -->
+  <div class="welcome-overlay" id="welcomeOverlay" aria-modal="true">
+    <div class="welcome-content">
+      <h1 class="welcome-h1" id="welcomeTitle">Hola, Admin</h1>
+      <p class="welcome-p" id="welcomeSubtitle">Bienvenido a tu panel de control</p>
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+      </div>
+      <div class="checkmark" id="checkmark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 6L9 17L4 12"/></svg>
+      </div>
+      <div class="user-name" id="userName">Admin</div>
+      <button onclick="finishLogin()" style="margin-top: 24px; padding: 10px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem;">Continuar</button>
+    </div>
+  </div>
+
+  <script>
+    // Estado
+    let loginAttempts = 0;
+    const MAX_ATTEMPTS = 3;
+
+    // Elementos DOM
+    const loginCard = document.getElementById('loginCard');
+    const loginForm = document.getElementById('loginForm');
+    const errorBanner = document.getElementById('errorBanner');
+    const welcomeOverlay = document.getElementById('welcomeOverlay');
+    const progressBar = document.getElementById('progressBar');
+    const checkmark = document.getElementById('checkmark');
+    const loginBtn = document.getElementById('loginBtn');
+    const identifierInput = document.getElementById('identifier');
+    const passwordInput = document.getElementById('password');
+
+    // Efecto de entrada de texto
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('focus', () => {
+        input.style.transform = 'scale(1.02)';
+        setTimeout(() => input.style.transform = '', 150);
+      });
+    });
+
+    // Manejar envío de login
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = identifierInput.value.trim();
+      const password = passwordInput.value.trim();
+      
+      // Validación simple
+      if (!email || !password) {
+        showError('Por favor completa todos los campos');
+        return;
+      }
+
+      // Deshabilitar botón durante la petición
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Autenticando...';
+      
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          showError(data.detail || 'Error en la petición');
+          return;
+        }
+        
+        // Login exitoso - mostrar overlay de bienvenida
+        loginSuccess(data.user);
+        
+      } catch (err) {
+        console.error('Error:', err);
+        showError('No se pudo conectar con el servidor. Verifica que el backend esté corriendo.');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Entrar';
+      }
+    });
+
+    function showError(message) {
+      const errorText = document.getElementById('errorText');
+      errorText.textContent = message;
+      errorBanner.classList.add('visible');
+      
+      // Quitar error después de un tiempo
+      setTimeout(() => errorBanner.classList.remove('visible'), 5000);
+    }
+
+    function loginSuccess(user) {
+      // Mostrar datos del usuario
+      document.getElementById('welcomeTitle').textContent = `Hola, ${user.name || user.email}`;
+      document.getElementById('userName').textContent = user.name || user.email;
+      
+      // Animar barra de progreso
+      setTimeout(() => {
+        progressBar.style.width = '92%';
+      }, 50);
+      
+      // Mostrar checkmark después de un pequeño delay
+      setTimeout(() => {
+        checkmark.style.opacity = '1';
+        checkmark.style.transform = 'scale(1)';
+      }, 300);
+      
+      // Mostrar overlay
+      welcomeOverlay.classList.add('visible');
+      
+      // Después de la animación, simular redirección
+      setTimeout(() => {
+        // En la app real: window.location.assign('/dashboard');
+        console.log('Redirigiendo al panel principal...');
+        alert('¡Login exitoso! Redirigiendo al panel principal...');
+      }, 2000);
+    }
+
+    function finishLogin() {
+      welcomeOverlay.classList.remove('visible');
+      // Aquí iría la redirección real
+      window.location.href = '/dashboard';
+    }
+
+    // Cerrar error si hacen click fuera
+    errorBanner.addEventListener('click', () => errorBanner.classList.remove('visible'));
+  </script>
+</body>
+</html>
