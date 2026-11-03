@@ -183,10 +183,9 @@ export default function InicioPage() {
   }
 
   return (
-    <div className="inicio\\n      bg-[--color-enty-bg]\\n      bg-gradient-to-b\\n      from-[--color-enty-bg]\\n      via-[--color-ticket-900]\\n      to-[--color-zinc-900]\\n      min-h-screen\\n      font-family: var(--font-sans)\
-   ">
+    <div className="inicio bg-[--color-enty-bg] bg-gradient-to-b from-zinc-950 via-zinc-980 to-zinc-900 min-h-screen font-family: var(--font-sans) overflow-x: hidden">
       {/* Header de presentación */}
-      <header className="inicio-header py-6 px-4">
+      <header className="inicio-header py-8 px-4 max-w-7xl mx-auto">
         <TransitionLink to="/inicio" className="inicio-wordmark flex items-center gap-2" aria-label="Enty, inicio">
           <span className="text-2xl font-semibold tracking-tight">Enty</span>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -210,11 +209,7 @@ export default function InicioPage() {
               className="btn-primary w-full"
               aria-label="Iniciar sesión o crear cuenta"
             >
-              {user?.role === "admin"
-                ? "Panel Admin"
-                : user?.role === "promotor"
-                ? "Panel Promotor"
-                : "Ingresar"}
+              {user?.role === "admin" ? "Panel Admin" : user?.role === "promotor" ? "Panel Promotor" : "Ingresar"}
             </button>
           )}
         </div>
@@ -257,11 +252,13 @@ export default function InicioPage() {
                   onClick={() => setMostrandoBoleta(false)}
                 >
                   <h3 className="inicio-item-nombre font-medium text-zinc-100">{e.name}</h3>
-                  <p className="inicio-item-fecha text-zinc-400 text-sm">{new Date(e.starts_at).toLocaleDateString("es-CO", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  })}</p>
+                  <p className="inicio-item-fecha text-zinc-400 text-sm">
+                    {new Date(e.starts_at).toLocaleDateString("es-CO", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </p>
                   <p className="inicio-item-lugar text-zinc-400 text-sm">{e.where || "Por definir"}</p>
                   <p className="inicio-item-precio text-zinc-300 text-sm">{money(e.price_cents)}</p>
                 </TransitionLink>
@@ -308,6 +305,7 @@ export default function InicioPage() {
               No hay eventos disponibles en este momento
             </p>
           )}
+
         </div>
       </main>
 
