@@ -43,7 +43,15 @@ export default function LoginPage() {
   // `ident` es usuario O correo (mig 035). El nombre del estado no cambia a
   // `email` porque ya no lo es; el id del input sí se conserva (`login-email`)
   // para no romper los E2E ni el autocompletado del navegador.
-  const [ident, setIdent] = useState("");
+  // Cargamos el email guardado en localStorage si existe
+  const storedIdent = typeof window !== "undefined" ? localStorage.getItem("enty_last_email") : null;
+  const [ident, setIdent] = useState(storedIdent || "");
+
+  useEffect(() => {
+    if (ident.trim().length > 0) {
+      localStorage.setItem("enty_last_email", ident);
+    }
+  }, [ident]);
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
@@ -271,6 +279,30 @@ export default function LoginPage() {
             >
               {ok ? "Listo" : busy ? "Entrando" : "Entrar"}
             </button>
+
+            {/* Indicador de estado en el botón */}
+            {busy && (
+              <button
+                type="button"
+                disabled
+                className="absolute left-0 top-0 bottom-0 right-0 grid place-items-center opacity-20"
+              >
+                <svg
+                  className="h-4 w-4 animate-spin text-white"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="m4 12-8 8" />
+                  <path d="m12 8 8 8" />
+                  <path d="m4 16 8 8" />
+                </svg>
+              </button>
+            )}
 
             <p className="mt-3 text-center text-xs leading-relaxed text-zinc-400">
               Conexión segura. Nunca te pediremos tu contraseña por chat.
