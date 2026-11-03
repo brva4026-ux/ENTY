@@ -182,10 +182,11 @@ export default function InicioPage() {
     );
   }
 
+  // OJO: JSX parte className por espacios. Antes este div llevaba
+  // "overflow-x: hidden" (con espacio), que generaba la clase `hidden` de
+  // Tailwind = display:none y toda la página salía en blanco. La fuente ya
+  // la aplica body.
   return (
-    {/* OJO: JSX parte className por espacios. Antes llevaba "overflow-x: hidden"
-        (con espacio), que generaba la clase `hidden` de Tailwind = display:none
-        y toda la página salía en blanco. La fuente ya la pone body. */}
     <div className="inicio min-h-screen overflow-x-hidden">
       {/* Header de presentación */}
       <header className="inicio-header py-8 px-4 max-w-7xl mx-auto">
