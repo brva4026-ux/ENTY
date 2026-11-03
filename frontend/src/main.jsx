@@ -158,7 +158,7 @@ function App() {
               <Route path="/t" element={<PublicTicketPage />} />
               {/* Inicio: la vitrina publica del fan (catalogo de eventos).
               Sin login — es la cara de consumidor de Enty. */}
-              <Route path="/inicio" element={<HomePage />} />
+              <Route path="/inicio" element={<InicioPage />} />
               {/* Detalle del evento: la pantalla de compra, publica como la
               vitrina. Se llega tocando un evento del catalogo. */}
               <Route path="/evento/:id" element={<EventDetailPage />} />
