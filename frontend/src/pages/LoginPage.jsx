@@ -264,6 +264,25 @@ export default function LoginPage() {
               </p>
             )}
 
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="remember-me"
+                name="remember-me"
+                className="w-4 h-4 rounded border-zinc-500 focus-visible:outline focus-visible:ring-2 focus-visible:ring-brand-300 cursor-pointer"
+                checked={typeof window !== "undefined" && localStorage.getItem("enty_remember_me") === "1"}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    localStorage.setItem("enty_remember_me", "1");
+                  } else {
+                    localStorage.removeItem("enty_remember_me");
+                  }
+                }}
+                aria-label="Recordarme para la próxima visita"
+              />
+              <label htmlFor="remember-me" className="ml-2 text-xs text-zinc-400">Recordarme</label>
+            </div>
+
             <button
               type="button"
               onClick={() => window.open("https://wa.me/qr/H4SZ7YBWO266O1", "_blank")}
