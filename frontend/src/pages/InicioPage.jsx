@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
-import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import TransitionLink from "../components/TransitionLink";
 // Heart SVG inline (four-point star) – usamos un componente simples
@@ -184,11 +183,12 @@ export default function InicioPage() {
   }
 
   return (
-    <div className="inicio bg-gradient-to-b from-background via-surface to-zinc-900 min-h-screen">
+    <div className="inicio\\n      bg-[--color-enty-bg]\\n      bg-gradient-to-b\\n      from-[--color-enty-bg]\\n      via-[--color-ticket-900]\\n      to-[--color-zinc-900]\\n      min-h-screen\\n      font-family: var(--font-sans)\
+   ">
       {/* Header de presentación */}
-      <header className="inicio-header">
-        <TransitionLink to="/inicio" className="inicio-wordmark" aria-label="Enty, inicio">
-          <span>Enty</span>
+      <header className="inicio-header py-6 px-4">
+        <TransitionLink to="/inicio" className="inicio-wordmark flex items-center gap-2" aria-label="Enty, inicio">
+          <span className="text-2xl font-semibold tracking-tight">Enty</span>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 0L4 6l8 6-8 6zm5 3l7 7-7 7zm-3 9H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2" />
             <circle cx="3" cy="12" r="1" />
@@ -221,23 +221,24 @@ export default function InicioPage() {
       </header>
 
       {/* Sección: Eventos disponibles */}
-      <main className="inicio-contenido">
-        <h2 className="inicio-titulo">Eventos disponibles</h2>
+      <main className="inicio-contenido px-4 py-8">
+        <h2 className="inicio-titulo text-2xl font-bold tracking-tight mb-6">Eventos disponibles</h2>
 
         {/* Check de boleta */}
-        <div className="inicio-busqueda-boleta">
+        <div className="inicio-busqueda-boleta mb-6">
           <input
             type="text"
             value={busquedaBoleta}
             onChange={(e) => setBusquedaBoleta(e.target.value)}
             placeholder="Ingresa ID o nombre de boleta..."
             aria-label="Buscar boleta"
-            className="input-boleta"
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-940 px-4 py-3 text-base focus:outline-none focus:border-[--color-enty-violet] focus:bg-zinc-950 transition-colors"
+            placeholder="Ingresa ID o nombre de boleta..."
           />
           <button
             type="button"
             onClick={verificarBoleta}
-            className="btn-buscar"
+            className="btn-buscar w-full rounded-xl border border-zinc-800 bg-[--color-enty-violet] text-white py-3 px-4 font-medium text-sm hover:bg-[--color-enty-800] transition-colors"
             aria-label="Verificar boleta"
           >
             Verificar
@@ -249,30 +250,24 @@ export default function InicioPage() {
           {disponibles.map((e) => {
             const fav = favs.has(e.id);
             return (
-              <div key={e.id} className="inicio-item">
+              <div key={e.id} className="inicio-item border-b border-zinc-850 last:border-0 transition-colors hover:bg-zinc-950">
                 <TransitionLink
                   to={`/evento/${e.id}`}
-                  className="inicio-item-link"
+                  className="inicio-item-link block py-3 px-0"
                   onClick={() => setMostrandoBoleta(false)}
                 >
-                  <h3 className="inicio-item-nombre">{e.name}</h3>
-                  <p className="inicio-item-fecha">
-                    {new Date(e.starts_at).toLocaleDateString("es-CO", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </p>
-                  <p className="inicio-item-lugar">
-                    {e.where || "Por definir"}
-                  </p>
-                  <p className="inicio-item-precio">
-                    {money(e.price_cents)}
-                  </p>
+                  <h3 className="inicio-item-nombre font-medium text-zinc-100">{e.name}</h3>
+                  <p className="inicio-item-fecha text-zinc-400 text-sm">{new Date(e.starts_at).toLocaleDateString("es-CO", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  })}</p>
+                  <p className="inicio-item-lugar text-zinc-400 text-sm">{e.where || "Por definir"}</p>
+                  <p className="inicio-item-precio text-zinc-300 text-sm">{money(e.price_cents)}</p>
                 </TransitionLink>
                 <button
                   type="button"
-                  className="inicio-item-fav transition-colors"
+                  className="inicio-item-fav transition-colors absolute right-3 top-1/2 -translate-y-1/2"
                   aria-label={fav ? `Quitar ${e.name} de favoritos` : `Guardar ${e.name} en favoritos`}
                   aria-pressed={fav}
                   onClick={() => toggleFavLocal(e.id)}
@@ -285,30 +280,22 @@ export default function InicioPage() {
 
           {/* Mostrar resultado de boleta si hay */}
           {mostrandoBoleta && resultadoBoleta && (
-            <div className="inicio-resultado-boleta">
-              <h3>Resultado de boleta</h3>
-              <p>
-                <strong>{resultadoBoleta.name}</strong> - {resultadoBoleta.fecha}
-              </p>
-              <p>
-                Estado: {resultadoBoleta.vendida ? "Casi agotado" : "Aún disponible"}
-              </p>
-              <p>
-                Ubicación: {resultadoBoleta.where}
-              </p>
-              <p>
-                Precio: {resultadoBoleta.price}
-              </p>
+            <div className="inicio-resultado-boleta rounded-xl border border-zinc-800 bg-zinc-940 p-4 mt-6">
+              <h3 className="text-zinc-100 font-medium mb-2">Resultado de boleta</h3>
+              <p className="text-zinc-300 mb-1"><strong>{resultadoBoleta.name}</strong> - {resultadoBoleta.fecha}</p>
+              <p className="text-zinc-300 mb-1">Estado: {resultadoBoleta.vendida ? "Casi agotado" : "Aún disponible"}</p>
+              <p className="text-zinc-300 mb-1">Ubicación: {resultadoBoleta.where}</p>
+              <p className="text-zinc-300 mb-1">Precio: {resultadoBoleta.price}</p>
               <TransitionLink
                 to={`/evento/${resultadoBoleta.id}`}
-                className="btn-primary mt-2"
+                className="btn-primary mt-2 w-full"
               >
                 Ver boleta
               </TransitionLink>
               <button
                 type="button"
                 onClick={() => setMostrandoBoleta(false)}
-                className="btn-secondary ml-2"
+                className="btn-ghost mt-2 w-full"
               >
                 Cerrar
               </button>
@@ -317,7 +304,7 @@ export default function InicioPage() {
 
           {/* Mensaje si no hay eventos disponibles */}
           {disponibles.length === 0 && (
-            <p className="inicio-sin-eventos">
+            <p className="inicio-sin-eventos text-zinc-400 text-sm mt-4">
               No hay eventos disponibles en este momento
             </p>
           )}
@@ -325,13 +312,13 @@ export default function InicioPage() {
       </main>
 
       {/* Footer de la presentación */}
-      <footer className="inicio-footer">
-        <p className="inicio-footer-texto">
-          <span>Enty</span> - Tu plataforma de boletería inteligente
+      <footer className="inicio-footer pt-4 border-t border-zinc-800">
+        <p className="inicio-footer-texto text-zinc-400 text-sm">
+          <span className="text-zinc-100 font-medium">Enty</span> - Tu plataforma de boletería inteligente
         </p>
         <nav className="inicio-footer-links" aria-label="Enlaces rápidos">
-          <TransitionLink to="/terminos">Términos</TransitionLink>
-          <TransitionLink to="/privacidad">Privacidad</TransitionLink>
+          <TransitionLink to="/terminos" className="link-underline text-zinc-500 hover:text-zinc-200 text-sm">Términos</TransitionLink>
+          <TransitionLink to="/privacidad" className="link-underline text-zinc-500 hover:text-zinc-200 text-sm">Privacidad</TransitionLink>
         </nav>
       </footer>
     </div>
