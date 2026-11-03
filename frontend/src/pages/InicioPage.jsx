@@ -4,9 +4,21 @@ import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import TransitionLink from "../components/TransitionLink";
-import { Heart } from "../components/HomePage";
-import { readFavs, toggleFav } from "../components/HomePage";
-import { useAuth, useAuthStatus } from "../lib/auth";
+// Heart SVG inline (four-point star) – usamos un componente simples
+function Heart({ filled }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 20s-7-4.6-7-9.5A3.9 3.9 0 0 1 12 7a3.9 3.9 0 0 1 7 3.5C19 15.4 12 20 12 20z"
+        fill={filled ? "#7C3AED" : "none"}
+        stroke={filled ? "#7C3AED" : "currentColor"}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+import { useAuth } from "../lib/auth";
 import { useLocation } from "react-router-dom";
 
 const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -14,30 +26,49 @@ const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";
 
 /** Inicio — presentación de Enty para el fan (landing page). */
 
-/** Lista blanca de eventos que se consideran "disponibles" (venta abierta).
- *  Se filtran del catalogo general en client sobre el fetch ya traído. */
 function isEventAvailable(e) {
-  // Eventos con estado 'live' o 'published' y fecha en el futuro o hoy
   const now = new Date();
   const starts = new Date(e.starts_at);
   if (Number.isNaN(starts.getTime())) return false;
-  // Venta abierta: el evento debe estar en vivo o publicado
   const isLiveOrPublished = ["live", "published"].includes(e.status || "");
-  // La fecha debe ser hoy o en el futuro (no eventos pasados vendidos como "disponibles" sin contexto)
   const isFutureOrToday = starts >= now;
   return isLiveOrPublished && isFutureOrToday;
 }
 
+// Favoritos en localStorage (modo privado: se pierde al recargar)
+const FAVS_KEY = "tf_fan_favs";
+function readFavsLocal() {
+  try {
+    const raw = localStorage.getItem(FAVS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr.map(Number) : []);
+  } catch {
+    return new Set();
+  }
+}
+function toggleFavLocal(id) {
+  try {
+    const prev = readFavsLocal();
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    localStorage.setItem(FAVS_KEY, JSON.stringify([...next]));
+  } catch {
+    /* modo privado: se pierde al recargar, la UI ya refleja el toggle */
+  }
+}
+
 export default function InicioPage() {
   useDocumentTitle("Enty - Inicio");
+  const { user, loading } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [busquedaBoleta, setBusquedaBoleta] = useState("");
   const [mostrandoBoleta, setMostrandoBoleta] = useState(false);
   const [resultadoBoleta, setResultadoBoleta] = useState(null);
-  const [user, setUser] = useAuthStatus();
   const location = useLocation();
+  const favs = readFavsLocal();
 
   // Cargar eventos al montar
   useEffect(() => {
@@ -46,12 +77,29 @@ export default function InicioPage() {
     );
   }, []);
 
+  // Si aún cargando, mostrar esqueleto
+  if (loading) {
+    return (
+      <div className="inicio motion-reduced">
+        <div className="inicio-skeleton" />
+      </div>
+    );
+  }
+
+  // Si no hay datos aún, mostrar esqueleto
+  if (!data && !error) {
+    return (
+      <div className="inicio motion-reduced">
+        <div className="inicio-skeleton" />
+      </div>
+    );
+  }
+
   // Verificar boleta por ID o token
   function verificarBoleta() {
     if (!busquedaBoleta.trim()) return;
     const events = data?.events ?? [];
     const found = events.find((e) => {
-      // Buscar por ID, nombre o venue
       return (
         e.id.toString() === busquedaBoleta.trim() ||
         e.name.toLowerCase().includes(busquedaBoleta.toLowerCase()) ||
@@ -76,20 +124,16 @@ export default function InicioPage() {
     }
   }
 
-  // Manejar login/logout y mostrar CTA apropiado
-  const tieneSesion = user?.isAuthenticated ?? false;
-  const rol = user?.role ?? null;
-
   function toggleLogin() {
-    if (tieneSesion) {
-      // Si ya tiene sesión, ir al perfil
+    if (user?.isAuthenticated) {
       const from = location.state?.from;
       window.location.href = from || "/perfil";
     } else {
-      // Si no tiene sesión, ir al login
       window.location.href = "/login";
     }
   }
+
+  const tieneSesion = user?.isAuthenticated ?? false;
 
   // Si no hay datos aún, mostrar esqueleto
   if (!data && !error) {
@@ -165,7 +209,11 @@ export default function InicioPage() {
               className="btn-primary w-full"
               aria-label="Iniciar sesión o crear cuenta"
             >
-              {rol === "admin" ? "Panel Admin" : rol === "promotor" ? "Panel Promotor" : "Ingresar"}
+              {user.role === "admin"
+                ? "Panel Admin"
+                : user.role === "promotor"
+                ? "Panel Promotor"
+                : "Ingresar"}
             </button>
           )}
         </div>
@@ -198,7 +246,7 @@ export default function InicioPage() {
         {/* Lista de eventos disponibles */}
         <div className="inicio-lista">
           {disponibles.map((e) => {
-            const fav = false; // simplificado - usar localStorage real si es necesario
+            const fav = favs.has(e.id);
             return (
               <div key={e.id} className="inicio-item">
                 <TransitionLink
@@ -223,10 +271,10 @@ export default function InicioPage() {
                 </TransitionLink>
                 <button
                   type="button"
-                  className="inicio-item-fav transition-colors" + (fav ? " is-on" : "")
+                  className="inicio-item-fav transition-colors"
                   aria-label={fav ? `Quitar ${e.name} de favoritos` : `Guardar ${e.name} en favoritos`}
                   aria-pressed={fav}
-                  onClick={() => toggleFav(e.id)}
+                  onClick={() => toggleFavLocal(e.id)}
                 >
                   <Heart filled={fav} />
                 </button>

@@ -67,6 +67,7 @@ const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
 const HomePage = lazyPage(() => import("./pages/HomePage"));
+const InicioPage = lazyPage(() => import("./pages/InicioPage"));
 const EventDetailPage = lazyPage(() => import("./pages/EventDetailPage"));
 const MyTicketsPage = lazyPage(() => import("./pages/MyTicketsPage"));
 const WaitlistPage = lazyPage(() => import("./pages/WaitlistPage"));
