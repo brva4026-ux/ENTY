@@ -1,182 +1,2733 @@
-/* ==========================================================================
- * ENTY · CAPA VISUAL DE PRODUCTO — INTERIOR
- * Admin · Promotor · Puerta ("la casa" de Enty).
- * El fan ya tiene su vitrina editorial; aquí es el backstage.
- * Material: cristal esmerilado sobre negro mate, encuadre nocturno,
- * tipo Sora + JetBrains Mono para tabs y KPIs.
- * ========================================================================= */
+/*
+  Enty brand refresh layer.
+  Direction: nocturnal premium ticketing, rounded futuristic typography,
+  black/white base, violet glow (var(--e-brand-glow)), and neon event accents used with
+  restraint. This file is imported after index.css on purpose.
 
-:root {
-  --e-panel-radius: 1.25rem;
-  --e-panel-shadow: 0 20px 50px -24px rgba(0, 0, 0, 0.6);
-  --e-card-shadow: 0 16px 38px -20px rgba(0, 0, 0, 0.55);
-  --e-border: 1px solid var(--e-border-hairline);
-  --e-tab-border: 1px solid var(--e-border-hairline);
-}
-
-* {
-  box-sizing: border-box;
-}
+  Fase 6: los namespaces legacy (--tf-*, --home-*, --evd-*, --tkt-*) se
+  retiraron; toda la hoja consume tokens --e-* de tokens.css.
+*/
 
 body {
   background: var(--e-canvas);
   color: var(--e-text-primary);
-  font-family: var(--e-font-sans);
 }
 
-/* -- Selection --------------------------------------------------------- */
 ::selection {
-  background: var(--e-violet-500);
+  background: rgba(187, 92, 246, 0.48);
   color: var(--e-white);
 }
 
-/* -- Topbar ------------------------------------------------------------ */
-.topbar {
-  background: rgba(17, 17, 23, 0.85);
-  backdrop-filter: blur(12px);
-  border-bottom: var(--e-border);
-}
-
-.topbar-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
+.display,
+.vh-nombre-titulo,
+.auth-brand-title,
+.vh-kpi-amount,
+.evx-name {
+  letter-spacing: 0;
   color: var(--e-text-primary);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-decoration: none;
 }
 
-.topbar-brand svg {
-  width: 32px;
-  height: 32px;
+.eyebrow, .vh-kpi-label {
+  letter-spacing: 0.18em;
+}
+
+.eyebrow, .btn-mini[data-variant="brand"], .tabbar-item[aria-selected="true"] .text-brand-300 {
+  color: var(--e-violet-200);
+}
+
+.card,
+.auth-card,
+.dialog-panel,
+.venue-header,
+.bizdock {
+  border-radius: var(--e-radius-xl);
+  border-color: var(--e-border-hairline);
+  background:
+    radial-gradient(34rem 20rem at 84% -10rem, rgba(187, 92, 246, 0.12), transparent 68%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 42%),
+    var(--e-surface);
+  box-shadow:
+    var(--e-highlight-inset),
+    var(--e-elev-card);
+}
+
+html[data-theme="light"] .card,
+html[data-theme="light"] .auth-card,
+html[data-theme="light"] .dialog-panel,
+html[data-theme="light"] .venue-header,
+html[data-theme="light"] .bizdock {
+  background:
+    radial-gradient(30rem 18rem at 84% -10rem, rgba(187, 92, 246, 0.06), transparent 70%),
+    var(--e-surface);
+}
+
+.card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: rgba(187, 92, 246, 0.36);
+  box-shadow: var(--e-elev-raised);
+}
+
+.field,
+select.field,
+textarea.field {
+  border-radius: var(--e-radius-lg);
+  border-color: var(--e-control-line);
+  background-color: rgba(187, 92, 246, 0.075);
+  color: var(--e-text-primary);
+}
+
+.field::placeholder {
+  color: color-mix(in srgb, var(--e-text-secondary) 72%, transparent);
+}
+
+.field:hover {
+  border-color: var(--e-control-line-hover);
+}
+
+.field:focus {
+  border-color: var(--e-control-line-focus);
+  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.24), 0 0 28px -16px rgba(187, 92, 246, 0.95);
+}
+
+.btn-primary {
+  border-radius: var(--e-radius-lg);
+  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 55%, var(--e-violet-425) 100%);
+  color: var(--e-white);
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 18px 34px -20px rgba(187, 92, 246, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  font-weight: 800;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--e-violet-600) 0%, var(--e-violet-425) 58%, var(--e-violet-550) 100%);
+  box-shadow: 0 20px 40px -18px rgba(187, 92, 246, 1), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.btn-primary:focus-visible {
+  border-color: var(--e-white);
+  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.35), 0 18px 34px -20px rgba(187, 92, 246, 0.95);
+}
+
+.btn-primary:active {
+  background: linear-gradient(135deg, var(--e-violet-700), var(--e-violet-550));
+  transform: scale(var(--e-press-scale));
+}
+
+.btn-ghost,
+.btn-mini,
+.opt-chip,
+.tabbar-item,
+.bizdock-item,
+.tkt-btn,
+.badge {
+  border-radius: var(--e-radius-lg);
+}
+
+.btn-ghost {
+  border-color: var(--e-border-hairline);
+  background: rgba(255, 255, 255, 0.026);
+  color: var(--e-text-secondary);
+}
+
+.btn-ghost:hover {
+  background: rgba(187, 92, 246, 0.11);
+  border-color: rgba(187, 92, 246, 0.44);
+  color: var(--e-text-primary);
+}
+
+.btn-mini[data-variant="brand"]:hover,
+.opt-chip[aria-pressed="true"] {
+  background: rgba(187, 92, 246, 0.14);
+  border-color: rgba(187, 92, 246, 0.46);
+  color: var(--e-violet-200);
+}
+
+.btn-mini[data-variant="success"] {
+  color: var(--e-success);
+}
+
+.btn-mini[data-variant="danger"] {
+  color: var(--e-urgent);
+}
+
+.meter-fill,
+input[type="checkbox"].accent-brand-500:checked,
+.bizdock-item.is-active .bizdock-icon {
+  background: linear-gradient(135deg, var(--e-violet-500), var(--e-violet-400));
+}
+
+input[type="checkbox"].accent-brand-500:checked {
+  border-color: var(--e-brand);
+}
+
+.topbar {
+  border-bottom: 1px solid var(--e-border-hairline);
+  background: color-mix(in srgb, var(--e-canvas) 82%, transparent);
+  backdrop-filter: blur(22px) saturate(1.35);
+  /* PWA instalada (display: standalone + black-translucent): la barra de estado
+     flota SOBRE el contenido y la marca quedaba bajo el reloj. En Safari normal
+     el inset es 0, asi que aqui no cambia nada. */
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .topnav-item {
-  padding: 0.45rem 0.75rem;
-  border-radius: 0.5rem;
-  color: var(--e-neutral-400);
-  font-size: var(--e-text-2xs);
-  font-weight: 600;
-  text-decoration: none;
-  transition: background-color 0.18s ease, color 0.18s ease;
+  border-radius: var(--e-radius-lg);
+  color: var(--e-text-secondary);
 }
 
 .topnav-item:hover {
-  color: var(--e-neutral-700);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(187, 92, 246, 0.1);
+  color: var(--e-text-primary);
 }
 
-.topnav-item.is-active {
-  color: var(--e-violet-200);
-  background: rgba(124, 58, 237, 0.16);
-  box-shadow: inset 0 1px 0 rgba(124, 58, 237, 0.25);
+.topnav-item.is-active,
+html[data-theme="light"] header nav a[aria-current="page"] {
+  background: rgba(187, 92, 246, 0.16);
+  color: var(--e-text-primary);
+  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.28);
 }
 
 .topbar-avatar {
-  display: grid;
-  place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 999px;
-  background: var(--e-violet-500);
+  border: 1px solid rgba(187, 92, 246, 0.44);
+  background: radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.28), transparent 24%), linear-gradient(135deg, var(--e-violet-700), var(--e-violet-400));
   color: var(--e-white);
-  font-weight: 700;
-  cursor: pointer;
+  box-shadow: 0 0 26px -14px rgba(187, 92, 246, 0.95);
 }
 
+/* ----------------------------------------------------------------------
+   ÁREA TÁCTIL DEL HEADER (WCAG 2.5.8)
+
+   Los controles del header son chicos a propósito (32x32 el tema y la
+   campana, 30x30 el avatar): a 320px el bloque entero ya está al límite y
+   agrandarlos de verdad ganaba scroll horizontal. Pero un dedo no apunta a
+   32px. La solución separa el TAMAÑO VISUAL del ÁREA DE TOQUE: un
+   pseudo-elemento transparente de 44x44 centrado, que no cambia el ícono ni
+   mueve el layout.
+
+   Va en `::before`, NO en `::after`: el tooltip de la app se define como
+   `[data-tip]::after` con `display: none` (index.css), y como el tema y el
+   avatar llevan `data-tip`, esa regla —misma propiedad, especificidad
+   0,1,1— pisaba el área de toque y la dejaba sin efecto. Se midió: con
+   `::after` el clic a +18px del centro del tema no llegaba al botón; con
+   `::before` sí. La campana, que no tiene `data-tip`, funcionaba igual con
+   cualquiera de los dos.
+
+   El gap es 12px (gap-3) y los controles miden 32px: centro a centro hay
+   44px, justo el ancho del área, así que no se roban clics entre sí.
+   ---------------------------------------------------------------------- */
 .topbar-hit {
   position: relative;
+}
+
+.topbar-hit::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.bottomnav {
+  border-top: 1px solid var(--e-border-hairline);
+  background: color-mix(in srgb, var(--e-canvas) 88%, transparent);
+  backdrop-filter: blur(22px) saturate(1.35);
+}
+
+.bottomnav-item {
+  border-radius: 1rem;
+  color: var(--e-text-secondary);
+}
+
+.bottomnav-item.is-active {
+  color: var(--e-violet-200);
+  background: rgba(187, 92, 246, 0.12);
+}
+
+.bottomnav-item.is-active span:last-child {
+  background: var(--e-brand);
+  box-shadow: 0 0 16px rgba(187, 92, 246, 0.65);
+}
+
+.tabbar {
+  border: 1px solid var(--e-border-hairline);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.06);
+}
+
+.tabbar-item[aria-selected="true"] {
+  background: rgba(187, 92, 246, 0.14);
+  color: var(--e-text-primary);
+  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.3), 0 10px 26px -20px rgba(187, 92, 246, 0.9);
+}
+
+.badge {
+  border: 1px solid rgba(187, 92, 246, 0.22);
+  background: rgba(187, 92, 246, 0.09);
+}
+
+.list-row,
+.row:hover {
+  border-radius: 1rem;
+}
+
+.list-row {
+  border-color: var(--e-border-hairline);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.row:hover {
+  background: rgba(187, 92, 246, 0.075);
+}
+
+.empty-state-icon {
+  color: var(--e-violet-200);
+  background: radial-gradient(circle, rgba(187, 92, 246, 0.24), rgba(187, 92, 246, 0.07));
+  box-shadow: inset 0 0 0 1px rgba(187, 92, 246, 0.4), 0 0 34px -18px rgba(187, 92, 246, 0.95);
+}
+
+.ticket-timeline::before {
+  background: linear-gradient(180deg, rgba(187, 92, 246, 0.66), rgba(0, 230, 171, 0.32));
+}
+
+.ticket-step.done .ticket-step-dot {
+  background: var(--e-brand);
+  box-shadow: 0 0 0 3px rgba(187, 92, 246, 0.18), 0 0 16px -4px rgba(187, 92, 246, 0.9);
+}
+
+.ticket-step.current .ticket-step-dot {
+  background: var(--e-success);
+  box-shadow: 0 0 0 4px rgba(0, 230, 171, 0.15), 0 0 16px -2px rgba(0, 230, 171, 0.78);
+}
+
+.vh-logo,
+.vh-logo-fallback {
+  border-radius: 1rem;
+}
+
+.vh-kpi::before {
+  background: linear-gradient(180deg, rgba(187, 92, 246, 0.8), rgba(187, 92, 246, 0.08) 82%, transparent);
+}
+
+.bizdock-item {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.026);
+}
+
+.bizdock-item:hover {
+  background: rgba(187, 92, 246, 0.095);
+}
+
+.bizdock-item.is-active {
+  background: rgba(187, 92, 246, 0.14);
+  border-color: rgba(187, 92, 246, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 36px -28px rgba(187, 92, 246, 0.9);
+}
+
+.bizdock-count {
+  font-variant-numeric: tabular-nums;
+  background: var(--e-brand);
+  /* Tinta Enty sobre el violeta brillante (oscuro): 6.2:1. En claro
+     --tf-purple cambia a var(--e-violet-500) (mas oscuro), donde la tinta bajaba a
+     3.4:1; ahi el par correcto es blanco (5.1:1). */
+  color: var(--e-ink-1);
+}
+html[data-theme="light"] .bizdock-count {
+  color: var(--e-white);
+}
+
+.toast-in {
+  border-radius: 1rem;
+  box-shadow: 0 18px 48px -24px rgba(0, 0, 0, 0.95);
+}
+
+.dialog-backdrop,
+.dialog-backdrop-out {
+  background: rgba(4, 4, 8, 0.76);
+  backdrop-filter: blur(6px);
+}
+
+.skeleton {
+  background: var(--e-surface);
+}
+
+.auth-shell .auth-card {
+  border-radius: 1.25rem;
+}
+
+.auth-brand {
+  /* Superficie navy siempre: un solo tono, sin gradientes redundantes */
+  background: var(--e-ink-1);
+}
+
+.auth-brand-title {
+  text-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  animation: auth-rise 0.55s var(--e-ease-expo) both;
+  animation-delay: 0.12s;
+}
+
+.auth-brand-sub,
+.auth-benefit {
+  color: var(--e-dim-300);
+}
+
+.auth-benefit-check {
+  color: var(--e-violet-200);
+  background: rgba(187, 92, 246, 0.15);
+  border-color: rgba(187, 92, 246, 0.42);
+}
+
+/* ----------------------------------------------------------------------
+   COREOGRAFÍA DE LA ENTRADA (login/registro)
+
+   El panel de marca entraba de golpe (medido: `animation: none` en todas
+   sus piezas) y la navegación al panel era un corte seco. Aquí se orquesta:
+   logo → titular → subtítulo → beneficios, en cascada, y el troquel se
+   dibuja. Solo transform/opacity y una sola curva (la del sistema).
+
+   CLAVE: la opacidad inicial vive en el `from` del keyframe, NO en la regla
+   base. Así `animation: none` (movimiento reducido) deja el elemento visible
+   por defecto en vez de dejarlo en opacity 0 — el patrón frágil que usa
+   `.reveal > *` y que obliga a reponer `opacity: 1` a mano.
+   ---------------------------------------------------------------------- */
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* El troquel se traza de arriba abajo, como el corte de la boleta. */
+@keyframes auth-perf-draw {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.auth-brand-top {
+  animation: auth-rise 0.5s var(--e-ease-expo) both;
+}
+
+.auth-brand-rays,
+.auth-brand-mark {
+  animation: fade 0.9s var(--e-ease-standard) both;
+}
+
+.auth-brand-copy .eyebrow {
+  animation: auth-rise 0.5s var(--e-ease-expo) both;
+  animation-delay: 0.06s;
+}
+
+.auth-brand-sub {
+  animation: auth-rise 0.55s var(--e-ease-expo) both;
+  animation-delay: 0.18s;
+}
+
+.auth-benefit {
+  animation: auth-rise 0.5s var(--e-ease-expo) both;
+}
+
+.auth-benefit:nth-child(1) {
+  animation-delay: 0.24s;
+}
+.auth-benefit:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.auth-benefit:nth-child(3) {
+  animation-delay: 0.36s;
+}
+.auth-benefit:nth-child(n + 4) {
+  animation-delay: 0.42s;
+}
+
+.auth-perf {
+  transform-origin: top center;
+  animation: auth-perf-draw 0.7s var(--e-ease-expo) both;
+  animation-delay: 0.1s;
+}
+
+/* ----------------------------------------------------------------------
+   TRANSICIÓN DE VISTA (login → panel)
+
+   `withViewTransition` (lib/viewTransition.js) envuelve la navegación con
+   `document.startViewTransition`. El navegador saca una foto del DOM viejo y
+   nuevo; estas reglas son el cruce. Sin soporte o con movimiento reducido, el
+   JS no llama a la API y estas reglas no llegan a aplicarse.
+   ---------------------------------------------------------------------- */
+@keyframes vt-leave {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.99);
+  }
+}
+@keyframes vt-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+}
+
+::view-transition-old(root) {
+  animation: vt-leave var(--e-dur-base) var(--e-ease-standard) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-enter var(--e-dur-slow) var(--e-ease-expo) both;
+}
+
+/* ----------------------------------------------------------------------
+   SEÑALES DEL FORMULARIO
+   El rechazo se SIENTE (sacudida) y el ingreso se CONFIRMA antes de cruzar
+   (check + "Listo"), en vez de un corte seco.
+   ---------------------------------------------------------------------- */
+@keyframes auth-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.auth-error {
+  animation: auth-shake var(--e-dur-slow) var(--e-ease-standard) both;
+}
+
+@keyframes auth-check-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.btn-check {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  animation: auth-check-pop var(--e-dur-slow) var(--e-ease-spring) both;
+}
+
+/* El botón confirmado se tinta de "validado" (el verde tiene significado en
+   el sistema: disponible/hecho). El prefijo `.auth-shell` NO es decorativo:
+   `enty-system.css` se carga después y redefine `.btn-primary` (background
+   `--e-brand`) con la misma especificidad, así que sin él la cascada pisa
+   esta regla. Texto oscuro del tema (--e-brasa-950) sobre el verde: contraste
+   medido 11.4:1. */
+.auth-shell .btn-primary.is-ok {
+  background: var(--e-success);
+  color: var(--e-brasa-950);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-brand-top,
+  .auth-brand-rays,
+  .auth-brand-mark,
+  .auth-brand-copy .eyebrow,
+  .auth-brand-title,
+  .auth-brand-sub,
+  .auth-benefit,
+  .auth-perf,
+  .auth-error,
+  .btn-check {
+    animation: none;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+.evx-card {
+  border-radius: 1.1rem;
+}
+
+.evx-card::after {
+  background: radial-gradient(90% 70% at 50% -10%, rgba(187, 92, 246, 0.16), transparent 62%);
+}
+
+/* Public digital ticket: black paper, hard white type, QR priority, neon marks. */
+.tkt-stage,
+.tkt-wrap {
+  background: var(--e-canvas);
+}
+
+.tkt {
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(26rem 18rem at 78% 12%, rgba(187, 92, 246, 0.14), transparent 60%),
+    radial-gradient(18rem 10rem at 14% 72%, rgba(255, 45, 152, 0.1), transparent 62%),
+    linear-gradient(180deg, var(--e-panel-700), var(--e-panel-900));
+  color: var(--e-white);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 28px 70px -38px rgba(0, 0, 0, 1), 0 0 0 1px rgba(187, 92, 246, 0.08);
+}
+
+.tkt::before {
+  opacity: 0.16;
+}
+
+.tkt-head {
+  color: var(--e-white);
+}
+
+.tkt-footer, .tkt-brandline {
+  color: rgba(247, 247, 251, 0.72);
+}
+
+.tkt-body {
+  background:
+    radial-gradient(18rem 10rem at 18% 0%, rgba(0, 230, 171, 0.08), transparent 64%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.tkt-qr {
+  border-radius: 1rem;
+  background: var(--e-white);
+  box-shadow: 0 18px 34px -18px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.75);
+}
+
+.tkt-qr::before,
+.tkt-qr::after {
+  border-color: var(--e-success);
+  filter: drop-shadow(0 0 8px rgba(0, 230, 171, 0.45));
+}
+
+.tkt-note strong, .tkt-note p {
+  color: var(--e-white);
+}
+
+.tkt-btn-primary {
+  background: linear-gradient(135deg, var(--e-violet-500), var(--e-violet-400));
+  color: var(--e-white);
+  box-shadow: 0 16px 34px -18px rgba(187, 92, 246, 0.95);
+}
+
+.tkt-btn-quiet {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--e-white);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.tkt-brandline span {
+  color: rgba(247, 247, 251, 0.78);
+}
+
+@media (max-width: 640px) {
+  .card,
+  .auth-card,
+  .venue-header,
+  .bizdock {
+    border-radius: 1rem;
+  }
+}
+
+/* ===========================================================================
+   BOLETA AURORA (pase de festival) - la lamina que define el look de la boleta.
+   Papel negro mate con grano y borde rasgado, hero con orbita neon, trazos
+   gestuales verde/rosa, perforacion y talon. Va al final a proposito: gana la
+   cascada sobre las reglas .tkt de index.css y de la seccion anterior.
+   =========================================================================== */
+.tkt-stage {
+  background:
+    radial-gradient(46rem 30rem at 50% -12rem, rgba(187, 92, 246, 0.16), transparent 62%),
+    var(--e-panel-950);
+}
+.tkt {
+  position: relative;
+  border: 0;
+  border-radius: 0.35rem;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--e-white);
+  background:
+    radial-gradient(120% 80% at 50% -10%, var(--e-panel-600) 0%, transparent 55%),
+    linear-gradient(180deg, var(--e-panel-800), var(--e-ticket-paper));
+  box-shadow:
+    0 30px 70px -30px rgba(0, 0, 0, 0.85),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  /* Borde rasgado irregular arriba/abajo: cientos de puntos de una polilinea
+     con jitter determinista (el mismo trazo en cada render). */
+  clip-path: polygon(
+    0px 8.6px, 12px 3.1px, 24px 9.4px, 36px 4.8px, 48px 10.2px, 60px 2.6px,
+    72px 8.1px, 84px 5.5px, 96px 11.3px, 108px 3.9px, 120px 9.1px, 132px 2.2px,
+    144px 7.7px, 156px 4.4px, 168px 10.6px, 180px 3.3px, 192px 8.9px, 204px 5.1px,
+    216px 11.7px, 228px 2.9px, 240px 7.4px, 252px 4.1px, 264px 10.9px, 276px 3.6px,
+    288px 8.4px, 300px 5.8px, 312px 11.1px, 324px 2.4px, 336px 7.9px, 348px 4.7px,
+    360px 10.4px, 372px 3.2px, 384px 8.7px, 396px 5.3px, 408px 11.5px, 420px 2.7px,
+    432px 0px,
+    432px 640px,
+    420px 630.9px, 408px 637.2px, 396px 632.6px, 384px 638.4px, 372px 629.8px,
+    360px 636.1px, 348px 631.5px, 336px 637.9px, 324px 630.4px, 312px 636.6px,
+    300px 632.1px, 288px 638.7px, 276px 629.4px, 264px 635.9px, 252px 631.2px,
+    240px 637.6px, 228px 630.7px, 216px 636.9px, 204px 632.4px, 192px 638.2px,
+    180px 629.9px, 168px 636.3px, 156px 631.7px, 144px 637.8px, 132px 630.2px,
+    120px 636.8px, 108px 632.3px, 96px 638.6px, 84px 629.6px, 72px 636.4px,
+    60px 631.4px, 48px 637.4px, 36px 630.8px, 24px 636.2px, 12px 631.9px, 0px 638px
+  );
+}
+/* Grano / desgaste sutil (no ensucia la lectura). */
+.tkt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+}
+/* La onda decorativa de index.css ya no aplica en el papel negro. */
+.tkt::before {
+  content: none;
+}
+
+/* Cabecera */
+.tkt-head {
+  padding: 1.35rem 1.4rem 0;
+  align-items: flex-start;
+}
+.tkt-brand-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: var(--e-text-xl);
+  letter-spacing: -0.02em;
+  color: var(--e-white);
+}
+.tkt-brand-lock--sm {
+  font-size: var(--e-text-base);
+}
+.tkt-mark {
+  width: 0.9em;
+  height: 1.16em;
+  display: block;
+}
+.tkt-connect {
+  text-align: right;
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  line-height: 1.9;
+  text-transform: uppercase;
+  color: var(--e-ticket-dim);
+}
+.tkt-arw {
+  color: var(--e-success);
+  font-size: 1.25em;
+  margin-left: 0.15em;
+}
+
+/* Hero */
+.tkt-hero {
+  position: relative;
+  text-align: center;
+  margin: 1.9rem 0 1.5rem;
+  padding: 0.5rem 0;
+}
+.tkt-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 108%;
+  max-width: 27rem;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  pointer-events: none;
+}
+.tkt-orbit-star {
+  filter: drop-shadow(0 0 10px rgba(0, 230, 171, 0.9));
+}
+.tkt-kicker {
+  position: relative;
+  z-index: 2;
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  color: var(--e-ticket-dim);
+}
+.tkt-title {
+  position: relative;
+  z-index: 2;
+  margin: 0.4rem 0 0.55rem;
+  font-family: "Sora", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: var(--e-text-display);
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  color: var(--e-white);
+  text-transform: uppercase;
+  text-shadow: 0 0 34px rgba(0, 230, 171, 0.1);
+  overflow-wrap: anywhere;
+}
+.tkt-tags {
+  position: relative;
+  z-index: 2;
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  color: var(--e-ticket-dim);
+}
+.tkt-one {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: var(--e-text-2xs);
+  letter-spacing: 0.42em;
+  color: var(--e-ticket-dim-2);
+}
+
+/* Cuerpo: fecha/plaza + QR */
+.tkt-body {
+  padding: 0 1.4rem 1.4rem;
+  background: none;
+}
+.tkt-body-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.1rem;
+  align-items: start;
+  margin-top: 0.3rem;
+}
+.tkt-yr {
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  color: var(--e-ticket-dim-2);
+}
+.tkt-big {
+  font-family: "Sora", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: var(--e-text-display);
+  line-height: 1.05;
+  color: var(--e-white);
+  margin: 0.2rem 0 0.1rem;
+}
+.tkt-hrs {
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--e-ticket-dim);
+}
+.tkt-place {
+  margin-top: 0.7rem;
+  font-size: var(--e-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--e-white);
+}
+.tkt-city {
+  margin-top: 0.1rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--e-ticket-dim-2);
+}
+.tkt-qr-zone {
+  gap: 0.55rem;
+}
+.tkt-qr {
+  width: 7.4rem;
+  height: 7.4rem;
+  padding: 0.5rem;
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--e-ticket-hair);
+  box-shadow: none;
+}
+.tkt-qr::before,
+.tkt-qr::after {
+  content: none;
+}
+.tkt-qr img,
+.tkt-qr .skeleton {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.4rem;
+}
+.tkt-qr-star {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.35rem;
+  height: 1.35rem;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 8px rgba(0, 230, 171, 0.85));
+}
+.tkt-qr-used {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 0.6rem;
+  background: rgba(5, 5, 8, 0.72);
+}
+.tkt-qr-used span {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.2rem 0.6rem;
+  font-size: var(--e-text-xs);
+  font-weight: 800;
+  color: var(--e-mask);
+}
+.tkt-scan {
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--e-white);
+}
+
+/* Trazos gestuales neon */
+.tkt-strokes {
+  position: relative;
+  height: 2.6rem;
+  margin: 1.1rem -0.35rem 0.3rem;
+}
+.tkt-strokes svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.tkt-stroke-green {
+  filter: drop-shadow(0 0 8px rgba(57, 255, 20, 0.7));
+}
+.tkt-stroke-pink {
+  filter: drop-shadow(0 0 9px rgba(255, 45, 152, 0.65));
+}
+
+/* Perforacion */
+.tkt-perf {
+  position: relative;
+  height: 1.3rem;
+  margin: 0.15rem -1.4rem 1rem;
+  display: flex;
+  align-items: center;
+}
+.tkt-perf::before {
+  content: "";
+  flex: 1;
+  height: 2px;
+  margin: 0 1rem;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--e-ticket-hair) 0 5px,
+    transparent 5px 11px
+  );
+}
+.tkt-perf::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 0.5rem at 0 50%, var(--e-panel-950) 98%, transparent),
+    radial-gradient(circle 0.5rem at 100% 50%, var(--e-panel-950) 98%, transparent);
+}
+
+/* Talon */
+.tkt-stub {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: start;
+}
+.tkt-seat {
+  display: flex;
+}
+.tkt-seat-cell {
+  padding: 0 0.9rem;
+  border-left: 1px solid var(--e-ticket-hair);
+  min-width: 0;
+}
+.tkt-seat-cell:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.tkt-seat-k {
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--e-ticket-dim-2);
+}
+.tkt-seat-v {
+  margin-top: 0.2rem;
+  font-family: "Sora", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: var(--e-text-2xl);
+  line-height: 1.1;
+  color: var(--e-white);
+  overflow-wrap: anywhere;
+}
+.tkt-seat-name {
+  font-family: "Sora", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--e-text-base);
+}
+.tkt-admit {
+  text-align: right;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 0;
+}
+.tkt-admit-k {
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--e-white);
+}
+.tkt-admit .tkt-brand-lock {
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+.tkt-location {
+  margin-top: 0.7rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35rem;
+  text-align: center;
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  color: var(--e-ticket-dim);
+}
+
+/* Pie: codigo de barras + firma */
+.tkt-foot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: end;
+  margin-top: 1.3rem;
+}
+.tkt-barcode svg {
+  display: block;
+  width: 11.5rem;
+  max-width: 100%;
+  height: 2.5rem;
+}
+.tkt-barcode-cap {
+  margin-top: 0.4rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--e-ticket-dim-2);
+}
+.tkt-sign {
+  font-family: "Sora", system-ui, sans-serif;
+  font-size: var(--e-text-2xl);
+  line-height: 1;
+  color: var(--e-green-neon);
+  text-align: right;
+  transform: rotate(-4deg);
+  text-shadow: 0 0 16px rgba(57, 255, 20, 0.55);
+}
+
+/* Notas (estados no canjeables) sobre el papel negro */
+.tkt-note {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  color: var(--e-white);
+}
+.tkt-note .tkt-note-icon {
+  background: rgba(187, 92, 246, 0.18);
+  color: var(--e-white);
+}
+.tkt-note p {
+  color: var(--e-ticket-dim);
+}
+
+@media (max-width: 420px) {
+  .tkt-big {
+    font-size: var(--e-text-2xl);
+  }
+  .tkt-qr {
+    width: 6.4rem;
+    height: 6.4rem;
+  }
+  .tkt-seat-v {
+    font-size: var(--e-text-xl);
+  }
+}
+
+/* ===========================================================================
+   INICIO (app del fan) - la vitrina editorial del mockup "1 · Inicio".
+   Sora en peso 300 para titulares, fondo negro nocturno, acento violeta suave.
+   Es hermana sobria de la boleta coleccionable: la boleta es el objeto, esto
+   es la vitrina.
+   =========================================================================== */
+.home {
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: 1.6rem 1.5rem 6rem;
+  background: var(--e-canvas);
+  color: var(--e-text-primary);
+  font-family: "Sora", system-ui, -apple-system, sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+/* Destellos de luz neon que se filtran desde el fondo (detras del cristal).
+   Capa fija para que acompanen el scroll; el contenido vive por encima. */
+.home::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 26rem;
+  margin: 0 auto;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      42rem 30rem at 88% -6%,
+      rgba(124, 58, 237, 0.28),
+      transparent 62%
+    ),
+    radial-gradient(
+      30rem 24rem at -8% 18%,
+      rgba(0, 230, 171, 0.14),
+      transparent 60%
+    ),
+    radial-gradient(
+      26rem 22rem at 108% 78%,
+      rgba(255, 45, 152, 0.13),
+      transparent 60%
+    );
+}
+.home > *,
+.home-main > * {
+  position: relative;
+  z-index: 1;
+}
+.home a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Cabecera */
+.home-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 2.25rem;
+}
+.home-wordmark {
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+  font-size: var(--e-text-xl);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+.home-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--e-dim-500);
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard), color var(--e-dur-fast) var(--e-ease-standard);
+}
+.home-avatar:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--e-text-primary);
+}
+
+/* Titular */
+.home-title {
+  margin-top: 1.9rem;
+}
+.home-title h1 {
+  margin: 0;
+  font-size: var(--e-text-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  line-height: 0.98;
+}
+.home-title p {
+  margin: 0.6rem 0 0;
+  font-size: var(--e-text-xs);
+  color: var(--e-text-secondary);
+}
+
+/* Tabs de categoria */
+
+/* Card destacada (glassmorphism sobre el hero) */
+.home-feature {
+  position: relative;
+  margin-top: 1.35rem;
+  height: 16.4rem;
+  border-radius: var(--e-radius-2xl);
+  overflow: hidden;
+  background: var(--e-glass-1);
+  border: 1px solid var(--e-glass-line);
+  backdrop-filter: blur(var(--e-glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--e-glass-blur)) saturate(140%);
+  box-shadow: var(--e-elev-card);
+}
+/* El flyer se funde con el negro por abajo: transicion imperceptible entre la
+   foto del artista y la interfaz (nunca un corte duro).
+
+   El scrim arranca mas arriba de lo que parece necesario a proposito: el
+   eyebrow y el titulo viven en el tercio superior, y con el degradado viejo
+   (opaco recien desde el 34%) quedaban sobre el flyer crudo. Medido con un
+   flyer claro, el eyebrow daba 1.7:1 (AA pide 4.5:1) y el meta 4.4:1. El
+   tramo 0-15% sigue transparente para que la foto se vea entera arriba; de
+   ahi baja rapido para que el texto tenga fondo propio. */
+.home-feature::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(11, 11, 15, 0) 0%,
+    rgba(11, 11, 15, 0) 15%,
+    rgba(11, 11, 15, 0.55) 30%,
+    rgba(11, 11, 15, 0.85) 60%,
+    var(--e-ink-1) 100%
+  );
+}
+.home-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* Trazos neon: capa de energia grafica, por debajo del anillo y del texto. */
+.home-strokes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+.home-feature-flyer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+}
+.home-feature-body {
+  position: absolute;
+  left: 1.35rem;
+  right: 1.35rem;
+  bottom: 1.35rem;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.home-eyebrow {
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--e-violet-250);
+}
+.home-feature-top h1,
+.home-feature-top h2 {
+  margin: 0.5rem 0 0;
+  font-size: var(--e-text-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.home-feature-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.home-feature-meta {
+  font-size: var(--e-text-xs);
+  color: var(--e-text-muted);
+  line-height: 1.5;
+}
+.home-feature-meta b {
+  display: block;
+  font-weight: 400;
+  color: var(--e-text-primary);
+}
+.home-cta {
+  flex: none;
+  height: 2.6rem;
+  padding: 0 1.35rem;
+  border-radius: var(--e-radius-lg);
+  background: var(--e-brand);
+  color: var(--e-white);
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  /* Resplandor exterior del mismo color: el boton emite luz. */
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
+    0 14px 30px -12px rgba(124, 58, 237, 0.9),
+    0 0 22px -4px rgba(124, 58, 237, 0.65);
+  transition: filter var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
+}
+.home-cta:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.6),
+    0 18px 38px -12px rgba(124, 58, 237, 1),
+    0 0 30px -2px rgba(124, 58, 237, 0.8);
+}
+.home-cta:active {
+  transform: scale(var(--e-press-scale));
+}
+
+/* Sub-encabezado "Proximos" */
+.home-subhead {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.home-subhead span {
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--e-text-secondary);
+}
+.home-subhead button {
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  color: var(--e-violet-250);
+}
+
+/* Lista de proximos (tarjetas de cristal) */
+.home-list {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.home-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 4.1rem;
+  padding: 0.7rem 1rem;
+  border-radius: 1.1rem;
+  /* Superficie sólida, no cristal: una lista que scrollea con backdrop-filter
+     fuerza al compositor a recomponer el blur en cada frame (iOS sobre todo).
+     El cristal queda para lo fijo (nav) y el hero; acá manda el rendimiento. */
+  background: rgba(23, 22, 34, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
+}
+.home-list .home-row:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.home-row:hover {
+  border-color: rgba(124, 58, 237, 0.5);
+  transform: translateY(var(--e-lift));
+  box-shadow: 0 16px 34px -26px rgba(124, 58, 237, 0.9);
+}
+.home-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.home-row-info strong {
+  font-size: var(--e-text-base);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-row-info em {
+  font-size: var(--e-text-xs);
+  font-style: normal;
+  color: var(--e-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-row-price {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-sm);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Estados vacios */
+.home-empty {
+  margin-top: 3rem;
+  text-align: center;
+  color: var(--e-text-secondary);
+}
+.home-empty p {
+  margin: 0;
+  font-size: var(--e-text-base);
+  font-weight: 500;
+  color: var(--e-text-primary);
+}
+.home-empty span {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: var(--e-text-xs);
+}
+
+/* Barra inferior (glassmorphism flotante) */
+.home-nav {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: 26rem;
+  /* altura fija + reserva de la barra de gestos: en movil la barra crece
+     hacia abajo en vez de dejar el contenido debajo del dedo. */
+  min-height: 4.9rem;
+  height: auto;
+  /* El shorthand va ANTES de la longhand: al reves, `padding` reseteaba el
+     padding-bottom y la reserva de la barra de gestos se perdia (el env() es
+     justo lo que evita que los iconos caigan bajo el indicador de inicio). */
+  padding: 0.75rem 1rem 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(11, 11, 15, 0.66);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--e-glass-line);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  box-sizing: border-box;
+  z-index: 5;
+}
+.home-nav a {
+  width: 4.4rem;
+  min-height: 2.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: var(--e-text-2xs);
+  font-weight: 400;
+  color: var(--e-neutral-650);
+  transition: color var(--e-dur-fast) var(--e-ease-standard);
+}
+/* Icono de linea fina que se rellena de morado al estar activo. */
+.home-nav a svg path,
+.home-nav a svg circle {
+  transition: fill var(--e-dur-fast) var(--e-ease-standard), stroke var(--e-dur-fast) var(--e-ease-standard);
+}
+.home-nav a.is-on {
+  color: var(--e-brand-glow);
+  font-weight: 600;
+}
+.home-nav a.is-on svg path,
+.home-nav a.is-on svg circle {
+  fill: var(--e-brand);
+  stroke: var(--e-brand);
+}
+.home-nav a.is-on svg {
+  filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.75));
+}
+
+@media (min-width: 480px) {
+  .home {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: 7rem;
+  }
+}
+
+/* ----------------------------------------------------------------------
+   INICIO (pasada 2): campana, buscador, carrusel de categorias, fila con
+   favorito. Mismo lenguaje que la base: cristal sobre negro, violeta como
+   unico color interactivo, neon solo como energia grafica.
+   ---------------------------------------------------------------------- */
+
+/* Campana de avisos (reemplaza al avatar de login del header). */
+.home-bell {
+  position: relative;
+  /* 2.75rem = 44 px: mínimo táctil del sistema (antes 2.25rem = 36 px). */
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--e-dim-500);
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard), color var(--e-dur-fast) var(--e-ease-standard);
+}
+.home-bell:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--e-text-primary);
+}
+.home-bell-dot {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--e-brand-glow);
+  box-shadow: 0 0 8px rgba(187, 92, 246, 0.9);
+}
+.home-bell-panel {
+  margin-top: 0.9rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1.1rem;
+  background: rgba(23, 22, 34, 0.92);
+  border: 1px solid var(--e-glass-line);
+  animation: enter var(--e-dur-slow) var(--e-ease-expo, ease) both;
+}
+.home-bell-title {
+  margin: 0 0 0.6rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--e-text-secondary);
+}
+.home-bell-panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.home-bell-panel li a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.7rem;
+  transition: background var(--e-dur-fast) var(--e-ease-standard);
+}
+.home-bell-panel li a:hover {
+  background: rgba(124, 58, 237, 0.14);
+}
+.home-bell-panel strong {
+  font-size: var(--e-text-sm);
+  font-weight: 600;
+}
+.home-bell-panel em {
+  font-size: var(--e-text-xs);
+  font-style: normal;
+  color: var(--e-text-secondary);
+}
+.home-bell-empty {
+  margin: 0;
+  font-size: var(--e-text-xs);
+  color: var(--e-text-secondary);
+}
+
+/* Buscador de ancho completo */
+.home-search {
+  margin-top: 1.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  height: 3rem;
+  padding: 0 1rem;
+  border-radius: 1rem;
+  background: var(--e-glass-1);
+  border: 1px solid var(--e-glass-line-strong);
+  color: var(--e-text-secondary);
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
+}
+.home-search:focus-within {
+  border-color: rgba(124, 58, 237, 0.6);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+}
+.home-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--e-text-primary);
+  font-family: inherit;
+  /* 16px: con menos, iOS hace zoom automatico al enfocar y la pantalla
+     "se despega" (el sintoma classico de app no pensada para celular). */
+  font-size: 1rem;
+}
+.home-search input::placeholder {
+  color: var(--e-text-secondary);
+}
+/* El buscador nativo (type=search) trae una X propia que rompe el estilo. */
+.home-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* Carrusel de categorias (circulos con etiqueta) */
+.home-cats {
+  margin-top: 1.35rem;
+  display: flex;
+  gap: 1.1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 0.25rem;
+}
+.home-cats::-webkit-scrollbar {
+  display: none;
+}
+.home-cats button {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: var(--e-text-xs);
+  font-weight: 400;
+  color: var(--e-text-secondary);
+  transition: color var(--e-dur-fast) var(--e-ease-standard);
+}
+.home-cat-dot {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--e-text-muted);
+  background: var(--e-glass-1);
+  border: 1px solid var(--e-glass-line);
+  transition: color var(--e-dur-fast) var(--e-ease-standard), border-color var(--e-dur-fast) var(--e-ease-standard),
+    background var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
+}
+.home-cats button.is-on {
+  color: var(--e-text-primary);
+  font-weight: 600;
+}
+.home-cats button.is-on .home-cat-dot {
+  color: var(--e-white);
+  background: var(--e-brand);
+  border-color: transparent;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.6),
+    0 12px 26px -12px rgba(124, 58, 237, 0.95),
+    0 0 22px -6px rgba(124, 58, 237, 0.8);
+}
+
+/* Filtros de la cartelera: fecha (chips) + ciudad (select). Fila propia bajo
+   las categorias; en movil hace scroll horizontal para no romper el ancho. */
+.home-filters {
+  margin-top: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 0.15rem;
+}
+.home-filters::-webkit-scrollbar {
+  display: none;
+}
+.home-filter-dates {
+  flex: none;
+  display: flex;
+  gap: 0.45rem;
+}
+.home-chip {
+  flex: none;
+  min-height: 2.75rem; /* target tactil de 44px, igual que el resto */
+  padding: 0 0.95rem;
+  border-radius: var(--e-radius-lg);
+  border: 1px solid var(--e-glass-line);
+  background: var(--e-glass-1);
+  color: var(--e-text-secondary);
+  font-family: inherit;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color var(--e-dur-fast) var(--e-ease-standard), border-color var(--e-dur-fast) var(--e-ease-standard), background var(--e-dur-fast) var(--e-ease-standard);
+}
+.home-chip.is-on {
+  color: var(--e-white);
+  background: var(--e-brand);
+  border-color: transparent;
+  box-shadow: 0 10px 24px -14px rgba(124, 58, 237, 0.9);
+}
+.home-chip:focus-visible {
+  outline: 2px solid var(--e-violet-250);
+  outline-offset: 2px;
+}
+.home-filter-city {
+  flex: none;
+}
+.home-filter-city select {
+  min-height: 2.75rem;
+  max-width: 12rem;
+  padding: 0 2rem 0 0.95rem;
+  border-radius: var(--e-radius-lg);
+  border: 1px solid var(--e-glass-line-strong);
+  background-color: var(--e-glass-1);
+  color: var(--e-text-primary);
+  font-family: inherit;
+  /* Igual que el buscador: 16px evita el zoom de iOS al abrir el selector. */
+  font-size: 1rem;
+  font-weight: 600;
+  appearance: none;
+  /* Chevron propio: el nativo no respeta el tema oscuro. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a8a8b3' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+}
+.home-filter-city select:focus-visible {
+  outline: 2px solid var(--e-violet-250);
+  outline-offset: 2px;
+}
+
+/* La fila ahora envuelve un enlace (main) + boton de favorito. */
+.home-row {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.home-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.7rem 0.25rem 0.7rem 0.7rem;
+}
+.home-row-thumb {
+  flex: none;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 0.8rem;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--e-ink-800), var(--e-ink-900));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.home-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.home-row-thumb-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+.home-row-thumb-date b {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.home-row-thumb-date i {
+  font-size: var(--e-text-2xs);
+  font-style: normal;
+  letter-spacing: 0.14em;
+  color: var(--e-text-secondary);
+}
+.home-row-fav {
+  flex: none;
+  align-self: stretch;
+  width: 3rem;
+  display: grid;
+  place-items: center;
+  color: var(--e-text-secondary);
+  transition: color var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard);
+}
+.home-row-fav:hover {
+  color: var(--e-brand-glow);
+}
+.home-row-fav:active {
+  transform: scale(0.9);
+}
+.home-row-fav.is-on {
+  color: var(--e-brand-glow);
+}
+/* Rebote solo al marcar (el JS pone `is-pop` en la tarjeta pulsada), no en
+   la carga de la lista: un favorito guardado no debe saltar al abrir. */
+.home-row-fav.is-pop {
+  animation: logo-pop 0.4s var(--e-ease-spring);
+}
+
+/* ----------------------------------------------------------------------
+   DETALLE DEL EVENTO (pantalla 2). Mismo negro, hero que se funde y
+   violeta como unico color interactivo.
+   ---------------------------------------------------------------------- */
+.evd {
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+  background: var(--e-canvas);
+  color: var(--e-text-primary);
+  font-family: "Sora", system-ui, -apple-system, sans-serif;
+  position: relative;
+}
+
+/* Hero: 40% de la pantalla, con degradado suave hacia el negro del fondo. */
+.evd-hero {
+  position: relative;
+  height: 40vh;
+  min-height: 15rem;
+  max-height: 22rem;
+  overflow: hidden;
+}
+.evd-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.evd-hero-fallback {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(30rem 22rem at 80% 10%, rgba(124, 58, 237, 0.5), transparent 60%),
+    radial-gradient(24rem 20rem at 0% 90%, rgba(0, 230, 171, 0.22), transparent 60%),
+    linear-gradient(160deg, var(--e-ink-700), var(--e-ink-1));
+}
+/* El degradado va de transparente arriba a negro abajo: la foto se disuelve
+   en la interfaz, nunca hay un corte duro. */
+.evd-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(11, 11, 15, 0) 30%,
+    rgba(11, 11, 15, 0.55) 68%,
+    var(--e-ink-1) 100%
+  );
+}
+.evd-hero-actions {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  right: 0.9rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.evd-hero-actions-right {
+  display: flex;
+  gap: 0.5rem;
+}
+.evd-round {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--e-text-primary);
+  background: rgba(11, 11, 15, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background var(--e-dur-fast) var(--e-ease-standard), color var(--e-dur-fast) var(--e-ease-standard), border-color var(--e-dur-fast) var(--e-ease-standard);
+}
+.evd-round:hover {
+  background: rgba(11, 11, 15, 0.75);
+}
+.evd-round.is-on {
+  color: var(--e-white);
+  border-color: transparent;
+  background: var(--e-brand);
+  box-shadow: 0 0 18px -4px rgba(124, 58, 237, 0.9);
+}
+.evd-round.is-pop {
+  animation: logo-pop 0.4s var(--e-ease-spring);
+}
+
+.evd-body {
+  position: relative;
+  z-index: 1;
+  margin-top: -2.5rem;
+  padding: 0 1.5rem;
+}
+.evd-eyebrow {
+  margin: 0;
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--e-brand-glow);
+}
+.evd-title {
+  margin: 0.5rem 0 0;
+  font-size: var(--e-text-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  line-height: 0.98;
+}
+.evd-sub {
+  margin: 0.5rem 0 0;
+  font-size: var(--e-text-sm);
+  color: var(--e-text-secondary);
+}
+
+/* Grid de datos: fecha / ubicacion / precio */
+.evd-grid {
+  margin-top: 1.4rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+.evd-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 0.8rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Un item de grid nace con min-width:auto: un valor sin espacios (una sede
+     o localidad con un token largo) ensancha su pista y empuja las otras dos
+     fuera de la pantalla a 320px. min-width:0 deja encoger la pista y el
+     overflow-wrap parte el token dentro de la celda. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.evd-cell-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--e-brand-glow);
+  margin-bottom: 0.15rem;
+}
+.evd-cell-k {
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--e-text-secondary);
+}
+.evd-cell-v {
+  font-size: var(--e-text-sm);
+  font-weight: 600;
+  line-height: 1.2;
+}
+.evd-cell-sub {
+  font-size: var(--e-text-2xs);
+  color: var(--e-text-secondary);
+}
+
+/* CTA principal: pildora violeta que emite luz (mismo idioma que .home-cta) */
+.evd-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  gap: 0.5rem;
+  height: 3.25rem;
+  padding: 0 1.5rem;
+  border-radius: var(--e-radius-lg);
+  background: var(--e-brand);
+  color: var(--e-white);
+  font-size: var(--e-text-base);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5),
+    0 16px 34px -14px rgba(124, 58, 237, 0.95),
+    0 0 26px -6px rgba(124, 58, 237, 0.7);
+  transition: filter var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard);
+}
+.evd-cta:hover {
+  filter: brightness(1.08);
+}
+.evd-cta:active {
+  transform: scale(var(--e-press-scale));
+}
+.evd-cta--wide {
+  margin-top: 1.4rem;
+  width: 100%;
+}
+
+/* Pestanas con subrayado violeta */
+.evd-tabs {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.evd-tabs button {
+  min-height: 2.75rem;
+  font-size: var(--e-text-sm);
+  font-weight: 400;
+  color: var(--e-text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--e-dur-fast) var(--e-ease-standard), border-color var(--e-dur-fast) var(--e-ease-standard);
+}
+.evd-tabs button.is-on {
+  color: var(--e-text-primary);
+  font-weight: 600;
+  border-bottom-color: var(--e-brand);
+}
+.evd-tabbody {
+  padding-top: 1.1rem;
+}
+.evd-prose {
+  margin: 0;
+  font-size: var(--e-text-base);
+  line-height: 1.65;
+  color: var(--e-dim-400);
+  white-space: pre-line;
+}
+.evd-muted {
+  margin: 0;
+  font-size: var(--e-text-sm);
+  color: var(--e-text-secondary);
+}
+
+/* Lineup (cuando exista): avatar circular + rol en etiqueta violeta */
+.evd-lineup {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.evd-lineup li {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.evd-lineup-avatar {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: var(--e-white);
+  background: linear-gradient(135deg, var(--e-violet-500), var(--e-ink-700));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.evd-lineup-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.evd-lineup-info strong {
+  font-size: var(--e-text-base);
+  font-weight: 600;
+}
+.evd-lineup-info em {
+  align-self: flex-start;
+  padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  color: var(--e-neutral-400);
-  cursor: pointer;
-  transition: background-color 0.18s ease, color 0.18s ease;
+  font-size: var(--e-text-2xs);
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--e-brand-glow);
+  background: rgba(124, 58, 237, 0.16);
 }
 
-.topbar-hit:hover {
-  background: var(--e-neutral-800);
-  color: var(--e-neutral-100);
+/* Mapa (OSM embebido, tenido oscuro) + pin de marca encima */
+.evd-map-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.evd-map-frame {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.evd-map {
+  display: block;
+  width: 100%;
+  height: 13rem;
+  border: 0;
+  /* El embed de OSM es claro; el filtro lo lleva al modo nocturno de Enty
+     sin pedir una capa oscura al servidor (no hay API key). */
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.7);
+}
+.evd-map-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -90%);
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6));
+}
+.evd-map-skeleton {
+  height: 13rem;
+  border-radius: 1rem;
+  background: linear-gradient(100deg, var(--e-panel-500) 30%, var(--e-panel-400) 50%, var(--e-panel-500) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.evd-address {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: var(--e-text-sm);
+  color: var(--e-dim-400);
+}
+.evd-address svg {
+  color: var(--e-brand-glow);
+  flex: none;
 }
 
-.topbar-hit:hover::before,
-.topbar-hit:hover::after {
-  background: var(--e-violet-200);
+.evd-empty {
+  padding: 4rem 1.5rem;
+  text-align: center;
+  color: var(--e-text-secondary);
 }
-
-/* -- Card / surfaces --------------------------------------------------- */
-.card {
-  border-radius: var(--e-panel-radius);
-  border: 1px solid var(--e-border-hairline);
-  background: var(--e-surface);
+.evd-empty p {
+  margin: 0 0 1.2rem;
+  font-size: var(--e-text-base);
   color: var(--e-text-primary);
 }
-
-.app-shell .card {
-  border-radius: var(--e-panel-radius);
-  border: 1px solid var(--e-border-hairline);
-  background: var(--e-surface);
-  color: var(--e-text-primary);
+.evd-copied {
+  position: fixed;
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  color: var(--e-white);
+  background: rgba(124, 58, 237, 0.92);
+  box-shadow: 0 12px 30px -12px rgba(124, 58, 237, 0.95);
+  animation: enter var(--e-dur-base) ease both;
+  z-index: 20;
 }
 
-.promo-hero {
-  border-radius: var(--e-panel-radius);
-  border: 1px solid var(--e-border-hairline);
-  background: var(--e-surface);
-  color: var(--e-text-primary);
+/* ----------------------------------------------------------------------
+   BOLETO TROQUELADO (pantalla 3): los bordes superior e inferior dejan de
+   ser rectos y se vuelven dentados, como un talón de papel rasgado.
+   ---------------------------------------------------------------------- */
+
+/* La sombra sale del contorno (no de la caja): al recortar el boleto con
+   mask, la profundidad tiene que nacer del silueta, no de un box-shadow
+   rectangular. El wrap deja de pintar su propio negro para que el
+   drop-shadow siga SOLO al boleto. */
+.tkt-wrap {
+  background: none;
+  filter: drop-shadow(0 26px 34px rgba(0, 0, 0, 0.8));
 }
 
+/* Dos capas de mascara: cada una cubre todo el alto y solo perfora
+   semicirculos en su borde (arriba / abajo). La union deja el cuerpo
+   intacto y las dos orillas dentadas, sin tocar el DOM. */
+.tkt {
+  --notch: 0.5rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.16) inset,
+    0 0 0 1px rgba(187, 92, 246, 0.1) inset;
+  -webkit-mask:
+    radial-gradient(circle at 50% 0, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
+      0 0 / calc(var(--notch) * 2) 100% repeat-x,
+    radial-gradient(circle at 50% 100%, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
+      0 0 / calc(var(--notch) * 2) 100% repeat-x;
+  mask:
+    radial-gradient(circle at 50% 0, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
+      0 0 / calc(var(--notch) * 2) 100% repeat-x,
+    radial-gradient(circle at 50% 100%, transparent 0 var(--notch), var(--e-mask) calc(var(--notch) + 1px))
+      0 0 / calc(var(--notch) * 2) 100% repeat-x;
+}
+
+
+
+
+
+/* ===========================================================================
+   MIS BOLETAS (app del fan) - la entrada del fan por contacto (magic link).
+   Reusa el shell y los tokens de .home; aqui solo viven el formulario de
+   entrada, la lista de boletas y el QR.
+   =========================================================================== */
+.fan-lookup {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+.fan-lookup input {
+  flex: 1;
+  min-width: 0;
+  height: 3rem;
+  padding: 0 1rem;
+  border-radius: 1rem;
+  background: var(--e-glass-1);
+  border: 1px solid var(--e-glass-line-strong);
+  backdrop-filter: blur(var(--e-glass-blur));
+  -webkit-backdrop-filter: blur(var(--e-glass-blur));
+  color: var(--e-text-primary);
+  font-size: var(--e-text-base);
+  font-family: inherit;
+}
+.fan-lookup input::placeholder {
+  color: var(--e-neutral-700);
+}
+.fan-lookup input:focus {
+  outline: none;
+  border-color: var(--e-brand);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22);
+}
+.fan-lookup button {
+  flex: none;
+  height: 3rem;
+  padding: 0 1.2rem;
+  border-radius: 999px;
+  background: var(--e-brand);
+  color: var(--e-white);
+  font-size: var(--e-text-sm);
+  font-weight: 600;
+  font-family: inherit;
+  box-shadow: 0 12px 26px -12px rgba(124, 58, 237, 0.9),
+    0 0 20px -6px rgba(124, 58, 237, 0.6);
+  transition: filter var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
+}
+.fan-lookup button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.fan-lookup button:disabled {
+  opacity: 0.6;
+}
+
+.fan-list {
+  margin-top: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+/* Boleto hibrido: cristal con textura fisica (bordes rasgados) + digital.
+   El material es un poco mas presente que el cristal normal (gradiente sutil
+   en vez de blanco plano al 5%): sobre el negro, asi el corte rasgado del
+   papel se lee como silueta y no desaparece. */
+.fan-ticket {
+  position: relative;
+  border-radius: 1.05rem;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.035)
+  );
+  backdrop-filter: blur(var(--e-glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--e-glass-blur)) saturate(140%);
+  padding: 1.15rem 1.2rem 1.2rem;
+  /* Bordes superior e inferior rasgados: el corte irregular del papel.
+     Mismas capas de mask en union (add) que la hoja de marca. */
+  -webkit-mask:
+    radial-gradient(9px 10px at 50% 0, transparent 99%, var(--e-mask)) 0 0/22px 11px repeat-x,
+    radial-gradient(11px 11px at 50% 100%, transparent 99%, var(--e-mask)) 0 100%/26px 11px
+      repeat-x,
+    linear-gradient(var(--e-mask) 0 0) 0 11px/100% calc(100% - 22px) no-repeat;
+  -webkit-mask-composite: source-over;
+  mask:
+    radial-gradient(9px 10px at 50% 0, transparent 99%, var(--e-mask)) 0 0/22px 11px repeat-x,
+    radial-gradient(11px 11px at 50% 100%, transparent 99%, var(--e-mask)) 0 100%/26px 11px
+      repeat-x,
+    linear-gradient(var(--e-mask) 0 0) 0 11px/100% calc(100% - 22px) no-repeat;
+  mask-composite: add;
+}
+.fan-ticket-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.fan-ticket-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.fan-ticket-info strong {
+  font-size: var(--e-text-lg);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.fan-ticket-info em {
+  font-size: var(--e-text-xs);
+  font-style: normal;
+  color: var(--e-text-secondary);
+  line-height: 1.45;
+}
+.fan-badge {
+  flex: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fan-badge.is-ok {
+  color: var(--e-green-500);
+  background: rgba(0, 230, 171, 0.12);
+}
+.fan-badge.is-warn {
+  color: var(--e-brasa-050);
+  background: rgba(255, 207, 107, 0.12);
+}
+.fan-badge.is-bad {
+  color: var(--e-pink-500);
+  background: rgba(255, 45, 152, 0.12);
+}
+.fan-ticket-foot {
+  margin-top: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.fan-ticket-num {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--e-text-xs);
+  color: var(--e-text-secondary);
+  letter-spacing: 0.04em;
+}
+.fan-link {
+  font-size: var(--e-text-xs);
+  color: var(--e-violet-250);
+}
+.fan-cta {
+  height: 2.35rem;
+  padding: 0 1.1rem;
+  font-size: var(--e-text-xs);
+}
+.fan-cta:disabled {
+  opacity: 0.5;
+  filter: none;
+}
+.fan-qr-wait {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 2px dotted rgba(255, 255, 255, 0.16);
+  text-align: center;
+}
+
+.fan-qr {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px dotted rgba(255, 255, 255, 0.16);
+  text-align: center;
+}
+/* Marco del QR con el destello de marca justo en el centro exacto. */
+.fan-qr-frame {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.fan-qr img {
+  width: 15rem;
+  max-width: 100%;
+  border-radius: 0.85rem;
+  background: var(--e-white);
+  padding: 0.6rem;
+  display: inline-block;
+}
+.fan-qr-spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.2rem;
+  height: 2.2rem;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(0, 230, 171, 0.9));
+}
+.fan-qr-hint {
+  margin: 0.7rem 0 0;
+  font-size: var(--e-text-xs);
+  color: var(--e-text-secondary);
+}
+/* Carga con el destello de marca (mismo acento que el centro del QR). */
+.fan-qr-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.fan-qr-loading svg {
+  animation: spin 1.1s linear infinite;
+}
+.fan-qr-hint.is-bad {
+  color: var(--e-pink-500);
+}
+
+/* ===========================================================================
+   INTERIOR — Admin · Promotor · Puerta ("la casa" de Enty).
+   El fan ya tiene su vitrina editorial; estas pantallas son el backstage.
+   Aquí el sistema se vuelve más DENSO, no más decorado: cristal esmerilado
+   sobre negro mate, un encuadre de luz nocturna en las esquinas del viewport
+   y titulares con más peso óptico. Todo scopeado a .app-shell para no tocar
+   ni la vitrina del fan ni la boleta pública.
+   =========================================================================== */
+
+.app-shell {
+  position: relative;
+}
+/* La tinta de marca (casi blanca) SOLO en oscuro: en claro heredaría un
+   texto blanco sobre blanco. En claro el color lo fija body, como siempre.
+   Encuadre nocturno: tres luces de marca en las esquinas del viewport,
+   ancladas (background-attachment: fixed) para que enmarquen SIEMPRE la
+   vista y no el documento. Es atmósfera, nunca compite con el contenido ni
+   intercepta el puntero. */
+html:not([data-theme="light"]) .app-shell {
+  color: var(--e-text-primary);
+  background-image:
+    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.16), transparent 62%),
+    radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.07), transparent 62%),
+    radial-gradient(34rem 26rem at 108% 96%, rgba(255, 45, 152, 0.06), transparent 62%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+html[data-theme="light"] .app-shell {
+  background-image:
+    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.06), transparent 62%),
+    radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.05), transparent 62%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* Titulares con más peso óptico y tracking cerrado: la voz editorial de la
+   casa. El cuerpo queda liviano para que la jerarquía la haga el CONTRASTE
+   de peso, no más tamaño ni más color. */
+.app-shell .display,
+.app-shell .vh-nombre-titulo {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+/* Superficies: el card de la casa es cristal sobre el negro mate — un solo
+   material para .card, portada y dock, para que la app se lea como UNA
+   pieza. La translucidez deja pasar el encuadre de luz de las esquinas. */
+html:not([data-theme="light"]) .app-shell .card,
+html:not([data-theme="light"]) .app-shell .venue-header,
+html:not([data-theme="light"]) .app-shell .bizdock {
+  border-color: var(--e-border-hairline);
+  background:
+    radial-gradient(30rem 18rem at 88% -8rem, rgba(124, 58, 237, 0.1), transparent 66%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 44%),
+    rgba(17, 17, 23, 0.86);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 44px -30px rgba(0, 0, 0, 0.9);
+}
+
+/* --- Portada de la venue: la "home" del admin ------------------------- */
+html:not([data-theme="light"]) .app-shell .venue-header {
+  --venue-pad-y: 1.35rem;
+  padding: var(--venue-pad-y) 1.4rem;
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(38rem 18rem at 90% -8rem, rgba(124, 58, 237, 0.17), transparent 64%),
+    radial-gradient(26rem 14rem at 6% 118%, rgba(0, 230, 171, 0.06), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 48%),
+    rgba(16, 16, 22, 0.9);
+}
+.app-shell .vh-logo,
+.app-shell .vh-logo-fallback {
+  width: 3.35rem;
+  height: 3.35rem;
+  border-radius: 1rem;
+}
+.app-shell .vh-kpi-amount {
+  letter-spacing: -0.045em;
+}
+/* La viga del KPI es más marcada: es la firma de la portada. */
+.app-shell .vh-kpi::before {
+  background: linear-gradient(
+    180deg,
+    rgba(124, 58, 237, 0.85),
+    rgba(124, 58, 237, 0.08) 80%,
+    transparent
+  );
+}
+
+/* --- Hero del promotor: su taquilla ----------------------------------- */
+html:not([data-theme="light"]) .app-shell .promo-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-radius: 1.4rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--e-border-hairline);
+  background:
+    radial-gradient(30rem 14rem at 94% -8rem, rgba(124, 58, 237, 0.16), transparent 64%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 46%),
+    rgba(16, 16, 22, 0.9);
+  box-shadow:
+    var(--e-highlight-inset),
+    var(--e-elev-card);
+}
+html[data-theme="light"] .app-shell .promo-hero {
+  border: 1px solid rgba(17, 17, 22, 0.09);
+  background: var(--e-white);
+  box-shadow: var(--e-elev-card);
+}
 .promo-hero-title {
   font-size: var(--e-text-2xl);
   line-height: 1.12;
 }
 
-.eyebrow,
-.vh-kpi-label {
-  line-height: 1.25;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-size: var(--e-text-2xs);
-  font-weight: 600;
-}
-
-.eyebrow,
-.btn-mini[data-variant="brand"],
-.tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: var(--e-violet-300);
-}
-
-.bizdock {
-  border-radius: var(--e-panel-radius);
-  border: 1px solid var(--e-border-hairline);
-  background: var(--e-surface);
-  color: var(--e-text-primary);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 100%;
-}
-
-.html[data-theme="light"] .bizdock {
-  background: var(--e-white);
-}
-
-.bizdock-item {
+/* --- Puerta: cabecera de servicio ------------------------------------- */
+.app-shell .door-head {
   border-bottom: 1px solid var(--e-border-hairline);
-  padding: 1rem 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.18s ease, border-color 0.18s ease;
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.12), transparent);
+}
+.app-shell .door-title {
+  letter-spacing: -0.02em;
+}
+/* El marco del escáner es la pieza de marca de la puerta: un halo violeta
+   alrededor del visor dice "acá apuntá" sin una etiqueta. */
+.app-shell .scan-frame {
+  filter: drop-shadow(0 0 26px rgba(124, 58, 237, 0.35));
 }
 
-.bizdock-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--e-neutral-700);
+/* --- Segmentado (tabbar) y navegación inferior ------------------------ */
+.app-shell .tabbar {
+  border: 1px solid var(--e-border-hairline);
+  background: rgba(255, 255, 255, 0.04);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+}
+.app-shell .tabbar-item[aria-selected="true"] {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.28), rgba(124, 58, 237, 0.14));
+  color: var(--e-text-primary);
+  box-shadow:
+    inset 0 0 0 1px rgba(124, 58, 237, 0.34),
+    0 12px 28px -20px rgba(124, 58, 237, 0.95);
+}
+html:not([data-theme="light"]) .app-shell .bottomnav-item.is-active {
+  color: var(--e-violet-200);
+}
+
+/* --- Controles: foco y presión con firma de marca --------------------- */
+.app-shell .field:focus {
+  border-color: var(--e-brand-glow);
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.26),
+    0 0 30px -14px rgba(124, 58, 237, 0.95);
+}
+.app-shell .btn-primary {
+  background: linear-gradient(135deg, var(--e-violet-500) 0%, var(--e-violet-400) 58%, var(--e-violet-425) 100%);
+}
+.app-shell .btn-primary:hover {
+  background: linear-gradient(135deg, var(--e-violet-600) 0%, var(--e-violet-425) 58%, var(--e-violet-550) 100%);
+}
+
+/* Scrollbar con tinte de marca (solo en la casa). */
+html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.4);
+}
+html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.6);
+}
+
+
+/* ----------------------------------------------------------------------
+   ENTRADA DE PANTALLA (cartelera, boletas, detalle, puerta)
+
+   Estas superficies montaban de golpe (medido: `animation: none` en todos
+   sus bloques). La entrada de la casa es una cascada corta: cada bloque sube
+   10px y se asienta, con 50ms entre uno y otro, así el ojo lee el orden en
+   el que la pantalla se arma en vez de recibirla entera.
+
+   Solo transform/opacity, una sola curva, y la opacidad inicial vive en el
+   `from` del keyframe (NO en la regla base): con `animation: none`
+   (movimiento reducido) el bloque queda visible por defecto, en vez del
+   patrón frágil que exige reponer `opacity: 1` a mano.
+   ---------------------------------------------------------------------- */
+@keyframes screen-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Los fijos quedan fuera: un `transform` en un ancestro los ancla a él y
+   dejan de flotar sobre el scroll (el dock de la cartelera, el aviso de
+   enlace copiado, el modal de compra del detalle). */
+.home > :not(.home-nav, .sr-only, .home-main),
+.home-main > *,
+.evd > :not(.dialog-backdrop, .evd-copied),
+.door-shell > * {
+  animation: screen-rise 0.42s var(--e-ease-expo) both;
+}
+
+/* La cascada: 35ms entre bloque y bloque. El índice cuenta TODOS los hermanos,
+   también los excluidos: un bloque fijo en medio solo deja un hueco de 35ms,
+   que no se nota. El tope (0.245s) mantiene la entrada entera por debajo de
+   0.7s: el audit de a11y ignora lo que esté bajo opacidad 0.5, así que una
+   cascada más larga le escondería bloques y debilitaría el guardarraíl. */
+.home > :nth-child(2),
+.evd > :nth-child(2),
+.door-shell > :nth-child(2) {
+  animation-delay: 0.035s;
+}
+.home > :nth-child(3),
+.evd > :nth-child(3),
+.door-shell > :nth-child(3) {
+  animation-delay: 0.07s;
+}
+.home > :nth-child(4),
+.evd > :nth-child(4),
+.door-shell > :nth-child(4) {
+  animation-delay: 0.105s;
+}
+.home > :nth-child(5),
+.evd > :nth-child(5),
+.door-shell > :nth-child(5) {
+  animation-delay: 0.14s;
+}
+.home > :nth-child(6),
+.evd > :nth-child(6),
+.door-shell > :nth-child(6) {
+  animation-delay: 0.175s;
+}
+.home > :nth-child(7),
+.evd > :nth-child(7),
+.door-shell > :nth-child(7) {
+  animation-delay: 0.21s;
+}
+.home > :nth-child(n + 8),
+.evd > :nth-child(n + 8),
+.door-shell > :nth-child(n + 8) {
+  animation-delay: 0.245s;
+}
+
+/* El <main> es un landmark de a11y, no un bloque visual: la cascada escalona
+   sus hijos para conservar la entrada bloque a bloque que tenían cuando eran
+   hijos directos de .home. */
+.home-main > :nth-child(1) {
+  animation-delay: 0.035s;
+}
+.home-main > :nth-child(2) {
+  animation-delay: 0.07s;
+}
+.home-main > :nth-child(3) {
+  animation-delay: 0.105s;
+}
+.home-main > :nth-child(4) {
+  animation-delay: 0.14s;
+}
+.home-main > :nth-child(5) {
+  animation-delay: 0.175s;
+}
+.home-main > :nth-child(6) {
+  animation-delay: 0.21s;
+}
+.home-main > :nth-child(n + 7) {
+  animation-delay: 0.245s;
+}
+/* El pie cerraba la cascada cuando era el 8.o hijo de .home; con el <main> en
+   medio paso a ser el 3.o, asi que recupera su turno explicito. */
+.home > .home-foot {
+  animation-delay: 0.245s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home > :not(.home-nav, .sr-only, .home-main),
+  .home-main > *,
+  .evd > :not(.dialog-backdrop, .evd-copied),
+  .door-shell > * {
+    animation: none;
+  }
+}
+/* La preferencia de la app apaga igual que el SO. El reset global de
+   index.css solo anula la DURACIÓN (0.001ms); con `both` + delay el bloque
+   igual parpadearía invisible esos 50-400ms, así que acá se quita la
+   animación entera. */
+html[data-motion="reduce"] .home > :not(.home-nav, .sr-only, .home-main),
+html[data-motion="reduce"] .home-main > *,
+html[data-motion="reduce"] .evd > :not(.dialog-backdrop, .evd-copied),
+html[data-motion="reduce"] .door-shell > * {
+  animation: none;
+}
+
+/* ----------------------------------------------------------------------
+   MOVIMIENTO REDUCIDO — esta hoja define animaciones y transiciones de
+   interacción (hover/presión de la casa fan y del detalle). Nada debe
+   moverse si el sistema pide calma: ni las entradas (rise/pop), ni los
+   bucles (shimmer/spin), ni los gestos de color/escala de los controles.
+   ---------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .home-bell-panel,
+  .evd-copied,
+  .home-row-fav.is-pop,
+  .evd-round.is-pop,
+  .evd-map-skeleton,
+  .fan-qr-loading svg {
+    animation: none;
+  }
+  .home-cats button, .home-cat-dot, .home-row, .home-row-fav, .home-row-thumb, .home-nav a, .evd-round, .evd-round:hover, .home-bell, .home-bell-panel, [class*="home-"] button, [class*="evd-"] button {
+    transition: none;
+  }
+  .home-row-fav:active,
+  .evd-round:active {
+    transform: none;
+  }
 }

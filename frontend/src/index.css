@@ -7328,25 +7328,6 @@ html[data-theme="light"] .legal-doc code {
   }
 }
 
-/* El llenado final de la barra. Es una ANIMACION, no una transicion: el overlay
-   se monta con el login ya resuelto, asi que React aplica width:100% en el
-   primer render y una transicion depende de que el navegador alcance a pintar
-   el 0 antes (carrera que en local se ganaba y en produccion se perdia: la
-   barra salia llena de golpe). El keyframe `from` sobreescribe ese 100% inline
-   y se reproduce siempre, sin carrera.
-   `linear` y no un ease-out: las curvas del sistema (expo/standard) llegan al
-   90% en la primera mitad, asi que la barra se llenaba en ~500ms y quedaba
-   quieta el resto. Lineal reparte el avance en los 1000ms completos, que es lo
-   que la hace LEERSE llenandose; el margen de LoginPage la acompaña. */
-@keyframes welcome-bar-fill {
-  from {
-    width: 0;
-  }
-}
-.welcome-bar-fill.is-complete {
-  animation: welcome-bar-fill 1000ms linear both;
-}
-
 /* Movimiento reducido: la tarjeta aparece sin desplazamiento ni escala y el
    check no rebota. El estado sigue siendo legible (el color y el texto
    comunican el exito), solo se apaga el movimiento. */
@@ -7394,14 +7375,6 @@ html .auth-shell--minimal.auth-shell--light {
   background: var(--e-neutral-150);
 }
 
-/* Los elementos del login en estado claro heredan la noche únicamente
-   cuando el shell es todo oscuro. El tag y el texto del panel no pueden
-   estar trazados sobre el navy del brand (ver diagnosticado en estetica-plan.md). */
-.auth-shell--dark .auth-login-tag {
-  color: var(--e-neutral-600);
-  border-color: var(--e-neutral-300);
-}
-
 /* La única luz: el mismo lavado violeta tenue del hero de la portada. */
 .auth-light-wash {
   position: absolute;
@@ -7426,26 +7399,6 @@ html .auth-shell--minimal.auth-shell--light {
   text-align: center;
 }
 
-/* Sticker de rol: la tarjeta pequeña que dice qué es el panel, ahora con la
-   tipografía que toca y la misma caja que el tag. */
-.auth-login-brand .auth-role-sticker {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid var(--e-violet-300);
-  background: var(--e-violet-50);
-  font-family: var(--e-font-mono);
-  font-size: var(--e-text-2xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--e-violet-700);
-}
-
-/* Pendiente de implementar: botón de cerrar sesión dentro del panel de
-   la tienda (destino de la navegación de este mismo menú). No se crea aquí
-   porque todavía no existe el panel: se añadirá en la siguiente entrega. */
 
 /* El wordmark vive en tinta clara cuando el tema es oscuro; sobre este papel
    quedaría invisible. Se fija la tinta de marca en el mismo tono del titular. */
@@ -7505,32 +7458,10 @@ html .auth-shell--minimal.auth-shell--light {
   margin-top: 1.5rem;
 }
 
-.auth-login-sub {
-  margin: 0.5rem 0 0;
-  font-size: var(--e-text-2xs);
-  line-height: 1.55;
-  color: var(--e-neutral-600);
-}
-
-.auth-login-form {
-  margin-top: 1.5rem;
-}
-
 /* Etiquetas: pequeñas, en negrita y en gris azulado oscuro. */
 .auth-login-flow .auth-label {
   color: var(--e-neutral-800);
   font-weight: 600;
-}
-
-/* Las pestañas del panel de la tienda, en el mismo idioma tipográfico que
-   el login: sans serif con un toque de entrada de sistema. */
-.auth-shell--dark .app-tabs .app-tab {
-  color: var(--e-neutral-700);
-  font-weight: 600;
-  background: none;
-  border: 0;
-  padding: 0;
-  font-family: var(--e-font-sans);
 }
 
 /* El envoltorio es el sistema de coordenadas de los iconos. Sin `relative`
@@ -7538,21 +7469,6 @@ html .auth-shell--minimal.auth-shell--light {
    fuera del campo, abajo a la izquierda). */
 .auth-login-flow .auth-field {
   position: relative;
-}
-
-/* Campo del formulario: misma altura que el de la tienda, mismo radios y
-   mismo foco. Alineado por baseline, no por margen; un formulario no se
-   ajusta a otro, se los da la misma caja. */
-.auth-login-flow .auth-field .field {
-  border-radius: 0.8125rem;
-  border-color: var(--e-neutral-300);
-  background-color: var(--e-neutral-60);
-  color: var(--e-neutral-900);
-  min-height: 2.9rem;
-  padding: 0.7rem 0.85rem;
-}
-.auth-login-flow .auth-field .field::placeholder {
-  color: var(--e-neutral-500);
 }
 
 /* Campos: blanco, borde fino, radio 13px y foco con anillo violeta. */
@@ -7637,18 +7553,6 @@ html .auth-shell--minimal.auth-shell--light {
   color: var(--e-red-700);
 }
 
-/* Ojo de la contraseña: mismo gris, sin caja, con área táctil de 44px. */
-.auth-login-flow .auth-eye {
-  color: var(--e-neutral-500);
-}
-.auth-login-flow .auth-eye:hover {
-  color: var(--e-neutral-900);
-  background: var(--e-neutral-100);
-}
-.auth-login-flow .auth-field:focus-within .auth-eye {
-  color: var(--e-neutral-700);
-}
-
 /* Recordarme: casilla de papel con el check en blanco sobre violeta. */
 .auth-login-flow .auth-checkbox {
   border-color: var(--e-neutral-400);
@@ -7660,25 +7564,6 @@ html .auth-shell--minimal.auth-shell--light {
 }
 .auth-login-flow .auth-row-label {
   color: var(--e-neutral-600);
-}
-
-/* CTA: el mismo violeta sólido y la misma píldora que "Explorar ENTY". */
-.auth-login-flow .btn-primary {
-  border-radius: 999px;
-  border: 0;
-  background: var(--e-violet-500);
-  color: var(--e-white);
-  min-height: 3rem;
-  font-weight: 600;
-  box-shadow: 0 10px 22px -14px var(--e-violet-600);
-}
-.auth-login-flow .btn-primary:hover {
-  background: var(--e-violet-600);
-}
-.auth-login-flow .btn-primary:focus-visible {
-  box-shadow:
-    0 0 0 3px rgba(124, 58, 237, 0.28),
-    0 10px 22px -14px var(--e-violet-600);
 }
 
 /* Pie: hairline claro, contacto en píldora de papel y confianza en gris. */
@@ -7700,12 +7585,6 @@ html .auth-shell--minimal.auth-shell--light {
 }
 .auth-login-flow .auth-trust {
   color: var(--e-neutral-550);
-}
-
-/* Espaciado final del.login: la tarjeta se queda con un margen pq el
-   fondo del shell sigue aquí. */
-.auth-login-flow + * {
-  margin-top: 1rem;
 }
 
 /* En móvil la tarjeta ocupa el ancho disponible sin tocar los bordes. */
