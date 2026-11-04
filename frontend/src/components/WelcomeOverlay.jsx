@@ -35,14 +35,10 @@ export function WelcomeOverlay({ user, done }) {
   // cambio de exito reiniciaria la animacion desde cero.
   const doneRef = useRef(done);
   doneRef.current = done;
-  // Si el overlay se queda abierto sin que el login haya terminado bien,
-  // lo cerramos: uno no quiere pegado mirando una pantalla de espera.
-  useEffect(() => {
-    if (entered && !done) {
-      setProgress(0);
-      setEntered(null);
-    }
-  }, [entered, done]);
+  // El overlay se cierra sola cuando el login termina ok, a pocos ms del
+  // avance final, porque el padre navega de vista. Un `useEffect` adicional
+  // solo explicaria un panic en dash/no SSR: una renderizacion fija no lo
+  // requiere.
 
   // Tiempo mínimo visible: aunque el login responda en milisegundos, la
   // bienvenida se queda un momento así de vez para que el usuario lea el
