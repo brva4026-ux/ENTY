@@ -1,66 +1,78 @@
 /*
  * ==========================================================================
- *  ENTY · PÁGINA DE PRESENTACIÓN (la raíz "/")
+ *  ENTY · PRESENTACIÓN PÚBLICA (la raíz "/")
  * --------------------------------------------------------------------------
- *  Extiende el lenguaje de la vitrina (enty-fan.css): negro mate, violeta
- *  interactivo, verde/rosa con significado y el motivo del boleto perforado.
- *  No reescribe la marca: la presenta. El invitado que llega por un enlace
- *  compartido debe entender el producto en el primer scroll.
+ *  La primera pantalla del producto. Composición calmada: lienzo claro
+ *  cálido, una sola columna centrada, tarjetas de papel con hairline y el
+ *  violeta de marca como único acento (AGENTS.md: "el violeta es la única
+ *  voz interactiva").
  *
- *  Reglas no negociables (mismas de la vitrina):
- *   - Sora es la única voz; el color vive en tokens.css (sin hex aquí).
- *   - Texto ≥ 4.5:1; cero scroll horizontal a 320px.
- *   - prefers-reduced-motion respetado en todo lo que se mueva.
+ *  Reglas de la casa:
+ *   - Sora es la única voz; el color vive en tokens.css (cero hex aquí).
+ *   - El lienzo es claro por diseño, no por tema: la presentación no se
+ *     invierte, igual que la boleta. Las tintas se fijan con la paleta
+ *     neutra, que no voltea con html[data-theme].
+ *   - Texto ≥ 4.5:1, cero scroll horizontal a 320px.
+ *   - prefers-reduced-motion apaga entrada escalonada y hover.
  * ==========================================================================
  */
 
 .lp {
-  --lp-shell: 72rem;
+  --lp-shell: 68rem;
+  --lp-line: var(--e-neutral-300);
+  --lp-ink: var(--e-neutral-900);
+  --lp-ink-soft: var(--e-neutral-600);
+  --lp-ink-mute: var(--e-neutral-550);
+
   position: relative;
   min-height: 100vh;
-  background: var(--e-canvas);
-  color: var(--e-text-primary);
+  padding: var(--e-space-16) 0 var(--e-space-12);
+  background: var(--e-neutral-150);
+  color: var(--lp-ink);
+  font-family: var(--e-font-sans);
   overflow-x: clip;
 }
 
-/* Atmósfera: dos halos de marca (violeta y verde) + grano. Da profundidad sin
-   una foto de fondo, y no compite con el texto porque queda muy por debajo. */
+/* Atmósfera: un lavado muy tenue desde arriba, del mismo violeta de la
+   marca. Da profundidad sin convertirse en decoración. */
 .lp::before {
   content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
+  position: absolute;
+  inset: 0 0 auto;
+  height: 34rem;
   pointer-events: none;
-  background:
-    radial-gradient(60rem 40rem at 15% -10%, rgba(124, 58, 237, 0.22), transparent 60%),
-    radial-gradient(45rem 32rem at 100% 8%, rgba(0, 230, 171, 0.12), transparent 62%);
-}
-.lp::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.04;
-  background-image: var(--e-grain);
+  background: radial-gradient(
+    58rem 26rem at 50% -12rem,
+    color-mix(in srgb, var(--e-violet-400) 14%, transparent),
+    transparent 70%
+  );
 }
 
 .lp > * {
   position: relative;
-  z-index: 1;
 }
 
-/* Salto al contenido: invisible hasta que el teclado lo enfoca. */
+.lp-wrap {
+  width: 100%;
+  max-width: var(--lp-shell);
+  margin: 0 auto;
+  padding: 0 var(--e-space-5);
+}
+
+/* Salto al contenido: invisible hasta que el teclado lo enfoca. Va en
+   `fixed` (no absolute) porque el aviso de cookies empuja el documento hacia
+   abajo y un top negativo relativo al bloque lo dejaba a la vista. */
 .lp-skip {
-  position: absolute;
+  position: fixed;
   left: 1rem;
   top: -4rem;
   z-index: 40;
   padding: 0.7rem 1rem;
   border-radius: var(--e-radius-md);
-  background: var(--e-brand);
-  color: var(--e-text-on-accent);
+  background: var(--e-violet-500);
+  color: var(--e-white);
   font-weight: 600;
+  text-decoration: none;
   transition: top var(--e-dur-fast) var(--e-ease-standard);
 }
 .lp-skip:focus {
@@ -68,148 +80,71 @@
 }
 
 /* --------------------------------------------------------------------------
- *  1. CABECERA
+ *  1. MARCA (logotipo centrado + qué es Enty)
  * ------------------------------------------------------------------------- */
-.lp-head {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+.lp-brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--e-space-4);
-  max-width: var(--lp-shell);
-  margin: 0 auto;
-  padding: var(--e-space-4) var(--e-space-5);
-  background: color-mix(in srgb, var(--e-canvas) 82%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--e-border-hairline);
+  gap: var(--e-space-3);
+  animation: lp-rise var(--e-dur-slow) var(--e-ease-expo) both;
 }
 
-.lp-wordmark {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.75rem;
-  gap: 0.3rem;
-  font-family: var(--e-font-sans);
-  font-size: var(--e-text-xl);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--e-text-primary);
-  text-decoration: none;
-}
-
-.lp-nav {
-  display: none;
-  margin-left: auto;
-  gap: var(--e-space-6);
-}
-.lp-nav a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.75rem;
-  font-size: var(--e-text-xs);
-  font-weight: 500;
-  color: var(--e-text-secondary);
-  text-decoration: none;
-  transition: color var(--e-dur-fast) var(--e-ease-standard);
-}
-.lp-nav a:hover {
-  color: var(--e-text-primary);
-}
-
-.lp-head-cta {
-  margin-left: auto;
-  flex: none;
-  padding: 0.6rem 1.1rem;
+.lp-brand-tag {
+  margin: 0;
+  padding: 0.4rem 0.9rem;
   border-radius: var(--e-radius-pill);
-  border: 1px solid var(--e-border-soft);
-  font-size: var(--e-text-xs);
+  border: 1px solid var(--lp-line);
+  background: var(--e-white);
+  font-size: var(--e-text-2xs);
   font-weight: 600;
-  color: var(--e-text-primary);
-  text-decoration: none;
-  transition:
-    border-color var(--e-dur-fast) var(--e-ease-standard),
-    background var(--e-dur-fast) var(--e-ease-standard);
-}
-.lp-head-cta:hover {
-  border-color: var(--e-brand-glow);
-  background: var(--e-glass-1);
+  letter-spacing: 0.04em;
+  color: var(--lp-ink-soft);
 }
 
 /* --------------------------------------------------------------------------
- *  2. CUERPO Y HERO
+ *  2. HERO
  * ------------------------------------------------------------------------- */
-.lp-main {
-  max-width: var(--lp-shell);
-  margin: 0 auto;
-  padding: 0 var(--e-space-5) var(--e-space-24);
-}
-
 .lp-hero {
-  padding: clamp(3rem, 9vw, 6.5rem) 0 var(--e-space-16);
   max-width: 46rem;
-}
-
-.lp-eyebrow {
-  margin: 0 0 var(--e-space-5);
-  font-size: var(--e-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--e-success);
+  margin: 0 auto;
+  padding: var(--e-space-12) 0 var(--e-space-16);
+  text-align: center;
 }
 
 .lp-title {
   margin: 0;
-  font-family: var(--e-font-sans);
-  font-size: clamp(2.4rem, 8vw, 4.75rem);
+  font-size: clamp(2.1rem, 6.2vw, 3.6rem);
   font-weight: 800;
-  line-height: 1.02;
+  line-height: 1.06;
   letter-spacing: -0.035em;
+  color: var(--e-neutral-950);
   text-wrap: balance;
+  animation: lp-rise var(--e-dur-slow) var(--e-ease-expo) 80ms both;
 }
+
+/* La frase que gana: tinta violeta sólida (sin relleno degradado). */
 .lp-title-accent {
-  background: linear-gradient(100deg, var(--e-violet-250), var(--e-violet-400));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--e-violet-500);
 }
 
 .lp-lede {
-  margin: var(--e-space-6) 0 0;
+  margin: var(--e-space-5) auto 0;
   max-width: 38rem;
   font-size: var(--e-text-lg);
-  line-height: 1.6;
-  color: var(--e-text-secondary);
+  line-height: 1.62;
+  color: var(--lp-ink-soft);
+  text-wrap: pretty;
+  animation: lp-rise var(--e-dur-slow) var(--e-ease-expo) 150ms both;
 }
 
-.lp-hero-cta {
+.lp-cta {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: var(--e-space-3);
   margin-top: var(--e-space-8);
-}
-
-.lp-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--e-space-8);
-  margin: var(--e-space-12) 0 0;
-  padding-top: var(--e-space-6);
-  border-top: 1px solid var(--e-border-hairline);
-}
-.lp-stat dt {
-  font-size: var(--e-text-xs);
-  color: var(--e-text-muted);
-}
-.lp-stat dd {
-  margin: 0.35rem 0 0;
-  font-family: var(--e-font-mono);
-  font-size: var(--e-text-3xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--e-text-primary);
+  animation: lp-rise var(--e-dur-slow) var(--e-ease-expo) 220ms both;
 }
 
 /* --------------------------------------------------------------------------
@@ -219,52 +154,48 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   min-height: 2.9rem;
   padding: 0.75rem 1.4rem;
   border-radius: var(--e-radius-pill);
+  border: 1px solid transparent;
   font-family: var(--e-font-sans);
-  font-size: var(--e-text-xs);
+  font-size: var(--e-text-sm);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  border: 1px solid transparent;
   transition:
-    transform var(--e-dur-fast) var(--e-ease-standard),
     background var(--e-dur-fast) var(--e-ease-standard),
     border-color var(--e-dur-fast) var(--e-ease-standard),
-    box-shadow var(--e-dur-base) var(--e-ease-standard);
+    color var(--e-dur-fast) var(--e-ease-standard),
+    transform var(--e-dur-fast) var(--e-ease-standard);
 }
 .lp-btn:active {
   transform: scale(var(--e-press-scale));
 }
-.lp-btn-lg {
-  min-height: 3.4rem;
-  padding: 1rem 2rem;
-  font-size: var(--e-text-sm);
-}
 
+/* CTA principal: el violeta de la casa, con la sombra de contacto justa. */
 .lp-btn-primary {
-  background: var(--e-brand);
-  color: var(--e-text-on-accent);
-  box-shadow: var(--e-glow-violet);
+  background: var(--e-violet-500);
+  color: var(--e-white);
+  box-shadow: 0 10px 22px -14px var(--e-violet-600);
 }
 .lp-btn-primary:hover {
-  background: var(--e-violet-hover);
+  background: var(--e-violet-600);
 }
 
-.lp-btn-ghost {
-  border-color: var(--e-border-soft);
-  color: var(--e-text-primary);
-  background: transparent;
+/* CTA secundaria: papel blanco, borde fino, tinta oscura. */
+.lp-btn-secondary {
+  background: var(--e-white);
+  border-color: var(--lp-line);
+  color: var(--e-neutral-900);
 }
-.lp-btn-ghost:hover {
-  border-color: var(--e-border-strong);
-  background: var(--e-glass-1);
+.lp-btn-secondary:hover {
+  border-color: var(--e-neutral-400);
+  background: var(--e-neutral-60);
 }
 
-/* Verde de WhatsApp profundo: el blanco sobre emerald-500 daba 3.77:1 (bajo
-   AA para texto normal). Sobre emerald-600 sube a 5.6:1; el hover oscurece. */
+/* WhatsApp: emerald-600 da 5.6:1 con blanco (emerald-500 no llegaba a AA). */
 .lp-btn-wa {
   background: var(--e-emerald-600);
   color: var(--e-white);
@@ -274,157 +205,147 @@
 }
 
 /* --------------------------------------------------------------------------
- *  4. SECCIONES
+ *  4. FUNCIONALIDADES
  * ------------------------------------------------------------------------- */
-.lp-section {
-  padding: var(--e-space-16) 0;
-  border-top: 1px solid var(--e-border-hairline);
+.lp-features {
+  padding-top: var(--e-space-12);
 }
 
 .lp-h2 {
   margin: 0;
-  font-family: var(--e-font-sans);
-  font-size: clamp(1.75rem, 4.5vw, 2.75rem);
+  font-size: clamp(1.5rem, 3.6vw, 2.1rem);
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.08;
+  line-height: 1.12;
+  color: var(--e-neutral-950);
+  text-align: center;
 }
 
 .lp-sub {
-  margin: var(--e-space-3) 0 0;
+  margin: var(--e-space-3) auto 0;
   max-width: 40rem;
   font-size: var(--e-text-base);
   line-height: 1.6;
-  color: var(--e-text-secondary);
+  color: var(--lp-ink-soft);
+  text-align: center;
+  text-wrap: pretty;
 }
 
-.lp-section-head {
+.lp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-space-4);
+  margin: var(--e-space-10) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Tarjeta: papel blanco, radio 12px, hairline y una sombra de contacto.
+   Altura uniforme por grid (align-items: stretch es el default). */
+.lp-card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--e-space-6);
+  border-radius: var(--e-radius-md);
+  border: 1px solid var(--lp-line);
+  background: var(--e-white);
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04);
+  animation: lp-rise var(--e-dur-slow) var(--e-ease-expo)
+    calc(60ms + var(--i) * 60ms) both;
+  transition:
+    border-color var(--e-dur-base) var(--e-ease-standard),
+    transform var(--e-dur-base) var(--e-ease-standard),
+    box-shadow var(--e-dur-base) var(--e-ease-standard);
+}
+.lp-card:hover {
+  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
+  transform: translateY(var(--e-lift));
+  box-shadow: 0 12px 26px -18px var(--e-violet-600);
+}
+
+.lp-card-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--e-radius-sm);
+  background: color-mix(in srgb, var(--e-violet-500) 10%, transparent);
+  color: var(--e-violet-600);
+  transition:
+    background var(--e-dur-base) var(--e-ease-standard),
+    transform var(--e-dur-base) var(--e-ease-spring);
+}
+.lp-card:hover .lp-card-icon {
+  background: color-mix(in srgb, var(--e-violet-500) 16%, transparent);
+  transform: scale(1.06);
+}
+
+.lp-card-name {
+  margin: var(--e-space-4) 0 0;
+  font-size: var(--e-text-base);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--e-neutral-950);
+}
+
+.lp-card-body {
+  margin: var(--e-space-2) 0 0;
+  font-size: var(--e-text-2xs);
+  line-height: 1.6;
+  color: var(--lp-ink-soft);
+  text-wrap: pretty;
+}
+
+/* --------------------------------------------------------------------------
+ *  5. CARTELERA
+ * ------------------------------------------------------------------------- */
+.lp-events-block {
+  margin-top: var(--e-space-16);
+}
+
+.lp-events-head {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--e-space-4);
-  margin-bottom: var(--e-space-8);
+  margin-bottom: var(--e-space-6);
 }
-.lp-section-head .lp-sub {
-  margin-bottom: 0;
+.lp-events-head .lp-h2,
+.lp-events-head .lp-sub {
+  text-align: left;
+}
+.lp-events-head .lp-sub {
+  margin-left: 0;
 }
 
-.lp-link-more {
+.lp-more {
   display: inline-flex;
   align-items: center;
   min-height: 2.75rem;
   flex: none;
-  font-size: var(--e-text-xs);
+  font-size: var(--e-text-2xs);
   font-weight: 600;
-  color: var(--e-violet-250);
+  color: var(--e-violet-600);
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: border-color var(--e-dur-fast) var(--e-ease-standard);
 }
-.lp-link-more:hover {
-  border-color: var(--e-violet-250);
+.lp-more:hover {
+  border-color: var(--e-violet-600);
 }
 
 .lp-note {
-  margin: var(--e-space-6) 0 0;
+  margin: var(--e-space-5) 0 0;
   padding: var(--e-space-5);
   border-radius: var(--e-radius-lg);
-  border: 1px dashed var(--e-border-soft);
-  font-size: var(--e-text-sm);
-  color: var(--e-text-secondary);
-}
-
-/* --------------------------------------------------------------------------
- *  5. PASOS (cómo funciona)
- * ------------------------------------------------------------------------- */
-.lp-steps {
-  display: grid;
-  gap: var(--e-space-5);
-  margin: var(--e-space-10) 0 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: none;
-}
-
-.lp-step {
-  position: relative;
-  padding: var(--e-space-6);
-  border-radius: var(--e-radius-xl);
-  border: 1px solid var(--e-border-hairline);
-  background: var(--e-glass-1);
-  overflow: hidden;
-}
-.lp-step-n {
-  display: block;
-  font-family: var(--e-font-mono);
-  font-size: var(--e-text-2xl);
-  font-weight: 700;
-  color: var(--e-violet-400);
-  letter-spacing: -0.03em;
-}
-.lp-step-title {
-  margin: var(--e-space-4) 0 0;
-  font-size: var(--e-text-lg);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.lp-step-body {
-  margin: var(--e-space-2) 0 0;
-  font-size: var(--e-text-sm);
-  line-height: 1.6;
-  color: var(--e-text-secondary);
-}
-
-/* --------------------------------------------------------------------------
- *  6. EQUIPO (roles)
- * ------------------------------------------------------------------------- */
-.lp-roles {
-  display: grid;
-  gap: var(--e-space-5);
-  margin-top: var(--e-space-10);
-}
-
-.lp-role {
-  padding: var(--e-space-6);
-  border-radius: var(--e-radius-xl);
-  border: 1px solid var(--e-border-hairline);
-  background: linear-gradient(180deg, var(--e-glass-2), transparent);
-}
-.lp-role-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--e-radius-md);
-  background: color-mix(in srgb, var(--e-violet-500) 18%, transparent);
-  color: var(--e-violet-250);
-}
-.lp-role-tag {
-  margin: var(--e-space-5) 0 0;
+  border: 1px dashed var(--lp-line);
   font-size: var(--e-text-2xs);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--e-text-muted);
-}
-.lp-role-title {
-  margin: var(--e-space-2) 0 0;
-  font-size: var(--e-text-xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.lp-role-body {
-  margin: var(--e-space-2) 0 0;
-  font-size: var(--e-text-sm);
-  line-height: 1.6;
-  color: var(--e-text-secondary);
+  color: var(--lp-ink-soft);
+  background: var(--e-white);
 }
 
-/* --------------------------------------------------------------------------
- *  7. EVENTOS ABIERTOS
- * ------------------------------------------------------------------------- */
-.lp-events {
+.lp-list {
   display: grid;
   gap: var(--e-space-3);
   margin: 0;
@@ -438,47 +359,46 @@
   align-items: center;
   gap: var(--e-space-4);
   padding: var(--e-space-4);
-  border-radius: var(--e-radius-lg);
-  border: 1px solid var(--e-border-hairline);
-  background: var(--e-glass-1);
+  border-radius: var(--e-radius-md);
+  border: 1px solid var(--lp-line);
+  background: var(--e-white);
   transition:
     border-color var(--e-dur-base) var(--e-ease-standard),
     transform var(--e-dur-base) var(--e-ease-standard);
 }
 .lp-event:hover {
-  border-color: var(--e-glass-line);
+  border-color: var(--e-neutral-400);
   transform: translateY(var(--e-lift));
 }
 
 .lp-event-skeleton {
-  min-height: 5.5rem;
+  min-height: 5.25rem;
   border-style: dashed;
-  animation: lp-skel 1.4s var(--e-ease-standard) infinite;
+  animation: lp-pulse 1.4s var(--e-ease-standard) infinite;
 }
 
-/* El sello de fecha: la firma del boleto (día enorme, mes diminuto). */
+/* El sello de fecha: la firma del boleto (día grande, mes diminuto). */
 .lp-event-stamp {
   flex: none;
   display: grid;
   place-items: center;
-  width: 3.6rem;
-  height: 3.6rem;
-  border-radius: var(--e-radius-md);
-  background: color-mix(in srgb, var(--e-brand) 22%, transparent);
-  border: 1px solid var(--e-glass-line);
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: var(--e-radius-sm);
+  border: 1px solid var(--lp-line);
+  background: var(--e-neutral-100);
 }
 .lp-event-stamp b {
-  font-family: var(--e-font-mono);
-  font-size: var(--e-text-xl);
+  font-size: var(--e-text-lg);
   font-weight: 700;
-  line-height: 1;
-  color: var(--e-text-primary);
+  line-height: 1.1;
+  color: var(--e-neutral-950);
 }
 .lp-event-stamp i {
   font-style: normal;
   font-size: var(--e-text-2xs);
-  letter-spacing: 0.1em;
-  color: var(--e-violet-250);
+  letter-spacing: 0.08em;
+  color: var(--e-violet-600);
 }
 
 .lp-event-body {
@@ -487,23 +407,24 @@
 }
 .lp-event-name {
   margin: 0;
-  font-size: var(--e-text-lg);
+  font-size: var(--e-text-base);
   font-weight: 700;
   letter-spacing: -0.01em;
+  color: var(--e-neutral-950);
 }
 .lp-event-meta {
   margin: var(--e-space-1) 0 0;
-  font-size: var(--e-text-xs);
-  color: var(--e-text-secondary);
+  font-size: var(--e-text-2xs);
+  color: var(--lp-ink-soft);
 }
 .lp-event-where {
-  color: var(--e-text-muted);
+  color: var(--lp-ink-mute);
 }
 .lp-event-price {
   margin: var(--e-space-1) 0 0;
-  font-size: var(--e-text-xs);
+  font-size: var(--e-text-2xs);
   font-weight: 600;
-  color: var(--e-success);
+  color: var(--e-neutral-800);
 }
 
 .lp-event-actions {
@@ -516,10 +437,10 @@
   display: inline-flex;
   align-items: center;
   min-height: 2.75rem;
-  padding: 0.5rem 0.25rem;
-  font-size: var(--e-text-xs);
+  padding: 0.4rem 0.2rem;
+  font-size: var(--e-text-2xs);
   font-weight: 600;
-  color: var(--e-text-secondary);
+  color: var(--lp-ink-soft);
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition:
@@ -527,186 +448,173 @@
     border-color var(--e-dur-fast) var(--e-ease-standard);
 }
 .lp-event-detail:hover {
-  color: var(--e-text-primary);
-  border-color: var(--e-text-primary);
-}
-
-.lp-contact-note {
-  margin: var(--e-space-8) 0 0;
-  font-size: var(--e-text-xs);
-  color: var(--e-text-muted);
-}
-.lp-contact-note a {
-  color: var(--e-violet-250);
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-}
-.lp-contact-note a:hover {
-  border-color: var(--e-violet-250);
+  color: var(--e-neutral-950);
+  border-color: var(--e-neutral-950);
 }
 
 /* --------------------------------------------------------------------------
- *  8. MI BOLETA (los tres estados)
+ *  6. CONFIANZA
  * ------------------------------------------------------------------------- */
-.lp-tickets {
-  display: grid;
-  gap: var(--e-space-5);
-  margin-top: var(--e-space-10);
-}
-
-.lp-ticket {
-  padding: var(--e-space-6);
-  border-radius: var(--e-radius-xl);
-  border: 1px solid var(--e-border-hairline);
-  background: var(--e-glass-1);
-}
-.lp-dot {
-  display: inline-block;
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: var(--e-radius-pill);
-}
-.lp-dot-ok {
-  background: var(--e-success);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--e-success) 22%, transparent);
-}
-.lp-dot-warn {
-  background: var(--e-warn);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--e-warn) 22%, transparent);
-}
-.lp-dot-brand {
-  background: var(--e-brand-glow);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--e-brand) 26%, transparent);
-}
-.lp-ticket-title {
-  margin: var(--e-space-4) 0 0;
-  font-size: var(--e-text-lg);
-  font-weight: 700;
-}
-.lp-ticket-body {
-  margin: var(--e-space-2) 0 0;
-  font-size: var(--e-text-sm);
-  line-height: 1.6;
-  color: var(--e-text-secondary);
-}
-.lp-tickets-cta {
+.lp-trust {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--e-space-3);
-  margin-top: var(--e-space-8);
+  justify-content: center;
+  gap: var(--e-space-3) var(--e-space-6);
+  margin: var(--e-space-16) 0 0;
+  padding: var(--e-space-6) 0;
+  border-top: 1px solid var(--lp-line);
+  list-style: none;
 }
 
-/* --------------------------------------------------------------------------
- *  9. CTA DE STAFF
- * ------------------------------------------------------------------------- */
-.lp-staff {
-  display: flex;
-  flex-wrap: wrap;
+.lp-trust-item {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--e-space-6);
-  margin-top: var(--e-space-16);
-  padding: clamp(1.75rem, 5vw, 3rem);
-  border-radius: var(--e-radius-2xl);
-  border: 1px solid var(--e-glass-line);
-  background:
-    radial-gradient(30rem 18rem at 100% 0%, rgba(124, 58, 237, 0.28), transparent 62%),
-    linear-gradient(180deg, var(--e-surface-2), var(--e-surface));
+  gap: 0.45rem;
+  font-size: var(--e-text-2xs);
+  color: var(--lp-ink-mute);
 }
-.lp-staff-copy .lp-sub {
-  margin-top: var(--e-space-2);
+
+/* El check es el único verde de la página: señala, no decora. */
+.lp-trust-check {
+  display: inline-grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: var(--e-radius-pill);
+  background: color-mix(in srgb, var(--e-green-500) 18%, transparent);
+  color: var(--e-emerald-700);
 }
 
 /* --------------------------------------------------------------------------
- * 10. PIE
+ *  7. PIE
  * ------------------------------------------------------------------------- */
 .lp-foot {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--e-space-4);
-  max-width: var(--lp-shell);
-  margin: 0 auto;
-  padding: var(--e-space-8) var(--e-space-5);
-  border-top: 1px solid var(--e-border-hairline);
+  gap: var(--e-space-3);
+  padding-top: var(--e-space-6);
+  border-top: 1px solid var(--lp-line);
+  text-align: center;
 }
-.lp-foot-brand {
-  margin: 0;
-  font-size: var(--e-text-xs);
-  color: var(--e-text-muted);
-}
-.lp-foot-brand span {
-  font-weight: 700;
-  color: var(--e-text-primary);
-}
+
 .lp-foot-links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--e-space-5);
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-space-3);
 }
 .lp-foot-links a {
   display: inline-flex;
   align-items: center;
   min-height: 2.75rem;
-  font-size: var(--e-text-xs);
-  color: var(--e-text-secondary);
+  font-size: var(--e-text-2xs);
+  color: var(--lp-ink-soft);
   text-decoration: none;
+  transition: color var(--e-dur-fast) var(--e-ease-standard);
 }
 .lp-foot-links a:hover {
-  color: var(--e-text-primary);
+  color: var(--e-neutral-950);
+}
+.lp-foot-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: var(--e-radius-pill);
+  background: var(--e-neutral-400);
 }
 
-@keyframes lp-skel {
+.lp-foot-copy {
+  margin: 0;
+  font-size: var(--e-text-2xs);
+  color: var(--lp-ink-mute);
+}
+
+/* --------------------------------------------------------------------------
+ *  8. MOVIMIENTO
+ * ------------------------------------------------------------------------- */
+@keyframes lp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lp-pulse {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.55;
   }
   50% {
-    opacity: 0.85;
+    opacity: 0.9;
   }
 }
 
 /* --------------------------------------------------------------------------
- * 11. RESPONSIVE
+ *  9. RESPONSIVE
  * ------------------------------------------------------------------------- */
-@media (min-width: 720px) {
-  .lp-nav {
-    display: flex;
-  }
-  .lp-head-cta {
-    margin-left: 0;
-  }
-  .lp-steps {
+@media (min-width: 640px) {
+  .lp-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .lp-roles {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .lp-tickets {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (min-width: 1024px) {
-  .lp-steps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+@media (min-width: 960px) {
+  .lp {
+    padding-top: var(--e-space-20);
+  }
+  .lp-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .lp-hero {
+    padding: var(--e-space-16) 0 var(--e-space-20);
   }
   .lp-event-actions {
     margin-left: auto;
   }
 }
 
-/* Accesibilidad: con movimiento reducido, nada late ni se desplaza. */
-@media (prefers-reduced-motion: reduce) {
-  .lp-event,
-  .lp-btn {
-    transition: none;
+@media (max-width: 480px) {
+  .lp-wrap {
+    padding: 0 var(--e-space-4);
   }
-  .lp-event:hover {
-    transform: none;
+  .lp-btn {
+    flex: 1 1 auto;
+  }
+  /* A 360px los separadores partían el pie en tres renglones sueltos. */
+  .lp-foot-dot {
+    display: none;
+  }
+  .lp-foot-links {
+    gap: var(--e-space-2) var(--e-space-5);
+  }
+}
+
+/* Accesibilidad: con movimiento reducido nada entra ni se desplaza. */
+@media (prefers-reduced-motion: reduce) {
+  .lp-brand,
+  .lp-title,
+  .lp-lede,
+  .lp-cta,
+  .lp-card {
+    animation: none;
   }
   .lp-event-skeleton {
     animation: none;
+  }
+  .lp-card,
+  .lp-event,
+  .lp-btn,
+  .lp-card-icon {
+    transition: none;
+  }
+  .lp-card:hover,
+  .lp-event:hover,
+  .lp-card:hover .lp-card-icon {
+    transform: none;
   }
 }
