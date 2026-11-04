@@ -285,6 +285,13 @@ export async function apiFetch(path, options = {}) {
       // mostrarlos que un "Error en la petición" que no dice nada.
       const msgs = detail.map((d) => d?.msg).filter(Boolean);
       if (msgs.length) msg = msgs.join(" · ");
+    } else if (res.status >= 500) {
+      // Un 5xx del servidor o del proxy llega sin `detail` (FastAPI devuelve
+      // "Internal Server Error" en texto plano, Vercel una página de error).
+      // Decir "Error en la petición" dejaba al usuario sin saber si su clave
+      // estaba mal o si el servicio estaba caído — y así se reportó como si
+      // fuera un fallo de credenciales.
+      msg = `El servicio falló (${res.status}). Intenta de nuevo en un momento.`;
     }
     const err = new Error(msg);
     err.status = res.status;
