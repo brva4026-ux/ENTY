@@ -162,8 +162,12 @@ function App() {
               fragmento (#), que el navegador no envia al servidor. */}
               <Route path="/t" element={<PublicTicketPage />} />
               {/* Inicio: la vitrina publica del fan (catalogo de eventos).
-              Sin login — es la cara de consumidor de Enty. */}
+              Sin login — es la cara de consumidor de Enty.
+              Explorar es la MISMA vitrina en modo catalogo (sin destacado y
+              con el buscador listo): la pestaña de la barra inferior apuntaba
+              a /inicio, así que "Explorar" no llevaba a ninguna parte. */}
               <Route path="/inicio" element={<HomePage />} />
+              <Route path="/explorar" element={<HomePage explorar />} />
               {/* Detalle del evento: la pantalla de compra, publica como la
               vitrina. Se llega tocando un evento del catalogo. */}
               <Route path="/evento/:id" element={<EventDetailPage />} />

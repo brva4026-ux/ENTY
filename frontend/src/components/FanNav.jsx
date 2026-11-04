@@ -7,10 +7,14 @@ import TransitionLink from "./TransitionLink";
  *
  * `active` marca la pestana encendida. Destinos de DESTINO, no de rol: el fan
  * no tiene cuenta, asi que Perfil cae en /login hasta que exista.
+ *
+ * Inicio y Explorar apuntaban AMBAS a /inicio: una de las dos pestanas no
+ * llevaba a ninguna parte. Ahora Inicio es la portada editorial (destacado +
+ * proximos) y Explorar es el catalogo completo con el buscador listo.
  */
 const TABS = [
   { key: "inicio", label: "Inicio", to: "/inicio" },
-  { key: "explorar", label: "Explorar", to: "/inicio" },
+  { key: "explorar", label: "Explorar", to: "/explorar" },
   { key: "boletos", label: "Boletos", to: "/boletas" },
   { key: "perfil", label: "Perfil", to: "/login" },
 ];

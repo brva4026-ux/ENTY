@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { fetchMyTickets, fetchMyTicketToken, fetchFanTicketsWithAccess } from "../lib/api";
-import { forceDarkOnce } from "../lib/theme";
 import FanNav from "../components/FanNav";
 import { Spark } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
@@ -50,12 +49,10 @@ export default function MyTicketsPage() {
   const mounted = useRef(true);
 
   useEffect(() => {
-    const restore = forceDarkOnce();
     mounted.current = true;
     load();
     return () => {
       mounted.current = false;
-      restore();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -150,27 +147,42 @@ export default function MyTicketsPage() {
   return (
     <div className="home fan">
       <header className="home-head">
-        <div className="home-wordmark">
-          <span>Enty</span>
-          <svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 0 L14.6 9.4 L24 12 L14.6 14.6 L12 24 L9.4 14.6 L0 12 L9.4 9.4 Z" fill="#8B5CF6" />
-          </svg>
+        <div className="home-head-left">
+          <div className="home-wordmark">
+            <span>Enty</span>
+            <svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 0 L14.6 9.4 L24 12 L14.6 14.6 L12 24 L9.4 14.6 L0 12 L9.4 9.4 Z" fill="#8B5CF6" />
+            </svg>
+          </div>
+          {/* En escritorio la barra inferior no existe: sin esta nav, boletas
+              se quedaba sin forma de volver al catálogo. */}
+          <nav className="home-topnav" aria-label="Secciones">
+            <TransitionLink to="/inicio">Inicio</TransitionLink>
+            <TransitionLink to="/explorar">Explorar</TransitionLink>
+            <TransitionLink to="/boletas" aria-current="page">
+              Mis boletos
+            </TransitionLink>
+            <TransitionLink to="/login">Acceso</TransitionLink>
+          </nav>
         </div>
-        <TransitionLink to="/inicio" className="home-avatar" aria-label="Cartelera">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-            <path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
-          </svg>
-        </TransitionLink>
+        <div className="home-head-right">
+          <TransitionLink to="/inicio" className="home-avatar" aria-label="Cartelera">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
+            </svg>
+          </TransitionLink>
+        </div>
       </header>
 
       <main className="home-main">
-        <div className="home-title">
-          <h1>Mis boletas</h1>
-          <p>
-            Escribe el correo o teléfono con que compraste. Te enviamos un enlace
-            seguro para verlas — así nadie más puede abrirlas.
-          </p>
-        </div>
+        <section className="fan-entry">
+          <div className="home-title">
+            <h1>Mis boletas</h1>
+            <p>
+              Escribe el correo o teléfono con que compraste. Te enviamos un enlace
+              seguro para verlas — así nadie más puede abrirlas.
+            </p>
+          </div>
 
         <form
           className="fan-lookup"
@@ -198,6 +210,7 @@ export default function MyTicketsPage() {
             {busy ? "Enviando…" : "Enviar enlace"}
           </button>
         </form>
+        </section>
 
         {error ? (
           <div className="home-empty" role="alert" id="fan-lookup-error">

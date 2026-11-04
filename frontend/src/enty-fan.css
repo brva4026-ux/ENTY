@@ -55,7 +55,36 @@
  *  2. EL SHELL · de tira de teléfono a lienzo editorial
  *     Móvil: una columna, cómoda. Escritorio: lienzo ancho centrado.
  * ------------------------------------------------------------------------- */
+/* Papel: la vitrina comparte el lienzo claro de la portada y el login. Los
+   overrides viven aquí, junto al resto de los tokens de `.home`, porque las
+   variables resuelven al usarse: cualquier regla posterior las leerá ya en
+   papel. `/evento/:id` (.evd) conserva su capa nocturna. */
 .home {
+  --e-canvas: var(--e-neutral-150);
+  --e-surface: var(--e-white);
+  --e-surface-2: var(--e-neutral-100);
+  --e-text-primary: var(--e-neutral-950);
+  --e-text-secondary: var(--e-neutral-600);
+  --e-text-muted: var(--e-neutral-550);
+  --e-border-hairline: var(--e-neutral-300);
+  --e-border-soft: var(--e-neutral-400);
+  --e-glass-1: var(--e-white);
+  --e-glass-2: var(--e-neutral-100);
+  --e-glass-line: var(--e-neutral-300);
+  --e-glass-line-strong: var(--e-neutral-400);
+
+  --enty-bg: var(--e-neutral-150);
+  --enty-ink: var(--e-neutral-950);
+  --enty-dim: var(--e-neutral-550);
+  --enty-dim-2: var(--e-neutral-600);
+  --enty-line: var(--e-neutral-300);
+  --enty-line-soft: var(--e-neutral-200);
+  --enty-glass: var(--e-white);
+  --enty-glass-line: var(--e-neutral-300);
+  --enty-surface: var(--e-white);
+
+  background: var(--e-neutral-150);
+  color: var(--e-neutral-950);
   max-width: 100%;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 6rem;
@@ -68,9 +97,16 @@
   }
 }
 
-/* La aurora de fondo sigue al lienzo (fixed, detrás de todo). */
+/* La atmósfera de la portada sigue al lienzo (fixed, detrás de todo).
+   Sobre papel es un solo lavado violeta desde arriba, en lugar de los tres
+   destellos neón del lienzo nocturno (ver la capa papel, sección 12). */
 .home::before {
   max-width: 100%;
+  background: radial-gradient(
+    52rem 26rem at 50% -12rem,
+    color-mix(in srgb, var(--e-violet-400) 14%, transparent),
+    transparent 70%
+  );
 }
 @media (min-width: 768px) {
   .home::before {
@@ -1037,4 +1073,410 @@ html[data-theme="light"] .legal-link {
    (sección 4 y 5), ya con el valor comprimido. */
 .home-filters {
   margin-top: 0.75rem;
+}
+
+/* ==========================================================================
+ *  12. CAPA PAPEL · la vitrina sobre papel claro
+ * --------------------------------------------------------------------------
+ *  La portada y el login pasaron a papel cálido; la vitrina del fan seguía
+ *  siendo nocturna y las tres pantallas parecían productos distintos.
+ *
+ *  Esta capa NO reescribe la vitrina: la viste de papel redefiniendo los
+ *  tokens que la hoja ya consume (--enty-* y los semánticos --e-*), así que
+ *  la composición editorial, el ticker y el boleto perforado siguen intactos.
+ *  El acento sigue siendo el violeta de la casa; verde = disponible y rosa =
+ *  urgencia conservan su significado.
+ * ========================================================================== */
+
+/* --- Cabecera: avatar y campana sobre papel ------------------------------ */
+.home-avatar {
+  border-color: var(--e-neutral-300);
+  background: var(--e-white);
+  color: var(--e-neutral-700);
+}
+.home-avatar:hover {
+  border-color: var(--e-neutral-400);
+  color: var(--e-neutral-950);
+}
+
+.home-bell {
+  color: var(--e-neutral-700);
+}
+.home-bell:hover {
+  color: var(--e-neutral-950);
+  background: var(--e-neutral-100);
+}
+
+/* El panel de avisos: papel con sombra de contacto, no cristal nocturno. */
+.home-bell-panel {
+  background: var(--e-white);
+  border-color: var(--e-neutral-300);
+  box-shadow: 0 18px 40px -30px var(--e-violet-600);
+}
+
+/* --- Buscador y chips ---------------------------------------------------- */
+.home .home-search {
+  background: var(--e-white);
+  border-color: var(--e-neutral-300);
+  color: var(--e-neutral-500);
+}
+.home-search input {
+  color: var(--e-neutral-900);
+}
+.home-search input::placeholder {
+  color: var(--e-neutral-550);
+}
+
+.home-chip {
+  border-color: var(--e-neutral-300);
+  background: var(--e-white);
+  color: var(--e-neutral-600);
+}
+.home-chip:hover {
+  border-color: var(--e-neutral-400);
+  color: var(--e-neutral-950);
+}
+
+.home .home-cats button {
+  color: var(--e-neutral-600);
+}
+/* Sobre papel basta con dos señales: el disco violeta lleno y la etiqueta en
+   violeta. El tinte de fondo del chip duplicaba el violeta y hacía una mancha
+   lavanda alrededor del icono. */
+.home .home-cats button.is-on {
+  border-color: transparent;
+  background: transparent;
+  color: var(--e-violet-600);
+}
+
+/* El ticker se lee: sobre papel el gris tenue del lienzo nocturno se perdía. */
+.home .home-ticker-track span {
+  color: var(--e-neutral-600);
+}
+
+/* --- Tarjetas: papel, hairline y sombra de contacto ---------------------- */
+.home-feature,
+.home-row {
+  background: var(--e-white);
+  border-color: var(--e-neutral-300);
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04);
+}
+.home-row:hover {
+  border-color: var(--e-neutral-400);
+  box-shadow: 0 12px 26px -18px var(--e-violet-600);
+}
+.home-list .home-row:last-child {
+  border-bottom-color: var(--e-neutral-300);
+}
+
+/* El favorito flotante sobre la miniatura: sobre papel ya no necesita velo. */
+.home-row-fav {
+  background: color-mix(in srgb, var(--e-white) 90%, transparent);
+  border-color: var(--e-neutral-400);
+}
+.home-row-fav:hover {
+  background: var(--e-white);
+}
+
+/* La destacada es un CARTEL sobre el papel: mantiene el fondo de tinta para
+   que el titular en blanco y el arte de la marca sigan legibles. Es el único
+   objeto oscuro de la vitrina clara, y por eso pesa. */
+.home .home-feature {
+  background: var(--e-ink-950);
+  border-color: transparent;
+}
+
+/* La miniatura de la fila: sello de fecha sobre papel, no sobre tinta. */
+.home-row-thumb {
+  background: var(--e-neutral-100);
+  border-color: var(--e-neutral-300);
+}
+.home-row-thumb-date b {
+  color: var(--e-neutral-950);
+}
+
+/* La tarjeta destacada se tiñe con el flyer: el velo oscuro se mantiene solo
+   cuando hay imagen, para que el titular siga legible encima. */
+.home-feature::after {
+  background: linear-gradient(
+    to bottom,
+    rgba(11, 11, 15, 0) 0%,
+    rgba(11, 11, 15, 0.35) 55%,
+    rgba(11, 11, 15, 0.78) 100%
+  );
+}
+.home-feature-top h1,
+.home-feature-top h2,
+.home-feature-meta,
+.home-feature-meta b,
+.home-feature .home-cta {
+  color: var(--e-white);
+}
+
+/* --- Estados vacíos y cargando ------------------------------------------ */
+.home-empty,
+.home-empty p,
+.home-empty span {
+  color: var(--e-neutral-600);
+}
+
+.home .enty-skel {
+  background: linear-gradient(
+    90deg,
+    var(--e-neutral-200) 30%,
+    var(--e-neutral-100) 50%,
+    var(--e-neutral-200) 70%
+  );
+}
+
+/* --- Barra inferior: papel alto con hairline ---------------------------- */
+.home-nav {
+  background: color-mix(in srgb, var(--e-white) 92%, transparent);
+  border-top-color: var(--e-neutral-300);
+}
+.home-nav a {
+  color: var(--e-neutral-550);
+}
+.home-nav a.is-on {
+  color: var(--e-violet-600);
+}
+.home-nav a.is-on svg {
+  filter: none;
+}
+.home-nav a.is-on svg path,
+.home-nav a.is-on svg circle {
+  fill: var(--e-violet-500);
+  stroke: var(--e-violet-500);
+}
+
+/* --- Mis boletas: la boleta también es papel ---------------------------- */
+.fan-lookup input {
+  background: var(--e-white);
+  border-color: var(--e-neutral-300);
+  color: var(--e-neutral-900);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.fan-lookup input::placeholder {
+  color: var(--e-neutral-550);
+}
+.fan-lookup input:focus {
+  border-color: var(--e-violet-500);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
+}
+.fan-lookup button {
+  box-shadow: 0 10px 22px -14px var(--e-violet-600);
+}
+
+/* La boleta del fan: el cristal nocturno pasa a tarjeta de papel. El recorte
+   rasgado (mask) se conserva: es la firma física de la casa. */
+.fan-ticket {
+  background: var(--e-white);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.05);
+}
+.fan-ticket-info em,
+.fan-ticket-num {
+  color: var(--e-neutral-600);
+}
+.fan-link {
+  color: var(--e-violet-600);
+  background: none;
+}
+
+/* Estados sobre papel: el verde y el rosa suben de tono para pasar AA en
+   texto pequeño. */
+.fan-badge.is-ok {
+  color: var(--e-emerald-700);
+  background: color-mix(in srgb, var(--e-green-500) 16%, transparent);
+}
+.fan-badge.is-warn {
+  color: var(--e-amber-700);
+  background: color-mix(in srgb, var(--e-amber-500) 20%, transparent);
+}
+.fan-badge.is-bad {
+  color: var(--e-red-700);
+  background: color-mix(in srgb, var(--e-red-600) 12%, transparent);
+}
+
+/* El marco del QR no se toca: el escáner necesita el contraste del código. */
+.fan-qr-frame {
+  border-color: var(--e-neutral-300);
+}
+
+/* --- Pie de la vitrina -------------------------------------------------- */
+.home .home-foot {
+  border-top-color: var(--e-neutral-300);
+}
+.home-foot-brand,
+.home-foot-links a {
+  color: var(--e-neutral-600);
+}
+
+/* La tarjeta sin flyer no deja un rectángulo vacío en la rejilla: la caja se
+   recorta a una banda con el sello de fecha y un borde punteado que repite el
+   troquel de la boletería. */
+@media (min-width: 640px) {
+  .home-row-thumb:not(:has(img)) {
+    height: 4.75rem;
+    border-style: dashed;
+  }
+}
+
+/* ==========================================================================
+ *  13. PULIDO DE LAS TRES PANTALLAS DEL FAN · papel
+ * --------------------------------------------------------------------------
+ *  Ajustes de lo que se rompió al vestir la vitrina de papel: no es un
+ *  rediseño, es la revisión visual de Inicio, Explorar y Mis boletas a
+ *  1280 y 390 px.
+ * ========================================================================== */
+
+/* --- La barra inferior es del móvil ------------------------------------- */
+/* En escritorio ya existe la nav superior: la barra flotante se quedaba
+   encima de las tarjetas, tapando la primera fila del catálogo. */
+@media (min-width: 768px) {
+  .home-nav {
+    display: none;
+  }
+  .home {
+    padding-bottom: 3rem;
+  }
+}
+
+/* --- Destacado: sin flyer, banda en vez de cartel vacío ----------------- */
+/* El arte de reserva dejaba 200px de tinta vacía sobre el texto a 1280px.
+   Sin foto, el destacado se lee como banda de cartelera. */
+@media (min-width: 1024px) {
+  .home-feature:not(:has(.home-feature-flyer)) {
+    aspect-ratio: 3 / 1;
+    max-height: 23rem;
+  }
+}
+
+/* --- Destacado: la fecha sobre el cartel -------------------------------- */
+/* El cartel es tinta oscura, pero la fecha heredaba la tinta del papel y
+   quedaba casi invisible ("Jue, 5 de nov" sobre negro). */
+.home-feature-when > b {
+  color: var(--e-white);
+}
+.home-feature-when > i {
+  color: var(--e-violet-200);
+}
+
+/* Sin flyer, el cartel se tiñe con el violeta de la casa en lugar de los
+   trazos neón verde/rosa del lienzo nocturno, que sobre papel se leían como
+   ruido. Con flyer no se pinta: la foto manda. */
+.home-feature::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      30rem 22rem at 88% -12%,
+      color-mix(in srgb, var(--e-violet-500) 52%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      24rem 18rem at 2% 112%,
+      color-mix(in srgb, var(--e-violet-400) 24%, transparent),
+      transparent 72%
+    );
+}
+.home-feature:has(.home-feature-flyer)::before {
+  display: none;
+}
+
+/* El anillo de aforo es una pieza, no un lienzo: tamaño fijo en la esquina
+   superior derecha. Antes se estiraba al ancho de la tarjeta y su "VENDIDO"
+   salía a 70px, desbordado sobre el titular. */
+.home-ring {
+  inset: 1rem 1rem auto auto;
+  width: 5.25rem;
+  height: 5.25rem;
+  filter: drop-shadow(0 8px 18px rgba(11, 11, 15, 0.45));
+}
+@media (min-width: 768px) {
+  .home-ring {
+    inset: 1.25rem 1.25rem auto auto;
+    width: 7rem;
+    height: 7rem;
+  }
+}
+/* En móvil el sello del eyebrow ya dice el aforo: el anillo se quedaba sin
+   sitio y se montaba sobre el titular. */
+@media (max-width: 639px) {
+  .home-ring {
+    display: none;
+  }
+}
+
+/* --- Tarjetas del catálogo --------------------------------------------- */
+/* El sello de la miniatura ya da el día en escritorio: repetirlo en la línea
+   de datos gastaba el sitio de la hora, que no aparecía en ningún lado. */
+@media (min-width: 640px) {
+  .home-row-when {
+    display: none;
+  }
+}
+
+/* El sello gana el día de la semana cuando la tarjeta se despliega (en la
+   fila de móvil el día completo ya va en la línea de datos). */
+.home-row-thumb-wd {
+  display: none;
+}
+@media (min-width: 640px) {
+  .home-row-thumb-wd {
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: var(--e-text-2xs);
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: var(--e-neutral-550);
+  }
+}
+
+/* --- Mis boletas: entrada y consulta ----------------------------------- */
+/* En móvil el campo y el botón compartían fila y el placeholder se cortaba
+   ("tucorreo@ejemplo.c"); apilados, ambos respiran y el botón es cómodo. */
+@media (max-width: 479px) {
+  .fan-lookup {
+    flex-direction: column;
+  }
+  .fan-lookup button {
+    width: 100%;
+    border-radius: 1rem;
+  }
+}
+
+/* En escritorio la consulta no es una tira suelta en mitad del vacío: vive
+   en una tarjeta de papel, como el login. */
+@media (min-width: 768px) {
+  .fan-entry {
+    max-width: 38rem;
+    margin-top: 1.5rem;
+    padding: 2rem 2.25rem;
+    border: 1px solid var(--e-neutral-300);
+    border-radius: 1.25rem;
+    background: var(--e-white);
+    box-shadow:
+      0 1px 2px rgba(24, 24, 27, 0.04),
+      0 18px 40px -34px var(--e-violet-600);
+  }
+  .fan-entry .home-title {
+    margin-top: 0;
+  }
+  .fan-entry .home-title h1 {
+    font-size: var(--e-text-2xl);
+  }
+  .fan-entry .home-title p {
+    font-size: var(--e-text-sm);
+  }
+  .fan-entry .fan-lookup {
+    max-width: none;
+    margin-top: 1.35rem;
+  }
 }

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
-import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
@@ -85,18 +84,37 @@ function shortDate(iso, tz) {
   return `${cap} ${get("day")} ${month}`;
 }
 
-/** Día y mes para el badge de la miniatura. */
+/**
+ * Hora del evento en su zona, "21:00". En escritorio la tarjeta ya lleva el
+ * día en el sello de la miniatura, así que la línea de datos muestra la HORA
+ * en vez de repetir la misma fecha (antes el dato se duplicaba y la hora no
+ * aparecía en ningún sitio del catálogo).
+ */
+function timeLabel(iso, tz) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("es-CO", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: tz || undefined,
+  }).format(d);
+}
+
+/** Día, mes y día de la semana para el sello de la miniatura. */
 function dayBadge(iso, tz) {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return { day: "--", month: "---" };
+  if (Number.isNaN(d.getTime())) return { wd: "", day: "--", month: "---" };
   const parts = new Intl.DateTimeFormat("es-CO", {
+    weekday: "short",
     day: "2-digit",
     month: "numeric",
     timeZone: tz || undefined,
   }).formatToParts(d);
   const day = parts.find((p) => p.type === "day")?.value ?? "--";
   const monthNum = Number(parts.find((p) => p.type === "month")?.value ?? 1);
-  return { day, month: MONTHS[monthNum - 1] ?? "---" };
+  const wd = (parts.find((p) => p.type === "weekday")?.value ?? "").replace(".", "").toUpperCase();
+  return { wd, day, month: MONTHS[monthNum - 1] ?? "---" };
 }
 
 /**
@@ -142,50 +160,6 @@ function Star({ size = 8, color = "#8B5CF6" }) {
   );
 }
 
-/**
- * Trazos organicos neon (verde/rosa) que barren detras de la tarjeta de
- * cristal. Son asimetricos y finos a proposito: rompen la rigidez de la
- * cuadricula sin competir con el contenido (energia grafica, no interfaz).
- */
-function NeonStrokes() {
-  return (
-    <svg
-      className="home-strokes"
-      viewBox="0 0 342 262"
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden="true"
-    >
-      <defs>
-        <filter id="sGlow" x="-30%" y="-60%" width="160%" height="220%">
-          <feGaussianBlur stdDeviation="3.4" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <path
-        d="M-10 214 C 70 150, 150 236, 250 150 S 352 92, 356 74"
-        fill="none"
-        stroke="#00E6AB"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        filter="url(#sGlow)"
-        opacity="0.9"
-      />
-      <path
-        d="M-6 60 C 96 96, 150 8, 262 46"
-        fill="none"
-        stroke="#FF2D98"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeDasharray="1 7"
-        filter="url(#sGlow)"
-        opacity="0.85"
-      />
-    </svg>
-  );
-}
 
 /** A partir de qué % el aforo vendido es una señal de escasez que vale la pena
  *  mostrar. Por debajo, "1% VENDIDO" no informa de nada y ocupa el sitio más
@@ -196,49 +170,34 @@ const SOLD_ALERT_PCT = 70;
  * Anillo de aforo del destacado. Solo se pinta cuando el % ya es una señal
  * ("casi lleno"); con el aforo bajo el hero muestra otra cosa.
  *
- * Los colores salen de tokens (`--e-*`), no de literales: antes eran
- * #F3F1EC / #A8A8B0 / #B7A3FF fijos y el anillo no seguía al tema.
+ * Es una PIEZA cuadrada de 100×100, no un lienzo a sangre: antes el SVG se
+ * estiraba al ancho de la tarjeta y en escritorio el "VENDIDO" salía a 70px,
+ * desbordado y encima del titular. El tamaño lo fija el CSS.
  */
 function SoldRing({ pct }) {
-  const r = 42;
+  const r = 43;
   const c = 2 * Math.PI * r;
   const shown = Math.max(0, Math.min(100, pct ?? 0));
   return (
-    <svg className="home-ring" viewBox="0 0 342 262" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <defs>
-        <radialGradient id="hGlow" cx="0.82" cy="0.18" r="0.7">
-          <stop offset="0" stopColor="var(--e-violet-500)" stopOpacity="0.34" />
-          <stop offset="1" stopColor="var(--e-violet-500)" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="hFade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0.35" stopColor="var(--e-ink-1)" stopOpacity="0" />
-          <stop offset="1" stopColor="var(--e-ink-1)" stopOpacity="0.9" />
-        </linearGradient>
-      </defs>
-      <rect width="342" height="262" fill="url(#hGlow)" />
-      <g fill="none" stroke="var(--e-white)">
-        <circle cx="266" cy="86" r="74" strokeOpacity="0.07" />
-        <circle cx="266" cy="86" r="58" strokeOpacity="0.1" strokeDasharray="1 6.2" />
-        <circle cx="266" cy="86" r="42" strokeOpacity="0.07" />
-      </g>
+    <svg className="home-ring" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r={r} fill="none" stroke="var(--e-white)" strokeOpacity="0.16" strokeWidth="3" />
       <circle
-        cx="266"
-        cy="86"
+        cx="50"
+        cy="50"
         r={r}
         fill="none"
         stroke="var(--e-violet-250)"
-        strokeWidth="2"
+        strokeWidth="3"
         strokeLinecap="round"
         strokeDasharray={`${(shown / 100) * c} ${c}`}
-        transform="rotate(-90 266 86)"
+        transform="rotate(-90 50 50)"
       />
-      <text x="266" y="92" textAnchor="middle" fontSize="22" fontWeight="300" fill="var(--e-text-primary)" letterSpacing="-1">
+      <text x="50" y="53" textAnchor="middle" fontSize="25" fontWeight="300" fill="var(--e-white)" letterSpacing="-1">
         {shown}%
       </text>
-      <text x="266" y="109" textAnchor="middle" fontSize="14" fill="var(--e-text-muted)" letterSpacing="1.2">
+      <text x="50" y="68" textAnchor="middle" fontSize="11" fill="var(--e-violet-200)" letterSpacing="1.4">
         VENDIDO
       </text>
-      <rect width="342" height="262" fill="url(#hFade)" />
     </svg>
   );
 }
@@ -364,8 +323,8 @@ function readFavs() {
   }
 }
 
-export default function HomePage() {
-  useDocumentTitle("Inicio");
+export default function HomePage({ explorar = false }) {
+  useDocumentTitle(explorar ? "Explorar eventos" : "Inicio");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [cat, setCat] = useState("todos");
@@ -390,12 +349,21 @@ export default function HomePage() {
   // Contador de reintentos: cambiar el valor vuelve a disparar el fetch sin
   // duplicar la lógica de carga (mismo efecto, misma limpieza).
   const [reload, setReload] = useState(0);
-  // La vitrina es nocturna por diseno (negro + violeta). Sin el candado, un
-  // visitante con tema claro veia la cartelera como una tarjeta negra sobre
-  // blanco: el tema del sistema no aplica a una pantalla publica de marca.
-  useEffect(() => forceDarkOnce(), []);
+  // La vitrina no bloquea el tema: su capa es papel claro (enty-fan.css) y la
+  // tipografía/acentos se mantienen iguales en claro y oscuro.
+  const searchRef = useRef(null);
 
   useEffect(() => setFavs(readFavs()), []);
+
+  // Explorar nace con el buscador listo: la pestaña existe para buscar, no
+  // para mirar una portada. Solo con puntero fino: en móvil el teclado tapa
+  // medio catálogo y el foco automático empuja el layout.
+  useEffect(() => {
+    if (!explorar) return;
+    if (window.matchMedia?.("(hover: hover) and (pointer: fine)").matches) {
+      searchRef.current?.focus();
+    }
+  }, [explorar]);
 
   // Pista de scroll de las categorias: `data-scrolled="end"` apaga el degradado
   // cuando la fila ya se desplazo hasta el final (y "start" en reposo).
@@ -511,8 +479,11 @@ export default function HomePage() {
     });
   }, [events, chip, query, city, range]);
 
+  // En modo explorar no hay destacado: la rejilla es el catálogo completo y
+  // el primer evento no se roba el sitio (es lo que diferencia la pestaña
+  // "Explorar" de "Inicio", que sí es una portada editorial).
   const featured = filtered[0] ?? null;
-  const rest = filtered.slice(1);
+  const rest = explorar ? filtered : filtered.slice(1);
   // Hay un filtro puesto (texto, categoria, fecha o ciudad): cambia el mensaje
   // del vacio y el boton que lo deshace.
   const narrowed = Boolean(query.trim()) || cat !== "todos" || range !== "todos" || Boolean(city);
@@ -588,8 +559,11 @@ export default function HomePage() {
           </TransitionLink>
           {/* Nav de escritorio: en móvil vive la barra inferior (FanNav). */}
           <nav className="home-topnav" aria-label="Secciones">
-            <TransitionLink to="/inicio" aria-current="page">
+            <TransitionLink to="/inicio" aria-current={explorar ? undefined : "page"}>
               Inicio
+            </TransitionLink>
+            <TransitionLink to="/explorar" aria-current={explorar ? "page" : undefined}>
+              Explorar
             </TransitionLink>
             <TransitionLink to="/boletas">Mis boletos</TransitionLink>
             {/* El staff necesita una entrada visible al panel: en movil la da
@@ -646,7 +620,9 @@ export default function HomePage() {
               ? "Cartelera no disponible"
               : filtered.length === 0
                 ? "Sin resultados en la cartelera"
-                : "Cartelera de eventos"}
+                : explorar
+                  ? "Explorar eventos"
+                  : "Cartelera de eventos"}
           </h1>
           {!error && data && filtered.length > 0 && (
             <p className="home-hero-count">
@@ -663,6 +639,7 @@ export default function HomePage() {
             <path d="M20 20l-3.5-3.5" />
           </svg>
           <input
+            ref={searchRef}
             type="search"
             value={query}
             onChange={(ev) => setQuery(ev.target.value)}
@@ -799,9 +776,13 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="home-grid">
+            {!explorar && (
             <TransitionLink to={`/evento/${featured.id}`} className="home-feature">
               {/* El flyer del destacado es el LCP de la vitrina: se pide ya y con
                   prioridad alta en vez de competir con el resto de la página. */}
+              {/* Sin flyer el cartel se tiñe con el violeta de la casa (CSS):
+                  antes eran trazos neón verde/rosa del lienzo nocturno, que
+                  sobre papel se leían como ruido. */}
               {featured.flyer_url ? (
                 <img
                   className="home-feature-flyer transition-opacity duration-300"
@@ -811,9 +792,7 @@ export default function HomePage() {
                   fetchPriority="high"
                   decoding="async"
                 />
-              ) : (
-                <NeonStrokes />
-              )}
+              ) : null}
               {/* El anillo de aforo solo se pinta cuando el % ya es una señal
                   ("casi lleno"). Con el aforo bajo, "1% VENDIDO" ocupaba el
                   sitio más visible del hero sin informar nada. */}
@@ -851,18 +830,19 @@ export default function HomePage() {
                 </div>
               </div>
             </TransitionLink>
-
+            )}
 
             {/* El troquel: la línea perforada de la boletería separa el
-                destacado de la lista — el mismo corte que la entrada. */}
-            <span className="enty-perf" aria-hidden="true" />
+                destacado de la lista — el mismo corte que la entrada. Solo
+                cuando hay destacado que separar. */}
+            {!explorar && <span className="enty-perf" aria-hidden="true" />}
 
             {/* "Próximos" solo cuando HAY lista. Con un único evento el hero
                 ES toda la cartelera y el encabezado quedaba colgando sobre un
                 `.home-list` de 0px: la página prometía una lista inexistente. */}
             {rest.length > 0 && (
               <div className="home-subhead">
-                <span>Próximos</span>
+                <span>{explorar ? "Todos los eventos" : "Próximos"}</span>
                 <TransitionLink to="/boletas">Mis boletos</TransitionLink>
               </div>
             )}
@@ -884,16 +864,24 @@ export default function HomePage() {
                           />
                         ) : (
                           <span className="home-row-thumb-date">
+                            <em className="home-row-thumb-wd">{b.wd}</em>
                             <b>{b.day}</b>
                             <i>{b.month}</i>
                           </span>
                         )}
                       </span>
+                      {/* El precio va DENTRO de la información: como columna
+                          propia se comía ~60px de la fila y en móvil el nombre
+                          del evento se cortaba a 13 caracteres. En la tarjeta
+                          de escritorio el resultado es el mismo (todo apilado). */}
                       <span className="home-row-info">
                         <strong>{e.name}</strong>
-                        <em>{shortDate(e.starts_at, e.timezone)} · {e.where}</em>
+                        <em>
+                          <span className="home-row-when">{shortDate(e.starts_at, e.timezone)} · </span>
+                          {timeLabel(e.starts_at, e.timezone)} · {e.where}
+                        </em>
+                        <span className="home-row-price">{priceLabel(e.price_cents)}</span>
                       </span>
-                      <span className="home-row-price">{priceLabel(e.price_cents)}</span>
                     </TransitionLink>
                     <button
                       type="button"
@@ -924,7 +912,7 @@ export default function HomePage() {
         </nav>
       </footer>
 
-      <FanNav active="inicio" />
+      <FanNav active={explorar ? "explorar" : "inicio"} />
     </div>
   );
 }
