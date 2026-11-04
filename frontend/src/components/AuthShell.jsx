@@ -38,17 +38,30 @@ function Benefit({ children }) {
   );
 }
 
-export function AuthShell({ children, minimal = false }) {
+export function AuthShell({ children, minimal = false, tone = "dark" }) {
   // Variante mínima: solo la tarjeta del formulario, centrada, sobre el fondo
   // en movimiento. Sin panel de marca, sin cabecera compacta, sin pie legal.
   // La usa /login, donde un visitante solo viene a entrar.
+  //
+  // `tone="light"` es la variante que comparte el lenguaje de la portada
+  // pública: lienzo claro cálido y tarjeta de papel. Ahí no se pinta el video
+  // ni la aurora nocturna — no son atmósfera sobre papel, son otra pantalla.
   if (minimal) {
+    const light = tone === "light";
     return (
-      <div className="auth-shell auth-shell--minimal">
-        {/* El video va encima del fondo CSS; si no carga o el usuario pide
-            menos movimiento, el CSS (LoginAurora) queda de respaldo. */}
-        <LoginAurora />
-        <LoginVideo />
+      <div
+        className={`auth-shell auth-shell--minimal${light ? " auth-shell--light" : ""}`}
+      >
+        {light ? (
+          <span className="auth-light-wash" aria-hidden="true" />
+        ) : (
+          <>
+            {/* El video va encima del fondo CSS; si no carga o el usuario pide
+                menos movimiento, el CSS (LoginAurora) queda de respaldo. */}
+            <LoginAurora />
+            <LoginVideo />
+          </>
+        )}
         <main className="auth-panel">
           <div className="auth-panel-inner">{children}</div>
         </main>

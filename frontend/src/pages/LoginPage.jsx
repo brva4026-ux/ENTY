@@ -132,25 +132,24 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell minimal>
-      {/* El video y la aurora ya viven en AuthShell; aquí solo va el
-          formulario sobre el lienzo. */}
+    <AuthShell minimal tone="light">
+      {/* El lienzo claro y la tarjeta son los mismos de la portada pública;
+          aquí solo vive el formulario. */}
       <div className="auth-login-flow">
         {/* Marca: la variante mínima no trae panel de marca, así que el
-            logo y el lema encabezan la columna del formulario. */}
-        <div className="auth-compact">
-          <Logo size="hero" />
-          <p className="hand auth-compact-lema">la lista de la puerta, resuelta</p>
+            logotipo y la etiqueta encabezan la columna del formulario. */}
+        <div className="auth-login-brand">
+          <Logo size="lg" />
+          <p className="auth-login-tag">Boletería, aforo y control de puerta</p>
         </div>
 
         <div className="auth-card auth-card-enter">
-          <p className="eyebrow mb-2">Acceso al panel</p>
-          <h1 className="display text-3xl leading-tight">Iniciar sesión</h1>
-          <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+          <h1 className="auth-login-title">Iniciar sesión</h1>
+          <p className="auth-login-sub">
             Entra con tu usuario o correo para continuar.
           </p>
 
-          <form onSubmit={submit} noValidate className="mt-6">
+          <form onSubmit={submit} noValidate className="auth-login-form">
             <label htmlFor="login-email" className="auth-label">
               Usuario o correo
             </label>
@@ -196,7 +195,7 @@ export default function LoginPage() {
             <label htmlFor="login-password" className="auth-label auth-label--gap">
               Contraseña
             </label>
-            <div className="auth-field auth-field--md">
+            <div className="auth-field auth-field--md auth-field--reveal">
               <LockIcon className="auth-field-icon" />
               <input
                 id="login-password"

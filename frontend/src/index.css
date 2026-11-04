@@ -7342,3 +7342,240 @@ html[data-motion="reduce"] .welcome-bar-fill {
 html[data-motion="reduce"] .welcome-bar-fill.is-complete {
   animation: none;
 }
+
+/* ===========================================================================
+   ENTRADA CLARA (login · tone="light")
+
+   La portada pública pasó a papel cálido; el login no puede seguir siendo una
+   tarjeta nocturna con video, o son dos productos distintos. Esta capa hace
+   que /login hable el mismo idioma que la landing: mismo lienzo, misma
+   tarjeta blanca con hairline, mismo violeta de acción, mismos radios.
+
+   Todo va espejado bajo `.auth-shell--light` / `.auth-login-flow`: el registro
+   y el resto de la entrada conservan su capa nocturna sin cambios.
+   =========================================================================== */
+
+/* El lienzo: gris cálido muy claro, igual que la portada. Se repite la
+   condición `html` para ganarle por orden a las reglas de tema que fijan el
+   fondo de la variante mínima. */
+html .auth-shell--minimal.auth-shell--light {
+  background: var(--e-neutral-150);
+}
+
+/* La única luz: el mismo lavado violeta tenue del hero de la portada. */
+.auth-light-wash {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 30rem;
+  pointer-events: none;
+  background: radial-gradient(
+    52rem 24rem at 50% -10rem,
+    color-mix(in srgb, var(--e-violet-400) 14%, transparent),
+    transparent 70%
+  );
+}
+
+/* Marca centrada sobre la tarjeta (visible también en escritorio: la variante
+   compacta se ocultaba a partir de 1024px y el desktop se quedaba sin logo). */
+.auth-login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+/* El wordmark vive en tinta clara cuando el tema es oscuro; sobre este papel
+   quedaría invisible. Se fija la tinta de marca en el mismo tono del titular. */
+.auth-shell--light .brand-shine {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+  color: var(--e-neutral-950);
+  animation: none;
+}
+
+.auth-login-tag {
+  margin: 0;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--e-neutral-300);
+  background: var(--e-white);
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--e-neutral-600);
+}
+
+/* La tarjeta: papel blanco, radio 20px, hairline y sombra de contacto en
+   violeta. Antes no tenía padding propio y el contenido nacía pegado al borde
+   (el eyebrow se cortaba arriba). */
+.auth-login-flow .auth-card {
+  padding: 2rem 1.75rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--e-neutral-300);
+  background: var(--e-white);
+  box-shadow: 0 18px 40px -30px var(--e-violet-600);
+}
+
+.auth-login-title {
+  margin: 0;
+  font-family: var(--e-font-sans);
+  font-size: clamp(1.6rem, 4.2vw, 2rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--e-neutral-950);
+}
+
+.auth-login-sub {
+  margin: 0.5rem 0 0;
+  font-size: var(--e-text-2xs);
+  line-height: 1.55;
+  color: var(--e-neutral-600);
+}
+
+.auth-login-form {
+  margin-top: 1.5rem;
+}
+
+/* Etiquetas: pequeñas, en negrita y en gris azulado oscuro. */
+.auth-login-flow .auth-label {
+  color: var(--e-neutral-800);
+  font-weight: 600;
+}
+
+/* El envoltorio es el sistema de coordenadas de los iconos. Sin `relative`
+   el candado y el ojo se posicionaban contra la tarjeta (el candado caía
+   fuera del campo, abajo a la izquierda). */
+.auth-login-flow .auth-field {
+  position: relative;
+}
+
+/* Campos: blanco, borde fino, radio 13px y foco con anillo violeta. */
+.auth-login-flow .auth-field .field {
+  border-radius: 0.8125rem;
+  border-color: var(--e-neutral-300);
+  background-color: var(--e-neutral-60);
+  color: var(--e-neutral-900);
+  min-height: 2.9rem;
+  padding: 0.7rem 0.85rem;
+}
+.auth-login-flow .auth-field .field::placeholder {
+  color: var(--e-neutral-500);
+}
+/* El shorthand de arriba resetea padding-left: sin esto el texto arrancaba
+   debajo del icono (el bug que la hoja ya documentaba con .field). Necesita
+   las cuatro clases para ganarle al shorthand por especificidad. */
+.auth-login-flow .auth-field .field.auth-field-has-icon {
+  padding-left: 2.6rem;
+}
+
+/* El campo de la contraseña reserva el ancho del ojo para que el texto no
+   pase por debajo del botón (`--reveal` vive en el envoltorio, por eso la
+   cadena llega hasta el input). */
+.auth-login-flow .auth-field--reveal .field.auth-field-has-icon {
+  padding-right: 2.75rem;
+}
+.auth-login-flow .auth-field .field:hover {
+  border-color: var(--e-neutral-400);
+}
+.auth-login-flow .auth-field .field:focus {
+  border-color: var(--e-violet-500);
+  background-color: var(--e-white);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
+}
+.auth-login-flow .auth-field-icon {
+  color: var(--e-neutral-500);
+}
+.auth-login-flow .auth-field:focus-within .auth-field-icon {
+  color: var(--e-violet-500);
+}
+
+/* Ojo de la contraseña: mismo gris, sin caja, con área táctil de 44px. */
+.auth-login-flow .auth-eye {
+  color: var(--e-neutral-500);
+}
+.auth-login-flow .auth-eye:hover {
+  color: var(--e-neutral-900);
+  background: var(--e-neutral-100);
+}
+.auth-login-flow .auth-field:focus-within .auth-eye {
+  color: var(--e-neutral-700);
+}
+
+/* Avisos: sobre papel el gris tiene que subir de tono para leerse. */
+.auth-login-flow .auth-hint--soft {
+  color: var(--e-neutral-600);
+}
+.auth-login-flow .auth-hint--warn {
+  color: var(--e-amber-700);
+}
+.auth-login-flow .auth-hint--error {
+  color: var(--e-red-700);
+}
+
+/* Recordarme: casilla de papel con el check en blanco sobre violeta. */
+.auth-login-flow .auth-checkbox {
+  border-color: var(--e-neutral-400);
+  background: var(--e-white);
+}
+.auth-login-flow .auth-checkbox:checked {
+  background: var(--e-violet-500);
+  border-color: var(--e-violet-500);
+}
+.auth-login-flow .auth-row-label {
+  color: var(--e-neutral-600);
+}
+
+/* CTA: el mismo violeta sólido y la misma píldora que "Explorar ENTY". */
+.auth-login-flow .btn-primary {
+  border-radius: 999px;
+  border: 0;
+  background: var(--e-violet-500);
+  color: var(--e-white);
+  min-height: 3rem;
+  font-weight: 600;
+  box-shadow: 0 10px 22px -14px var(--e-violet-600);
+}
+.auth-login-flow .btn-primary:hover {
+  background: var(--e-violet-600);
+}
+.auth-login-flow .btn-primary:focus-visible {
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.28),
+    0 10px 22px -14px var(--e-violet-600);
+}
+
+/* Pie: hairline claro, contacto en píldora de papel y confianza en gris. */
+.auth-login-flow .auth-foot {
+  border-top-color: var(--e-neutral-300);
+}
+.auth-login-flow .auth-contact {
+  border-color: var(--e-neutral-300);
+  background: var(--e-neutral-60);
+  color: var(--e-neutral-600);
+}
+.auth-login-flow .auth-contact:hover {
+  border-color: var(--e-neutral-400);
+  background: var(--e-neutral-100);
+  color: var(--e-neutral-900);
+}
+.auth-login-flow .auth-contact-text strong {
+  color: var(--e-violet-600);
+}
+.auth-login-flow .auth-trust {
+  color: var(--e-neutral-550);
+}
+
+/* En móvil la tarjeta ocupa el ancho disponible sin tocar los bordes. */
+@media (max-width: 480px) {
+  .auth-login-flow .auth-card {
+    padding: 1.5rem 1.25rem;
+  }
+  .auth-login-brand {
+    margin-bottom: 1.25rem;
+  }
+}

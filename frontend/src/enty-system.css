@@ -321,10 +321,11 @@ html:not([data-theme="light"]) .app-shell .bottomnav {
 
   /* Controles de texto que no pueden crecer sin romper el renglón: conservan
      su tamaño visual y ganan área táctil con un ::after invisible. */
-  .auth-shell [aria-label="Mostrar contraseña"],
-  .auth-shell [aria-label="Ocultar contraseña"] {
-    position: relative;
-  }
+  /* El ojo de la contraseña NO se reposiciona aquí: `.auth-eye` ya es
+     `position: absolute` y sobrescribirlo con `relative` lo sacaba del campo
+     (el botón caía fuera y estiraba la tarjeta ~40px en móvil). El área táctil
+     se agranda con el ::after, que hereda el bloque contenedor del propio
+     botón. */
   .auth-shell [aria-label="Mostrar contraseña"]::after,
   .auth-shell [aria-label="Ocultar contraseña"]::after {
     content: "";

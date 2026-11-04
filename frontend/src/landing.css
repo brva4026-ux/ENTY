@@ -90,6 +90,17 @@
   animation: lp-rise var(--e-dur-slow) var(--e-ease-expo) both;
 }
 
+/* El wordmark se pinta con tinta clara en tema oscuro; sobre el papel de la
+   portada quedaría invisible. Se fija la tinta de marca. */
+.lp .brand-shine {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+  color: var(--e-neutral-950);
+  animation: none;
+}
+
 .lp-brand-tag {
   margin: 0;
   padding: 0.4rem 0.9rem;
