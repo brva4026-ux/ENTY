@@ -14,7 +14,7 @@ body {
 }
 
 ::selection {
-  background: rgba(187, 92, 246, 0.48);
+  background: var(--e-violet-500);
   color: var(--e-white);
 }
 
