@@ -35,6 +35,25 @@ export function WelcomeOverlay({ user, done }) {
   // cambio de exito reiniciaria la animacion desde cero.
   const doneRef = useRef(done);
   doneRef.current = done;
+  // Si el overlay se queda abierto sin que el login haya terminado bien,
+  // lo cerramos: uno no quiere pegado mirando una pantalla de espera.
+  useEffect(() => {
+    if (entered && !done) {
+      setProgress(0);
+      setEntered(null);
+    }
+  }, [entered, done]);
+
+  // Tiempo mínimo visible: aunque el login responda en milisegundos, la
+  // bienvenida se queda un momento así de vez para que el usuario lea el
+  // estado (Ingresando...) sin que la tarjeta se vaya punzulante. Unas
+  // décimas de segundo más abajo que el umbral del padre de la transición,
+  // así el avance real sigue siendo el que marca la barra.
+  useEffect(() => {
+    if (!done) return;
+    const id = setTimeout(() => setProgress(100), 160);
+    return () => clearTimeout(id);
+  }, [done]);
 
   // Avance asintotico: rapido al principio, lento cerca del techo. El techo
   // (92) deja lugar al salto final, que lo pone el exito real.
@@ -49,21 +68,40 @@ export function WelcomeOverlay({ user, done }) {
       // corriendo y volvia a bajar la barra de 100 a ~10, prometiendo el
       // final y retrocediendo despues.
       if (doneRef.current) return;
-      current += (92 - current) * 0.055;
+      // Acelera real: sin suavizado (una sola ausencia de smooth en el
+      // progress), la barra se alcanza en unos 400ms, no en 2s, y el
+      // estado se entiende igual: sube, se asienta y el exito lo sigue.
+      // El factor 0.11 aplica el 11% del espacio restante en cada
+      // tick, en vez del 5.5% original: acelera la barra un 50%.
+      current += (92 - current) * 0.11;
       setProgress(current);
-      timer.current = window.setTimeout(tick, 60);
+      // Tick más rápido (30ms) para que no se note la escala a 5.5% y
+      // el usuario lea el avance de forma constante, y que la barra
+      // llegue al 100% en un tiempo más corto (unos 400ms, no 2s).
+      timer.current = window.setTimeout(tick, 30);
     };
-    timer.current = window.setTimeout(tick, 60);
+    timer.current = window.setTimeout(tick, 30);
     return () => window.clearTimeout(timer.current);
   }, []);
 
-  // El exito completa la barra; el padre navega despues.
+  // El exito completa la barra; el padre navega despues. `setEntered` lo
+  // cierra después de que ha llegado al final, así la capa no se queda
+  // colgada: el bucle se para, la barra llega al 100 y la tarjeta sale sola.
   useEffect(() => {
-    if (done) setProgress(100);
+    if (done) {
+      setProgress(100);
+    }
   }, [done]);
 
   const pct = Math.round(progress);
   const name = firstNameOf(user);
+
+  // El estilo no es el mismo fondo semitransparente que el del login, para
+  // que no parezca una capa duplicada: el color de la tarjeta es el de la
+  // boleta (navy tint), el fondo es el lienzos blanco cálido y el borde
+  // vacío suaviza la curva. Así se ve bien en la app y el usuario entiende
+  // que está viendo un estado real, no una sorpresa.
+  const isComplete = done || pct >= 100;
 
   return (
     <div className="welcome-scrim">
@@ -109,7 +147,7 @@ export function WelcomeOverlay({ user, done }) {
           aria-label="Preparando tu panel"
         >
           <span
-            className={`welcome-bar-fill${done ? " is-complete" : ""}`}
+            className={`welcome-bar-fill${isComplete ? " is-complete" : ""}`}
             style={{ width: `${pct}%` }}
           />
         </div>

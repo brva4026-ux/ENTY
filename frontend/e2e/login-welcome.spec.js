@@ -28,7 +28,7 @@ async function available(page, path) {
 
 /** Rellena el formulario y pulsa Entrar, sin esperar la navegacion. */
 async function submitLogin(page, ident, password = DEMO_PASSWORD) {
-  await page.getByPlaceholder(/negocio/i).fill(ident);
+  await page.getByPlaceholder(/usuario o tu@/i).fill(ident);
   await page.getByPlaceholder(/contraseña/i).fill(password);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
 }

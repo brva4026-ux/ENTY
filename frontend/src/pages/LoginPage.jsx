@@ -71,6 +71,11 @@ export default function LoginPage() {
   // salió bien. Sin esto, el corte al panel era tan seco que la persona no
   // sabía si su click había registrado.
   const [ok, setOk] = useState(false);
+  // `final` se pone en true en el éxito (con acceso) o en el error. Mientras
+  // no llegue a ninguno, el spinner del botón sigue sumando y la tarjeta de
+  // bienvenida puede seguir mostrando la espera. Con `busy` basta para
+  // evitar que el mismo submit se lanze dos veces: React guarda la ultima
+  // promesa y el botón se queda en estado real, no hace dos click a la vez.
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   // Tick fuerza el re-render cuando el MISMO mensaje de error se repite
@@ -131,6 +136,15 @@ export default function LoginPage() {
     }
   }
 
+  // Si por cualquier motivo la pantalla de bienvenida se queda abierta sin
+  // que el login haya terminado con éxito, la cerramos para no dejar al
+  // usuario pegado mirando una pantalla que no cambia.
+  useEffect(() => {
+    if (entered && !ok) {
+      setEntered(null);
+    }
+  }, [entered, ok]);
+
   return (
     <AuthShell minimal tone="light">
       {/* El lienzo claro y la tarjeta son los mismos de la portada pública;
@@ -175,7 +189,7 @@ export default function LoginPage() {
                     setEmailError("");
                   }
                 }}
-                placeholder="usuario o tu@negocio.com"
+                placeholder="usuario o tu@"
                 className="field auth-field-has-icon"
                 inputMode="email"
                 enterKeyHint="next"

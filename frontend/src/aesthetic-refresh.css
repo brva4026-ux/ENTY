@@ -2449,6 +2449,26 @@ html[data-theme="light"] .app-shell {
   background-repeat: no-repeat;
 }
 
+/* Encuadre nocturno: tres luces de marca en las esquinas del viewport,
+   ancladas (background-attachment: fixed) para que enmarquen SIEMPRE la
+   vista y no el documento. Es atmósfera, nunca compite con el contenido ni
+   intercepta el puntero. */
+html:not([data-theme="light"]) .app-shell {
+  background-image:
+    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.16), transparent 62%),
+    radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.07), transparent 62%),
+    radial-gradient(34rem 26rem at 108% 96%, rgba(255, 45, 152, 0.06), transparent 62%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+html[data-theme="light"] .app-shell {
+  background-image:
+    radial-gradient(52rem 34rem at 104% -10%, rgba(124, 58, 237, 0.06), transparent 62%),
+    radial-gradient(40rem 28rem at -10% 24%, rgba(0, 230, 171, 0.05), transparent 62%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
 /* Titulares con más peso óptico y tracking cerrado: la voz editorial de la
    casa. El cuerpo queda liviano para que la jerarquía la haga el CONTRASTE
    de peso, no más tamaño ni más color. */
@@ -2456,6 +2476,14 @@ html[data-theme="light"] .app-shell {
 .app-shell .vh-nombre-titulo {
   font-weight: 650;
   letter-spacing: -0.02em;
+}
+
+/* El bluebot: su dedo apunta a la puerta mientras el aforo baja.
+   No se hace más grande por efecto, solo lo suficiente como para
+   mantener el 12px entre el dedo y el borde del componente. */
+.app-shell .bluebot-pose {
+  transform-box: fill-box;
+  transform-origin: 40% 35%;
 }
 
 /* Superficies: el card de la casa es cristal sobre el negro mate — un solo
@@ -2504,10 +2532,34 @@ html:not([data-theme="light"]) .app-shell .venue-header {
   );
 }
 
+/* --- Barra de búsqueda del promotor --------------------------------- */
+.app-shell .search-query {
+  border-radius: var(--e-radius-md);
+  border-color: var(--e-border-hairline);
+  background: var(--e-surface);
+  color: var(--e-text-primary);
+  padding: 0.8rem 1rem;
+}
+.app-shell .search-query:focus {
+  border-color: var(--e-violet-400);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
+}
+
 /* --- Hero del promotor: su taquilla ----------------------------------- */
 html:not([data-theme="light"]) .app-shell .promo-hero {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+/* El bluebot: su dedo apunta a la puerta mientras el aforo baja.
+   No se hace más grande por efecto, solo lo suficiente como para
+   mantener el 12px entre el dedo y el borde del componente. */
+.app-shell .bluebot-pose {
+  transform-box: fill-box;
+  transform-origin: 40% 35%;
+}  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;

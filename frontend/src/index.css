@@ -7245,7 +7245,7 @@ html[data-theme="light"] .legal-doc code {
 
 .welcome-bar {
   width: 100%;
-  max-width: 17.125rem; /* ~274px */
+  max-width: 11.25rem; /* ~180px: pista por debajo del estado, no una barra global. */
   height: 4px;
   border-radius: 999px;
   overflow: hidden;
@@ -7257,16 +7257,48 @@ html[data-theme="light"] .legal-doc code {
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    var(--e-violet-500),
+    var(--e-violet-600),
     var(--e-violet-400)
   );
-  /* Suaviza el avance asintotico (la barra que sube mientras el login corre,
-     cuando el overlay se monta ANTES de que resuelva). El salto final a 100
-     no usa esto: lo anima `.is-complete` (ver keyframes), porque ahi el ancho
-     llega ya resuelto y una transicion seria una carrera. */
-  transition: width 200ms linear;
+  /* La barra REAL no llena con un keyframe: el JSX actualiza el ancho cada
+     tick desde el bucle asintotico del WelcomeOverlay, y aquí solo se aplica
+     la transicion. El resultado es una curva que se acelera al inicio y se
+     asienta al llegar, igual que la tarjeta, y no el keyframe lineal de
+     1000ms que antes hacía que la barra pareciera una carrera plana.
+     `ease-out` sin `both`: se resuelve siempre desde el ancho anterior del
+     estado hasta el que este pone, por lo que el usuario ve la barra crecer
+     en curva continua, sin un segundo relleno estatico.
+     `is-complete` fuerza la barra a 100% cuando el login termina bien, y el
+     check lo confirma con un pop opcional. */
+  transition: width 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.welcome-bar-fill.is-complete {
+  width: 100%;
+  animation: none;
+}
+
+@keyframes welcome-bar-fill {
+  /* Este keyframe deja de ser la regla principal de llenado y se queda solo
+     como el ancla del estado `is-complete` (ver siguiente bloque): el overlay
+     se monta con el login ya resuelto, React aplica width:100% en el primer
+     render y una transicion depende de que el navegador alcance a pintar el
+     0 antes (carrera que en local se ganaba y en produccion se perdia: la
+     barra salia llena de golpe). El keyframe `from` sobreescribe ese 100%
+     inline y se reproduce siempre, sin carrera, y el ancho final que el
+     estado manda (`is-complete`) se aplica despues con una transicion
+     suave. `linear` y no un ease-out: las curvas del sistema (expo/standard)
+     llegan al 90% en la primera mitad, asi que la barra se llenaba en ~500ms
+     y quedaba quieta el resto. Lineal reparte el avance en los 1000ms
+     completos, que es lo que la hace leerse llenandose; el margen de
+     LoginPage la acompaña. */
+  from {
+    width: 0;
+  }
+}
+.welcome-bar-fill.is-complete {
+  animation: welcome-bar-fill 1000ms linear both;
+}
 @keyframes welcome-scrim-in {
   from {
     opacity: 0;
@@ -7362,6 +7394,14 @@ html .auth-shell--minimal.auth-shell--light {
   background: var(--e-neutral-150);
 }
 
+/* Los elementos del login en estado claro heredan la noche únicamente
+   cuando el shell es todo oscuro. El tag y el texto del panel no pueden
+   estar trazados sobre el navy del brand (ver diagnosticado en estetica-plan.md). */
+.auth-shell--dark .auth-login-tag {
+  color: var(--e-neutral-600);
+  border-color: var(--e-neutral-300);
+}
+
 /* La única luz: el mismo lavado violeta tenue del hero de la portada. */
 .auth-light-wash {
   position: absolute;
@@ -7381,10 +7421,31 @@ html .auth-shell--minimal.auth-shell--light {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
   text-align: center;
 }
+
+/* Sticker de rol: la tarjeta pequeña que dice qué es el panel, ahora con la
+   tipografía que toca y la misma caja que el tag. */
+.auth-login-brand .auth-role-sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--e-violet-300);
+  background: var(--e-violet-50);
+  font-family: var(--e-font-mono);
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--e-violet-700);
+}
+
+/* Pendiente de implementar: botón de cerrar sesión dentro del panel de
+   la tienda (destino de la navegación de este mismo menú). No se crea aquí
+   porque todavía no existe el panel: se añadirá en la siguiente entrega. */
 
 /* El wordmark vive en tinta clara cuando el tema es oscuro; sobre este papel
    quedaría invisible. Se fija la tinta de marca en el mismo tono del titular. */
@@ -7425,9 +7486,23 @@ html .auth-shell--minimal.auth-shell--light {
   font-family: var(--e-font-sans);
   font-size: clamp(1.6rem, 4.2vw, 2rem);
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.12;
   letter-spacing: -0.03em;
   color: var(--e-neutral-950);
+}
+
+/* Mantiene la respiración del guerra, no atrapa al hermano y nunca se
+   desborda de la tarjeta. */
+.auth-login-sub {
+  margin: 0.5rem 0 0;
+  font-size: var(--e-text-2xs);
+  line-height: 1.55;
+  color: var(--e-neutral-600);
+}
+
+/* El formulario: mantiene la separación, no empuja el botón al borde. */
+.auth-login-form {
+  margin-top: 1.5rem;
 }
 
 .auth-login-sub {
@@ -7447,11 +7522,37 @@ html .auth-shell--minimal.auth-shell--light {
   font-weight: 600;
 }
 
+/* Las pestañas del panel de la tienda, en el mismo idioma tipográfico que
+   el login: sans serif con un toque de entrada de sistema. */
+.auth-shell--dark .app-tabs .app-tab {
+  color: var(--e-neutral-700);
+  font-weight: 600;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: var(--e-font-sans);
+}
+
 /* El envoltorio es el sistema de coordenadas de los iconos. Sin `relative`
    el candado y el ojo se posicionaban contra la tarjeta (el candado caía
    fuera del campo, abajo a la izquierda). */
 .auth-login-flow .auth-field {
   position: relative;
+}
+
+/* Campo del formulario: misma altura que el de la tienda, mismo radios y
+   mismo foco. Alineado por baseline, no por margen; un formulario no se
+   ajusta a otro, se los da la misma caja. */
+.auth-login-flow .auth-field .field {
+  border-radius: 0.8125rem;
+  border-color: var(--e-neutral-300);
+  background-color: var(--e-neutral-60);
+  color: var(--e-neutral-900);
+  min-height: 2.9rem;
+  padding: 0.7rem 0.85rem;
+}
+.auth-login-flow .auth-field .field::placeholder {
+  color: var(--e-neutral-500);
 }
 
 /* Campos: blanco, borde fino, radio 13px y foco con anillo violeta. */
@@ -7487,6 +7588,25 @@ html .auth-shell--minimal.auth-shell--light {
   background-color: var(--e-white);
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
 }
+
+/* Botón de acción dentro del formulario, mismo peso que el de la tienda. */
+.auth-login-flow .btn-primary {
+  border-radius: 999px;
+  border: 0;
+  background: var(--e-violet-500);
+  color: var(--e-white);
+  min-height: 3rem;
+  font-weight: 600;
+  box-shadow: 0 10px 22px -14px var(--e-violet-600);
+}
+.auth-login-flow .btn-primary:hover {
+  background: var(--e-violet-600);
+}
+.auth-login-flow .btn-primary:focus-visible {
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.28),
+    0 10px 22px -14px var(--e-violet-600);
+}
 .auth-login-flow .auth-field-icon {
   color: var(--e-neutral-500);
 }
@@ -7515,6 +7635,18 @@ html .auth-shell--minimal.auth-shell--light {
 }
 .auth-login-flow .auth-hint--error {
   color: var(--e-red-700);
+}
+
+/* Ojo de la contraseña: mismo gris, sin caja, con área táctil de 44px. */
+.auth-login-flow .auth-eye {
+  color: var(--e-neutral-500);
+}
+.auth-login-flow .auth-eye:hover {
+  color: var(--e-neutral-900);
+  background: var(--e-neutral-100);
+}
+.auth-login-flow .auth-field:focus-within .auth-eye {
+  color: var(--e-neutral-700);
 }
 
 /* Recordarme: casilla de papel con el check en blanco sobre violeta. */
@@ -7568,6 +7700,12 @@ html .auth-shell--minimal.auth-shell--light {
 }
 .auth-login-flow .auth-trust {
   color: var(--e-neutral-550);
+}
+
+/* Espaciado final del.login: la tarjeta se queda con un margen pq el
+   fondo del shell sigue aquí. */
+.auth-login-flow + * {
+  margin-top: 1rem;
 }
 
 /* En móvil la tarjeta ocupa el ancho disponible sin tocar los bordes. */
