@@ -8,6 +8,7 @@ import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
+import { Skeleton } from "../components/Skeleton";
 
 /**
  * Detalle del evento — la pantalla de decision de compra (mockup "2").
@@ -120,6 +121,9 @@ export default function EventDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  // 404 no se reintenta (el evento no existe); un 500 o un corte de red sí.
+  const [missing, setMissing] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState("descripcion");
   const evdTabs = useTabKeys({
     ids: ["descripcion", "lineup", "ubicacion"],
@@ -185,17 +189,20 @@ export default function EventDetailPage() {
     let alive = true;
     setData(null);
     setError("");
+    setMissing(false);
     fetchPublicEventDetail(id)
       .then((d) => {
         if (alive) setData(d);
       })
       .catch((e) => {
-        if (alive) setError(e.status === 404 ? "Este evento ya no está disponible." : e.message);
+        if (!alive) return;
+        setMissing(e.status === 404);
+        setError(e.status === 404 ? "Este evento ya no está disponible." : e.message);
       });
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, attempt]);
 
   useEffect(() => {
     if (data) setFav(readFavs().has(Number(data.id)));
@@ -313,11 +320,48 @@ export default function EventDetailPage() {
       {error ? (
         <div className="evd-empty">
           <p>{error}</p>
-          <TransitionLink to="/inicio" className="evd-cta">Volver al inicio</TransitionLink>
+          {/* Un corte de red se arregla reintentando; un evento borrado, no.
+              Antes el único botón era "Volver al inicio" en los dos casos. */}
+          {missing ? (
+            <TransitionLink to="/inicio" className="evd-cta">
+              Volver al inicio
+            </TransitionLink>
+          ) : (
+            <button
+              type="button"
+              className="evd-cta"
+              onClick={() => setAttempt((a) => a + 1)}
+            >
+              Reintentar
+            </button>
+          )}
         </div>
       ) : !data ? (
-        <div className="evd-empty">
-          <p>Cargando…</p>
+        /* Esqueleto con el alto real de la ficha: antes era un "Cargando…"
+           corto y, al llegar los datos, el cartel y el rail de compra
+           empujaban toda la página (salto de layout en móvil). */
+        <div className="evd-body" aria-busy="true">
+          <p className="sr-only" role="status">
+            Cargando el evento…
+          </p>
+          <div className="evd-poster">
+            <div className="evd-poster-frame" />
+          </div>
+          <div className="evd-info">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="mt-4 h-9 w-4/5" />
+            <Skeleton className="mt-3 h-3.5 w-2/5" />
+            <div className="evd-grid">
+              {["fecha", "lugar", "precio"].map((k) => (
+                <div key={k} className="evd-cell">
+                  <Skeleton className="h-5 w-5 rounded-md" />
+                  <Skeleton className="mt-3 h-2.5 w-14" />
+                  <Skeleton className="mt-2 h-4 w-20" />
+                </div>
+              ))}
+            </div>
+            <Skeleton className="mt-6 h-28 w-full rounded-2xl" />
+          </div>
         </div>
       ) : (
         <div className="evd-body">
@@ -367,7 +411,11 @@ export default function EventDetailPage() {
                 <span className="evd-cell-v">
                   {data.price_cents == null ? "Gratis" : money(data.price_cents)}
                 </span>
-                <span className="evd-cell-sub">desde</span>
+                {/* "desde" solo cuando hay precio: en cortesía el valor ya
+                    es "Gratis" y el subtítulo sobraba. */}
+                {data.price_cents != null && (
+                  <span className="evd-cell-sub">desde</span>
+                )}
               </div>
             </div>
 
@@ -375,7 +423,9 @@ export default function EventDetailPage() {
                 repite aquí en grande — la decisión no obliga a scrollear. */}
             <div className="evd-buy enty-notch">
               <div className="evd-buy-row">
-                <span className="evd-buy-label">Entrada desde</span>
+                <span className="evd-buy-label">
+                  {data.price_cents == null ? "Entrada" : "Entrada desde"}
+                </span>
                 <span className="evd-buy-price tnum">
                   {data.price_cents == null ? "Gratis" : money(data.price_cents)}
                 </span>
@@ -433,7 +483,7 @@ export default function EventDetailPage() {
                   id={`evd-tab-${k}`}
                   role="tab"
                   aria-selected={tab === k}
-                  aria-controls={`evd-panel-${k}`}
+                  aria-controls="evd-panel"
                   tabIndex={tab === k ? 0 : -1}
                   onKeyDown={evdTabs.onKeyDown}
                   className={tab === k ? "is-on" : ""}
@@ -447,7 +497,7 @@ export default function EventDetailPage() {
             <div
               className="evd-tabbody"
               role="tabpanel"
-              id={`evd-panel-${tab}`}
+              id="evd-panel"
               aria-labelledby={`evd-tab-${tab}`}
               tabIndex={0}
             >
@@ -509,7 +559,11 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      {copied && <p className="evd-copied">Enlace copiado</p>}
+      {copied && (
+        <p className="evd-copied" role="status">
+          Enlace copiado
+        </p>
+      )}
 
       {(checkoutOpen || payRef) && data && (
         <FanCheckoutModal
