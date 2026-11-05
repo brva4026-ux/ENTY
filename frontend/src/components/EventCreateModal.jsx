@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
 import { eventDate } from "../lib/format";
@@ -128,6 +128,12 @@ function Hint({ children, tone = "zinc" }) {
 export default function EventCreateModal({ venueId, onClose, onCreated }) {
   const { dialogRef, titleId } = useDialogA11y({ onClose });
   const ui = useUI();
+  // El input de archivo vive oculto: quien lo abre es el botón, que sí entra
+  // en el orden de tabulación (un `label` con un input display:none no).
+  const flyerInputRef = useRef(null);
+  // Contenedor del paso montado, para llevar ahí el foco al cambiar de paso.
+  const stepRef = useRef(null);
+  const stepMounted = useRef(false);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(defaultEventForm);
   const [formError, setFormError] = useState("");
@@ -143,6 +149,22 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   const [flyerMode, setFlyerMode] = useState(null);
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+
+  // Al cambiar de paso, el contenido anterior se desmonta. Si el foco estaba
+  // en "Continuar" (o el paso se movió solo porque falló la validación final)
+  // el usuario de teclado aterriza en el body y pierde el hilo. Se lleva al
+  // primer control del paso nuevo; el primer render no cuenta, ahí manda el
+  // foco inicial del diálogo.
+  useEffect(() => {
+    if (!stepMounted.current) {
+      stepMounted.current = true;
+      return;
+    }
+    const first = stepRef.current?.querySelector(
+      "input:not([type='file']), textarea, select, button",
+    );
+    (first ?? stepRef.current)?.focus?.();
+  }, [step]);
   const showFlyer = form.flyer_url && form.flyer_url !== badFlyer;
 
   /** Sube el archivo reducido y guarda su URL /media/{id} en el form. */
@@ -274,14 +296,19 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   return (
     <div
       className="dialog-backdrop fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto p-4 sm:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div ref={dialogRef} className="dialog-panel my-auto max-w-2xl">
+      {/* El role vive en el panel, no en el backdrop: así el elemento que el
+          lector anuncia como diálogo es el mismo que atrapa el foco. */}
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="dialog-panel my-auto max-w-2xl"
+      >
         <span className="dialog-grab" aria-hidden="true" />
 
         {/* ====== Cabecera + pasos ====== */}
@@ -346,7 +373,12 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
         <form onSubmit={createEvent} className="dialog-body">
           {/* ====== Paso 1: qué es y dónde ====== */}
           {step === 0 && (
-            <div key="s0" className="animate-rise grid gap-3.5 sm:grid-cols-2">
+            <div
+              key="s0"
+              ref={stepRef}
+              tabIndex={-1}
+              className="animate-rise grid gap-3.5 focus:outline-none sm:grid-cols-2"
+            >
               <label className="sm:col-span-full">
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
                   Nombre del evento *
@@ -357,7 +389,8 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   placeholder="Noche Electrónica"
                   className="field"
                   maxLength={200}
-                  autoFocus
+                  data-dialog-autofocus
+                  aria-required="true"
                 />
                 <Hint>
                   Es lo primero que ven el promotor y la puerta. Sin tildes
@@ -399,16 +432,27 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   )}
                   {flyerMode === null && !showFlyer && (
                     <div className="flex flex-wrap gap-2">
-                      <label className="btn-ghost !px-3 !py-1.5 cursor-pointer text-2xs font-bold">
+                      <button
+                        type="button"
+                        onClick={() => flyerInputRef.current?.click()}
+                        disabled={uploading}
+                        className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
+                      >
                         {uploading ? "Subiendo…" : "📷 Subir imagen"}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          onChange={(e) => uploadFlyer(e.target.files?.[0])}
-                          disabled={uploading}
-                        />
-                      </label>
+                      </button>
+                      {/* Oculto pero enfocable por script; se limpia para
+                          poder elegir la misma foto dos veces seguidas. */}
+                      <input
+                        ref={flyerInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          uploadFlyer(file);
+                        }}
+                      />
                       <button
                         type="button"
                         onClick={() => setFlyerMode("enlace")}
@@ -481,7 +525,12 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
 
           {/* ====== Paso 2: cuándo y puerta ====== */}
           {step === 1 && (
-            <div key="s1" className="animate-rise grid gap-3.5 sm:grid-cols-2">
+            <div
+              key="s1"
+              ref={stepRef}
+              tabIndex={-1}
+              className="animate-rise grid gap-3.5 focus:outline-none sm:grid-cols-2"
+            >
               <div className="sm:col-span-full">
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
                   ¿Cuándo abre? *
@@ -669,7 +718,12 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
 
           {/* ====== Paso 3: aforo + revisión ====== */}
           {step === 2 && (
-            <div key="s2" className="animate-rise space-y-4">
+            <div
+              key="s2"
+              ref={stepRef}
+              tabIndex={-1}
+              className="animate-rise space-y-4 focus:outline-none"
+            >
               <label>
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
                   Aforo total (personas) *

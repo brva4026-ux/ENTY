@@ -14,6 +14,9 @@
  *   const { dialogRef, titleId } = useDialogA11y({ open, onClose });
  *   <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId}>
  *     <h3 id={titleId}>Título</h3>
+ *
+ * Para que el foco inicial caiga en un campo concreto (y no en la ✕ de
+ * cerrar), se marca ese control con `data-dialog-autofocus`.
  */
 import { useEffect, useId, useRef } from "react";
 
@@ -78,13 +81,22 @@ export function useDialogA11y({ open = true, onClose }) {
     body.style.overflow = "hidden";
     if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
 
-    // Foco inicial: el primer control útil, o el propio diálogo si no hay.
+    // Foco inicial: el control marcado con `data-dialog-autofocus` si existe,
+    // si no el primero útil, y si no hay ninguno el propio diálogo.
+    // El marcador importa: por defecto el primer control es la ✕ de cerrar, y
+    // un formulario quiere el cursor en su primer campo (si no, el usuario
+    // empieza a escribir y 30 ms después el foco salta a "Cerrar").
     const focusTimer = setTimeout(() => {
       if (!node) return;
       const items = Array.from(node.querySelectorAll(FOCUSABLE)).filter(
         (el) => el.offsetParent !== null
       );
-      (items[0] ?? node).focus?.();
+      const marked = node.querySelector("[data-dialog-autofocus]");
+      const target =
+        marked instanceof HTMLElement && marked.offsetParent !== null
+          ? marked
+          : items[0];
+      (target ?? node).focus?.();
     }, 30);
 
     document.addEventListener("keydown", onKeyDown, true);
