@@ -147,13 +147,20 @@ function Dialog({ spec, resolve, onClose }) {
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           {spec.kind !== "alert" && (
-            <button onClick={() => finish(spec.kind === "prompt" ? null : false)} className="btn-ghost text-sm font-semibold">
+            <button
+              onClick={() => finish(spec.kind === "prompt" ? null : false)}
+              data-dialog-autofocus={spec.danger ? true : undefined}
+              className="btn-ghost text-sm font-semibold"
+            >
               {spec.cancelLabel ?? "Cancelar"}
             </button>
           )}
           <button
             id="dialog-primary-btn"
-            data-dialog-autofocus
+            // En una accion destructiva el foco NO arranca aqui: un Enter
+            // reflejo borraba la boleta o cancelaba el evento. Arranca en
+            // Cancelar, que ademas ya es la respuesta a Escape.
+            data-dialog-autofocus={spec.danger ? undefined : true}
             onClick={() => finish(spec.kind === "prompt" ? value : true)}
             className={primaryCls}
           >
