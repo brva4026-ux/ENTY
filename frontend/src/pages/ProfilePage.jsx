@@ -1,11 +1,12 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { ROLE_LABELS, ROLE_VISUALS, topRole } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
+import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
 import PasswordMeter from "../components/PasswordMeter";
 import ThemeChooser from "../components/ThemeChooser";
@@ -114,10 +115,15 @@ export default function ProfilePage() {
   const [nameMsg, setNameMsg] = useState(null);
   const [nameBusy, setNameBusy] = useState(false);
 
-  // Edición del negocio (primer venue donde tiene rol admin)
-  const adminVenue = (user?.venues || []).find((v) =>
-    (user?.roles?.[String(v.id)] || []).includes("admin"),
-  );
+  // Edición del negocio: se edita el negocio ACTIVO si lo administra y, si
+  // no, el primero que administre. Antes era siempre el primero de la lista,
+  // así que el enlace del header (/perfil?tab=negocio) podía abrir un negocio
+  // distinto del que la persona estaba viendo.
+  const isAdminOf = (v) => (user?.roles?.[String(v.id)] || []).includes("admin");
+  const adminVenue =
+    (user?.venues || []).find((v) => v.id === currentVenueId && isAdminOf(v)) ??
+    (user?.venues || []).find(isAdminOf) ??
+    null;
   const [venueName, setVenueName] = useState(adminVenue?.name || "");
   const [venueLogo, setVenueLogo] = useState(adminVenue?.logo_url || "");
   // Color de marca: viaja como #RRGGBB. "" = sin color propio (violeta de Enty).
@@ -179,6 +185,23 @@ export default function ProfilePage() {
       venueContactPhone !== (adminVenue.contact_phone || ""));
   const brandColor = venueColor || BRAND_DEFAULT;
 
+  // El formulario del negocio se recarga al cambiar de negocio activo. Se
+  // dispara por id, no por el objeto: guardar devuelve una venue nueva y no
+  // queremos pisar lo que la persona escribe ni el mensaje de confirmación.
+  const venueFormId = adminVenue?.id ?? null;
+  useEffect(() => {
+    setVenueName(adminVenue?.name || "");
+    setVenueLogo(adminVenue?.logo_url || "");
+    setVenueColor(adminVenue?.primary_color || "");
+    setVenueCommission(
+      adminVenue?.commission_pct != null ? String(adminVenue.commission_pct) : "0",
+    );
+    setVenueContactName(adminVenue?.contact_name || "");
+    setVenueContactPhone(adminVenue?.contact_phone || "");
+    setLogoError("");
+    setVenueMsg(null);
+  }, [venueFormId]);
+
   // El negocio solo aparece como pestaña propia si administra alguno: para el
   // resto era una tarjeta que nunca se pintaba y dejaba un hueco.
   const tabs = useMemo(
@@ -198,10 +221,40 @@ export default function ProfilePage() {
   // se desincronizan la URL y lo que se ve.
   // Si el negocio desaparece (dejó de ser admin), la pestaña pedida puede
   // apuntar a un panel que ya no existe: se cae a la primera.
-  const requestedTab = searchParams.get("tab") || "cuenta";
+  const rawTab = searchParams.get("tab");
+  const requestedTab = (rawTab || "cuenta").toLowerCase();
   const activeTab = tabs.some((t) => t.id === requestedTab)
     ? requestedTab
     : tabs[0].id;
+
+  // URL canónica: minúsculas, sin `tab` para Cuenta y solo pestañas que
+  // existen para este usuario. Antes `?tab=negocio` sin ser admin caía a
+  // Cuenta dejando la barra de direcciones afirmando otra cosa. `replace`:
+  // corregir la URL no debe sumar una entrada de historial.
+  const canonicalTab = activeTab === "cuenta" ? null : activeTab;
+  const tabIsCanonical = (rawTab ?? null) === canonicalTab;
+  useEffect(() => {
+    if (tabIsCanonical) return;
+    const next = new URLSearchParams(searchParams);
+    if (canonicalTab === null) next.delete("tab");
+    else next.set("tab", canonicalTab);
+    setSearchParams(next, { replace: true });
+  }, [tabIsCanonical, canonicalTab, searchParams, setSearchParams]);
+
+  // Al cambiar de pestaña el panel se trae a la vista: si estabas al final de
+  // un panel largo, la nueva pestaña empezaba a media altura y con su título
+  // bajo la barra pegajosa. En el primer render no se toca el scroll.
+  const firstTabRender = useRef(true);
+  useEffect(() => {
+    if (firstTabRender.current) {
+      firstTabRender.current = false;
+      return;
+    }
+    document.getElementById(`pf-panel-${activeTab}`)?.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+  }, [activeTab]);
 
   // El indicador deslizante mide la pestaña activa: las pestañas cambian de
   // posición según el rol, así que la geometría no se puede saber en CSS.
@@ -246,7 +299,12 @@ export default function ProfilePage() {
     // y el botón atrás vuelve a la pestaña anterior. Sin `replace`: cada
     // cambio es una entrada de historial, que es justo lo que hace que
     // "atrás" funcione como uno espera.
-    setSearchParams(id === "cuenta" ? {} : { tab: id });
+    // Solo se toca `tab`: un objeto nuevo borraba el resto del query
+    // (`?from=`, parámetros de campaña) al cambiar de pestaña.
+    const next = new URLSearchParams(searchParams);
+    if (id === "cuenta") next.delete("tab");
+    else next.set("tab", id);
+    setSearchParams(next);
   }
 
   // Navegación por teclado del patrón ARIA tabs (flechas + Home/End).
