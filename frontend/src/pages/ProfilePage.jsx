@@ -266,8 +266,17 @@ export default function ProfilePage() {
     const measure = () => {
       const active = el.querySelector('[aria-selected="true"]');
       if (!active) return;
+      // offsetLeft (y no rect + scrollLeft): el indicador es absoluto dentro
+      // del scroller, así que vive en el espacio del contenido y ya se
+      // desplaza con él. Restarle scrollLeft lo desfasa justo ese tanto, y
+      // medir con getBoundingClientRect se rompe si un ancestro lleva
+      // transform (la escala se cuela en la cuenta).
       el.style.setProperty("--pf-tab-x", `${active.offsetLeft}px`);
       el.style.setProperty("--pf-tab-w", `${active.offsetWidth}px`);
+      // Con enlace directo o "atrás" la barra puede venir scrolleada y la
+      // pestaña activa quedar fuera del tramo visible: el subrayado estaría
+      // bien puesto pero no se vería. `nearest` no mueve nada si ya se ve.
+      active.scrollIntoView({ inline: "nearest", block: "nearest" });
     };
     measure();
     // Al girar el teléfono o cambiar el ancho, las pestañas se reacomodan.
