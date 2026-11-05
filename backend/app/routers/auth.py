@@ -117,8 +117,8 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
     user: dict | None = None
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, email, full_name, username, created_at, last_login_at "
-            "FROM users WHERE id=%s",
+            "SELECT id, email, full_name, username, phone, created_at, "
+            "last_login_at FROM users WHERE id=%s",
             (user_id,),
         )
         user = await cur.fetchone()
@@ -153,6 +153,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         email=user["email"],
         full_name=user["full_name"],
         username=user.get("username"),
+        phone=user.get("phone"),
         venues=list(venues.values()),
         roles=roles_by_venue,
         created_at=user["created_at"],
@@ -574,31 +575,39 @@ async def update_profile(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Actualiza el nombre visible y, si se pide, el nombre de usuario.
+    """Actualiza el nombre visible y, si se piden, el usuario y el telefono.
 
-    `username=None` deja el valor actual; `""` lo libera (la cuenta vuelve a
-    entrar solo con correo). Un usuario ya tomado por otra cuenta responde 409
-    en vez de un 500 por violacion de constraint: el mensaje importa.
+    `username`/`phone` en None dejan el valor actual; `""` lo limpian (el
+    usuario vacio devuelve la cuenta al login con correo). Un usuario ya tomado
+    por otra cuenta responde 409 en vez de un 500 por violacion de constraint:
+    el mensaje importa.
     """
+    # SET dinamico en vez de una rama por combinacion: con tres campos
+    # opcionales, las ramas se multiplicaban y un PATCH que solo cambiaba el
+    # nombre podia borrar el telefono. Los fragmentos de columna son literales
+    # de este codigo, nunca texto del cliente; los valores van parametrizados.
+    columnas = ["full_name=%s"]
+    valores: list = [body.full_name.strip()]
+    if body.username is not None:
+        columnas.append("username=%s")
+        valores.append(body.username or None)  # "" -> NULL
+    if body.phone is not None:
+        columnas.append("phone=%s")
+        valores.append(body.phone or None)  # "" -> NULL
+    valores.append(user["id"])
+
     async with db.cursor() as cur:
-        if body.username is None:
+        try:
             await cur.execute(
-                "UPDATE users SET full_name=%s WHERE id=%s",
-                (body.full_name.strip(), user["id"]),
+                f"UPDATE users SET {', '.join(columnas)} WHERE id=%s",
+                tuple(valores),
             )
-        else:
-            nuevo = body.username or None  # "" -> NULL
-            try:
-                await cur.execute(
-                    "UPDATE users SET full_name=%s, username=%s WHERE id=%s",
-                    (body.full_name.strip(), nuevo, user["id"]),
-                )
-            except psycopg.errors.UniqueViolation:
-                await db.rollback()
-                raise HTTPException(
-                    status.HTTP_409_CONFLICT,
-                    "Ese nombre de usuario ya esta en uso. Elige otro.",
-                )
+        except psycopg.errors.UniqueViolation:
+            await db.rollback()
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Ese nombre de usuario ya esta en uso. Elige otro.",
+            )
         await db.commit()
     return await _build_user_summary(db, user["id"])
 

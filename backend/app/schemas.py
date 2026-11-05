@@ -50,6 +50,10 @@ class UserSummary(BaseModel):
     # Nombre de usuario para entrar (mig 035). None en cuentas que aun no
     # eligieron uno: el login por correo sigue funcionando igual.
     username: str | None = None
+    # Telefono de contacto de la persona. La columna existe desde el esquema
+    # base (`users.phone`) pero nunca se exponia: el perfil solo mostraba el
+    # correo. None = sin telefono, que es un estado valido.
+    phone: str | None = None
     venues: list["VenueSummary"] = []
     roles: dict[str, list[str]] = {}  # {"<venue_id>": ["admin", ...]}
     # Contexto de cuenta para el perfil: desde cuándo es parte y cuándo entró
@@ -482,6 +486,24 @@ class UpdateProfileRequest(BaseModel):
     # El usuario se puede reclamar o cambiar desde el perfil. "" lo libera
     # (vuelve a entrar solo con correo); None lo deja como esta.
     username: str | None = Field(default=None, max_length=32)
+    # Misma convencion que `username`: None deja el valor actual, "" lo limpia.
+    # Opcional: la cuenta funciona sin telefono.
+    phone: str | None = Field(default=None, max_length=30)
+
+    @field_validator("phone")
+    @classmethod
+    def _phone_format(cls, v: str | None) -> str | None:
+        """Acepta como la gente escribe un telefono (+57 300 123 4567) pero no
+        cualquier cadena. Se guarda tal cual: sin normalizar el pais ni quitar
+        el formato, porque el numero sirve para marcar, no para comparar."""
+        if v is None:
+            return None
+        limpio = v.strip()
+        if not limpio:
+            return ""
+        if not re.fullmatch(r"\+?[0-9][0-9 ()\-]{5,29}", limpio):
+            raise ValueError("Escribe un telefono valido (ej. +57 300 123 4567).")
+        return limpio
 
     @field_validator("username")
     @classmethod

@@ -112,6 +112,9 @@ export default function ProfilePage() {
   // Nombre de usuario para entrar (mig 035). "" es valido: libera el usuario y
   // la cuenta vuelve a entrar solo con correo.
   const [username, setUsername] = useState(user?.username || "");
+  // Telefono de contacto: la columna existia en la DB pero el perfil no la
+  // mostraba. Opcional, y se guarda tal como se escribe.
+  const [phone, setPhone] = useState(user?.phone || "");
   const [nameMsg, setNameMsg] = useState(null);
   const [nameBusy, setNameBusy] = useState(false);
 
@@ -174,7 +177,8 @@ export default function ProfilePage() {
   // usuario no sabía si era un fallo o que no había nada que guardar.
   const nameDirty =
     name.trim() !== (user?.full_name || "") ||
-    username.trim().toLowerCase() !== (user?.username || "");
+    username.trim().toLowerCase() !== (user?.username || "") ||
+    phone.trim() !== (user?.phone || "");
   const venueDirty =
     !!adminVenue &&
     (venueName.trim() !== adminVenue.name ||
@@ -379,7 +383,11 @@ export default function ProfilePage() {
         // Nombre y usuario van juntos: el backend valida el formato y responde
         // 409 si el usuario ya esta tomado. El catch de abajo muestra ese
         // mensaje real en vez de un texto generico.
-        body: JSON.stringify({ full_name: name, username: username.trim() }),
+        body: JSON.stringify({
+          full_name: name,
+          username: username.trim(),
+          phone: phone.trim(),
+        }),
       });
       setUser(updated);
       setNameMsg({ ok: true, text: "Datos actualizados." });
@@ -651,6 +659,27 @@ export default function ProfilePage() {
                 autoCapitalize="none"
                 spellCheck={false}
                 placeholder="tu.usuario"
+              />
+            </Field>
+
+            <Field
+              id="phone"
+              label="Teléfono de contacto"
+              hint="Opcional. Queda en tu ficha de cuenta para que tu equipo te ubique; no se publica en la página del evento. Déjalo vacío para no tener teléfono."
+            >
+              <input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setNameMsg(null);
+                }}
+                className="field"
+                maxLength={30}
+                autoComplete="tel"
+                placeholder="+57 300 123 4567"
               />
             </Field>
 
