@@ -2374,6 +2374,7 @@ CREATE TABLE public.users (
     last_login_at timestamp with time zone,
     token_version integer DEFAULT 1 NOT NULL,
     username text,
+    password_changed_at timestamp with time zone,
     CONSTRAINT users_username_format CHECK (((username IS NULL) OR ((username = lower(username)) AND (username ~ '^[a-z0-9._-]{3,32}$'::text))))
 );
 

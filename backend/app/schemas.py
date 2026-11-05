@@ -60,6 +60,10 @@ class UserSummary(BaseModel):
     # por última vez. `last_login_at` es None hasta el primer login.
     created_at: datetime | None = None
     last_login_at: datetime | None = None
+    # Fecha del último cambio de contraseña (mig 037). None en las cuentas que
+    # nunca la cambiaron desde que existe la columna: no se inventa un valor
+    # con created_at, porque es un dato de seguridad.
+    password_changed_at: datetime | None = None
 
 
 class VenueSummary(BaseModel):

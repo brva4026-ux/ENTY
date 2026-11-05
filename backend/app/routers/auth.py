@@ -118,7 +118,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
     async with db.cursor() as cur:
         await cur.execute(
             "SELECT id, email, full_name, username, phone, created_at, "
-            "last_login_at FROM users WHERE id=%s",
+            "last_login_at, password_changed_at FROM users WHERE id=%s",
             (user_id,),
         )
         user = await cur.fetchone()
@@ -158,6 +158,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         roles=roles_by_venue,
         created_at=user["created_at"],
         last_login_at=user["last_login_at"],
+        password_changed_at=user.get("password_changed_at"),
     )
 
 
@@ -548,7 +549,8 @@ async def reset_password(
         # Bump de token_version (mig 019): cualquier JWT viejo del usuario
         # queda muerto al instante — la recuperación no deja sesiones vivas.
         await cur.execute(
-            "UPDATE users SET password_hash = %s, token_version = token_version + 1 WHERE id = %s",
+            "UPDATE users SET password_hash = %s, token_version = token_version + 1, "
+            "password_changed_at = now() WHERE id = %s",
             (hash_password(body.new_password), row["user_id"]),
         )
         await db.commit()
@@ -717,7 +719,8 @@ async def change_password(
         # Bump de token_version (mig 019): el resto de las sesiones abiertas
         # (otro teléfono, un navegador público) muere al cambiar la clave.
         await cur.execute(
-            "UPDATE users SET password_hash=%s, token_version = token_version + 1 WHERE id=%s",
+            "UPDATE users SET password_hash=%s, token_version = token_version + 1, "
+            "password_changed_at = now() WHERE id=%s",
             (hash_password(body.new_password), user["id"]),
         )
         await db.commit()

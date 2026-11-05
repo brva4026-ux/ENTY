@@ -71,6 +71,17 @@ function sinceLabel(iso) {
   return longDate(iso);
 }
 
+/** Fecha del último cambio de contraseña (mig 037): relativa cuando es
+ *  reciente ("hace 3 días") y absoluta cuando es vieja ("el 14 de septiembre de
+ *  2026"), porque a esa distancia "hace 240 días" no dice nada. */
+function changedLabel(iso) {
+  if (!iso) return null;
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return null;
+  const days = Math.floor((Date.now() - then.getTime()) / 86_400_000);
+  return days < 30 ? sinceLabel(iso) : `el ${longDate(iso)}`;
+}
+
 /** Cabecera de panel: un `h2` por panel, colgando del `h1` del hero. */
 function PanelHead({ title, hint }) {
   return (
@@ -298,6 +309,9 @@ export default function ProfilePage() {
 
   const memberSince = longDate(user.created_at);
   const lastSeen = sinceLabel(user.last_login_at);
+  // None en cuentas que nunca cambiaron la contraseña desde la mig 037: en ese
+  // caso la línea no se pinta, en vez de inventar una fecha.
+  const passwordChanged = changedLabel(user.password_changed_at);
   const venueCount = user.venues?.length || 0;
   // Cuántos de esos negocios administra: es el dato que hace concreta la
   // advertencia de la zona de peligro.
@@ -540,7 +554,7 @@ export default function ProfilePage() {
             )}
 
             {/* Contexto de cuenta: desde cuándo y último ingreso. */}
-            {(memberSince || lastSeen) && (
+            {(memberSince || lastSeen || passwordChanged) && (
               <div className="pf-meta">
                 {memberSince && (
                   <span className="pf-meta-item">
@@ -552,6 +566,12 @@ export default function ProfilePage() {
                   <span className="pf-meta-item">
                     <Icon name="clock" className="h-3.5 w-3.5" />
                     Último ingreso {lastSeen}
+                  </span>
+                )}
+                {passwordChanged && (
+                  <span className="pf-meta-item">
+                    <Icon name="shield" className="h-3.5 w-3.5" />
+                    Contraseña actualizada {passwordChanged}
                   </span>
                 )}
               </div>
