@@ -6551,6 +6551,30 @@ html[data-theme="light"] .pf-logo-empty {
   white-space: nowrap;
 }
 
+/* Foto de perfil: la imagen ocupa el círculo y el anillo del rol queda por
+   fuera (inset -3px), así que el recorte va en la imagen y no en el
+   contenedor, que necesita seguir dejando ver el anillo. */
+.pf-avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  object-fit: cover;
+}
+/* Fila de la foto en Cuenta: avatar y acciones en la misma línea, y envueltas
+   a 320px en vez de desbordar. */
+.pf-photo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+/* Los mensajes de un sub-bloque (foto, sesiones) no deben quedar pegados al
+   control que los dispara. */
+.pf-sub > .pf-alert {
+  margin-top: 0.75rem;
+}
+
 /* Muestras de color de marca: se elige viendo, no adivinando un hex. */
 .pf-colors {
   display: grid;

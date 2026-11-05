@@ -6,6 +6,7 @@ import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { ROLE_LABELS, ROLE_VISUALS, topRole } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
+import { fileToDataUrl } from "../lib/imageUpload";
 import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
 import PasswordMeter from "../components/PasswordMeter";
@@ -42,7 +43,13 @@ function PremiumAvatar({ user, className: extraClass }) {
   return (
     <span className={`pf-avatar ${visual.avatar} ${extraClass}`} aria-hidden="true">
       <span className={`pf-avatar-ring ${visual.tabAccent}`} />
-      {initials}
+      {user.avatar_url ? (
+        // La foto sustituye a las iniciales; el anillo del rol se mantiene, así
+        // que un admin sigue distinguiéndose a un vistazo.
+        <img src={user.avatar_url} alt="" className="pf-avatar-img" />
+      ) : (
+        initials
+      )}
     </span>
   );
 }
@@ -170,6 +177,11 @@ export default function ProfilePage() {
   const [sessPass, setSessPass] = useState("");
   const [sessMsg, setSessMsg] = useState(null);
   const [sessBusy, setSessBusy] = useState(false);
+
+  // Foto de perfil (mig 038)
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarMsg, setAvatarMsg] = useState(null);
+  const avatarInputRef = useRef(null);
 
   // Descarga de los propios datos
   const [exportBusy, setExportBusy] = useState(false);
@@ -409,6 +421,46 @@ export default function ProfilePage() {
       setNameMsg({ ok: false, text: err.message });
     } finally {
       setNameBusy(false);
+    }
+  }
+
+  /** Sube la foto: se reduce en el navegador (512px) y viaja como data-URL.
+   *  El backend devuelve el resumen completo, así que el hero se repinta sin
+   *  un segundo GET. */
+  async function onAvatarFile(e) {
+    const file = e.target.files?.[0];
+    // Se limpia el input para poder volver a elegir el mismo archivo (si no,
+    // el segundo intento con la misma foto no dispara onChange).
+    e.target.value = "";
+    if (!file) return;
+    setAvatarBusy(true);
+    setAvatarMsg(null);
+    try {
+      const dataUrl = await fileToDataUrl(file, { maxSide: 512 });
+      const updated = await apiFetch("/auth/avatar", {
+        method: "POST",
+        body: JSON.stringify({ data_url: dataUrl }),
+      });
+      setUser(updated);
+      setAvatarMsg({ ok: true, text: "Foto actualizada." });
+    } catch (err) {
+      setAvatarMsg({ ok: false, text: err.message });
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function removeAvatar() {
+    setAvatarBusy(true);
+    setAvatarMsg(null);
+    try {
+      const updated = await apiFetch("/auth/avatar", { method: "DELETE" });
+      setUser(updated);
+      setAvatarMsg({ ok: true, text: "Foto quitada." });
+    } catch (err) {
+      setAvatarMsg({ ok: false, text: err.message });
+    } finally {
+      setAvatarBusy(false);
     }
   }
 
@@ -725,6 +777,58 @@ export default function ProfilePage() {
               )}
             </div>
           </form>
+
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Foto de perfil</h3>
+            <p className="pf-hint pf-hint-block">
+              Se recorta en círculo y se reduce antes de subirla. Sin foto, tu
+              avatar son tus iniciales con el color de tu rol.
+            </p>
+            <div className="pf-photo-row">
+              <PremiumAvatar user={user} />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarBusy}
+                className="btn-ghost pf-action"
+              >
+                <Icon name="camera" className="h-4 w-4" aria-hidden="true" />
+                {avatarBusy
+                  ? "Subiendo…"
+                  : user.avatar_url
+                    ? "Cambiar foto"
+                    : "Subir foto"}
+              </button>
+              {user.avatar_url && (
+                <button
+                  type="button"
+                  onClick={removeAvatar}
+                  disabled={avatarBusy}
+                  className="btn-ghost pf-action"
+                >
+                  <Icon name="trash" className="h-4 w-4" aria-hidden="true" />
+                  Quitar
+                </button>
+              )}
+            </div>
+            {/* `hidden` y no sr-only: el control accesible es el botón de
+                arriba, así el input no aparece como un foco perdido. */}
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={onAvatarFile}
+            />
+            {avatarMsg && (
+              <div
+                role={avatarMsg.ok ? "status" : "alert"}
+                className={`pf-alert ${avatarMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
+              >
+                {avatarMsg.text}
+              </div>
+            )}
+          </div>
 
           <div className="pf-sub">
             <h3 className="pf-sub-title">Correo</h3>

@@ -1833,7 +1833,7 @@ ALTER TABLE public.login_attempts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
 
 CREATE TABLE public.media (
     id bigint NOT NULL,
-    venue_id bigint NOT NULL,
+    venue_id bigint,
     mime text NOT NULL,
     bytes bytea NOT NULL,
     size_bytes integer NOT NULL,
@@ -2375,6 +2375,7 @@ CREATE TABLE public.users (
     token_version integer DEFAULT 1 NOT NULL,
     username text,
     password_changed_at timestamp with time zone,
+    avatar_url text,
     CONSTRAINT users_username_format CHECK (((username IS NULL) OR ((username = lower(username)) AND (username ~ '^[a-z0-9._-]{3,32}$'::text))))
 );
 

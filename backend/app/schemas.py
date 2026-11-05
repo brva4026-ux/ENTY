@@ -64,6 +64,9 @@ class UserSummary(BaseModel):
     # nunca la cambiaron desde que existe la columna: no se inventa un valor
     # con created_at, porque es un dato de seguridad.
     password_changed_at: datetime | None = None
+    # Foto de perfil (mig 038): URL relativa de `media` (/media/{id}). None =
+    # sin foto, y el hero pinta las iniciales con el anillo del rol.
+    avatar_url: str | None = None
 
 
 class VenueSummary(BaseModel):
@@ -482,6 +485,14 @@ class ChangePasswordRequest(BaseModel):
     @classmethod
     def _strong_change(cls, v: str) -> str:
         return check_password_strength(v)
+
+
+class AvatarUpload(BaseModel):
+    """data-URL de la foto de perfil, ya reducida en el navegador.
+
+    Mismo limite que MediaUpload: por encima de eso no llega ni a decodificar.
+    """
+    data_url: str = Field(max_length=1_200_000)
 
 
 class UpdateProfileRequest(BaseModel):

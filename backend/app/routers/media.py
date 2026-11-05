@@ -39,16 +39,14 @@ class MediaUpload(BaseModel):
     data_url: str = Field(max_length=1_200_000)
 
 
-@router.post("/venues/{venue_id}/media", status_code=status.HTTP_201_CREATED)
-async def upload_media(
-    venue_id: int,
-    body: MediaUpload,
-    user: Annotated[dict, Depends(get_current_user)],
-    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
-):
-    """Guarda una imagen y devuelve la URL relativa para usar en flyer/logo."""
-    ensure_roles(user, venue_id, "super_admin", "admin")
-    m = _DATA_URL.match(body.data_url.strip())
+def _decode_data_url(data_url: str) -> tuple[str, bytes]:
+    """Valida el data-URL de una imagen y devuelve (mime, bytes).
+
+    Compartido por las subidas de negocio (flyer, logo) y por el avatar de la
+    persona: que es una imagen aceptable no puede depender del camino por el
+    que llega.
+    """
+    m = _DATA_URL.match(data_url.strip())
     if not m:
         raise HTTPException(
             422,
@@ -70,7 +68,25 @@ async def upload_media(
             413,
             "La imagen supera los 600 KB después de decodificar.",
         )
+    return mime, raw
 
+
+async def store_image(
+    db: psycopg.AsyncConnection,
+    *,
+    data_url: str,
+    venue_id: int | None,
+    user_id: int,
+) -> dict:
+    """Inserta una imagen en `media` y devuelve {id, mime, size_bytes}.
+
+    No hace commit: el llamador cierra la transaccion. El avatar lo necesita
+    asi para escribir `users.avatar_url` en el mismo acto que la subida, y para
+    borrar la imagen anterior si todo va bien.
+
+    `venue_id` en None = imagen de una persona, no de un negocio (mig 038).
+    """
+    mime, raw = _decode_data_url(data_url)
     async with db.cursor() as cur:
         await cur.execute(
             """
@@ -78,11 +94,30 @@ async def upload_media(
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id
             """,
-            (venue_id, mime, raw, len(raw), user["id"]),
+            (venue_id, mime, raw, len(raw), user_id),
         )
         row = await cur.fetchone()
-        await db.commit()
-    return {"url": f"/media/{row['id']}", "size_bytes": len(raw), "mime": mime}
+    return {"id": row["id"], "mime": mime, "size_bytes": len(raw)}
+
+
+@router.post("/venues/{venue_id}/media", status_code=status.HTTP_201_CREATED)
+async def upload_media(
+    venue_id: int,
+    body: MediaUpload,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Guarda una imagen y devuelve la URL relativa para usar en flyer/logo."""
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    media = await store_image(
+        db, data_url=body.data_url, venue_id=venue_id, user_id=user["id"]
+    )
+    await db.commit()
+    return {
+        "url": f"/media/{media['id']}",
+        "size_bytes": media["size_bytes"],
+        "mime": media["mime"],
+    }
 
 
 @router.get("/media/{media_id}")

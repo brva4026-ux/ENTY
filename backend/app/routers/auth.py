@@ -25,6 +25,9 @@ from app.core.db import get_db
 from app.core.mailer import Mailer
 from app.core.security import create_access_token, hash_password, verify_password
 from app.deps import ensure_roles, get_current_user
+# El almacenamiento de imagenes ya vive en media (mig 018): el avatar reusa la
+# validacion y la tabla en vez de duplicar el limite de 600 KB y los mime.
+from app.routers.media import store_image
 # El catalogo y el registro de aceptaciones legales (mig 026) viven en el
 # router legal: se importan las funciones, no se duplica el SQL.
 from app.routers.legal import (
@@ -33,6 +36,7 @@ from app.routers.legal import (
     terms_fingerprint,
 )
 from app.schemas import (
+    AvatarUpload,
     ChangePasswordRequest,
     CloseOtherSessionsRequest,
     DeleteAccountRequest,
@@ -118,7 +122,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
     async with db.cursor() as cur:
         await cur.execute(
             "SELECT id, email, full_name, username, phone, created_at, "
-            "last_login_at, password_changed_at FROM users WHERE id=%s",
+            "last_login_at, password_changed_at, avatar_url FROM users WHERE id=%s",
             (user_id,),
         )
         user = await cur.fetchone()
@@ -159,6 +163,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         created_at=user["created_at"],
         last_login_at=user["last_login_at"],
         password_changed_at=user.get("password_changed_at"),
+        avatar_url=user.get("avatar_url"),
     )
 
 
@@ -609,6 +614,75 @@ async def update_profile(
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
                 "Ese nombre de usuario ya esta en uso. Elige otro.",
+            )
+        await db.commit()
+    return await _build_user_summary(db, user["id"])
+
+
+def _media_id_from_url(url: str | None) -> int | None:
+    """Id de una URL /media/{id}, o None si no es una imagen de las nuestras.
+
+    `avatar_url` solo lo escribe el endpoint de subida, pero conviene no
+    fiarse: si alguna vez apunta a un host externo, el borrado no toca `media`
+    en vez de intentar borrar un id que no existe.
+    """
+    if not url or not url.startswith("/media/"):
+        return None
+    try:
+        return int(url.removeprefix("/media/").split("?")[0])
+    except ValueError:
+        return None
+
+
+@router.post("/avatar", response_model=UserSummary)
+async def set_avatar(
+    body: AvatarUpload,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Sube la foto de perfil y devuelve el resumen completo.
+
+    La imagen vive en `media` sin venue (mig 038): es de la persona, no del
+    negocio. La fila anterior se borra en la misma transaccion para no dejar
+    bytes muertos; el filtro por created_by impide tocar imagenes ajenas.
+    """
+    async with db.cursor() as cur:
+        await cur.execute("SELECT avatar_url FROM users WHERE id=%s", (user["id"],))
+        previa = _media_id_from_url((await cur.fetchone() or {}).get("avatar_url"))
+
+    media = await store_image(
+        db, data_url=body.data_url, venue_id=None, user_id=user["id"]
+    )
+    async with db.cursor() as cur:
+        await cur.execute(
+            "UPDATE users SET avatar_url=%s WHERE id=%s",
+            (f"/media/{media['id']}", user["id"]),
+        )
+        if previa is not None:
+            await cur.execute(
+                "DELETE FROM media WHERE id=%s AND created_by=%s "
+                "AND venue_id IS NULL",
+                (previa, user["id"]),
+            )
+        await db.commit()
+    return await _build_user_summary(db, user["id"])
+
+
+@router.delete("/avatar", response_model=UserSummary)
+async def clear_avatar(
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Quita la foto de perfil y libera los bytes de `media`."""
+    async with db.cursor() as cur:
+        await cur.execute("SELECT avatar_url FROM users WHERE id=%s", (user["id"],))
+        previa = _media_id_from_url((await cur.fetchone() or {}).get("avatar_url"))
+        await cur.execute("UPDATE users SET avatar_url=NULL WHERE id=%s", (user["id"],))
+        if previa is not None:
+            await cur.execute(
+                "DELETE FROM media WHERE id=%s AND created_by=%s "
+                "AND venue_id IS NULL",
+                (previa, user["id"]),
             )
         await db.commit()
     return await _build_user_summary(db, user["id"])
