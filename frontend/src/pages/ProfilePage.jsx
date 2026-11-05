@@ -6,7 +6,6 @@ import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { ROLE_LABELS, ROLE_VISUALS, topRole } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
-import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
 import PasswordMeter from "../components/PasswordMeter";
 import ThemeChooser from "../components/ThemeChooser";
@@ -15,6 +14,18 @@ import { PushToggle } from "../components/PushToggle";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 const roleLabel = (role) => ROLE_LABELS[role] ?? role;
+
+/** Paleta sugerida para el color de marca. Son los pasos 500 de los tokens de
+ *  la casa, en hex porque el backend guarda #RRGGBB y no resuelve variables. */
+const BRAND_COLORS = [
+  { name: "Violeta de Enty", hex: "#7c3aed" },
+  { name: "Verde menta", hex: "#00e6ab" },
+  { name: "Esmeralda", hex: "#059669" },
+  { name: "Rosa", hex: "#ff2d98" },
+  { name: "Ámbar", hex: "#f5a524" },
+  { name: "Rojo", hex: "#ef4444" },
+];
+const BRAND_DEFAULT = "#7c3aed";
 
 /** Avatar con anillo del color del rol: un admin se distingue de un portero
  *  de un vistazo, sin leer la etiqueta. Decorativo: el nombre va al lado. */
@@ -123,6 +134,7 @@ export default function ProfilePage() {
     adminVenue?.contact_phone || "",
   );
   const [logoError, setLogoError] = useState("");
+  const [venueMsg, setVenueMsg] = useState(null);
   const [venueBusy, setVenueBusy] = useState(false);
 
   // Cambio de contraseña
@@ -149,19 +161,36 @@ export default function ProfilePage() {
   const [delErr, setDelErr] = useState("");
   const [delBusy, setDelBusy] = useState(false);
 
-  const dangerRef = useRef(null);
   const tabbarRef = useRef(null);
+
+  // Cambios pendientes de guardar: exactamente los mismos predicados que
+  // apagan el botón. Antes el botón se veía apagado sin decir por qué, y el
+  // usuario no sabía si era un fallo o que no había nada que guardar.
+  const nameDirty =
+    name.trim() !== (user?.full_name || "") ||
+    username.trim().toLowerCase() !== (user?.username || "");
+  const venueDirty =
+    !!adminVenue &&
+    (venueName.trim() !== adminVenue.name ||
+      venueLogo !== (adminVenue.logo_url || "") ||
+      venueCommission !== String(adminVenue.commission_pct ?? 0) ||
+      venueColor !== (adminVenue.primary_color || "") ||
+      venueContactName !== (adminVenue.contact_name || "") ||
+      venueContactPhone !== (adminVenue.contact_phone || ""));
+  const brandColor = venueColor || BRAND_DEFAULT;
 
   // El negocio solo aparece como pestaña propia si administra alguno: para el
   // resto era una tarjeta que nunca se pintaba y dejaba un hueco.
   const tabs = useMemo(
     () => [
-      { id: "cuenta", label: "Cuenta", icon: "users" },
+      { id: "cuenta", label: "Cuenta", icon: "users", dirty: nameDirty },
       { id: "seguridad", label: "Seguridad", icon: "shield" },
-      ...(adminVenue ? [{ id: "negocio", label: "Negocio", icon: "money" }] : []),
+      ...(adminVenue
+        ? [{ id: "negocio", label: "Negocio", icon: "money", dirty: venueDirty }]
+        : []),
       { id: "preferencias", label: "Preferencias", icon: "sparkle" },
     ],
-    [adminVenue],
+    [adminVenue, nameDirty, venueDirty],
   );
 
   // La pestaña vive SOLO en la URL: una única fuente de verdad. Con estado
@@ -204,6 +233,12 @@ export default function ProfilePage() {
   const memberSince = longDate(user.created_at);
   const lastSeen = sinceLabel(user.last_login_at);
   const venueCount = user.venues?.length || 0;
+  // Cuántos de esos negocios administra: es el dato que hace concreta la
+  // advertencia de la zona de peligro.
+  const adminCount =
+    user.venues?.filter((v) =>
+      (user.roles?.[String(v.id)] || []).includes("admin"),
+    ).length || 0;
 
   function selectTab(id) {
     haptics.tick();
@@ -229,14 +264,6 @@ export default function ProfilePage() {
     document.getElementById(`pf-tab-${next}`)?.focus();
   }
 
-  function goToDanger() {
-    setDelOpen(true);
-    dangerRef.current?.scrollIntoView({
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-      block: "start",
-    });
-  }
-
   async function submitPassword(e) {
     e.preventDefault();
     setPassMsg(null);
@@ -259,10 +286,8 @@ export default function ProfilePage() {
       setPassMsg({ ok: true, text: res.detail });
       setCurPass("");
       setNewPass("");
-      ui.success(res.detail);
     } catch (err) {
       setPassMsg({ ok: false, text: err.message });
-      ui.error(err.message);
     } finally {
       setPassBusy(false);
     }
@@ -288,9 +313,9 @@ export default function ProfilePage() {
         body: JSON.stringify({ full_name: name, username: username.trim() }),
       });
       setUser(updated);
-      ui.success("Datos actualizados.");
+      setNameMsg({ ok: true, text: "Datos actualizados." });
     } catch (err) {
-      ui.error(err.message);
+      setNameMsg({ ok: false, text: err.message });
     } finally {
       setNameBusy(false);
     }
@@ -329,9 +354,9 @@ export default function ProfilePage() {
             : v,
         ),
       });
-      ui.success("Datos del negocio actualizados.");
+      setVenueMsg({ ok: true, text: "Datos del negocio actualizados." });
     } catch (err) {
-      ui.error(err.message);
+      setVenueMsg({ ok: false, text: err.message });
     } finally {
       setVenueBusy(false);
     }
@@ -358,7 +383,6 @@ export default function ProfilePage() {
         text: "Listo: las demás sesiones quedaron cerradas. Esta sigue abierta.",
       });
       haptics.success();
-      ui.success("Sesiones cerradas.");
     } catch (err) {
       setSessMsg({ ok: false, text: err.message });
     } finally {
@@ -470,14 +494,6 @@ export default function ProfilePage() {
               <Icon name="logout" className="h-4 w-4" aria-hidden="true" />
               Cerrar sesión
             </button>
-            <button
-              type="button"
-              onClick={goToDanger}
-              className="btn-ghost pf-action pf-action-danger"
-            >
-              <Icon name="alert" className="h-4 w-4" aria-hidden="true" />
-              Zona de peligro
-            </button>
           </div>
         </div>
       </div>
@@ -502,10 +518,14 @@ export default function ProfilePage() {
               tabIndex={active ? 0 : -1}
               onClick={() => selectTab(t.id)}
               onKeyDown={onTabKeyDown}
+              aria-label={
+                t.dirty ? `${t.label} (cambios sin guardar)` : t.label
+              }
               className="tabbar-item"
             >
               <Icon name={t.icon} className="h-4 w-4" aria-hidden="true" />
-              {t.label}
+              <span className="pf-tab-label">{t.label}</span>
+              {t.dirty && <span className="pf-tab-dot" aria-hidden="true" />}
             </button>
           );
         })}
@@ -533,7 +553,10 @@ export default function ProfilePage() {
               <input
                 id="full-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameMsg(null);
+                }}
                 className="field"
                 maxLength={120}
                 minLength={2}
@@ -549,7 +572,10 @@ export default function ProfilePage() {
               <input
                 id="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setNameMsg(null);
+                }}
                 className="field"
                 maxLength={32}
                 autoComplete="username"
@@ -560,7 +586,10 @@ export default function ProfilePage() {
             </Field>
 
             {nameMsg && (
-              <div role="alert" className="pf-alert pf-alert-bad">
+              <div
+                role={nameMsg.ok ? "status" : "alert"}
+                className={`pf-alert ${nameMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
+              >
                 {nameMsg.text}
               </div>
             )}
@@ -568,15 +597,14 @@ export default function ProfilePage() {
             <div className="pf-form-actions">
               <button
                 type="submit"
-                disabled={
-                  nameBusy ||
-                  (name.trim() === (user.full_name || "") &&
-                    username.trim().toLowerCase() === (user.username || ""))
-                }
+                disabled={nameBusy || !nameDirty}
                 className="btn-primary"
               >
                 {nameBusy ? "Guardando…" : "Guardar datos"}
               </button>
+              {nameDirty && !nameBusy && (
+                <span className="pf-dirty-chip">Cambios sin guardar</span>
+              )}
             </div>
           </form>
 
@@ -785,7 +813,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="pf-sub">
-            <h3 className="pf-sub-title">Tus datos</h3>
+            <h3 className="pf-sub-title">Descargar mi información</h3>
             <p className="pf-hint pf-hint-block">
               Descarga una copia de lo que Enty sabe de tu cuenta: tus datos,
               tus negocios y los documentos que aceptaste. Tus contraseñas y
@@ -818,6 +846,10 @@ export default function ProfilePage() {
             hint="El nombre y el logo representan tu negocio ante tu equipo y tus clientes."
           />
           <form onSubmit={submitVenue} className="pf-form">
+            {/* Seis campos en columna se leían como un muro. Los títulos no
+                envuelven nada: agrupan con la viga del sistema y dejan el
+                ritmo del grid intacto. */}
+            <h3 className="pf-sub-title">Identidad</h3>
             <Field id="venue-name" label="Nombre del negocio">
               <input
                 id="venue-name"
@@ -875,7 +907,7 @@ export default function ProfilePage() {
                 <input
                   id="venue-color"
                   type="color"
-                  value={venueColor || "#7c3aed"}
+                  value={brandColor}
                   onChange={(e) => setVenueColor(e.target.value)}
                   className="pf-color-input"
                   aria-label="Color de marca"
@@ -888,6 +920,7 @@ export default function ProfilePage() {
                     type="button"
                     onClick={() => setVenueColor("")}
                     className="btn-ghost !px-2.5 !py-1 text-xs"
+                    aria-label="Quitar el color propio y volver al violeta de Enty"
                   >
                     Quitar
                   </button>
@@ -895,28 +928,46 @@ export default function ProfilePage() {
               </div>
             </Field>
 
-            {/* Comisión del promotor: base de las liquidaciones (se congela
-                por liquidación al cerrar el periodo). */}
-            <Field
-              id="venue-commission"
-              label="Comisión del promotor (%)"
-              hint="Se aplica al recaudo de cada promotor al cerrar su liquidación."
-            >
-              <input
-                id="venue-commission"
-                type="number"
-                min="0"
-                max="100"
-                step="0.5"
-                value={venueCommission}
-                onChange={(e) => setVenueCommission(e.target.value)}
-                className="field"
-              />
-            </Field>
+            {/* El selector nativo no dice qué cambia: las muestras evitan
+                adivinar un hex y la vista previa enseña el resultado. */}
+            <div className="pf-colors">
+              <span id="pf-swatches-label" className="pf-label">
+                Colores sugeridos
+              </span>
+              <div
+                className="pf-swatches"
+                role="group"
+                aria-labelledby="pf-swatches-label"
+              >
+                {BRAND_COLORS.map((c) => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    onClick={() => setVenueColor(c.hex)}
+                    aria-pressed={venueColor.toLowerCase() === c.hex}
+                    aria-label={c.name}
+                    className={`pf-swatch ${
+                      venueColor.toLowerCase() === c.hex ? "is-on" : ""
+                    }`}
+                    style={{ background: c.hex }}
+                  />
+                ))}
+              </div>
+              <div className="pf-brand-preview" aria-hidden="true">
+                <span
+                  className="pf-brand-preview-banner"
+                  style={{ background: brandColor }}
+                />
+                <span className="pf-brand-preview-copy">
+                  Así se verá el banner de tu portada
+                </span>
+              </div>
+            </div>
 
             {/* Contacto del organizador (mig 036): es lo que la pagina publica
                 muestra en "encargar por WhatsApp". Quien organiza esa noche
                 responde por el telefono; sin el, el evento solo vende en linea. */}
+            <h3 className="pf-sub-title">Contacto público</h3>
             <Field
               id="venue-contact-name"
               label="Nombre del encargado"
@@ -948,22 +999,46 @@ export default function ProfilePage() {
               />
             </Field>
 
+            {/* Comisión del promotor: base de las liquidaciones (se congela
+                por liquidación al cerrar el periodo). */}
+            <h3 className="pf-sub-title">Liquidación</h3>
+            <Field
+              id="venue-commission"
+              label="Comisión del promotor (%)"
+              hint="Se aplica al recaudo de cada promotor al cerrar su liquidación."
+            >
+              <input
+                id="venue-commission"
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                value={venueCommission}
+                onChange={(e) => setVenueCommission(e.target.value)}
+                className="field"
+              />
+            </Field>
+
+            {venueMsg && (
+              <div
+                role={venueMsg.ok ? "status" : "alert"}
+                className={`pf-alert ${venueMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
+              >
+                {venueMsg.text}
+              </div>
+            )}
+
             <div className="pf-form-actions">
               <button
                 type="submit"
-                disabled={
-                  venueBusy ||
-                  (venueName.trim() === adminVenue.name &&
-                    venueLogo === (adminVenue.logo_url || "") &&
-                    venueCommission === String(adminVenue.commission_pct ?? 0) &&
-                    venueColor === (adminVenue.primary_color || "") &&
-                    venueContactName === (adminVenue.contact_name || "") &&
-                    venueContactPhone === (adminVenue.contact_phone || ""))
-                }
+                disabled={venueBusy || !venueDirty}
                 className="btn-primary"
               >
                 {venueBusy ? "Guardando…" : "Guardar negocio"}
               </button>
+              {venueDirty && !venueBusy && (
+                <span className="pf-dirty-chip">Cambios sin guardar</span>
+              )}
             </div>
           </form>
         </section>
@@ -1004,7 +1079,7 @@ export default function ProfilePage() {
 
       {/* Zona de peligro: lo destructivo no vive "a la vista" junto a lo demás.
           Se separa con el troquel de la casa y arranca colapsado. */}
-      <div className="pf-danger-wrap" ref={dangerRef}>
+      <div className="pf-danger-wrap">
         <div className="enty-perf" aria-hidden="true" />
         <section className="card pf-danger" aria-labelledby="pf-danger-title">
           <h2 id="pf-danger-title" className="pf-danger-title">
@@ -1015,6 +1090,19 @@ export default function ProfilePage() {
             equipo a cargo, deberás asignar otro admin antes. Si eres el único
             miembro, tu negocio entero se elimina con ella.
           </p>
+          {/* Qué se pierde, en cifras: una advertencia genérica se lee y se
+              olvida; "administras 2 de 3" obliga a mirar. */}
+          {venueCount > 0 && (
+            <p className="pf-danger-copy pf-danger-facts">
+              {venueCount === 1
+                ? "Tu cuenta figura en 1 negocio."
+                : `Tu cuenta figura en ${venueCount} negocios${
+                    adminCount > 0 ? ` y administras ${adminCount} de ellos` : ""
+                  }.`}{" "}
+              Al eliminarla pierdes el acceso a{" "}
+              {venueCount === 1 ? "él" : "todos"}, sin vuelta atrás.
+            </p>
+          )}
 
           {!delOpen ? (
             <button
