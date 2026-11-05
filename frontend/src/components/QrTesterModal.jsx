@@ -27,12 +27,22 @@ export default function QrTesterModal({ onClose }) {
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState(null); // {ok, data|error}
   const html5Ref = useRef(null);
+  // Botón que reemplaza al de arrancar la cámara: recibe el foco cuando el
+  // original se desmonta (si no, el foco cae al body y se pierde la posición).
+  const stopBtnRef = useRef(null);
 
   useEffect(() => {
     // Escape y foco los maneja useDialogA11y; aquí solo se apaga la cámara.
     return () => stopCam();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Al arrancar la cámara, el botón "Escanear" desaparece. Sin esto el foco
+  // se queda en el body: el usuario de teclado ya no sabe dónde está y Tab
+  // empieza otra vez por el principio del diálogo.
+  useEffect(() => {
+    if (scanning) stopBtnRef.current?.focus();
+  }, [scanning]);
 
   async function startCam() {
     setCamError("");
@@ -98,14 +108,14 @@ export default function QrTesterModal({ onClose }) {
     <div
       className="dialog-backdrop fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-4 sm:items-center"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
     >
       <div
         ref={dialogRef}
         className="dialog-panel my-auto max-w-lg"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
       >
         <span className="dialog-grab" aria-hidden="true" />
         <div className="dialog-head">
@@ -144,6 +154,7 @@ export default function QrTesterModal({ onClose }) {
           />
           {scanning && (
             <button
+              ref={stopBtnRef}
               onClick={stopCam}
               className="w-full rounded-xl border border-zinc-700 py-2.5 text-sm text-zinc-300 transition hover:bg-zinc-800"
             >
@@ -151,7 +162,10 @@ export default function QrTesterModal({ onClose }) {
             </button>
           )}
           {camError && (
-            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            <p
+              role="alert"
+              className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300"
+            >
               {camError}
             </p>
           )}
@@ -186,13 +200,14 @@ export default function QrTesterModal({ onClose }) {
               disabled={checking || !manual.trim()}
               className="btn-primary shrink-0 px-4 text-sm disabled:opacity-40"
             >
-              {checking ? "…" : "Probar"}
+              {checking ? "Probando…" : "Probar"}
             </button>
           </form>
 
           {/* Resultado */}
           {result && !checking && (
             <div
+              role="status"
               className={`rounded-xl border p-4 ${
                 result.ok
                   ? "border-emerald-500/30 bg-emerald-500/10"

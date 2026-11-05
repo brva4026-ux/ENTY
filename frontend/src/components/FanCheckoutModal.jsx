@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDialogA11y } from "../lib/useDialogA11y";
 import { startPublicCheckout, fetchPublicCheckoutStatus } from "../lib/api";
 import { money } from "../lib/format";
@@ -35,6 +35,8 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
   // Que campo provoco el aviso: el mensaje se enlaza a ESE campo con
   // aria-describedby y se limpia en cuanto el fan lo corrige.
   const [errorField, setErrorField] = useState(null);
+  // Campos del formulario, para llevar el foco al que causó el aviso.
+  const fieldRefs = useRef({});
 
   // Modo "en curso": venimos de vuelta de Wompi con una referencia. Se sondea
   // el estado hasta que el webhook resuelva (aprobado/rechazado). El primer
@@ -88,9 +90,15 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
   const selected = types.find((t) => t.id === typeId) || null;
 
   // Marca un campo como culpable del aviso. `field` alimenta aria-describedby.
+  //
+  // Además se lleva el foco ahí: en un móvil, con el teclado abierto, un aviso
+  // que nombra "tu teléfono" sin mover el cursor obliga a buscarlo a ciegas
+  // por el formulario. El role="alert" ya lo anuncia; esto lo deja listo para
+  // corregir.
   function fail(field, message) {
     setErrorField(field);
     setError(message);
+    fieldRefs.current[field]?.focus();
   }
 
   // Corregir un campo destraba el aviso: sin esto el error se quedaba pegado
@@ -157,14 +165,17 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
   return (
     <div
       className="dialog-backdrop fixed inset-0 z-[90] flex items-end justify-center overflow-y-auto p-4 sm:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div ref={dialogRef} className="dialog-panel my-auto w-full max-w-md p-5">
+      <div
+        ref={dialogRef}
+        className="dialog-panel my-auto w-full max-w-md p-5"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 id={titleId} className="display text-lg">
@@ -182,7 +193,9 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
         </div>
 
         {reference ? (
-          <div className="space-y-3">
+          // Región viva: el resultado del pago llega solo, por polling. Sin
+          // esto el "¡Pago aprobado!" aparece y nadie lo anuncia.
+          <div className="space-y-3" aria-live="polite">
             {approved ? (
               <>
                 <p className="text-sm font-semibold text-emerald-300">
@@ -269,6 +282,9 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
                 Tu nombre (va impreso en la boleta)
               </span>
               <input
+                ref={(el) => {
+                  fieldRefs.current.name = el;
+                }}
                 className="field"
                 value={name}
                 onChange={(e) => {
@@ -278,6 +294,7 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
                 maxLength={200}
                 autoComplete="name"
                 required
+                data-dialog-autofocus
                 aria-invalid={errorField === "name" ? "true" : undefined}
                 aria-describedby={
                   errorField === "name" ? "checkout-error" : undefined
@@ -290,6 +307,9 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
                 Teléfono (WhatsApp)
               </span>
               <input
+                ref={(el) => {
+                  fieldRefs.current.phone = el;
+                }}
                 className="field"
                 value={phone}
                 onChange={(e) => {
@@ -313,6 +333,9 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
                 Correo (opcional)
               </span>
               <input
+                ref={(el) => {
+                  fieldRefs.current.email = el;
+                }}
                 className="field"
                 type="email"
                 value={email}

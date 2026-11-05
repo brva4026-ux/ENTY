@@ -12,7 +12,7 @@
  *
  * ToastHost + ConfirmHost se montan una vez en <App/> (main.jsx).
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { haptics } from "./haptics";
 import { useDialogA11y } from "./useDialogA11y";
 
@@ -81,7 +81,6 @@ export function ToastHost({ toasts, dismiss }) {
 // Diálogo (confirm / prompt / alert) — una instancia a la vez
 // ---------------------------------------------------------------------------
 function Dialog({ spec, resolve, onClose }) {
-  const inputRef = useRef(null);
   const [value, setValue] = useState(spec.initial ?? "");
   const [closing, setClosing] = useState(false);
 
@@ -101,15 +100,6 @@ function Dialog({ spec, resolve, onClose }) {
     onClose: () => finish(spec.kind === "prompt" ? null : false),
   });
 
-  useEffect(() => {
-    // Foco al montar: al input (prompt) o al botón seguro (confirm/alert).
-    const t = setTimeout(() => {
-      if (spec.kind === "prompt" && inputRef.current) inputRef.current.select();
-      else document.getElementById("dialog-primary-btn")?.focus();
-    }, 30);
-    return () => clearTimeout(t);
-  }, [spec]);
-
   const primaryCls = spec.danger
     ? "rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-500 active:scale-[0.98]"
     : "btn-primary";
@@ -119,13 +109,13 @@ function Dialog({ spec, resolve, onClose }) {
     <div
       className={`fixed inset-0 z-[80] flex items-end justify-center p-4 sm:items-center ${closing ? "dialog-backdrop-out" : "dialog-backdrop"}`}
       onMouseDown={(e) => e.target === e.currentTarget && finish(spec.kind === "prompt" ? null : false)}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
     >
       <div
         ref={dialogRef}
         className={`dialog-panel w-full max-w-sm p-5 ${closing ? "dialog-out" : "dialog-in"}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
       >
         <div className="flex items-start gap-3">
           <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${spec.danger ? "bg-red-950/70 text-red-400 ring-1 ring-red-500/30" : "bg-brand-500/15 text-brand-300 ring-1 ring-brand-500/30"}`}>
@@ -144,7 +134,8 @@ function Dialog({ spec, resolve, onClose }) {
         {spec.kind === "prompt" && (
           <input
             aria-label="Escribe tu respuesta"
-            ref={inputRef}
+            data-dialog-autofocus
+            onFocus={(e) => e.target.select()}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && finish(value)}
@@ -162,6 +153,7 @@ function Dialog({ spec, resolve, onClose }) {
           )}
           <button
             id="dialog-primary-btn"
+            data-dialog-autofocus
             onClick={() => finish(spec.kind === "prompt" ? value : true)}
             className={primaryCls}
           >

@@ -108,7 +108,9 @@ export default function TicketQrModal({ ticket, onClose }) {
 
         <div className="dialog-body">
           {error ? (
-            <p className="text-sm text-red-400">{error}</p>
+            <p role="alert" className="text-sm text-red-400">
+              {error}
+            </p>
           ) : qr ? (
             <img
               src={qr}
@@ -138,6 +140,7 @@ export default function TicketQrModal({ ticket, onClose }) {
             </a>
           )}
           <button
+            type="button"
             onClick={copyUrl}
             className={`btn-ghost text-xs font-bold ${copied ? "btn-success" : ""}`}
           >
@@ -157,6 +160,11 @@ export default function TicketQrModal({ ticket, onClose }) {
             ) : null}
             {copied ? "Enlace copiado" : "Copiar enlace"}
           </button>
+          {/* Fuera del <button>: los hijos de un botón se aplanan en el árbol
+              de accesibilidad y una región viva ahí dentro no se anuncia. */}
+          <span className="sr-only" role="status">
+            {copied ? "Enlace copiado al portapapeles" : ""}
+          </span>
           <a
             href={url}
             target="_blank"
