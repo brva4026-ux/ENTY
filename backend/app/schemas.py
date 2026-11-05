@@ -476,6 +476,18 @@ class ResetPasswordRequest(BaseModel):
         return check_password_strength(v)
 
 
+class ChangeEmailRequest(BaseModel):
+    """Cambio del correo de la cuenta: exige la contraseña vigente.
+
+    Mismo patrón de validación que el correo del registro, y por el mismo
+    motivo: el backend no confía en que el cliente ya lo haya comprobado.
+    """
+    current_password: str = Field(max_length=128)
+    new_email: str = Field(
+        min_length=5, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$"
+    )
+
+
 class ChangePasswordRequest(BaseModel):
     """Cambio de contraseña propia: exige la vigente."""
     current_password: str = Field(max_length=128)

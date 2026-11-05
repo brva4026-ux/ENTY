@@ -37,6 +37,7 @@ from app.routers.legal import (
 )
 from app.schemas import (
     AvatarUpload,
+    ChangeEmailRequest,
     ChangePasswordRequest,
     CloseOtherSessionsRequest,
     DeleteAccountRequest,
@@ -870,6 +871,69 @@ async def change_password(
         await db.commit()
     await _marcar_cambio_password(db, user["id"])
     return MessageOut(detail="Contraseña actualizada.")
+
+
+@router.post("/change-email", response_model=UserSummary)
+async def change_email(
+    body: ChangeEmailRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Cambia el correo de la cuenta autenticada.
+
+    Pide la contraseña vigente por el mismo motivo que el cambio de clave: el
+    correo es la llave de recuperación, así que un token robado no debe bastar
+    para desviar la cuenta (pedir un reset y quedarse con ella).
+
+    No toca `token_version`: el JWT no lleva el correo, así que la sesión
+    abierta sigue siendo válida y no hay nada que refrescar.
+    """
+    nuevo = body.new_email.strip()
+    actual = (user.get("email") or "").strip()
+    if nuevo.lower() == actual.lower():
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Ese ya es el correo de tu cuenta."
+        )
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT password_hash FROM users WHERE id=%s", (user["id"],)
+        )
+        row = await cur.fetchone()
+        if not row or not verify_password(
+            body.current_password, row["password_hash"]
+        ):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "La contraseña actual no es correcta.",
+            )
+
+        # Case-insensitive, como el login y el registro: la restricción de la
+        # base es sobre `email` literal, así que por sí sola no evita que dos
+        # cuentas queden con el mismo correo escrito distinto.
+        await cur.execute(
+            "SELECT 1 FROM users WHERE lower(email)=lower(%s) AND id<>%s",
+            (nuevo, user["id"]),
+        )
+        if await cur.fetchone():
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Ese correo ya tiene una cuenta."
+            )
+
+        try:
+            await cur.execute(
+                "UPDATE users SET email=%s WHERE id=%s", (nuevo, user["id"])
+            )
+        except psycopg.errors.UniqueViolation:
+            # Carrera con un registro o cambio simultáneo: la restricción de la
+            # base tiene la última palabra y se traduce al mismo 409.
+            await db.rollback()
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Ese correo ya tiene una cuenta."
+            )
+        await db.commit()
+
+    return await _build_user_summary(db, user["id"])
 
 
 @router.post("/close-other-sessions", response_model=TokenResponse)

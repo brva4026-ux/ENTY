@@ -183,6 +183,14 @@ export default function ProfilePage() {
   const [avatarMsg, setAvatarMsg] = useState(null);
   const avatarInputRef = useRef(null);
 
+  // Cambio de correo: es la llave de recuperación de la cuenta, así que el
+  // formulario solo se abre a propósito y pide la contraseña vigente.
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailPass, setEmailPass] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailMsg, setEmailMsg] = useState(null);
+
   // Descarga de los propios datos
   const [exportBusy, setExportBusy] = useState(false);
 
@@ -461,6 +469,30 @@ export default function ProfilePage() {
       setAvatarMsg({ ok: false, text: err.message });
     } finally {
       setAvatarBusy(false);
+    }
+  }
+
+  async function submitEmail(e) {
+    e.preventDefault();
+    setEmailMsg(null);
+    setEmailBusy(true);
+    try {
+      const updated = await apiFetch("/auth/change-email", {
+        method: "POST",
+        body: JSON.stringify({
+          new_email: newEmail.trim(),
+          current_password: emailPass,
+        }),
+      });
+      setUser(updated);
+      setEmailOpen(false);
+      setNewEmail("");
+      setEmailPass("");
+      setEmailMsg({ ok: true, text: "Correo actualizado." });
+    } catch (err) {
+      setEmailMsg({ ok: false, text: err.message });
+    } finally {
+      setEmailBusy(false);
     }
   }
 
@@ -836,9 +868,90 @@ export default function ProfilePage() {
               <Icon name="link" className="h-4 w-4" aria-hidden="true" />
               <span className="pf-readonly-value">{user.email}</span>
             </div>
-            <p className="pf-hint">
-              El correo identifica tu cuenta y no se cambia desde aquí.
-            </p>
+            {/* Cerrado muestra el correo y el porqué de la contraseña; el
+                formulario no ocupa espacio hasta que hace falta. */}
+            {!emailOpen ? (
+              <>
+                <p className="pf-hint">
+                  Con este correo entras y recuperas tu cuenta. Si lo cambias,
+                  la recuperación y los avisos pasan al nuevo.
+                </p>
+                <div className="pf-form-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailMsg(null);
+                      setEmailOpen(true);
+                    }}
+                    className="btn-ghost pf-action"
+                  >
+                    Cambiar correo
+                  </button>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={submitEmail} className="pf-form">
+                <Field
+                  id="new-email"
+                  label="Nuevo correo"
+                  hint="Lo usaremos para entrar y para recuperar la cuenta."
+                >
+                  <input
+                    id="new-email"
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="field"
+                    autoComplete="email"
+                    inputMode="email"
+                    maxLength={200}
+                    required
+                  />
+                </Field>
+
+                <Field
+                  id="email-pass"
+                  label="Contraseña actual"
+                  hint="Confirmamos que eres tú antes de mover la cuenta."
+                >
+                  <input
+                    id="email-pass"
+                    type="password"
+                    value={emailPass}
+                    onChange={(e) => setEmailPass(e.target.value)}
+                    className="field"
+                    autoComplete="current-password"
+                    maxLength={128}
+                    required
+                  />
+                </Field>
+
+                <div className="pf-form-actions">
+                  <button type="submit" disabled={emailBusy} className="btn-primary">
+                    {emailBusy ? "Guardando…" : "Guardar correo"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailOpen(false);
+                      setNewEmail("");
+                      setEmailPass("");
+                    }}
+                    className="btn-ghost pf-action"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
+            {emailMsg && (
+              <div
+                role={emailMsg.ok ? "status" : "alert"}
+                className={`pf-alert ${emailMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
+              >
+                {emailMsg.text}
+              </div>
+            )}
           </div>
 
           {/* Negocio activo (solo si pertenece a varios): qué panel abre y
