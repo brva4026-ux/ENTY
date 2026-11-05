@@ -6,7 +6,6 @@
  * re-suscribir automáticamente tras un reinicio del service worker.
  */
 import { useEffect, useState } from "react";
-import { apiFetch } from "../lib/api";
 import {
   disablePush,
   enablePush,

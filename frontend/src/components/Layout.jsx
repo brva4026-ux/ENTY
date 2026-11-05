@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TransitionLink from "./TransitionLink";
 import { useAuth } from "../lib/auth";
-import { hasRole, navTabsFor, topRoleLabel } from "../lib/roles";
+import { navTabsFor, topRoleLabel } from "../lib/roles";
 import { haptics } from "../lib/haptics";
 import { Logo } from "./Brand";
 import Icon from "./Icon";

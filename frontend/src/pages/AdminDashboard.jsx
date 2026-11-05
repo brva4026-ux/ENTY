@@ -1,26 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { apiFetch, publicTicketPageUrl } from "../lib/api";
-import ContactEditsHistory from "../components/ContactEditsHistory";
+import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { haptics } from "../lib/haptics";
 import ReportWidget from "../components/ReportWidget";
 import DoorPulse from "../components/DoorPulse";
-import { LiveIndicator, QuotaMeter } from "../components/Brand";
 import { STATUS_META as EV_CHIP } from "../components/EventWorkbench";
 import { PullToRefresh } from "../components/PullToRefresh";
 import { InstallPrompt } from "../components/InstallPrompt";
-import {
-  ListSkeleton,
-  SelectSkeleton,
-  Skeleton,
-  StatSkeletonRow,
-} from "../components/Skeleton";
+import { SelectSkeleton, StatSkeletonRow } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
 import { activeVenueId } from "../lib/venue";
 import { money, currentYM } from "../lib/format";
-import CountUpNumber from "../components/CountUpNumber";
 import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
 import {
@@ -37,7 +29,7 @@ import EventWorkbench, {
   sortEventsForStrip,
 } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
-import { Star4, Bolt, RibbonDivider } from "../components/Doodles";
+import { Star4, RibbonDivider } from "../components/Doodles";
 import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
 import PayoutsManager from "../components/PayoutsManager";

@@ -3,7 +3,6 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { haptics } from "../lib/haptics";
 import { useUI } from "../lib/ui";
-import { money } from "../lib/format";
 import Icon from "./Icon";
 
 /**
