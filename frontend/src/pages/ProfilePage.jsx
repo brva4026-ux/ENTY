@@ -304,16 +304,18 @@ export default function ProfilePage() {
 
   function selectTab(id) {
     haptics.tick();
-    // La pestaña vive en la URL: se puede enlazar ("/perfil?tab=seguridad")
-    // y el botón atrás vuelve a la pestaña anterior. Sin `replace`: cada
-    // cambio es una entrada de historial, que es justo lo que hace que
-    // "atrás" funcione como uno espera.
+    // La pestaña vive en la URL: se puede enlazar ("/perfil?tab=seguridad").
+    // `replace` y no push: moverse entre pestañas no es navegar. Con push,
+    // cuatro pestañas eran cuatro toques de "atrás" antes de salir del
+    // perfil. La entrada la apila el enlace que trajo aquí (/perfil desde el
+    // menú, o el lockup del header con ?tab=negocio), así que "atrás" sale
+    // del perfil de una vez.
     // Solo se toca `tab`: un objeto nuevo borraba el resto del query
     // (`?from=`, parámetros de campaña) al cambiar de pestaña.
     const next = new URLSearchParams(searchParams);
     if (id === "cuenta") next.delete("tab");
     else next.set("tab", id);
-    setSearchParams(next);
+    setSearchParams(next, { replace: true });
   }
 
   // Navegación por teclado del patrón ARIA tabs (flechas + Home/End).
