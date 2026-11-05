@@ -74,41 +74,58 @@ export default function TicketQrModal({ ticket, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
+      className="dialog-backdrop fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-4 sm:items-center"
       onClick={onClose}
     >
       <div
         ref={dialogRef}
-        className="card animate-scale-in w-full max-w-sm p-5 text-center"
+        className="dialog-panel my-auto max-w-sm text-center"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <p id={titleId} className="display text-base">Boleta #{ticket?.id}</p>
-        <p className="mt-0.5 text-xs text-zinc-500">
-          {ticket?.customer_name}
-          {ticket?.type_name ? ` · ${ticket.type_name}` : ""}
-        </p>
+        <span className="dialog-grab" aria-hidden="true" />
+        <div className="dialog-head">
+          <div className="min-w-0 text-left">
+            <p id={titleId} className="dialog-title">
+              Boleta #{ticket?.id}
+            </p>
+            <p className="dialog-sub">
+              {ticket?.customer_name}
+              {ticket?.type_name ? ` · ${ticket.type_name}` : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="dialog-close"
+            aria-label="Cerrar"
+          >
+            <Icon name="close" className="h-5 w-5" />
+          </button>
+        </div>
 
-        {error ? (
-          <p className="mt-4 text-sm text-red-400">{error}</p>
-        ) : qr ? (
-          <img
-            src={qr}
-            alt={`QR de la boleta #${ticket?.id}`}
-            className="mx-auto mt-4 h-56 w-56 rounded-lg bg-white p-2"
-          />
-        ) : (
-          <div className="skeleton mx-auto mt-4 h-56 w-56 rounded-lg" />
-        )}
+        <div className="dialog-body">
+          {error ? (
+            <p className="text-sm text-red-400">{error}</p>
+          ) : qr ? (
+            <img
+              src={qr}
+              alt={`QR de la boleta #${ticket?.id}`}
+              className="mx-auto h-56 w-56 rounded-lg bg-white p-2"
+            />
+          ) : (
+            <div className="skeleton mx-auto h-56 w-56 rounded-lg" />
+          )}
 
-        <p className="mt-3 text-2xs leading-relaxed text-zinc-500">
-          Este QR es único y quedó asociado a {ticket?.customer_name}. Si se
-          vuelve a emitir, este deja de funcionar.
-        </p>
+          <p className="mt-3 text-2xs leading-relaxed text-zinc-500">
+            Este QR es único y quedó asociado a {ticket?.customer_name}. Si se
+            vuelve a emitir, este deja de funcionar.
+          </p>
+        </div>
 
-        <div className="mt-4 flex justify-center gap-2">
+        <div className="dialog-foot dialog-foot--center">
           {waHref && (
             <a
               href={waHref}
@@ -149,13 +166,6 @@ export default function TicketQrModal({ ticket, onClose }) {
             Abrir boleta
           </a>
         </div>
-
-        <button
-          onClick={onClose}
-          className="mt-3 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
-        >
-          Cerrar
-        </button>
       </div>
     </div>
   );

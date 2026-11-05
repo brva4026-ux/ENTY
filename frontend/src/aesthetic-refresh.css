@@ -2731,3 +2731,179 @@ html[data-motion="reduce"] .door-shell > * {
     transform: none;
   }
 }
+
+/* ===========================================================================
+   MODALES DEL INTERIOR — una sola caja, una sola anatomía
+   ---------------------------------------------------------------------------
+   Todo diálogo del panel (nuevo evento, QR de boleta, probador de QR) usa la
+   misma pieza: cristal mate sobre el negro de la casa, cabecera fija, cuerpo
+   con scroll propio y pie anclado. La anatomía vive en clases —dialog-head,
+   dialog-body, dialog-foot— para que ningún modal vuelva a inventar paddings.
+
+   Se scopea a .app-shell a propósito: el diálogo del fan (FanCheckoutModal)
+   vive fuera del shell y conserva su tratamiento claro.
+
+   En móvil la caja se ancla abajo como hoja, con asa de arrastre; el cuerpo
+   hace el scroll, así la cabecera y el pie nunca se pierden.
+   =========================================================================== */
+
+.app-shell .dialog-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: min(92vh, 52rem);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--e-border-hairline);
+  border-radius: var(--e-radius-xl);
+  background:
+    radial-gradient(30rem 18rem at 88% -8rem, rgba(124, 58, 237, 0.1), transparent 66%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 44%),
+    rgba(17, 17, 23, 0.94);
+  box-shadow:
+    var(--e-highlight-inset),
+    var(--e-elev-overlay);
+}
+
+html[data-theme="light"] .app-shell .dialog-panel {
+  background:
+    radial-gradient(28rem 16rem at 88% -8rem, rgba(124, 58, 237, 0.05), transparent 70%),
+    var(--e-white);
+  border-color: var(--e-neutral-300);
+}
+
+/* Cabecera: título y subtítulo a la izquierda, cierre táctil a la derecha. */
+.app-shell .dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.1rem 1.25rem 0.85rem;
+  border-bottom: 1px solid var(--e-border-hairline);
+}
+
+.app-shell .dialog-title {
+  margin: 0;
+  font-family: var(--e-font-sans);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--e-text-primary);
+}
+
+.app-shell .dialog-sub {
+  margin: 0.2rem 0 0;
+  font-size: var(--e-text-2xs);
+  line-height: 1.5;
+  color: var(--e-text-muted);
+}
+
+/* Cuerpo: lo único que scrollea, para que el contexto no se vaya al subir. */
+.app-shell .dialog-body {
+  min-height: 0; /* deja que el scroll ocurra dentro del panel y no lo estire */
+  padding: 1.15rem 1.25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Pie: anclado, con hairline arriba y el mismo padding que la cabecera.
+   `sticky` lo mantiene a la vista cuando el cuerpo del modal es también el
+   formulario que scrollea (wizard de evento), sin obligar a reestructurar
+   el <form> alrededor de la navegación. */
+.app-shell .dialog-foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 0.85rem 1.25rem 1.1rem;
+  border-top: 1px solid var(--e-border-hairline);
+  background: rgba(17, 17, 23, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+html[data-theme="light"] .app-shell .dialog-foot {
+  background: color-mix(in srgb, var(--e-white) 92%, transparent);
+}
+
+/* Variante del asistente: el paso va a la izquierda y las acciones a la
+   derecha. Se declara como modificador propio en vez de pelear especificidad
+   con `justify-*` de Tailwind, que pierde contra `.app-shell .dialog-foot`. */
+.app-shell .dialog-foot--split {
+  justify-content: space-between;
+}
+
+/* Variante centrada: acciones de un solo bloque (QR de la boleta). */
+.app-shell .dialog-foot--center {
+  justify-content: center;
+}
+
+/* Cuando el pie vive DENTRO del cuerpo que scrollea (wizard de evento) se
+   saca el padding del cuerpo para que la barra llegue de borde a borde. */
+.app-shell .dialog-body > .dialog-foot {
+  margin-inline: -1.25rem;
+  margin-bottom: -1.15rem;
+}
+
+/* Cerrar: 44px de área táctil, sin caja hasta el hover. */
+.app-shell .dialog-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--e-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--e-dur-fast) var(--e-ease-standard),
+    background-color var(--e-dur-fast) var(--e-ease-standard),
+    border-color var(--e-dur-fast) var(--e-ease-standard);
+}
+
+.app-shell .dialog-close:hover {
+  color: var(--e-text-primary);
+  border-color: var(--e-border-hairline);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="light"] .app-shell .dialog-close:hover {
+  background: var(--e-neutral-100);
+}
+
+/* En escritorio no hay asa: la caja flota centrada. */
+.app-shell .dialog-grab {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .app-shell .dialog-panel {
+    max-width: none;
+    max-height: 92vh;
+    margin: 0;
+    border-radius: 1.25rem 1.25rem 0 0;
+  }
+  .app-shell .dialog-grab {
+    display: block;
+    width: 2.25rem;
+    height: 0.25rem;
+    margin: 0.55rem auto 0;
+    border-radius: 999px;
+    background: var(--e-neutral-600);
+    opacity: 0.5;
+  }
+  .app-shell .dialog-head {
+    padding-top: 0.5rem;
+  }
+}
+
+/* Movimiento reducido: la caja entra sin escala ni desplazamiento. */
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .dialog-panel {
+    animation: none;
+  }
+}

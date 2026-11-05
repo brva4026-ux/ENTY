@@ -281,26 +281,31 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div ref={dialogRef} className="dialog-panel my-auto w-full max-w-2xl p-5">
+      <div ref={dialogRef} className="dialog-panel my-auto max-w-2xl">
+        <span className="dialog-grab" aria-hidden="true" />
+
         {/* ====== Cabecera + pasos ====== */}
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h3 id={titleId} className="display text-lg">Nuevo evento</h3>
-            <p className="mt-0.5 text-xs text-zinc-500">
+        <div className="dialog-head">
+          <div className="min-w-0">
+            <h3 id={titleId} className="dialog-title">Nuevo evento</h3>
+            <p className="dialog-sub">
               Nace en borrador: lo montas (tipos y cupos) antes de publicarlo.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="btn-mini"
-            data-variant="brand"
+            className="dialog-close"
+            aria-label="Cerrar"
           >
-            Cerrar ✕
+            ✕
           </button>
         </div>
 
-        <ol className="mb-5 flex items-center gap-1.5" aria-label="Pasos">
+        <ol
+          className="mb-1 flex items-center gap-1.5 px-5 pt-4"
+          aria-label="Pasos"
+        >
           {STEPS.map((s, i) => (
             <li key={s.id} className="flex flex-1 items-center gap-1.5">
               <span
@@ -338,7 +343,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           ))}
         </ol>
 
-        <form onSubmit={createEvent}>
+        <form onSubmit={createEvent} className="dialog-body">
           {/* ====== Paso 1: qué es y dónde ====== */}
           {step === 0 && (
             <div key="s0" className="animate-rise grid gap-3.5 sm:grid-cols-2">
@@ -753,7 +758,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           )}
 
           {/* ====== Navegación del asistente ====== */}
-          <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="dialog-foot dialog-foot--split">
             <span className="text-xs text-zinc-600">
               Paso {step + 1} de {STEPS.length}
             </span>

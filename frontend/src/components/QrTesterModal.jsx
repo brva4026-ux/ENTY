@@ -96,7 +96,7 @@ export default function QrTesterModal({ onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="dialog-backdrop fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-4 sm:items-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -104,29 +104,30 @@ export default function QrTesterModal({ onClose }) {
     >
       <div
         ref={dialogRef}
-        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-zinc-800 bg-zinc-900 shadow-2xl sm:rounded-2xl"
+        className="dialog-panel my-auto max-w-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
-          <div>
-            <h2 id={titleId} className="flex items-center gap-2 text-lg font-semibold text-zinc-100">
+        <span className="dialog-grab" aria-hidden="true" />
+        <div className="dialog-head">
+          <div className="min-w-0">
+            <h2 id={titleId} className="dialog-title flex items-center gap-2">
               <Icon name="qr" className="h-5 w-5 text-brand-400" />
               Probador de QR
             </h2>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="dialog-sub">
               Solo consulta la boleta — nunca la canjea
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
+            className="dialog-close"
             aria-label="Cerrar"
           >
             <Icon name="close" className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="space-y-4 p-5">
+        <div className="dialog-body space-y-4">
           {/* Camara */}
           {!scanning && (
             <button
