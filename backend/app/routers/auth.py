@@ -121,8 +121,20 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
     user: dict | None = None
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, email, full_name, username, phone, created_at, "
-            "last_login_at, password_changed_at, avatar_url FROM users WHERE id=%s",
+            # `password_changed_at` (mig 037) y `avatar_url` (mig 038) se leen
+            # como texto del jsonb de la fila, no como columnas: si el codigo
+            # llega a produccion antes que la migracion, `->>` devuelve NULL en
+            # vez de reventar con UndefinedColumn. Un SELECT explicito de esas
+            # dos columnas no rompia el perfil: rompia el LOGIN entero, porque
+            # todo inicio de sesion termina construyendo este resumen.
+            """
+            SELECT u.id, u.email, u.full_name, u.username, u.phone,
+                   u.created_at, u.last_login_at,
+                   (to_jsonb(u) ->> 'password_changed_at') AS password_changed_at,
+                   (to_jsonb(u) ->> 'avatar_url') AS avatar_url
+              FROM users u
+             WHERE u.id = %s
+            """,
             (user_id,),
         )
         user = await cur.fetchone()
@@ -554,11 +566,15 @@ async def reset_password(
         # Bump de token_version (mig 019): cualquier JWT viejo del usuario
         # queda muerto al instante — la recuperación no deja sesiones vivas.
         await cur.execute(
-            "UPDATE users SET password_hash = %s, token_version = token_version + 1, "
-            "password_changed_at = now() WHERE id = %s",
+            "UPDATE users SET password_hash = %s, token_version = token_version + 1 "
+            "WHERE id = %s",
             (hash_password(body.new_password), row["user_id"]),
         )
         await db.commit()
+
+    # La fecha del cambio (mig 037) va aparte y best-effort: no puede impedir
+    # que alguien recupere su cuenta si la migracion aun no llego.
+    await _marcar_cambio_password(db, row["user_id"])
 
     # Éxito: limpiar el lockout de ese email (cualquier IP).
     try:
@@ -619,6 +635,50 @@ async def update_profile(
     return await _build_user_summary(db, user["id"])
 
 
+async def _marcar_cambio_password(
+    db: psycopg.AsyncConnection, user_id: int
+) -> None:
+    """Anota cuando se cambio la contrasena (mig 037).
+
+    Best-effort a proposito, y siempre DESPUES de confirmar el cambio: si la
+    columna todavia no existe en la base (codigo desplegado antes que la
+    migracion), se ignora en vez de devolverle un 500 a alguien que acaba de
+    cambiar su clave correctamente. Lo unico que se pierde es la linea del
+    perfil.
+    """
+    try:
+        async with db.cursor() as cur:
+            await cur.execute(
+                "UPDATE users SET password_changed_at = now() WHERE id=%s", (user_id,)
+            )
+        await db.commit()
+    except psycopg.errors.UndefinedColumn:
+        await db.rollback()
+
+
+async def _avatar_listo(cur: psycopg.AsyncCursor) -> bool:
+    """¿Estan las columnas de la mig 038?
+
+    Sin ellas la foto de perfil no puede funcionar: `media.venue_id` sigue
+    siendo NOT NULL y `users.avatar_url` no existe. Se responde 503 con un
+    mensaje claro en vez de un 500: es una funcion esperando a la migracion, no
+    un fallo del usuario.
+    """
+    await cur.execute(
+        """
+        SELECT count(*) AS n
+          FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND (
+                (table_name = 'media' AND column_name = 'venue_id'
+                 AND is_nullable = 'YES')
+             OR (table_name = 'users' AND column_name = 'avatar_url')
+           )
+        """
+    )
+    return (await cur.fetchone())["n"] == 2
+
+
 def _media_id_from_url(url: str | None) -> int | None:
     """Id de una URL /media/{id}, o None si no es una imagen de las nuestras.
 
@@ -647,6 +707,11 @@ async def set_avatar(
     bytes muertos; el filtro por created_by impide tocar imagenes ajenas.
     """
     async with db.cursor() as cur:
+        if not await _avatar_listo(cur):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "La foto de perfil aún no está disponible. Inténtalo más tarde.",
+            )
         await cur.execute("SELECT avatar_url FROM users WHERE id=%s", (user["id"],))
         previa = _media_id_from_url((await cur.fetchone() or {}).get("avatar_url"))
 
@@ -675,6 +740,11 @@ async def clear_avatar(
 ):
     """Quita la foto de perfil y libera los bytes de `media`."""
     async with db.cursor() as cur:
+        if not await _avatar_listo(cur):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "La foto de perfil aún no está disponible. Inténtalo más tarde.",
+            )
         await cur.execute("SELECT avatar_url FROM users WHERE id=%s", (user["id"],))
         previa = _media_id_from_url((await cur.fetchone() or {}).get("avatar_url"))
         await cur.execute("UPDATE users SET avatar_url=NULL WHERE id=%s", (user["id"],))
@@ -793,11 +863,12 @@ async def change_password(
         # Bump de token_version (mig 019): el resto de las sesiones abiertas
         # (otro teléfono, un navegador público) muere al cambiar la clave.
         await cur.execute(
-            "UPDATE users SET password_hash=%s, token_version = token_version + 1, "
-            "password_changed_at = now() WHERE id=%s",
+            "UPDATE users SET password_hash=%s, token_version = token_version + 1 "
+            "WHERE id=%s",
             (hash_password(body.new_password), user["id"]),
         )
         await db.commit()
+    await _marcar_cambio_password(db, user["id"])
     return MessageOut(detail="Contraseña actualizada.")
 
 
