@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
 import { eventDate } from "../lib/format";
@@ -103,10 +103,17 @@ function Chip({ active, onClick, children }) {
   );
 }
 
-/** Microcopy explicativa de un campo: el "para qué" de cada cosa. */
-function Hint({ children, tone = "zinc" }) {
+/** Microcopy explicativa de un campo: el "para qué" de cada cosa.
+ *
+ * Se renderiza FUERA del <label> y el campo la referencia con
+ * aria-describedby: dentro del label, todo su texto se concatena al nombre
+ * accesible ("Nombre del evento * Es lo primero que ven el promotor…"), que
+ * es lo que anuncia el lector al enfocar. Como descripción se lee aparte y se
+ * puede repetir con el atajo del lector. */
+function Hint({ id, children, tone = "zinc" }) {
   return (
     <span
+      id={id}
       className={`mt-1 block text-2xs leading-snug ${
         tone === "amber" ? "text-amber-300/80" : "text-zinc-500"
       }`}
@@ -134,6 +141,10 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   // Contenedor del paso montado, para llevar ahí el foco al cambiar de paso.
   const stepRef = useRef(null);
   const stepMounted = useRef(false);
+  // Ids de campo/texto de ayuda: unicos por instancia, para que
+  // aria-describedby no apunte al Hint de otro montaje del modal.
+  const uid = useId();
+  const fid = (key) => `${uid}-${key}`;
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(defaultEventForm);
   const [formError, setFormError] = useState("");
@@ -379,11 +390,15 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
               tabIndex={-1}
               className="animate-rise grid gap-3.5 focus:outline-none sm:grid-cols-2"
             >
-              <label className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+              <div className="sm:col-span-full">
+                <label
+                  htmlFor={fid("name")}
+                  className="mb-1 block text-xs font-medium text-zinc-400"
+                >
                   Nombre del evento *
-                </span>
+                </label>
                 <input
+                  id={fid("name")}
                   value={form.name}
                   onChange={(e) => set({ name: e.target.value })}
                   placeholder="Noche Electrónica"
@@ -391,28 +406,34 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   maxLength={200}
                   data-dialog-autofocus
                   aria-required="true"
+                  aria-describedby={fid("name-hint")}
                 />
-                <Hint>
+                <Hint id={fid("name-hint")}>
                   Es lo primero que ven el promotor y la puerta. Sin tildes
                   problemáticas: aparecerá tal cual en la boleta.
                 </Hint>
-              </label>
-              <label className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+              </div>
+              <div className="sm:col-span-full">
+                <label
+                  htmlFor={fid("location")}
+                  className="mb-1 block text-xs font-medium text-zinc-400"
+                >
                   Lugar del evento
-                </span>
+                </label>
                 <input
+                  id={fid("location")}
                   value={form.location}
                   onChange={(e) => set({ location: e.target.value })}
                   className="field"
                   placeholder="Calle 45 #12-30, Medellín"
                   maxLength={200}
+                  aria-describedby={fid("location-hint")}
                 />
-                <Hint>
+                <Hint id={fid("location-hint")}>
                   La dirección que leerá el invitado en su boleta y el mensaje
                   de WhatsApp. Déjalo vacío solo si es siempre la misma del bar.
                 </Hint>
-              </label>{" "}
+              </div>{" "}
               <div className="sm:col-span-full">
                 <span className="mb-1 block text-xs font-medium text-zinc-400">
                   Flyer del evento (opcional)
@@ -670,17 +691,22 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </Hint>
               </div>
 
-              <label>
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+              <div>
+                <label
+                  htmlFor={fid("qr")}
+                  className="mb-1 block text-xs font-medium text-zinc-400"
+                >
                   El QR del invitado se activa *
-                </span>
+                </label>
                 <input
+                  id={fid("qr")}
                   type="number"
                   value={form.qr_unlock_minutes}
                   onChange={(e) => set({ qr_unlock_minutes: e.target.value })}
                   className="field"
                   min="0"
                   required
+                  aria-describedby={fid("qr-hint")}
                 />
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   <Chip
@@ -702,12 +728,12 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                     3 h antes
                   </Chip>
                 </div>
-                <Hint tone="amber">
+                <Hint id={fid("qr-hint")} tone="amber">
                   Anti reenvío: el invitado solo ve su QR dentro de esta
                   ventana, así que el enlace no circula por WhatsApp días antes.
                   1 hora es el estándar del rubro.
                 </Hint>
-              </label>
+              </div>
 
               <p className="sm:col-span-full text-2xs text-zinc-600">
                 La hora se guarda en tu zona (
@@ -724,11 +750,15 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
               tabIndex={-1}
               className="animate-rise space-y-4 focus:outline-none"
             >
-              <label>
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
+              <div>
+                <label
+                  htmlFor={fid("capacity")}
+                  className="mb-1 block text-xs font-medium text-zinc-400"
+                >
                   Aforo total (personas) *
-                </span>
+                </label>
                 <input
+                  id={fid("capacity")}
                   type="number"
                   value={form.capacity}
                   onChange={(e) => set({ capacity: e.target.value })}
@@ -736,6 +766,11 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   placeholder="100"
                   min="1"
                   required
+                  aria-describedby={
+                    Number(form.capacity) > 500
+                      ? `${fid("capacity-hint")} ${fid("capacity-high")}`
+                      : fid("capacity-hint")
+                  }
                 />
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {[50, 100, 150, 200, 300].map((n) => (
@@ -748,18 +783,18 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                     </Chip>
                   ))}
                 </div>
-                <Hint>
+                <Hint id={fid("capacity-hint")}>
                   Es el cupo FÍSICO del local (el que dice seguridad/bomberos),
                   no lo que esperas vender: las boletas emitidas nunca pueden
                   pasarse de aquí.
                 </Hint>
                 {Number(form.capacity) > 500 && (
-                  <Hint tone="amber">
+                  <Hint id={fid("capacity-high")} tone="amber">
                     Aforo alto: confirma que el local realmente tenga esa
                     capacidad antes de publicar.
                   </Hint>
                 )}
-              </label>
+              </div>
 
               {/* Vista previa: cómo se verá el evento en la lista y la boleta */}
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
