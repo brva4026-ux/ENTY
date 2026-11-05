@@ -6127,13 +6127,22 @@ html[data-theme="light"] .pf-action-danger {
    todo el ancho y pegajosa: al bajar por un panel largo las secciones
    siguen a un toque.
    ---------------------------------------------------------------------- */
+/* `top` no puede ser 0.5rem: el topbar del shell es sticky (h-14 = 3.5rem)
+   y tiene más z-index, así que la barra se metía debajo y desaparecía al
+   bajar. Se ancla justo debajo, con un respiro. */
 .pf-tabs {
   position: sticky;
-  top: 0.5rem;
+  top: 4rem;
   z-index: 5;
   display: flex;
   width: 100%;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(14px);
+}
+/* La pista del tabbar es translúcida (0.35): al quedar pegada sobre el
+   contenido, el texto de las tarjetas se transparentaba a través. En
+   oscuro se le da un fondo casi opaco; en claro ya es neutral-300 opaco. */
+html:not([data-theme="light"]) .pf-tabs {
+  background: rgba(9, 9, 13, 0.78);
 }
 .pf-tabs .tabbar-item {
   flex: 1 1 0;
@@ -6151,10 +6160,18 @@ html[data-theme="light"] .pf-action-danger {
    ---------------------------------------------------------------------- */
 .pf-panel {
   padding: 1.25rem;
+  /* Al cambiar de pestaña el foco viaja al panel: sin este margen el título
+     quedaba debajo de la barra pegajosa. */
+  scroll-margin-top: 9rem;
 }
 .pf-panel:focus-visible {
   outline: 2px solid var(--e-focus-ring);
   outline-offset: 2px;
+}
+@media (max-width: 480px) {
+  .pf-panel {
+    padding: 1rem;
+  }
 }
 .pf-panel-head {
   margin-bottom: 1.125rem;
@@ -6207,6 +6224,11 @@ html[data-theme="light"] .pf-label {
 }
 .pf-hint-warn {
   color: var(--e-amber-400);
+}
+/* El ámbar 400 sobre papel se queda en ~1.9:1: en claro el aviso baja de
+   escala (700) para cumplir AA sin perder el significado de alerta. */
+html[data-theme="light"] .pf-hint-warn {
+  color: var(--e-amber-700);
 }
 .pf-form-actions {
   display: flex;
@@ -6280,11 +6302,29 @@ html[data-theme="light"] .pf-alert-bad {
   border-top: 1px solid var(--e-border-hairline);
   padding-top: 1.25rem;
 }
+/* Sub-bloque con viga: la misma firma vertical que el KPI de la portada.
+   Da jerarquía dentro de un panel sin sumar tamaño ni color al texto. */
 .pf-sub-title {
+  position: relative;
   margin-bottom: 0.5rem;
+  padding-left: 0.65rem;
   font-size: var(--e-text-base);
   font-weight: 700;
   color: var(--color-zinc-200);
+}
+.pf-sub-title::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  bottom: 0.15em;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--e-violet-400),
+    color-mix(in srgb, var(--e-violet-500) 25%, transparent)
+  );
 }
 html[data-theme="light"] .pf-sub-title {
   color: var(--e-neutral-900);
@@ -6333,11 +6373,18 @@ html[data-theme="light"] .pf-readonly {
   border: 1px solid var(--e-border-hairline);
   padding: 0.75rem;
   text-align: left;
+  cursor: pointer;
   transition: border-color var(--e-dur-fast),
     background var(--e-dur-fast);
 }
 .pf-venue:hover {
   border-color: var(--e-border-strong);
+}
+/* Es un control real (elige negocio activo): necesita foco visible propio,
+   no el outline del navegador sobre un borde que ya tiene color. */
+.pf-venue:focus-visible {
+  outline: 2px solid var(--e-focus-ring);
+  outline-offset: 2px;
 }
 .pf-venue.is-on {
   border-color: color-mix(in srgb, var(--e-violet-500) 60%, transparent);
