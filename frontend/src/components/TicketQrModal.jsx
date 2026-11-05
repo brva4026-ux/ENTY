@@ -18,7 +18,6 @@ import { useDialogA11y } from "../lib/useDialogA11y";
 export default function TicketQrModal({ ticket, onClose }) {
   const { dialogRef, titleId } = useDialogA11y({ onClose });
   const [qr, setQr] = useState(null);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -33,17 +32,6 @@ export default function TicketQrModal({ ticket, onClose }) {
       .then(setQr)
       .catch(() => setError("No se pudo generar el QR"));
   }, [ticket?.raw_token]);
-
-  async function confirmReissue() {
-    setBusy(true);
-    setError("");
-    try {
-      // El modal recibe raw_token ya rotado por el padre (que llamó a
-      // reissue antes de abrirme). Nada que hacer aquí salvo mostrar.
-    } finally {
-      setBusy(false);
-    }
-  }
 
   const url = ticket?.raw_token ? publicTicketPageUrl(ticket.raw_token) : "";
 
