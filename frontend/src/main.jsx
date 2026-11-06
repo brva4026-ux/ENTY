@@ -67,7 +67,7 @@ const lazyPage = (loader) => {
 const AdminDashboard = lazyPage(() => import("./pages/AdminDashboard"));
 const PromoterDashboard = lazyPage(() => import("./pages/PromoterDashboard"));
 const FunnelPage = lazyPage(() => import("./pages/FunnelPage"));
-const BusinessPage = lazyPage(() => import("./pages/BusinessPage"));
+const BusinessPage = lazyPage(() => import("./pages/Admin/BusinessPage"));
 const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
@@ -87,9 +87,10 @@ const DoorLinkPage = lazyPage(() => import("./pages/DoorLinkPage"));
 // si el texto viviera también en el bundle, la persona aceptaría una versión
 // distinta de la que legal_documents considera vigente.
 const LegalPage = lazyPage(() => import("./pages/LegalPage"));
-import Layout from "./components/Layout";
 import { CookieNotice } from "./components/CookieNotice";
 import { SplashScreen } from "./components/SplashScreen";
+import Layout from "./components/Layout";
+import AdminSectionRoutes from "./pages/Admin/Sections/Sections";
 
 function RequireRole({ role, children }) {
   const { user, loading } = useAuth();
@@ -143,11 +144,10 @@ function App() {
               router (navega a /cookies), por eso vive aquí dentro. */}
           <CookieNotice />
           <Suspense fallback={<SplashScreen />}>
+            
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              {/* Reset self-service: pública, el token del correo es la credencial
-              de un solo uso; la página lo canjea por la nueva contraseña. */}
               <Route path="/reset" element={<ResetPasswordPage />} />
               <Route
                 path="/perfil"
@@ -159,29 +159,15 @@ function App() {
                   </RequireAuth>
                 }
               />
-              {/* El negocio del perfil conserva su URL de pestaña (?tab=negocio);
-                  este atajo le da la forma de página que usan los paneles. */}
               <Route
                 path="/perfil/negocio"
                 element={<Navigate to="/perfil?tab=negocio" replace />}
               />
-              {/* Boleta del invitado: publica, sin login. El token llega en el
-              fragmento (#), que el navegador no envia al servidor. */}
               <Route path="/t" element={<PublicTicketPage />} />
-              {/* Inicio: la vitrina publica del fan (catalogo de eventos).
-              Sin login — es la cara de consumidor de Enty.
-              Explorar es la MISMA vitrina en modo catalogo (sin destacado y
-              con el buscador listo): la pestaña de la barra inferior apuntaba
-              a /inicio, así que "Explorar" no llevaba a ninguna parte. */}
               <Route path="/inicio" element={<HomePage />} />
               <Route path="/explorar" element={<HomePage explorar />} />
-              {/* Detalle del evento: la pantalla de compra, publica como la
-              vitrina. Se llega tocando un evento del catalogo. */}
               <Route path="/evento/:id" element={<EventDetailPage />} />
               <Route path="/boletas" element={<MyTicketsPage />} />
-              {/* Legales: públicas, sin login. Cierran el bloqueante de operar
-              con cobros reales (no había dónde asentar términos ni privacidad).
-              La URL de cada una coincide con legal_documents.url en la base. */}
               <Route
                 path="/terminos"
                 element={<LegalPage slug="terminos-plataforma" />}
@@ -199,13 +185,8 @@ function App() {
                 path="/encargo-datos"
                 element={<LegalPage slug="encargo-datos" />}
               />
-              {/* Lista de espera (E2): publica, sin cuentas. La credencial del
-              fan tambien viaja en el fragmento y se guarda en localStorage. */}
               <Route path="/waitlist" element={<WaitlistPage />} />
               <Route path="/invitacion" element={<AcceptInvitationPage />} />
-              {/* Link de puerta con la NOCHE YA FIJA (mig 025): lo abre quien
-              el admin asigno a ese evento. El canje atada la persona a esa
-              noche y manda al escaner sin selector. */}
               <Route path="/puerta" element={<DoorLinkPage />} />
               <Route
                 path="/admin"
@@ -227,14 +208,82 @@ function App() {
                   </RequireRole>
                 }
               />
-              {/* Reportes del negocio: página propia, hermana de Métricas. El
-                  mes viaja en ?mes=, igual que en la portada del panel. */}
               <Route
                 path="/admin/negocio"
                 element={
                   <RequireRole role="admin">
                     <Layout>
                       <BusinessPage />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/puerta"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <AdminSectionRoutes />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/resumen"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <AdminSectionRoutes />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/promotores"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <AdminSectionRoutes />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/cobros"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <AdminSectionRoutes />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/equipo"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <AdminSectionRoutes />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/liquidaciones"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <AdminSectionRoutes />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/invitaciones"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <AdminSectionRoutes />
                     </Layout>
                   </RequireRole>
                 }
@@ -258,9 +307,6 @@ function App() {
                 }
               />
               <Route path="/" element={<RootRoute />} />
-              {/* Ruta inexistente: pantalla propia, no redirección muda a "/".
-                  Un enlace roto o un QR viejo se veían como un aterrizaje
-                  normal, sin explicar que la dirección pedida no existe. */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
