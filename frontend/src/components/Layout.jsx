@@ -40,6 +40,21 @@ const TAB_ICONS = {
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
     </svg>
   ),
+  "admin/negocio": (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[22px] w-[22px]"
+    >
+      <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
+      <circle cx="12" cy="12" r="2.6" />
+      <path d="M6 12h.01M18 12h.01" />
+    </svg>
+  ),
   promotor: (
     <svg
       viewBox="0 0 24 24"

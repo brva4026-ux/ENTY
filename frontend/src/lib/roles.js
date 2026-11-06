@@ -102,6 +102,7 @@ export function navTabsFor(user) {
   if (hasRole(user, "admin")) {
     tabs.push({ to: "/admin", label: "Eventos" });
     tabs.push({ to: "/admin/metricas", label: "Métricas" });
+    tabs.push({ to: "/admin/negocio", label: "Negocio" });
   }
   if (hasRole(user, "promotor"))
     tabs.push({ to: "/promotor", label: "Vender" });
