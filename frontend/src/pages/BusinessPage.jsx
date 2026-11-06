@@ -1164,7 +1164,7 @@ export default function BusinessPage() {
             Las pestañas que requieren un evento abierto se deshabilitan aquí:
             el reporte ya no depende de uno puntual.
             ================================================================= */}
-        {selectedEventData && (
+        {!selectedEventData && (
           <>
             {/* Barra de pestañas del negocio: el mismo vocabulario que el dock,
               pero en el atajo "?tab=..." dentro de este panel. */}
@@ -1245,9 +1245,6 @@ export default function BusinessPage() {
                 </p>
               </div>
             )}
-            {/* El reporte que aparece es el del mes, no del evento: el admin
-              elige un mes en la cabecera de la portada y el reporte se
-              calcula desde ese mes, no desde el evento. */}
             {booting ? (
               <StatSkeletonRow count={6} />
             ) : (
