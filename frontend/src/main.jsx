@@ -67,6 +67,7 @@ const lazyPage = (loader) => {
 const AdminDashboard = lazyPage(() => import("./pages/AdminDashboard"));
 const PromoterDashboard = lazyPage(() => import("./pages/PromoterDashboard"));
 const FunnelPage = lazyPage(() => import("./pages/FunnelPage"));
+const BusinessPage = lazyPage(() => import("./pages/BusinessPage"));
 const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
@@ -158,6 +159,12 @@ function App() {
                   </RequireAuth>
                 }
               />
+              {/* El negocio del perfil conserva su URL de pestaña (?tab=negocio);
+                  este atajo le da la forma de página que usan los paneles. */}
+              <Route
+                path="/perfil/negocio"
+                element={<Navigate to="/perfil?tab=negocio" replace />}
+              />
               {/* Boleta del invitado: publica, sin login. El token llega en el
               fragmento (#), que el navegador no envia al servidor. */}
               <Route path="/t" element={<PublicTicketPage />} />
@@ -216,6 +223,18 @@ function App() {
                   <RequireRole role="admin">
                     <Layout>
                       <FunnelPage />
+                    </Layout>
+                  </RequireRole>
+                }
+              />
+              {/* Reportes del negocio: página propia, hermana de Métricas. El
+                  mes viaja en ?mes=, igual que en la portada del panel. */}
+              <Route
+                path="/admin/negocio"
+                element={
+                  <RequireRole role="admin">
+                    <Layout>
+                      <BusinessPage />
                     </Layout>
                   </RequireRole>
                 }

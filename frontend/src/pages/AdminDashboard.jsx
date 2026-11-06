@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
@@ -39,7 +39,6 @@ import TicketList from "../components/TicketList";
 import EventTeamPanel from "../components/EventTeamPanel";
 import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
-import BusinessOverview from "../components/BusinessOverview";
 import DoorSection from "../components/DoorSection";
 import PromotersSection from "../components/PromotersSection";
 import BusinessDock from "../components/BusinessDock";
@@ -207,6 +206,7 @@ export default function AdminDashboard() {
   // Fuente de verdad de la URL: el evento abierto y su pestaña viven en
   // /admin?event=<id>&tab=<tab> — compartible, sobrevive recargas y back.
   const [searchParams, setSearchParams] = useSearchParams();
+  const nav = useNavigate();
   const urlEvent = searchParams.get("event");
   const urlTab = searchParams.get("tab") || "resumen";
   const urlMonth = searchParams.get("mes"); // null = mes en curso
@@ -230,7 +230,6 @@ export default function AdminDashboard() {
     "boletas",
     "noche",
     "cobros",
-    "negocio",
     "puerta",
     "promotores",
     "equipo",
@@ -932,6 +931,9 @@ export default function AdminDashboard() {
       </div>
     );
   }
+
+  // Enlace viejo (?tab=negocio): Reportes ahora es una página propia.
+  if (urlTab === "negocio") return <Navigate to="/admin/negocio" replace />;
 
   return (
     <PullToRefresh onRefresh={reloadAll}>
@@ -2167,7 +2169,12 @@ export default function AdminDashboard() {
           <BusinessDock
             venueId={venueId}
             section={section}
-            onNavigate={(id) => setSearchParams({ tab: id })}
+            onNavigate={(id) =>
+              // Reportes ya no es una pestaña del panel: es su propia página.
+              id === "negocio"
+                ? nav("/admin/negocio")
+                : setSearchParams({ tab: id })
+            }
           />
         )}
         {/* Secciones de venue: se renderizan cuando su pestaña está activa y
@@ -2184,13 +2191,6 @@ export default function AdminDashboard() {
         )}
         {!selectedEventData && section === "cobros" && (
           <PaymentsPanel venueId={venueId} events={events ?? []} />
-        )}
-        {!selectedEventData && section === "negocio" && (
-          <BusinessOverview
-            venueId={venueId}
-            month={urlMonth}
-            onOpenEvent={(id) => flyToEvent(id, "resumen")}
-          />
         )}
         {!selectedEventData && section === "equipo" && (
           <TeamManager

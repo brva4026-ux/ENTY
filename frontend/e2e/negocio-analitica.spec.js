@@ -3,7 +3,7 @@
  *
  * Regresión de las dos métricas nuevas del mes: el RITMO de venta (con
  * cuánta anticipación se compra) y la RETENCIÓN (compradores que ya habían
- * comprado antes). Ambas viven en /admin?tab=negocio y se alimentan de
+ * comprado antes). Ambas viven en /admin/negocio (Reportes) y se alimentan de
  * GET /venues/{id}/overview. La prueba fija que las dos tarjetas montan con
  * datos reales del seed (no en estado vacío): si el endpoint deja de
  * devolver sales_curve/retention_*, o el componente no las pinta, cae.
@@ -29,7 +29,7 @@ test("Reportes muestra el ritmo de venta y los clientes que vuelven", async ({
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await page.waitForURL(/admin/, { timeout: 10_000 });
 
-  await page.goto("/admin?tab=negocio");
+  await page.goto("/admin/negocio");
 
   // Ritmo de venta: los 5 tramos de anticipación, del más lejano al más
   // cercano. El seed vende dentro del mes, así que hay al menos una barra
