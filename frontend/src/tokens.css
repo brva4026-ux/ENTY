@@ -348,9 +348,6 @@ html[data-theme="light"] {
 .text-ink {
   color: var(--e-text-primary);
 }
-.text-dim {
-  color: var(--e-text-secondary);
-}
 .text-dim-2 {
   color: var(--e-text-muted);
 }
@@ -376,7 +373,4 @@ html[data-theme="light"] {
    fija, ver index.css). */
 .bg-canvas {
   background: var(--e-canvas);
-}
-.bg-surface {
-  background: var(--e-surface);
 }
