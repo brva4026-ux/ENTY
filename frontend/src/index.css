@@ -4644,6 +4644,33 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
   cursor: pointer;
   user-select: none;
 }
+/* "¿Olvidaste tu contraseña?" — vive en la fila de "Recordarme": mismo renglón,
+   extremos opuestos (el reset es la otra mitad de la misma decisión de acceso).
+   `margin-left:auto` lo empuja al borde; `min-height` le da un objetivo táctil
+   de 44px que el texto solo no tenía. */
+.auth-forgot {
+  margin-left: auto;
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+  background: none;
+  border: 0;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  color: var(--e-violet-300);
+  cursor: pointer;
+  transition: color var(--e-dur-fast) var(--e-ease-standard);
+}
+.auth-forgot:hover {
+  color: var(--e-white);
+}
+.auth-forgot:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+/* Aviso de confirmación (enlace de recuperación enviado). */
+.auth-hint--ok {
+  color: var(--e-green-300);
+}
 /* CTA ancho y con altura de objetivo táctil real (48px). */
 .btn-primary--lg {
   width: 100%;
@@ -7825,6 +7852,43 @@ html .auth-shell--minimal.auth-shell--light {
 }
 .auth-login-flow .auth-trust {
   color: var(--e-neutral-550);
+}
+
+/* Sobre papel, el aviso verde y el enlace de cuenta suben de tono para AA:
+   el verde-neón del tema oscuro no se lee sobre blanco. */
+.auth-login-flow .auth-hint--ok {
+  color: var(--e-emerald-600);
+}
+.auth-login-flow .auth-forgot {
+  color: var(--e-violet-600);
+}
+.auth-login-flow .auth-forgot:hover {
+  color: var(--e-violet-500);
+}
+/* "¿Aún no tienes cuenta? Crear cuenta": el puente al registro. */
+.auth-alt {
+  margin-top: 0.25rem;
+  font-size: var(--e-text-xs);
+  color: var(--e-neutral-600);
+}
+.auth-alt-link {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--e-violet-600);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard);
+}
+.auth-alt-link:hover {
+  border-color: var(--e-violet-600);
+}
+.auth-login-flow .auth-alt {
+  color: var(--e-neutral-600);
+}
+.auth-login-flow .auth-alt-link {
+  color: var(--e-violet-600);
 }
 
 /* En móvil la tarjeta ocupa el ancho disponible sin tocar los bordes. */

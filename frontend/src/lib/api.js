@@ -326,3 +326,15 @@ export function publicTicketImageUrl(rawToken) {
 export function publicTicketPageUrl(rawToken) {
   return `${window.location.origin}${BASE}/public/tickets/${encodeURIComponent(rawToken)}`;
 }
+
+/**
+ * Pide el enlace de recuperación de contraseña. Respuesta genérica del
+ * backend (no revela si el correo existe): la pantalla de login la muestra
+ * tal cual. Rate-limited del lado del servidor.
+ */
+export function forgotPassword(email) {
+  return apiFetch("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}

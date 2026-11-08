@@ -234,6 +234,22 @@ evento (`audit-event-create.spec.js:14`) y el cierre de caja
   terminar (`DELETE FROM push_outbox WHERE notification_id IN (SELECT id FROM
   notifications WHERE venue_id = %s AND kind = ...)`). El síntoma engaña
   porque el test que falla no es el que ensucia.
+- **Los tests de backend y los E2E comparten la MISMA base `ticketflow`.**
+  `pytest` (conftest) crea cientos de eventos `Noche de prueba …` en la DB de
+  desarrollo, y el `POST /seed` de los E2E es **no destructivo** (`ON CONFLICT
+  DO NOTHING`): no limpia esa basura. Resultado: tras correr pytest, el E2E de
+  la vitrina falla con `element(s) not found` buscando "Noche Electrónica" (el
+  evento del seed) porque la cartelera se llena de eventos de test. **No es una
+  regresión del front.** Antes de correr los E2E en un contenedor donde también
+  corriste pytest, dejá la DB limpia:
+
+  ```bash
+  PGPASSWORD=devpassword psql -h 127.0.0.1 -U postgres -d ticketflow \
+    -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+  for f in db/schema.sql db/migrations/*.sql; do
+    PGPASSWORD=devpassword psql -h 127.0.0.1 -U postgres -d ticketflow -q -f "$f"; done
+  curl -s -X POST http://127.0.0.1:8001/seed   # re-siembra (2 eventos)
+  ```
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
 
@@ -1161,6 +1177,17 @@ avisar.
   selector; el `<select>` solo aparece como respaldo sin noches). Perfil
   (`ProfilePage`) muestra una frase de resumen con las secciones con cambios
   sin guardar. **No reimplementar el menú a mano**: usar `ActionMenu`.
+- **Una sección, un nombre; un botón hace lo que dice (Ley de Jakob).** La
+  auditoría completa (método, hallazgos y lo que se dejó a propósito) vive en
+  `docs/ley-de-jakob.md`. Reglas que salieron de ahí: al renombrar una sección
+  cambiar **los tres** lugares a la vez (pestaña, `h1`, `document.title`); el
+  identificador de ruta puede quedarse por ser URL compartible, lo que se
+  unifica es la etiqueta; un destino se nombra por lo que hay ahí ("Métricas",
+  no "Embudo"); un botón de "volver" que puede montarse sin historial usa
+  `useBackOrFallback(destino)`, nunca `navigate(-1)` a secas; y si el backend
+  expone una acción que el usuario espera (reset de contraseña, registro),
+  **una pantalla tiene que llamarla** — un endpoint sin formulario es una
+  función que no existe.
 - **Tamaño y distancia (Ley de Fitts): 44px con el dedo y la acción principal
   al alcance del pulgar.** La auditoría completa (método, hallazgos y lo que se
   dejó a propósito) vive en `docs/ley-de-fitts.md`. Reglas que salieron de ahí:

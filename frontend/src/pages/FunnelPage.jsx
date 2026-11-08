@@ -48,9 +48,10 @@ export default function FunnelPage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-6 text-zinc-100">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Embudo</h1>
+          <h1 className="text-xl font-semibold">Métricas</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            De ver la vitrina a pagar. Las sesiones se cuentan una vez, sin cookies.
+            Embudo de conversión: de ver la vitrina a pagar. Las sesiones se
+            cuentan una vez, sin cookies.
           </p>
         </div>
         <div className="flex gap-1" role="group" aria-label="Rango de fechas">

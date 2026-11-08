@@ -1,8 +1,9 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { homeForRole } from "../lib/roles";
 import { Logo } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import useBackOrFallback from "../lib/useBackOrFallback";
 import TransitionLink from "../components/TransitionLink";
 
 /**
@@ -19,12 +20,14 @@ import TransitionLink from "../components/TransitionLink";
 export default function NotFoundPage() {
   useDocumentTitle("Página no encontrada");
   const { user } = useAuth();
-  const nav = useNavigate();
   const { pathname } = useLocation();
 
   // Con sesión, "volver" es el panel de su rol; sin sesión, la vitrina.
   const home = user ? homeForRole(user) : "/inicio";
   const homeLabel = user ? "Ir a mi panel" : "Ver la cartelera";
+  // "Volver atrás" solo tiene sentido con historial; si no, cae al destino
+  // canónico en vez de quedarse en un botón muerto.
+  const goBack = useBackOrFallback(home);
 
   return (
     <div className="auth-shell grid min-h-screen place-items-center px-4 py-10">
@@ -47,7 +50,7 @@ export default function NotFoundPage() {
         </p>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <button onClick={() => nav(-1)} className="btn-ghost">
+          <button onClick={goBack} className="btn-ghost">
             Volver atrás
           </button>
           <TransitionLink to={home} className="btn-primary">

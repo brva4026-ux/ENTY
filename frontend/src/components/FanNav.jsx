@@ -2,21 +2,25 @@ import TransitionLink from "./TransitionLink";
 
 /**
  * Barra inferior de la app del fan (mockup "1 · Inicio"): Inicio · Explorar ·
- * Boletos · Perfil. Vive aparte para que Inicio y Mis boletas compartan el
+ * Mis boletas · Acceso. Vive aparte para que Inicio y Mis boletas compartan el
  * mismo shell sin duplicar los iconos.
  *
- * `active` marca la pestana encendida. Destinos de DESTINO, no de rol: el fan
- * no tiene cuenta, asi que Perfil cae en /login hasta que exista.
+ * `active` marca la pestana encendida. Destinos de DESTINO, no de rol.
  *
  * Inicio y Explorar apuntaban AMBAS a /inicio: una de las dos pestanas no
  * llevaba a ninguna parte. Ahora Inicio es la portada editorial (destacado +
  * proximos) y Explorar es el catalogo completo con el buscador listo.
+ *
+ * Ley de Jakob: la etiqueta dice a donde va. "Mis boletas" es el mismo nombre
+ * que el h1 y la nav de escritorio (una seccion, un nombre), y "Acceso" —no
+ * "Perfil"— nombra honestamente el destino /login: el fan no tiene cuenta, asi
+ * que prometer un "Perfil" que lleva al ingreso era la peor clase de sorpresa.
  */
 const TABS = [
   { key: "inicio", label: "Inicio", to: "/inicio" },
   { key: "explorar", label: "Explorar", to: "/explorar" },
-  { key: "boletos", label: "Boletos", to: "/boletas" },
-  { key: "perfil", label: "Perfil", to: "/login" },
+  { key: "boletos", label: "Mis boletas", to: "/boletas" },
+  { key: "acceso", label: "Acceso", to: "/login" },
 ];
 
 function NavIcon({ name }) {

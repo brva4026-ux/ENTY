@@ -7,6 +7,7 @@ import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import useBackOrFallback from "../lib/useBackOrFallback";
 import TransitionLink from "../components/TransitionLink";
 import { Skeleton } from "../components/Skeleton";
 
@@ -118,6 +119,7 @@ function readFavs() {
 export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const goBack = useBackOrFallback("/explorar");
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -153,7 +155,7 @@ export default function EventDetailPage() {
           type="button"
           className="evd-round"
           aria-label="Volver"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
         >
           <Icon name="back" className="h-5 w-5" />
         </button>

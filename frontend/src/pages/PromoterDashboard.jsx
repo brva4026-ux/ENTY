@@ -559,7 +559,7 @@ export default function PromoterDashboard() {
                 )}
             </div>
 
-            {/* ====== Pestañas: Vender · Mis boletas · Mis liquidaciones ======
+            {/* ====== Pestañas: Vender · Mis ventas · Mis liquidaciones ======
               Una cosa por pantalla (en el celular, una cosa por scroll). La
               pestaña vive en la URL: /promotor?tab=boletas es compartible,
               sobrevive recargas y back. "Vender" es el default: es lo que el
@@ -570,7 +570,11 @@ export default function PromoterDashboard() {
             >
               {[
                 ["vender", "Vender", "ticket"],
-                ["boletas", "Mis boletas", "search"],
+                // "Mis ventas" —no "Mis boletas"—: el fan tambien tiene "Mis
+                // boletas" (las que compro). Dos pantallas con el mismo nombre
+                // para dos conceptos distintos confunden a quien tiene ambos
+                // roles (Ley de Jakob: una seccion, un nombre).
+                ["boletas", "Mis ventas", "ticket"],
                 ["liquidaciones", "Liquidaciones", "money"],
               ].map(([id, label, icon]) => (
                 <button
@@ -824,7 +828,7 @@ export default function PromoterDashboard() {
               <div className="card p-5">
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-sm font-bold text-zinc-200">
-                    Mis boletas
+                    Mis ventas
                   </h3>
                   <span className="text-xs tnum text-zinc-500">
                     {history.length}

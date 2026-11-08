@@ -208,6 +208,18 @@
   border-color: var(--e-neutral-400);
   background: var(--e-neutral-60);
 }
+/* Tercera acción de la portada (baja a las funciones): texto, no botón, para
+   que no compita con las dos decisiones reales (crear cuenta / entrar). */
+.lp-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--e-violet-600);
+}
+.lp-btn-ghost:hover {
+  color: var(--e-violet-500);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 /* WhatsApp: emerald-600 da 5.6:1 con blanco (emerald-500 no llegaba a AA). */
 .lp-btn-wa {
