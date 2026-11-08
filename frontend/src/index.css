@@ -7691,7 +7691,10 @@ html .auth-shell--minimal.auth-shell--light {
 /* Campos: blanco, borde fino, radio 13px y foco con anillo violeta. */
 .auth-login-flow .auth-field .field {
   border-radius: 0.8125rem;
-  border-color: var(--e-neutral-300);
+  /* `--e-control-line` (no neutral-300): el limite del campo tiene que verse
+     sobre el papel blanco. Neutral-300 daba 1.27:1 y la WCAG 1.4.11 pide 3:1
+     para identificar el control. */
+  border-color: var(--e-control-line);
   background-color: var(--e-neutral-60);
   color: var(--e-neutral-900);
   min-height: 2.9rem;
@@ -7772,7 +7775,9 @@ html .auth-shell--minimal.auth-shell--light {
 
 /* Recordarme: casilla de papel con el check en blanco sobre violeta. */
 .auth-login-flow .auth-checkbox {
-  border-color: var(--e-neutral-400);
+  /* Igual que los campos: el borde del control debe verse sobre el blanco
+     (WCAG 1.4.11). Neutral-400 daba 1.48:1. */
+  border-color: var(--e-control-line);
   background: var(--e-white);
 }
 .auth-login-flow .auth-checkbox:checked {

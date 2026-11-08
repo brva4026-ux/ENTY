@@ -22,7 +22,10 @@
   --lp-line: var(--e-neutral-300);
   --lp-ink: var(--e-neutral-900);
   --lp-ink-soft: var(--e-neutral-600);
-  --lp-ink-mute: var(--e-neutral-550);
+  /* El gris "mute" (550) daba 4.29:1 sobre el lienzo de la landing (150):
+     por debajo de AA en la línea de confianza y el pie. El 600 lo sube a
+     6.8:1 manteniendo el tono apagado del texto secundario. */
+  --lp-ink-mute: var(--e-neutral-600);
 
   position: relative;
   min-height: 100vh;
