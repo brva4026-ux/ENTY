@@ -79,7 +79,7 @@ export const ONBOARDING_STEPS = [
     anchor: "negocio",
     screen: "list",
     title: "Del negocio, siempre a mano",
-    body: "Estas secciones no dependen del evento: reportes, equipo, liquidaciones, puerta y cobros viven acá abajo.",
+    body: "Estas secciones no dependen del evento: reportes, puerta, equipo, liquidaciones y cobros viven en Negocio, en la barra de arriba.",
   },
 ];
 

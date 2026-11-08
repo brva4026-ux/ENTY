@@ -63,13 +63,21 @@ test("el admin entra y ve la portada de su negocio", async ({ page }) => {
 
   await page.waitForURL(/admin/, { timeout: 10_000 });
 
-  // Portada: identidad de la venue + cifra del mes + dock del negocio.
-  // (La franja de eventos depende de un fetch extra; la identidad y el dock
+  // Portada: identidad de la venue + cifra del mes + el puente a Negocio.
+  // (La franja de eventos depende de un fetch extra; la identidad y el puente
   // son incondicionales del panel.) El KPI del mes lleva su rótulo propio
   // ("Recaudado del mes" / "Neto del mes" según haya comisiones): specific
   // para no chocar con "Recaudo" de las tarjetas de evento de la franja.
   await expect(page.getByText("Panel de la venue")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Bar Esquina" })).toBeVisible();
   await expect(page.getByText(/(Recaudado|Neto) del mes/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Del negocio" })).toBeVisible();
+  // El dock de 7 accesos ya no vive en la lista: es un puente a /admin/negocio.
+  await expect(page.getByText("Del negocio")).toBeVisible();
+
+  // Y el hub de Negocio monta con sus sub-pestañas.
+  await page.goto("/admin/negocio");
+  await expect(page.getByRole("heading", { name: "Negocio" })).toBeVisible();
+  await expect(
+    page.getByRole("tab", { name: "Reportes", selected: true }),
+  ).toBeVisible();
 });

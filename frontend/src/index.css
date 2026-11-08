@@ -1433,6 +1433,27 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 .bizdock {
   padding: 1rem 1.25rem 1.1rem;
 }
+/* Puente a /admin/negocio desde la lista de eventos: el mismo lenguaje de
+   tarjeta-acceso del dock, pero como enlace único (la sección completa vive
+   ahora en su propio destino, con sub-pestañas). */
+.bizdock-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  transition: background var(--e-dur-base), transform var(--e-dur-fast);
+}
+.bizdock-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(var(--e-lift));
+}
+.bizdock-link .bizdock-text {
+  flex: 1;
+  min-width: 0;
+}
+html[data-theme="light"] .bizdock-link:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
 .bizdock-head {
   display: flex;
   align-items: flex-end;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
@@ -29,20 +29,13 @@ import EventWorkbench, {
   sortEventsForStrip,
 } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
-import { Star4, RibbonDivider } from "../components/Doodles";
-import TeamManager from "../components/TeamManager";
-import InvitationsManager from "../components/InvitationsManager";
-import PayoutsManager from "../components/PayoutsManager";
+import { Star4 } from "../components/Doodles";
 import TypeManager from "../components/TypeManager";
 import AllocationManager from "../components/AllocationManager";
 import TicketList from "../components/TicketList";
 import EventTeamPanel from "../components/EventTeamPanel";
 import EventCreateModal from "../components/EventCreateModal";
 import QrTesterModal from "../components/QrTesterModal";
-import DoorSection from "../components/DoorSection";
-import PromotersSection from "../components/PromotersSection";
-import BusinessDock from "../components/BusinessDock";
-import PaymentsPanel from "../components/PaymentsPanel";
 import VenueHeader from "../components/VenueHeader";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
@@ -52,6 +45,22 @@ function firstVenueId(user) {
   // sin elección, la primera disponible (comportamiento de siempre).
   return activeVenueId(user);
 }
+
+/** Pestañas del backstage de un evento. Las del negocio (Puerta, Equipo,
+ *  Liquidaciones…) viven en /admin/negocio, no aquí. */
+const EVENT_TABS = ["resumen", "entradas", "cupos", "boletas", "noche"];
+
+/** Pestañas que eran del panel y ahora son sub-secciones del hub Negocio:
+ *  sirven para redirigir enlaces viejos (/admin?tab=equipo). */
+const VENUE_TABS = [
+  "negocio",
+  "puerta",
+  "promotores",
+  "cobros",
+  "equipo",
+  "liquidaciones",
+  "invitaciones",
+];
 
 function pad2(n) {
   return String(n).padStart(2, "0");
@@ -206,7 +215,6 @@ export default function AdminDashboard() {
   // Fuente de verdad de la URL: el evento abierto y su pestaña viven en
   // /admin?event=<id>&tab=<tab> — compartible, sobrevive recargas y back.
   const [searchParams, setSearchParams] = useSearchParams();
-  const nav = useNavigate();
   const urlEvent = searchParams.get("event");
   const urlTab = searchParams.get("tab") || "resumen";
   const urlMonth = searchParams.get("mes"); // null = mes en curso
@@ -222,22 +230,9 @@ export default function AdminDashboard() {
   const [editError, setEditError] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   // La pestaña activa es la de la URL (la mig 012 ya generaba ?tab=...);
-  // whitelist para no renderizar una pestaña inventada por el usuario.
-  const section = [
-    "resumen",
-    "entradas",
-    "cupos",
-    "boletas",
-    "noche",
-    "cobros",
-    "puerta",
-    "promotores",
-    "equipo",
-    "liquidaciones",
-    "invitaciones",
-  ].includes(urlTab)
-    ? urlTab
-    : "resumen";
+  // whitelist para no renderizar una pestaña inventada por el usuario. Solo
+  // pestañas de EVENTO: las del negocio viven en /admin/negocio.
+  const section = EVENT_TABS.includes(urlTab) ? urlTab : "resumen";
 
   // events === null significa "primera carga": se muestra skeleton en vez de
   // un vacío engañoso ("Aún no hay eventos") que no es verdad aún.
@@ -439,13 +434,10 @@ export default function AdminDashboard() {
     const wanted = urlEvent ? Number(urlEvent) : null;
     const exists = wanted !== null && events.some((e) => e.id === wanted);
     if (exists) {
-      if (wanted !== selectedEvent) setSelectedEvent(wanted); // Enlace viejo con pestaña de venue dentro de un evento
+      if (wanted !== selectedEvent) setSelectedEvent(wanted); // Enlace viejo con una pestaña de venue dentro de un evento
       // (?event=5&tab=equipo): esas pestañas no existen en el backstage —
       // se normaliza al evento sin tab (aterriza en Resumen).
-      if (
-        urlTab &&
-        ["negocio", "equipo", "liquidaciones", "invitaciones"].includes(urlTab)
-      ) {
+      if (urlTab && !EVENT_TABS.includes(urlTab)) {
         setSearchParams({ event: String(wanted) });
       }
     } else if (urlEvent) {
@@ -932,8 +924,17 @@ export default function AdminDashboard() {
     );
   }
 
-  // Enlace viejo (?tab=negocio): Reportes ahora es una página propia.
-  if (urlTab === "negocio") return <Navigate to="/admin/negocio" replace />;
+  // Enlaces viejos: las secciones del negocio eran pestañas de esta pantalla
+  // (/admin?tab=equipo). Ahora viven en su propio destino. Sin evento abierto,
+  // se redirige a la sub-pestaña equivalente del hub para no romper enlaces.
+  if (!urlEvent && VENUE_TABS.includes(urlTab)) {
+    return (
+      <Navigate
+        to={urlTab === "negocio" ? "/admin/negocio" : `/admin/negocio?tab=${urlTab}`}
+        replace
+      />
+    );
+  }
 
   return (
     <PullToRefresh onRefresh={reloadAll}>
@@ -2155,55 +2156,31 @@ export default function AdminDashboard() {
             </div>
           </>
         )}
-        {/* Divisor de lazo (scrapbook): cierra la portada de la noche antes
-            de la zona "del negocio", como los separadores del cartel. */}
-        {!selectedEventData && events?.length > 0 && (
-          <RibbonDivider className="my-1" />
-        )}
-        {/* ====== Del negocio: viven FUERA del evento ====== */}
-        {/* Siempre visibles en modo lista: Reportes, Equipo, Liquidaciones e
-          Invitaciones no cambian con el evento elegido — son del negocio, no
-          de la noche. Dentro de un evento abierto NO existen: ahí solo hay
-          pestañas de ese evento. */}
+        {/* Las secciones que NO dependen de una noche (Reportes, Puerta,
+            Promotores, Cobros, Equipo, Liquidaciones, Invitaciones) ya no
+            viven aquí: mudaron a su propio destino /admin/negocio, con una
+            sub-pestaña por sección. Antes había que bajar por toda la lista
+            de eventos para encontrarlas, y el dock competía por ser la
+            cabecera con la propia portada (auditoría Ley de Hick: una
+            pantalla, un foco). Aquí queda solo el puente. */}
         {!selectedEventData && (
-          <BusinessDock
-            venueId={venueId}
-            section={section}
-            onNavigate={(id) =>
-              // Reportes ya no es una pestaña del panel: es su propia página.
-              id === "negocio"
-                ? nav("/admin/negocio")
-                : setSearchParams({ tab: id })
-            }
-          />
-        )}
-        {/* Secciones de venue: se renderizan cuando su pestaña está activa y
-          NO hay evento abierto (en modo evento la pestaña activa es del
-          evento; estas secciones son alcanzables desde la lista). */}
-        {!selectedEventData && section === "puerta" && (
-          <DoorSection
-            venueId={venueId}
-            onOpenEvent={(id) => flyToEvent(id, "entradas")}
-          />
-        )}
-        {!selectedEventData && section === "promotores" && (
-          <PromotersSection venueId={venueId} month={urlMonth} />
-        )}
-        {!selectedEventData && section === "cobros" && (
-          <PaymentsPanel venueId={venueId} events={events ?? []} />
-        )}
-        {!selectedEventData && section === "equipo" && (
-          <TeamManager
-            venueId={venueId}
-            users={users}
-            onChanged={reloadUsers}
-          />
-        )}
-        {!selectedEventData && section === "liquidaciones" && (
-          <PayoutsManager venueId={venueId} users={users} />
-        )}
-        {!selectedEventData && section === "invitaciones" && (
-          <InvitationsManager venueId={venueId} />
+          <TransitionLink
+            to="/admin/negocio"
+            className="bizdock card bizdock-link"
+            data-tour="negocio"
+          >
+            <span className="bizdock-icon">
+              <Icon name="chart" className="h-5 w-5" />
+            </span>
+            <span className="bizdock-text">
+              <span className="bizdock-label">Del negocio</span>
+              <span className="bizdock-desc">
+                Reportes, puerta, equipo y pagos: lo que no depende de una
+                noche puntual.
+              </span>
+            </span>
+            <Icon name="back" className="h-4 w-4 rotate-180 shrink-0" />
+          </TransitionLink>
         )}
 
         {/* Tutorial guiado: se monta al final para quedar por encima de todo

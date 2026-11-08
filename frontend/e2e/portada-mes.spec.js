@@ -61,13 +61,14 @@ test("el mes de la portada vive en la URL y lo comparte Reportes", async ({
     page.getByRole("button", { name: "Volver al mes actual" }),
   ).toHaveCount(0);
 
-  // --- 3. Reportes lee el MISMO mes (controlado, sin estado propio) -------
-  await page.goto(`/admin?tab=negocio&mes=${past}`);
-  // El título del reporte trae el mes de la URL (el label del header también).
+  // --- 3. Reportes (hub Negocio) lee el MISMO mes de la URL --------------
+  // Reportes dejó de ser una pestaña del panel: vive en /admin/negocio, con su
+  // propio switcher de mes que lee el ?mes= de la URL.
+  await page.goto(`/admin/negocio?mes=${past}`);
   await expect(page.locator(".vh-mesnav-label")).toContainText(/20\d\d/);
-  // Cambiar de mes en la cabecera mantiene a Reportes en la misma URL: el
-  // panel sigue mostrando Reportes y el param quedó actualizado.
+  // Cambiar de mes en la cabecera de Reportes limpia el param en el mes actual
+  // y mantiene la página en /admin/negocio (Reportes es la pestaña por defecto).
   await page.getByRole("button", { name: "Mes siguiente" }).click();
-  await expect(page).toHaveURL(/tab=negocio/);
+  await expect(page).toHaveURL(/\/admin\/negocio/);
   expect(new URL(page.url()).searchParams.get("mes")).toBeNull();
 });
