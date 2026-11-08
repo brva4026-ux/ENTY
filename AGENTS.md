@@ -712,8 +712,12 @@ avisar.
 
 ## Git / GitHub
 
-- El `GITHUB_TOKEN` del entorno **no** ve este repo privado (la API devuelve
-  404). El PAT del remote en `.git/config` sí funciona; para llamar la API:
+- El `GITHUB_TOKEN` del entorno es un token de **instalación de GitHub App**
+  con permiso de **solo lectura** sobre los contenidos. La API de lectura
+  responde 200 (el `/repos/{owner}/{repo}` reporta `permissions.push: true`
+  porque refleja el rol del usuario, no lo que el token puede hacer), pero
+  cualquier escritura falla con **403**: `git push` ("Permission ... denied"),
+  `POST /git/refs`, etc. Para leer la API:
 
   ```bash
   # el remote guarda el PAT como unico userinfo, sin "usuario:pass":
@@ -724,8 +728,11 @@ avisar.
   Ojo: el `sed` con `[^:]+:` (que asumia la forma `usuario:pass@`) devuelve la
   URL entera y la API responde **401**, no 404. Si un `curl` falla con 401,
   revisá primero que el PAT se haya extraido bien antes que el token.
-  `default_create_pr` no sirve acá: usa el `GITHUB_TOKEN` del entorno y da 404.
-  Crear el PR con la API y el PAT del remote.
+  `default_create_pr` tampoco sirve: escribe con ese mismo token y da 403.
+- **Si `git push` da 403 con el token del entorno, no hay forma de pushear
+  desde acá.** Ni reescribir el remote ni `gh auth` cambian los permisos del
+  token: es de solo lectura. Hay que pedirle al usuario que pushee, o que
+  provea un token con `contents: write`.
 - **Autor de los commits = Vercel**: el plan Hobby de Vercel bloquea el deploy
   si el autor del commit no tiene acceso al proyecto. En la práctica Vercel
   compara el **email del autor** contra las cuentas con acceso. Si el email no
@@ -743,6 +750,11 @@ avisar.
 
   Por eso el repo tiene `git config user.email brva4026@gmail.com`. **No**
   commitear como `openhands` (el default del entorno), o el deploy se bloquea.
+  Ojo: `git config --local user.email` puede estar **sin setear** aunque el
+  `AGENTS.md` lo de por hecho; sin el, git usa el global
+  (`openhands@all-hands.dev`) y Vercel bloquea el deploy en silencio. Para
+  commitear con el autor correcto sin tocar la config global:
+  `git -c user.name="brva4026-ux" -c user.email="brva4026@gmail.com" commit ...`
   Si ya hay commits con el autor equivocado, reescribir solo los autores:
 
   ```bash
