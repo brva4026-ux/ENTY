@@ -29,8 +29,11 @@ async function available(page, path) {
 /** Login de un usuario demo y espera a salir de /login. */
 async function login(page, email) {
   await page.goto("/login");
-  await page.getByPlaceholder(/negocio/i).fill(email);
-  await page.getByPlaceholder(/contraseña/i).fill(DEMO_PASSWORD);
+  // Por id, no por placeholder: el placeholder del campo cambió ("usuario o
+  // tu@") y el helper quedó buscando "negocio", así que 8 pruebas de este spec
+  // fallaban por un locator viejo, no por un fallo real de accesibilidad.
+  await page.locator("#login-email").fill(email);
+  await page.locator("#login-password").fill(DEMO_PASSWORD);
   // `exact` porque el boton "¿Problemas para entrar? Contactanos" tambien
   // contiene "entrar" y el locator por nombre resuelve a dos elementos.
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
@@ -370,8 +373,8 @@ test("el topbar autenticado: objetivos táctiles ≥ 44px", async ({ browser }) 
   await login(page, "admin@bar.test");
   await page.goto("/admin");
 
-  // El gate legal tapa el panel cuando hay documentos pendientes (CI aplica
-  // solo schema.sql y no los tiene): se acepta si aparece, no se exige.
+  // El seed pre-acepta al admin demo, asi que el gate no deberia salir; se
+  // acepta de forma defensiva si aparece (base sin re-sembrar).
   const gate = page.getByRole("heading", { name: "Hay cambios en los términos" });
   await page.waitForTimeout(1_000);
   if (await gate.isVisible().catch(() => false)) {

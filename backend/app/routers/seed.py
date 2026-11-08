@@ -131,11 +131,17 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
         # gente de puerta entra desde el celular y "puerta" es mucho mas rapido
         # de teclear que "puerta@bar.test". Se siembra para poder probar el
         # flujo de "usuario o correo" sin dar de alta una cuenta a mano.
+        #
+        # `gate@bar.test` NO queda pre-aceptado (ver abajo): es la cuenta que
+        # usa `legal-gate.spec.js` para probar el gate con documentos
+        # pendientes. Los demas son usuarios demo "de vuelta" y se siembran ya
+        # aceptados, para que el resto de los E2E no choquen con el gate.
         demo_users = [
             ("admin@bar.test", "Admin Bar Esquina", "admin", "admin"),
             ("promo1@bar.test", "Promo Uno", "promotor", "promo1"),
             ("promo2@bar.test", "Promo Dos", "promotor", "promo2"),
             ("puerta@bar.test", "Bouncer Puerta", "bouncer", "puerta"),
+            ("gate@bar.test", "Admin Gate Legal", "admin", "gate"),
         ]
         user_ids: dict[str, int] = {}
         for email, name, _role, username in demo_users:
@@ -166,6 +172,33 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
                 "INSERT INTO venue_user_roles (venue_id, user_id, role) "
                 "VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
                 (venue_id, user_ids[email], role),
+            )
+
+        # --- aceptaciones legales de los usuarios demo -----------------
+        # Se aceptan los documentos que rigen HOY para todos menos el gate:
+        # asi el gate no interrumpe el resto de la suite (que no sabe manejar
+        # el portal legal) y `legal-gate.spec.js` conserva una cuenta con
+        # pendientes. Idempotente: `legal_missing_acceptances` solo devuelve lo
+        # que falta, y `ON CONFLICT DO NOTHING` evita duplicados.
+        for email in user_ids:
+            if email == "gate@bar.test":
+                # Se borran las aceptaciones del gate en cada seed: el spec las
+                # consume al correr, y sin este reset una segunda corrida
+                # seguida se saltaria (el guard dejaria de ejercitarse en
+                # silencio, que es justo el fallo que este spec previene).
+                await cur.execute(
+                    "DELETE FROM legal_acceptances WHERE user_id=%s",
+                    (user_ids[email],),
+                )
+                continue
+            await cur.execute(
+                """INSERT INTO legal_acceptances
+                       (user_id, venue_id, document_slug, document_version,
+                        subject_email, ip, user_agent)
+                   SELECT %s, %s, slug, version, %s, 'seed', 'seed'
+                     FROM legal_missing_acceptances(%s)
+                   ON CONFLICT DO NOTHING""",
+                (user_ids[email], venue_id, email, user_ids[email]),
             )
 
         # --- evento de ejemplo -------------------------------------------------
