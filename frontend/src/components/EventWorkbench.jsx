@@ -11,6 +11,7 @@
 import { useState } from "react";
 import { useTabKeys } from "../lib/useTabKeys";
 import { LiveIndicator } from "./Brand";
+import ActionMenu from "./ActionMenu";
 import CountUpNumber from "./CountUpNumber";
 import EmptyState from "./EmptyState";
 import Icon from "./Icon";
@@ -234,13 +235,23 @@ export default function EventWorkbench({
                 Editar
               </button>
             )}
+            {/* Eliminar sale de la banda de acciones y va al menú "…": es
+              destructivo e irreversible y competía al mismo nivel que
+              "Volver"/"Editar". Ley de Hick: una decisión peligrosa a un
+              toque de distancia, no en la primera fila. */}
             {ev.status !== "live" && (
-              <button
-                onClick={onDelete}
-                className="btn-ghost !px-3 !py-1.5 text-xs font-bold text-red-400"
-              >
-                Eliminar
-              </button>
+              <ActionMenu
+                label={`Opciones de ${ev.name}`}
+                items={[
+                  {
+                    key: "delete",
+                    label: "Eliminar evento",
+                    icon: "trash",
+                    danger: true,
+                    onClick: onDelete,
+                  },
+                ]}
+              />
             )}
           </div>
         </div>
@@ -340,37 +351,51 @@ export default function EventWorkbench({
           </div>
  )}
 
-        {/* Ciclo de vida: las acciones SIEMPRE visibles dentro del backstage */}
+        {/* Ciclo de vida: el paso principal SIEMPRE visible y destacado; las
+          acciones destructivas (Cancelar) van al menú "…". Antes Publicar y
+          Cancelar pesaban casi igual y la decisión "¿qué hago ahora?" se
+          diluía. Ley de Hick: una acción primaria por banda. */}
         {actions.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-800/80 pt-4">
             <span className="mr-1 text-2xs font-bold uppercase tracking-wide text-zinc-500">
               Siguiente paso
             </span>
-            {actions.map(({ action, label, danger }) => (
-              <button
-                key={action}
-                onClick={() => onAction(action, label)}
-                disabled={busyAction === action}
-                className={
-                  action === "publish" || action === "live"
-                    ? "btn-primary !py-1.5 text-xs"
-                    : danger
-                      ? "btn-danger-text text-xs font-semibold"
-                      : "btn-ghost text-xs font-semibold"
-                }
-              >
-                {busyAction === action && (
-                  <svg
-                    className="btn-spinner"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle cx="12" cy="12" r="9" />
-                  </svg>
-                )}
-                {busyAction === action ? "Procesando…" : label}
-              </button>
-            ))}
+            {actions
+              .filter((a) => !a.danger)
+              .map(({ action, label }) => (
+                <button
+                  key={action}
+                  onClick={() => onAction(action, label)}
+                  disabled={busyAction === action}
+                  className="btn-primary !py-1.5 text-xs"
+                >
+                  {busyAction === action && (
+                    <svg
+                      className="btn-spinner"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="9" />
+                    </svg>
+                  )}
+                  {busyAction === action ? "Procesando…" : label}
+                </button>
+              ))}
+            {actions.some((a) => a.danger) && (
+              <ActionMenu
+                label={`Más acciones de ${ev.name}`}
+                items={actions
+                  .filter((a) => a.danger)
+                  .map(({ action, label }) => ({
+                    key: action,
+                    label,
+                    icon: "close",
+                    danger: true,
+                    disabled: busyAction === action,
+                    onClick: () => onAction(action, label),
+                  }))}
+              />
+            )}
           </div>
         )}
 

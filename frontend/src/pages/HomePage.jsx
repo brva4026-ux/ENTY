@@ -334,6 +334,13 @@ export default function HomePage({ explorar = false }) {
   // Solo la última tarjeta marcada celebra (rebote): no todas al montar.
   const [favPop, setFavPop] = useState(null);
   const [bellOpen, setBellOpen] = useState(false);
+  // Filtros avanzados (fecha + ciudad) detrás de un botón "Filtros": son
+  // micro-decisiones de una pantalla de CONSUMO (Ley de Hick) y competían con
+  // la grilla. El buscador y las categorías quedan a la vista; lo raro, un
+  // nivel más adentro (divulgación progresiva).
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersRef = useRef(null);
+  const filtersPanelRef = useRef(null);
   // El panel de avisos es un role="dialog" (dropdown, no modal): cierra con
   // Escape y con clic fuera, como el resto de campanas de la app. Sin esto el
   // usuario de teclado quedaba mirando un panel que solo cerraba el botón.
@@ -444,6 +451,30 @@ export default function HomePage({ explorar = false }) {
     };
   }, [bellOpen]);
 
+  // Panel "Filtros": mismo contrato que la campana (role="dialog" de contenido,
+  // no modal). Cierra con Escape (devolviendo el foco al botón) y con clic fuera.
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setFiltersOpen(false);
+        filtersRef.current?.querySelector(".home-filter-btn")?.focus();
+      }
+    };
+    const onDoc = (e) => {
+      const enBoton = filtersRef.current?.contains(e.target);
+      const enPanel = filtersPanelRef.current?.contains(e.target);
+      if (!enBoton && !enPanel) setFiltersOpen(false);
+    };
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("mousedown", onDoc);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("mousedown", onDoc);
+    };
+  }, [filtersOpen]);
+
   // Embudo, paso 1: vio la vitrina. Solo cuando el catálogo cargó: si la API
   // falló, esa visita no es una oportunidad de venta y no debe contarla.
   useEffect(() => {
@@ -487,6 +518,10 @@ export default function HomePage({ explorar = false }) {
   // Hay un filtro puesto (texto, categoria, fecha o ciudad): cambia el mensaje
   // del vacio y el boton que lo deshace.
   const narrowed = Boolean(query.trim()) || cat !== "todos" || range !== "todos" || Boolean(city);
+  // Cuántos filtros avanzados (fecha + ciudad) están puestos: el botón "Filtros"
+  // lo dice con un contador, así el usuario sabe que hay algo activo sin abrir.
+  const activeAdvanced =
+    (range !== "todos" ? 1 : 0) + (city ? 1 : 0);
 
   // La banda cinética: sellos de confianza + las ciudades con oferta real
   // (dato que no está en ningún otro sitio del primer scroll).
@@ -664,40 +699,76 @@ export default function HomePage({ explorar = false }) {
           ))}
         </div>
 
-        {/* Filtros: fecha (ventana movil, recortada en cliente) y ciudad (la del
-            catalogo ya descargado). Van juntos y debajo de las categorias para
-            no empujar el hero fuera de pantalla en movil. */}
-        <div className="home-filters" role="group" aria-label="Filtros de la cartelera">
-          <div className="home-filter-dates">
-            {DATE_CHIPS.map((d) => (
-              <button
-                key={d.key}
-                type="button"
-                aria-pressed={range === d.key}
-                className={"home-chip transition-colors" + (range === d.key ? " is-on" : "")}
-                onClick={() => setRange(d.key)}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-          {cities.length > 1 && (
-            <div className="home-filter-city">
-              <select
-                value={city}
-                onChange={(ev) => setCity(ev.target.value)}
-              aria-label="Filtrar por ciudad"
-              >
-                <option value="">Todas las ciudades</option>
-                {cities.map(([name]) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+        {/* Filtros avanzados (fecha + ciudad) detrás de un botón "Filtros".
+            Ley de Hick: en una pantalla de consumo, cada control visible es una
+            micro-decisión que retrasa "ver eventos y comprar". El buscador y
+            las categorías quedan a la vista; lo demás, un nivel más adentro.
+            El contador del botón dice cuántos filtros hay puestos. */}
+        <div className="home-filterbar" ref={filtersRef}>
+          <button
+            type="button"
+            className="home-filter-btn"
+            aria-expanded={filtersOpen}
+            aria-controls={filtersOpen ? "home-filter-panel" : undefined}
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 6h16M7 12h10M10 18h4" />
+            </svg>
+            Filtros
+            {activeAdvanced > 0 && (
+              <span className="home-filter-count tnum" aria-hidden="true">
+                {activeAdvanced}
+              </span>
+            )}
+          </button>
         </div>
+
+        {filtersOpen && (
+          <div
+            id="home-filter-panel"
+            className="home-filter-panel"
+            role="dialog"
+            aria-label="Filtros de la cartelera"
+            ref={filtersPanelRef}
+          >
+            <div className="home-filter-group">
+              <p className="home-filter-label">Fecha</p>
+              <div className="home-filter-dates">
+                {DATE_CHIPS.map((d) => (
+                  <button
+                    key={d.key}
+                    type="button"
+                    aria-pressed={range === d.key}
+                    className={"home-chip transition-colors" + (range === d.key ? " is-on" : "")}
+                    onClick={() => setRange(d.key)}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {cities.length > 1 && (
+              <div className="home-filter-group">
+                <p className="home-filter-label">Ciudad</p>
+                <div className="home-filter-city">
+                  <select
+                    value={city}
+                    onChange={(ev) => setCity(ev.target.value)}
+                    aria-label="Filtrar por ciudad"
+                  >
+                    <option value="">Todas las ciudades</option>
+                    {cities.map(([name]) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Banda cinética: entre el troquel y la rejilla. Decorativa
             (aria-hidden). Antes repetía los nombres de las categorías que están

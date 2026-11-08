@@ -489,22 +489,32 @@ export default function PromoterDashboard() {
             )}
 
             {/* Contexto del evento: siempre visible arriba, fuera del formulario.
-              Selector premium: el estado en español con su color en CADA opción. */}
+              Ley de Hick: si ya hay "Mis noches" (el promotor tiene noches
+              asignadas), ESA es la forma de elegir evento; un <select> extra
+              que apunta al mismo estado obliga a decidir "cuál de los dos
+              uso". El <select> queda solo como respaldo cuando no hay noches
+              asignadas (sin asignaciones, "Mis noches" no existe). */}
             <div className="card card-hero p-4">
               <div className="flex flex-wrap items-center gap-3">
-                <select
-                  value={selectedEvent}
-                  onChange={(e) => setSelectedEvent(Number(e.target.value))}
-                  className="field h-auto w-auto min-w-40 flex-1 py-1.5 text-sm font-semibold"
-                  aria-label="Evento"
-                >
-                  {sortEventsForStrip(events).map((ev) => (
-                    <option key={ev.id} value={ev.id}>
-                      {ev.name} —{" "}
-                      {(STATUS_META[ev.status] ?? STATUS_META.draft).label}
-                    </option>
-                  ))}
-                </select>
+                {myNights.length === 0 ? (
+                  <select
+                    value={selectedEvent}
+                    onChange={(e) => setSelectedEvent(Number(e.target.value))}
+                    className="field h-auto w-auto min-w-40 flex-1 py-1.5 text-sm font-semibold"
+                    aria-label="Evento"
+                  >
+                    {sortEventsForStrip(events).map((ev) => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name} —{" "}
+                        {(STATUS_META[ev.status] ?? STATUS_META.draft).label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="min-w-0 flex-1 truncate text-sm font-semibold text-zinc-100">
+                    {selectedEventData?.name ?? "Elige una noche"}
+                  </p>
+                )}
                 {selectedEventData && (
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-1 text-2xs font-bold uppercase ring-1 ${

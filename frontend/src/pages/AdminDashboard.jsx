@@ -28,6 +28,7 @@ import EventWorkbench, {
   EventNotFound,
   sortEventsForStrip,
 } from "../components/EventWorkbench";
+import ActionMenu from "../components/ActionMenu";
 import Icon from "../components/Icon";
 import { Star4 } from "../components/Doodles";
 import TypeManager from "../components/TypeManager";
@@ -1538,12 +1539,16 @@ export default function AdminDashboard() {
                               </div>
                               {/* Acciones de la tarjeta: es panel de control,
                             no solo enlace. Se derivan de NEXT_ACTIONS — la
-                            MISMA fuente que el backstage — así que la tarjeta
-                            ya no reimplementa un subconjunto: un evento en vivo
-                            se finaliza desde aquí, sin abrir su backstage. */}
+                            MISMA fuente que el backstage. La acción principal
+                            (Publicar/Abrir/Finalizar/Reabrir) va visible; las
+                            destructivas (Cancelar) y las secundarias
+                            (Duplicar/Eliminar) al menú "…". Ley de Hick: la
+                            tarjeta pasa de 3-5 botones a 1 + menú, y ninguna
+                            acción peligrosa queda en la primera fila. */}
                               <div className="evx-actions pointer-events-auto">
-                                {(NEXT_ACTIONS[ev.status] ?? []).map(
-                                  ({ action }) => {
+                                {(NEXT_ACTIONS[ev.status] ?? [])
+                                  .filter((a) => !a.danger)
+                                  .map(({ action }) => {
                                     const meta =
                                       STRIP_ACTION[action] ?? {
                                         label: action,
@@ -1578,58 +1583,44 @@ export default function AdminDashboard() {
                                         {meta.label}
                                       </button>
                                     );
-                                  },
-                                )}
-                                {/* Duplicar está disponible en TODOS los
-                                    estados: de una noche en curso o pasada
-                                    nace el borrador de la siguiente. */}
-                                <button
-                                  onClick={() => duplicateEvent(ev)}
-                                  disabled={dupingId !== null}
-                                  aria-label={`Duplicar ${ev.name}`}
-                                  data-tip="Duplicar evento (borrador con sus tipos y cupos)"
-                                  className="btn-mini btn-icon"
-                                >
-                                  {dupingId === ev.id ? (
-                                    <svg
-                                      className="btn-spinner"
-                                      viewBox="0 0 24 24"
-                                      aria-hidden="true"
-                                    >
-                                      <circle cx="12" cy="12" r="9" />
-                                    </svg>
-                                  ) : (
-                                    <Icon name="copy" className="h-3.5 w-3.5" />
-                                  )}
-                                </button>
-                                {/* Eliminar: para limpiar el calendario de 20
-                                    noches sin entrar al backstage de cada
-                                    evento. Solo donde el backend lo permite. */}
-                                {canDeleteEvent(ev) && (
-                                  <button
-                                    onClick={() => deleteEvent(ev)}
-                                    disabled={deletingId !== null}
-                                    aria-label={`Eliminar ${ev.name}`}
-                                    data-tip="Eliminar evento definitivamente"
-                                    className="btn-mini btn-icon"
-                                    data-variant="danger"
-                                  >
-                                    {deletingId === ev.id ? (
-                                      <svg
-                                        className="btn-spinner"
-                                        viewBox="0 0 24 24"
-                                        aria-hidden="true"
-                                      >
-                                        <circle cx="12" cy="12" r="9" />
-                                      </svg>
-                                    ) : (
-                                      <Icon
-                                        name="trash"
-                                        className="h-3.5 w-3.5"
-                                      />
-                                    )}
-                                  </button>
-                                )}
+                                  })}
+                                <ActionMenu
+                                  label={`Más acciones de ${ev.name}`}
+                                  busy={
+                                    busyAction !== "" ||
+                                    dupingId === ev.id ||
+                                    deletingId === ev.id
+                                  }
+                                  items={[
+                                    ...(NEXT_ACTIONS[ev.status] ?? [])
+                                      .filter((a) => a.danger)
+                                      .map(({ action, label }) => ({
+                                        key: action,
+                                        label,
+                                        icon: STRIP_ACTION[action]?.icon ?? "close",
+                                        danger: true,
+                                        onClick: () =>
+                                          quickTransition(ev, action),
+                                      })),
+                                    {
+                                      key: "duplicate",
+                                      label: "Duplicar evento",
+                                      icon: "copy",
+                                      onClick: () => duplicateEvent(ev),
+                                    },
+                                    ...(canDeleteEvent(ev)
+                                      ? [
+                                          {
+                                            key: "delete",
+                                            label: "Eliminar evento",
+                                            icon: "trash",
+                                            danger: true,
+                                            onClick: () => deleteEvent(ev),
+                                          },
+                                        ]
+                                      : []),
+                                  ]}
+                                />
                               </div>
                             </div>
                           );

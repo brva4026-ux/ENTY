@@ -46,6 +46,8 @@ const PATHS = {
   trash:
     "M4 7h16M9.5 7V5.2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V7M6.5 7l.8 12.1a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9L17.5 7M10 11v6M14 11v6",
   download: "M12 3v12M7 11l5 5 5-5M4 20h16",
+  more: "M12 6.5h.01M12 12h.01M12 17.5h.01",
+  filter: "M4 6h16M7 12h10M10 18h4",
 };
 
 const FILLED = {
