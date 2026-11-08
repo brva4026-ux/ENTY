@@ -364,3 +364,16 @@ html:not([data-theme="light"]) .app-shell .bottomnav {
     min-height: 2.75rem;
   }
 }
+
+/* --------------------------------------------------------------------------
+ * 11. FILAS DE PANEL · el dedo también abre el reporte
+ * ------------------------------------------------------------------------- */
+/* La fila de "Eventos del mes" (BusinessOverview) mide 39px con la densidad
+   de escritorio: es un botón que abre el evento y quedaba por debajo del
+   mínimo táctil. En puntero grueso sube a 44px; el escritorio conserva la
+   densidad de tabla. */
+@media (pointer: coarse) {
+  .bo-event-row {
+    min-height: 2.75rem;
+  }
+}

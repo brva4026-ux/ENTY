@@ -1161,6 +1161,20 @@ avisar.
   selector; el `<select>` solo aparece como respaldo sin noches). Perfil
   (`ProfilePage`) muestra una frase de resumen con las secciones con cambios
   sin guardar. **No reimplementar el menú a mano**: usar `ActionMenu`.
+- **Tamaño y distancia (Ley de Fitts): 44px con el dedo y la acción principal
+  al alcance del pulgar.** La auditoría completa (método, hallazgos y lo que se
+  dejó a propósito) vive en `docs/ley-de-fitts.md`. Reglas que salieron de ahí:
+  todo control que solo existe en móvil/táctil entra en el bloque
+  `@media (max-width: 640px), (pointer: coarse)` de `index.css` o usa el
+  `::after` de 44px del sistema (no hay una tercera forma). Si un contenedor
+  cambia de fila a columna, revisar el `flex` de sus hijos: **`flex: 1` con
+  `flex-basis: 0` pisa el `height` en el eje vertical** (así el buscador de
+  `/boletas` caía a 23px). Las filas y chips de densidad de tabla llevan
+  `min-height: 2.75rem` en puntero grueso, nunca un `height` fijo.
+  Pendiente consciente: el CTA de compra del detalle de evento queda 44px bajo
+  el pliegue en móvil; fijarlo al fondo chocaría con la barra de pestañas fija
+  (dos barras fijas compiten por el pulgar), así que exige un rediseño del
+  layout móvil, no un parche.
 - **Los E2E corren contra el dev server de Vite, no el backend.** Playwright
   apunta a `E2E_BASE_URL` (default `127.0.0.1:8001`, pero en este entorno el
   SPA lo sirve Vite en el puerto 12000): `E2E_BASE_URL=http://127.0.0.1:12000

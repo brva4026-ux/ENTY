@@ -1260,6 +1260,13 @@
   .fan-lookup {
     flex-direction: column;
   }
+  /* Apilado, el `flex: 1 1 0%` de `.fan-lookup input` pasa a medir el ALTO
+     (el eje principal es vertical): el flex-basis 0 gana al `height: 3rem` y
+     el campo se desplomaba a 23px, la mitad de su altura. `flex: none`
+     devuelve el alto declarado (48px) sin tocar la fila horizontal. */
+  .fan-lookup input {
+    flex: none;
+  }
   .fan-lookup button {
     width: 100%;
     border-radius: 1rem;
