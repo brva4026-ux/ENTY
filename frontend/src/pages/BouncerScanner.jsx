@@ -25,6 +25,7 @@ import {
 import { LiveIndicator } from "../components/Brand";
 import { PushToggle } from "../components/PushToggle";
 import Icon from "../components/Icon";
+import ActionMenu from "../components/ActionMenu";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 function firstVenueId(user) {
@@ -810,18 +811,28 @@ export default function BouncerScanner() {
                     ))}
               </select>
             )}
-            <button
-              onClick={() => setKiosk(true)}
-              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
-            >
-              Bloquear
-            </button>
-            <button
-              onClick={logout}
-              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
-            >
-              Cerrar sesión
-            </button>
+            {/* "Cerrar sesión" sale de la primera fila: en la puerta el
+                error caro es cerrar sesión a mitad de fila, no quedarse
+                dentro. Al menú "…" (Ley de Hick), junto a "Bloquear". */}
+            <ActionMenu
+              label="Más opciones de la puerta"
+              align="right"
+              items={[
+                {
+                  key: "lock",
+                  label: "Bloquear pantalla",
+                  icon: "lock",
+                  onClick: () => setKiosk(true),
+                },
+                {
+                  key: "logout",
+                  label: "Cerrar sesión",
+                  icon: "logout",
+                  danger: true,
+                  onClick: logout,
+                },
+              ]}
+            />
           </div>
         )}
       </header>

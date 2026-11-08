@@ -250,6 +250,8 @@ export default function ProfilePage() {
     ],
     [adminVenue, nameDirty, venueDirty],
   );
+  // Pestañas con cambios sin guardar: alimentan el resumen de la barra.
+  const dirtyTabs = tabs.filter((t) => t.dirty);
 
   // La pestaña vive SOLO en la URL: una única fuente de verdad. Con estado
   // aparte habría que sincronizarlo a mano con el botón atrás, y ahí es donde
@@ -678,6 +680,18 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Resumen de cambios sin guardar (M-1): los puntos ámbar de cada
+          pestaña dicen DÓNDE hay cambios, pero no cuántos. Una frase a nivel
+          de barra responde "¿me falta guardar algo?" sin recorrer pestañas. */}
+      {dirtyTabs.length > 0 && (
+        <p className="pf-dirty-summary" role="status">
+          {dirtyTabs.length === 1
+            ? "Tienes cambios sin guardar en "
+            : `Tienes cambios sin guardar en ${dirtyTabs.length} secciones: `}
+          {dirtyTabs.map((t) => t.label).join(", ")}
+        </p>
+      )}
 
       {/* Pestañas: una cosa a la vez en lugar de un scroll con todo a la vista. */}
       <div
