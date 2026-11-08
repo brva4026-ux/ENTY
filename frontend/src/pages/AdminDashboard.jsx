@@ -411,6 +411,14 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourOpen, prefs[PREF_TUTORIAL]?.step]);
 
+  // El tutorial y el modal de crear evento no pueden coexistir: el tooltip
+  // (z-85) queda por encima del diálogo (z-80) y su capa tapa el botón
+  // "Crear evento" del modal, así que el clic nunca llega. Al abrir el modal
+  // el tutorial se retira; el avance queda guardado y se retoma al cerrarlo.
+  useEffect(() => {
+    if (createOpen && tourOpen) setTourOpen(false);
+  }, [createOpen, tourOpen]);
+
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
     const data = await apiFetch(`/venues/${venueId}/events`);
