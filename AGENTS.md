@@ -1137,3 +1137,23 @@ avisar.
   responder `Range` con 206: sin eso Safari/iOS no reproduce y no hay seek.
   Vercel sirve el estático con MIME y ranges correctos por su cuenta; el
   cuidado es para el self-hosting con `node server.mjs`.
+- **Divulgación progresiva (Ley de Hick): la acción principal sola, lo demás
+  en el menú "…".** El componente `frontend/src/components/ActionMenu.jsx`
+  (menú overflow, cierra con Escape y clic fuera, devuelve el foco) es el
+  patrón único para acciones secundarias y destructivas. Dónde aplica:
+  backstage (`EventWorkbench`, Eliminar/Cancelar fuera de la primera fila),
+  tarjeta de evento (`AdminDashboard`, 1 acción principal + Duplicar/Eliminar/
+  Cancelar en el menú), vitrina fan (`HomePage`, fecha/ciudad detrás de un
+  botón "Filtros" con contador), puerta (`BouncerScanner`, Bloquear/Cerrar
+  sesión en el menú) y promotor (`PromoterDashboard`, "Mis noches" es el
+  selector; el `<select>` solo aparece como respaldo sin noches). Perfil
+  (`ProfilePage`) muestra una frase de resumen con las secciones con cambios
+  sin guardar. **No reimplementar el menú a mano**: usar `ActionMenu`.
+- **Los E2E corren contra el dev server de Vite, no el backend.** Playwright
+  apunta a `E2E_BASE_URL` (default `127.0.0.1:8001`, pero en este entorno el
+  SPA lo sirve Vite en el puerto 12000): `E2E_BASE_URL=http://127.0.0.1:12000
+  npx playwright test`. La suite tiene ~9 fallos PRE-EXISTENTES que no son
+  regresiones: 8 en `a11y.spec.js` (el helper `login` busca el placeholder
+  `/negocio/i` que ya no existe — el campo es "Correo o usuario") y el spec de
+  `onboarding.spec.js` (el tutorial tapa el botón "Continuar"). Comparar contra
+  `master` antes de culpar a un cambio propio.
