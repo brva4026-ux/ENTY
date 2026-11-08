@@ -4778,6 +4778,18 @@ body {
     display: inline-flex;
     align-items: center;
   }
+  /* Atajos del alta de evento (fecha, QR, aforo, ideas de descripción):
+     mismas píldoras del sistema, 37px de alto con la densidad de escritorio.
+     Es un control de dedo dentro de un modal, así que sube a 44px. */
+  .opt-chip {
+    min-height: 44px;
+  }
+  /* Opciones del menú "…" (ActionMenu): 39px de alto. Son acciones
+     destructivas (duplicar/eliminar/cancelar) y el menú se usa en toda la
+     app, incluida la puerta: cada opción llega a 44px. */
+  .menu-pop [role="menuitem"] {
+    min-height: 44px;
+  }
   /* Acciones compactas de fila (Abrir puertas, duplicar/eliminar evento):
      a 28px quedaban por debajo del minimo tactil. En movil suben a 44px;
      desktop conserva la densidad. */
@@ -4829,6 +4841,12 @@ body {
      44px, la barra conserva su scroll horizontal si no entra. */
   .tabbar-item {
     min-height: 44px;
+  }
+  /* Con muchas pestañas el `flex: 1 1 0` de `.pf-tabs` las encogía hasta 43px
+     de ancho (7 pestañas a 320px). El mínimo de 44px es el piso de encogido:
+     la barra, que ya hace scroll horizontal, reparte lo que sobra. */
+  .pf-tabs .tabbar-item {
+    min-width: 44px;
   }
 }
 /*
@@ -7691,7 +7709,10 @@ html .auth-shell--minimal.auth-shell--light {
 /* Campos: blanco, borde fino, radio 13px y foco con anillo violeta. */
 .auth-login-flow .auth-field .field {
   border-radius: 0.8125rem;
-  border-color: var(--e-neutral-300);
+  /* `--e-control-line` (no neutral-300): el limite del campo tiene que verse
+     sobre el papel blanco. Neutral-300 daba 1.27:1 y la WCAG 1.4.11 pide 3:1
+     para identificar el control. */
+  border-color: var(--e-control-line);
   background-color: var(--e-neutral-60);
   color: var(--e-neutral-900);
   min-height: 2.9rem;
@@ -7772,7 +7793,9 @@ html .auth-shell--minimal.auth-shell--light {
 
 /* Recordarme: casilla de papel con el check en blanco sobre violeta. */
 .auth-login-flow .auth-checkbox {
-  border-color: var(--e-neutral-400);
+  /* Igual que los campos: el borde del control debe verse sobre el blanco
+     (WCAG 1.4.11). Neutral-400 daba 1.48:1. */
+  border-color: var(--e-control-line);
   background: var(--e-white);
 }
 .auth-login-flow .auth-checkbox:checked {

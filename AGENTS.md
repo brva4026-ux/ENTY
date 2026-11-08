@@ -712,8 +712,12 @@ avisar.
 
 ## Git / GitHub
 
-- El `GITHUB_TOKEN` del entorno **no** ve este repo privado (la API devuelve
-  404). El PAT del remote en `.git/config` sí funciona; para llamar la API:
+- El `GITHUB_TOKEN` del entorno es un token de **instalación de GitHub App**
+  con permiso de **solo lectura** sobre los contenidos. La API de lectura
+  responde 200 (el `/repos/{owner}/{repo}` reporta `permissions.push: true`
+  porque refleja el rol del usuario, no lo que el token puede hacer), pero
+  cualquier escritura falla con **403**: `git push` ("Permission ... denied"),
+  `POST /git/refs`, etc. Para leer la API:
 
   ```bash
   # el remote guarda el PAT como unico userinfo, sin "usuario:pass":
@@ -724,8 +728,11 @@ avisar.
   Ojo: el `sed` con `[^:]+:` (que asumia la forma `usuario:pass@`) devuelve la
   URL entera y la API responde **401**, no 404. Si un `curl` falla con 401,
   revisá primero que el PAT se haya extraido bien antes que el token.
-  `default_create_pr` no sirve acá: usa el `GITHUB_TOKEN` del entorno y da 404.
-  Crear el PR con la API y el PAT del remote.
+  `default_create_pr` tampoco sirve: escribe con ese mismo token y da 403.
+- **Si `git push` da 403 con el token del entorno, no hay forma de pushear
+  desde acá.** Ni reescribir el remote ni `gh auth` cambian los permisos del
+  token: es de solo lectura. Hay que pedirle al usuario que pushee, o que
+  provea un token con `contents: write`.
 - **Autor de los commits = Vercel**: el plan Hobby de Vercel bloquea el deploy
   si el autor del commit no tiene acceso al proyecto. En la práctica Vercel
   compara el **email del autor** contra las cuentas con acceso. Si el email no
@@ -743,6 +750,11 @@ avisar.
 
   Por eso el repo tiene `git config user.email brva4026@gmail.com`. **No**
   commitear como `openhands` (el default del entorno), o el deploy se bloquea.
+  Ojo: `git config --local user.email` puede estar **sin setear** aunque el
+  `AGENTS.md` lo de por hecho; sin el, git usa el global
+  (`openhands@all-hands.dev`) y Vercel bloquea el deploy en silencio. Para
+  commitear con el autor correcto sin tocar la config global:
+  `git -c user.name="brva4026-ux" -c user.email="brva4026@gmail.com" commit ...`
   Si ya hay commits con el autor equivocado, reescribir solo los autores:
 
   ```bash
@@ -1149,6 +1161,20 @@ avisar.
   selector; el `<select>` solo aparece como respaldo sin noches). Perfil
   (`ProfilePage`) muestra una frase de resumen con las secciones con cambios
   sin guardar. **No reimplementar el menú a mano**: usar `ActionMenu`.
+- **Tamaño y distancia (Ley de Fitts): 44px con el dedo y la acción principal
+  al alcance del pulgar.** La auditoría completa (método, hallazgos y lo que se
+  dejó a propósito) vive en `docs/ley-de-fitts.md`. Reglas que salieron de ahí:
+  todo control que solo existe en móvil/táctil entra en el bloque
+  `@media (max-width: 640px), (pointer: coarse)` de `index.css` o usa el
+  `::after` de 44px del sistema (no hay una tercera forma). Si un contenedor
+  cambia de fila a columna, revisar el `flex` de sus hijos: **`flex: 1` con
+  `flex-basis: 0` pisa el `height` en el eje vertical** (así el buscador de
+  `/boletas` caía a 23px). Las filas y chips de densidad de tabla llevan
+  `min-height: 2.75rem` en puntero grueso, nunca un `height` fijo.
+  Pendiente consciente: el CTA de compra del detalle de evento queda 44px bajo
+  el pliegue en móvil; fijarlo al fondo chocaría con la barra de pestañas fija
+  (dos barras fijas compiten por el pulgar), así que exige un rediseño del
+  layout móvil, no un parche.
 - **Los E2E corren contra el dev server de Vite, no el backend.** Playwright
   apunta a `E2E_BASE_URL` (default `127.0.0.1:8001`, pero en este entorno el
   SPA lo sirve Vite en el puerto 12000): `E2E_BASE_URL=http://127.0.0.1:12000

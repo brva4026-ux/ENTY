@@ -775,7 +775,9 @@
 .home-hero-count {
   margin: 0.35rem 0 0;
   font-size: var(--e-text-sm);
-  color: var(--e-text-muted);
+  /* 550 daba 4.29:1 sobre el lienzo claro (--e-neutral-150): por debajo de AA
+     en 16px. El 600 baja a 6.8:1 sin perder el aire de dato secundario. */
+  color: var(--e-neutral-600);
 }
 
 /* Fecha del destacado en su propia línea: es el dato que más decide la compra
@@ -1060,7 +1062,9 @@
 /* --- Mis boletas: la boleta también es papel ---------------------------- */
 .fan-lookup input {
   background: var(--e-white);
-  border-color: var(--e-neutral-300);
+  /* El limite del campo sobre el papel blanco tiene que verse (WCAG 1.4.11):
+     neutral-300 daba 1.27:1. */
+  border-color: var(--e-control-line);
   color: var(--e-neutral-900);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -1243,7 +1247,9 @@
     font-style: normal;
     font-weight: 600;
     letter-spacing: 0.16em;
-    color: var(--e-neutral-550);
+    /* 550 sobre la miniatura de papel (--e-neutral-100) daba 4.4:1; el 600
+       sube a 7:1 y el día sigue siendo el protagonista. */
+    color: var(--e-neutral-600);
   }
 }
 
@@ -1253,6 +1259,13 @@
 @media (max-width: 479px) {
   .fan-lookup {
     flex-direction: column;
+  }
+  /* Apilado, el `flex: 1 1 0%` de `.fan-lookup input` pasa a medir el ALTO
+     (el eje principal es vertical): el flex-basis 0 gana al `height: 3rem` y
+     el campo se desplomaba a 23px, la mitad de su altura. `flex: none`
+     devuelve el alto declarado (48px) sin tocar la fila horizontal. */
+  .fan-lookup input {
+    flex: none;
   }
   .fan-lookup button {
     width: 100%;

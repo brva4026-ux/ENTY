@@ -37,11 +37,13 @@ async function submitLogin(page, ident, password = DEMO_PASSWORD) {
 const card = (page) => page.locator(".welcome-card");
 
 /**
- * Salta el gate legal si aparece.
+ * Salta el gate legal si aparece (defensivo).
  *
- * Las aceptaciones se guardan POR USUARIO: admin ya las tiene del seed, pero
- * promo2 no, asi que al navegar a /perfil se topa con el portal. Se acepta todo
- * lo pendiente y se sigue.
+ * Las aceptaciones se guardan POR USUARIO y el seed ya pre-acepta a las cuentas
+ * demo compartidas, asi que en condiciones normales el portal no sale. Se deja
+ * igual por si una corrida contra una base sin re-sembrar lo deja pendiente: es
+ * preferible aceptarlo y seguir que fallar por un estado de la DB ajeno al
+ * spec.
  */
 async function passLegalGate(page) {
   const gate = page.getByRole("heading", { name: "Hay cambios en los términos" });

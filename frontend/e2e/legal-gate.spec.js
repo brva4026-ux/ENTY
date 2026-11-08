@@ -7,14 +7,19 @@
  * `pending=[]` y devolvía `null`: la app entera en negro justo después de
  * dar las aceptaciones. Este spec exige que tras aceptar se vea el panel.
  *
- * Requiere el seed demo (`admin@bar.test` / `demo1234`) y que la cuenta tenga
- * documentos pendientes (el seed no crea aceptaciones: con las migraciones
- * legales aplicadas, siempre los tiene).
+ * Requiere el seed demo y una cuenta con documentos pendientes. El seed
+ * pre-acepta a los usuarios demo compartidos (admin@bar.test, etc.) para que el
+ * resto de la suite no pelee con el gate, y reserva `gate@bar.test` SIN
+ * aceptaciones: es la unica que siempre tiene algo que aceptar.
  */
 import { expect, test } from "@playwright/test";
 
 const BASE = process.env.E2E_BASE_URL || "http://127.0.0.1:8001";
-const ADMIN = { email: "admin@bar.test", password: "demo1234" };
+// Cuenta dedicada del seed: es la unica que NO queda pre-aceptada, justo para
+// que este spec siempre tenga documentos pendientes. Las demas cuentas demo
+// (admin@bar.test, etc.) se siembran ya aceptadas para no romper el resto de
+// la suite, que no sabe manejar el gate.
+const ADMIN = { email: "gate@bar.test", password: "demo1234" };
 
 async function backendDisponible() {
   try {

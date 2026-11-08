@@ -541,7 +541,7 @@ export default function BusinessOverview({ venueId, month, onOpenEvent }) {
                       <li key={e.id}>
                         <button
                           onClick={() => onOpenEvent?.(e.id)}
-                          className="flex w-full items-center gap-3 py-2 text-left text-sm transition hover:bg-zinc-900/40"
+                          className="bo-event-row flex w-full items-center gap-3 py-2 text-left text-sm transition hover:bg-zinc-900/40"
                         >
                           <Icon
                             name="door"
