@@ -161,3 +161,35 @@ def test_la_preferencia_es_por_venue(api, world, db):
     leido = api.get(f"/auth/me/preferences?venue_id={world['venue_b']}", "admin").json()
     onboarding = next(p for p in leido["preferences"] if p["key"] == "onboarding")
     assert onboarding["value"] == "pending"
+
+
+# ---------------------------------------------------------------------------
+# Guardarraíl por forma (mig 039): una preferencia nueva no exige migración
+# ---------------------------------------------------------------------------
+def test_el_check_acepta_claves_con_forma_valida(db, world):
+    """El CHECK dejó de ser lista cerrada: acepta cualquier clave con forma
+    (minúsculas/dígitos/guion bajo, empezando por letra), sin migración."""
+    db.execute(
+        "INSERT INTO user_preferences (user_id, venue_id, key, value) "
+        "VALUES (%s, %s, %s, %s)",
+        (world["admin"]["id"], world["venue_a"], "density_compact", "accepted"),
+    )
+    row = db.execute(
+        "SELECT value FROM user_preferences WHERE user_id=%s AND key=%s",
+        (world["admin"]["id"], "density_compact"),
+    ).fetchone()
+    assert row["value"] == "accepted"
+
+
+def test_el_check_rechaza_claves_sin_forma(db, world):
+    """Sigue siendo guardarraíl: espacios, mayúsculas o claves vacías no entran."""
+    import psycopg
+    import pytest
+
+    for bad in ("Density", "with space", "", "1starts_with_digit"):
+        with pytest.raises(psycopg.errors.CheckViolation):
+            db.execute(
+                "INSERT INTO user_preferences (user_id, venue_id, key, value) "
+                "VALUES (%s, %s, %s, %s)",
+                (world["admin"]["id"], world["venue_a"], bad, "accepted"),
+            )

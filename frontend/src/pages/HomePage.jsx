@@ -548,6 +548,14 @@ export default function HomePage({ explorar = false }) {
         ? "Sin resultados. Prueba con otro nombre, categoría, fecha o ciudad."
         : `${filtered.length} ${filtered.length === 1 ? "evento" : "eventos"} en la cartelera.`;
 
+  // Ley de Tesler: el catálogo se trae con un límite (100) y se filtra en
+  // cliente. Si hay más eventos fuera de esa ventana, un filtro podría estar
+  // mirando solo una parte — y callarlo sería un filtro que miente. Este aviso
+  // lo dice sin reescribir todo el modelo de filtrado.
+  const catálogoTruncado = Boolean(data?.has_more) && narrowed;
+  const avisoTruncado =
+    "Hay más eventos de los que caben aquí: prueba acotar por ciudad o fecha.";
+
   function resetFilters() {
     setQuery("");
     setCat("todos");
@@ -791,6 +799,12 @@ export default function HomePage({ explorar = false }) {
         <p className="sr-only" role="status" aria-live="polite">
           {anuncio}
         </p>
+
+        {catálogoTruncado && !error && (
+          <p className="home-truncated" role="note">
+            {avisoTruncado}
+          </p>
+        )}
 
         {error ? (
           <div className="home-empty">

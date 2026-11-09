@@ -2353,7 +2353,7 @@ CREATE TABLE public.user_preferences (
     value text NOT NULL,
     step integer,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT user_preferences_key_check CHECK ((key = ANY (ARRAY['onboarding'::text, 'tutorial'::text]))),
+    CONSTRAINT user_preferences_key_check CHECK ((key ~ '^[a-z][a-z0-9_]{0,40}$'::text)),
     CONSTRAINT user_preferences_step_check CHECK (((step IS NULL) OR (step >= 0))),
     CONSTRAINT user_preferences_value_check CHECK ((value = ANY (ARRAY['pending'::text, 'accepted'::text, 'dismissed'::text, 'completed'::text])))
 );
@@ -2376,6 +2376,7 @@ CREATE TABLE public.users (
     username text,
     password_changed_at timestamp with time zone,
     avatar_url text,
+    active_venue_id bigint,
     CONSTRAINT users_username_format CHECK (((username IS NULL) OR ((username = lower(username)) AND (username ~ '^[a-z0-9._-]{3,32}$'::text))))
 );
 
@@ -3467,6 +3468,14 @@ ALTER TABLE ONLY public.user_preferences
 
 ALTER TABLE ONLY public.user_preferences
     ADD CONSTRAINT user_preferences_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id) ON DELETE CASCADE;
+
+
+--
+-- Name: users users_active_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_active_venue_id_fkey FOREIGN KEY (active_venue_id) REFERENCES public.venues(id) ON DELETE SET NULL;
 
 
 --

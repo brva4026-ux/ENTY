@@ -157,3 +157,27 @@ def test_detail_404_for_draft_past_and_unknown(api, api_client):
     assert api_client.get(f"/public/events/{draft['id']}").status_code == 404
     assert api_client.get(f"/public/events/{past['id']}").status_code == 404
     assert api_client.get("/public/events/99999999").status_code == 404
+
+
+def test_public_events_reports_has_more(api, api_client):
+    """`has_more` dice si la ventana pedida se llenó (Ley de Tesler): la
+    vitrina filtra en cliente y necesita saber si su filtro ve todo."""
+    venue = api.world["venue_a"]
+    tag = _tag()
+    city = f"Truncada{tag}"
+    for i in range(3):
+        _future_show(api, venue, f"Show {tag} {i}", location=city)
+
+    # limit=2 con 3 eventos: la ventana se llena -> has_more True.
+    body = api_client.get(
+        "/public/events", params={"city": city, "limit": 2}
+    ).json()
+    assert body["count"] == 2
+    assert body["has_more"] is True
+
+    # limit=50 con 3 eventos: sobra espacio -> has_more False.
+    body = api_client.get(
+        "/public/events", params={"city": city, "limit": 50}
+    ).json()
+    assert body["count"] == 3
+    assert body["has_more"] is False

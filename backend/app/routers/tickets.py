@@ -13,6 +13,8 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.db import get_db
+from app.core.db_errors import translate_db_error
+from app.core.lifecycle import auto_close_expired
 from app.deps import ensure_roles, get_current_user
 from app.schemas import (
     DoorSnapshotEntry,
@@ -49,70 +51,29 @@ router = APIRouter(prefix="/venues/{venue_id}", tags=["tickets"])
 
 
 def _handle(venue_id: int, e: psycopg.errors.Error) -> None:
-    """Traduce errores SQL de negocio a HTTP legibles."""
-    msg = str(e)
+    """Errores SQL de negocio a HTTP, con el mapa único de `db_errors`.
 
-    # psycopg mete el mensaje en e.diag.message_primary
-    diag = getattr(e, "diag", None)
-    primary = getattr(diag, "message_primary", "") or msg
-
-    if "promoter_quota_exceeded" in primary:
-        raise HTTPException(409, "Cupo de promotor agotado para este tipo de boleta")
-    if "ticket_type_not_found" in primary:
-        raise HTTPException(404, "Ese tipo de boleta no existe en este evento")
-    if "ticket_type_sold_out" in primary or "event_at_capacity" in primary:
-        raise HTTPException(409, "Sin disponibilidad para este tipo/evento")
-    if "event_not_open_for_sales" in primary:
-        raise HTTPException(409, "El evento no esta abierto para emision")
-    # Migracion 004: el tipo/cupo archivado no acepta boletas nuevas (trigger).
-    if "ticket_type_inactive" in primary:
-        raise HTTPException(
-            409, "Ese tipo de boleta esta archivado: no se pueden emitir mas boletas de ese tipo"
-        )
-    if "allocation_inactive" in primary:
-        raise HTTPException(
-            409, "Tu cupo esta archivado: pidele al admin que lo reactive"
-        )
-    if "paid_ticket_tied_to_promoter_allocation" in primary:
-        raise HTTPException(400, "Una boleta de pago no puede usar cupo de promotor")
-    if "event_not_found" in primary:
-        raise HTTPException(
-            404, "El evento de este escaneo ya no existe: selecciona otro en el escaner"
-        )
-    if "ticket_not_found" in primary:
-        raise HTTPException(404, "Boleta no encontrada")
-    if "cannot_reissue_redeemed" in primary:
-        raise HTTPException(409, "La boleta ya fue usada: no se puede reemitir")
-    if "cannot_reissue_ticket" in primary:
-        raise HTTPException(
-            409, "La boleta no esta vigente (anulada o reembolsada): no se puede reemitir"
-        )
-    if "event_closed" in primary:
-        raise HTTPException(409, "El evento ya cerro: no se puede reemitir")
-    # Migracion 021: devolucion del invitado ("No puedo ir").
-    if "return_window_closed" in primary:
-        raise HTTPException(
-            409, "La ventana de devolucion cerro: el QR ya esta activo"
-        )
-    if "token_stale" in primary:
-        raise HTTPException(
-            409, "Este enlace ya no es la credencial vigente de la boleta"
-        )
-    if "cannot_return_ticket" in primary:
-        raise HTTPException(
-            409, "La boleta no se puede devolver (no esta vigente o ya fue usada)"
-        )
-    # Mig 015: corrección de contacto del asistente.
-    if "cannot_edit_ticket_status" in primary:
-        raise HTTPException(
-            409, "Solo se puede corregir el contacto de boletas vigentes (no usadas ni anuladas)"
-        )
-    if "invalid_phone" in primary:
-        raise HTTPException(400, "El teléfono no parece válido")
-    if "invalid_name" in primary:
-        raise HTTPException(400, "El nombre no puede quedar vacío")
-    if "nothing_to_update" in primary:
-        raise HTTPException(400, "No hay nada que actualizar: envía nombre o teléfono")
+    Solo se sobreescriben los mensajes donde la puerta de emisión aporta algo
+    que el texto canónico no dice (el escáner manda a elegir otro evento; el
+    tipo se busca dentro del evento abierto). El resto sale del mapa único,
+    para que el mismo error no suene distinto según por dónde entró.
+    """
+    http = translate_db_error(
+        e,
+        overrides={
+            "ticket_type_not_found": (404, "Ese tipo de boleta no existe en este evento"),
+            "event_not_found": (
+                404,
+                "El evento de este escaneo ya no existe: selecciona otro en el escaner",
+            ),
+            "return_window_closed": (
+                409,
+                "La ventana de devolucion cerro: el QR ya esta activo",
+            ),
+        },
+    )
+    if http is not None:
+        raise http
     raise e
 
 
@@ -668,6 +629,10 @@ async def door_snapshot(
     (nombre por boleta): mismo tratamiento de auditoría que invitados.csv.
     """
     ensure_roles(user, venue_id, "super_admin", "admin", "bouncer")
+
+    # La puerta también cierra lo vencido (app/core/lifecycle.py): es la
+    # pantalla que el bouncer abre antes de la fiesta, sin pasar por el panel.
+    await auto_close_expired(db, context="door_snapshot")
 
     async with db.cursor() as cur:
         await cur.execute(

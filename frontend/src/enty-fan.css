@@ -796,6 +796,14 @@
   color: var(--e-neutral-600);
 }
 
+/* Aviso honesto de ventana truncada (Ley de Tesler): el catálogo se filtra en
+   cliente sobre una página de 100, y si hay más, el filtro no ve todo. */
+.home-truncated {
+  margin: var(--e-gap-inline) 0 0;
+  font-size: var(--e-text-xs);
+  color: var(--e-neutral-600);
+}
+
 /* Fecha del destacado en su propia línea: es el dato que más decide la compra
    y antes iba en 12px junto a la dirección. */
 .home-feature-when {

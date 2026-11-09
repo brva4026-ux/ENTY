@@ -23,6 +23,12 @@ export default function AllocationManager({
   const [draftCapacity, setDraftCapacity] = useState("5");
   const [busyId, setBusyId] = useState(null);
   const [saving, setSaving] = useState(false);
+  // Distribución por lote (Ley de Tesler): en vez de P formularios idénticos,
+  // el admin elige a quiénes y el total, y el sistema reparte. `mode` alterna
+  // entre "uno" (una fila, el flujo de siempre) y "varios" (reparto igualitario).
+  const [mode, setMode] = useState("uno");
+  const [bulkPromoters, setBulkPromoters] = useState([]);
+  const [bulkCapacity, setBulkCapacity] = useState("20");
 
   // SOLO promotores en el select: un admin no vende con su cupo, y mezclar
   // roles hacía el control confuso (tres "Admin/Promo" parecidos). Si un
@@ -57,6 +63,59 @@ export default function AllocationManager({
       );
       onChange([...(allocations || []).filter((x) => x.id !== a.id), a]);
       setErr("");
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function toggleBulkPromoter(id) {
+    setBulkPromoters((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  /** Reparto igualitario del total entre los promotores elegidos. */
+  async function distributeBulk(e) {
+    e.preventDefault();
+    if (!typeId) {
+      setErr("Elige el tipo de boleta a repartir.");
+      return;
+    }
+    if (bulkPromoters.length === 0) {
+      setErr("Elige al menos un promotor.");
+      return;
+    }
+    setSaving(true);
+    setErr("");
+    try {
+      const out = await apiFetch(
+        `/venues/${venueId}/events/${eventId}/allocations/bulk`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ticket_type_id: Number(typeId),
+            promoter_ids: bulkPromoters,
+            total_capacity: Number(bulkCapacity),
+          }),
+        },
+      );
+      // Refrescar la lista: el reparto puede haber tocado cupos que ya
+      // existían (upsert de capacidad), así que se fusiona por id —los
+      // devueltos mandan— en vez de reemplazar toda la lista.
+      const byId = new Map((allocations || []).map((a) => [a.id, a]));
+      for (const a of out.allocations) byId.set(a.id, a);
+      onChange(
+        [...byId.values()].sort((x, y) => x.promoter_id - y.promoter_id),
+      );
+      const extra = out.remainder
+        ? ` (${out.remainder} extra a los primeros)`
+        : "";
+      setInfo(
+        `${out.allocations.length} cupos de ${out.per_promoter}${extra}.`,
+      );
+      setBulkPromoters([]);
     } catch (e2) {
       setErr(e2.message);
     } finally {
@@ -248,61 +307,158 @@ export default function AllocationManager({
       </ul>
       {/* Orden mental del admin: QUIÉN vende → QUÉ vende → CUÁNTAS. Una sola
           fila, sin párrafos: los placeholders son la etiqueta. */}
-      <form
-        onSubmit={createAllocation}
-        className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_5.5rem_auto] sm:items-center"
-      >
-        <select
-          value={promoterId}
-          onChange={(e) => setPromoterId(e.target.value)}
-          className="field"
-          aria-label="Promotor"
-          required
-        >
-          <option value="">Promotor…</option>
-          {promoters.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.full_name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={typeId}
-          onChange={(e) => setTypeId(e.target.value)}
-          className="field"
-          aria-label="Tipo de boleta"
-          required
-        >
-          <option value="">Tipo de boleta…</option>
-          {(types || []).map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-        <input
-          value={capacity}
-          onChange={(e) => setCapacity(e.target.value)}
-          className="field"
-          placeholder="Cupo"
-          aria-label="Cupo (boletas que puede vender)"
-          inputMode="numeric"
-          required
-        />
+      <div className="mb-2 flex gap-1" role="tablist" aria-label="Modo de asignación">
         <button
-          className={`btn-primary ${saving ? "is-busy" : ""}`}
-          disabled={saving}
+          type="button"
+          role="tab"
+          aria-selected={mode === "uno"}
+          onClick={() => setMode("uno")}
+          className="btn-mini"
+          data-variant={mode === "uno" ? "brand" : undefined}
         >
-          {saving && (
-            <svg className="btn-spinner" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-            </svg>
-          )}
-          {saving ? "Asignando…" : "Asignar"}
+          Uno por uno
         </button>
-        {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
-        {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
-      </form>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "varios"}
+          onClick={() => setMode("varios")}
+          className="btn-mini"
+          data-variant={mode === "varios" ? "brand" : undefined}
+        >
+          Repartir a varios
+        </button>
+      </div>
+      {mode === "varios" ? (
+        <form onSubmit={distributeBulk} className="space-y-2">
+          {/* El tipo se elige primero: es el aforo que se reparte. */}
+          <select
+            value={typeId}
+            onChange={(e) => setTypeId(e.target.value)}
+            className="field"
+            aria-label="Tipo de boleta a repartir"
+            required
+          >
+            <option value="">Tipo de boleta…</option>
+            {(types || []).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <fieldset className="rounded-lg border border-zinc-800 p-2">
+            <legend className="px-1 text-2xs text-zinc-400">
+              Promotores ({bulkPromoters.length} elegidos)
+            </legend>
+            {promoters.length === 0 ? (
+              <p className="text-xs text-zinc-500">
+                Todavía no hay promotores. Invítalos primero.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {promoters.map((u) => (
+                  <label
+                    key={u.id}
+                    className="flex items-center gap-1.5 text-xs text-zinc-300"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={bulkPromoters.includes(u.id)}
+                      onChange={() => toggleBulkPromoter(u.id)}
+                    />
+                    {u.full_name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </fieldset>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={bulkCapacity}
+              onChange={(e) => setBulkCapacity(e.target.value)}
+              className="field w-28"
+              placeholder="Total"
+              aria-label="Total de boletas a repartir"
+              inputMode="numeric"
+              required
+            />
+            <span className="text-2xs text-zinc-500">
+              {bulkPromoters.length > 0 && Number(bulkCapacity) >= 0
+                ? `≈ ${Math.floor(Number(bulkCapacity) / bulkPromoters.length)} por promotor`
+                : "se reparte en partes iguales"}
+            </span>
+            <button
+              className={`btn-primary ml-auto ${saving ? "is-busy" : ""}`}
+              disabled={saving}
+            >
+              {saving && (
+                <svg className="btn-spinner" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+              )}
+              {saving ? "Repartiendo…" : "Repartir"}
+            </button>
+          </div>
+          {err && <p className="text-xs text-red-400">{err}</p>}
+          {info && <p className="text-xs text-amber-300">{info}</p>}
+        </form>
+      ) : (
+        <form
+          onSubmit={createAllocation}
+          className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_5.5rem_auto] sm:items-center"
+        >
+          <select
+            value={promoterId}
+            onChange={(e) => setPromoterId(e.target.value)}
+            className="field"
+            aria-label="Promotor"
+            required
+          >
+            <option value="">Promotor…</option>
+            {promoters.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.full_name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={typeId}
+            onChange={(e) => setTypeId(e.target.value)}
+            className="field"
+            aria-label="Tipo de boleta"
+            required
+          >
+            <option value="">Tipo de boleta…</option>
+            {(types || []).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <input
+            value={capacity}
+            onChange={(e) => setCapacity(e.target.value)}
+            className="field"
+            placeholder="Cupo"
+            aria-label="Cupo (boletas que puede vender)"
+            inputMode="numeric"
+            required
+          />
+          <button
+            className={`btn-primary ${saving ? "is-busy" : ""}`}
+            disabled={saving}
+          >
+            {saving && (
+              <svg className="btn-spinner" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+            )}
+            {saving ? "Asignando…" : "Asignar"}
+          </button>
+          {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
+          {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
+        </form>
+      )}
     </div>
   );
 }

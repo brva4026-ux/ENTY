@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.db_errors import translate_db_error
 from app.core.refs import payment_reference
 from app.deps import ensure_roles, get_current_user
 from app.schemas import (
@@ -60,17 +61,13 @@ def _check_signature(payload: dict, checksum: str) -> bool:
 
 
 def _handle(e: psycopg.errors.Error) -> None:
-    """Traduce errores SQL de negocio de approve_ticket_payment a HTTP."""
-    diag = getattr(e, "diag", None)
-    primary = (getattr(diag, "message_primary", "") or "") or str(e)
-    if "payment_amount_mismatch" in primary:
-        raise HTTPException(409, "El monto pagado no coincide con el cobrado")
-    if "payment_not_approvable" in primary:
-        raise HTTPException(409, "El cobro ya no esta pendiente: no se puede aprobar")
-    if "payment_not_found" in primary:
-        raise HTTPException(404, "Cobro no encontrado")
-    if "event_not_open_for_sales" in primary:
-        raise HTTPException(409, "El evento ya no acepta emisiones")
+    """Errores SQL de negocio de approve_ticket_payment → HTTP (mapa único)."""
+    http = translate_db_error(
+        e,
+        overrides={"event_not_open_for_sales": (409, "El evento ya no acepta emisiones")},
+    )
+    if http is not None:
+        raise http
     raise e
 
 

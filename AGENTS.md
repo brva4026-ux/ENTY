@@ -1215,6 +1215,22 @@ avisar.
   espaciado fuera de la escala (0.875rem, 0.625rem…) es señal de alarma.
   Verificado por `e2e/proximidad.spec.js`, que mide la relación de huecos sobre
   la geometría renderizada.
+- **La complejidad se mueve, no se elimina (Ley de Tesler).** La auditoría
+  completa (T1–T12, método y lo que se dejó a propósito) vive en
+  `docs/ley-de-tesler.md`. Reglas de casa: (1) un dato ya escrito no se vuelve a
+  pedir — si está en localStorage, en la sesión o en el servidor, la pantalla lo
+  lee; (2) lo que el sistema puede preparar solo (snapshot de puerta, tipo por
+  defecto, contacto del fan) no se pide con un botón; (3) N acciones idénticas
+  son una acción (operación por lote antes que formulario repetido); (4) una
+  automatización que depende de que alguien pase por la pantalla no es una
+  automatización (el cierre de eventos se dispara desde varias rutas de lectura,
+  `core/lifecycle.py`); (5) un concepto, una palabra (Aforo / Cantidad / Cupo /
+  Localidad). Piezas compartidas que evitan reimplementar criterio: `core/phone.py`
+  (teléfono por últimos 10 dígitos), `core/db_errors.py` (mapa único de errores),
+  `core/lifecycle.py` (watchdog de cierre). Las preferencias de la **persona**
+  van al servidor (`users.active_venue_id` mig 040, `user_preferences` mig 032);
+  tema/movimiento son del dispositivo y el fan no tiene identidad verificada
+  hasta reclamar una boleta.
 - **Los E2E corren contra el dev server de Vite, no el backend.** Playwright
   apunta a `E2E_BASE_URL` (default `127.0.0.1:8001`, pero en este entorno el
   SPA lo sirve Vite en el puerto 12000): `E2E_BASE_URL=http://127.0.0.1:12000

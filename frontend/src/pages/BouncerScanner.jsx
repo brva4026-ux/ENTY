@@ -555,6 +555,9 @@ export default function BouncerScanner() {
   // puerta valida sin red comparando SHA-256; sin él, sin red no hay magia
   // posible (server-autoritativo) y el banner lo dice.
   const [snapInfo, setSnapInfo] = useState(null); // {count, generated_at}
+  // Eventos cuyo caché ya intentamos anticipar en esta sesión (una vez cada
+  // uno): evita re-bajar en cada refresco de 20s.
+  const autoPrepRef = useRef(new Set());
   // Cuántos escaneos offline esperan sincronización (badge del banner).
   const [pendingSync, setPendingSync] = useState(0);
   const [syncing, setSyncing] = useState(false);
@@ -616,6 +619,34 @@ export default function BouncerScanner() {
       alive = false;
     };
   }, [selectedEvent, venueId, refreshPending, refreshStats]);
+
+  // Ley de Tesler: cuando las puertas abren, el sistema prepara el caché sin
+  // pedirlo. Si el evento elegido está `live` y el teléfono aún no tiene
+  // snapshot, se descarga solo (una vez por evento): el bouncer no tiene que
+  // acordarse de tocar "Descargar" antes de que el wifi del recinto falle.
+  // El botón manual sigue existiendo para forzar/actualizar; esto solo cubre
+  // el caso en que nadie se acordó.
+  useEffect(() => {
+    if (!selectedEvent || snapInfo) return;
+    const ev = (events ?? []).find((e) => e.id === selectedEvent);
+    if (!ev || ev.status !== "live") return;
+    if (autoPrepRef.current.has(selectedEvent)) return;
+    autoPrepRef.current.add(selectedEvent);
+    let alive = true;
+    downloadSnapshot(venueId, selectedEvent)
+      .then((snap) => {
+        if (alive)
+          setSnapInfo({ count: snap.count, generated_at: snap.generated_at });
+      })
+      .catch(() => {
+        // Sin red justo ahora: el botón manual sigue ahí. Se libera la marca
+        // para reintentar en el próximo refresco de la lista de eventos.
+        autoPrepRef.current.delete(selectedEvent);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [selectedEvent, events, snapInfo, venueId]);
 
   /** Descarga manual del snapshot: la puerta prepara su modo sin red. */
   async function prepareOffline() {
@@ -1081,9 +1112,10 @@ export default function BouncerScanner() {
             </div>
           )}
 
-          {/* Caché de puerta (modo offline): descarga manual y estado. La
-              descarga es un acto explícito del bouncer (baja nombres+hashes
-              del evento): nunca automática en segundo plano. */}
+          {/* Caché de puerta (modo offline): estado + descarga manual. Se
+              anticipa sola cuando el evento está en puerta (arriba); este
+              botón fuerza la descarga o la actualiza si el aforo cambió. La
+              descarga baja nombres+hashes del evento, nada de tokens. */}
           <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-2.5">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-zinc-300">

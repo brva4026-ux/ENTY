@@ -20,6 +20,16 @@ import TransitionLink from "../components/TransitionLink";
  */
 const CONTACT_KEY = "tf_fan_contact";
 const TOKEN_KEY = "tf_fan_token";
+
+/** Contacto recordado de una visita (o de la compra) anterior.
+ *  Ley de Tesler: un dato ya escrito no se vuelve a pedir — se precarga. */
+function savedContact() {
+  try {
+    return localStorage.getItem(CONTACT_KEY) || "";
+  } catch {
+    return ""; // modo privado: sin storage, el campo nace vacío
+  }
+}
 const STATUS = {
   issued: { label: "Válida", tone: "ok" },
   redeemed: { label: "Ya usada", tone: "warn" },
@@ -30,7 +40,7 @@ const STATUS = {
 export default function MyTicketsPage() {
   useDocumentTitle("Mis boletas");
   const [params] = useSearchParams();
-  const [contact, setContact] = useState("");
+  const [contact, setContact] = useState(savedContact);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   // Solo el error de validacion del campo (no los fallos de red) marca el input

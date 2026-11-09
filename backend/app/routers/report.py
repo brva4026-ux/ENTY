@@ -22,6 +22,8 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.core.db import get_db
+from app.core.lifecycle import auto_close_expired
+from app.core.phone import phone_tail_sql
 from app.deps import ensure_roles, get_current_user
 from app.core.audit import write_audit
 from app.schemas import (
@@ -711,7 +713,7 @@ _SALES_CURVE_SQL = """
 # inflaría la cifra de "nuevos" con datos que no existen.
 _RETENTION_SQL = r"""
     WITH month_buyers AS (
-        SELECT right(regexp_replace(t.customer_phone, '\D', '', 'g'), 10) AS phone,
+        SELECT {phone_tail} AS phone,
                min(t.issued_at) AS first_at
         FROM tickets t
         JOIN events e ON e.id = t.event_id
@@ -730,12 +732,14 @@ _RETENTION_SQL = r"""
                JOIN events e2 ON e2.id = t2.event_id
                WHERE e2.venue_id = %(venue)s
                  AND t2.status IN ('issued','redeemed')
-                 AND right(regexp_replace(t2.customer_phone, '\D', '', 'g'), 10)
-                     = month_buyers.phone
+                 AND {phone_tail_t2} = month_buyers.phone
                  AND t2.issued_at < month_buyers.first_at
            ))::int AS returning_buyers
     FROM month_buyers
-"""
+""".format(
+    phone_tail=phone_tail_sql("t.customer_phone"),
+    phone_tail_t2=phone_tail_sql("t2.customer_phone"),
+)
 
 # Orden de presentación de la curva: del más anticipado al más tardío. El
 # backend devuelve SIEMPRE los 5 tramos (rellenando con 0) para que la UI no
@@ -809,6 +813,10 @@ async def venue_overview(
     month, month_start = _resolve_month(month, tz)
 
     params = {"venue": venue_id, "tz": tz, "month_start": month_start.isoformat()}
+
+    # La caja del negocio también cierra lo vencido: es otra pantalla por la
+    # que el admin entra sin pasar por el listado de eventos.
+    await auto_close_expired(db, context="venue_overview")
 
     async with db.cursor() as cur:
         await cur.execute(_OVERVIEW_SQL, params)

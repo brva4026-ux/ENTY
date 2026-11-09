@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from app.core.db import get_db
+from app.core.db_errors import translate_db_error
 from app.core.security import digest_token
 from app.schemas import (
     PublicTicketOut,
@@ -86,24 +87,25 @@ _TICKET_SQL = """
 
 
 def _handle_return(e: psycopg.errors.Error) -> None:
-    """Errores SQL de return_ticket a HTTP legible (invitado, sin jerga)."""
-    primary = str(e)
-    diag = getattr(e, "diag", None)
-    if diag is not None and getattr(diag, "message_primary", ""):
-        primary = diag.message_primary
-    if "return_window_closed" in primary:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "La ventana de devolución ya cerró"
-        )
-    if "token_stale" in primary:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "Este enlace ya no es la credencial vigente: pide la boleta de nuevo",
-        )
-    if "cannot_return_ticket" in primary or "ticket_not_found" in primary:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "Esta boleta ya no se puede devolver"
-        )
+    """Errores SQL de return_ticket a HTTP legible (invitado, sin jerga).
+
+    Mapa único; los dos códigos que el invitado debe leer sin ambigüedad
+    (ventana cerrada, credencial vieja) llevan su frase propia.
+    """
+    http = translate_db_error(
+        e,
+        overrides={
+            "return_window_closed": (409, "La ventana de devolución ya cerró"),
+            "token_stale": (
+                409,
+                "Este enlace ya no es la credencial vigente: pide la boleta de nuevo",
+            ),
+            "cannot_return_ticket": (409, "Esta boleta ya no se puede devolver"),
+            "ticket_not_found": (409, "Esta boleta ya no se puede devolver"),
+        },
+    )
+    if http is not None:
+        raise http
     raise e
 
 

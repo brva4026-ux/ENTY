@@ -985,9 +985,25 @@ export default function ProfilePage() {
                       type="button"
                       aria-pressed={active}
                       onClick={() => {
+                        // Ley de Tesler (T7): el negocio activo es de la
+                        // persona, no del navegador. Se guarda en el servidor
+                        // (mig 040) para que abra igual en el celular; el cache
+                        // local evita el parpadeo del primer paint. Optimista:
+                        // la UI cambia ya, y si el guardado falla se revierte.
+                        const prev = currentVenueId;
                         setActiveVenueId(v.id);
                         setCurrentVenueId(v.id);
                         haptics.tick();
+                        apiFetch("/auth/me/active-venue", {
+                          method: "PUT",
+                          body: JSON.stringify({ venue_id: v.id }),
+                        })
+                          .then((updated) => setUser(updated))
+                          .catch(() => {
+                            setCurrentVenueId(prev);
+                            setActiveVenueId(prev);
+                            ui.error("No pudimos guardar tu negocio activo.");
+                          });
                       }}
                       className={`pf-venue ${active ? "is-on" : ""}`}
                     >

@@ -510,19 +510,35 @@ export default function AdminDashboard() {
     setSearchParams(params, { replace: true });
   }
 
-  /** Duplica un evento (borrador con sus tipos y cupos). */
+  /** Duplica un evento (borrador con sus tipos y cupos).
+   *
+   *  Ley de Tesler: no se adivina "+7 días". Si la venue tiene un patrón
+   *  propio (quincenal, mensual), el duplicado nace a ese intervalo —el
+   *  calculado entre las últimas noches— en vez del semanal por defecto. El
+   *  admin lo corrige igual al editar, pero el default ya es "lo que suele
+   *  hacer" y no un número ajeno a su negocio. */
   async function duplicateEvent(ev) {
     setDupingId(ev.id);
     try {
+      // Intervalo real: días entre este evento y el inmediatamente anterior.
+      const prev = (events ?? [])
+        .filter((e) => e.id !== ev.id && e.starts_at < ev.starts_at)
+        .sort((a, b) => b.starts_at.localeCompare(a.starts_at))[0];
+      const gap = prev
+        ? calendarDiffDays(new Date(ev.starts_at), new Date(prev.starts_at))
+        : 0;
+      const days = gap >= 1 && gap <= 365 ? gap : 7;
       const copy = await apiFetch(
-        `/venues/${venueId}/events/${ev.id}/duplicate`,
+        `/venues/${venueId}/events/${ev.id}/duplicate?days=${days}`,
         { method: "POST" },
       );
       await loadEvents();
       // NO se salta al backstage del borrador: con 20+ noches, duplicar una
       // tras otra y que cada clic te expulse de la lista rompe el flujo. El
       // borrador aparece arriba y el aviso dice que abrir.
-      ui.success(`Borrador "${copy.name}" creado: ajustá la fecha y publicá 📋`);
+      ui.success(
+        `Borrador "${copy.name}" creado a ${days} días: ajustá la fecha y publicá 📋`,
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -2112,10 +2128,12 @@ export default function AdminDashboard() {
                 "Boletas" audita lo vendido y entrega los QR. */}
             {section === "entradas" && (
               <TypeManager
+                key={selectedEvent}
                 venueId={venueId}
                 eventId={selectedEvent}
                 types={types}
                 onChange={setTypes}
+                capacity={selectedEventData?.capacity}
               />
             )}
 

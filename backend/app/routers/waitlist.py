@@ -18,6 +18,7 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.db import get_db
+from app.core.db_errors import translate_db_error
 from app.core.security import digest_token
 from app.schemas import (
     WaitlistClaimOut,
@@ -56,34 +57,27 @@ def _check_rate(request: Request) -> None:
 
 
 def _handle_waitlist_error(e: psycopg.errors.Error) -> None:
-    """Errores SQL de la lista a HTTP legible (publico, sin jerga)."""
-    primary = str(e)
-    diag = getattr(e, "diag", None)
-    if diag is not None and getattr(diag, "message_primary", ""):
-        primary = diag.message_primary
-    if "waitlist_not_needed" in primary:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "El evento aun tiene boletas: no hay lista de espera",
-        )
-    if "event_not_open" in primary or "event_not_open_for_sales" in primary:
-        raise HTTPException(409, "El evento no esta abierto")
-    if "event_not_found" in primary:
-        raise HTTPException(404, "Evento no encontrado")
-    if "waitlist_offer_expired" in primary:
-        raise HTTPException(
-            409, "Tu ventana de reclamo cerro: el lugar paso al siguiente"
-        )
-    if "waitlist_spot_gone" in primary:
-        raise HTTPException(
-            409, "El lugar ya no esta disponible: se ofrecio al siguiente"
-        )
-    if "waitlist_entry_not_found" in primary:
-        raise HTTPException(404, "No estas en la lista de este evento")
-    if "invalid_name" in primary:
-        raise HTTPException(400, "El nombre no puede quedar vacio")
-    if "invalid_phone" in primary or "invalid_token_format" in primary:
-        raise HTTPException(400, "Datos incompletos")
+    """Errores SQL de la lista a HTTP legible (público, sin jerga). Mapa único."""
+    http = translate_db_error(
+        e,
+        overrides={
+            "waitlist_not_needed": (
+                409,
+                "El evento aun tiene boletas: no hay lista de espera",
+            ),
+            "waitlist_offer_expired": (
+                409,
+                "Tu ventana de reclamo cerro: el lugar paso al siguiente",
+            ),
+            "waitlist_spot_gone": (
+                409,
+                "El lugar ya no esta disponible: se ofrecio al siguiente",
+            ),
+            "waitlist_entry_not_found": (404, "No estas en la lista de este evento"),
+        },
+    )
+    if http is not None:
+        raise http
     raise e
 
 

@@ -8,7 +8,6 @@ el bouncer lo compara en la puerta (ver docs/arquitectura/03-seguridad.md).
 """
 from html import escape
 import json
-import re
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
@@ -24,6 +23,7 @@ from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.fan_access import create_fan_access_token, verify_fan_access_token
 from app.core.mailer import Mailer
+from app.core.phone import digits_only, phone_tail_sql
 from app.core.refs import payment_reference
 from app.schemas import (
     FanCredentialRequest,
@@ -262,9 +262,14 @@ async def public_events(
         if c:
             cities[c] = cities.get(c, 0) + 1
     top_city = max(cities, key=cities.get) if cities else (city or "")
+    # `has_more`: se llenó la ventana pedida, así que hay (o puede haber) más
+    # eventos fuera de la página. La vitrina lo usa para avisar que su filtro
+    # en cliente no ve todo el catálogo — un filtro que miente en silencio es
+    # peor que uno que dice su límite (Ley de Tesler).
     return {
         "city": top_city,
         "count": len(events),
+        "has_more": len(rows) >= fetch_limit,
         "categories": list(_CATEGORIES),
         "events": events,
     }
@@ -565,14 +570,15 @@ def _contact_params(raw: str) -> dict:
     s = raw.strip().lower()
     if "@" in s:
         return {"is_email": True, "email": s, "phone": ""}
-    return {"is_email": False, "email": "", "phone": re.sub(r"\D", "", s)}
+    return {"is_email": False, "email": "", "phone": digits_only(s)}
 
 
 # Los telefonos se comparan por sus ULTIMOS 10 digitos: el mismo numero guardado
 # como "3001234567" (local) y como "+57 300 123 4567" (con indicativo) tiene que
 # encontrar la misma boleta. Sin esto, quien escribe su numero como lo tiene
 # agendado no encontraba nada y creia que la boleta no existia.
-_PHONE_TAIL = "right(regexp_replace(coalesce(t.customer_phone, ''), '[^0-9]', '', 'g'), 10)"
+# Mismo criterio en un solo lugar: app.core.phone.
+_PHONE_TAIL = phone_tail_sql("t.customer_phone")
 
 # El correo tampoco distingue mayusculas: se guarda tal cual lo escribio quien
 # emitio la boleta, asi que la comparacion normaliza el lado de la columna (el
@@ -787,7 +793,7 @@ async def _resolve_contact(
         return None
     if row["customer_email"]:
         return row["customer_email"].strip().lower()
-    phone = re.sub(r"\D", "", row["customer_phone"] or "")
+    phone = digits_only(row["customer_phone"])
     return phone or None
 
 

@@ -32,13 +32,18 @@ const PRESETS = [
   },
 ];
 
-export default function TypeManager({ venueId, eventId, types, onChange }) {
+export default function TypeManager({ venueId, eventId, types, onChange, capacity }) {
   const ui = useUI();
   const [name, setName] = useState("General");
   // El usuario piensa en PESOS ("30.000"), la DB guarda centavos: convertir
   // en el borde. Antes pedía centavos y nadie entendía qué escribir.
   const [price, setPrice] = useState("30000");
-  const [qty, setQty] = useState("50");
+  // Ley de Tesler: el aforo ya se cargó al crear el evento; no se vuelve a
+  // pedir como número a mano. La cantidad del primer tipo arranca en el aforo
+  // (el admin la reparte o la baja después).
+  const [qty, setQty] = useState(() =>
+    capacity ? String(capacity) : "50",
+  );
   const [isCourtesy, setIsCourtesy] = useState(false);
   const [err, setErr] = useState("");
   const [info, setInfo] = useState("");
@@ -245,7 +250,7 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
                     {t.price_cents > 0
                       ? `$${(t.price_cents / 100).toLocaleString("es-CO")}`
                       : "gratis"}{" "}
-                    · cupo {t.quantity}
+                    · cantidad {t.quantity}
                   </span>
                   <button
                     onClick={() => startEdit(t)}
@@ -352,8 +357,8 @@ export default function TypeManager({ venueId, eventId, types, onChange }) {
           value={qty}
           onChange={(e) => setQty(e.target.value)}
           className="field sm:col-start-2 sm:row-start-1"
-          placeholder="Cupo"
-          aria-label="Cupo (cuántas se pueden vender)"
+          placeholder="Cantidad"
+          aria-label="Cantidad de boletas de este tipo"
           inputMode="numeric"
           required
         />

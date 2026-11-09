@@ -323,3 +323,60 @@ def test_rate_limit_evicta_cubos_vencidos():
     public._evict_expired(public._rate_bucket, now, public._RATE_WINDOW)
     assert list(public._rate_bucket) == ["192.168.1.1"]
     public._rate_bucket.clear()
+
+
+# ---------------------------------------------------------------------------
+# 6) El cierre no depende de que el ADMIN abra su panel (Ley de Tesler)
+# ---------------------------------------------------------------------------
+
+
+def test_el_cierre_ocurre_desde_el_panel_del_promotor(api, world):
+    """`auto_close_expired_events()` corría SOLO en `GET /events` (panel admin).
+
+    Un evento vencido seguía 'En puerta' para el promotor, la puerta y la
+    vitrina hasta que un admin abría su panel. Ahora también lo disparan
+    `/events/mine` (promotor), `/overview` (caja) y `/door-snapshot` (puerta):
+    el cierre no depende de que pase el admin.
+    """
+    venue = world["venue_a"]
+    ev = api.create_event("admin", venue, name="Cierre por promotor")
+    t = api.add_type("admin", venue, ev["id"])
+    api.publish("admin", venue, ev["id"])
+    api.post(f"/venues/{venue}/events/{ev['id']}/live", "admin")
+    # Asignar al promotor a la noche (sin roster, /events/mine no lo lista).
+    res = api.post(
+        f"/venues/{venue}/events/{ev['id']}/staff",
+        "admin",
+        {"user_id": world["promoter"]["id"], "role": "promotor"},
+    )
+    assert res.status_code in (200, 201), res.text
+    # Vencer el evento bien pasada la gracia (6 h).
+    _set_window(
+        api, ev["id"], starts="- interval '10 hours'", ends="- interval '7 hours'"
+    )
+    assert api.event_status(venue, ev["id"]) == "live"
+
+    # El promotor abre SU panel: no hay admin de por medio.
+    res = api.get(f"/venues/{venue}/events/mine", "promoter")
+    assert res.status_code == 200, res.text
+
+    assert api.event_status(venue, ev["id"]) == "ended", (
+        "el cierre debe ocurrir aunque solo el promotor abra su panel"
+    )
+
+
+def test_el_cierre_ocurre_desde_la_caja(api):
+    """`/overview` (Negocio) también dispara el watchdog."""
+    scen = api.scenario()
+    api.post(f"/venues/{scen['venue']}/events/{scen['event']}/live", "admin")
+    _set_window(
+        api,
+        scen["event"],
+        starts="- interval '10 hours'",
+        ends="- interval '7 hours'",
+    )
+    assert api.event_status(scen["venue"], scen["event"]) == "live"
+
+    res = api.get(f"/venues/{scen['venue']}/overview", "admin")
+    assert res.status_code == 200, res.text
+    assert api.event_status(scen["venue"], scen["event"]) == "ended"

@@ -49,6 +49,7 @@ from app.schemas import (
     PreferencesOut,
     RegisterRequest,
     ResetPasswordRequest,
+    SetActiveVenueRequest,
     TokenResponse,
     UpdatePreferenceRequest,
     UpdateProfileRequest,
@@ -122,17 +123,19 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
     user: dict | None = None
     async with db.cursor() as cur:
         await cur.execute(
-            # `password_changed_at` (mig 037) y `avatar_url` (mig 038) se leen
-            # como texto del jsonb de la fila, no como columnas: si el codigo
-            # llega a produccion antes que la migracion, `->>` devuelve NULL en
-            # vez de reventar con UndefinedColumn. Un SELECT explicito de esas
-            # dos columnas no rompia el perfil: rompia el LOGIN entero, porque
-            # todo inicio de sesion termina construyendo este resumen.
+            # `password_changed_at` (mig 037), `avatar_url` (mig 038) y
+            # `active_venue_id` (mig 040) se leen como texto del jsonb de la
+            # fila, no como columnas: si el codigo llega a produccion antes que
+            # la migracion, `->>` devuelve NULL en vez de reventar con
+            # UndefinedColumn. Un SELECT explicito de esas columnas no rompia el
+            # perfil: rompia el LOGIN entero, porque todo inicio de sesion
+            # termina construyendo este resumen.
             """
             SELECT u.id, u.email, u.full_name, u.username, u.phone,
                    u.created_at, u.last_login_at,
                    (to_jsonb(u) ->> 'password_changed_at') AS password_changed_at,
-                   (to_jsonb(u) ->> 'avatar_url') AS avatar_url
+                   (to_jsonb(u) ->> 'avatar_url') AS avatar_url,
+                   (to_jsonb(u) ->> 'active_venue_id') AS active_venue_id
               FROM users u
              WHERE u.id = %s
             """,
@@ -177,6 +180,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         last_login_at=user["last_login_at"],
         password_changed_at=user.get("password_changed_at"),
         avatar_url=user.get("avatar_url"),
+        active_venue_id=user.get("active_venue_id"),
     )
 
 
@@ -336,6 +340,31 @@ async def set_my_preference(
         step=row["step"] or 0,
         updated_at=row["updated_at"],
     )
+
+
+@router.put("/me/active-venue", response_model=UserSummary)
+async def set_active_venue(
+    body: SetActiveVenueRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Guarda con cuál negocio abren los paneles del staff (mig 040).
+
+    Es una preferencia GLOBAL del usuario (no por venue): antes vivía solo en
+    localStorage y el mismo admin elegía su bar en la laptop y lo perdía en el
+    celular. El backend valida que el usuario tenga algún rol en ese negocio
+    antes de guardarlo: un id ajeno sería un 403 en cada panel (id fantasma),
+    así que no se permite escribir uno. Devuelve el resumen completo para que
+    el cliente actualice su estado sin otra lectura.
+    """
+    ensure_roles(user, body.venue_id, "super_admin", "admin", "promotor", "bouncer")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "UPDATE users SET active_venue_id=%s WHERE id=%s",
+            (body.venue_id, user["id"]),
+        )
+        await db.commit()
+    return await _build_user_summary(db, user["id"])
 
 
 # ---------------------------------------------------------------------------

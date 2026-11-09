@@ -60,6 +60,8 @@ MIGRATIONS=(
     db/migrations/036_venue_contact.sql
     db/migrations/037_password_changed_at.sql
     db/migrations/038_avatar.sql
+    db/migrations/039_preference_key_shape.sql
+    db/migrations/040_active_venue.sql
 )
 
 echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"

@@ -6,10 +6,14 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.db import get_db
+from app.core.db_errors import translate_db_error
+from app.core.lifecycle import auto_close_expired
 from app.deps import ensure_roles, get_current_user
 from app.core.audit import write_audit
 from app.core.observability import capture_exception
 from app.schemas import (
+    AllocationBulkCreate,
+    AllocationBulkOut,
     AllocationCreate,
     AllocationOut,
     AllocationUpdate,
@@ -95,43 +99,14 @@ _ALLOCATION_SELECT = """
 
 
 def _edit_error(e: psycopg.errors.Error) -> None:
-    """Traduce los errores de negocio de editar/eliminar (migracion 004)."""
-    diag = getattr(e, "diag", None)
-    primary = getattr(diag, "message_primary", "") or str(e)
-    constraint = getattr(diag, "constraint_name", "") or ""
+    """Traduce los errores de negocio de editar/eliminar (migracion 004).
 
-    if "ticket_type_not_found" in primary:
-        raise HTTPException(404, "Tipo de boleta no encontrado")
-    if "allocation_not_found" in primary:
-        raise HTTPException(404, "Cupo no encontrado")
-    if "quantity_below_issued" in primary:
-        raise HTTPException(
-            409, "No puedes dejar la cantidad por debajo de las boletas ya emitidas"
-        )
-    if "capacity_below_used" in primary:
-        raise HTTPException(
-            409, "No puedes dejar la capacidad por debajo de las boletas ya emitidas"
-        )
-    if "capacity_cannot_be_below_issued" in primary:
-        # Aforo del evento (update_event y trigger events_check_capacity).
-        raise HTTPException(
-            409, "No puedes bajar el aforo por debajo de las boletas ya emitidas"
-        )
-    if "invalid_quantity" in primary:
-        raise HTTPException(400, "La cantidad debe ser mayor que cero")
-    if "invalid_capacity" in primary:
-        raise HTTPException(400, "La capacidad no puede ser negativa")
-    if "invalid_window" in primary or "starts_at_in_past" in primary:
-        raise HTTPException(
-            400,
-            "La ventana del evento no es válida: el cierre debe ser posterior a "
-            "la apertura y la apertura no puede estar en el pasado",
-        )
-    if "ticket_types_event_id_name_key" in primary or constraint == "ticket_types_event_id_name_key":
-        raise HTTPException(
-            409, "Ya existe un tipo con ese nombre en este evento"
-            " (si estaba archivado, reactívalo en vez de crearlo)"
-        )
+    Delega en el mapa único `db_errors` (el nombre de tipo duplicado lo cubre
+    por constraint); si el código no está en el mapa, re-lanza el original.
+    """
+    http = translate_db_error(e)
+    if http is not None:
+        raise http
     raise e
 
 
@@ -236,24 +211,15 @@ async def list_events(
     limit: Annotated[int, Query(ge=1, le=500)] = 200,
 ):
     _event_ctx(venue_id, user)
+    # Watchdog de cierre (mig 020): antes de listar, cierra los vencidos.
+    # Es la llamada barata que sustituye al cron (serverless no lo tiene):
+    # idempotente, con índice parcial, y si no hay vencidos no hace nada.
+    # Cualquier usuario autenticado de la venue la dispara al abrir su
+    # panel — y el live-refresh la re-dispara cada 20s. Compartido con
+    # /events/mine, /overview y /door-snapshot (app/core/lifecycle.py): el
+    # cierre no depende de que el ADMIN sea quien pase por su panel.
+    await auto_close_expired(db, context="list_events")
     async with db.cursor() as cur:
-        # Watchdog de cierre (mig 020): antes de listar, cierra los vencidos.
-        # Es la llamada barata que sustituye al cron (serverless no lo tiene):
-        # idempotente, con índice parcial, y si no hay vencidos no hace nada.
-        # Cualquier usuario autenticado de la venue la dispara al abrir su
-        # panel — y el live-refresh la re-dispara cada 20s.
-        #
-        # NUNCA debe tumbar el listado: si la función no existe todavía (DB
-        # recreada sin la migración) o falla por cualquier motivo, el ERROR
-        # ABORTA LA TRANSACCIÓN y también mataría el SELECT de abajo — el
-        # panel entero quedaba en 500 por una optimización. Se aísla: fallo
-        # de la watchdog => rollback y se lista igual (los vencidos se
-        # cerrarán en el siguiente intento, cuando la función exista).
-        try:
-            await cur.execute("SELECT auto_close_expired_events()")
-        except psycopg.Error as e:
-            await db.rollback()
-            capture_exception(e, context={"kind": "watchdog_auto_close", "venue_id": venue_id})
         await cur.execute(
             f"SELECT {EVENT_COLUMNS} FROM events "
             "WHERE venue_id=%s ORDER BY starts_at DESC LIMIT %s",
@@ -297,6 +263,9 @@ async def list_my_events(
 ):
     ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
     _event_ctx(venue_id, user)
+    # El promotor también cierra lo vencido: su panel es una puerta de entrada
+    # más a la app (app/core/lifecycle.py).
+    await auto_close_expired(db, context="list_my_events")
     async with db.cursor() as cur:
         await cur.execute(
             """
@@ -381,14 +350,18 @@ async def duplicate_event(
     event_id: int,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    days: Annotated[int, Query(ge=1, le=365)] = DUPLICATE_SHIFT_DAYS,
+    name: str | None = Query(None, max_length=120),
 ):
     """Copia un evento como borrador: la recurrencia semanal en un clic.
 
     Duplica datos del evento, tipos de boleta ACTIVOS y cupos ACTIVOS por
     promotor (emparejados por nombre del tipo dentro de la misma query).
     NO duplica boletas (serian entradas gratis sin fin) ni el estado: nace
-    draft y hay que publicarlo. La apertura queda a +7 dias (patron semanal
-    del negocio): se corrige en un toque al editar antes de publicar.
+    draft y hay que publicarlo. La apertura queda a +7 dias por defecto
+    (patron semanal del negocio); `?days=` la mueve al intervalo real de la
+    venue (quincenal, mensual...) y `?name=` le da el nombre nuevo en vez del
+    "(copia)" autogenerado — el admin decide, no se adivina (Ley de Tesler).
 
     Todo el copiado vive en UN statement: o se copia completo o nada.
     """
@@ -402,6 +375,7 @@ async def duplicate_event(
         if not src:
             raise HTTPException(404, "Evento no encontrado")
 
+        new_name = (name or "").strip() or f"{src['name']} (copia)"
         await cur.execute(
             """
             WITH new_ev AS (
@@ -436,12 +410,12 @@ async def duplicate_event(
             """,
             (
                 venue_id,
-                f"{src['name']} (copia)",
+                new_name,
                 src["description"],
                 str(src["flyer_url"]) if src["flyer_url"] else None,
                 src["location"],
                 event_id,
-                DUPLICATE_SHIFT_DAYS,
+                days,
                 src["event_timezone"],
                 src["capacity"],
                 src["qr_unlock_minutes"],
@@ -647,6 +621,85 @@ async def create_allocation(
         created = await cur.fetchone()
         await db.commit()
     return created
+
+
+@router.post(
+    "/events/{event_id}/allocations/bulk",
+    response_model=AllocationBulkOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_allocations_bulk(
+    venue_id: int,
+    event_id: int,
+    body: AllocationBulkCreate,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Reparte el aforo de un tipo entre varios promotores de una sola vez.
+
+    Con P promotores, asignar de uno en uno son P formularios idénticos; aquí
+    el admin elige a quiénes y el total, y el sistema hace la división. Todo
+    el reparto vive en UN statement: o se crean todos los cupos o ninguno.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    promoters = list(dict.fromkeys(body.promoter_ids))  # sin duplicados
+    n = len(promoters)
+    per, remainder = divmod(body.total_capacity, n)
+    # El resto de la división va a los primeros: la suma es EXACTA, nunca
+    # "4.33 boletas". Determinista (mismo input → mismo reparto) para que el
+    # admin pueda predecirlo.
+    capacities = [per + (1 if i < remainder else 0) for i in range(n)]
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT id FROM ticket_types WHERE id=%s AND event_id=%s",
+            (body.ticket_type_id, event_id),
+        )
+        if not await cur.fetchone():
+            raise HTTPException(404, "Tipo de boleta no pertenece a este evento")
+
+        # Todos los promotores deben ser de la venue: asignar a un ajeno deja
+        # un cupo que nadie puede usar.
+        await cur.execute(
+            """
+            SELECT u.id FROM users u
+            JOIN venue_user_roles r ON r.user_id = u.id
+            WHERE r.venue_id = %s AND u.id = ANY(%s) AND u.is_active
+            """,
+            (venue_id, promoters),
+        )
+        valid = {row["id"] for row in await cur.fetchall()}
+        missing = [p for p in promoters if p not in valid]
+        if missing:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Hay personas que no son de tu equipo: " + ", ".join(map(str, missing)),
+            )
+
+        await cur.execute(
+            """
+            INSERT INTO promoter_allocations AS a
+                   (event_id, ticket_type_id, promoter_id, capacity)
+            SELECT %s, %s, pid, cap
+            FROM unnest(%s::int[], %s::int[]) AS t(pid, cap)
+            ON CONFLICT (event_id, ticket_type_id, promoter_id)
+                DO UPDATE SET capacity = EXCLUDED.capacity
+            """,
+            (event_id, body.ticket_type_id, promoters, capacities),
+        )
+        await cur.execute(
+            _ALLOCATION_SELECT
+            + " WHERE a.event_id=%s AND a.ticket_type_id=%s AND a.promoter_id = ANY(%s)"
+            " ORDER BY a.promoter_id",
+            (event_id, body.ticket_type_id, promoters),
+        )
+        allocations = await cur.fetchall()
+        await db.commit()
+    return {
+        "allocations": allocations,
+        "per_promoter": per,
+        "remainder": remainder,
+    }
 
 
 # --------------------------------------------------------------------------

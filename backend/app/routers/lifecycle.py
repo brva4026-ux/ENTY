@@ -10,7 +10,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 
 from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.db_errors import translate_db_error
 from app.core.pusher import notify_venue
+from app.core.phone import digits_only, phone_tail_sql
 from app.deps import ensure_roles, get_current_user
 from app.core.audit import write_audit
 # fetch_event vive en events.py para que listar, crear y transicionar devuelvan
@@ -50,17 +52,18 @@ VALID_TRANSITIONS = {
 
 
 def _error_to_http(e: psycopg.errors.Error) -> HTTPException:
-    diag = getattr(e, "diag", None)
-    primary = getattr(diag, "message_primary", "") or str(e)
-    if "invalid_transition" in primary:
-        return HTTPException(409, "El evento no está en el estado esperado para esa transición")
-    if "ticket_not_found" in primary:
-        return HTTPException(404, "Boleta no encontrada")
-    if "cannot_void_redeemed" in primary:
-        return HTTPException(409, "No se puede anular una boleta ya redimida")
-    if "event_closed" in primary or "cannot_void_ticket" in primary:
-        return HTTPException(409, "La boleta no puede anularse en este estado")
-    return HTTPException(500, "Error interno")
+    """Errores de transición → HTTPException (mapa único; 500 si es desconocido).
+
+    Las transiciones envuelven el error en lugar de re-lanzarlo, así que un
+    código no mapeado cae al 500 genérico en vez de propagar el SQL.
+    """
+    return translate_db_error(
+        e,
+        overrides={
+            "event_closed": (409, "La boleta no puede anularse en este estado"),
+            "cannot_void_ticket": (409, "La boleta no puede anularse en este estado"),
+        },
+    ) or HTTPException(500, "Error interno")
 
 
 async def _transition(venue_id, event_id, user, db, action):
@@ -995,17 +998,15 @@ async def list_tickets(
 
     phone_filter = ""
     if phone:
-        # El telefono puede estar guardado con +, espacios o guiones, y el
-        # usuario lo recuerda sin el codigo de pais. Se normalizan a digitos
-        # ambos lados y se compara por sufijo, asi "3001234567" encuentra a
-        # "+57 300 123-4567". Se exige un minimo de digitos para que una
-        # busqueda corta no arrastre medio evento.
-        digits = "".join(ch for ch in phone if ch.isdigit())
+        # El teléfono puede estar guardado con +, espacios o guiones, y el
+        # usuario lo recuerda sin el código de país: se comparan los últimos
+        # dígitos a ambos lados (mismo criterio que el resto del sistema, ver
+        # app.core.phone). Se exige un mínimo de dígitos para que una búsqueda
+        # corta no arrastre medio evento.
+        digits = digits_only(phone)
         if len(digits) >= 6:
-            phone_filter = (
-                " AND right(regexp_replace(t.customer_phone, '\\D', '', 'g'), %s) = %s"
-            )
-            params.extend([len(digits), digits])
+            phone_filter = f" AND {phone_tail_sql('t.customer_phone', len(digits))} = %s"
+            params.append(digits)
 
     status_filter = ""
     if status:

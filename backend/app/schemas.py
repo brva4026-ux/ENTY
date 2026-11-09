@@ -67,6 +67,11 @@ class UserSummary(BaseModel):
     # Foto de perfil (mig 038): URL relativa de `media` (/media/{id}). None =
     # sin foto, y el hero pinta las iniciales con el anillo del rol.
     avatar_url: str | None = None
+    # Negocio activo (mig 040): con cuál abren los paneles del staff. Es una
+    # preferencia de la PERSONA, no del navegador: el mismo admin que elige su
+    # bar en la laptop lo ve elegido en el celular. None = sin elegir, y el
+    # frontend cae al primer negocio disponible (mismo default de siempre).
+    active_venue_id: int | None = None
 
 
 class VenueSummary(BaseModel):
@@ -118,6 +123,15 @@ class UpdatePreferenceRequest(BaseModel):
     # Paso actual dentro del tutorial (0 = empezando). Solo lo usa la clave
     # "tutorial"; en "onboarding" se ignora.
     step: int | None = Field(default=None, ge=0, le=999)
+
+
+class SetActiveVenueRequest(BaseModel):
+    """Negocio activo elegido por el staff (mig 040).
+
+    Global del usuario (no por venue): con cuál abren sus paneles. El backend
+    verifica que el usuario tenga rol en ese negocio antes de guardarlo.
+    """
+    venue_id: int
 
 
 # --------------------------------------------------------------------------
@@ -293,6 +307,19 @@ class AllocationUpdate(BaseModel):
     is_active: bool | None = None
 
 
+class AllocationBulkCreate(BaseModel):
+    """Distribuir el aforo de un tipo entre varios promotores en una sola
+    operación (Ley de Tesler: la aritmética es del sistema, la decisión sigue
+    siendo del admin).
+
+    `total_capacity` se reparte en partes iguales; el resto de la división va a
+    los primeros de la lista, así que la suma siempre es exacta.
+    """
+    ticket_type_id: int
+    promoter_ids: list[int] = Field(min_length=1, max_length=200)
+    total_capacity: int = Field(ge=0)
+
+
 class DeleteOut(BaseModel):
     """Resultado de eliminar un tipo/cupo.
 
@@ -315,6 +342,13 @@ class AllocationOut(BaseModel):
     # Boletas activas (no anuladas ni reembolsadas) del cupo. Mismo criterio que
     # usa emit_ticket() para rechazar sobreventa, para que la UI nunca mienta.
     issued: int = 0
+
+
+class AllocationBulkOut(BaseModel):
+    """Resultado de la distribución: los cupos resultantes y cómo se repartió."""
+    allocations: list[AllocationOut]
+    per_promoter: int
+    remainder: int
 
 
 class TicketEmitRequest(BaseModel):

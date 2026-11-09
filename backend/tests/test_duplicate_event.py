@@ -172,3 +172,42 @@ def test_duplicate_missing_event_404(api, world):
         f"/venues/{world['venue_a']}/events/999999/duplicate", "admin"
     )
     assert res.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Ley de Tesler: el intervalo y el nombre se eligen, no se adivinan
+# ---------------------------------------------------------------------------
+
+
+def test_duplicate_accepts_custom_interval_and_name(api, world):
+    """`?days=` mueve la apertura al intervalo real de la venue y `?name=` da
+    el nombre nuevo: antes el duplicado SIEMPRE nacía a +7 días y "(copia)"."""
+    ev, _g, _c = _setup_full_event(api, world)
+    res = api.post(
+        api.event_url(world["venue_a"], ev["id"]) + "/duplicate",
+        "admin",
+        None,
+    )
+    assert res.status_code == 201, res.text
+
+    # Con query params: 14 días y nombre propio.
+    res = api.post(
+        api.event_url(world["venue_a"], ev["id"])
+        + "/duplicate?days=14&name=Viernes+Electronico+II",
+        "admin",
+        None,
+    )
+    assert res.status_code == 201, res.text
+    dup = res.json()
+    assert dup["name"] == "Viernes Electronico II"
+    orig = datetime.fromisoformat(ev["starts_at"])
+    nueva = datetime.fromisoformat(dup["starts_at"])
+    assert (nueva - orig).days == 14
+
+
+def test_duplicate_rejects_out_of_range_interval(api, world):
+    """Un intervalo absurdo (0 o >365) se rechaza con 422, no se cuela."""
+    ev, _g, _c = _setup_full_event(api, world)
+    base = api.event_url(world["venue_a"], ev["id"]) + "/duplicate"
+    assert api.post(base + "?days=0", "admin", None).status_code == 422
+    assert api.post(base + "?days=400", "admin", None).status_code == 422
