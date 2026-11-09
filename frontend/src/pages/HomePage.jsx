@@ -600,9 +600,9 @@ export default function HomePage({ explorar = false }) {
             <TransitionLink to="/explorar" aria-current={explorar ? "page" : undefined}>
               Explorar
             </TransitionLink>
-            <TransitionLink to="/boletas">Mis boletos</TransitionLink>
+            <TransitionLink to="/boletas">Mis boletas</TransitionLink>
             {/* El staff necesita una entrada visible al panel: en movil la da
-                la barra inferior (Perfil), en escritorio no hay barra. */}
+                la barra inferior (Acceso), en escritorio no hay barra. */}
             <TransitionLink to="/login">Acceso</TransitionLink>
           </nav>
         </div>

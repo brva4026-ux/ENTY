@@ -160,7 +160,7 @@ export default function MyTicketsPage() {
             <TransitionLink to="/inicio">Inicio</TransitionLink>
             <TransitionLink to="/explorar">Explorar</TransitionLink>
             <TransitionLink to="/boletas" aria-current="page">
-              Mis boletos
+              Mis boletas
             </TransitionLink>
             <TransitionLink to="/login">Acceso</TransitionLink>
           </nav>

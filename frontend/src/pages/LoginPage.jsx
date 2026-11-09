@@ -6,7 +6,9 @@ import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
 import { WelcomeOverlay } from "../components/WelcomeOverlay";
 import { Logo } from "../components/Brand";
+import TransitionLink from "../components/TransitionLink";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { forgotPassword } from "../lib/api";
 import { withViewTransition } from "../lib/viewTransition";
 import { prefersReducedMotion } from "../lib/motion";
 
@@ -46,7 +48,7 @@ function loginErrorMessage(err) {
 }
 
 export default function LoginPage() {
-  useDocumentTitle("Ingresar");
+  useDocumentTitle("Iniciar sesión");
   const { login } = useAuth();
   const nav = useNavigate();
   const location = useLocation();
@@ -83,6 +85,12 @@ export default function LoginPage() {
   const [errorTick, setErrorTick] = useState(0);
   const [entered, setEntered] = useState(null);
   const [capsLock, setCapsLock] = useState(false);
+  // Recuperación de acceso: se pide el enlace desde el propio login (antes el
+  // endpoint existía pero NINGUNA pantalla lo llamaba). `forgotSent` muestra
+  // la respuesta genérica del backend en el mismo lugar donde aparecería el
+  // error del formulario, para no inventar un segundo patrón de aviso.
+  const [forgotBusy, setForgotBusy] = useState(false);
+  const [forgotSent, setForgotSent] = useState("");
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
 
@@ -143,6 +151,36 @@ export default function LoginPage() {
       setEntered(null);
     }
   }, [entered, ok]);
+
+  // "¿Olvidaste tu contraseña?": usa el correo ya escrito en el campo de
+  // acceso (es el mismo dato). Sin correo, se pide enfocando el campo, no con
+  // un modal nuevo.
+  async function requestReset() {
+    const email = ident.trim();
+    if (!email.includes("@")) {
+      setError("Escribe tu correo arriba y vuelve a intentarlo.");
+      setErrorTick((n) => n + 1);
+      emailRef.current?.focus();
+      return;
+    }
+    setError("");
+    setForgotSent("");
+    setForgotBusy(true);
+    try {
+      const r = await forgotPassword(email);
+      setForgotSent(
+        r?.detail ||
+          "Si el correo está registrado, te enviamos un enlace para restablecer la contraseña.",
+      );
+    } catch (err) {
+      setError(
+        err?.message || "No pudimos enviar el enlace. Intenta de nuevo.",
+      );
+      setErrorTick((n) => n + 1);
+    } finally {
+      setForgotBusy(false);
+    }
+  }
 
   return (
     <AuthShell minimal tone="light">
@@ -285,6 +323,15 @@ export default function LoginPage() {
               </p>
             )}
 
+            {/* Respuesta al pedir el enlace de recuperación. Misma familia de
+                aviso que los errores, pero en verde de confirmación: el texto
+                genérico del backend no distingue si el correo existe. */}
+            {forgotSent && (
+              <p role="status" className="auth-hint auth-hint--ok">
+                {forgotSent}
+              </p>
+            )}
+
             <div className="auth-row">
               <input
                 type="checkbox"
@@ -307,6 +354,14 @@ export default function LoginPage() {
               <label htmlFor="remember-me" className="auth-row-label">
                 Recordarme
               </label>
+              <button
+                type="button"
+                onClick={requestReset}
+                disabled={forgotBusy}
+                className="auth-forgot"
+              >
+                {forgotBusy ? "Enviando…" : "¿Olvidaste tu contraseña?"}
+              </button>
             </div>
 
             <button type="submit" disabled={busy || ok} className="btn-primary btn-primary--lg">
@@ -349,6 +404,15 @@ export default function LoginPage() {
 
             <p className="auth-trust">
               Conexión segura. Nunca te pediremos tu contraseña por chat.
+            </p>
+
+            {/* Sin este enlace /register era una ruta inalcanzable: existía,
+                funcionaba y nadie podía llegar a ella desde la entrada. */}
+            <p className="auth-alt">
+              ¿Aún no tienes cuenta?{" "}
+              <TransitionLink to="/register" className="auth-alt-link">
+                Crear cuenta
+              </TransitionLink>
             </p>
           </div>
         </div>

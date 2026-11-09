@@ -250,12 +250,19 @@ export default function LandingPage() {
             </p>
 
             <div className="lp-cta">
-              <a href="#funciones" className="lp-btn lp-btn-primary">
-                Explorar ENTY
-              </a>
+              {/* La portada solo llevaba a /login: quien quería abrir su
+                  cuenta no tenía puerta de entrada al registro (existía, pero
+                  no se anunciaba). Ahora el registro es la acción principal y
+                  el ingreso la secundaria; "Explorar" baja a las funciones. */}
+              <TransitionLink to="/register" className="lp-btn lp-btn-primary">
+                Crear cuenta
+              </TransitionLink>
               <TransitionLink to="/login" className="lp-btn lp-btn-secondary">
                 Iniciar sesión
               </TransitionLink>
+              <a href="#funciones" className="lp-btn lp-btn-ghost">
+                Explorar ENTY
+              </a>
             </div>
           </section>
 
