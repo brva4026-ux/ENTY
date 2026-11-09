@@ -30,6 +30,28 @@ repo (`render.yaml`) pero **no es la activa**.
 |---|---|
 | `DATABASE_URL` | `postgresql://postgres.<ref>:<pass>@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require` |
 | `JWT_SECRET` | secreto de 64+ caracteres (ya generado) |
+| `SENTRY_DSN` | DSN de Sentry (opcional pero **recomendado**: sin ella los 500 no se reportan a nadie; el arranque avisa con un WARNING en producción) |
+| `ENVIRONMENT` | `production` (activa el aviso de observabilidad y el chequeo de JWT_SECRET) |
+
+## Guard de esquema (código y base en carriles distintos)
+
+El push a `master` despliega el código al instante (Vercel); las migraciones
+corren **aparte**, a mano, contra Supabase. Si el código llega primero, el
+objeto nuevo falta y las rutas que lo usan dan 500/503. Para que no sea
+invisible, la API verifica al arrancar (y en `/health`) que la base tenga todo
+lo que el código usa (`backend/app/core/schema_guard.py`).
+
+`GET /api/health` incluye:
+
+```jsonc
+{
+  "schema": "ok",          // "behind" = hay migraciones sin aplicar en prod
+  "error_tracking": true   // false = Sentry apagado (un 500 no avisa a nadie)
+}
+```
+
+Si ves `"schema": "behind"`, corré `scripts/deploy.sh` (o el SQL de las
+migraciones pendientes en el SQL Editor de Supabase).
 
 ---
 

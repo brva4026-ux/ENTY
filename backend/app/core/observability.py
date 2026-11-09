@@ -24,17 +24,33 @@ def _dsn() -> str | None:
     return dsn or None
 
 
+def sentry_active() -> bool:
+    """True si Sentry quedo inicializado en este proceso."""
+    return _DSN_CACHE is True
+
+
 def init_sentry() -> bool:
     """Inicializa Sentry si hay DSN. Devuelve True si quedó activo.
 
     Idempotente: llamarlo varias veces no rompe (sentry_sdk.init es seguro).
     Con traces_sample_rate=0 no envía trazas de performance: solo errores
     (el plan developer es de errores; las traces consumen cuota de más).
+
+    En produccion SIN `SENTRY_DSN`, avisa fuerte: el modo "no-op silencioso"
+    es comodo en local pero en produccion significa que un 500 no le llega a
+    nadie. El aviso es a proposito ruidoso (WARNING con el nombre de la var)
+    para que el deploy no quede sin observabilidad sin que se note.
     """
     global _DSN_CACHE
     dsn = _dsn()
     if not dsn:
         _DSN_CACHE = False
+        if os.environ.get("ENVIRONMENT", "").strip().lower() == "production":
+            logger.warning(
+                "SENTRY_DSN no configurada en produccion: los errores 500 NO se "
+                "reportan a ningun lado (error tracking desactivado). Define "
+                "SENTRY_DSN en las env vars del hosting."
+            )
         return False
     try:
         import sentry_sdk

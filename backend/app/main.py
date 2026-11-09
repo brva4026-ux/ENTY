@@ -1,5 +1,6 @@
 """TicketFlow API — FastAPI application factory."""
 import asyncio
+import logging
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -20,8 +21,14 @@ import psycopg
 
 from app.core.config import get_settings
 from app.core.db import _CONNECT_KWARGS, close_pool, init_pool
-from app.core.observability import capture_exception, init_sentry
+from app.core.observability import (
+    capture_exception,
+    capture_message,
+    init_sentry,
+    sentry_active,
+)
 from app.core.push_worker import push_outbox_worker
+from app.core.schema_guard import verify_schema_at_boot
 from app.core.limiter import limiter
 from app.routers import (
     analytics,
@@ -48,6 +55,9 @@ from app.routers import (
 )
 
 
+logger = logging.getLogger("ticketflow.main")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Sentry para el servidor directo (uvicorn local / cualquier host no
@@ -56,6 +66,11 @@ async def lifespan(app: FastAPI):
     init_sentry()
     settings = get_settings()
     await init_pool(settings.database_url)
+    # Guard de esquema (mig pendientes): si la base esta atras del codigo, el
+    # log y Sentry lo dicen con el nombre exacto. NO impide el arranque: una
+    # ruta rota es mejor que la API entera caida. En serverless no corre aqui
+    # (el lifespan no se dispara en cada invocacion); /health lo cubre on-demand.
+    app.state.schema_drift = verify_schema_at_boot(settings.database_url)
     # Worker del outbox de push (mig 014): las notificaciones in-app nacen en
     # triggers SQL; este loop envía el Web Push de cada una fuera de la
     # transacción de negocio. Solo corre con VAPID configurado; en serverless
@@ -82,6 +97,10 @@ def create_app() -> FastAPI:
     # Cache del latido de /health, por instancia de la app (creada en
     # create_app para que tests con apps separadas no compartan estado).
     _health: dict = {"at": 0.0, "ok": None, "latency_ms": None}
+    # Cache propia del chequeo de esquema: es mas caro (tres lecturas al
+    # catalogo en su conexion) y el drift cambia con una migracion, no cada
+    # 5 s. Una ventana mas larga evita abrir una conexion extra por probe.
+    _schema_cache: dict = {"at": 0.0, "state": None}
     app = FastAPI(
         title=settings.app_name,
         version="0.1.0",
@@ -163,6 +182,14 @@ def create_app() -> FastAPI:
             "app": settings.app_name,
             "push_enabled": push_enabled,
             "email_enabled": bool(settings.resend_api_key),
+            # error_tracking: si Sentry esta realmente activo. Su ausencia en
+            # produccion significa que un 500 no avisa a nadie; exponerlo aqui
+            # lo hace visible desde el primer probe.
+            "error_tracking": sentry_active(),
+            # schema: "ok" si la base tiene todo lo que el codigo usa;
+            # "behind" si falta algo (migracion sin aplicar); "unknown" si no
+            # se pudo verificar. Se chequea on-demand (serverless no dispara el
+            # lifespan), con cache propia mas larga que la del ping.
         }
 
         now = time.perf_counter()
@@ -191,8 +218,47 @@ def create_app() -> FastAPI:
             db_ms = round((time.perf_counter() - t0) * 1000)
             _health.update(at=now, ok=db_ok, latency_ms=db_ms)
 
+        # Chequeo de esquema (drift de produccion), cacheado aparte (60 s): es
+        # mas caro y el drift solo cambia con una migracion. Va en su PROPIO
+        # try: un fallo aqui (p.ej. no se pudo leer db/schema.sql en el bundle)
+        # NUNCA debe tumbar el probe de la DB — seria un 503 falso con la base
+        # sana. El resultado queda en /health como senal, no bloquea nada.
+        if db_ok and now - _schema_cache["at"] < 60.0 and _schema_cache["state"]:
+            schema_state = _schema_cache["state"]
+        elif not db_ok:
+            # Sin DB no se puede verificar el esquema; no se reporta "behind"
+            # (no es drift, es la base caida, que ya se dice con db=down).
+            schema_state = "unknown"
+        else:
+            schema_state = "unknown"
+            try:
+                from app.core.schema_guard import check_schema_async
+
+                conn = await psycopg.AsyncConnection.connect(
+                    settings.database_url,
+                    **{**_CONNECT_KWARGS, "connect_timeout": 3},
+                )
+                try:
+                    drift = await check_schema_async(conn)
+                finally:
+                    await conn.close()
+                schema_state = "ok" if drift.ok else "behind"
+                _schema_cache.update(at=now, state=schema_state)
+                if not drift.ok:
+                    # Solo se reporta cuando el drift es REAL (el mensaje se
+                    # deduplica en Sentry).
+                    capture_message(
+                        f"/health detecto esquema atrasado: {drift.summary()}",
+                        level="error",
+                    )
+            except Exception:
+                logger.warning(
+                    "No se pudo verificar el esquema en /health", exc_info=True
+                )
+
         body["db"] = "ok" if db_ok else "down"
         body["db_latency_ms"] = db_ms
+        body["schema"] = schema_state
         if not db_ok:
             body["status"] = "degraded"
             return JSONResponse(status_code=503, content=body)

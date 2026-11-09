@@ -37,6 +37,11 @@ def test_health_ok_with_db(health_client):
     assert d["db"] == "ok"
     assert isinstance(d["db_latency_ms"], int)
     assert "app" in d and "push_enabled" in d and "email_enabled" in d
+    # Telemetria nueva: si el esquema esta al dia y si el error tracking
+    # esta encendido. Con el lifespan disparado (esta fixture lo hace), el
+    # guard ya corrio contra la base de pruebas, que tiene el esquema completo.
+    assert d["schema"] == "ok"
+    assert d["error_tracking"] is False  # sin SENTRY_DSN en tests
 
 
 def test_health_db_cache_within_5s(health_client):

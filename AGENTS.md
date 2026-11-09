@@ -838,6 +838,38 @@ avisar.
   `prepare_threshold=None` (ver la trampa de psycopg más arriba).
 - Para consultar el estado de un deploy sin entrar al dashboard:
   `GET /repos/{owner}/{repo}/commits/{sha}/status` (campo `context == "Vercel"`).
+
+### Guard de esquema (evita el 500 silencioso por migración sin aplicar)
+
+El deploy va en **dos carriles**: el push a `master` despliega el código YA
+(Vercel auto-deploy) y las migraciones corren aparte, a mano, contra Supabase
+(`scripts/deploy.sh`). Nada los obliga a ir juntos. Cuando el código llega
+primero, el objeto nuevo falta en la base y las rutas que lo usan responden
+500/503 sin que nadie se entere (pasó con `users.active_venue_id`, mig 040:
+solo `PUT /auth/me/active-venue` fallaba).
+
+Para que eso deje de ser invisible:
+
+- `backend/app/core/schema_contract.py` parsea `db/schema.sql` y extrae las
+  tablas, columnas y funciones que el código espera (no es una lista a mano:
+  se desincronizaría, que es justo el fallo a evitar).
+- `backend/app/core/schema_guard.py` compara ese contrato contra la base viva.
+  Al arrancar (`lifespan`) deja un WARNING con el nombre exacto de lo que falta
+  y lo reporta a Sentry; **no** impide el arranque (una ruta rota es mejor que
+  toda la API caída). En serverless el `lifespan` no se dispara por invocación,
+  así que `/health` lo re-chequea on-demand.
+- `GET /health` ahora expone `schema` (`ok` | `behind` | `unknown`) y
+  `error_tracking` (si Sentry está realmente activo). Un `"schema": "behind"`
+  es la señal de "hay una migración sin aplicar en producción".
+
+`backend/tests/test_schema_guard.py` cubre el parser y el check (incluido el
+drift real dropeando una columna). `test_deploy_migrations.py` sigue cubriendo
+que `deploy.sh` liste todas las migraciones.
+
+**Observabilidad:** `init_sentry` avisa con un WARNING si `ENVIRONMENT=production`
+y no hay `SENTRY_DSN` (modo no-op silencioso = un 500 no le llega a nadie).
+Configurá `SENTRY_DSN` en las env vars de Vercel.
+
 ## Seguridad del origen y smoke SQL (Fase 0)
 
 - **CSP por hash, no `unsafe-inline`.** La cabecera `Content-Security-Policy`
