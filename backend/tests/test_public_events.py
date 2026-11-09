@@ -181,3 +181,54 @@ def test_public_events_reports_has_more(api, api_client):
     ).json()
     assert body["count"] == 3
     assert body["has_more"] is False
+
+
+# --- `payments_enabled`: el pago en linea esta configurado? --------------
+#
+# El fan decide con esto si ve "Comprar boleto" o el WhatsApp del organizador.
+# Sin el flag, la ficha ofrece comprar en un entorno que responde 503: el fan
+# llena el formulario para chocarse con un error. Es el mismo dato en el
+# listado y en el detalle.
+
+
+def _set_wompi(monkeypatch, on: bool):
+    """Prende/apaga Wompi sobre la instancia cacheada de settings (igual que
+    el fixture `wompi_on` de test_public_checkout.py)."""
+    import app.core.config as config_mod
+
+    settings = config_mod.get_settings()
+    if on:
+        monkeypatch.setattr(settings, "wompi_private_key", "prv_test_x", raising=False)
+        monkeypatch.setattr(
+            settings, "wompi_events_secret", "test_events_y", raising=False
+        )
+    else:
+        monkeypatch.setattr(settings, "wompi_private_key", "", raising=False)
+        monkeypatch.setattr(settings, "wompi_events_secret", "", raising=False)
+    return settings
+
+
+def test_payments_enabled_true_when_wompi_configured(api, api_client, monkeypatch):
+    _set_wompi(monkeypatch, True)
+    venue = api.world["venue_a"]
+    tag = _tag()
+    city = f"PagosOn{tag}"
+    event = _future_show(api, venue, f"Con pago {tag}", price_cents=18000000, location=city)
+
+    listed = api_client.get("/public/events", params={"city": city}).json()
+    assert listed["payments_enabled"] is True
+    detail = api_client.get(f"/public/events/{event['id']}").json()
+    assert detail["payments_enabled"] is True
+
+
+def test_payments_enabled_false_without_wompi(api, api_client, monkeypatch):
+    _set_wompi(monkeypatch, False)
+    venue = api.world["venue_a"]
+    tag = _tag()
+    city = f"PagosOff{tag}"
+    event = _future_show(api, venue, f"Sin pago {tag}", price_cents=18000000, location=city)
+
+    listed = api_client.get("/public/events", params={"city": city}).json()
+    assert listed["payments_enabled"] is False
+    detail = api_client.get(f"/public/events/{event['id']}").json()
+    assert detail["payments_enabled"] is False

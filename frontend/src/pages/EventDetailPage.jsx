@@ -10,6 +10,7 @@ import useDocumentTitle from "../lib/useDocumentTitle";
 import useBackOrFallback from "../lib/useBackOrFallback";
 import TransitionLink from "../components/TransitionLink";
 import { Skeleton } from "../components/Skeleton";
+import { waLink } from "../lib/whatsapp";
 
 /**
  * Detalle del evento — la pantalla de decision de compra (mockup "2").
@@ -298,6 +299,17 @@ export default function EventDetailPage() {
     }
   }
 
+  // Contacto del organizador para "encargar la boleta" cuando el pago en linea
+  // no esta configurado. null si no publico un telefono usable: sin el, el CTA
+  // no lleva a ningun chat seguro, asi que se dice la verdad en vez de mostrarlo.
+  const contactWa =
+    data && data.price_cents != null && !data.sold_out && !data.payments_enabled
+      ? waLink(
+          data.contact_phone,
+          `Hola, quiero comprar una boleta para ${data.name}.`,
+        )
+      : null;
+
   return (
     <div className="evd">
       {/* Hero a sangre: solo en móvil/tablet. En escritorio el cartel pasa a
@@ -437,7 +449,11 @@ export default function EventDetailPage() {
                   ? "Agotado. Entra a la lista de espera: si alguien devuelve su boleta, te avisamos."
                   : data.price_cents == null
                     ? "Cortesía: el acceso se valida con QR en la puerta."
-                    : "Compra en línea y recibe tu QR para la puerta."}
+                    : data.payments_enabled
+                      ? "Compra en línea y recibe tu QR para la puerta."
+                      : contactWa
+                        ? "Escríbele al organizador y te agenda la boleta."
+                        : "La compra en línea no está disponible para este evento."}
               </p>
               {data.sold_out ? (
                 <TransitionLink
@@ -456,7 +472,7 @@ export default function EventDetailPage() {
                     <path d="M5 12h13M13 6l6 6-6 6" />
                   </svg>
                 </TransitionLink>
-              ) : (
+              ) : data.payments_enabled ? (
                 <button
                   type="button"
                   className="evd-cta evd-cta--wide"
@@ -471,7 +487,29 @@ export default function EventDetailPage() {
                     <path d="M5 12h13M13 6l6 6-6 6" />
                   </svg>
                 </button>
-              )}
+              ) : contactWa ? (
+                // Pago en línea no configurado: en vez de un botón que lleva a
+                // un 503, se ofrece el WhatsApp del organizador (con el
+                // mensaje ya redactado). Sin contacto publicado, la nota de
+                // arriba ya explica el estado: no se inventa un CTA que no
+                // lleva a ninguna parte.
+                <a
+                  className="evd-cta evd-cta--wide"
+                  href={contactWa}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() =>
+                    track("checkout_contact_whatsapp", {
+                      eventId: Number(data.id),
+                    })
+                  }
+                >
+                  Encargar por WhatsApp
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h13M13 6l6 6-6 6" />
+                  </svg>
+                </a>
+              ) : null}
             </div>
 
             <div role="tablist" aria-label="Detalles" className="evd-tabs">

@@ -266,11 +266,17 @@ async def public_events(
     # eventos fuera de la página. La vitrina lo usa para avisar que su filtro
     # en cliente no ve todo el catálogo — un filtro que miente en silencio es
     # peor que uno que dice su límite (Ley de Tesler).
+    #
+    # `payments_enabled`: si el pago en línea (Wompi) está configurado. Sin
+    # esto, la ficha del evento ofrece "Comprar boleto" en un entorno que
+    # responde 503 al iniciar el cobro: el fan llena el formulario para
+    # chocarse con un error. La UI cae al WhatsApp del organizador en su lugar.
     return {
         "city": top_city,
         "count": len(events),
         "has_more": len(rows) >= fetch_limit,
         "categories": list(_CATEGORIES),
+        "payments_enabled": get_settings().wompi_enabled,
         "events": events,
     }
 
@@ -387,6 +393,10 @@ async def public_event_detail(
             for t in types
         ],
         "lineup": [],
+        # Si el pago en línea está configurado: sin esto la pantalla ofrece
+        # "Comprar boleto" y el POST devuelve 503. La UI muestra el contacto
+        # del organizador para encargar la boleta en su lugar.
+        "payments_enabled": get_settings().wompi_enabled,
     }
 
 

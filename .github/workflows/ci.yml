@@ -103,6 +103,12 @@ jobs:
       TEST_DATABASE_URL: postgresql://postgres:devpassword@127.0.0.1:5432/ticketflow
       JWT_SECRET: test-secret
       IS_DEMO: "true"
+      # Claves Wompi de mentira: con ellas `wompi_enabled` es true, asi el CTA
+      # "Comprar boleto" aparece (como en prod, donde Wompi SI esta configurado)
+      # y las specs de compra ejercitan el flujo real. El POST a Wompi se
+      # stubea en la spec: nunca sale a la red.
+      WOMPI_PRIVATE_KEY: prv_test_ci
+      WOMPI_EVENTS_SECRET: test_events_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

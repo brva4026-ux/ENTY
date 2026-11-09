@@ -99,3 +99,42 @@ test("el fan compra una boleta sin cuenta", async ({ page, request }) => {
 
   await page.waitForURL(/checkout\.wompi\.co/, { timeout: 10_000 });
 });
+
+test("sin pago en linea, el CTA es el WhatsApp del organizador", async ({
+  page,
+  request,
+}) => {
+  // El flag `payments_enabled` apagado (Wompi sin configurar) debe ocultar el
+  // boton de compra: un CTA que lleva a un 503 es peor que uno que no esta.
+  // En vez de eso se ofrece el contacto del organizador. Se stubea la respuesta
+  // del detalle (el backend real de CI si tiene Wompi) para fijar el estado.
+  const events = await (
+    await request.get(`${BASE}/api/public/events?limit=100`)
+  ).json();
+  const list = events.events || events;
+  const priced = list.filter((e) => (e.price_cents || 0) > 0);
+  const ev = priced.find((e) => e.name === "Noche Electrónica") || priced[0];
+  test.skip(!ev, "El seed demo no tiene eventos con localidad de pago");
+
+  await page.route("**/api/public/events/*", async (route) => {
+    const url = route.request().url();
+    // Solo el detalle (un id numerico al final); el listado no se toca.
+    if (!/\/events\/\d+(\?|$)/.test(url)) return route.continue();
+    const res = await route.fetch();
+    const body = await res.json();
+    body.payments_enabled = false;
+    body.contact_name = "Bar Demo";
+    body.contact_phone = "573001234567";
+    await route.fulfill({ response: res, json: body });
+  });
+
+  await page.goto(`/evento/${ev.id}`);
+
+  // No hay boton de compra; si el WhatsApp del organizador con el mensaje.
+  await expect(
+    page.getByRole("button", { name: /Comprar boleto/ }),
+  ).toHaveCount(0);
+  const wa = page.getByRole("link", { name: /Encargar por WhatsApp/ });
+  await expect(wa).toBeVisible();
+  await expect(wa).toHaveAttribute("href", /wa\.me\/573001234567/);
+});

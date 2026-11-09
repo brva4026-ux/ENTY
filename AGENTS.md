@@ -367,6 +367,14 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
 - `POST /public/my-tickets/{id}/token` — "magic link": comprueba que el
   contacto es dueño de la boleta y **rota** el token con `reissue_ticket`
   (auditado en `ticket_reissues`). Devuelve el `raw_token` una sola vez.
+- **Compra en línea (Wompi) y su bandera.** `/public/events` y el detalle
+  exponen `payments_enabled` (= `settings.wompi_enabled`). El detalle solo
+  muestra "Comprar boleto" cuando es `true`; si no, cae al WhatsApp del
+  organizador (`contact_phone`) y, si tampoco hay, dice que la compra no está
+  disponible. Antes el botón aparecía igual y el `POST /checkout` respondía
+  503: el fan llenaba el formulario para chocarse con un error. Los e2e corren
+  con `WOMPI_PRIVATE_KEY`/`WOMPI_EVENTS_SECRET` de mentira (CI) para ejercitar
+  el camino de compra; el POST a Wompi se stubea en la spec.
 - Normalización del contacto (`_contact_params` en `routers/public.py`): el
   correo solo se recorta y baja a minúsculas (sus puntos son significativos);
   el teléfono se reduce a dígitos (`+57 300 123 4567` == `573001234567`). La
