@@ -197,7 +197,9 @@
  *  4. BUSCADOR Y BANDA DE CATEGORÍAS · la tira de la boletería
  * ------------------------------------------------------------------------- */
 .home-search {
-  margin-top: 1rem;
+  /* La decisión (buscar) abre la región con la separación de sección: el
+     titular de arriba es otra cosa. */
+  margin-top: var(--e-gap-section);
 }
 @media (min-width: 768px) {
   .home-search {
@@ -209,8 +211,10 @@
    perforada con las secciones de la noche. */
 .home-cats {
   position: relative;
-  margin-top: 1rem;
-  padding-bottom: 0.35rem;
+  /* El buscador y las categorías son UN grupo ("decidir qué ver"): hueco
+     interno chico. Antes 1rem/1rem con un padding-bottom de 5.6px que no
+     separaba nada y dejaba la banda a medio agrupar. */
+  margin-top: var(--e-gap-group);
 }
 .home-cats button {
   border-radius: 999px;
@@ -231,7 +235,10 @@
  * ------------------------------------------------------------------------- */
 .home-ticker {
   position: relative;
-  margin-top: 1rem;
+  /* Cierra el grupo "decidir qué ver" (buscador + categorías + filtros) y
+     abre el resultado: la banda es la frontera entre los dos. Se separa con
+     el hueco de sección arriba y deja la rejilla pegada abajo. */
+  margin-top: var(--e-gap-section);
   overflow: hidden;
   border-top: 1px solid var(--enty-line-soft);
   border-bottom: 1px solid var(--enty-line-soft);
@@ -299,7 +306,10 @@
  * ------------------------------------------------------------------------- */
 .enty-perf {
   height: 1px;
-  margin: 1.5rem 0;
+  /* El troquel que separa el destacado de la lista: mismo hueco de grupo a
+     cada lado. Antes 24px+24px empujaban la lista lejos del destacado y el
+     encabezado "Próximos" quedaba flotando en medio. */
+  margin: var(--e-gap-group) 0;
   background-image: repeating-linear-gradient(
     90deg,
     var(--enty-line) 0 7px,
@@ -308,7 +318,7 @@
 }
 @media (min-width: 768px) {
   .enty-perf {
-    margin: 2rem 0;
+    margin: var(--e-gap-card) 0;
   }
 }
 
@@ -337,14 +347,17 @@
  *  7. REJILLA EDITORIAL · el destacado manda, el resto fluye en columnas
  * ------------------------------------------------------------------------- */
 .home-grid {
-  margin-top: 1.5rem;
+  /* La rejilla llega justo después de la banda cinética, que ya abre la
+     región: un hueco de grupo basta para que el canto perforado no se pegue
+     al primer evento. */
+  margin-top: var(--e-gap-group);
 }
 .home-subhead {
   margin-top: 0;
 }
 @media (min-width: 768px) {
   .home-subhead {
-    margin-top: 0.5rem;
+    margin-top: var(--e-gap-tight);
   }
 }
 
@@ -376,14 +389,17 @@
 
 /* La lista: una columna en móvil, rejilla de tarjetas en escritorio. */
 .home-list {
+  /* La lista es el cuerpo de su encabezado "Próximos": hueco chico para que
+     el rótulo y las tarjetas se lean como un solo bloque. */
+  margin-top: var(--e-gap-tight);
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.75rem;
+  gap: var(--e-gap-field);
 }
 @media (min-width: 640px) {
   .home-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.9rem;
+    gap: var(--e-gap-field);
   }
 }
 @media (min-width: 1024px) {
@@ -582,13 +598,13 @@
   border-radius: var(--enty-radius);
   border: 1px solid var(--enty-glass-line);
   background: var(--enty-glass);
-  padding: 1.15rem 1.25rem;
+  padding: var(--e-gap-card);
 }
 .evd-buy-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--e-gap-group);
 }
 .evd-buy-label {
   font-size: var(--e-text-2xs);
@@ -604,7 +620,7 @@
   letter-spacing: -0.03em;
 }
 .evd-buy-note {
-  margin-top: 0.35rem;
+  margin-top: var(--e-gap-inline);
   font-size: var(--e-text-xs);
   color: var(--enty-dim);
 }
@@ -628,7 +644,7 @@
   .fan-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    gap: var(--e-gap-group);
     align-items: start;
   }
   .fan-lookup {
@@ -656,14 +672,14 @@
    Discreto — el producto es la fiesta, no el documento — pero siempre a mano.
    Filete superior tenue y el rótulo en miniatura para no competir con el hero. */
 .home-foot {
-  margin-top: var(--e-space-16);
-  padding: var(--e-space-6) 0 var(--e-space-4);
+  margin-top: var(--e-gap-region);
+  padding: var(--e-gap-card) 0 var(--e-gap-group);
   border-top: 1px solid var(--e-border-hairline);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--e-space-3) var(--e-space-6);
+  gap: var(--e-gap-field) var(--e-gap-card);
 }
 .home-foot-brand {
   margin: 0;
@@ -757,7 +773,7 @@
 /* Titular visible: antes era un h1 oculto. Toma el hueco que dejaba la banda
    y el anillo apagado. */
 .home-hero {
-  margin-top: 1.1rem;
+  margin-top: var(--e-gap-group);
 }
 .home-hero h1 {
   margin: 0;
@@ -773,7 +789,7 @@
   }
 }
 .home-hero-count {
-  margin: 0.35rem 0 0;
+  margin: var(--e-gap-inline) 0 0;
   font-size: var(--e-text-sm);
   /* 550 daba 4.29:1 sobre el lienzo claro (--e-neutral-150): por debajo de AA
      en 16px. El 600 baja a 6.8:1 sin perder el aire de dato secundario. */
@@ -783,10 +799,10 @@
 /* Fecha del destacado en su propia línea: es el dato que más decide la compra
    y antes iba en 12px junto a la dirección. */
 .home-feature-when {
-  margin: 0.35rem 0 0;
+  margin: var(--e-gap-inline) 0 0;
   display: flex;
   align-items: baseline;
-  gap: 0.6rem;
+  gap: var(--e-gap-tight);
   flex-wrap: wrap;
 }
 .home-feature-when b {
@@ -876,13 +892,11 @@
   }
 }
 
-/* El andamiaje de filtros venía con márgenes generosos (1.35rem cada uno) que
-   sumaban ~100px de aire antes del primer evento. Se comprimen: siguen
-   separando sin empujar el contenido fuera de la pantalla. Los márgenes de
-   .home-search / .home-cats / .home-ticker viven en su bloque de origen
-   (sección 4 y 5), ya con el valor comprimido. */
+/* Los filtros avanzados son parte del grupo "decidir qué ver": hueco chico
+   respecto a las categorías que los abren. Los márgenes de .home-search y
+   .home-cats viven en su bloque de origen (sección 4), ya con el valor de rol. */
 .home-filters {
-  margin-top: 0.75rem;
+  margin-top: var(--e-gap-tight);
 }
 
 /* ==========================================================================
@@ -1006,13 +1020,21 @@
 }
 
 /* La tarjeta destacada se tiñe con el flyer: el velo oscuro se mantiene solo
-   cuando hay imagen, para que el titular siga legible encima. */
+   cuando hay imagen, para que el titular siga legible encima.
+
+   El arranque del velo no es decorativo: el eyebrow vive en el tercio superior
+   y sube o baja según cuánto ocupe el título (un nombre largo lo empuja hasta
+   el ~20% de la altura). Con el degradado viejo (transparente hasta el 55%) esa
+   banda quedaba sobre el flyer crudo: medido con un flyer claro daba 4.47:1,
+   justo por debajo de AA. La subida ahora empieza en el 18% para que el rótulo
+   tenga fondo propio sin borrar la foto de arriba (0-18% sigue transparente). */
 .home-feature::after {
   background: linear-gradient(
     to bottom,
     rgba(11, 11, 15, 0) 0%,
-    rgba(11, 11, 15, 0.35) 55%,
-    rgba(11, 11, 15, 0.78) 100%
+    rgba(11, 11, 15, 0.34) 18%,
+    rgba(11, 11, 15, 0.6) 45%,
+    rgba(11, 11, 15, 0.8) 100%
   );
 }
 .home-feature-top h1,
@@ -1278,8 +1300,8 @@
 @media (min-width: 768px) {
   .fan-entry {
     max-width: 38rem;
-    margin-top: 1.5rem;
-    padding: 2rem 2.25rem;
+    margin-top: var(--e-gap-card);
+    padding: var(--e-gap-section) var(--e-gap-card);
     border: 1px solid var(--e-neutral-300);
     border-radius: 1.25rem;
     background: var(--e-white);
@@ -1298,6 +1320,6 @@
   }
   .fan-entry .fan-lookup {
     max-width: none;
-    margin-top: 1.35rem;
+    margin-top: var(--e-gap-card);
   }
 }

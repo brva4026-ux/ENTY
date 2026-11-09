@@ -1715,7 +1715,7 @@ html[data-theme="light"] .bizdock-desc {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: var(--e-gap-card);
   /* Nombre largo ("La Esquina del Bar Pueblo Nuevo"): sin wrap, la identidad
      aplasta al KPI o la fila crece en altura y la toolbar embebida queda
      apretada junto al KPI (captura del usuario: eyebrow en 4 lineas). Con
@@ -1728,7 +1728,7 @@ html[data-theme="light"] .bizdock-desc {
 .vh-identidad {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: var(--e-gap-field);
   min-width: 0;
   border-radius: 0.75rem;
   transition: opacity var(--e-dur-base) var(--e-ease-expo);
@@ -1748,8 +1748,8 @@ html[data-theme="light"] .bizdock-desc {
 .vh-live {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.15rem;
+  gap: var(--e-gap-inline);
+  margin-top: var(--e-gap-inline);
   font-size: var(--e-text-2xs);
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1775,7 +1775,7 @@ html[data-theme="light"] .bizdock-desc {
    pegado) y el ritmo no depende del leading del titular. */
 .vh-nombre {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--e-gap-inline);
   min-width: 0;
 }
 /* El nombre de la venue es una portada: escala escalonada (no fluida) y un
@@ -1900,10 +1900,10 @@ html[data-theme="light"] .bizdock-desc {
   display: flex;
   align-items: baseline;
   justify-content: flex-end;
-  gap: 0.6rem;
+  gap: var(--e-gap-tight);
   font-size: var(--e-text-xs);
   color: var(--color-zinc-500);
-  margin-top: 0.3rem;
+  margin-top: var(--e-gap-tight);
 }
 .vh-delta {
   display: inline-flex;
@@ -2001,7 +2001,7 @@ html[data-theme="light"] .vh-delta.is-down {
   .vh-top {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.9rem;
+    gap: var(--e-gap-group);
   }
   /* En columna el banner se acorta: el contenido crece hacia abajo y una
      franja alta competiría con el KPI en vez de enmarcarlo. */
@@ -2271,8 +2271,9 @@ html[data-theme="light"] .ec-when-soon {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.55rem;
+  gap: var(--e-gap-group);
+  /* El encabezado pertenece a la rejilla que titula: hueco de campo. */
+  margin-bottom: var(--e-gap-field);
 }
 /* .evx-toolbar (dos filas en móvil, una desde 640px) está definido más abajo,
    junto al bloque que explica por qué. */
@@ -2409,7 +2410,7 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 .evx-filters-row {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--e-gap-inline);
   overflow-x: auto;
   /* snap: cada estado para de a uno en el borde, sin inercia larga. */
   scroll-snap-type: x proximity;
@@ -2506,8 +2507,10 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 .evx-grid {
   display: grid;
-  gap: 0.85rem;
-  margin-top: 1rem;
+  /* Tarjeta<->tarjeta: hueco de campo (más chico que el del encabezado, para
+     que el rótulo se lea como dueño de la rejilla). */
+  gap: var(--e-gap-field);
+  margin-top: var(--e-gap-group);
 }
 @media (min-width: 640px) {
   .evx-grid {
@@ -2627,7 +2630,7 @@ html[data-theme="light"] .evx-livepill {
 .evx-state {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--e-gap-inline);
   font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--color-zinc-400);
@@ -2678,7 +2681,7 @@ html[data-theme="light"] .evx-livepill {
 .evx-idrow {
   display: flex;
   align-items: flex-start;
-  gap: 0.7rem;
+  gap: var(--e-gap-field);
 }
 .evx-thumb {
   width: 3.5rem;
@@ -2757,13 +2760,13 @@ html[data-theme="light"] .evx-livepill {
 .evx-stats {
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 0.5rem;
-  margin-top: 0.95rem;
+  gap: var(--e-gap-field);
+  margin-top: var(--e-gap-group);
 }
 .evx-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: var(--e-gap-inline);
   border-left: 2px solid rgba(255, 255, 255, 0.07);
   padding-left: 0.55rem;
   min-width: 0;
@@ -2842,8 +2845,8 @@ html[data-theme="light"] .evx-livepill {
 .evx-meterrow {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  margin-top: 0.85rem;
+  gap: var(--e-gap-field);
+  margin-top: var(--e-gap-group);
 }
 .evx-pct {
   font-size: var(--e-text-2xs);
@@ -2944,8 +2947,8 @@ html[data-theme="light"] .evx-pct {
   flex-wrap: wrap;
   /* Separacion real entre vecinos: con areas tactiles de 40px, 0.15rem
      dejaba los dedos peleando entre "duplicar" y "eliminar". */
-  gap: 0.4rem;
-  padding: 0 0.75rem 0.75rem;
+  gap: var(--e-gap-tight);
+  padding: 0 var(--e-gap-field) var(--e-gap-field);
 }
 /* Publicar/Abrir puertas/Duplicar/Eliminar son control de DEDO (el admin
    opera la noche desde el celular). .btn-mini mide ~26px de alto: por debajo
@@ -2966,14 +2969,14 @@ html[data-theme="light"] .evx-pct {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.4rem 0.5rem;
-  margin-top: 0.5rem;
+  gap: var(--e-gap-tight) var(--e-gap-field);
+  margin-top: var(--e-gap-tight);
 }
 .evx-open-label {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: var(--e-gap-inline);
   font-size: var(--e-text-2xs);
   font-weight: 600;
   color: var(--e-violet-300);

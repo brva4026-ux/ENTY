@@ -21,11 +21,13 @@
 .pc-sec {
   display: flex;
   align-items: baseline;
-  gap: 0.625rem;
+  gap: var(--e-gap-field);
   flex-wrap: wrap;
-  padding-bottom: 0.5rem;
+  padding-bottom: var(--e-gap-tight);
   border-bottom: 1px solid var(--e-border-hairline);
-  margin-bottom: 0.875rem;
+  /* El encabezado de sección pertenece a su bloque: el hueco hacia abajo es
+     de grupo, no de sección (el ritmo lo marca el bloque, no el rótulo). */
+  margin-bottom: var(--e-gap-group);
 }
 
 .pc-sec h2 {
@@ -78,7 +80,7 @@
   border-top: 1px solid var(--e-border-hairline);
   border-radius: 0;
   background: transparent;
-  margin-top: 0.25rem;
+  margin-top: var(--e-gap-inline);
 }
 
 .vh-tally > div:first-child {
@@ -114,7 +116,7 @@
   line-height: 1.15;
   color: var(--e-text-primary);
   display: block;
-  margin: 0.3125rem 0 0;
+  margin: var(--e-gap-inline) 0 0;
 }
 
 .pc-tally .pc-t-note {
@@ -122,7 +124,7 @@
   font-weight: 600;
   color: var(--e-text-muted);
   display: block;
-  margin-top: 0.125rem;
+  margin-top: var(--e-gap-inline);
 }
 
 /* La coletilla de una cifra ("/ 10" del cupo) no puede heredar el cuerpo de
@@ -142,7 +144,9 @@
 .pc-instruments {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 0.625rem;
+  /* Tarjeta<->tarjeta: hueco de grupo, no de campo (los instrumentos son
+     vecinos independientes, no campos de un mismo formulario). */
+  gap: var(--e-gap-group);
 }
 
 .pc-dcard {
@@ -150,7 +154,7 @@
   border: 1px solid var(--e-border-hairline);
   border-radius: var(--e-radius-lg);
   background: var(--e-surface);
-  padding: 0.8125rem 0.875rem 0;
+  padding: var(--e-gap-field) var(--e-gap-field) 0;
   overflow: hidden;
   min-width: 0;
 }
@@ -186,10 +190,10 @@
   letter-spacing: -0.03em;
   line-height: 1.05;
   color: var(--e-text-primary);
-  margin: 0.375rem 0 0;
+  margin: var(--e-gap-tight) 0 0;
   display: flex;
   align-items: baseline;
-  gap: 0.25rem;
+  gap: var(--e-gap-inline);
 }
 
 .pc-dcard.is-in .pc-big { color: var(--e-green-500); }
@@ -206,18 +210,20 @@
 .pc-dcard .pc-sub {
   font-size: var(--e-text-2xs);
   color: var(--e-text-muted);
-  margin: 0.1875rem 0 0;
+  margin: var(--e-gap-inline) 0 0;
   min-height: 2.1em;
 }
 
-/* El pulso: barras de la serie real. La última es "ahora". */
+/* El pulso: barras de la serie real. La última es "ahora". El sangrado a los
+   cantos de la tarjeta usa el mismo token que su padding horizontal, para que
+   no se desalineen si el rol cambia. */
 .pc-spark {
   display: flex;
   align-items: flex-end;
   gap: 2px;
   height: 2.25rem;
-  margin: 0.375rem -0.875rem 0;
-  padding: 0 0.875rem 0.5rem;
+  margin: var(--e-gap-tight) calc(-1 * var(--e-gap-field)) 0;
+  padding: 0 var(--e-gap-field) var(--e-gap-tight);
 }
 
 .pc-spark i {
@@ -242,7 +248,7 @@
 /* ---------------------------------------------------------------- 4 · MEDIDOR CON MARCAS (aforo) */
 .pc-gauge {
   display: grid;
-  gap: 0.3125rem;
+  gap: var(--e-gap-tight);
 }
 
 .pc-gauge-track {
@@ -283,7 +289,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--e-gap-field);
 }
 
 .pc-gauge-num b {
@@ -319,8 +325,8 @@
      caía a una segunda línea y cada fila medía el doble. */
   grid-template-columns: 1.5rem 1fr auto auto auto;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.5rem 0.75rem;
+  gap: var(--e-gap-field);
+  padding: var(--e-gap-tight) var(--e-gap-field);
   border-bottom: 1px solid var(--e-border-hairline);
   font-size: var(--e-text-sm);
 }
@@ -392,8 +398,8 @@
   display: grid;
   grid-template-columns: minmax(10rem, 1.6fr) repeat(4, minmax(4.5rem, 0.8fr)) minmax(7rem, 1.1fr);
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5625rem 0.875rem;
+  gap: var(--e-gap-field);
+  padding: var(--e-gap-field) var(--e-gap-field);
   border-bottom: 1px solid var(--e-border-hairline);
   font-size: var(--e-text-sm);
 }
@@ -414,7 +420,7 @@
 .pc-prow .pc-pname {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--e-gap-field);
   min-width: 0;
 }
 
@@ -451,7 +457,7 @@
 .pc-prow .pc-pav-block {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--e-gap-field);
   justify-content: flex-end;
 }
 
@@ -490,7 +496,7 @@
 @media (max-width: 760px) {
   .pc-prow {
     grid-template-columns: 1fr 1fr;
-    gap: 0.375rem 0.75rem;
+    gap: var(--e-gap-tight) var(--e-gap-field);
   }
 
   .pc-prow.is-head { display: none; }

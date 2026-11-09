@@ -242,6 +242,27 @@
   --e-space-20: 5rem;
   --e-space-24: 6rem;
 
+  /* ROLES de espacio (Ley de Proximidad). La escala cruda dice CUANTO; estos
+     roles dicen QUE RELACION. La distancia es la que comunica la pertenencia:
+     dentro de un grupo el hueco es chico (inline/tight), entre grupos es 3-4
+     veces mayor (group/section). Sin esta capa, cada hoja elegia "1rem u
+     0.85rem" a ojo y el mismo par de elementos quedaba a distinta distancia
+     en cada pantalla.
+       inline  icono<->texto, etiqueta<->campo
+       tight   items de una misma tarjeta
+       field   entre campos de un formulario
+       group   entre grupos (label+campo) / tarjeta<->tarjeta
+       card    padding interno de tarjeta
+       section entre secciones de una pantalla
+       region  entre regiones mayores (contenido<->pie) */
+  --e-gap-inline: var(--e-space-1);
+  --e-gap-tight: var(--e-space-2);
+  --e-gap-field: var(--e-space-3);
+  --e-gap-group: var(--e-space-4);
+  --e-gap-card: var(--e-space-6);
+  --e-gap-section: var(--e-space-8);
+  --e-gap-region: var(--e-space-16);
+
   /* Radio. */
   --e-radius-sm: 0.5rem;
   --e-radius-md: 0.75rem;

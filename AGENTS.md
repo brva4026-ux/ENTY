@@ -1202,6 +1202,19 @@ avisar.
   el pliegue en móvil; fijarlo al fondo chocaría con la barra de pestañas fija
   (dos barras fijas compiten por el pulgar), así que exige un rediseño del
   layout móvil, no un parche.
+- **La distancia comunica la pertenencia (Ley de Proximidad).** La auditoría
+  completa (método, hallazgos y lo que se dejó a propósito) vive en
+  `docs/ley-de-proximidad.md`. Regla de casa: espaciar entre elementos
+  relacionados se hace con un **rol**, no con un valor crudo
+  (`--e-gap-inline|tight|field|group|card|section|region`, definidos en
+  `tokens.css`); la escala cruda (`--e-space-*`) queda para altos, radios y
+  paddings puntuales. El hueco **entre** grupos debe ser 2-4× el hueco **dentro**
+  del grupo; un encabezado pertenece a su bloque (`--e-gap-group`), no a la
+  pantalla (`--e-gap-section`); y el `gap` de una rejilla nunca puede ser menor
+  que el `padding` de sus tarjetas, o se leen como una sola pieza. Un valor de
+  espaciado fuera de la escala (0.875rem, 0.625rem…) es señal de alarma.
+  Verificado por `e2e/proximidad.spec.js`, que mide la relación de huecos sobre
+  la geometría renderizada.
 - **Los E2E corren contra el dev server de Vite, no el backend.** Playwright
   apunta a `E2E_BASE_URL` (default `127.0.0.1:8001`, pero en este entorno el
   SPA lo sirve Vite en el puerto 12000): `E2E_BASE_URL=http://127.0.0.1:12000
