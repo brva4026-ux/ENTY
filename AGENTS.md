@@ -92,6 +92,21 @@ agregá los comentarios de la migración FUERA del `$$ ... $$`. Los
 `CREATE FUNCTION` de una migración van con `CREATE OR REPLACE`, y una tabla
 nueva con `CREATE TABLE IF NOT EXISTS` (para que un re-run no rompa).
 
+### Dependencias y JWT: PyJWT, y auditoría de CVEs en CI
+
+El JWT se firma y verifica con **PyJWT** (`import jwt`), no con `python-jose`.
+Se migró porque `python-jose` arrastraba CVEs sin fix publicado (PYSEC-2026-4298)
+y una dependencia transitiva `ecdsa` con otra CVE (Minerva). El uso aquí es
+HS256 puro (`encode`/`decode` con `algorithms=["HS256"]`), así que el cambio es
+1:1; `PyJWTError` reemplaza a `JWTError`. Si tocás `security.py`, `deps.py` o
+`fan_access.py`, mantené ese import.
+
+CI audita las dependencias en cada push: `npm audit --omit=dev --audit-level=high`
+en el job `frontend` y `pip-audit -r api/requirements.txt` en el job `backend`
+(este último es el que importa en prod: Vercel instala SOLO `api/requirements.txt`).
+Si un aviso es un falso positivo consciente, se silencia puntual con
+`--ignore-vuln <ID>`; no se baja el gate.
+
 ### Rate limiting: nunca en memoria (serverless)
 
 Los límites **no pueden vivir en un dict del proceso**. En Vercel cada

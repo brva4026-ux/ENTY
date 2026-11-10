@@ -23,7 +23,7 @@ REQUIREMENTS = ROOT / "api" / "requirements.txt"
 # nombre de import -> nombre del paquete en requirements (cuando difieren)
 IMPORT_TO_PACKAGE = {
     "PIL": "Pillow",
-    "jose": "python-jose",
+    "jwt": "PyJWT",
     "psycopg_pool": "psycopg-pool",
     "pydantic_settings": "pydantic-settings",
     "sentry_sdk": "sentry-sdk",

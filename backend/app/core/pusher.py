@@ -6,8 +6,8 @@ Casos de uso en Enty:
 - Cuando el admin abre puertas (published -> live) se notifica a todos los
   dispositivos de la venue (routers/lifecycle.py -> notify_venue).
 
-Implementación autónoma sobre `cryptography` (ya es dependencia vía
-python-jose): JWT VAPID ES256 y cifrado del payload con aes128gcm. Se evita
+Implementación autónoma sobre `cryptography`: JWT VAPID ES256 y cifrado del
+payload con aes128gcm. Se evita
 pywebpush para no sumar dependencias de runtime; el protocolo es pequeño,
 estable y quedó verificado contra Chrome/Firefox/Safari vía los vectores del
 RFC. Las claves VAPID viven en variables de entorno (config.py), NUNCA en

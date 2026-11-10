@@ -16,7 +16,7 @@ import hashlib
 import hmac
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
+from jwt import PyJWTError, decode, encode
 
 from app.core.config import get_settings
 
@@ -43,7 +43,7 @@ def create_fan_access_token(contact: str) -> str:
         "iat": now,
         "exp": now + timedelta(minutes=_ACCESS_TTL_MINUTES),
     }
-    return jwt.encode(payload, _signing_key(), algorithm="HS256")
+    return encode(payload, _signing_key(), algorithm="HS256")
 
 
 def verify_fan_access_token(raw: str) -> str | None:
@@ -54,8 +54,8 @@ def verify_fan_access_token(raw: str) -> str | None:
     para no revelar cual de las dos cosas fallo.
     """
     try:
-        payload = jwt.decode(raw, _signing_key(), algorithms=["HS256"])
-    except JWTError:
+        payload = decode(raw, _signing_key(), algorithms=["HS256"])
+    except PyJWTError:
         return None
     if payload.get("typ") != _TYP:
         return None

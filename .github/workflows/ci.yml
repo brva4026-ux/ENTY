@@ -44,6 +44,14 @@ jobs:
           npm run lint:design
       - name: Check dist output
         run: test -f frontend/dist/index.html
+      - name: npm audit (dependencias de runtime)
+        # Gate de seguridad: una dependencia de runtime con CVE conocida
+        # rompe el build. `--omit=dev` mira solo lo que llega al navegador;
+        # `--audit-level=high` deja pasar avisos informativos (bajo/moderado)
+        # para no bloquear por ruido de subdependencias de herramientas.
+        run: |
+          cd frontend
+          npm audit --omit=dev --audit-level=high
 
   backend:
     runs-on: ubuntu-latest
@@ -78,6 +86,14 @@ jobs:
         run: |
           cd backend
           python -m pytest tests/ -v
+      - name: pip-audit (dependencias de runtime serverless)
+        # Gate de seguridad: el runtime de Vercel instala SOLO
+        # api/requirements.txt. pip-audit falla (exit 1) si alguno de esos
+        # paquetes tiene una CVE conocida. Para una excepcion puntual y
+        # consciente se usa --ignore-vuln <ID>; nunca se baja el gate entero.
+        run: |
+          pip install --no-cache-dir pip-audit
+          python -m pip_audit -r api/requirements.txt
 
   e2e:
     # El flujo que da el dinero, en un navegador de verdad: login del staff,

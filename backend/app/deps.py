@@ -8,7 +8,7 @@ from typing import Annotated
 
 import psycopg
 from fastapi import Depends, Header, HTTPException, status
-from jose import JWTError, jwt
+from jwt import PyJWTError, decode
 
 from app.core.config import get_settings
 from app.core.db import get_db
@@ -24,8 +24,8 @@ async def get_current_user(
     token = authorization.split(" ", 1)[1].strip()
     settings = get_settings()
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-    except JWTError:
+        payload = decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    except PyJWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token invalido")
 
     user_id = int(payload["sub"])
