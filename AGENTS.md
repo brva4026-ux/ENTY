@@ -92,6 +92,20 @@ agregá los comentarios de la migración FUERA del `$$ ... $$`. Los
 `CREATE FUNCTION` de una migración van con `CREATE OR REPLACE`, y una tabla
 nueva con `CREATE TABLE IF NOT EXISTS` (para que un re-run no rompa).
 
+### Rate limiting: nunca en memoria (serverless)
+
+Los límites **no pueden vivir en un dict del proceso**. En Vercel cada
+invocación puede caer en otra instancia y el dict muere en cada cold start: el
+límite existe en el código pero en producción no frena nada. Usá el limiter en
+DB: `app.core.rate_limit.enforce_rate_limit(request, db, scope=..., max_hits=...,
+window_seconds=...)` (mig 041, tabla `rate_limit_hits` + `rate_limit_hit()`).
+La clave es `scope:ip` y cada endpoint lleva su propio `scope` (agotar el del
+catálogo no consume el del checkout). `slowapi` se retiró por el mismo motivo.
+Es **fail-open**: si la DB no responde, la petición pasa (defensa en
+profundidad, no una llave que deje fuera a usuarios por un incidente). En tests,
+`conftest` limpia `rate_limit_hits` por test (el TestClient siempre sale de la
+misma IP y una ráfaga envenenaría el cubo).
+
 
 ### Correr la suite E2E dos veces seguidas (importante)
 
@@ -908,6 +922,14 @@ Configurá `SENTRY_DSN` en las env vars de Vercel.
   bloqueaba el script entero (se perdía el anti-flash **y** el pre-paint de
   movimiento reducido, que es accesibilidad). El `<script type="application/
   ld+json">` es un data block y `script-src` no lo gobierna: el test lo excluye.
+- **El dominio público vive en UNA variable (`VITE_SITE_URL`).** `index.html`
+  lleva el marcador `%SITE_URL%` en canonical, `og:*`, `twitter:*` y JSON-LD; un
+  plugin de `frontend/vite.config.js` lo sustituye en el build por
+  `VITE_SITE_URL` (default: el dominio de producción). Antes las URLs estaban
+  escritas a mano y apuntaban a la rama de preview, así que compartir un link
+  por WhatsApp mostraba esa URL. Cambiar de dominio = cambiar la variable, no
+  cazar strings por el HTML. Verificalo con `grep '%SITE_URL%' frontend/dist/
+  index.html` tras `npm run build` (debe salir 0).
 - **Probar la CSP en navegador real, no solo `curl`**: un test Playwright
   escuchando `console` por "Content Security Policy"/"Refused to", con login +
   visita pública, debe dar 0 violaciones. Repetir ese patrón al tocar cabeceras.
