@@ -13,25 +13,6 @@ import psycopg
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def _limiter_limpio():
-    """Aislamiento del rate limit (slowapi guarda los cubos en memoria).
-
-    `POST /auth/register` tiene `3/hour` y el TestClient siempre sale de la
-    MISMA IP, asi que el cubo se agota entre archivos y estos tests empezarian
-    a ver 429 segun el orden de corrida. Es un artefacto de correr la suite en
-    un solo proceso, no un comportamiento del producto: se limpia antes de cada
-    test para que este archivo no dependa de lo que corrio antes.
-
-    (El resto de la suite tiene el mismo problema, preexistente: por eso hay
-    que mirar el resultado por archivo y no el total.)
-    """
-    from app.core.limiter import limiter
-
-    limiter.reset()
-    yield
-
-
 def _required(db) -> dict[str, str]:
     """Documentos que exigen aceptación y su versión vigente.
 

@@ -27,8 +27,11 @@ from typing import Annotated
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from starlette.concurrency import run_in_threadpool
 
+from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.mailer import Mailer
 from app.core.security import create_access_token, hash_password
 from app.deps import ensure_roles, get_current_user
 from app.routers.auth import _client_ip, _login_locked, _register_failure
@@ -106,7 +109,29 @@ async def create_invitation(
              _hash_token(raw_token), expires, user["id"]),
         )
         row = await cur.fetchone()
+        await cur.execute("SELECT name FROM venues WHERE id = %s", (venue_id,))
+        venue_name = (await cur.fetchone())["name"]
         await db.commit()
+
+    settings = get_settings()
+    mailer = Mailer(
+        api_key=settings.resend_api_key,
+        from_email=settings.email_from_address,
+        from_name="Enty",
+        app_url=settings.app_public_url,
+    )
+    # El enlace con el token crudo se muestra igual en la respuesta (el admin
+    # lo puede copiar si el correo no sale o la persona no lo recibe). El
+    # envío es best-effort: sin proveedor es no-op y un fallo no rompe la
+    # invitación, que ya quedó creada.
+    if mailer.enabled:
+        await run_in_threadpool(
+            mailer.send_invitation,
+            to=email,
+            full_name=body.full_name.strip(),
+            venue_name=venue_name,
+            link=f"{settings.app_public_url}/invitacion?token={raw_token}",
+        )
 
     return StaffInvitationCreated(
         invite_url=f"/invitacion?token={raw_token}",

@@ -169,6 +169,7 @@ def test_schema_has_all_live_tables(scratch_db):
         "notifications", "push_outbox", "ticket_contact_edits",
         "login_attempts", "password_reset_tokens", "media", "audit_log",
         "event_staff", "event_access_tokens",
+        "rate_limit_hits",
     }
     with psycopg.connect(scratch, autocommit=True) as conn:
         rows = conn.execute(

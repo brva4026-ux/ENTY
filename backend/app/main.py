@@ -14,8 +14,6 @@ if sys.platform == "win32":
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
 
 import psycopg
 
@@ -29,7 +27,6 @@ from app.core.observability import (
 )
 from app.core.push_worker import push_outbox_worker
 from app.core.schema_guard import verify_schema_at_boot
-from app.core.limiter import limiter
 from app.routers import (
     analytics,
     auth,
@@ -108,12 +105,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         root_path=settings.api_root_path,
     )
-
-    # Rate limiting (slowapi): el decorador @limiter.limit vive en los routers
-    # (registro de aceptaciones legales). El estado y el handler de 429 tienen
-    # que estar en la app o el decorador no tiene donde escribir.
-    app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     app.add_middleware(
         CORSMiddleware,

@@ -6,23 +6,25 @@
     <meta name="theme-color" content="#0A0A0F" />
     <meta name="description" content="Enty — boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso." />
     <!-- Tarjeta social: sin esto, compartir un link por WhatsApp (el canal real
-         de este producto) mostraba una URL pelada. Cambiar SITE_URL cuando
-         exista dominio propio: es el único lugar donde vive. -->
-    <link rel="canonical" href="https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/" />
+         de este producto) mostraba una URL pelada. El dominio vive en UNA
+         variable (VITE_SITE_URL, ver vite.config.js): el build sustituye el
+         marcador por su valor. Cambiar de dominio propio = cambiar esa
+         variable, no cazar strings por el HTML. -->
+    <link rel="canonical" href="%SITE_URL%/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Enty" />
     <meta property="og:locale" content="es_CO" />
     <meta property="og:title" content="Enty — Boletería y Aforo" />
     <meta property="og:description" content="Boletas, cortesías y control de aforo: ventas por promotor, cupos que no se sobrevenden y puerta con QR anti-reuso." />
-    <meta property="og:url" content="https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/" />
-    <meta property="og:image" content="https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/og-cover.png" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:image" content="%SITE_URL%/og-cover.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Enty — boletas, cortesías y control de aforo" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Enty — Boletería y Aforo" />
     <meta name="twitter:description" content="Boletas, cortesías y control de aforo con QR anti-reuso." />
-    <meta name="twitter:image" content="https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/og-cover.png" />
+    <meta name="twitter:image" content="%SITE_URL%/og-cover.png" />
     <!-- Fuente self-hosted (Sora variable, public/fonts): preload para que el
          primer paint use la voz de marca; sin terceros, sin FOUT de red. -->
     <link rel="preload" href="/fonts/sora-latin.woff2" as="font" type="font/woff2" crossorigin />
@@ -45,8 +47,8 @@
         "@context": "https://schema.org",
         "@type": "Organization",
         "name": "Enty",
-        "url": "https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/",
-        "logo": "https://ticketflow-git-master-brva4026-uxs-projects.vercel.app/icons/icon-512.png",
+        "url": "%SITE_URL%/",
+        "logo": "%SITE_URL%/icons/icon-512.png",
         "description": "Boletería, cupos por promotor y control de aforo en puerta con escaneo QR anti-reuso."
       }
     </script>

@@ -9,7 +9,6 @@ el bouncer lo compara en la puerta (ver docs/arquitectura/03-seguridad.md).
 from html import escape
 import json
 import secrets
-import time
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from zoneinfo import ZoneInfo
@@ -24,6 +23,7 @@ from app.core.db import get_db
 from app.core.fan_access import create_fan_access_token, verify_fan_access_token
 from app.core.mailer import Mailer
 from app.core.phone import digits_only, phone_tail_sql
+from app.core.rate_limit import enforce_rate_limit
 from app.core.refs import payment_reference
 from app.schemas import (
     FanCredentialRequest,
@@ -40,55 +40,26 @@ from app.services.wompi import WompiError
 
 router = APIRouter(prefix="/public", tags=["publico"])
 
-# Rate limit en memoria por IP (best-effort, por proceso). En la práctica esto
-# frena scrapers y fuerza bruta de tokens; detrás de Vercel el número de
-# instancias es pequeño y el costo de Redis no está justificado todavía.
+# Rate limit por IP en la DB (mig 041). El dict en memoria que vivía aquí no
+# limitaba nada en serverless: cada invocación podía caer en otra instancia y
+# el dict moría en cada cold start. El contador compartido en Postgres sí vale
+# en todas las instancias. Scope propio para no mezclar cupos entre endpoints.
+_RATE_SCOPE = "public:catalog"
 _RATE_LIMIT = 120  # peticiones por minuto por IP
-_RATE_WINDOW = 60.0
-_rate_bucket: dict[str, list[float]] = {}
-# Tope de IPs rastreadas. Sin esto, el dict crecía una entrada por IP para
-# SIEMPRE (una botnet o un scraper con IPs rotativas lo inflaban sin límite):
-# memoria que nunca se libera en un proceso de vida larga.
-_RATE_MAX_KEYS = 10_000
+_RATE_WINDOW = 60
 
 
-def _rate_key(request: Request) -> str:
-    # Detras de Vercel (y de cualquier proxy) request.client.host es la edge,
-    # no la persona: sin los headers de reenvio, TODOS los invitados compartian
-    # un solo cubo de 120/min y la pagina de boleta devolvia 429 a todo el
-    # mundo con unas decenas de usuarios concurrentes. Misma fuente que en
-    # auth/public_tickets: x-real-ip del edge, luego el primer salto de
-    # x-forwarded-for, y el peer de socket como ultimo recurso (dev directo).
-    fwd = request.headers.get("x-forwarded-for", "")
-    return (
-        request.headers.get("x-real-ip")
-        or (fwd.split(",")[0].strip() if fwd else "")
-        or (request.client.host if request.client else "unknown")
+async def _rate_limit(
+    request: Request,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+) -> None:
+    await enforce_rate_limit(
+        request,
+        db,
+        scope=_RATE_SCOPE,
+        max_hits=_RATE_LIMIT,
+        window_seconds=_RATE_WINDOW,
     )
-
-
-def _evict_expired(bucket_map: dict[str, list[float]], now: float, window: float) -> None:
-    """Suelta las IPs cuyo cubo ya expiró, si el mapa pasó del tope.
-
-    Se poda SOLO al cruzar el tope: recorrer el mapa en cada petición costaría
-    más que el problema que resuelve. Las IPs sin actividad en la ventana no
-    aportan nada y se pueden tirar enteras.
-    """
-    if len(bucket_map) <= _RATE_MAX_KEYS:
-        return
-    for ip in [k for k, v in bucket_map.items() if not v or now - v[-1] > window]:
-        bucket_map.pop(ip, None)
-
-
-async def _rate_limit(request: Request) -> None:
-    ip = _rate_key(request)
-    now = time.monotonic()
-    bucket = [t for t in _rate_bucket.get(ip, []) if now - t < _RATE_WINDOW]
-    if len(bucket) >= _RATE_LIMIT:
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Demasiadas peticiones")
-    bucket.append(now)
-    _rate_bucket[ip] = bucket
-    _evict_expired(_rate_bucket, now, _RATE_WINDOW)
 
 # Ni cachear ni indexar: el contenido cambia (la boleta puede anularse) y no
 # queremos que un buscador archive los QRs de los clientes.
@@ -411,24 +382,25 @@ async def public_event_detail(
 
 # Rate limit propio y mas duro que el del catalogo: cada POST crea una fila y
 # llama a Wompi (dinero real). 20/hora por IP frena el abuso sin molestar a un
-# fan legitimo que compra dos o tres boletas.
+# fan legitimo que compra dos o tres boletas. En la DB (mig 041), no en
+# memoria: si no, en serverless no frenaria nada.
+_CHECKOUT_SCOPE = "public:checkout"
 _CHECKOUT_RATE_LIMIT = 20
-_CHECKOUT_WINDOW = 3600.0
-_checkout_bucket: dict[str, list[float]] = {}
+_CHECKOUT_WINDOW = 3600
 
 
-async def _checkout_rate_limit(request: Request) -> None:
-    ip = _rate_key(request)
-    now = time.monotonic()
-    bucket = [t for t in _checkout_bucket.get(ip, []) if now - t < _CHECKOUT_WINDOW]
-    if len(bucket) >= _CHECKOUT_RATE_LIMIT:
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            "Demasiados intentos de compra. Espera unos minutos.",
-        )
-    bucket.append(now)
-    _checkout_bucket[ip] = bucket
-    _evict_expired(_checkout_bucket, now, _CHECKOUT_WINDOW)
+async def _checkout_rate_limit(
+    request: Request,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+) -> None:
+    await enforce_rate_limit(
+        request,
+        db,
+        scope=_CHECKOUT_SCOPE,
+        max_hits=_CHECKOUT_RATE_LIMIT,
+        window_seconds=_CHECKOUT_WINDOW,
+        message="Demasiados intentos de compra. Espera unos minutos.",
+    )
 
 
 @router.post(

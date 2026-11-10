@@ -8,8 +8,6 @@ terminaria en logs e historial del navegador).
 
 Sin autenticacion a proposito: el invitado no tiene cuenta en el sistema.
 """
-from collections import defaultdict, deque
-from time import monotonic
 from typing import Annotated
 
 import psycopg
@@ -19,6 +17,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from app.core.db import get_db
+from app.core.rate_limit import enforce_rate_limit
 from app.core.db_errors import translate_db_error
 from app.core.security import digest_token
 from app.schemas import (
@@ -31,35 +30,26 @@ from app.services.ticket_image import build_ticket_image
 
 router = APIRouter(prefix="/tickets", tags=["boleta-publica"])
 
-# Rate limit en memoria por IP (best-effort, igual que el login). El endpoint
-# de imagen compone un JPEG con Pillow: sin limite, es un vector de agotamiento
-# de CPU barato de disparar.
+# Rate limit por IP en la DB (mig 041): el endpoint de imagen compone un JPEG
+# con Pillow y sin limite es un vector de agotamiento de CPU barato de
+# disparar. El dict en memoria que vivia aqui no limitaba en serverless.
+_RATE_SCOPE = "tickets:public"
 _MAX_REQUESTS = 60
-_WINDOW_SECONDS = 300.0
-_HITS: dict[str, deque[float]] = defaultdict(deque)
+_WINDOW_SECONDS = 300
 
 
-def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    return (
-        request.headers.get("x-real-ip")
-        or (fwd.split(",")[0].strip() if fwd else "")
-        or "unknown"
+async def _check_rate(
+    request: Request,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+) -> None:
+    await enforce_rate_limit(
+        request,
+        db,
+        scope=_RATE_SCOPE,
+        max_hits=_MAX_REQUESTS,
+        window_seconds=_WINDOW_SECONDS,
+        message="Demasiadas solicitudes",
     )
-
-
-def _check_rate(request: Request) -> None:
-    key = _client_ip(request)
-    q = _HITS[key]
-    now = monotonic()
-    while q and now - q[0] > _WINDOW_SECONDS:
-        q.popleft()
-    if len(q) >= _MAX_REQUESTS:
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Demasiadas solicitudes")
-    q.append(now)
-    if len(_HITS) > 10_000:
-        for k in [k for k, v in _HITS.items() if not v or now - v[-1] > _WINDOW_SECONDS]:
-            _HITS.pop(k, None)
 
 
 # Un solo SELECT para las dos vistas: la boleta se identifica por el hash del
@@ -149,7 +139,7 @@ async def preview_ticket(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     """Datos de la boleta para pintarla en la pagina del invitado."""
-    _check_rate(request)
+    await _check_rate(request, db)
     row = await _load_ticket(db, body.raw_token)
     active, msg = _activation(row)
     # Devolucion (E1): el boton "No puedo ir" se ofrece solo mientras la
@@ -195,7 +185,7 @@ async def ticket_image(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     """Imagen JPEG de la boleta (flyer + QR) para descargar o compartir."""
-    _check_rate(request)
+    await _check_rate(request, db)
     row = await _load_ticket(db, body.raw_token)
     active, msg = _activation(row)
     if row["status"] not in ("issued", "redeemed"):
@@ -248,7 +238,7 @@ async def return_ticket(
     La ventana limite vive en la DB ('return_window_closed'): nunca despues
     del unlock del QR, cuando el cupo ya es compromiso de puerta.
     """
-    _check_rate(request)
+    await _check_rate(request, db)
     token_hash = digest_token(body.raw_token)
 
     async with db.cursor() as cur:

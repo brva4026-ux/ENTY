@@ -11,7 +11,8 @@ FALLA sin el fix correspondiente.
 3. La cola offline no guardaba el evento (se cubre en el frontend); aquí se
    fija el contrato del server: un token de OTRO evento se rechaza.
 4. El sync descartaba la hora real del escaneo.
-5. El rate limit en memoria crecía sin límite.
+5. El rate limit en memoria crecía sin límite y no servía en serverless; ahora
+   vive en la DB (mig 041) y se prueba ahí.
 """
 import time
 import uuid
@@ -299,30 +300,47 @@ def test_sync_rechaza_token_de_otro_evento(api, world):
 
 
 # ---------------------------------------------------------------------------
-# 5) El rate limit no crece sin límite
+# 5) El rate limit es real en serverless (vive en la DB, mig 041)
 # ---------------------------------------------------------------------------
 
 
-def test_rate_limit_evicta_cubos_vencidos():
-    """El mapa de cubos por IP se poda: antes crecía una entrada por IP para
-    siempre (memoria que nunca se libera)."""
-    from app.routers import public
+def test_rate_limit_hit_en_db_cuenta_y_corta(dbcur):
+    """`rate_limit_hit` permite hasta el cupo y luego corta; un rechazo NO se
+    registra (si contara, la ventana se autoextendería sin fin)."""
+    key = f"test:{uuid.uuid4().hex}"
 
-    now = time.monotonic()
-    public._rate_bucket.clear()
-    for i in range(public._RATE_MAX_KEYS + 50):
-        public._rate_bucket[f"10.0.{i // 256}.{i % 256}"] = [now - 9999.0]
-    public._evict_expired(public._rate_bucket, now, public._RATE_WINDOW)
-    assert len(public._rate_bucket) == 0, "los cubos vencidos deben soltarse"
+    def hit(max_hits: int, window: int) -> bool:
+        return dbcur.execute(
+            "SELECT rate_limit_hit(%s, %s, %s) AS ok", (key, max_hits, window)
+        ).fetchone()["ok"]
 
-    # Un cubo fresco se conserva.
-    public._rate_bucket.clear()
-    for i in range(public._RATE_MAX_KEYS + 50):
-        public._rate_bucket[f"10.1.{i // 256}.{i % 256}"] = [now - 9999.0]
-    public._rate_bucket["192.168.1.1"] = [now]
-    public._evict_expired(public._rate_bucket, now, public._RATE_WINDOW)
-    assert list(public._rate_bucket) == ["192.168.1.1"]
-    public._rate_bucket.clear()
+    assert [hit(3, 60) for _ in range(3)] == [True, True, True]
+    assert hit(3, 60) is False, "el 4to impacto debe cortarse (cupo 3)"
+    # El rechazo no se registró: siguen 3 filas, no 4.
+    n = dbcur.execute(
+        "SELECT count(*) AS n FROM rate_limit_hits WHERE key = %s", (key,)
+    ).fetchone()["n"]
+    assert n == 3, "un rechazo no debe registrarse"
+
+    # Otra clave no se ve afectada (aísla por scope:ip).
+    other = dbcur.execute(
+        "SELECT rate_limit_hit(%s, 1, 60) AS ok", (key + ":otra",)
+    ).fetchone()["ok"]
+    assert other is True
+
+    dbcur.execute("DELETE FROM rate_limit_hits WHERE key LIKE %s", (key + "%",))
+
+
+def test_catalogo_publico_corta_tras_el_cupo(api_client, dbcur):
+    """El catálogo usa el limiter en DB: pasada la ventana de 120/min, 429."""
+    ip = f"10.9.{uuid.uuid4().int % 256}.{uuid.uuid4().int % 256}"
+    key = f"public:catalog:{ip}"
+    dbcur.execute("DELETE FROM rate_limit_hits WHERE key = %s", (key,))
+    # Se siembra el cupo ya agotado para esta IP: el siguiente request corta.
+    for _ in range(120):
+        dbcur.execute("SELECT rate_limit_hit(%s, 120, 60)", (key,))
+    res = api_client.get("/public/events", headers={"x-real-ip": ip})
+    assert res.status_code == 429, res.text
 
 
 # ---------------------------------------------------------------------------

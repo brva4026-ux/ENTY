@@ -57,6 +57,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "038_avatar.sql",
     ROOT / "db" / "migrations" / "039_preference_key_shape.sql",
     ROOT / "db" / "migrations" / "040_active_venue.sql",
+    ROOT / "db" / "migrations" / "041_rate_limit.sql",
 ]
 
 
@@ -93,7 +94,10 @@ def db():
                 -- Preferencias por usuario+venue (mig 032). No cuelga nada de
                 -- ella, pero si schema.sql la crea y una corrida previa la dejo,
                 -- el CREATE choca con DuplicateTable y revienta el lote entero.
-                user_preferences CASCADE;
+                user_preferences,
+                -- Rate limiting en DB (mig 041): si una corrida previa la dejo,
+                -- el CREATE TABLE choca con DuplicateTable y revienta el lote.
+                rate_limit_hits CASCADE;
         -- event_staff / event_access_tokens (mig 025) referencian users y events:
         -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
         -- el orden de borrado no dependa de las FK.
@@ -186,12 +190,11 @@ def api_client(db):
     # login de TODO test posterior responde 429. Cada test arranca con los
     # cubos limpios (los tests específicos del lockout siembran lo suyo).
     db.execute("DELETE FROM login_attempts")
-    # El checkout publico rate-limitea por IP en memoria del proceso; el
-    # TestClient siempre sale de la misma IP, asi que una rafaga de tests de
-    # compra envenenaria el cubo y el siguiente responderia 429. Se limpia por
-    # test (igual criterio que login_attempts).
-    from app.routers import public as _public_mod
-    _public_mod._checkout_bucket.clear()
+    # El rate limit publico (catalogo, checkout, imagen) cuenta por IP en la
+    # DB (mig 041). El TestClient siempre sale de la misma IP, asi que una
+    # rafaga de tests de compra/catalogo envenenaria el cubo y el siguiente
+    # responderia 429. Se limpia por test (igual criterio que login_attempts).
+    db.execute("DELETE FROM rate_limit_hits")
 
     from fastapi.testclient import TestClient
 

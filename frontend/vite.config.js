@@ -2,8 +2,28 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
+// Dominio público de la app. Vive en UNA variable para que pasar a dominio
+// propio (o cambiar de proyecto Vercel) no obligue a cazar URLs por el HTML.
+// El default es el dominio de producción real; Vercel deja sobreescribirlo con
+// VITE_SITE_URL sin tocar el código.
+const SITE_URL = (
+  process.env.VITE_SITE_URL || "https://ticketflow-brva4026-uxs-projects.vercel.app"
+).replace(/\/+$/, "");
+
+/** Sustituye `%SITE_URL%` en el HTML por el dominio real (canonical, og:*,
+ *  twitter:*, JSON-LD). Sin esto, compartir un link muestra la URL de la rama
+ *  de preview en vez del sitio de producción. */
+function siteUrlPlugin() {
+  return {
+    name: "enty-site-url",
+    transformIndexHtml(html) {
+      return html.replaceAll("%SITE_URL%", SITE_URL);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), siteUrlPlugin()],
   // Config PostCSS inline (vacía): evita que Vite busque configs hacia
   // directorios padres (p.ej. postcss.config.js inválidos en el HOME).
   // Tailwind v4 se aplica via plugin @tailwindcss/vite, no necesita postcssrc.

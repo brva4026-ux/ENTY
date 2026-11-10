@@ -58,6 +58,39 @@ def test_create_requires_admin_of_venue(api):
     assert r.status_code == 403, r.text
 
 
+def test_create_sends_invitation_email_when_provider_enabled(api, monkeypatch):
+    """Con proveedor de email, crear la invitación dispara el correo con el
+    enlace que lleva el token (transporte parcheado: se fija el contrato, no
+    el HTTP real a Resend)."""
+    import app.core.config as config_mod
+    import app.core.mailer as mailer_mod
+
+    sent: dict = {}
+
+    monkeypatch.setattr(
+        config_mod.get_settings(), "resend_api_key", "re_test_x", raising=False
+    )
+
+    def _fake_send(self, *, to, full_name, venue_name, link):
+        sent.update(to=to, full_name=full_name, venue_name=venue_name, link=link)
+        return True
+
+    monkeypatch.setattr(
+        mailer_mod.Mailer, "send_invitation", _fake_send, raising=False
+    )
+
+    venue = api.world["venue_a"]
+    email = f"inv_{_tag()}@t.test"
+    res = _create(api, venue, email, role="promotor", full_name="Invitado Mail")
+    assert res.status_code == 201, res.text
+
+    tok = _raw_token_from(res.json()["invite_url"])
+    assert sent["to"] == email
+    assert sent["full_name"] == "Invitado Mail"
+    assert sent["venue_name"]  # el nombre del negocio, no un id
+    assert sent["link"].endswith(f"/invitacion?token={tok}")
+
+
 def test_create_and_redeem_new_user(api):
     venue = api.world["venue_a"]
     email = f"inv_{_tag()}@t.test"

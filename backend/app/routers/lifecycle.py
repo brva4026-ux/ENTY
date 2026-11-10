@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
+from app.core.observability import capture_exception
 from app.core.pusher import notify_venue
 from app.core.phone import digits_only, phone_tail_sql
 from app.deps import ensure_roles, get_current_user
@@ -184,9 +185,11 @@ async def go_live(
                         (dead,),
                     )
                 await db.commit()
-        except Exception:
-            # Un fallo de push (red, claves, DB) no debe revertir la apertura.
-            pass
+        except Exception as e:
+            # Un fallo de push (red, claves, DB) no debe revertir la apertura,
+            # pero tampoco puede quedar invisible: sin esto, las puertas
+            # abrian sin avisar al staff y nadie se enteraba.
+            capture_exception(e, context={"component": "lifecycle", "event": event_id})
 
     return out
 

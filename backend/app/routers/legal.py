@@ -29,7 +29,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import PlainTextResponse
 
 from app.core.db import get_db
-from app.core.limiter import limiter
+from app.core.rate_limit import client_ip, enforce_rate_limit
 from app.deps import get_current_user
 from app.schemas import (
     LegalAcceptanceCreate,
@@ -61,12 +61,7 @@ _CURRENT_SQL = """
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    return (
-        request.headers.get("x-real-ip")
-        or (fwd.split(",")[0].strip() if fwd else "")
-        or "unknown"
-    )
+    return client_ip(request)
 
 
 async def current_documents(cur: psycopg.AsyncCursor) -> list[dict]:
@@ -221,7 +216,6 @@ async def legal_status(
     response_model=LegalAcceptanceOut,
     status_code=status.HTTP_201_CREATED,
 )
-@limiter.limit("120/hour")
 async def accept_document(
     request: Request,
     body: LegalAcceptanceCreate,
@@ -237,8 +231,13 @@ async def accept_document(
     Rate limit generoso (120/hora) a proposito: la puerta de un bar puede tener
     decenas de invitados detras del mismo NAT y cada uno registra su aceptacion
     una sola vez. Un limite estrecho bloquearia el flujo legitimo; el endpoint
-    es idempotente y escribe una fila diminuta.
+    es idempotente y escribe una fila diminuta. En la DB (mig 041), no en
+    memoria: si no, en serverless no frenaria nada.
     """
+    await enforce_rate_limit(
+        request, db, scope="legal:acceptances", max_hits=120, window_seconds=3600
+    )
+
     user = None
     auth = request.headers.get("authorization")
     if auth:
