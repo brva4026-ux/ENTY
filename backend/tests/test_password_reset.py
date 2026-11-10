@@ -31,7 +31,12 @@ def _last_reset_hash(db, email: str) -> str | None:
 
 
 def test_forgot_password_same_answer_for_unknown_and_known(api):
-    """Anti-enumeracion: la respuesta no depende de la existencia del email."""
+    """Anti-enumeracion: la respuesta no depende de la existencia del email.
+
+    El texto SI depende de si el correo esta configurado (estado del sistema),
+    pero no de la cuenta: con el mailer apagado (default de tests) la respuesta
+    es identica exista o no el email.
+    """
     r_unknown = api.client.post(
         "/auth/forgot-password", json={"email": "nadie@example.test"}
     )
@@ -50,6 +55,69 @@ def test_forgot_password_same_answer_for_unknown_and_known(api):
     assert r_unknown.status_code == 200
     assert r_known.status_code == 200
     assert r_unknown.json()["detail"] == r_known.json()["detail"]
+
+
+def test_forgot_without_email_does_not_promise_a_link(api):
+    """Sin proveedor de email (default de tests), el texto NO promete un enlace.
+
+    El mailer es no-op: prometer 'te enviamos un enlace' dejaria al usuario
+    esperando un correo que nunca sale. En su lugar orienta al reset operado
+    por admin. La respuesta sigue siendo uniforme (anti-enumeracion).
+    """
+    r_unknown = api.client.post(
+        "/auth/forgot-password", json={"email": "nadie@example.test"}
+    )
+    payload = {
+        "venue_name": "Teatro Sin Mail",
+        "full_name": "Dueno Sin Mail",
+        "email": "sin-mail@example.test",
+        "password": "ClaveSinMail1",
+        "accepted_terms": True,
+    }
+    api.client.post("/auth/register", json=payload)
+    r_known = api.client.post(
+        "/auth/forgot-password", json={"email": payload["email"]}
+    )
+    assert r_unknown.status_code == 200 and r_known.status_code == 200
+    # Uniforme: no revela si la cuenta existe.
+    assert r_unknown.json()["detail"] == r_known.json()["detail"]
+    # Honesto: no promete un correo que no puede salir.
+    detail = r_known.json()["detail"].lower()
+    assert "te enviamos un enlace" not in detail
+    assert "administrador" in detail
+
+
+def test_forgot_with_email_promises_a_link_without_network(api, monkeypatch):
+    """Con proveedor de email, el texto promete el enlace (envio parcheado).
+
+    Se fija `resend_api_key` y se neutraliza `Mailer.send_password_reset` para
+    que el test no haga una llamada HTTP real a Resend: lo que se verifica es
+    el CONTRATO del mensaje, no el transporte (cubierto por el mailer).
+    """
+    import app.core.config as config_mod
+    import app.core.mailer as mailer_mod
+
+    monkeypatch.setattr(
+        config_mod.get_settings(), "resend_api_key", "re_test_x", raising=False
+    )
+    monkeypatch.setattr(
+        mailer_mod.Mailer,
+        "send_password_reset",
+        lambda self, **kw: True,
+        raising=False,
+    )
+
+    payload = {
+        "venue_name": "Teatro Con Mail",
+        "full_name": "Dueno Con Mail",
+        "email": "con-mail@example.test",
+        "password": "ClaveConMail1",
+        "accepted_terms": True,
+    }
+    api.client.post("/auth/register", json=payload)
+    r = api.client.post("/auth/forgot-password", json={"email": payload["email"]})
+    assert r.status_code == 200
+    assert "te enviamos un enlace" in r.json()["detail"].lower()
 
 
 def test_forgot_creates_token_row(api, db):

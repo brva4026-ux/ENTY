@@ -168,9 +168,12 @@ export default function LoginPage() {
     setForgotBusy(true);
     try {
       const r = await forgotPassword(email);
+      // El backend decide el texto: promete un enlace solo si el correo está
+      // configurado; si no, orienta al reset operado por admin. Este fallback
+      // (solo si la respuesta viniera sin `detail`) es neutral a propósito.
       setForgotSent(
         r?.detail ||
-          "Si el correo está registrado, te enviamos un enlace para restablecer la contraseña.",
+          "Revisa tu correo o pídele a un administrador que restablezca tu contraseña.",
       );
     } catch (err) {
       setError(

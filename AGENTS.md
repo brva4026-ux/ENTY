@@ -375,6 +375,16 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
   503: el fan llenaba el formulario para chocarse con un error. Los e2e corren
   con `WOMPI_PRIVATE_KEY`/`WOMPI_EVENTS_SECRET` de mentira (CI) para ejercitar
   el camino de compra; el POST a Wompi se stubea en la spec.
+- **Recuperación de contraseña y su bandera.** `POST /auth/forgot-password`
+  responde siempre el mismo texto (anti-enumeración), pero ese texto depende de
+  si el correo está configurado (`email_enabled` = `settings.resend_api_key`),
+  que es estado del sistema y no de la cuenta. Con proveedor de email promete
+  el enlace; **sin** proveedor (el default en producción hoy) orienta al reset
+  operado por admin (panel de equipo → `POST /venues/{id}/users/{id}/reset-password`).
+  Antes prometía "te enviamos un enlace" aunque el mailer fuera no-op: el
+  usuario esperaba un correo que nunca salía. El mismo criterio ya lo aplicaba
+  `POST /public/my-tickets/access` (expone `email_configured` y ofrece pedir el
+  enlace al organizador).
 - Normalización del contacto (`_contact_params` en `routers/public.py`): el
   correo solo se recorta y baja a minúsculas (sus puntos son significativos);
   el teléfono se reduce a dígitos (`+57 300 123 4567` == `573001234567`). La

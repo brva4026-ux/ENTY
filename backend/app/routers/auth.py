@@ -506,17 +506,37 @@ async def forgot_password(
     email_norm = body.email.strip().lower()
     async with db.cursor() as cur:
         await cur.execute(
-            """SELECT id, full_name, is_active FROM users
+            """SELECT id, full_name, email, is_active FROM users
                WHERE lower(email) = %s LIMIT 1""",
             (email_norm,),
         )
         user = await cur.fetchone()
 
-    # El texto NO depende de si el email existe (anti-enumeración).
-    generic = (
-        "Si el correo está registrado, te enviamos un enlace para "
-        "restablecer la contraseña. Revisa también tu carpeta de spam."
+    settings = get_settings()
+    mailer = Mailer(
+        api_key=settings.resend_api_key,
+        from_email=settings.email_from_address,
+        from_name="Enty",
+        app_url=settings.app_public_url,
     )
+
+    # El texto NO depende de si el email existe (anti-enumeración). SÍ depende
+    # de si el correo está configurado: eso es estado del SISTEMA, no de la
+    # cuenta, así que no filtra nada. Sin proveedor de email el mailer es
+    # no-op: prometer un enlace que nunca llega deja al usuario esperando en
+    # vano, así que se orienta al reset operado por admin (ya existe:
+    # TeamManager -> POST /venues/{id}/users/{id}/reset-password).
+    if mailer.enabled:
+        generic = (
+            "Si el correo está registrado, te enviamos un enlace para "
+            "restablecer la contraseña. Revisa también tu carpeta de spam."
+        )
+    else:
+        generic = (
+            "El envío de correos todavía no está activo. Pídele a un "
+            "administrador de tu negocio que restablezca tu contraseña desde "
+            "el panel de equipo."
+        )
 
     if user and user["is_active"]:
         raw_token = token_hex(32)  # 256 bits, de un solo uso
@@ -530,13 +550,6 @@ async def forgot_password(
                    VALUES (%s, %s, now() + interval '60 minutes', %s)""",
                 (user["id"], token_hash, ip),
             )
-        settings = get_settings()
-        mailer = Mailer(
-            api_key=settings.resend_api_key,
-            from_email=settings.email_from_address,
-            from_name="Enty",
-            app_url=settings.app_public_url,
-        )
         if mailer.enabled:
             await run_in_threadpool(
                 mailer.send_password_reset,
