@@ -1077,7 +1077,7 @@ export default function BouncerScanner() {
               por cada uno. Se guarda por dispositivo: el bouncer lo escribe una
               vez. Vacío = puerta sin identificar. */}
           <div className="mt-3 w-full max-w-sm">
-            <label className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-2">
+            <label className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3">
               <Icon name="door" className="h-4 w-4 shrink-0 text-zinc-500" />
               <input
                 type="text"
@@ -1089,7 +1089,7 @@ export default function BouncerScanner() {
                 maxLength={40}
                 placeholder="Puerta de este teléfono (opcional)"
                 aria-label="Puerta de origen"
-                className="min-w-0 flex-1 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
+                className="min-h-[44px] min-w-0 flex-1 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
               />
               {doorId.trim() && (
                 <button
