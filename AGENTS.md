@@ -784,12 +784,14 @@ avisar.
 
 ## Git / GitHub
 
-- El `GITHUB_TOKEN` del entorno es un token de **instalación de GitHub App**
-  con permiso de **solo lectura** sobre los contenidos. La API de lectura
-  responde 200 (el `/repos/{owner}/{repo}` reporta `permissions.push: true`
-  porque refleja el rol del usuario, no lo que el token puede hacer), pero
-  cualquier escritura falla con **403**: `git push` ("Permission ... denied"),
-  `POST /git/refs`, etc. Para leer la API:
+- **Para pushear: el remote guarda un PAT clásico con `contents: write`.**
+  El `GITHUB_TOKEN` del entorno es un token de instalación de GitHub App de
+  **solo lectura**: la API de lectura responde 200 (el `/repos/{owner}/{repo}`
+  reporta `permissions.push: true` porque refleja el rol del usuario, no lo que
+  el token puede hacer), pero cualquier escritura falla con **403**. Ese token
+  **no** sirve para pushear ni para `default_create_pr`. En cambio el remote
+  `origin` lleva embebido un PAT clásico que sí tiene escritura; git lo usa solo
+  y el push funciona. Para leer la API con él:
 
   ```bash
   # el remote guarda el PAT como unico userinfo, sin "usuario:pass":
@@ -801,10 +803,11 @@ avisar.
   URL entera y la API responde **401**, no 404. Si un `curl` falla con 401,
   revisá primero que el PAT se haya extraido bien antes que el token.
   `default_create_pr` tampoco sirve: escribe con ese mismo token y da 403.
-- **Si `git push` da 403 con el token del entorno, no hay forma de pushear
-  desde acá.** Ni reescribir el remote ni `gh auth` cambian los permisos del
-  token: es de solo lectura. Hay que pedirle al usuario que pushee, o que
-  provea un token con `contents: write`.
+- **Si `git push` da 403, revisá con qué credencial estás pusheando.** El
+  `GITHUB_TOKEN` del entorno es de solo lectura y `gh auth` también apunta a él,
+  así que un `git remote set-url` que lo meta en la URL (o un credential helper
+  que lo inyecte) rompe el push. Dejá el remote como estaba (con su PAT
+  embebido) y el push pasa.
 - **Autor de los commits = Vercel**: el plan Hobby de Vercel bloquea el deploy
   si el autor del commit no tiene acceso al proyecto. En la práctica Vercel
   compara el **email del autor** contra las cuentas con acceso. Si el email no
