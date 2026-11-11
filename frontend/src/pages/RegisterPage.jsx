@@ -9,6 +9,7 @@ import { fetchLegalDocuments } from "../lib/legal";
 import PasswordMeter from "../components/PasswordMeter";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
+import ContactSupport from "../components/ContactSupport";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 const STRENGTH = [
@@ -364,6 +365,17 @@ export default function RegisterPage() {
             Ingresar
           </button>
         </p>
+
+        {/* La misma salida que el login: quien no logra crear la cuenta es
+            quien más necesita hablar con alguien. Reusa el bloque de la
+            entrada para no tener dos contactos con copy distinto. */}
+        <div className="auth-foot">
+          <ContactSupport
+            prompt="¿No logras crear tu cuenta?"
+            label="Escríbenos"
+            message="Hola, necesito ayuda para crear mi cuenta en Enty."
+          />
+        </div>
       </div>
     </AuthShell>
   );

@@ -387,6 +387,15 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
   la cartelera de eventos abiertos, el contacto del organizador por WhatsApp
   y la entrada al panel. Invitado sin cuenta; staff logueado se redirige a su
   panel. Fuerza oscuro como la vitrina.
+- **Contacto de la plataforma: una sola fuente.** `frontend/src/lib/site.js`
+  (`SITE`) guarda `supportEmail`, `legalEmail` y el WhatsApp de soporte
+  (`supportWhatsApp` = solo dígitos con país, `supportPhone` = display). El pie
+  de la portada usa `supportEmail`; el bloque de ayuda de la entrada lo pinta
+  `components/ContactSupport.jsx` como **enlace real** a `wa.me` (no un
+  `<button>` con `window.open`: eso rompía clic derecho/pestaña nueva y podía
+  caer en el bloqueador de pop-ups). El mismo bloque va en `/login` y
+  `/register`. Los textos legales (`backend/app/assets/legal/*.md`) declaran el
+  mismo correo y teléfono; si cambia el contacto, cambian los tres sitios.
 - `/inicio` — vitrina pública (`HomePage`): catálogo de `/public/events`.
 - `/boletas` — la entrada del fan (`MyTicketsPage`): escribe su contacto y ve
   sus boletas. "Ver mi QR" regenera el enlace de esa boleta.
@@ -775,12 +784,14 @@ avisar.
 
 ## Git / GitHub
 
-- El `GITHUB_TOKEN` del entorno es un token de **instalación de GitHub App**
-  con permiso de **solo lectura** sobre los contenidos. La API de lectura
-  responde 200 (el `/repos/{owner}/{repo}` reporta `permissions.push: true`
-  porque refleja el rol del usuario, no lo que el token puede hacer), pero
-  cualquier escritura falla con **403**: `git push` ("Permission ... denied"),
-  `POST /git/refs`, etc. Para leer la API:
+- **Para pushear: el remote guarda un PAT clásico con `contents: write`.**
+  El `GITHUB_TOKEN` del entorno es un token de instalación de GitHub App de
+  **solo lectura**: la API de lectura responde 200 (el `/repos/{owner}/{repo}`
+  reporta `permissions.push: true` porque refleja el rol del usuario, no lo que
+  el token puede hacer), pero cualquier escritura falla con **403**. Ese token
+  **no** sirve para pushear ni para `default_create_pr`. En cambio el remote
+  `origin` lleva embebido un PAT clásico que sí tiene escritura; git lo usa solo
+  y el push funciona. Para leer la API con él:
 
   ```bash
   # el remote guarda el PAT como unico userinfo, sin "usuario:pass":
@@ -792,10 +803,11 @@ avisar.
   URL entera y la API responde **401**, no 404. Si un `curl` falla con 401,
   revisá primero que el PAT se haya extraido bien antes que el token.
   `default_create_pr` tampoco sirve: escribe con ese mismo token y da 403.
-- **Si `git push` da 403 con el token del entorno, no hay forma de pushear
-  desde acá.** Ni reescribir el remote ni `gh auth` cambian los permisos del
-  token: es de solo lectura. Hay que pedirle al usuario que pushee, o que
-  provea un token con `contents: write`.
+- **Si `git push` da 403, revisá con qué credencial estás pusheando.** El
+  `GITHUB_TOKEN` del entorno es de solo lectura y `gh auth` también apunta a él,
+  así que un `git remote set-url` que lo meta en la URL (o un credential helper
+  que lo inyecte) rompe el push. Dejá el remote como estaba (con su PAT
+  embebido) y el push pasa.
 - **Autor de los commits = Vercel**: el plan Hobby de Vercel bloquea el deploy
   si el autor del commit no tiene acceso al proyecto. En la práctica Vercel
   compara el **email del autor** contra las cuentas con acceso. Si el email no
