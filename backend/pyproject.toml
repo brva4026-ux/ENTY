@@ -20,6 +20,10 @@ dependencies = [
     # Zonas horarias para formatear el inicio del evento en la boleta-imagen
     # (ZoneInfo); 'UTC' fijo no basta para 'America/Bogota'.
     "tzdata>=2024.1",
+    # Firma Web Push (VAPID ES256) y cifrado aes128gcm en app/core/pusher.py:
+    # se importa directo, asi que se declara explicito (antes llegaba de rebote
+    # como dependencia transitiva de python-jose[cryptography]).
+    "cryptography>=42.0",
     # Cliente HTTP async para Web Push (envio a los endpoints de los browsers)
     "httpx>=0.27",
 ]
