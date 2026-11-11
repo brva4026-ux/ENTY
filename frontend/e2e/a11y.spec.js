@@ -1265,3 +1265,31 @@ test.describe("vitrina /inicio: presentación de la primera pantalla", () => {
     expect(varios.haySubhead, "con filas, el encabezado debe existir").toBe(true);
   });
 });
+
+/**
+ * El canal de ayuda de la entrada era un <button> con window.open: el clic
+ * derecho y "abrir en pestaña nueva" no funcionaban, el bloqueador de pop-ups
+ * podía tragárselo y un lector de pantalla anunciaba un botón, no un enlace.
+ * Aquí se fija que sea un enlace REAL a wa.me con número, mensaje y noopener,
+ * tanto en /login como en /register (que antes no tenía ningún contacto).
+ */
+test("el contacto de la entrada es un enlace real a WhatsApp", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  const ok = await available(page, "/login");
+  test.skip(!ok, "App no disponible");
+
+  for (const path of ["/login", "/register"]) {
+    await page.goto(path);
+    const link = page.locator("a.auth-contact").first();
+    await expect(link, `contacto en ${path}`).toBeVisible();
+    const href = await link.getAttribute("href");
+    // Número de soporte con código de país, más el mensaje precargado.
+    expect(href, `href de ${path}`).toMatch(/^https:\/\/wa\.me\/\d{10,}\?text=.+/);
+    expect(await link.getAttribute("target"), `target de ${path}`).toBe("_blank");
+    expect(await link.getAttribute("rel"), `rel de ${path}`).toContain("noopener");
+    // Un botón de contacto ya no debe existir: el canal es un enlace.
+    expect(await page.locator("button.auth-contact").count(), `botón en ${path}`).toBe(0);
+  }
+  await ctx.close();
+});

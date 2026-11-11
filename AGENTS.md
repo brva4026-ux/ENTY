@@ -387,6 +387,15 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
   la cartelera de eventos abiertos, el contacto del organizador por WhatsApp
   y la entrada al panel. Invitado sin cuenta; staff logueado se redirige a su
   panel. Fuerza oscuro como la vitrina.
+- **Contacto de la plataforma: una sola fuente.** `frontend/src/lib/site.js`
+  (`SITE`) guarda `supportEmail`, `legalEmail` y el WhatsApp de soporte
+  (`supportWhatsApp` = solo dígitos con país, `supportPhone` = display). El pie
+  de la portada usa `supportEmail`; el bloque de ayuda de la entrada lo pinta
+  `components/ContactSupport.jsx` como **enlace real** a `wa.me` (no un
+  `<button>` con `window.open`: eso rompía clic derecho/pestaña nueva y podía
+  caer en el bloqueador de pop-ups). El mismo bloque va en `/login` y
+  `/register`. Los textos legales (`backend/app/assets/legal/*.md`) declaran el
+  mismo correo y teléfono; si cambia el contacto, cambian los tres sitios.
 - `/inicio` — vitrina pública (`HomePage`): catálogo de `/public/events`.
 - `/boletas` — la entrada del fan (`MyTicketsPage`): escribe su contacto y ve
   sus boletas. "Ver mi QR" regenera el enlace de esa boleta.

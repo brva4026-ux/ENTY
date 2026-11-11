@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
 import { AuthShell } from "../components/AuthShell";
+import ContactSupport from "../components/ContactSupport";
 import { WelcomeOverlay } from "../components/WelcomeOverlay";
 import { Logo } from "../components/Brand";
 import TransitionLink from "../components/TransitionLink";
@@ -382,28 +383,11 @@ export default function LoginPage() {
 
           {/* Contacto: queda fuera del form para que Enter no lo dispare. */}
           <div className="auth-foot">
-            <button
-              type="button"
-              onClick={() => window.open("https://wa.me/qr/H4SZ7YBWO266O1", "_blank")}
-              className="auth-contact"
-            >
-              <svg
-                className="auth-contact-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20.5l1.8-5.2A8.5 8.5 0 1 1 21 11.5z" />
-              </svg>
-              <span className="auth-contact-text">
-                ¿Problemas para entrar?
-                <strong>Contáctanos</strong>
-              </span>
-            </button>
+            <ContactSupport
+              prompt="¿Problemas para entrar?"
+              label="Contáctanos"
+              message="Hola, necesito ayuda para entrar a Enty."
+            />
 
             <p className="auth-trust">
               Conexión segura. Nunca te pediremos tu contraseña por chat.
