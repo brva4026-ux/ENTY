@@ -98,7 +98,7 @@ async def emit_ticket(
         try:
             await cur.execute(
                 """
-                SELECT emit_ticket(%s, %s, %s, %s, %s, %s, %s, %s)
+                SELECT emit_ticket(%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     event_id,
@@ -109,6 +109,7 @@ async def emit_ticket(
                     raw_token,
                     body.customer_phone,
                     body.customer_email,
+                    body.payment_method,
                 ),
             )
             row = await cur.fetchone()
@@ -180,6 +181,32 @@ async def redeem(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     ensure_roles(user, venue_id, "super_admin", "admin", "bouncer")
+    roles = user["roles"].get(venue_id, [])
+
+    # Turno de esta noche (event_staff). Si a esta persona se le fijó una
+    # ventana, la puerta solo acepta escaneos dentro de ella: el bouncer de las
+    # 22:00 no sigue abriendo a las 4:00 con el mismo link. Sin fila en el
+    # roster, o con la fila sin turno, NO hay restricción — la ausencia de dato
+    # no cierra puertas (la mayoría del staff no tiene turno definido).
+    # Admin/super_admin quedan exentos: son quienes cubren huecos de último
+    # minuto y no viven en el roster como bouncer.
+    if not any(r in ("super_admin", "admin") for r in roles):
+        async with db.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT (COALESCE(shift_start <= now(), true)
+                        AND COALESCE(now() <= shift_end, true)) AS dentro
+                FROM event_staff WHERE event_id = %s AND user_id = %s
+                """,
+                (event_id, user["id"]),
+            )
+            shift = await cur.fetchone()
+        if shift and not shift["dentro"]:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Estás fuera de tu turno para esta noche. Si tenés que seguir "
+                "en puerta, pedile al admin que lo ajuste.",
+            )
 
     # Rate limit de puerta (mig 019): cada redeem escribe en redemptions, así
     # que el límite se calcula con lo que ya hay. 40 escaneos / 10 s por
@@ -206,8 +233,9 @@ async def redeem(
     async with db.cursor() as cur:
         try:
             await cur.execute(
-                "SELECT redeem_ticket(%s, %s, %s, %s)",
-                (event_id, body.raw_token, user["id"], body.ticket_type_id),
+                "SELECT redeem_ticket(%s, %s, %s, %s, %s, %s)",
+                (event_id, body.raw_token, user["id"], body.ticket_type_id,
+                 None, body.door_id),
             )
             row = await cur.fetchone()
             code = row["redeem_ticket"] if isinstance(row, dict) else row[0]
@@ -741,13 +769,14 @@ async def door_sync(
             # 2) Canje real. La hora del escaneo viaja al SQL (saneada ahí).
             try:
                 await cur.execute(
-                    "SELECT redeem_ticket(%s, %s, %s, %s, %s)",
+                    "SELECT redeem_ticket(%s, %s, %s, %s, %s, %s)",
                     (
                         event_id,
                         item.raw_token,
                         user["id"],
                         item.ticket_type_id,
                         item.scanned_at,
+                        item.door_id,
                     ),
                 )
                 row = await cur.fetchone()

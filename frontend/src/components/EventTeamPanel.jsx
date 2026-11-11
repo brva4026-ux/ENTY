@@ -24,6 +24,12 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
   const [candidatos, setCandidatos] = useState([]);
   const [elegido, setElegido] = useState("");
   const [rolNuevo, setRolNuevo] = useState("bouncer");
+  // Turno (opcional): la ventana en que esa persona trabaja la noche. Sin
+  // turno, el link vale para toda la noche. Con turno, el escáner se cierra
+  // fuera de la ventana y quien queda en puerta a las 3 a.m. es el que estaba
+  // asignado a esa hora, no cualquiera del bar.
+  const [turnoInicio, setTurnoInicio] = useState("");
+  const [turnoFin, setTurnoFin] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [emitiendo, setEmitiendo] = useState(false);
   // El último link emitido, en claro, SOLO en memoria de esta sesión.
@@ -60,10 +66,19 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
     try {
       await apiFetch(`/venues/${venueId}/events/${event.id}/staff`, {
         method: "POST",
-        body: JSON.stringify({ user_id: Number(elegido), role: rolNuevo }),
+        // `datetime-local` da "2026-11-08T22:00" sin zona: se manda como
+        // instante ISO (UTC) para que la DB lo guarde sin ambigüedad.
+        body: JSON.stringify({
+          user_id: Number(elegido),
+          role: rolNuevo,
+          shift_start: turnoInicio ? new Date(turnoInicio).toISOString() : null,
+          shift_end: turnoFin ? new Date(turnoFin).toISOString() : null,
+        }),
       });
       haptics.success();
       setElegido("");
+      setTurnoInicio("");
+      setTurnoFin("");
       await cargar();
       ui.success("Persona asignada a esta noche");
     } catch (e) {
@@ -215,6 +230,37 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
               Asignar
             </button>
           </div>
+          {/* Turno opcional: si se define, la puerta de esa persona solo
+              acepta escaneos dentro de la ventana. Dejarlo vacío = toda la
+              noche. Es la respuesta a "el bouncer de las 22:00 no debería
+              seguir abriendo a las 4:00". */}
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+              Turno desde (opcional)
+              <input
+                type="datetime-local"
+                value={turnoInicio}
+                onChange={(e) => setTurnoInicio(e.target.value)}
+                className="field"
+                aria-label="Inicio del turno"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+              Turno hasta (opcional)
+              <input
+                type="datetime-local"
+                value={turnoFin}
+                onChange={(e) => setTurnoFin(e.target.value)}
+                className="field"
+                aria-label="Fin del turno"
+              />
+            </label>
+          </div>
+          {(turnoInicio || turnoFin) && (
+            <p className="mt-1.5 text-2xs text-zinc-500">
+              Fuera de esta ventana su escáner rechaza los ingresos.
+            </p>
+          )}
         </div>
       )}
 

@@ -29,6 +29,8 @@ from app.core.audit import write_audit
 from app.schemas import (
     EventReport,
     EventPulse,
+    ReportByDoor,
+    ReportByPaymentMethod,
     ReportByPromoter,
     ReportSummary,
     VenueDoor,
@@ -281,6 +283,39 @@ async def event_report(
         )
         rd = await cur.fetchone()
 
+        # Desglose de caja por medio de pago (mig 042): convierte el recaudo
+        # en arqueo. Solo cuenta boletas de PAGO activas (issued/redeemed con
+        # precio > 0); las cortesías no son caja. NULL agrupa las históricas
+        # de venta directa sin dato.
+        await cur.execute(
+            """
+            SELECT payment_method,
+                   count(*)::int AS tickets,
+                   coalesce(sum(price_cents_snapshot), 0)::bigint AS revenue_cents
+            FROM tickets
+            WHERE event_id = %s AND status IN ('issued','redeemed')
+              AND price_cents_snapshot > 0
+            GROUP BY payment_method ORDER BY revenue_cents DESC
+            """,
+            (event_id,),
+        )
+        by_payment_method = await cur.fetchall()
+
+        # Desglose de puerta (mig 042): qué hizo cada acceso. NULL agrupa los
+        # escaneos sin puerta identificada (teléfonos viejos o sin configurar).
+        await cur.execute(
+            """
+            SELECT door_id,
+                   count(*) FILTER (WHERE outcome IN ('granted','granted_forced'))::int AS granted,
+                   count(*) FILTER (WHERE outcome NOT IN ('granted','granted_forced'))::int AS rejected,
+                   count(*)::int AS total
+            FROM redemptions WHERE event_id = %s
+            GROUP BY door_id ORDER BY total DESC
+            """,
+            (event_id,),
+        )
+        by_door = await cur.fetchall()
+
         door_pulse = await _door_pulse(
             cur, event_id, ev["starts_at"], ev["event_timezone"]
         )
@@ -295,6 +330,8 @@ async def event_report(
         by_promoter=by_promoter,
         door_duplicates=rd["duplicates"],
         door_rejected=rd["rejected"],
+        by_payment_method=[ReportByPaymentMethod(**r) for r in by_payment_method],
+        by_door=[ReportByDoor(**r) for r in by_door],
         door_pulse=door_pulse,
     )
 

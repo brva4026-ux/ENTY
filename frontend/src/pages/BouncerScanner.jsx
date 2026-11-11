@@ -117,6 +117,15 @@ const RESULT_STYLES = {
     icon: "!",
     sub: "No hay descarga de puerta para este evento",
   },
+  // Offline y la boleta NO está en el snapshot: probablemente se emitió
+  // después de la descarga. Ámbar, no rojo: no se puede confirmar sin red y
+  // rechazarla sería negar una boleta legítima. Que la DB decida al sincronizar.
+  NOT_IN_CACHE: {
+    bg: "bg-amber-600",
+    text: "NO CONFIRMABLE",
+    icon: "!",
+    sub: "No está en la caché (pudo emitirse después). Reconectá para validar.",
+  },
 };
 
 // ms que dura el resultado en pantalla antes de volver a escanear
@@ -137,6 +146,7 @@ const SCAN_LOG_LABEL = {
   GRANTED_OFFLINE: "ENTRA (OFFLINE)",
   ALREADY_REDEEMED_OFFLINE: "YA USADA (OFFLINE)",
   SNAPSHOT_MISSING: "SIN CACHÉ",
+  NOT_IN_CACHE: "NO CONFIRMABLE",
 };
 // Anti-spam de reintentos de NOT_ACTIVE: el servidor no cobra por cada
 // escaneo, pero martillar no cambia la hora del evento.
@@ -185,6 +195,14 @@ export default function BouncerScanner() {
   // aceptar boletas de cualquier tipo (comportamiento clásico).
   const [types, setTypes] = useState([]);
   const [rowFilter, setRowFilter] = useState("");
+  // Puerta de origen (mig 042): en venues con varios accesos, cada teléfono
+  // se identifica con su puerta ("puerta-1", "VIP"…). Vacío = puerta sin
+  // identificar (la verdad, no un valor inventado). Se persiste en
+  // localStorage porque es un dato de ESTE teléfono, no de la sesión: el
+  // bouncer no debería re-elegir su puerta cada vez que abre el escáner.
+  const [doorId, setDoorId] = useState(
+    () => localStorage.getItem("tf_door_id") ?? "",
+  );
   // Log de los últimos escaneos de ESTE dispositivo (el más nuevo primero).
   // Para "yo sí entré": el portero muestra la hora y el resultado sin depender
   // del admin. Nunca sale del teléfono — no es reporte, es respaldo en puerta.
@@ -351,6 +369,7 @@ export default function BouncerScanner() {
             // puede haber trabajado dos eventos, así que sin esto el sync
             // mandaba los tokens del otro evento contra el seleccionado.
             eventId: selectedEvent,
+            doorId: doorId.trim() || null,
           });
           await refreshPending();
         }
@@ -378,6 +397,14 @@ export default function BouncerScanner() {
           }
         } else {
           haptics.door.attention();
+          // NOT_IN_CACHE es ámbar (atención), no rojo: el sonido acompaña el
+          // color para que el bouncer no confunda "no confirmable" con "no
+          // existe" en una fila ruidosa.
+          try {
+            playForCode(local.code);
+          } catch {
+            /* ignore */
+          }
         }
       } catch {
         setResult({ code: "SNAPSHOT_MISSING" });
@@ -403,6 +430,8 @@ export default function BouncerScanner() {
           body: JSON.stringify({
             raw_token: rawToken,
             ...(rowFilter ? { ticket_type_id: rowFilter } : {}),
+            // Puerta de origen (mig 042): vacío = sin identificar.
+            ...(doorId.trim() ? { door_id: doorId.trim() } : {}),
           }),
         },
       );
@@ -1042,6 +1071,45 @@ export default function BouncerScanner() {
               </div>
             </div>
           )}
+
+          {/* Puerta de origen (mig 042): identifica ESTE teléfono dentro del
+              evento. Con varios accesos, permite después medir cuántos entraron
+              por cada uno. Se guarda por dispositivo: el bouncer lo escribe una
+              vez. Vacío = puerta sin identificar. */}
+          <div className="mt-3 w-full max-w-sm">
+            <label className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-2">
+              <Icon name="door" className="h-4 w-4 shrink-0 text-zinc-500" />
+              <input
+                type="text"
+                value={doorId}
+                onChange={(e) => {
+                  setDoorId(e.target.value);
+                  localStorage.setItem("tf_door_id", e.target.value);
+                }}
+                maxLength={40}
+                placeholder="Puerta de este teléfono (opcional)"
+                aria-label="Puerta de origen"
+                className="min-w-0 flex-1 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
+              />
+              {doorId.trim() && (
+                <button
+                  onClick={() => {
+                    setDoorId("");
+                    localStorage.removeItem("tf_door_id");
+                    haptics.tick();
+                  }}
+                  className="btn-icon shrink-0"
+                  aria-label="Quitar puerta de origen"
+                >
+                  <Icon name="close" className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </label>
+            <p className="mt-1 text-2xs text-zinc-600">
+              Se guarda en este teléfono y viaja con cada escaneo (también sin
+              red).
+            </p>
+          </div>
 
           <p className="mt-4 max-w-sm text-center text-xs text-zinc-600">
             Verde = entra · Rojo = no entra. El resultado también aparece con el

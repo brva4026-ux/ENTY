@@ -43,6 +43,7 @@ export default function PromoterDashboard() {
     customer_name: "",
     customer_phone: "",
     customer_email: "",
+    payment_method: "efectivo",
   });
   const [lastTicket, setLastTicket] = useState(null);
   const [error, setError] = useState("");
@@ -695,6 +696,33 @@ export default function PromoterDashboard() {
                           placeholder="asistente@correo.com"
                         />
                       </div>
+
+                      {/* Medio de pago (mig 042): solo para boletas de pago.
+                          Es lo que convierte el "Recaudo" del cierre en un
+                          arqueo: el admin sabe cuánto efectivo debería haber.
+                          En una cortesía no aplica y se oculta. */}
+                      {selectedType?.price_cents > 0 && (
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-zinc-400">
+                            Medio de pago
+                          </label>
+                          <select
+                            aria-label="Medio de pago"
+                            value={form.payment_method}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                payment_method: e.target.value,
+                              })
+                            }
+                            className="field"
+                          >
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="online">Pago en línea</option>
+                          </select>
+                        </div>
+                      )}
 
                       <button
                         type="submit"

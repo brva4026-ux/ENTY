@@ -357,6 +357,11 @@ class TicketEmitRequest(BaseModel):
     customer_name: str = Field(min_length=1, max_length=200)
     customer_phone: str = Field(min_length=5, max_length=30)
     customer_email: str | None = Field(default=None, max_length=200)
+    # Medio de pago de la venta directa (taquilla). Es lo que hace que el
+    # "Recaudo" del cierre sea un arqueo y no una suma de precios: el admin
+    # sabe cuánto efectivo debería haber. En una boleta gratis se ignora
+    # (siempre es cortesía); sin especificar, la venta directa asume efectivo.
+    payment_method: Literal["efectivo", "transferencia", "online"] | None = None
 
 
 class TicketEmitResponse(BaseModel):
@@ -437,6 +442,9 @@ class TicketRedeemRequest(BaseModel):
     # Filtro de fila en puerta (mig 008): si viene, una boleta válida del
     # evento pero de OTRO tipo se rechaza con code=WRONG_TYPE sin consumirla.
     ticket_type_id: int | None = None
+    # Puerta de origen (mig 042): "puerta-1", "VIP"... Permite medir el
+    # rendimiento de cada acceso y balancear el personal. Sin valor queda NULL.
+    door_id: str | None = Field(default=None, max_length=40)
 
 
 class TicketHistoryItem(BaseModel):
@@ -1022,6 +1030,8 @@ class DoorSyncItem(BaseModel):
     raw_token: str = Field(min_length=8)
     scanned_at: datetime | None = None  # cuándo se validó en la puerta
     ticket_type_id: int | None = None
+    # Puerta de origen (mig 042), igual que en el canje en línea.
+    door_id: str | None = Field(default=None, max_length=40)
     # Idempotencia (mig 034): el teléfono genera un uuid por escaneo. Si el
     # sync se reintenta tras un corte de red, la DB reconoce el scan_id y
     # devuelve el resultado ya guardado sin volver a canjear.
@@ -1140,6 +1150,9 @@ class TicketOut(BaseModel):
     type_name: str | None = None
     sold_by_name: str | None = None
     from_allocation: bool = False
+    # Medio de pago (mig 042). NULL en boletas históricas de venta directa:
+    # no se inventa el dato. La UI lo muestra como "sin especificar".
+    payment_method: str | None = None
 
 
 class TicketListOut(BaseModel):
@@ -1182,6 +1195,32 @@ class ReportByPromoter(BaseModel):
     redeemed: int = 0
 
 
+class ReportByPaymentMethod(BaseModel):
+    """Fila del desglose de caja por medio de pago (mig 042).
+
+    Convierte el "Recaudo" en un arqueo: el efectivo es lo único contable
+    contra el cajón; transferencia y online se concilian aparte. Las boletas
+    históricas de venta directa sin dato salen con `payment_method=None`
+    ("sin especificar"): no se inventa el medio.
+    """
+    payment_method: str | None = None
+    tickets: int = 0
+    revenue_cents: int = 0
+
+
+class ReportByDoor(BaseModel):
+    """Fila del desglose de puerta (mig 042): qué hizo cada acceso.
+
+    `door_id=None` agrupa los escaneos sin puerta identificada. `granted` son
+    los ingresos; `rejected` todo lo demás que la puerta negó. Sirve para
+    balancear el personal y detectar una puerta que rechaza de más.
+    """
+    door_id: str | None = None
+    granted: int = 0
+    rejected: int = 0
+    total: int = 0
+
+
 class EventDoorPulse(BaseModel):
     """Una franja del ritmo de puerta: cuantos ingresos cayeron en 10 min.
 
@@ -1215,6 +1254,13 @@ class EventReport(BaseModel):
     # no lo ve (no es su trabajo y es dato operativo del negocio).
     door_duplicates: int = 0
     door_rejected: int = 0
+    # Desglose de caja por medio de pago (mig 042). Solo vista admin: es
+    # dinero. Convierte el recaudo en un arqueo (cuánto efectivo debería
+    # haber). El promotor no lo ve.
+    by_payment_method: list[ReportByPaymentMethod] = []
+    # Desglose de puerta por acceso (mig 042). Solo vista admin: es dato
+    # operativo del negocio (cuánto trabajó cada puerta), no del promotor.
+    by_door: list[ReportByDoor] = []
     # Ritmo de la puerta: ingresos por franja de 10 min, con la hora LOCAL del
     # evento. `count` por entrada; `bucket` = minutos desde el inicio de la
     # noche. Es la señal que faltaba para OPERAR: el total dice cómo va, pero

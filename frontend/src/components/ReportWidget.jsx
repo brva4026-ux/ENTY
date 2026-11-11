@@ -3,6 +3,13 @@ import { AnimatedNumber } from "./Brand";
 const fmtCOP = (cents) =>
   `$${(cents / 100).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 
+const PAYMENT_LABEL = {
+  efectivo: "Efectivo",
+  transferencia: "Transferencia",
+  online: "Pago en línea",
+  cortesia: "Cortesía",
+};
+
 export default function ReportWidget({ report }) {
   if (!report) {
     return (
@@ -122,6 +129,65 @@ export default function ReportWidget({ report }) {
             </div>
           </div>
         )}
+
+        {/* Caja por medio de pago: el "Recaudo" de arriba es una suma de
+            precios; esto lo vuelve un arqueo (cuánto efectivo debería haber).
+            Solo se muestra si hay caja que conciliar. */}
+        {report.by_payment_method?.length > 0 && (
+          <div className="mt-6">
+            <p className="eyebrow mb-2">Caja por medio de pago</p>
+            <div className="divide-list overflow-hidden rounded-lg border border-zinc-800/80">
+              {report.by_payment_method.map((m) => (
+                <div
+                  key={m.payment_method ?? "sin-especificar"}
+                  className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-3.5 py-2.5"
+                >
+                  <span className="truncate text-sm font-medium text-zinc-200">
+                    {PAYMENT_LABEL[m.payment_method] ?? "Sin especificar"}
+                  </span>
+                  <span className="tnum text-right text-xs text-zinc-500">
+                    {m.tickets} boleta{m.tickets === 1 ? "" : "s"}
+                  </span>
+                  <span className="tnum text-right text-sm font-semibold text-ink">
+                    {fmtCOP(m.revenue_cents)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Por puerta: cuántos ingresos hizo cada acceso. Sirve para balancear
+            el personal y detectar una puerta que rechaza de más. Solo aparece
+            cuando hay más de un acceso (o uno con nombre): con una sola puerta
+            sin identificar no aporta nada. */}
+        {report.by_door?.length > 0 &&
+          !(report.by_door.length === 1 && report.by_door[0].door_id == null) && (
+            <div className="mt-6">
+              <p className="eyebrow mb-2">Por puerta</p>
+              <div className="divide-list overflow-hidden rounded-lg border border-zinc-800/80">
+                {report.by_door.map((d) => (
+                  <div
+                    key={d.door_id ?? "sin-puerta"}
+                    className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-3.5 py-2.5"
+                  >
+                    <span className="truncate text-sm font-medium text-zinc-200">
+                      {d.door_id || "Sin identificar"}
+                    </span>
+                    <span className="tnum text-right text-xs text-zinc-500">
+                      {d.granted} entraron
+                      {d.rejected > 0 && (
+                        <span className="text-amber-500"> · {d.rejected} rechazados</span>
+                      )}
+                    </span>
+                    <span className="tnum text-right text-sm font-semibold text-ink">
+                      {d.total}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         {/* Por promotor: mismo lenguaje visual */}
         {report.by_promoter?.length > 0 && (

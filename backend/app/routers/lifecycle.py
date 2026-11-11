@@ -348,6 +348,24 @@ async def export_closing_csv(
         )
         money = await cur.fetchone()
 
+        # Caja por medio de pago (mig 042): lo que convierte el "Recaudo" en un
+        # arqueo. El efectivo es el unico numero que se puede contar contra el
+        # cajon al cerrar; las transferencias y cobros en linea se concilian
+        # aparte. Las boletas historicas sin dato salen como "sin especificar".
+        await cur.execute(
+            """
+            SELECT t.payment_method,
+                   count(*)::int AS n,
+                   coalesce(sum(t.price_cents_snapshot), 0)::bigint AS amount
+            FROM tickets t
+            WHERE t.event_id=%s AND t.status IN ('issued','redeemed')
+              AND t.price_cents_snapshot > 0
+            GROUP BY t.payment_method ORDER BY amount DESC
+            """,
+            (event_id,),
+        )
+        pay_rows = await cur.fetchall()
+
         await cur.execute(
             """
             SELECT coalesce(u.full_name, 'Sin identificar') AS who,
@@ -405,6 +423,20 @@ async def export_closing_csv(
     w.writerow(["Cortesias", money["courtesy"]])
     w.writerow(["Anuladas", money["voided"]])
     w.writerow(["Promedio por boleta paga (COP)", round(revenue / paid / 100, 2) if paid else 0])
+    w.writerow([])
+    w.writerow(["Caja por medio de pago", "Boletas", "Monto (COP)"])
+    method_label = {
+        "efectivo": "Efectivo",
+        "transferencia": "Transferencia",
+        "online": "Pago en linea",
+        "cortesia": "Cortesia",
+    }
+    rows_pay = [
+        [method_label.get(r["payment_method"], "Sin especificar"),
+         r["n"], round((r["amount"] or 0) / 100, 2)]
+        for r in pay_rows
+    ] or [["(sin ventas de pago)", 0, 0]]
+    w.writerows(rows_pay)
     w.writerow([])
     w.writerow(["Puerta", "Entras", "Rechazadas", "Total escaneos", "Ultimo escaneo"])
     w.writerows(rows_door)
@@ -1051,7 +1083,7 @@ async def list_tickets(
         await cur.execute(
             f"""
             SELECT t.id, t.customer_name, t.customer_phone, t.customer_email, t.status,
-                   t.issued_at, t.price_cents_snapshot,
+                   t.issued_at, t.price_cents_snapshot, t.payment_method,
                    tt.name AS type_name,
                    u.full_name AS sold_by_name,
                    (a.id IS NOT NULL) AS from_allocation
@@ -1081,13 +1113,14 @@ async def list_tickets(
         # CSV del listado filtrado COMPLETO (sin paginar): mismo contrato de
         # permisos que el JSON — el promotor exporta solo las suyas.
         header = ["id", "asistente", "telefono", "email", "estado", "fila",
-                  "vendida_por", "con_cupo", "precio", "emitida"]
+                  "vendida_por", "con_cupo", "precio", "medio_pago", "emitida"]
         rows_csv = [
             [
                 r["id"], r["customer_name"], r["customer_phone"] or "",
                 r["customer_email"] or "", r["status"], r["type_name"] or "",
                 r["sold_by_name"] or "", "si" if r["from_allocation"] else "no",
                 (r["price_cents_snapshot"] or 0) / 100,
+                r["payment_method"] or "sin especificar",
                 r["issued_at"].isoformat() if r["issued_at"] else "",
             ]
             for r in rows

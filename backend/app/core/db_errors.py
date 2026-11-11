@@ -59,6 +59,11 @@ DB_ERRORS: dict[str, tuple[int, str]] = {
     "invalid_phone": (400, "El teléfono no parece válido"),
     "invalid_name": (400, "El nombre no puede quedar vacío"),
     "invalid_token_format": (400, "Datos incompletos"),
+    # Conciliación de caja (mig 042): medio de pago de una venta directa.
+    "invalid_payment_method": (
+        400,
+        "Medio de pago inválido: usa efectivo, transferencia o pago en línea",
+    ),
     # Edición / borrado (mig 004)
     "allocation_not_found": (404, "Cupo no encontrado"),
     "quantity_below_issued": (

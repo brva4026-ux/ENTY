@@ -5,8 +5,9 @@
  * - La caché guarda SOLO los SHA-256 de las boletas vivas (los mismos hashes
  *   que ya guarda la DB). Un hash no sirve para emitir, reemitir ni clonar.
  * - Validar offline = comparar SHA-256 del token escaneado contra la lista.
- *   NO hay invento de estados: lo que la caché no conoce es "desconocido",
- *   nunca "válida".
+ *   NO hay invento de estados: lo que la caché no conoce es "no confirmable"
+ *   (NOT_IN_CACHE), nunca "válida" ni "no existe" — puede haberse emitido
+ *   después de la descarga, y rechazarla sin red sería un error de puerta.
  * - Toda redención offline entra en una cola y se sincroniza con
  *   POST /door-sync cuando vuelve la red; la DB re-evalúa cada token con
  *   redeem_ticket y es el árbitro final (una boleta anulada después de
@@ -124,7 +125,12 @@ export async function validateOffline(rawToken, eventId, rowTypeId = null) {
   if (!snap) return { code: "SNAPSHOT_MISSING", redeemed: false };
   const hash = await sha256Hex(rawToken);
   const entry = snap.entries.find((e) => e.h === hash);
-  if (!entry) return { code: "NOT_FOUND", redeemed: false };
+  // Hay snapshot, pero la boleta NO está en él: lo más probable es que se
+  // emitiera DESPUÉS de descargar la caché (el snapshot es una foto). Eso NO
+  // es "no existe": decir NOT_FOUND aquí rechazaría una boleta legítima en la
+  // puerta, sin red y sin forma de comprobarlo. Se marca como NO CONFIRMABLE
+  // (ámbar): que la DB decida al sincronizar, o que se resuelva con red.
+  if (!entry) return { code: "NOT_IN_CACHE", redeemed: false };
   if (rowTypeId && entry.t && entry.t !== rowTypeId) {
     return { code: "WRONG_TYPE", redeemed: false };
   }
@@ -173,7 +179,7 @@ export async function findQueued(rawToken, eventId) {
 /** Encola una redención offline. Devuelve el scan_id (idempotencia del sync). */
 export async function queueRedemption(
   rawToken,
-  { scannedAt, typeId, eventId } = {},
+  { scannedAt, typeId, eventId, doorId } = {},
 ) {
   // Dedupe: si este token ya espera sync para el evento, se reusa su scan_id
   // en vez de encolar una segunda entrada. Escanear A, B, A sin red no debe
@@ -192,6 +198,11 @@ export async function queueRedemption(
         event_id: eventId ?? null,
         scanned_at: scannedAt ?? new Date().toISOString(),
         ticket_type_id: typeId ?? null,
+        // Puerta de origen (mig 042): viaja con el item para que el sync la
+        // escriba igual que el canje en línea. Sin esto, las entradas
+        // validadas sin red quedaban sin puerta y el reporte por acceso
+        // subestimaba el trabajo de la puerta.
+        door_id: doorId ?? null,
       }),
     );
     return scanId;
@@ -246,6 +257,7 @@ export async function syncQueue(venueId, eventId) {
             raw_token: it.raw_token,
             scanned_at: it.scanned_at,
             ticket_type_id: it.ticket_type_id,
+            door_id: it.door_id ?? null,
             scan_id: it.scan_id,
           })),
         ),

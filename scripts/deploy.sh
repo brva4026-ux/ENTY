@@ -63,6 +63,7 @@ MIGRATIONS=(
     db/migrations/039_preference_key_shape.sql
     db/migrations/040_active_venue.sql
     db/migrations/041_rate_limit.sql
+    db/migrations/042_ops_conciliacion.sql
 )
 
 echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"

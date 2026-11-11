@@ -79,7 +79,12 @@ export function playOffline() {
 /** Firma sonora por código de resultado del escáner. */
 export function playForCode(code) {
   if (code === "GRANTED") return playGranted();
-  if (code === "NOT_ACTIVE" || code === "WRONG_TYPE") return playAttention();
+  if (
+    code === "NOT_ACTIVE" ||
+    code === "WRONG_TYPE" ||
+    code === "NOT_IN_CACHE"
+  )
+    return playAttention();
   if (code === "NETWORK_ERROR") return playOffline();
   return playRejected(); // todo lo demás: no entra
 }

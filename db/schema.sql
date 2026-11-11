@@ -4,7 +4,7 @@ BEGIN;
 -- TicketFlow — ESQUEMA COMPLETO (v2, consolidado)
 -- ============================================================================
 -- Fuente UNICA de verdad: este archivo + las migraciones de db/migrations/ en
--- orden (002..041) reproducen EXACTAMENTE la misma base. Aplicar ambos es
+-- orden (002..042) reproducen EXACTAMENTE la misma base. Aplicar ambos es
 -- seguro en cualquier estado:
 --   * instalacion nueva: schema.sql crea todo; las migraciones quedan en
 --     no-ops (todas son idempotentes: IF NOT EXISTS / OR REPLACE).
@@ -168,7 +168,8 @@ BEGIN
         v_payment.customer_name,
         p_raw_token,
         v_payment.customer_phone,
-        v_payment.customer_email
+        v_payment.customer_email,
+        'online'
     );
 
     UPDATE ticket_payments
@@ -484,10 +485,10 @@ $$;
 
 
 --
--- Name: emit_ticket(bigint, bigint, bigint, bigint, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+-- Name: emit_ticket(bigint, bigint, bigint, bigint, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.emit_ticket(p_event_id bigint, p_ticket_type_id bigint, p_allocation_id bigint, p_sold_by_user_id bigint, p_customer_name text, p_raw_token text, p_customer_phone text DEFAULT NULL::text, p_customer_email text DEFAULT NULL::text) RETURNS bigint
+CREATE FUNCTION public.emit_ticket(p_event_id bigint, p_ticket_type_id bigint, p_allocation_id bigint, p_sold_by_user_id bigint, p_customer_name text, p_raw_token text, p_customer_phone text DEFAULT NULL::text, p_customer_email text DEFAULT NULL::text, p_payment_method text DEFAULT NULL::text) RETURNS bigint
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -500,6 +501,7 @@ DECLARE
     v_status_allowed text;
     v_token_hash     text;
     v_ticket_id      bigint;
+    v_payment_method text;
 BEGIN
     -- Bloquea la localidad: serializa emisiones concurrentes contra su cupo.
     SELECT * INTO v_type FROM ticket_types WHERE id = p_ticket_type_id FOR UPDATE;
@@ -510,6 +512,18 @@ BEGIN
 
     IF v_type.price_cents > 0 AND p_allocation_id IS NOT NULL THEN
         RAISE EXCEPTION 'paid_ticket_tied_to_promoter_allocation: usar venta directa para boletas de pago';
+    END IF;
+
+    -- Medio de pago: una boleta gratis es cortesía por definición (no hay
+    -- dinero que conciliar). Una de pago sin método explícito se asume venta
+    -- directa en efectivo (la taquilla es el caso por defecto del bar).
+    IF v_type.price_cents = 0 THEN
+        v_payment_method := 'cortesia';
+    ELSE
+        v_payment_method := COALESCE(p_payment_method, 'efectivo');
+        IF v_payment_method NOT IN ('online', 'efectivo', 'transferencia') THEN
+            RAISE EXCEPTION 'invalid_payment_method';
+        END IF;
     END IF;
 
     -- 1) Bloquear el evento: serializa emisiones concurrentes y valida estado.
@@ -558,11 +572,11 @@ BEGIN
     INSERT INTO tickets (
         event_id, ticket_type_id, allocation_id, sold_by_user_id,
         customer_name, customer_phone, customer_email, token_hash,
-        price_cents_snapshot
+        price_cents_snapshot, payment_method
     ) VALUES (
         p_event_id, p_ticket_type_id, p_allocation_id, p_sold_by_user_id,
         p_customer_name, p_customer_phone, p_customer_email, v_token_hash,
-        v_type.price_cents
+        v_type.price_cents, v_payment_method
     ) RETURNING id INTO v_ticket_id;
 
     RETURN v_ticket_id;
@@ -788,6 +802,70 @@ CREATE FUNCTION public.login_locked(p_email text, p_ip text, p_max_failures inte
          WHERE ip = p_ip
            AND at > now() - make_interval(mins => p_window_minutes)
     ) >= p_max_failures;
+$$;
+
+
+--
+-- Name: notify_capacity_alert(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_capacity_alert() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+    v_capacity int;
+    v_venue_id bigint;
+    v_name     text;
+    v_granted  int;
+    v_80       int;
+    v_90       int;
+BEGIN
+    IF NEW.outcome NOT IN ('granted', 'granted_forced') THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT e.capacity, e.venue_id, e.name
+      INTO v_capacity, v_venue_id, v_name
+      FROM events e WHERE e.id = NEW.event_id;
+    IF v_capacity IS NULL OR v_capacity <= 0 THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT count(*) INTO v_granted
+      FROM redemptions
+     WHERE event_id = NEW.event_id
+       AND outcome IN ('granted', 'granted_forced');
+
+    v_80 := ceil(v_capacity * 0.8);
+    v_90 := ceil(v_capacity * 0.9);
+
+    -- Se mira el 90% primero: en aforos chicos los dos umbrales pueden caer en
+    -- el mismo ingreso, y avisar "90%" es el dato más urgente.
+    IF v_granted = v_90 THEN
+        PERFORM notify_venue_admins(
+            v_venue_id, 'capacity_alert',
+            'Aforo al 90%',
+            'Ya entraron ' || v_granted || ' de ' || v_capacity
+              || CASE WHEN v_name IS NOT NULL AND v_name <> ''
+                      THEN ' (' || v_name || ')' ELSE '' END
+              || '. El evento está por llenarse.',
+            '/admin'
+        );
+    ELSIF v_granted = v_80 THEN
+        PERFORM notify_venue_admins(
+            v_venue_id, 'capacity_alert',
+            'Aforo al 80%',
+            'Ya entraron ' || v_granted || ' de ' || v_capacity
+              || CASE WHEN v_name IS NOT NULL AND v_name <> '' 
+                      THEN ' (' || v_name || ')' ELSE '' END
+              || '. Queda poco cupo en la puerta.',
+            '/admin'
+        );
+    END IF;
+
+    RETURN NEW;
+END;
 $$;
 
 
@@ -1129,10 +1207,10 @@ $$;
 
 
 --
--- Name: redeem_ticket(bigint, text, bigint, bigint, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+-- Name: redeem_ticket(bigint, text, bigint, bigint, timestamp with time zone, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.redeem_ticket(p_event_id bigint, p_raw_token text, p_scanned_by_user_id bigint, p_expected_ticket_type_id bigint DEFAULT NULL::bigint, p_scanned_at timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS text
+CREATE FUNCTION public.redeem_ticket(p_event_id bigint, p_raw_token text, p_scanned_by_user_id bigint, p_expected_ticket_type_id bigint DEFAULT NULL::bigint, p_scanned_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_door_id text DEFAULT NULL::text) RETURNS text
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -1142,6 +1220,7 @@ DECLARE
     v_event_starts_at timestamptz;
     v_event_unlock integer;
     v_scanned_at timestamptz;
+    v_door_id    text;
 BEGIN
     IF p_raw_token IS NULL OR length(p_raw_token) < 8 THEN
         RAISE EXCEPTION 'invalid_token_format';
@@ -1156,6 +1235,10 @@ BEGIN
         v_scanned_at := now();
     END IF;
 
+    -- Puerta de origen (mig 042): "puerta-1", "VIP", etc. Vacío o nulo =
+    -- puerta sin identificar, que es la verdad y no un valor inventado.
+    v_door_id := NULLIF(btrim(p_door_id), '');
+
     -- Guardia: el evento del escaneo debe existir (migración 006). Sin esto,
     -- el INSERT del log rompe la FK y el escáner recibe un 500 opaco.
     IF NOT EXISTS (SELECT 1 FROM events WHERE id = p_event_id) THEN
@@ -1167,14 +1250,14 @@ BEGIN
     SELECT * INTO v_ticket FROM tickets WHERE token_hash = v_token_hash;
     IF NOT FOUND THEN
         -- ticket_id NULL: el escaneo existe como huella, sin boleta asociada
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
-        VALUES (NULL, p_event_id, p_scanned_by_user_id, 'not_found', v_scanned_at);
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+        VALUES (NULL, p_event_id, p_scanned_by_user_id, 'not_found', v_scanned_at, v_door_id);
         RETURN 'NOT_FOUND';
     END IF;
 
     IF v_ticket.event_id <> p_event_id THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'invalid_event', v_scanned_at);
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'invalid_event', v_scanned_at, v_door_id);
         RETURN 'INVALID_EVENT';
     END IF;
 
@@ -1182,16 +1265,16 @@ BEGIN
       INTO v_event_status, v_event_starts_at, v_event_unlock
       FROM events WHERE id = p_event_id;
     IF v_event_status <> 'live' AND v_event_status <> 'published' THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'event_not_live', v_scanned_at);
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'event_not_live', v_scanned_at, v_door_id);
         RETURN 'EVENT_NOT_LIVE';
     END IF;
 
     -- Ventana de activación (mig 013): el QR "existe" desde
     -- starts_at - unlock minutos. Antes, rechazo sin consumir.
     IF v_event_starts_at - (v_event_unlock * INTERVAL '1 minute') > now() THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'not_active', v_scanned_at);
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'not_active', v_scanned_at, v_door_id);
         RETURN 'NOT_ACTIVE';
     END IF;
 
@@ -1199,20 +1282,20 @@ BEGIN
     -- entra y NO se consume (podrá entrar por la fila correcta después).
     IF p_expected_ticket_type_id IS NOT NULL
        AND v_ticket.ticket_type_id <> p_expected_ticket_type_id THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'wrong_type', v_scanned_at);
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'wrong_type', v_scanned_at, v_door_id);
         RETURN 'WRONG_TYPE';
     END IF;
 
     IF v_ticket.status = 'voided' OR v_ticket.status = 'refunded' THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'not_valid', v_scanned_at);
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'not_valid', v_scanned_at, v_door_id);
         RETURN 'NOT_VALID';
     END IF;
 
     IF v_ticket.status = 'redeemed' THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at);
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at, v_door_id);
         RETURN 'ALREADY_REDEEMED';
     END IF;
 
@@ -1222,13 +1305,13 @@ BEGIN
      WHERE id = v_ticket.id AND status = 'issued';
 
     IF NOT FOUND THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at);
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at, v_door_id);
         RETURN 'ALREADY_REDEEMED';
     END IF;
 
-    INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at)
-    VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'granted', v_scanned_at);
+    INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+    VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'granted', v_scanned_at, v_door_id);
     RETURN 'GRANTED';
 END;
 $$;
@@ -2018,7 +2101,7 @@ CREATE TABLE public.notifications (
     link text,
     read_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text, 'event_autoclosed'::text, 'door_anomaly'::text])))
+    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text, 'event_autoclosed'::text, 'door_anomaly'::text, 'capacity_alert'::text])))
 );
 
 
@@ -2227,7 +2310,8 @@ CREATE TABLE public.redemptions (
     event_id bigint NOT NULL,
     scanned_by_user_id bigint,
     outcome text NOT NULL,
-    scanned_at timestamp with time zone DEFAULT now() NOT NULL
+    scanned_at timestamp with time zone DEFAULT now() NOT NULL,
+    door_id text
 );
 
 
@@ -2464,8 +2548,10 @@ CREATE TABLE public.tickets (
     redeemed_at timestamp with time zone,
     redeemed_by_user_id bigint,
     price_cents_snapshot bigint NOT NULL,
+    payment_method text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tickets_payment_method_check CHECK (((payment_method IS NULL) OR (payment_method = ANY (ARRAY['online'::text, 'efectivo'::text, 'transferencia'::text, 'cortesia'::text]))))
 );
 
 
@@ -3165,6 +3251,13 @@ CREATE INDEX idx_redemptions_event ON public.redemptions USING btree (event_id, 
 
 
 --
+-- Name: idx_redemptions_event_door; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_redemptions_event_door ON public.redemptions USING btree (event_id, door_id);
+
+
+--
 -- Name: idx_redemptions_scanner; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3225,6 +3318,13 @@ CREATE INDEX idx_ticket_returns_event ON public.ticket_returns USING btree (even
 --
 
 CREATE INDEX idx_tickets_allocation ON public.tickets USING btree (allocation_id);
+
+
+--
+-- Name: idx_tickets_event_payment_method; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tickets_event_payment_method ON public.tickets USING btree (event_id, payment_method);
 
 
 --
@@ -3295,6 +3395,13 @@ CREATE TRIGGER trg_invitation_accepted_notify AFTER UPDATE OF accepted_user_id O
 --
 
 CREATE TRIGGER trg_payout_lifecycle_notify AFTER INSERT OR UPDATE OF status ON public.promoter_payouts FOR EACH ROW EXECUTE FUNCTION public.notify_payout_lifecycle();
+
+
+--
+-- Name: redemptions trg_redemptions_capacity_alert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_redemptions_capacity_alert AFTER INSERT ON public.redemptions FOR EACH ROW EXECUTE FUNCTION public.notify_capacity_alert();
 
 
 --

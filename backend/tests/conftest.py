@@ -58,6 +58,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "039_preference_key_shape.sql",
     ROOT / "db" / "migrations" / "040_active_venue.sql",
     ROOT / "db" / "migrations" / "041_rate_limit.sql",
+    ROOT / "db" / "migrations" / "042_ops_conciliacion.sql",
 ]
 
 
@@ -108,6 +109,13 @@ def db():
         DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint);
         DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint, bigint);
         DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint, bigint, timestamp with time zone);
+        -- emit_ticket (mig 033) y redeem_ticket (mig 042) ganaron un parametro
+        -- al final: si una corrida previa dejo la firma vieja Y la nueva, el
+        -- DROP por nombre de abajo lanza AmbiguousFunction. Se sueltan las dos
+        -- firmas explicitas primero.
+        DROP FUNCTION IF EXISTS emit_ticket(bigint, bigint, bigint, bigint, text, text, text, text);
+        DROP FUNCTION IF EXISTS emit_ticket(bigint, bigint, bigint, bigint, text, text, text, text, text);
+        DROP FUNCTION IF EXISTS redeem_ticket(bigint, text, bigint, bigint, timestamp with time zone, text);
         DROP FUNCTION IF EXISTS emit_ticket, void_ticket,
             reissue_ticket, set_event_status, notify_user, notify_venue_admins,
             notify_payout_lifecycle, notify_invitation_accepted,

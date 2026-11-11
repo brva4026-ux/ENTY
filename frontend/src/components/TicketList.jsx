@@ -31,6 +31,13 @@ const TICKET_STATUS = {
   },
 };
 
+const PAYMENT_METHOD_LABEL = {
+  efectivo: "Efectivo",
+  transferencia: "Transferencia",
+  online: "Pago en línea",
+  cortesia: "Cortesía",
+};
+
 export default function TicketList({ venueId, eventId, onChanged, onError }) {
   const ui = useUI();
   const [voidingId, setVoidingId] = useState(null);
@@ -369,6 +376,9 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                       {t.price_cents_snapshot > 0
                         ? ` · $${(t.price_cents_snapshot / 100).toLocaleString("es-CO")}`
                         : " · cortesía"}
+                      {t.price_cents_snapshot > 0 && (
+                        ` · ${PAYMENT_METHOD_LABEL[t.payment_method] ?? "sin especificar"}`
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">
