@@ -56,7 +56,7 @@ sin cuenta la ve; el staff logueado que abre `/` cae en su panel
 ## Tests
 
 ```bash
-cd backend && .venv/bin/python -m pytest tests/ -q     # ~283 tests
+cd backend && .venv/bin/python -m pytest tests/ -q     # ~563 tests
 cd frontend && npm run build                            # verificacion de build
 ```
 
@@ -120,6 +120,44 @@ Es **fail-open**: si la DB no responde, la petición pasa (defensa en
 profundidad, no una llave que deje fuera a usuarios por un incidente). En tests,
 `conftest` limpia `rate_limit_hits` por test (el TestClient siempre sale de la
 misma IP y una ráfaga envenenaría el cubo).
+
+
+### Operación de la noche: conciliación de caja, multi-puerta y turnos (mig 042)
+
+Cierra cuatro huecos que solo aparecen con el evento en vivo. Todo vive en
+`db/migrations/042_ops_conciliacion.sql` (consolidado en `db/schema.sql`):
+
+- **Caja por medio de pago.** `tickets.payment_method` (`online` / `efectivo` /
+  `transferencia` / `cortesia`). `emit_ticket` clasifica la venta directa (sin
+  dato = efectivo); el backfill deja NULL las boletas históricas de venta
+  directa (no se inventa el medio). El cierre (`closing.csv`), el listado
+  (`/tickets`, con su CSV) y el reporte (`EventReport.by_payment_method`)
+  agrupan por medio: el efectivo es el único número contable contra el cajón.
+  Es lo que convierte el "Recaudo" en un arqueo. La cortesía (precio 0) no es
+  caja y queda fuera de esos desgloses.
+- **Multi-puerta.** `redemptions.door_id` + parámetro nuevo en `redeem_ticket`
+  (canje en línea y `door-sync`). El escáner guarda su puerta por teléfono
+  (`localStorage.tf_door_id`) y la manda con cada escaneo; `door_id` viaja
+  también en la cola offline. El reporte la desglosa en
+  `EventReport.by_door` (entradas/rechazos por acceso).
+- **Aviso de aforo.** Trigger `notify_capacity_alert` (kind `capacity_alert`):
+  avisa **una sola vez** al cruzar 80% y 90%, no en cada ingreso posterior.
+- **Turnos de staff.** `redeem` evalúa `event_staff.shift_start/shift_end` y
+  responde 403 fuera de la ventana. Sin fila de staff o sin turno **no**
+  restringe (la ausencia de dato no cierra puertas); admin/super_admin quedan
+  exentos (cubren huecos de último minuto). Se configura en `EventTeamPanel`.
+
+Offline: `doorCache.validateOffline` distingue `NOT_IN_CACHE` (hay snapshot,
+pero el token no está: pudo emitirse después de descargar) de un token
+realmente ausente. `NOT_IN_CACHE` es ámbar ("no confirmable") y tiene su propio
+sonido; la DB decide al sincronizar. Nunca se marca "válida" por no estar en la
+caché.
+
+**La migración no viaja con el push.** El código se despliega en Vercel al
+mergear a `master`, pero la 042 hay que aplicarla a mano contra Supabase
+(`bash scripts/deploy.sh`). Mientras no corra, `/health` reporta
+`"schema": "behind"` (ver "Guard de esquema"). Es esperable tras este cambio
+hasta que se corra `deploy.sh`.
 
 
 ### Correr la suite E2E dos veces seguidas (importante)
