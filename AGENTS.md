@@ -70,6 +70,14 @@ migración con objetos nuevos, consolidala también en `db/schema.sql`
 (aplicá schema+migraciones sobre una base limpia, `pg_dump --schema-only`
 y reemplazá el archivo) o el test falla.
 
+Ojo con la VERSIÓN de `pg_dump`: el dump lleva el `SET` de sesión de su
+versión. Un `pg_dump` 17 estampa `SET transaction_timeout = 0;`, un GUC que
+**no existe en PostgreSQL 16** — el CI levanta `postgres:16`, así que ese
+`SET` revienta TODO el setup de la suite con "unrecognized configuration
+parameter" y el job queda rojo aunque en local (PG17) todo pase. Si dumpeás
+con un cliente más nuevo que el server de CI, quitá esa línea del dump (es
+un GUC de sesión, no parte del esquema).
+
 Ese test necesita los binarios `psql` y `pg_dump` en el PATH. El contenedor
 puede traer solo el servidor: si el test se salta con "psql/pg_dump no
 disponibles", instalá el cliente (`sudo apt-get install -y postgresql-client`)
