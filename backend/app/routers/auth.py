@@ -398,7 +398,11 @@ async def register(
         )
     await _register_failure(db, "__register__", ip)  # el éxito lo deja así
 
-    async with db.cursor() as cur:
+    # Todo-o-nada: la conexión es autocommit (core/db.py), así que sin este
+    # bloque un fallo a mitad (p. ej. al registrar la aceptación legal) dejaba
+    # la venue huérfana. `db.transaction()` abre una transacción real; por eso
+    # NO hay `db.commit()` dentro (sería un commit explícito prohibido).
+    async with db.transaction(), db.cursor() as cur:
         await cur.execute(
             "SELECT id FROM users WHERE lower(email)=lower(%s)", (body.email,)
         )
@@ -468,7 +472,7 @@ async def register(
             ip=ip,
             user_agent=(request.headers.get("user-agent") or "")[:400] or None,
         )
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
 
     roles = {str(venue_id): ["admin"]}
     token = create_access_token(user_id, [venue_id], roles, 1)
@@ -574,7 +578,11 @@ async def reset_password(
     acceso no se queda bloqueado por sus propios intentos fallidos).
     """
     token_hash = hashlib.sha256(body.token.encode()).hexdigest()
-    async with db.cursor() as cur:
+    # Consumo del token + cambio de contraseña en una sola unidad: la conexión
+    # es autocommit, así que sin el bloque un fallo tras marcar el token usado
+    # dejaba el enlace quemado y la contraseña sin cambiar (el usuario quedaba
+    # obligado a pedir otro enlace).
+    async with db.transaction(), db.cursor() as cur:
         await cur.execute(
             """SELECT pr.id AS pr_id, pr.expires_at, pr.used_at,
                       u.id AS user_id, u.email
@@ -613,7 +621,7 @@ async def reset_password(
             "WHERE id = %s",
             (hash_password(body.new_password), row["user_id"]),
         )
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
 
     # La fecha del cambio (mig 037) va aparte y best-effort: no puede impedir
     # que alguien recupere su cuenta si la migracion aun no llego.

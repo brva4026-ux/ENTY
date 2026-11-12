@@ -60,6 +60,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "041_rate_limit.sql",
     ROOT / "db" / "migrations" / "042_ops_conciliacion.sql",
     ROOT / "db" / "migrations" / "043_eventos_ricos.sql",
+    ROOT / "db" / "migrations" / "044_coupon_usage_guard.sql",
 ]
 
 

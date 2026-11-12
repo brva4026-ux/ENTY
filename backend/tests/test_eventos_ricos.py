@@ -315,6 +315,35 @@ def test_refund_requires_admin_role(api):
     assert res.status_code == 403, res.text
 
 
+def test_refund_amount_cannot_exceed_price_paid(api):
+    """El monto reembolsado no puede superar lo que costó la boleta.
+
+    El esquema registraba el monto tal cual (COALESCE(amount,
+    price_cents_snapshot)) y el endpoint lo aceptaba del cliente sin tope: un
+    admin podía dejar en caja una salida mayor que el recaudo real.
+    """
+    scen = api.scenario()  # el tipo del scenario es cortesía (precio 0)
+    ticket = api.emit(
+        "promoter", scen["venue"], scen["event"],
+        ticket_type_id=scen["type"], allocation_id=scen["allocation"]["id"],
+    )
+    url = (
+        f"/venues/{scen['venue']}/events/{scen['event']}"
+        f"/tickets/{ticket['ticket_id']}/refund"
+    )
+    res = api.post(
+        url, "admin",
+        {"reason": "devolución inflada", "amount_in_cents": 99999999},
+    )
+    assert res.status_code == 409, res.text
+    assert api.run_sql(
+        f"SELECT count(*) FROM ticket_refunds WHERE ticket_id = {ticket['ticket_id']}"
+    ) == 0
+    assert api.run_sql(
+        f"SELECT status FROM tickets WHERE id = {ticket['ticket_id']}"
+    ) == "issued"
+
+
 # ---------------------------------------------------------------------------
 # Recordatorio de la noche
 # ---------------------------------------------------------------------------

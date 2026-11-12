@@ -94,6 +94,16 @@ DB_ERRORS: dict[str, tuple[int, str]] = {
     "payment_amount_mismatch": (409, "El monto pagado no coincide con el cobrado"),
     "payment_not_approvable": (409, "El cobro ya no esta pendiente: no se puede aprobar"),
     "payment_not_found": (404, "Cobro no encontrado"),
+    # Cupón agotado entre el checkout y el pago (mig 044): el dinero entró, la
+    # boleta no se emite. El 409 deja el caso visible para resolverlo a mano.
+    "coupon_exhausted": (
+        409,
+        "El cupón agotó sus usos entre la compra y el pago: el cobro quedó "
+        "pendiente para resolverlo (devolución o cortesía).",
+    ),
+    "coupon_inactive": (409, "El cupón fue desactivado antes de completar el pago"),
+    "coupon_expired": (409, "El cupón venció antes de completar el pago"),
+    "coupon_not_found": (409, "El cupón de este cobro ya no existe"),
     # Lista de espera (waitlist.py)
     "waitlist_not_needed": (409, "El evento aun tiene boletas: no hay lista de espera"),
     "event_not_open": (409, "El evento no esta abierto"),
@@ -120,6 +130,13 @@ DB_ERRORS: dict[str, tuple[int, str]] = {
         409, "La boleta ya entró al evento: el reembolso es manual"
     ),
     "cannot_refund_ticket": (409, "La boleta no puede reembolsarse en este estado"),
+    # Tope del monto reembolsado (mig 044): sin esto la caja registraba una
+    # salida mayor que el recaudo.
+    "refund_amount_negative": (409, "El monto a reembolsar no puede ser negativo"),
+    "refund_amount_exceeds_price": (
+        409,
+        "El monto a reembolsar no puede superar el precio que costó la boleta",
+    ),
 }
 
 # Claves ordenadas de mayor a menor: la primera coincidencia gana, así los
