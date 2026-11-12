@@ -208,6 +208,37 @@ mergear a `master`, pero la 043 hay que aplicarla a mano contra Supabase
 `"schema": "behind"`. Es esperable tras este cambio hasta que corra `deploy.sh`.
 
 
+### Guardas de dinero en la DB y atomicidad por endpoint (mig 044)
+
+`db/migrations/044_coupon_usage_guard.sql` (consolidado en `db/schema.sql`)
+cierra dos huecos de dinero que la 043 dejó abiertos. Ambos tienen la misma
+forma: **una validación que vivía fuera de la DB, en un lugar que no era el
+punto de consumo.**
+
+- **Tope de cupón.** `approve_ticket_payment` incrementaba
+  `coupons.used_count` sin volver a mirar `max_uses`. El tope solo se validaba
+  en la LECTURA del checkout (un snapshot): N fans que abren el checkout antes
+  del primer pago pasan todos, y sus webhooks aprueban todos. Ahora la función
+  revalida (activo / no vencido / `used_count < max_uses`) con `FOR UPDATE`
+  antes de incrementar. Si ya se agotó, `RAISE 'coupon_exhausted'` → 409; el
+  cobro queda `pending` para resolverlo a mano (nunca una boleta regalada).
+- **Tope de reembolso.** `refund_ticket` aceptaba el `amount_in_cents` del
+  cliente tal cual: un admin podía dejar en caja una salida mayor que el
+  recaudo (hasta reembolsar una cortesía por un monto inventado). Ahora rechaza
+  negativo (`refund_amount_negative`) o mayor que `price_cents_snapshot`
+  (`refund_amount_exceeds_price`), ambos 409.
+
+**Atomicidad: las conexiones son `autocommit=True` (`core/db.py`).** Un
+`db.commit()` a mitad de un endpoint no agrupa nada: cada statement ya se
+confirmó solo. Para que un endpoint multi-escritura sea todo-o-nada hay que
+envolverlo en `async with db.transaction():` y **quitar el `db.commit()` de
+adentro** (psycopg prohíbe el commit explícito dentro de un bloque
+`transaction()`). Ya lo hacen `/register`, `reset_password`,
+`accept_invitation` y `create_venue_user`. Patrón: los contadores de lockout se
+registran ANTES del bloque y quedan confirmados a propósito (un intento fallido
+debe contar aunque el resto revierta).
+
+
 ### Correr la suite E2E dos veces seguidas (importante)
 
 La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los

@@ -252,7 +252,12 @@ async def accept_invitation(
         )
     await _register_failure(db, "__invite__", ip)
 
-    async with db.cursor() as cur:
+    # Todo-o-nada: consumir el token, crear/reutilizar el usuario y darle el
+    # rol deben confirmarse juntos. La conexión es autocommit, así que sin el
+    # bloque un fallo dejaba el enlace consumido y sin usuario (o un usuario
+    # sin rol). Los contadores de lockout de arriba ya quedaron confirmados a
+    # propósito: un intento fallido debe contar aunque el resto revierta.
+    async with db.transaction(), db.cursor() as cur:
         # Concurrencia segura: el UPDATE solo gana una vez por token. Sin
         # SELECT previo: la condición WHERE es la fuente de verdad.
         await cur.execute(
@@ -312,7 +317,7 @@ async def accept_invitation(
             "UPDATE staff_invitations SET accepted_user_id = %s WHERE id = %s",
             (user_id, inv["id"]),
         )
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
 
     from app.routers.auth import _build_user_summary, _clear_failures
 

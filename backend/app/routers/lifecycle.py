@@ -73,6 +73,14 @@ def _error_to_http(e: psycopg.errors.Error) -> HTTPException:
             "cannot_refund_ticket": (
                 409, "La boleta no puede reembolsarse en este estado"
             ),
+            "refund_amount_negative": (
+                409, "El monto a reembolsar no puede ser negativo"
+            ),
+            "refund_amount_exceeds_price": (
+                409,
+                "El monto a reembolsar no puede superar el precio que costó la "
+                "boleta",
+            ),
         },
     ) or HTTPException(500, "Error interno")
 
@@ -992,7 +1000,10 @@ async def create_venue_user(
     from app.core.security import hash_password
 
     ensure_roles(user, venue_id, "super_admin", "admin")
-    async with db.cursor() as cur:
+    # Todo-o-nada: crear el usuario y asignarle el rol debe ser una sola
+    # unidad. La conexión es autocommit, así que sin el bloque un fallo en el
+    # INSERT del rol dejaba un usuario huérfano (sin ninguna venue).
+    async with db.transaction(), db.cursor() as cur:
         await cur.execute("SELECT id FROM venues WHERE id=%s", (venue_id,))
         if not await cur.fetchone():
             raise HTTPException(404, "Venue no encontrada")
@@ -1042,7 +1053,7 @@ async def create_venue_user(
             (venue_id, target_id),
         )
         out = await cur.fetchone()
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     return out
 
 

@@ -95,6 +95,7 @@ CREATE FUNCTION public.approve_ticket_payment(p_reference text, p_transaction_id
     AS $$
 DECLARE
     v_payment  ticket_payments%ROWTYPE;
+    v_coupon   coupons%ROWTYPE;
     v_ticket   bigint;
     v_event    events%ROWTYPE;
     v_type     ticket_types%ROWTYPE;
@@ -139,6 +140,26 @@ BEGIN
     -- El monto pagado debe ser EXACTAMENTE el cobrado.
     IF p_amount_in_cents <> v_payment.amount_in_cents THEN
         RAISE EXCEPTION 'payment_amount_mismatch';
+    END IF;
+
+    -- Cupón con tope de usos (mig 044): se revalida AQUÍ, en el consumo real.
+    -- La lectura del checkout es un snapshot y no basta: N cobros creados antes
+    -- del primer pago pasarian todos. FOR UPDATE serializa dos aprobaciones
+    -- concurrentes del mismo cupón.
+    IF v_payment.coupon_id IS NOT NULL THEN
+        SELECT * INTO v_coupon FROM coupons WHERE id = v_payment.coupon_id FOR UPDATE;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'coupon_not_found';
+        END IF;
+        IF NOT v_coupon.is_active THEN
+            RAISE EXCEPTION 'coupon_inactive';
+        END IF;
+        IF v_coupon.expires_at IS NOT NULL AND v_coupon.expires_at <= now() THEN
+            RAISE EXCEPTION 'coupon_expired';
+        END IF;
+        IF v_coupon.max_uses IS NOT NULL AND v_coupon.used_count >= v_coupon.max_uses THEN
+            RAISE EXCEPTION 'coupon_exhausted';
+        END IF;
     END IF;
 
     SELECT * INTO v_event FROM events WHERE id = v_payment.event_id;
@@ -1398,6 +1419,18 @@ BEGIN
         -- Ya entró alguien: devolver el dinero es una decisión manual, no un
         -- clic de panel (el lugar se usó). Se rechaza con nombre claro.
         RAISE EXCEPTION 'cannot_refund_redeemed';
+    END IF;
+
+    -- El monto reembolsado no puede superar lo que costó la boleta ni ser
+    -- negativo (mig 044). Sin este tope, el endpoint aceptaba el monto del
+    -- cliente tal cual y la caja registraba una salida mayor que el recaudo.
+    IF p_amount_in_cents IS NOT NULL THEN
+        IF p_amount_in_cents < 0 THEN
+            RAISE EXCEPTION 'refund_amount_negative';
+        END IF;
+        IF p_amount_in_cents > v_ticket.price_cents_snapshot THEN
+            RAISE EXCEPTION 'refund_amount_exceeds_price';
+        END IF;
     END IF;
 
     UPDATE tickets
