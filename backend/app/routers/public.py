@@ -19,6 +19,7 @@ from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
+from app.core.categories import EVENT_CATEGORIES
 from app.core.db import get_db
 from app.core.fan_access import create_fan_access_token, verify_fan_access_token
 from app.core.mailer import Mailer
@@ -112,12 +113,14 @@ def _starts_at_label(starts_at: datetime, tz_name: str | None) -> str:
 # --- Descubrimiento publico (app de consumidor) ---------------------------
 #
 # La pantalla "Inicio" del fan lista eventos sin login. El catalogo NO tiene
-# categoria ni precio en `events` (viven en `ticket_types`), asi que aqui se
-# derivan: el precio es el minimo de las localidades pagas activas y la
-# categoria se infiere del texto. Todo es best-effort: un evento sin
-# localidades igual se muestra (precio null), nunca rompe el listado.
+# precio en `events` (vive en `ticket_types`), asi que aqui se deriva. La
+# categoria (mig 043) ahora SI es una columna elegida por el organizador; la
+# heuristica por texto queda solo como fallback para eventos sin categoria.
+# Todo es best-effort: un evento sin localidades igual se muestra (precio
+# null), nunca rompe el listado.
 
-_CATEGORIES = ("Música", "Deportes", "Teatro")
+# Lista canonica compartida con la DB y los validadores (mig 043).
+_CATEGORIES = EVENT_CATEGORIES
 
 _CATEGORY_HINTS = (
     ("Deportes", ("futbol", "fútbol", "liga", "copa", "deporte", "baloncesto",
@@ -131,8 +134,17 @@ _CATEGORY_HINTS = (
 )
 
 
-def _category_of(name: str | None, description: str | None) -> str:
-    """Categoria inferida del texto (mejor-esfuerzo, determinista)."""
+def _category_of(
+    name: str | None, description: str | None, chosen: str | None = None
+) -> str:
+    """Categoria del evento: la elegida si existe, si no la inferida del texto.
+
+    Determinista. `chosen` (mig 043) gana siempre: el organizador manda sobre
+    la heuristica. Solo si no eligio (eventos viejos) se adivina, y el default
+    sigue siendo "Música" (el rubro del negocio).
+    """
+    if chosen and chosen.strip():
+        return chosen.strip()
     text = f"{name or ''} {description or ''}".lower()
     for label, hints in _CATEGORY_HINTS:
         if any(h in text for h in hints):
@@ -172,12 +184,17 @@ async def public_events(
         if city and city.strip():
             conds.append("(coalesce(e.location, '') || ' ' || v.name) ILIKE %s")
             params.append(f"%{city.strip()}%")
-        fetch_limit = limit if not category else min(200, limit * 4)
+        # La categoria NO se filtra en SQL: un evento sin categoria elegida
+        # (mig 043) igual cuenta si la heuristica lo clasifica ahi. Se traen
+        # mas filas y se recorta en Python, como antes.
+        want_cat = (category or "").strip()
+        fetch_limit = limit if not want_cat else min(200, limit * 4)
         params.append(fetch_limit)
         await cur.execute(
             f"""
             SELECT e.id, e.name, e.description, e.flyer_url, e.location,
                    e.starts_at, e.event_timezone, e.capacity, e.status,
+                   e.category,
                    v.name AS venue_name,
                    v.contact_name AS venue_contact_name,
                    v.contact_phone AS venue_contact_phone,
@@ -197,11 +214,10 @@ async def public_events(
         )
         rows = await cur.fetchall()
 
-    want_cat = (category or "").strip().lower()
     events: list[dict] = []
     for r in rows:
-        cat = _category_of(r["name"], r["description"])
-        if want_cat and want_cat != cat.lower():
+        cat = _category_of(r["name"], r["description"], r["category"])
+        if want_cat and want_cat.lower() != cat.lower():
             continue
         where = " · ".join(p for p in (r["location"], r["venue_name"]) if p)
         events.append(
@@ -272,6 +288,7 @@ async def public_event_detail(
             """
             SELECT e.id, e.name, e.description, e.flyer_url, e.location,
                    e.starts_at, e.event_timezone, e.capacity, e.status,
+                   e.category, e.min_age, e.dress_code, e.doors_open_at,
                    v.name AS venue_name,
                    v.contact_name AS venue_contact_name,
                    v.contact_phone AS venue_contact_phone,
@@ -310,6 +327,15 @@ async def public_event_detail(
             (event_id,),
         )
         quota = (await cur.fetchone())["quota"]
+        # Lineup (mig 043): ahora sí hay artistas. Orden de cartel.
+        await cur.execute(
+            """
+            SELECT id, name, role, sort_order FROM event_lineup
+             WHERE event_id = %s ORDER BY sort_order, id
+            """,
+            (event_id,),
+        )
+        lineup_rows = await cur.fetchall()
 
     prices = [
         int(t["price_cents"])
@@ -317,7 +343,7 @@ async def public_event_detail(
         if t["price_cents"] is not None and t["price_cents"] > 0
     ]
     min_price = min(prices) if prices else None
-    cat = _category_of(row["name"], row["description"])
+    cat = _category_of(row["name"], row["description"], row["category"])
     where = " · ".join(p for p in (row["location"], row["venue_name"]) if p)
 
     # Agotado: mismo gate que `join_waitlist` (la lista existe solo cuando NO
@@ -326,8 +352,8 @@ async def public_event_detail(
     # "comprar".
     sold_out = row["active"] >= min(int(quota), int(row["capacity"]))
 
-    # Lineup: el modelo no tiene artistas todavia. Se devuelve la lista vacia
-    # en vez de inventar cabezas de cartel; la UI muestra "por anunciar".
+    # Lineup (mig 043): los artistas de la noche, en orden de cartel. Vacio si
+    # el organizador no cargo ninguno (la UI muestra "por anunciar").
     return {
         "id": row["id"],
         "name": row["name"],
@@ -343,6 +369,12 @@ async def public_event_detail(
         "sold_pct": _sold_pct(row["active"], row["capacity"]),
         "sold_out": sold_out,
         "status": row["status"],
+        # Ficha del evento (mig 043): lo que el invitado pregunta en la puerta.
+        "min_age": row["min_age"],
+        "dress_code": row["dress_code"],
+        "doors_open_at": (
+            row["doors_open_at"].isoformat() if row["doors_open_at"] else None
+        ),
         # Contacto del organizador (mig 036): la pantalla de compra puede
         # ofrecer "encarga tu boleta" por WhatsApp al equipo del negocio.
         "contact_name": row["venue_contact_name"],
@@ -363,7 +395,11 @@ async def public_event_detail(
             }
             for t in types
         ],
-        "lineup": [],
+        "lineup": [
+            {"id": l["id"], "name": l["name"], "role": l["role"],
+             "sort_order": l["sort_order"]}
+            for l in lineup_rows
+        ],
         # Si el pago en línea está configurado: sin esto la pantalla ofrece
         # "Comprar boleto" y el POST devuelve 503. La UI muestra el contacto
         # del organizador para encargar la boleta en su lugar.
@@ -401,6 +437,83 @@ async def _checkout_rate_limit(
         window_seconds=_CHECKOUT_WINDOW,
         message="Demasiados intentos de compra. Espera unos minutos.",
     )
+
+
+def _coupon_discount(kind: str, value: int, price_cents: int) -> int:
+    """Descuento en centavos para un cupón sobre un precio. Nunca supera el
+    precio (una boleta no queda con saldo a favor) ni es negativo."""
+    if kind == "percent":
+        return min(price_cents, price_cents * value // 100)
+    return min(price_cents, int(value))
+
+
+async def _resolve_coupon(
+    cur, event_id: int, code: str | None, price_cents: int
+) -> tuple[dict | None, int]:
+    """Busca y valida el cupón para una compra. Devuelve (cupón, descuento).
+
+    Silencioso a propósito: un código que no existe, está vencido, agotado o
+    desactivado simplemente no aplica (descuento 0). Rechazar la compra por un
+    cupón mal escrito sería regalar la venta por un detalle.
+    """
+    text = (code or "").strip().upper().replace(" ", "")
+    if not text:
+        return None, 0
+    await cur.execute(
+        """
+        SELECT id, code, kind, value, max_uses, used_count, expires_at, is_active
+          FROM coupons
+         WHERE event_id = %s AND lower(code) = lower(%s)
+        """,
+        (event_id, text),
+    )
+    coupon = await cur.fetchone()
+    if not coupon or not coupon["is_active"]:
+        return None, 0
+    if coupon["expires_at"] is not None and coupon["expires_at"] <= datetime.now(timezone.utc):
+        return None, 0
+    if coupon["max_uses"] is not None and coupon["used_count"] >= coupon["max_uses"]:
+        return None, 0
+    discount = _coupon_discount(coupon["kind"], coupon["value"], price_cents)
+    return coupon, discount
+
+
+@router.get("/events/{event_id}/coupon")
+async def public_coupon_quote(
+    event_id: int,
+    ticket_type_id: int,
+    code: str,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Cotiza un cupón para el fan: cuánto pagaría. NO lo consume.
+
+    El descuento se calcula aquí para que el fan vea el precio final antes de
+    ir a Wompi; el cobro real (y el consumo del cupón) ocurre en el checkout.
+    """
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.price_cents
+              FROM ticket_types t
+              JOIN events e ON e.id = t.event_id
+             WHERE t.id = %s AND e.id = %s
+               AND e.status IN ('published', 'live') AND e.starts_at >= now()
+            """,
+            (ticket_type_id, event_id),
+        )
+        row = await cur.fetchone()
+        if not row or row["price_cents"] <= 0:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Localidad no disponible")
+        price = int(row["price_cents"])
+        coupon, discount = await _resolve_coupon(cur, event_id, code, price)
+    return {
+        "code": coupon["code"] if coupon else (code or "").strip().upper(),
+        "discount_in_cents": discount,
+        "original_in_cents": price,
+        "final_in_cents": price - discount,
+        "valid": coupon is not None,
+    }
 
 
 @router.post(
@@ -458,13 +571,31 @@ async def public_checkout(
         if expires_at <= now:
             raise HTTPException(409, "El evento ya termino: no se puede comprar")
 
+        # Cupón (mig 043): se resuelve ANTES de crear el link de Wompi, porque
+        # el monto que se cobra es el NETO. Un cupón inválido no aplica.
+        list_price = int(row["price_cents"])
+        coupon, discount = await _resolve_coupon(
+            cur, event_id, body.coupon_code, list_price
+        )
+        charge_cents = list_price - discount
+        # Un cupón que cubre TODO el precio deja el cobro en 0: Wompi no cobra
+        # $0 y la boleta gratis es una cortesía, no un descuento. Se avisa en
+        # vez de crear un cobro roto (misma intención que el tope del 99% en
+        # la tabla de cupones).
+        if charge_cents <= 0:
+            raise HTTPException(
+                409,
+                "Ese cupón cubre el precio completo: pídele al organizador "
+                "una boleta de cortesía.",
+            )
+
         reference = payment_reference(event_id)
         email = (body.customer_email or "").strip() or None
         try:
             link = await wompi.create_payment_link(
                 name=f"Boleta - {row['event_name']}",
                 description=f"Compra del fan ({row['event_name']})",
-                amount_in_cents=row["price_cents"],
+                amount_in_cents=charge_cents,
                 expires_at_iso=expires_at.isoformat(),
                 # Vuelve al detalle con la referencia para el polling de estado.
                 redirect_url=f"{s.app_public_url}/evento/{event_id}?pago={reference}",
@@ -478,14 +609,16 @@ async def public_checkout(
             INSERT INTO ticket_payments
                 (venue_id, event_id, ticket_type_id, reference, provider,
                  provider_ref, amount_in_cents, customer_name, customer_phone,
-                 customer_email, created_by_user_id)
-            VALUES (%s, %s, %s, %s, 'wompi', %s, %s, %s, %s, %s, NULL)
+                 customer_email, created_by_user_id, coupon_id,
+                 discount_in_cents)
+            VALUES (%s, %s, %s, %s, 'wompi', %s, %s, %s, %s, %s, NULL, %s, %s)
             RETURNING id
             """,
             (
                 row["venue_id"], event_id, body.ticket_type_id, reference,
-                str(link.get("id")), row["price_cents"], body.customer_name,
+                str(link.get("id")), charge_cents, body.customer_name,
                 body.customer_phone, email,
+                coupon["id"] if coupon else None, discount,
             ),
         )
         await db.commit()
@@ -493,7 +626,7 @@ async def public_checkout(
     return PublicCheckoutOut(
         reference=reference,
         payment_url=wompi.link_public_url(link),
-        amount_in_cents=row["price_cents"],
+        amount_in_cents=charge_cents,
         event_id=event_id,
         event_name=row["event_name"],
     )

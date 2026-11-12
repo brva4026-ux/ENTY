@@ -33,6 +33,8 @@ import Icon from "../components/Icon";
 import { Star4 } from "../components/Doodles";
 import TypeManager from "../components/TypeManager";
 import AllocationManager from "../components/AllocationManager";
+import LineupManager from "../components/LineupManager";
+import CouponManager from "../components/CouponManager";
 import TicketList from "../components/TicketList";
 import EventTeamPanel from "../components/EventTeamPanel";
 import EventCreateModal from "../components/EventCreateModal";
@@ -40,6 +42,7 @@ import QrTesterModal from "../components/QrTesterModal";
 import VenueHeader from "../components/VenueHeader";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
+import { EVENT_CATEGORIES } from "../lib/eventCategories";
 
 function firstVenueId(user) {
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
@@ -49,7 +52,15 @@ function firstVenueId(user) {
 
 /** Pestañas del backstage de un evento. Las del negocio (Puerta, Equipo,
  *  Liquidaciones…) viven en /admin/negocio, no aquí. */
-const EVENT_TABS = ["resumen", "entradas", "cupos", "boletas", "noche"];
+const EVENT_TABS = [
+  "resumen",
+  "entradas",
+  "cupos",
+  "boletas",
+  "lineup",
+  "cupones",
+  "noche",
+];
 
 /** Pestañas que eran del panel y ahora son sub-secciones del hub Negocio:
  *  sirven para redirigir enlaces viejos (/admin?tab=equipo). */
@@ -752,6 +763,13 @@ export default function AdminDashboard() {
       ends_at: ev.ends_at ? toLocalInput(new Date(ev.ends_at)) : "",
       capacity: String(ev.capacity),
       qr_unlock_minutes: String(ev.qr_unlock_minutes ?? 60),
+      // Ficha (mig 043): categoría elegida + datos que pregunta la puerta.
+      category: ev.category ?? "",
+      min_age: ev.min_age != null ? String(ev.min_age) : "",
+      dress_code: ev.dress_code ?? "",
+      doors_open_at: ev.doors_open_at
+        ? toLocalInput(new Date(ev.doors_open_at))
+        : "",
     });
   }
 
@@ -794,6 +812,14 @@ export default function AdminDashboard() {
             description: editingEvent.description.trim() || null,
             flyer_url: editingEvent.flyer_url.trim() || null,
             location: editingEvent.location.trim() || null,
+            // Ficha (mig 043). category="" limpia la elección (el catálogo
+            // vuelve a inferirla del texto).
+            category: editingEvent.category || "",
+            min_age: editingEvent.min_age === "" ? null : Number(editingEvent.min_age),
+            dress_code: editingEvent.dress_code.trim() || null,
+            doors_open_at: editingEvent.doors_open_at
+              ? new Date(editingEvent.doors_open_at).toISOString()
+              : null,
           }),
         },
       );
@@ -1903,6 +1929,87 @@ export default function AdminDashboard() {
                       maxLength={2000}
                     />
                   </label>
+
+                  {/* Ficha del evento (mig 043): lo que el invitado pregunta
+                      en la puerta. Categoría, edad mínima, dress code y a qué
+                      hora abren puertas. */}
+                  <label>
+                    <span className="mb-1 block text-xs font-medium text-zinc-400">
+                      Categoría
+                    </span>
+                    <select
+                      value={editingEvent.category}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          category: e.target.value,
+                        })
+                      }
+                      className="field"
+                    >
+                      <option value="">Sin categoría (automática)</option>
+                      {EVENT_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-xs font-medium text-zinc-400">
+                      Edad mínima
+                    </span>
+                    <input
+                      type="number"
+                      value={editingEvent.min_age}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          min_age: e.target.value,
+                        })
+                      }
+                      className="field"
+                      min="0"
+                      max="99"
+                      placeholder="Sin restricción"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-xs font-medium text-zinc-400">
+                      Dress code
+                    </span>
+                    <input
+                      value={editingEvent.dress_code}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          dress_code: e.target.value,
+                        })
+                      }
+                      className="field"
+                      placeholder="Elegante, casual…"
+                      maxLength={200}
+                    />
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-xs font-medium text-zinc-400">
+                      Apertura de puertas
+                    </span>
+                    <input
+                      type="datetime-local"
+                      value={editingEvent.doors_open_at}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          doors_open_at: e.target.value,
+                        })
+                      }
+                      className="field"
+                    />
+                  </label>
                 </div>
 
                 {editError && (
@@ -2145,6 +2252,24 @@ export default function AdminDashboard() {
                 types={types}
                 users={users}
                 onChange={setAllocations}
+              />
+            )}
+
+            {/* Cartel y descuentos (mig 043): armar la noche, no operarla.
+                Solo admin: el backend ya exige ese rol. */}
+            {section === "lineup" && (
+              <LineupManager
+                key={selectedEvent}
+                venueId={venueId}
+                eventId={selectedEvent}
+              />
+            )}
+
+            {section === "cupones" && (
+              <CouponManager
+                key={selectedEvent}
+                venueId={venueId}
+                eventId={selectedEvent}
               />
             )}
 

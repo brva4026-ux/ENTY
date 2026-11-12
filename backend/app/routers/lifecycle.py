@@ -26,6 +26,7 @@ from app.schemas import (
     EventPreflight,
     MessageOut,
     PurgeUserRequest,
+    RefundRequest,
     ResetPassword,
     TicketListOut,
     TicketOut,
@@ -63,6 +64,15 @@ def _error_to_http(e: psycopg.errors.Error) -> HTTPException:
         overrides={
             "event_closed": (409, "La boleta no puede anularse en este estado"),
             "cannot_void_ticket": (409, "La boleta no puede anularse en este estado"),
+            "cannot_refund_voided": (409, "Una boleta anulada no se reembolsa"),
+            "cannot_refund_redeemed": (
+                409,
+                "La boleta ya entró al evento: el reembolso es una decisión "
+                "manual, no un clic de panel",
+            ),
+            "cannot_refund_ticket": (
+                409, "La boleta no puede reembolsarse en este estado"
+            ),
         },
     ) or HTTPException(500, "Error interno")
 
@@ -879,6 +889,58 @@ async def void_ticket(
             raise _error_to_http(e)
         await db.commit()
     return MessageOut(detail="Boleta anulada. El cupo quedó liberado.")
+
+
+@router.post(
+    "/events/{event_id}/tickets/{ticket_id}/refund", response_model=MessageOut
+)
+async def refund_ticket(
+    venue_id: int, event_id: int, ticket_id: int,
+    body: RefundRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Reembolsa una boleta emitida: devuelve el cupo y deja la salida en caja.
+
+    Distinto de anular (void): anular borra la boleta sin tocar el dinero;
+    reembolsar reconoce que el dinero salió. El estado `refunded` existía en el
+    enum desde el día uno pero ningún camino lo asignaba (mig 043). A
+    diferencia de anular, SÍ se permite con el evento terminado: un reembolso
+    puede caer después de la noche.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.id, t.price_cents_snapshot
+            FROM tickets t
+            JOIN events e ON e.id = t.event_id
+            WHERE t.id=%s AND t.event_id=%s AND e.venue_id=%s
+            """,
+            (ticket_id, event_id, venue_id),
+        )
+        row = await cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Boleta no encontrada en este evento")
+        amount = (
+            body.amount_in_cents
+            if body.amount_in_cents is not None
+            else int(row["price_cents_snapshot"])
+        )
+        try:
+            await cur.execute(
+                "SELECT refund_ticket(%s, %s, %s, %s)",
+                (ticket_id, amount, body.reason, user["id"]),
+            )
+        except psycopg.errors.Error as e:
+            raise _error_to_http(e)
+        await write_audit(
+            cur, venue_id, user["id"], "ticket_refunded", "ticket", ticket_id,
+            {"event_id": event_id, "amount_in_cents": amount,
+             "reason": body.reason},
+        )
+        await db.commit()
+    return MessageOut(detail="Boleta reembolsada. El cupo quedó liberado.")
 
 
 # ---------------------------------------------------------------------------

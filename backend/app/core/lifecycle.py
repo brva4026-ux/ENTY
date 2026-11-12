@@ -28,3 +28,19 @@ async def auto_close_expired(db, *, context: str) -> None:
     except psycopg.Error as e:
         await db.rollback()
         capture_exception(e, context={"kind": "watchdog_auto_close", "from": context})
+
+
+async def remind_upcoming_events(db, *, context: str) -> None:
+    """Avisa "tu evento empieza pronto" (mig 043). Best-effort: nunca lanza.
+
+    Mismo patrón que el cierre: no hay cron en serverless, así que el aviso se
+    dispara desde lecturas baratas. `notify_event_reminders` marca cada evento
+    al avisar (reminded_at), así que llamarlo de más es inofensivo: solo
+    trabaja una vez por evento.
+    """
+    try:
+        async with db.cursor() as cur:
+            await cur.execute("SELECT notify_event_reminders()")
+    except psycopg.Error as e:
+        await db.rollback()
+        capture_exception(e, context={"kind": "watchdog_event_reminder", "from": context})

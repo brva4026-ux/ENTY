@@ -4,6 +4,7 @@ import { useUI } from "../lib/ui";
 import { eventDate } from "../lib/format";
 import Icon from "./Icon";
 import { useDialogA11y } from "../lib/useDialogA11y";
+import { EVENT_CATEGORIES } from "../lib/eventCategories";
 
 /** Date -> valor para <input type="datetime-local"> (hora LOCAL, sin zona). */
 function pad2(n) {
@@ -42,6 +43,8 @@ export function defaultEventForm() {
     flyer_url: "",
     location: "",
     description: "",
+    // Categoría elegida (mig 043): vacío = el catálogo la infiere del texto.
+    category: "",
   };
 }
 
@@ -280,6 +283,8 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           description: form.description.trim() || null,
           flyer_url: form.flyer_url.trim() || null,
           location: form.location.trim() || null,
+          // Categoría elegida (mig 043): "" deja que el catálogo la infiera.
+          category: form.category || null,
           // La zona del evento es la del admin que lo crea: así la hora que
           // escribió es la que queda impresa en la boleta del cliente.
           event_timezone:
@@ -411,6 +416,32 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 <Hint id={fid("name-hint")}>
                   Es lo primero que ven el promotor y la puerta. Sin tildes
                   problemáticas: aparecerá tal cual en la boleta.
+                </Hint>
+              </div>
+              <div className="sm:col-span-full">
+                <label
+                  htmlFor={fid("category")}
+                  className="mb-1 block text-xs font-medium text-zinc-400"
+                >
+                  Categoría
+                </label>
+                <select
+                  id={fid("category")}
+                  value={form.category}
+                  onChange={(e) => set({ category: e.target.value })}
+                  className="field"
+                  aria-describedby={fid("category-hint")}
+                >
+                  <option value="">Sin categoría (la inferimos del texto)</option>
+                  {EVENT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <Hint id={fid("category-hint")}>
+                  Ordena el evento en el catálogo público. Si lo dejas en
+                  blanco, lo clasificamos por el nombre.
                 </Hint>
               </div>
               <div className="sm:col-span-full">

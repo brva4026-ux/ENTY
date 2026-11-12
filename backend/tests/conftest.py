@@ -59,6 +59,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "040_active_venue.sql",
     ROOT / "db" / "migrations" / "041_rate_limit.sql",
     ROOT / "db" / "migrations" / "042_ops_conciliacion.sql",
+    ROOT / "db" / "migrations" / "043_eventos_ricos.sql",
 ]
 
 
@@ -98,7 +99,10 @@ def db():
                 user_preferences,
                 -- Rate limiting en DB (mig 041): si una corrida previa la dejo,
                 -- el CREATE TABLE choca con DuplicateTable y revienta el lote.
-                rate_limit_hits CASCADE;
+                rate_limit_hits,
+                -- Eventos ricos (mig 043): lineup, cupones y reembolsos.
+                -- ticket_payments referencia coupons; CASCADE resuelve el orden.
+                event_lineup, coupons, ticket_refunds CASCADE;
         -- event_staff / event_access_tokens (mig 025) referencian users y events:
         -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
         -- el orden de borrado no dependa de las FK.
@@ -130,7 +134,9 @@ def db():
             -- es el esquema completo consolidado, estas funciones se crean
             -- con CREATE FUNCTION plano y hay que soltarlas explicitamente.
             login_locked, register_login_failure, clear_login_failures,
-            prune_login_attempts, auto_close_expired_events
+            prune_login_attempts, auto_close_expired_events,
+            -- Eventos ricos (mig 043): reembolso y recordatorio.
+            refund_ticket, notify_event_reminders
             CASCADE;
         """
     )

@@ -433,6 +433,38 @@ export default function EventDetailPage() {
               </div>
             </div>
 
+            {/* Ficha del evento (mig 043): lo que el invitado pregunta en la
+                puerta. Solo se muestran los datos que el organizador cargó. */}
+            {(data.min_age != null ||
+              data.dress_code ||
+              data.doors_open_at) && (
+              <ul className="evd-facts">
+                {data.min_age != null && (
+                  <li className="evd-fact">
+                    <span className="evd-fact-k">Edad mínima</span>
+                    <span className="evd-fact-v">{data.min_age}+</span>
+                  </li>
+                )}
+                {data.dress_code && (
+                  <li className="evd-fact">
+                    <span className="evd-fact-k">Dress code</span>
+                    <span className="evd-fact-v">{data.dress_code}</span>
+                  </li>
+                )}
+                {data.doors_open_at && (
+                  <li className="evd-fact">
+                    <span className="evd-fact-k">Puertas</span>
+                    <span className="evd-fact-v">
+                      {new Date(data.doors_open_at).toLocaleTimeString("es-CO", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </li>
+                )}
+              </ul>
+            )}
+
             {/* Rail de compra: el canto troquelado del boleto. El precio se
                 repite aquí en grande — la decisión no obliga a scrollear. */}
             <div className="evd-buy enty-notch">

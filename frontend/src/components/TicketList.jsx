@@ -4,6 +4,7 @@ import {
   downloadTicketsCsv,
   listTicketsPaged,
   publicTicketPageUrl,
+  refundTicket,
 } from "../lib/api";
 import { useUI } from "../lib/ui";
 import ContactEditsHistory from "./ContactEditsHistory";
@@ -42,6 +43,10 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
   const ui = useUI();
   const [voidingId, setVoidingId] = useState(null);
   const [reason, setReason] = useState("Error de digitación");
+  // Reembolso (mig 043): el estado `refunded` existía sin dueño. Mismo patrón
+  // que la anulación: se pide el motivo antes de ejecutar.
+  const [refundingId, setRefundingId] = useState(null);
+  const [refundReason, setRefundReason] = useState("Solicitud del cliente");
   const [busy, setBusy] = useState(false);
   // Mig 015: corrección de contacto (nombre/teléfono) con auditoría.
   const [editingId, setEditingId] = useState(null);
@@ -117,6 +122,28 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
       setVoidingId(null);
       await Promise.allSettled([onChanged(), refreshList()]);
       ui.success(`Boleta #${t.id} anulada`);
+    } catch (e) {
+      onError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Reembolsa una boleta vigente (mig 043): libera el cupo, registra la
+      salida de caja y deja la boleta como "Reembolsada". Irreversible. */
+  async function doRefund(t) {
+    const ok = await ui.confirm(`¿Reembolsar la boleta #${t.id}?`, {
+      message: `Se devuelve el dinero de ${t.customer_name}. El cupo quedará liberado y la boleta no podrá volver a usarse.`,
+      danger: true,
+      confirmLabel: "Reembolsar boleta",
+    });
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await refundTicket(venueId, eventId, t.id, refundReason.trim());
+      setRefundingId(null);
+      await Promise.allSettled([onChanged(), refreshList()]);
+      ui.success(`Boleta #${t.id} reembolsada`);
     } catch (e) {
       onError(e.message);
     } finally {
@@ -428,6 +455,16 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                         >
                           Anular
                         </button>
+                        <button
+                          onClick={() => {
+                            setRefundingId(t.id);
+                            setRefundReason("Solicitud del cliente");
+                          }}
+                          className="btn-mini"
+                          data-variant="danger"
+                        >
+                          Reembolsar
+                        </button>
                       </>
                     )}
                   </div>
@@ -461,6 +498,32 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                     </button>
                     <button
                       onClick={() => setVoidingId(null)}
+                      className="btn-mini"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+                {refundingId === t.id && (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      aria-label="Motivo del reembolso"
+                      value={refundReason}
+                      onChange={(e) => setRefundReason(e.target.value)}
+                      className="field !py-1.5 text-xs"
+                      placeholder="Motivo del reembolso"
+                      minLength={3}
+                      required
+                    />
+                    <button
+                      onClick={() => doRefund(t)}
+                      disabled={busy || refundReason.trim().length < 3}
+                      className={`btn-danger !py-1.5 text-xs ${busy ? "is-busy" : ""}`}
+                    >
+                      {busy ? "Reembolsando…" : "Confirmar"}
+                    </button>
+                    <button
+                      onClick={() => setRefundingId(null)}
                       className="btn-mini"
                     >
                       Cancelar

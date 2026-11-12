@@ -4,7 +4,7 @@ BEGIN;
 -- TicketFlow — ESQUEMA COMPLETO (v2, consolidado)
 -- ============================================================================
 -- Fuente UNICA de verdad: este archivo + las migraciones de db/migrations/ en
--- orden (002..042) reproducen EXACTAMENTE la misma base. Aplicar ambos es
+-- orden (002..043) reproducen EXACTAMENTE la misma base. Aplicar ambos es
 -- seguro en cualquier estado:
 --   * instalacion nueva: schema.sql crea todo; las migraciones quedan en
 --     no-ops (todas son idempotentes: IF NOT EXISTS / OR REPLACE).
@@ -17,7 +17,8 @@ BEGIN;
 -- dump del Postgres local y falla si la base y el archivo se separan (nada
 -- entra a produccion sin pasar por aca).
 --
--- Contenido: 29 tablas (incluye rate_limit_hits de la mig 041), enums
+-- Contenido: 32 tablas (incluye rate_limit_hits de la mig 041 y
+-- event_lineup / coupons / ticket_refunds de la 043), enums
 -- user_role / ticket_status, extension pgcrypto, funciones de negocio y sus
 -- triggers.
 -- La logica transaccional (emit_ticket / redeem_ticket / reissue_ticket /
@@ -31,18 +32,18 @@ BEGIN;
 --   * Todo intento de escaneo (exitoso o no) queda en redemptions.
 --   * De la boleta solo se guarda el SHA-256 del token (tickets.token_hash).
 -- ============================================================================
-
 --
 -- PostgreSQL database dump
 --
 
 
--- Dumped from database version 16.15
--- Dumped by pg_dump version 16.15 (Debian 16.15-1.pgdg13+2)
+-- Dumped from database version 17.11 (Debian 17.11-0+deb13u1)
+-- Dumped by pg_dump version 17.11 (Debian 17.11-0+deb13u1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 -- NOTA: pg_dump emite set_config('search_path', '', false) (vacío POR
@@ -171,6 +172,17 @@ BEGIN
         v_payment.customer_email,
         'online'
     );
+
+    -- Cupón aplicado (mig 043): la boleta nace con el precio de lista; aquí se
+    -- corrige al NETO que el fan pagó, para que el recaudo y el cierre de caja
+    -- reflejen el descuento. Sin cupón, amount_in_cents == precio de lista y
+    -- este bloque no hace nada.
+    IF v_payment.discount_in_cents > 0 THEN
+        UPDATE tickets SET price_cents_snapshot = v_payment.amount_in_cents
+         WHERE id = v_ticket;
+        UPDATE coupons SET used_count = used_count + 1
+         WHERE id = v_payment.coupon_id;
+    END IF;
 
     UPDATE ticket_payments
        SET status = 'approved',
@@ -920,6 +932,52 @@ $$;
 
 
 --
+-- Name: notify_event_reminders(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_event_reminders() RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+    v_row   events%ROWTYPE;
+    v_count integer := 0;
+BEGIN
+    FOR v_row IN
+        SELECT * FROM events
+         WHERE status IN ('published', 'live')
+           AND reminded_at IS NULL
+           AND starts_at > now()
+           AND starts_at <= now() + INTERVAL '2 hours'
+         FOR UPDATE SKIP LOCKED
+    LOOP
+        PERFORM notify_venue_admins(
+            v_row.venue_id, 'event_reminder',
+            'Tu evento empieza pronto',
+            'Faltan menos de 2 horas para "' || v_row.name
+              || '". Revisa equipo, aforo y puerta.',
+            '/admin?event=' || v_row.id
+        );
+
+        -- El staff asignado (bouncers/promotores) también se entera.
+        PERFORM notify_user(
+            s.user_id, v_row.venue_id, 'event_reminder',
+            'Tu turno empieza pronto',
+            'Faltan menos de 2 horas para "' || v_row.name || '".',
+            '/admin?event=' || v_row.id
+        )
+        FROM event_staff s WHERE s.event_id = v_row.id;
+
+        UPDATE events SET reminded_at = now() WHERE id = v_row.id;
+        v_count := v_count + 1;
+    END LOOP;
+
+    RETURN v_count;
+END;
+$$;
+
+
+--
 -- Name: notify_invitation_accepted(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1313,6 +1371,52 @@ BEGIN
     INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
     VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'granted', v_scanned_at, v_door_id);
     RETURN 'GRANTED';
+END;
+$$;
+
+
+--
+-- Name: refund_ticket(bigint, bigint, text, bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.refund_ticket(p_ticket_id bigint, p_amount_in_cents bigint, p_reason text, p_by_user_id bigint) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_ticket tickets%ROWTYPE;
+BEGIN
+    SELECT * INTO v_ticket FROM tickets WHERE id = p_ticket_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'ticket_not_found'; END IF;
+
+    -- Idempotente: reembolsar dos veces no duplica la salida de caja.
+    IF v_ticket.status = 'refunded' THEN
+        RETURN v_ticket.event_id;
+    END IF;
+    IF v_ticket.status = 'voided' THEN
+        RAISE EXCEPTION 'cannot_refund_voided';
+    END IF;
+    IF v_ticket.status = 'redeemed' THEN
+        -- Ya entró alguien: devolver el dinero es una decisión manual, no un
+        -- clic de panel (el lugar se usó). Se rechaza con nombre claro.
+        RAISE EXCEPTION 'cannot_refund_redeemed';
+    END IF;
+
+    UPDATE tickets
+       SET status = 'refunded', updated_at = now()
+     WHERE id = p_ticket_id AND status = 'issued';
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'cannot_refund_ticket';
+    END IF;
+
+    INSERT INTO ticket_refunds
+        (ticket_id, event_id, amount_in_cents, reason, refunded_by_user_id)
+    VALUES (
+        p_ticket_id, v_ticket.event_id,
+        COALESCE(p_amount_in_cents, v_ticket.price_cents_snapshot),
+        p_reason, p_by_user_id
+    );
+
+    RETURN v_ticket.event_id;
 END;
 $$;
 
@@ -1815,6 +1919,43 @@ ALTER TABLE public.audit_log ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 
 
 --
+-- Name: coupons; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.coupons (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    code text NOT NULL,
+    kind text NOT NULL,
+    value integer NOT NULL,
+    max_uses integer,
+    used_count integer DEFAULT 0 NOT NULL,
+    expires_at timestamp with time zone,
+    is_active boolean DEFAULT true NOT NULL,
+    created_by bigint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT coupons_code_check CHECK ((btrim(code) <> ''::text)),
+    CONSTRAINT coupons_kind_check CHECK ((kind = ANY (ARRAY['percent'::text, 'fixed'::text]))),
+    CONSTRAINT coupons_max_uses_check CHECK (((max_uses IS NULL) OR (max_uses > 0))),
+    CONSTRAINT coupons_value_check CHECK ((((kind = 'percent'::text) AND ((value >= 1) AND (value <= 99))) OR ((kind = 'fixed'::text) AND (value > 0))))
+);
+
+
+--
+-- Name: coupons_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.coupons ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.coupons_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: door_sync_receipts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1849,6 +1990,35 @@ CREATE TABLE public.event_access_tokens (
 
 ALTER TABLE public.event_access_tokens ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.event_access_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: event_lineup; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_lineup (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    name text NOT NULL,
+    role text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT event_lineup_name_check CHECK ((btrim(name) <> ''::text))
+);
+
+
+--
+-- Name: event_lineup_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.event_lineup ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.event_lineup_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1944,7 +2114,14 @@ CREATE TABLE public.events (
     qr_unlock_minutes integer DEFAULT 60 NOT NULL,
     waitlist_offer_minutes integer DEFAULT 10 NOT NULL,
     location text,
+    category text,
+    min_age integer,
+    dress_code text,
+    doors_open_at timestamp with time zone,
+    reminded_at timestamp with time zone,
     CONSTRAINT events_capacity_check CHECK ((capacity > 0)),
+    CONSTRAINT events_category_check CHECK (((category IS NULL) OR (category = ANY (ARRAY['Música'::text, 'Deportes'::text, 'Teatro'::text, 'Fiesta'::text, 'Cultural'::text, 'Académico'::text, 'Comedia'::text, 'Otro'::text])))),
+    CONSTRAINT events_min_age_check CHECK (((min_age IS NULL) OR ((min_age >= 0) AND (min_age <= 99)))),
     CONSTRAINT events_qr_unlock_minutes_check CHECK ((qr_unlock_minutes >= 0)),
     CONSTRAINT events_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'live'::text, 'ended'::text, 'cancelled'::text]))),
     CONSTRAINT events_waitlist_offer_minutes_check CHECK ((waitlist_offer_minutes >= 1))
@@ -2101,7 +2278,7 @@ CREATE TABLE public.notifications (
     link text,
     read_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text, 'event_autoclosed'::text, 'door_anomaly'::text, 'capacity_alert'::text])))
+    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text, 'event_autoclosed'::text, 'door_anomaly'::text, 'capacity_alert'::text, 'event_reminder'::text, 'ticket_refunded'::text])))
 );
 
 
@@ -2418,6 +2595,8 @@ CREATE TABLE public.ticket_payments (
     ticket_id bigint,
     raw_payload jsonb,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    coupon_id bigint,
+    discount_in_cents bigint DEFAULT 0 NOT NULL,
     CONSTRAINT ticket_payments_amount_in_cents_check CHECK ((amount_in_cents > 0)),
     CONSTRAINT ticket_payments_provider_check CHECK ((provider = 'wompi'::text)),
     CONSTRAINT ticket_payments_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'declined'::text, 'voided'::text, 'expired'::text])))
@@ -2430,6 +2609,35 @@ CREATE TABLE public.ticket_payments (
 
 ALTER TABLE public.ticket_payments ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.ticket_payments_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: ticket_refunds; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ticket_refunds (
+    id bigint NOT NULL,
+    ticket_id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    amount_in_cents bigint DEFAULT 0 NOT NULL,
+    reason text,
+    refunded_by_user_id bigint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ticket_refunds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ticket_refunds ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.ticket_refunds_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -2688,6 +2896,14 @@ ALTER TABLE ONLY public.audit_log
 
 
 --
+-- Name: coupons coupons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupons
+    ADD CONSTRAINT coupons_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: door_sync_receipts door_sync_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2709,6 +2925,14 @@ ALTER TABLE ONLY public.event_access_tokens
 
 ALTER TABLE ONLY public.event_access_tokens
     ADD CONSTRAINT event_access_tokens_token_hash_key UNIQUE (token_hash);
+
+
+--
+-- Name: event_lineup event_lineup_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_lineup
+    ADD CONSTRAINT event_lineup_pkey PRIMARY KEY (id);
 
 
 --
@@ -2944,6 +3168,14 @@ ALTER TABLE ONLY public.ticket_payments
 
 
 --
+-- Name: ticket_refunds ticket_refunds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_refunds
+    ADD CONSTRAINT ticket_refunds_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: ticket_reissues ticket_reissues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3073,6 +3305,13 @@ CREATE INDEX idx_analytics_events_name_created ON public.analytics_events USING 
 --
 
 CREATE INDEX idx_analytics_events_session ON public.analytics_events USING btree (session_id);
+
+
+--
+-- Name: idx_event_lineup_event; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_lineup_event ON public.event_lineup USING btree (event_id, sort_order, id);
 
 
 --
@@ -3300,6 +3539,13 @@ CREATE UNIQUE INDEX idx_ticket_payments_tx ON public.ticket_payments USING btree
 
 
 --
+-- Name: idx_ticket_refunds_ticket; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ticket_refunds_ticket ON public.ticket_refunds USING btree (ticket_id);
+
+
+--
 -- Name: idx_ticket_reissues_ticket; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3360,6 +3606,13 @@ CREATE INDEX idx_user_preferences_venue ON public.user_preferences USING btree (
 --
 
 CREATE INDEX idx_users_last_login ON public.users USING btree (last_login_at);
+
+
+--
+-- Name: uq_coupons_event_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_coupons_event_code ON public.coupons USING btree (event_id, lower(code));
 
 
 --
@@ -3450,6 +3703,14 @@ ALTER TABLE ONLY public.audit_log
 
 
 --
+-- Name: coupons coupons_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupons
+    ADD CONSTRAINT coupons_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
 -- Name: event_access_tokens event_access_tokens_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3471,6 +3732,14 @@ ALTER TABLE ONLY public.event_access_tokens
 
 ALTER TABLE ONLY public.event_access_tokens
     ADD CONSTRAINT event_access_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: event_lineup event_lineup_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_lineup
+    ADD CONSTRAINT event_lineup_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
 
 
 --
@@ -3738,6 +4007,14 @@ ALTER TABLE ONLY public.ticket_contact_edits
 
 
 --
+-- Name: ticket_payments ticket_payments_coupon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_payments
+    ADD CONSTRAINT ticket_payments_coupon_id_fkey FOREIGN KEY (coupon_id) REFERENCES public.coupons(id) ON DELETE SET NULL;
+
+
+--
 -- Name: ticket_payments ticket_payments_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3775,6 +4052,22 @@ ALTER TABLE ONLY public.ticket_payments
 
 ALTER TABLE ONLY public.ticket_payments
     ADD CONSTRAINT ticket_payments_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id);
+
+
+--
+-- Name: ticket_refunds ticket_refunds_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_refunds
+    ADD CONSTRAINT ticket_refunds_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ticket_refunds ticket_refunds_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_refunds
+    ADD CONSTRAINT ticket_refunds_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
 
 
 --

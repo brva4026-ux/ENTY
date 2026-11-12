@@ -158,6 +158,8 @@ export default function EventWorkbench({
     { id: "entradas", label: "Entradas", icon: "door" },
     { id: "cupos", label: "Cupos", icon: "users" },
     { id: "boletas", label: "Boletas", icon: "ticket" },
+    { id: "lineup", label: "Lineup", icon: "sparkle" },
+    { id: "cupones", label: "Cupones", icon: "money" },
     { id: "noche", label: "Equipo", icon: "users" },
   ];
   const wbTabs = useTabKeys({

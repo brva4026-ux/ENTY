@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useDialogA11y } from "../lib/useDialogA11y";
-import { startPublicCheckout, fetchPublicCheckoutStatus } from "../lib/api";
+import {
+  startPublicCheckout,
+  fetchPublicCheckoutStatus,
+  quotePublicCoupon,
+} from "../lib/api";
 import { money } from "../lib/format";
 
 /**
@@ -30,6 +34,11 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  // Cupón (mig 043): el fan escribe el código y ve el precio final antes de
+  // ir a Wompi. La cotización NO consume el cupón (eso pasa en el checkout).
+  const [coupon, setCoupon] = useState("");
+  const [quote, setQuote] = useState(null);
+  const [quoting, setQuoting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   // Que campo provoco el aviso: el mensaje se enlaza a ESE campo con
@@ -110,6 +119,29 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
     }
   }
 
+  // Al cambiar de localidad, la cotización del cupón deja de ser válida (el
+  // descuento depende del precio). Se limpia para no mostrar un precio falso.
+  useEffect(() => {
+    setQuote(null);
+  }, [typeId]);
+
+  async function applyCoupon() {
+    const code = coupon.trim();
+    if (!code || !typeId) return;
+    setQuoting(true);
+    setError("");
+    try {
+      const res = await quotePublicCoupon(event.id, typeId, code);
+      setQuote(res);
+      if (!res.valid) setError("Ese código no aplica a esta localidad.");
+    } catch {
+      setQuote(null);
+      setError("No pudimos validar el cupón. Intenta de nuevo.");
+    } finally {
+      setQuoting(false);
+    }
+  }
+
   async function submit(e) {
     e.preventDefault();
     if (!typeId || busy) return;
@@ -139,6 +171,9 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
         customer_name: name.trim(),
         customer_phone: phone.trim(),
         customer_email: email.trim() || null,
+        // Solo se manda el cupón si la cotización lo validó: un código a
+        // medias no debe viajar al cobro.
+        coupon_code: quote?.valid ? coupon.trim() : null,
       });
       // Recuerda el contacto: es con el que reclamará su QR en /boletas.
       const contact = (email.trim() || phone.trim()).toLowerCase();
@@ -353,6 +388,39 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
               />
             </label>
 
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-zinc-400">
+                Código de descuento (opcional)
+              </span>
+              <div className="flex gap-2">
+                <input
+                  className="field uppercase tracking-wider"
+                  value={coupon}
+                  onChange={(e) => {
+                    setCoupon(e.target.value.toUpperCase());
+                    setQuote(null);
+                  }}
+                  maxLength={40}
+                  placeholder="TEMPRANO20"
+                  autoComplete="off"
+                  aria-label="Código de descuento"
+                />
+                <button
+                  type="button"
+                  onClick={applyCoupon}
+                  disabled={quoting || coupon.trim().length < 2 || !typeId}
+                  className="btn-ghost shrink-0 !px-3 !py-1.5 text-2xs font-bold"
+                >
+                  {quoting ? "…" : "Aplicar"}
+                </button>
+              </div>
+              {quote?.valid && (
+                <span className="mt-1 block text-2xs font-semibold text-emerald-300">
+                  Cupón {quote.code} aplicado: −{money(quote.discount_in_cents)}
+                </span>
+              )}
+            </label>
+
             <p className="text-2xs text-zinc-500">
               Usamos tu WhatsApp para entregarte la boleta. El correo es
               opcional.
@@ -376,7 +444,11 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
               {busy
                 ? "Abriendo pago…"
                 : selected
-                  ? `Pagar ${money(selected.price_cents)}`
+                  ? `Pagar ${money(
+                      quote?.valid
+                        ? quote.final_in_cents
+                        : selected.price_cents,
+                    )}`
                   : "Comprar"}
             </button>
           </form>

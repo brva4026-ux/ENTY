@@ -48,7 +48,10 @@ def test_catalog_is_public_and_lists_open_future_shows(api, api_client):
     assert res.status_code == 200, res.text
     body = res.json()
 
-    assert body["categories"] == ["Música", "Deportes", "Teatro"]
+    assert body["categories"] == [
+        "Música", "Deportes", "Teatro", "Fiesta", "Cultural",
+        "Académico", "Comedia", "Otro",
+    ]
     show = _by_name(body, name)
     assert show["price_cents"] == 18000000  # cortesia excluida del minimo
     assert show["category"] == "Música"

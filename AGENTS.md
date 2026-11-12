@@ -160,6 +160,46 @@ mergear a `master`, pero la 042 hay que aplicarla a mano contra Supabase
 hasta que se corra `deploy.sh`.
 
 
+### Eventos más ricos: lineup, cupones, ficha y reembolsos (mig 043)
+
+`db/migrations/043_eventos_ricos.sql` (consolidado en `db/schema.sql`) llena
+huecos que existían en el modelo del evento:
+
+- **Ficha del evento.** `events.category` (lista cerrada, ver
+  `app/core/categories.py` y su espejo `frontend/src/lib/eventCategories.js`),
+  `min_age`, `dress_code` y `doors_open_at`. Antes la categoría no existía en
+  la DB: el catálogo la **adivinaba** del texto (`_category_of`) y caía en
+  "Música". Ahora el organizador la elige en el asistente / la edición y la
+  heurística queda como fallback. La constraint `events_category_check` acota
+  los valores; si agregás una categoría, migrá también la constraint.
+- **Lineup.** `event_lineup` (nombre + rol + `sort_order`): el cartel de la
+  noche. Se administra en la pestaña **Lineup** del backstage y el detalle
+  público lo lee en su pestaña Lineup. El orden es el del cartel (menor
+  primero).
+- **Cupones.** `coupons` (`code` normalizado a mayúsculas, `kind`
+  `percent`/`fixed`, `value`, `max_uses`, `used_count`, `expires_at`,
+  `is_active`), solo venta online. El fan lo aplica en el checkout: la
+  cotización pública (`GET /public/events/{id}/coupon`) **no** lo consume (eso
+  pasa en el checkout real); el monto neto lo cobra el servidor. Un cupón que
+  cubre el 100% se rechaza (Wompi no cobra $0).
+- **Reembolso.** `refund_ticket()` es el dueño del estado `refunded` (que
+  existía en el enum sin dueño): libera el cupo, deja auditoría en
+  `ticket_refunds` (monto + motivo + quién) y lo saca de caja. Distinto de
+  anular (`void`): anular borra la boleta sin tocar el dinero. Una boleta ya
+  redimida no se reembolsa automáticamente (409: el reembolso es manual).
+- **Recordatorio.** `notify_event_reminders()` avisa "tu evento empieza pronto"
+  (kind `event_reminder`) y marca `reminded_at`, así que llamarlo de más es
+  inofensivo. Igual que el cierre automático, no hay cron en serverless: se
+  dispara desde lecturas baratas (`remind_upcoming_events`, enganchado al
+  listado de eventos). El enum de `notifications.kind` sumó
+  `event_reminder` y `ticket_refunded`.
+
+**La migración no viaja con el push.** El código se despliega en Vercel al
+mergear a `master`, pero la 043 hay que aplicarla a mano contra Supabase
+(`bash scripts/deploy.sh`). Mientras no corra, `/health` reporta
+`"schema": "behind"`. Es esperable tras este cambio hasta que corra `deploy.sh`.
+
+
 ### Correr la suite E2E dos veces seguidas (importante)
 
 La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los

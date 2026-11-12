@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
-from app.core.lifecycle import auto_close_expired
+from app.core.lifecycle import auto_close_expired, remind_upcoming_events
 from app.deps import ensure_roles, get_current_user
 from app.core.audit import write_audit
 from app.core.observability import capture_exception
@@ -18,9 +18,14 @@ from app.schemas import (
     AllocationOut,
     AllocationUpdate,
     DeleteOut,
+    CouponCreate,
+    CouponOut,
+    CouponUpdate,
     EventCreate,
     EventOut,
     EventUpdate,
+    LineupItemCreate,
+    LineupItemOut,
     MessageOut,
     MyEventOut,
     TicketTypeCreate,
@@ -60,7 +65,8 @@ def _event_ctx(venue_id: int, user: dict):
 # ---------------------------------------------------------------------------
 EVENT_COLUMNS = (
     "id, venue_id, name, description, flyer_url, location, starts_at, ends_at, "
-    "event_timezone, capacity, qr_unlock_minutes, status"
+    "event_timezone, capacity, qr_unlock_minutes, status, category, min_age, "
+    "dress_code, doors_open_at"
 )
 
 
@@ -72,7 +78,22 @@ async def fetch_event(cur, event_id: int, venue_id: int | None = None) -> dict |
         sql += " AND venue_id=%s"
         params.append(venue_id)
     await cur.execute(sql, tuple(params))
-    return await cur.fetchone()
+    row = await cur.fetchone()
+    if row is not None:
+        row["lineup"] = await fetch_lineup(cur, event_id)
+    return row
+
+
+async def fetch_lineup(cur, event_id: int) -> list[dict]:
+    """El lineup del evento, en orden de cartel (mig 043)."""
+    await cur.execute(
+        """
+        SELECT id, name, role, sort_order FROM event_lineup
+         WHERE event_id=%s ORDER BY sort_order, id
+        """,
+        (event_id,),
+    )
+    return list(await cur.fetchall())
 
 
 # ---------------------------------------------------------------------------
@@ -219,6 +240,7 @@ async def list_events(
     # /events/mine, /overview y /door-snapshot (app/core/lifecycle.py): el
     # cierre no depende de que el ADMIN sea quien pase por su panel.
     await auto_close_expired(db, context="list_events")
+    await remind_upcoming_events(db, context="list_events")
     async with db.cursor() as cur:
         await cur.execute(
             f"SELECT {EVENT_COLUMNS} FROM events "
@@ -318,8 +340,10 @@ async def create_event(
             f"""
             INSERT INTO events (venue_id, name, description, flyer_url,
                                 location, starts_at, ends_at, event_timezone,
-                                capacity, qr_unlock_minutes, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft')
+                                capacity, qr_unlock_minutes, status,
+                                category, min_age, dress_code, doors_open_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft',
+                    %s, %s, %s, %s)
             RETURNING {EVENT_COLUMNS}
             """,
             (
@@ -334,9 +358,14 @@ async def create_event(
                 body.event_timezone,
                 body.capacity,
                 body.qr_unlock_minutes,
+                body.category,
+                body.min_age,
+                (body.dress_code or "").strip() or None,
+                body.doors_open_at,
             ),
         )
         created = await cur.fetchone()
+        created["lineup"] = []
         await db.commit()
     return created
 
@@ -382,11 +411,15 @@ async def duplicate_event(
                 INSERT INTO events (venue_id, name, description, flyer_url,
                                     location, starts_at, ends_at,
                                     event_timezone, capacity,
-                                    qr_unlock_minutes, status)
+                                    qr_unlock_minutes, waitlist_offer_minutes,
+                                    category, min_age, dress_code,
+                                    status)
                 VALUES (%s, %s, %s, %s, %s,
                         (SELECT starts_at FROM events WHERE id = %s)
                           + (%s * interval '1 day'),
-                        NULL, %s, %s, %s, 'draft')
+                        NULL, %s, %s, %s,
+                        (SELECT waitlist_offer_minutes FROM events WHERE id = %s),
+                        %s, %s, %s, 'draft')
                 RETURNING id
             ), new_types AS (
                 INSERT INTO ticket_types (event_id, name, price_cents,
@@ -397,6 +430,15 @@ async def duplicate_event(
                 FROM ticket_types tt, new_ev
                 WHERE tt.event_id = %s AND tt.is_active
                 RETURNING id, name
+            ), new_lineup AS (
+                -- El cartel también se repite: la recurrencia semanal casi
+                -- siempre trae al mismo DJ. `doors_open_at` NO se copia: es
+                -- relativo a la fecha nueva y quedaría en el pasado.
+                INSERT INTO event_lineup (event_id, name, role, sort_order)
+                SELECT new_ev.id, el.name, el.role, el.sort_order
+                FROM event_lineup el, new_ev
+                WHERE el.event_id = %s
+                RETURNING 1
             )
             INSERT INTO promoter_allocations
                    (event_id, ticket_type_id, promoter_id, capacity, is_active)
@@ -419,6 +461,11 @@ async def duplicate_event(
                 src["event_timezone"],
                 src["capacity"],
                 src["qr_unlock_minutes"],
+                event_id,
+                src["category"],
+                src["min_age"],
+                src["dress_code"],
+                event_id,
                 event_id,
                 event_id,
             ),
@@ -480,6 +527,30 @@ async def update_event(
             await cur.execute(
                 "UPDATE events SET location=%s WHERE id=%s",
                 ((body.location or "").strip() or None, event_id),
+            )
+        # Mig 043: la ficha (categoría, edad, dress code, apertura de puertas)
+        # tampoco está en la firma de update_event; se aplica directo. Un
+        # category="" limpia la elección (vuelve a la heurística del catálogo).
+        sent = body.model_dump(exclude_unset=True)
+        if "category" in sent:
+            await cur.execute(
+                "UPDATE events SET category=%s WHERE id=%s",
+                (body.category, event_id),
+            )
+        if "min_age" in sent:
+            await cur.execute(
+                "UPDATE events SET min_age=%s WHERE id=%s",
+                (body.min_age, event_id),
+            )
+        if "dress_code" in sent:
+            await cur.execute(
+                "UPDATE events SET dress_code=%s WHERE id=%s",
+                ((body.dress_code or "").strip() or None, event_id),
+            )
+        if "doors_open_at" in sent:
+            await cur.execute(
+                "UPDATE events SET doors_open_at=%s WHERE id=%s",
+                (body.doors_open_at, event_id),
             )
 
         try:
@@ -885,3 +956,275 @@ async def delete_allocation(
             else "Cupo eliminado."
         ),
     )
+
+# --------------------------------------------------------------------------
+# Lineup (mig 043): los artistas de la noche
+# --------------------------------------------------------------------------
+_LINEUP_COLUMNS = "id, name, role, sort_order"
+
+
+async def _ensure_event(cur, venue_id: int, event_id: int) -> None:
+    await cur.execute(
+        "SELECT id FROM events WHERE id=%s AND venue_id=%s", (event_id, venue_id)
+    )
+    if not await cur.fetchone():
+        raise HTTPException(404, "Evento no encontrado")
+
+
+@router.get("/events/{event_id}/lineup", response_model=list[LineupItemOut])
+async def list_lineup(
+    venue_id: int,
+    event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    _event_ctx(venue_id, user)
+    async with db.cursor() as cur:
+        await _ensure_event(cur, venue_id, event_id)
+        return await fetch_lineup(cur, event_id)
+
+
+@router.post(
+    "/events/{event_id}/lineup", response_model=LineupItemOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_lineup_item(
+    venue_id: int,
+    event_id: int,
+    body: LineupItemCreate,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _ensure_event(cur, venue_id, event_id)
+        await cur.execute(
+            f"""
+            INSERT INTO event_lineup (event_id, name, role, sort_order)
+            VALUES (%s, %s, %s, %s)
+            RETURNING {_LINEUP_COLUMNS}
+            """,
+            (
+                event_id, body.name,
+                (body.role or "").strip() or None,
+                body.sort_order,
+            ),
+        )
+        created = await cur.fetchone()
+        await db.commit()
+    return created
+
+
+@router.patch(
+    "/events/{event_id}/lineup/{item_id}", response_model=LineupItemOut
+)
+async def update_lineup_item(
+    venue_id: int,
+    event_id: int,
+    item_id: int,
+    body: LineupItemCreate,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Reemplazo del acto (nombre/rol/orden). El lineup es un cartel corto: no
+    vale la pena un PATCH parcial campo a campo."""
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _ensure_event(cur, venue_id, event_id)
+        await cur.execute(
+            f"""
+            UPDATE event_lineup
+               SET name=%s, role=%s, sort_order=%s
+             WHERE id=%s AND event_id=%s
+            RETURNING {_LINEUP_COLUMNS}
+            """,
+            (
+                body.name,
+                (body.role or "").strip() or None,
+                body.sort_order,
+                item_id, event_id,
+            ),
+        )
+        updated = await cur.fetchone()
+        if not updated:
+            raise HTTPException(404, "Acto no encontrado en este evento")
+        await db.commit()
+    return updated
+
+
+@router.delete(
+    "/events/{event_id}/lineup/{item_id}", response_model=MessageOut
+)
+async def delete_lineup_item(
+    venue_id: int,
+    event_id: int,
+    item_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _ensure_event(cur, venue_id, event_id)
+        await cur.execute(
+            "DELETE FROM event_lineup WHERE id=%s AND event_id=%s",
+            (item_id, event_id),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(404, "Acto no encontrado en este evento")
+        await db.commit()
+    return MessageOut(detail="Acto eliminado del lineup.")
+
+
+# --------------------------------------------------------------------------
+# Cupones (mig 043): descuentos por código, solo venta online
+# --------------------------------------------------------------------------
+_COUPON_COLUMNS = (
+    "id, event_id, code, kind, value, max_uses, used_count, expires_at, is_active"
+)
+
+
+@router.get("/events/{event_id}/coupons", response_model=list[CouponOut])
+async def list_coupons(
+    venue_id: int,
+    event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    _event_ctx(venue_id, user)
+    async with db.cursor() as cur:
+        await _ensure_event(cur, venue_id, event_id)
+        await cur.execute(
+            f"SELECT {_COUPON_COLUMNS} FROM coupons WHERE event_id=%s ORDER BY id",
+            (event_id,),
+        )
+        return await cur.fetchall()
+
+
+@router.post(
+    "/events/{event_id}/coupons", response_model=CouponOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_coupon(
+    venue_id: int,
+    event_id: int,
+    body: CouponCreate,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _ensure_event(cur, venue_id, event_id)
+        try:
+            await cur.execute(
+                f"""
+                INSERT INTO coupons (event_id, code, kind, value, max_uses,
+                                     expires_at, is_active, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING {_COUPON_COLUMNS}
+                """,
+                (
+                    event_id, body.code, body.kind, body.value, body.max_uses,
+                    body.expires_at, body.is_active, user["id"],
+                ),
+            )
+        except psycopg.errors.UniqueViolation:
+            raise HTTPException(
+                409, "Ya existe un cupón con ese código en este evento"
+            )
+        created = await cur.fetchone()
+        await write_audit(
+            cur, venue_id, user["id"], "coupon_created", "coupon",
+            created["id"],
+            {"event_id": event_id, "code": created["code"],
+             "kind": created["kind"], "value": created["value"]},
+        )
+        await db.commit()
+    return created
+
+
+@router.patch("/events/{event_id}/coupons/{coupon_id}", response_model=CouponOut)
+async def update_coupon(
+    venue_id: int,
+    event_id: int,
+    coupon_id: int,
+    body: CouponUpdate,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Edición parcial del cupón (pausar, ampliar usos, cambiar valor).
+
+    El código NO se edita: si te equivocaste, se desactiva y se crea otro. Un
+    código ya dictado por WhatsApp que cambia de valor es una trampa.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _ensure_event(cur, venue_id, event_id)
+        await cur.execute(
+            f"SELECT {_COUPON_COLUMNS} FROM coupons WHERE id=%s AND event_id=%s",
+            (coupon_id, event_id),
+        )
+        current = await cur.fetchone()
+        if not current:
+            raise HTTPException(404, "Cupón no encontrado")
+        changes = body.model_dump(exclude_unset=True)
+        # `expires_at` y `max_uses` se pueden limpiar enviando null explícito;
+        # el resto solo se aplica si viene con valor.
+        merged = {**current}
+        for k, v in changes.items():
+            if v is not None or k in ("expires_at", "max_uses"):
+                merged[k] = v
+        try:
+            await cur.execute(
+                f"""
+                UPDATE coupons
+                   SET kind=%s, value=%s, max_uses=%s, expires_at=%s, is_active=%s
+                 WHERE id=%s AND event_id=%s
+                RETURNING {_COUPON_COLUMNS}
+                """,
+                (
+                    merged["kind"], merged["value"], merged["max_uses"],
+                    merged["expires_at"], merged["is_active"], coupon_id, event_id,
+                ),
+            )
+        except psycopg.errors.CheckViolation:
+            raise HTTPException(
+                400, "Valor de cupón inválido (porcentaje 1-99, fijo > 0)"
+            )
+        updated = await cur.fetchone()
+        await db.commit()
+    return updated
+
+
+@router.delete("/events/{event_id}/coupons/{coupon_id}", response_model=MessageOut)
+async def delete_coupon(
+    venue_id: int,
+    event_id: int,
+    coupon_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Elimina el cupón si nadie lo usó; si ya se usó, lo desactiva.
+
+    Un cupón usado se conserva: los cobros que lo aplicaron lo referencian y
+    el arqueo necesita ver con qué código se descontó.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _ensure_event(cur, venue_id, event_id)
+        await cur.execute(
+            "SELECT used_count FROM coupons WHERE id=%s AND event_id=%s",
+            (coupon_id, event_id),
+        )
+        row = await cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Cupón no encontrado")
+        if row["used_count"] > 0:
+            await cur.execute(
+                "UPDATE coupons SET is_active=FALSE WHERE id=%s", (coupon_id,)
+            )
+            detail = "Cupón desactivado: ya se usó y los cobros lo referencian."
+        else:
+            await cur.execute("DELETE FROM coupons WHERE id=%s", (coupon_id,))
+            detail = "Cupón eliminado."
+        await db.commit()
+    return MessageOut(detail=detail)

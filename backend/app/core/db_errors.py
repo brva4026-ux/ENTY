@@ -113,6 +113,13 @@ DB_ERRORS: dict[str, tuple[int, str]] = {
     ),
     "cannot_void_redeemed": (409, "No se puede anular una boleta ya redimida"),
     "cannot_void_ticket": (409, "La boleta no puede anularse en este estado"),
+    # Reembolso (mig 043). `refunded` existía en el enum sin dueño; estos son
+    # los códigos que devuelve `refund_ticket`.
+    "cannot_refund_voided": (409, "Una boleta anulada no se reembolsa"),
+    "cannot_refund_redeemed": (
+        409, "La boleta ya entró al evento: el reembolso es manual"
+    ),
+    "cannot_refund_ticket": (409, "La boleta no puede reembolsarse en este estado"),
 }
 
 # Claves ordenadas de mayor a menor: la primera coincidencia gana, así los

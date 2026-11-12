@@ -233,6 +233,86 @@ export function reissueTicket(venueId, eventId, ticketId, reason) {
   );
 }
 
+/**
+ * Reembolsa una boleta (mig 043): asigna el estado `refunded` que existía sin
+ * dueño. Libera el cupo y deja la salida en caja. El monto es opcional (por
+ * defecto, el precio pagado). Irreversible.
+ */
+export function refundTicket(venueId, eventId, ticketId, reason, amountCents) {
+  const payload = { reason };
+  if (amountCents != null) payload.amount_in_cents = amountCents;
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/tickets/${ticketId}/refund`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Lineup y cupones del evento (mig 043). Solo admin: son parte de armar la
+// noche, no de operarla.
+// ---------------------------------------------------------------------------
+
+export function listLineup(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/lineup`);
+}
+
+export function addLineupItem(venueId, eventId, item) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/lineup`, {
+    method: "POST",
+    body: JSON.stringify(item),
+  });
+}
+
+export function updateLineupItem(venueId, eventId, itemId, item) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/lineup/${itemId}`, {
+    method: "PATCH",
+    body: JSON.stringify(item),
+  });
+}
+
+export function deleteLineupItem(venueId, eventId, itemId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/lineup/${itemId}`, {
+    method: "DELETE",
+  });
+}
+
+export function listCoupons(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/coupons`);
+}
+
+export function createCoupon(venueId, eventId, coupon) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/coupons`, {
+    method: "POST",
+    body: JSON.stringify(coupon),
+  });
+}
+
+export function updateCoupon(venueId, eventId, couponId, patch) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/coupons/${couponId}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function deleteCoupon(venueId, eventId, couponId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/coupons/${couponId}`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Cotiza un cupón para el fan (público): cuánto pagaría con ese código. NO lo
+ * consume. `valid=false` significa que el código no aplica (no existe, expiró,
+ * agotado o el evento no está a la venta).
+ */
+export function quotePublicCoupon(eventId, ticketTypeId, code) {
+  const qs = new URLSearchParams({
+    ticket_type_id: String(ticketTypeId),
+    code,
+  });
+  return apiFetch(`/public/events/${eventId}/coupon?${qs}`);
+}
+
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem("tf_token");
   const headers = {

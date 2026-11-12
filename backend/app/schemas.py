@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 from app.core.password_policy import PasswordStr, check_password_strength
+from app.core.categories import validate_event_category
 from app.core.urlguard import validate_flyer_url, validate_public_http_url
 
 # Regex de email pragmática: acepta tlds de prueba (.test, .local) y hosts reales.
@@ -182,6 +183,18 @@ class EventCreate(BaseModel):
     # de la apertura en que el QR se dibuja. 0 = siempre visible. Default 60,
     # el estándar del rubio.
     qr_unlock_minutes: int = Field(default=60, ge=0, le=10080)
+    # Mig 043: categoría elegida (None = el catálogo la infiere del texto),
+    # ficha del invitado y apertura de puertas.
+    category: str | None = None
+
+    @field_validator("category")
+    @classmethod
+    def _category_allowed(cls, v):
+        return validate_event_category(v)
+
+    min_age: int | None = Field(default=None, ge=0, le=99)
+    dress_code: str | None = Field(default=None, max_length=200)
+    doors_open_at: datetime | None = None
 
     @model_validator(mode="after")
     def _check_window(self) -> "EventCreate":
@@ -221,6 +234,18 @@ class EventUpdate(BaseModel):
     event_timezone: str | None = Field(default=None, max_length=60)
     capacity: int | None = Field(default=None, gt=0)
     qr_unlock_minutes: int | None = Field(default=None, ge=0, le=10080)
+    # Mig 043: categoría, ficha del invitado y apertura de puertas. Un string
+    # vacío en category limpia la elección (vuelve a la heurística).
+    category: str | None = None
+
+    @field_validator("category")
+    @classmethod
+    def _category_allowed(cls, v):
+        return validate_event_category(v, allow_blank=True)
+
+    min_age: int | None = Field(default=None, ge=0, le=99)
+    dress_code: str | None = Field(default=None, max_length=200)
+    doors_open_at: datetime | None = None
 
     @model_validator(mode="after")
     def _check_window(self) -> "EventUpdate":
@@ -236,6 +261,30 @@ class EventUpdate(BaseModel):
             if self.ends_at <= self.starts_at:
                 raise ValueError("ends_at debe ser posterior a starts_at")
         return self
+
+
+class LineupItemOut(BaseModel):
+    """Un acto del lineup (mig 043). `role` es libre: DJ, telonero, host..."""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    role: str | None = None
+    sort_order: int = 0
+
+
+class LineupItemCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+
+    @field_validator("name")
+    @classmethod
+    def _name_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("El nombre del acto no puede estar en blanco")
+        return v.strip()
+
+    role: str | None = Field(default=None, max_length=60)
+    sort_order: int = Field(default=0, ge=0, le=9999)
+
 
 
 class EventOut(BaseModel):
@@ -259,6 +308,13 @@ class EventOut(BaseModel):
     capacity: int
     qr_unlock_minutes: int = 60
     status: str
+    # Mig 043: categoría elegida (NULL = sin elegir -> el catálogo cae a la
+    # heurística), ficha del invitado y lineup.
+    category: str | None = None
+    min_age: int | None = None
+    dress_code: str | None = None
+    doors_open_at: datetime | None = None
+    lineup: list[LineupItemOut] = Field(default_factory=list)
 
 
 class TicketTypeCreate(BaseModel):
@@ -889,6 +945,10 @@ class PublicCheckoutRequest(BaseModel):
     customer_name: str = Field(min_length=1, max_length=200)
     customer_phone: str = Field(min_length=5, max_length=30)
     customer_email: str | None = Field(default=None, max_length=200)
+    # Código de descuento (mig 043), opcional. El servidor lo valida contra el
+    # evento; un código inválido NO tumba la compra: se ignora (mejor vender
+    # sin descuento que perder la venta por un typo).
+    coupon_code: str | None = Field(default=None, max_length=40)
 
 
 class PublicCheckoutOut(BaseModel):
@@ -1070,6 +1130,72 @@ class DoorSyncOut(BaseModel):
 # --------------------------------------------------------------------------
 class VoidRequest(BaseModel):
     reason: str = Field(min_length=3, max_length=300)
+
+
+class RefundRequest(BaseModel):
+    """Reembolso de una boleta (mig 043). El monto es opcional: por defecto el
+    precio que pagó. El motivo es obligatorio (queda en la auditoría)."""
+    reason: str = Field(min_length=3, max_length=300)
+    amount_in_cents: int | None = Field(default=None, ge=0)
+
+
+# --------------------------------------------------------------------------
+# Cupones (mig 043): descuentos por código, solo venta online
+# --------------------------------------------------------------------------
+class CouponCreate(BaseModel):
+    code: str = Field(min_length=2, max_length=40)
+
+    @field_validator("code")
+    @classmethod
+    def _code_clean(cls, v: str) -> str:
+        # El código viaja en URLs y se dicta por WhatsApp: sin espacios y en
+        # mayúsculas para que "temprano20" y "TEMPRANO 20" no diverjan.
+        text = v.strip().upper().replace(" ", "")
+        if len(text) < 2:
+            raise ValueError("El código es demasiado corto")
+        return text
+
+    kind: Literal["percent", "fixed"]
+    value: int = Field(gt=0)
+    max_uses: int | None = Field(default=None, ge=1)
+    expires_at: datetime | None = None
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def _value_matches_kind(self) -> "CouponCreate":
+        if self.kind == "percent" and not (1 <= self.value <= 99):
+            raise ValueError("Un cupón de porcentaje debe estar entre 1 y 99")
+        return self
+
+
+class CouponUpdate(BaseModel):
+    kind: Literal["percent", "fixed"] | None = None
+    value: int | None = Field(default=None, gt=0)
+    max_uses: int | None = Field(default=None, ge=1)
+    expires_at: datetime | None = None
+    is_active: bool | None = None
+
+
+class CouponOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    code: str
+    kind: str
+    value: int
+    max_uses: int | None = None
+    used_count: int = 0
+    expires_at: datetime | None = None
+    is_active: bool = True
+
+
+class CouponQuoteOut(BaseModel):
+    """Cotización de un cupón para el fan: cuánto pagaría. No lo consume."""
+    code: str
+    discount_in_cents: int
+    original_in_cents: int
+    final_in_cents: int
+    valid: bool = False
 
 
 class VenueUserOut(BaseModel):

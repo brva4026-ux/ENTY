@@ -1986,6 +1986,38 @@ html[data-theme="light"] .bizdock-count {
   color: var(--e-text-secondary);
 }
 
+/* Ficha del evento (mig 043): edad, dress code y apertura de puertas. Una
+   tira compacta de hechos — se lee de un vistazo antes de comprar. */
+.evd-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-gap-inline);
+  margin-top: var(--e-gap-field);
+  list-style: none;
+  padding: 0;
+}
+.evd-fact {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.evd-fact-k {
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--e-text-secondary);
+}
+.evd-fact-v {
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  color: var(--e-white);
+}
+
 /* CTA principal: pildora violeta que emite luz (mismo idioma que .home-cta) */
 .evd-cta {
   display: inline-flex;

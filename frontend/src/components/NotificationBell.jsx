@@ -30,7 +30,9 @@ const KIND_TILE = {
   payout_disputed: { icon: "flag", tile: "bg-amber-500/15 text-amber-400" },
   invitation_accepted: { icon: "users", tile: "bg-sky-500/15 text-sky-400" },
   ticket_reissued: { icon: "qr", tile: "bg-violet-500/15 text-violet-300" },
+  ticket_refunded: { icon: "money", tile: "bg-rose-500/15 text-rose-400" },
   event_autoclosed: { icon: "clock", tile: "bg-amber-500/15 text-amber-400" },
+  event_reminder: { icon: "calendar", tile: "bg-brand-500/15 text-brand-300" },
   door_anomaly: { icon: "shield", tile: "bg-rose-500/15 text-rose-400" },
 };
 
@@ -40,7 +42,9 @@ const KIND_LABEL = {
   payout_disputed: "Disputa",
   invitation_accepted: "Equipo",
   ticket_reissued: "Boleta",
+  ticket_refunded: "Reembolso",
   event_autoclosed: "Evento",
+  event_reminder: "Recordatorio",
   door_anomaly: "Puerta",
 };
 
