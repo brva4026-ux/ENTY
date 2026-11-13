@@ -239,6 +239,44 @@ registran ANTES del bloque y quedan confirmados a propósito (un intento fallido
 debe contar aunque el resto revierta).
 
 
+### Concurrencia de liquidaciones y equipos (mig 045)
+
+`db/migrations/045_payout_no_overlap.sql` mueve a la DB la invariante de que dos
+liquidaciones de un mismo promotor no pueden solaparse. La lección general:
+**un chequeo "leer y luego escribir" no es una garantía; la garantía es una
+restricción en la DB.**
+
+- **Solape de rangos.** `generate_payout` leía `max(period_end)` e insertaba
+  después. El índice único `idx_payouts_unique_period` solo cubría
+  `period_start` idéntico, así que un solape con otro inicio
+  (`01-01..01-31` vs `01-15..02-15`) pasaba limpio y el promotor cobraba dos
+  veces. Ahora una **exclusion constraint** (`EXCLUDE USING gist` con
+  `btree_gist` sobre `venue_id WITH =, promoter_id WITH =, daterange(...) WITH
+  &&`) lo hace imposible en el INSERT. Requiere `CREATE EXTENSION btree_gist`
+  (está en `schema.sql` y en la migración).
+- **El advisory lock evita el `DeadlockDetected`.** Con la exclusion constraint
+  puesta, dos INSERT concurrentes que se solapan chocan en el índice GiST y
+  Postgres responde `DeadlockDetected` (un 500) en vez del 409 limpio. Por eso
+  `generate_payout` toma `pg_advisory_xact_lock(hashtextextended(venue ||
+  ':' || promoter, 0))` al entrar: serializa las generaciones del MISMO
+  promotor, y la segunda cae en el chequeo de solape → 409. **Lección: al
+  añadir una exclusion constraint a un endpoint concurrente, hay que serializar
+  también a nivel de aplicación.**
+- **Transiciones de estado.** `dispute_payout` y `review_payout` ahora van en
+  `db.transaction()` y leen la fila con `FOR UPDATE OF p` (el `OF p` evita
+  bloquear la fila del `users` del JOIN). Sin el lock, dos acciones
+  concurrentes leían ambas `pending` y resolvían el pago dos veces.
+- **`purge_venue_user` serializa su guarda con `SELECT ... FROM venues ... FOR
+  UPDATE`.** Bajo READ COMMITTED la transacción sola no basta para una guarda
+  tipo "queda otro admin": hay que fijar la fila que ancla la decisión.
+- **Cupones:** `update_coupon` rechaza (409) bajar `max_uses` por debajo de
+  `used_count` (estado imposible); el checkout responde 409 explícito cuando el
+  cupón se agotó entre la cotización y el pago (antes caía en un 404 genérico).
+- **Tests de concurrencia sin mocks:** `ThreadPoolExecutor` sobre el `TestClient`
+  para generación y review simultáneos; `test_user_writes_atomicity.py` fuerza
+  el fallo a mitad con un **trigger real** de Postgres, no un mock.
+
+
 ### Correr la suite E2E dos veces seguidas (importante)
 
 La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los
