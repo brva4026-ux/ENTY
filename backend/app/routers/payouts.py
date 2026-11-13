@@ -39,9 +39,16 @@ _SELECT_OUT = """
 """
 
 
-async def _get_payout(cur, venue_id: int, payout_id: int) -> dict:
+async def _get_payout(
+    cur, venue_id: int, payout_id: int, *, for_update: bool = False
+) -> dict:
+    # `FOR UPDATE OF p`: bloquea SOLO la fila de la liquidación (el JOIN a
+    # users no debe bloquear la fila del usuario). Serializa las transiciones
+    # de estado (dispute/review) para que dos acciones concurrentes no lean
+    # ambas el mismo estado y actúen dos veces.
+    lock = " FOR UPDATE OF p" if for_update else ""
     await cur.execute(
-        _SELECT_OUT + " WHERE p.id = %s AND p.venue_id = %s",
+        _SELECT_OUT + " WHERE p.id = %s AND p.venue_id = %s" + lock,
         (payout_id, venue_id),
     )
     row = await cur.fetchone()
@@ -69,7 +76,18 @@ async def generate_payout(
     if (body.period_end - body.period_start).days > 366:
         raise HTTPException(422, "El periodo no puede superar un año")
 
-    async with db.cursor() as cur:
+    async with db.transaction(), db.cursor() as cur:
+        # Serializa las generaciones del MISMO (venue, promotor): sin esto, dos
+        # INSERT concurrentes que se solapan chocan en el índice GiST de la
+        # exclusion constraint y Postgres responde DeadlockDetected (un 500) en
+        # vez del 409 limpio. El advisory lock es transaction-scoped: se suelta
+        # solo al cerrar el bloque. Con la serialización, el segundo ve el
+        # commit del primero y cae en el 409 del chequeo de abajo.
+        await cur.execute(
+            "SELECT pg_advisory_xact_lock(hashtextextended(%s || ':' || %s, 0))",
+            (str(venue_id), str(body.promoter_id)),
+        )
+
         # El promotor debe pertenecer a esta venue con ese rol.
         await cur.execute(
             """
@@ -83,6 +101,9 @@ async def generate_payout(
 
         # Rangos secuenciales: el nuevo periodo debe empezar después del fin
         # del último cierre de ese promotor (evita dobles pagos por solape).
+        # Este SELECT es solo para el mensaje legible; la garantía REAL es la
+        # exclusion constraint (mig 045), que rechaza el solape incluso si dos
+        # generaciones corren en paralelo (este SELECT no bloquea nada).
         await cur.execute(
             """
             SELECT max(period_end) AS last_end
@@ -127,23 +148,31 @@ async def generate_payout(
         revenue = agg["revenue"]
         commission = round(revenue * pct / 100)
 
-        await cur.execute(
-            """
-            INSERT INTO promoter_payouts
-                (venue_id, promoter_id, period_start, period_end,
-                 tickets_count, revenue_cents, commission_pct, commission_cents)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id
-            """,
-            (
-                venue_id, body.promoter_id, body.period_start, body.period_end,
-                tickets_count, revenue, pct, commission,
-            ),
-        )
+        try:
+            await cur.execute(
+                """
+                INSERT INTO promoter_payouts
+                    (venue_id, promoter_id, period_start, period_end,
+                     tickets_count, revenue_cents, commission_pct, commission_cents)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    venue_id, body.promoter_id, body.period_start, body.period_end,
+                    tickets_count, revenue, pct, commission,
+                ),
+            )
+        except psycopg.errors.ExclusionViolation:
+            # La exclusion constraint (mig 045) atrapó un solape que el SELECT
+            # de arriba no vio (carrera). Mismo 409 que el camino secuencial.
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "El rango se solapa con otra liquidación de ese promotor",
+            )
         payout_id = (await cur.fetchone())["id"]
 
         row = await _get_payout(cur, venue_id, payout_id)
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     return row
 
 
@@ -192,8 +221,10 @@ async def dispute_payout(
 ):
     """El promotor disputa SU liquidación pendiente (por qué no cuadra)."""
     ensure_roles(user, venue_id, "promotor")
-    async with db.cursor() as cur:
-        row = await _get_payout(cur, venue_id, payout_id)
+    async with db.transaction(), db.cursor() as cur:
+        # FOR UPDATE: sin el lock, un dispute y un review concurrentes leían
+        # ambos 'pending' y el pago se resolvía dos veces.
+        row = await _get_payout(cur, venue_id, payout_id, for_update=True)
         if row["promoter_id"] != user["id"]:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "No es tu liquidación")
         if row["status"] != "pending":
@@ -210,7 +241,7 @@ async def dispute_payout(
             (body.reason.strip(), payout_id),
         )
         row = await _get_payout(cur, venue_id, payout_id)
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     return row
 
 
@@ -227,8 +258,10 @@ async def review_payout(
     if body.action == "reject" and not (body.note and body.note.strip()):
         raise HTTPException(422, "Rechazar exige una nota: el promotor verá el motivo")
 
-    async with db.cursor() as cur:
-        row = await _get_payout(cur, venue_id, payout_id)
+    async with db.transaction(), db.cursor() as cur:
+        # FOR UPDATE: dos reviews concurrentes (doble clic) leían 'pending' y
+        # pagaban dos veces. El lock serializa la decisión.
+        row = await _get_payout(cur, venue_id, payout_id, for_update=True)
         if row["status"] in ("paid", "rejected"):
             raise HTTPException(
                 status.HTTP_409_CONFLICT, "Esta liquidación ya está cerrada"
@@ -255,5 +288,5 @@ async def review_payout(
                 (user["id"], body.note.strip(), payout_id),
             )
         row = await _get_payout(cur, venue_id, payout_id)
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     return row

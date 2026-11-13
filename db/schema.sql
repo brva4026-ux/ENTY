@@ -63,6 +63,13 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 
 --
+-- Name: btree_gist; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
+
+
+--
 -- Name: ticket_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -3112,6 +3119,14 @@ ALTER TABLE ONLY public.promoter_payouts
 
 
 --
+-- Name: promoter_payouts promoter_payouts_no_overlap; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promoter_payouts
+    ADD CONSTRAINT promoter_payouts_no_overlap EXCLUDE USING gist (venue_id WITH =, promoter_id WITH =, daterange(period_start, period_end, '[]'::text) WITH &&);
+
+
+--
 -- Name: push_outbox push_outbox_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3463,13 +3478,6 @@ CREATE INDEX idx_password_reset_user ON public.password_reset_tokens USING btree
 --
 
 CREATE INDEX idx_payouts_promoter ON public.promoter_payouts USING btree (promoter_id, venue_id, created_at DESC);
-
-
---
--- Name: idx_payouts_unique_period; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_payouts_unique_period ON public.promoter_payouts USING btree (venue_id, promoter_id, period_start);
 
 
 --

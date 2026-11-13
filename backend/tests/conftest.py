@@ -61,6 +61,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "042_ops_conciliacion.sql",
     ROOT / "db" / "migrations" / "043_eventos_ricos.sql",
     ROOT / "db" / "migrations" / "044_coupon_usage_guard.sql",
+    ROOT / "db" / "migrations" / "045_payout_no_overlap.sql",
 ]
 
 

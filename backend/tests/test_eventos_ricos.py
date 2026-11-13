@@ -171,6 +171,36 @@ def test_percent_coupon_out_of_range_is_rejected(api):
     assert res.status_code == 422, res.text
 
 
+def test_coupon_max_uses_cannot_drop_below_used(api):
+    """El tope no puede quedar por debajo de los usos ya hechos.
+
+    Sin esta guarda, bajar `max_uses` por debajo de `used_count` dejaba el
+    cupón en un estado imposible (usado más veces que su tope) que el arqueo no
+    puede explicar.
+    """
+    venue = api.world["venue_a"]
+    ev = api.create_event("admin", venue, name=f"Cupón tope {_tag()}")
+    base = f"/venues/{venue}/events/{ev['id']}/coupons"
+    coupon = api.post(
+        base, "admin",
+        {"code": "TOPE", "kind": "percent", "value": 10, "max_uses": 5},
+    ).json()
+
+    # Simula 3 usos ya consumidos (el checkout real los cuenta al aprobar).
+    api.run_sql(
+        "UPDATE coupons SET used_count = 3 WHERE id = %d" % coupon["id"]
+    )
+
+    # Bajar el tope a 2 (< 3 usados) se rechaza.
+    res = api.patch(f"{base}/{coupon['id']}", "admin", {"max_uses": 2})
+    assert res.status_code == 409, res.text
+
+    # Un tope igual o mayor al usado sí se acepta.
+    res = api.patch(f"{base}/{coupon['id']}", "admin", {"max_uses": 3})
+    assert res.status_code == 200, res.text
+    assert res.json()["max_uses"] == 3
+
+
 # ---------------------------------------------------------------------------
 # Cupones: checkout público
 # ---------------------------------------------------------------------------
@@ -240,6 +270,29 @@ def test_checkout_ignores_invalid_coupon(api, wompi_on):
     res = _checkout(api, ev_id, t["id"], extra={"coupon_code": "NOEXISTE"})
     assert res.status_code == 201, res.text
     assert res.json()["amount_in_cents"] == 1000000
+
+
+def test_checkout_rejects_exhausted_coupon_with_409(api, wompi_on):
+    """Un cupón agotado entre la cotización y el checkout: 409 explícito.
+
+    Antes caía en el 404 genérico de "localidad no disponible" (la guarda del
+    tipo lo trataba como si el cupón no existiera), que confunde al fan. El 409
+    dice que el código existía pero se agotó.
+    """
+    venue, ev_id, t = _priced_event(api, price=1000000)
+    base = f"/venues/{venue}/events/{ev_id}/coupons"
+    coupon = api.post(
+        base, "admin",
+        {"code": "ULTIMO", "kind": "percent", "value": 20, "max_uses": 1},
+    ).json()
+    # Agotado antes de que este fan llegue al checkout.
+    api.run_sql(
+        "UPDATE coupons SET used_count = 1 WHERE id = %d" % coupon["id"]
+    )
+
+    res = _checkout(api, ev_id, t["id"], extra={"coupon_code": "ULTIMO"})
+    assert res.status_code == 409, res.text
+    assert "cupón" in res.json()["detail"].lower()
 
 
 def test_full_cover_coupon_is_rejected(api, wompi_on):
