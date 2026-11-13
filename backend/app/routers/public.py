@@ -449,16 +449,21 @@ def _coupon_discount(kind: str, value: int, price_cents: int) -> int:
 
 async def _resolve_coupon(
     cur, event_id: int, code: str | None, price_cents: int
-) -> tuple[dict | None, int]:
-    """Busca y valida el cupón para una compra. Devuelve (cupón, descuento).
+) -> tuple[dict | None, int, str | None]:
+    """Busca y valida el cupón para una compra. Devuelve (cupón, descuento, motivo).
 
-    Silencioso a propósito: un código que no existe, está vencido, agotado o
-    desactivado simplemente no aplica (descuento 0). Rechazar la compra por un
-    cupón mal escrito sería regalar la venta por un detalle.
+    Silencioso a propósito para lo que NO aplica (código inexistente, vencido,
+    desactivado): se cobra el precio de lista en vez de rechazar la venta por un
+    código mal escrito. La excepción es `exhausted`: un cupón que existía y se
+    agotó entre la cotización y el checkout merece un 409 explícito ("el cupón
+    ya no aplica"), no un 404 genérico que confunde al fan.
+
+    `motivo` es None cuando el cupón aplica; si no, es 'exhausted' | 'inactive'
+    | 'expired' (solo informativo salvo para el checkout).
     """
     text = (code or "").strip().upper().replace(" ", "")
     if not text:
-        return None, 0
+        return None, 0, None
     await cur.execute(
         """
         SELECT id, code, kind, value, max_uses, used_count, expires_at, is_active
@@ -468,14 +473,16 @@ async def _resolve_coupon(
         (event_id, text),
     )
     coupon = await cur.fetchone()
-    if not coupon or not coupon["is_active"]:
-        return None, 0
+    if not coupon:
+        return None, 0, None
+    if not coupon["is_active"]:
+        return None, 0, "inactive"
     if coupon["expires_at"] is not None and coupon["expires_at"] <= datetime.now(timezone.utc):
-        return None, 0
+        return None, 0, "expired"
     if coupon["max_uses"] is not None and coupon["used_count"] >= coupon["max_uses"]:
-        return None, 0
+        return None, 0, "exhausted"
     discount = _coupon_discount(coupon["kind"], coupon["value"], price_cents)
-    return coupon, discount
+    return coupon, discount, None
 
 
 @router.get("/events/{event_id}/coupon")
@@ -506,7 +513,7 @@ async def public_coupon_quote(
         if not row or row["price_cents"] <= 0:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Localidad no disponible")
         price = int(row["price_cents"])
-        coupon, discount = await _resolve_coupon(cur, event_id, code, price)
+        coupon, discount, _ = await _resolve_coupon(cur, event_id, code, price)
     return {
         "code": coupon["code"] if coupon else (code or "").strip().upper(),
         "discount_in_cents": discount,
@@ -574,9 +581,18 @@ async def public_checkout(
         # Cupón (mig 043): se resuelve ANTES de crear el link de Wompi, porque
         # el monto que se cobra es el NETO. Un cupón inválido no aplica.
         list_price = int(row["price_cents"])
-        coupon, discount = await _resolve_coupon(
+        coupon, discount, motivo = await _resolve_coupon(
             cur, event_id, body.coupon_code, list_price
         )
+        # El cupón se agotó entre la cotización y el checkout (otro fan usó el
+        # último uso): un 409 explícito explica la situación mejor que cobrar el
+        # precio de lista en silencio o un 404 genérico.
+        if motivo == "exhausted":
+            raise HTTPException(
+                409,
+                "Ese cupón ya no tiene usos disponibles. Prueba sin cupón o "
+                "pide otro código.",
+            )
         charge_cents = list_price - discount
         # Un cupón que cubre TODO el precio deja el cobro en 0: Wompi no cobra
         # $0 y la boleta gratis es una cortesía, no un descuento. Se avisa en

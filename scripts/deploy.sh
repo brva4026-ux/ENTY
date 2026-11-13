@@ -66,6 +66,7 @@ MIGRATIONS=(
     db/migrations/042_ops_conciliacion.sql
     db/migrations/043_eventos_ricos.sql
     db/migrations/044_coupon_usage_guard.sql
+    db/migrations/045_payout_no_overlap.sql
 )
 
 echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"

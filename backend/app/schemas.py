@@ -1665,6 +1665,26 @@ class PayoutGenerateRequest(BaseModel):
     period_end: date
 
 
+class PayoutPreviewOut(BaseModel):
+    """Lo que se pagaria si se cerrara el periodo: mismo calculo, sin escribir.
+
+    El cierre es INMUTABLE (una liquidacion pagada/rechazada es historia), asi
+    que el admin debe ver el monto y el solape ANTES de comprometerlo. El
+    preview corre el mismo agregado que `generate_payout`.
+    """
+    promoter_id: int
+    promoter_name: str = ""
+    period_start: date
+    period_end: date
+    tickets_count: int
+    revenue_cents: int
+    commission_pct: float
+    commission_cents: int
+    # Motivo por el que NO se podria cerrar ahora (rango en el pasado, solape,
+    # venue sin comision). None = se puede cerrar.
+    blocked_reason: str | None = None
+
+
 class PayoutReviewRequest(BaseModel):
     """Resolucion del admin sobre una liquidacion."""
     action: str = Field(pattern="^(pay|reject)$")

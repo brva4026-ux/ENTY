@@ -1173,6 +1173,18 @@ async def update_coupon(
         for k, v in changes.items():
             if v is not None or k in ("expires_at", "max_uses"):
                 merged[k] = v
+        # Un tope por debajo de lo ya usado deja el cupón en un estado imposible
+        # (used_count > max_uses): el arqueo no sabría si sobró o faltó. Se
+        # rechaza en vez de aceptarlo en silencio.
+        if (
+            merged["max_uses"] is not None
+            and merged["max_uses"] < current["used_count"]
+        ):
+            raise HTTPException(
+                409,
+                f"El cupón ya se usó {current['used_count']} veces: el tope no "
+                "puede quedar por debajo de eso.",
+            )
         try:
             await cur.execute(
                 f"""
