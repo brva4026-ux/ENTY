@@ -275,6 +275,14 @@ restricción en la DB.**
 - **Tests de concurrencia sin mocks:** `ThreadPoolExecutor` sobre el `TestClient`
   para generación y review simultáneos; `test_user_writes_atomicity.py` fuerza
   el fallo a mitad con un **trigger real** de Postgres, no un mock.
+- **Preview del cierre (`GET /payouts/preview`).** El cierre es inmutable, así
+  que el admin no debería comprometerlo a ciegas. El preview corre el MISMO
+  agregado (`_sales_aggregate`) que `generate_payout` y devuelve el monto sin
+  escribir, con `blocked_reason` (solape / comisión 0). La UI propone el rango
+  que continúa el último cierre y deshabilita el botón si hay bloqueo. Regla de
+  casa: **una acción irreversible (asiento contable, envío, borrado) se muestra
+  con su resultado antes de confirmarla.** Los tests de liquidaciones limpian
+  sus notificaciones (`push_outbox` global, ver la trampa arriba).
 
 
 ### Correr la suite E2E dos veces seguidas (importante)
