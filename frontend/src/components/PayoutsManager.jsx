@@ -12,6 +12,26 @@ import EmptyState from "./EmptyState";
 const fmtCOP = (cents) =>
   `$${Math.round((cents || 0) / 100).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 
+// Fecha ISO (YYYY-MM-DD) de hoy + n días, en horario LOCAL (no UTC): un cierre
+// que empieza "mañana" debe ser mañana del calendario del organizador.
+function isoPlus(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// Un rango de liquidación es INCLUSIVO en ambos extremos (period_end >=
+// period_start). El día siguiente a un cierre se calcula sumando 1 día a la
+// fecha de fin, en fecha local para no cruzar el huso.
+function dayAfter(isoDate) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + 1);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}`;
+}
+
 const STATUS_BADGE = {
   pending: ["Pendiente", "bg-amber-950/60 text-amber-300 ring-amber-800/60"],
   disputed: ["Disputada", "bg-red-950/60 text-red-300 ring-red-800/60"],
@@ -38,6 +58,8 @@ export default function PayoutsManager({ venueId, users }) {
     period_start: "",
     period_end: "",
   });
+  const [preview, setPreview] = useState(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
   const [reviewFor, setReviewFor] = useState(null);
   const [reviewNote, setReviewNote] = useState("");
   const [reviewAmount, setReviewAmount] = useState("");
@@ -54,6 +76,45 @@ export default function PayoutsManager({ venueId, users }) {
     load();
   }, [load]);
 
+  // Al elegir un promotor, propone el rango que CONTINÚA su último cierre: el
+  // día siguiente al fin anterior (o los últimos 30 días si aún no hay cierre).
+  // Sin esto el admin tecleaba dos fechas y descubría el solape al fallar.
+  useEffect(() => {
+    if (!form.promoter_id || !payouts) return;
+    const mine = payouts
+      .filter((p) => String(p.promoter_id) === String(form.promoter_id))
+      .map((p) => p.period_end)
+      .sort();
+    const start = mine.length ? dayAfter(mine[mine.length - 1]) : isoPlus(-30);
+    setForm((f) => ({ ...f, period_start: start, period_end: isoPlus(0) }));
+    // Solo cuando cambia el promotor (no en cada tecla de fecha).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.promoter_id, payouts]);
+
+  // Preview: el cierre es inmutable, así que se muestra el monto ANTES de
+  // crearlo. Se recalcula al cambiar promotor o rango.
+  useEffect(() => {
+    const { promoter_id, period_start, period_end } = form;
+    if (!promoter_id || !period_start || !period_end) {
+      setPreview(null);
+      return;
+    }
+    let alive = true;
+    setPreviewBusy(true);
+    const qs = new URLSearchParams({
+      promoter_id,
+      period_start,
+      period_end,
+    });
+    apiFetch(`/venues/${venueId}/payouts/preview?${qs}`)
+      .then((res) => alive && setPreview(res))
+      .catch(() => alive && setPreview(null))
+      .finally(() => alive && setPreviewBusy(false));
+    return () => {
+      alive = false;
+    };
+  }, [venueId, form]);
+
   async function generate(e) {
     e.preventDefault();
     setBusy(true);
@@ -68,6 +129,7 @@ export default function PayoutsManager({ venueId, users }) {
         }),
       });
       load();
+      setPreview(null);
       ui.success(
         `Liquidación creada: ${created.tickets_count} boletas · comisión ${fmtCOP(created.commission_cents)}`,
       );
@@ -148,10 +210,41 @@ export default function PayoutsManager({ venueId, users }) {
             required
             aria-label="Hasta"
           />
-          <button disabled={busy || promoters.length === 0} className="btn-primary">
+          <button
+            disabled={busy || promoters.length === 0 || preview?.blocked_reason != null}
+            className="btn-primary"
+          >
             {busy ? "Calculando…" : "Cerrar liquidación"}
           </button>
         </form>
+
+        {/* Preview: el monto que se pagaría. El cierre es inmutable, así que se
+            muestra ANTES de confirmarlo (y el bloqueo, si lo hay). */}
+        {preview && (
+          <div
+            className={`mt-3 rounded-lg border p-3 text-xs ${
+              preview.blocked_reason
+                ? "border-amber-800/60 bg-amber-950/30 text-amber-200"
+                : "border-zinc-800 bg-zinc-950/50 text-zinc-400"
+            }`}
+          >
+            {preview.blocked_reason ? (
+              <p>{preview.blocked_reason}</p>
+            ) : (
+              <p>
+                Se pagarían{" "}
+                <span className="font-semibold text-ink">
+                  {fmtCOP(preview.commission_cents)}
+                </span>{" "}
+                por {preview.tickets_count} boleta{preview.tickets_count === 1 ? "" : "s"} (
+                {fmtCOP(preview.revenue_cents)} vendidos · {preview.commission_pct}%).
+              </p>
+            )}
+          </div>
+        )}
+        {previewBusy && !preview && (
+          <p className="mt-2 text-xs text-zinc-600">Calculando el monto…</p>
+        )}
         {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
         {promoters.length === 0 && (
           <p className="mt-2 text-xs text-amber-400">
@@ -209,11 +302,9 @@ export default function PayoutsManager({ venueId, users }) {
                       <button
                         onClick={() => {
                           setReviewFor(reviewFor === p.id ? null : p.id);
-                          setReviewAmount(
-                            p.status === "paid" || p.commission_cents
-                              ? (p.commission_cents / 100).toString()
-                              : "",
-                          );
+                          // Prefill con la comisión calculada: el admin suele
+                          // pagar exacto y solo la ajusta si hay disputa.
+                          setReviewAmount((p.commission_cents / 100).toString());
                         }}
                         className="btn-ghost mt-1 text-xs font-bold"
                       >

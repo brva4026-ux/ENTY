@@ -11,6 +11,24 @@ import psycopg
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _clean_payout_notifications(db):
+    """Cada cierre/disputa/review notifica y deja una carta en el `push_outbox`
+    GLOBAL. El drenador procesa solo las 50 más antiguas por tick, así que
+    estas cartas desplazarían la que `test_push_outbox` espera ver procesada
+    (falla por contaminación, no por lógica). Se borran las creadas por este
+    test al terminar (el outbox cae en cascada con las notificaciones)."""
+    before = db.execute(
+        "SELECT coalesce(max(id), 0) AS m FROM notifications"
+    ).fetchone()["m"]
+    yield
+    db.execute(
+        "DELETE FROM notifications WHERE id > %s AND kind IN "
+        "('payout_created','payout_reviewed','payout_disputed')",
+        (before,),
+    )
+
+
 def _generate(api, venue, promoter_id, start, end):
     return api.post(
         f"/venues/{venue}/payouts/generate", "admin",
