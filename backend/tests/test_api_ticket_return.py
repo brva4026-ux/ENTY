@@ -428,7 +428,6 @@ def test_staff_return_endpoint_and_permissions(api_client, db, dbcur):
     )
     other_headers = {"Authorization": f"Bearer {res.json()['access_token']}"}
 
-    raw = "token-staff-devolucion-777"
     res = client.post(
         f"/venues/{w['venue']}/events/{w['event']}/tickets",
         headers=promo_headers,
@@ -463,7 +462,6 @@ def test_staff_return_endpoint_and_permissions(api_client, db, dbcur):
     assert (row["h"] or "").startswith("staff::")
 
     # Nueva boleta para probar 403 del promotor ajeno y devolucion admin.
-    raw2 = "token-staff-devolucion-888"
     res = client.post(
         f"/venues/{w['venue']}/events/{w['event']}/tickets",
         headers=promo_headers,

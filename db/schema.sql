@@ -1185,7 +1185,80 @@ END;
 $$;
 
 
+----
+-- Name: prune_analytics_events(integer); Type: FUNCTION; Schema: public; Owner: -
 --
+
+CREATE FUNCTION public.prune_analytics_events(p_days integer DEFAULT 180) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_deleted bigint;
+BEGIN
+    DELETE FROM analytics_events
+     WHERE created_at < now() - make_interval(days => p_days);
+    GET DIAGNOSTICS v_deleted = ROW_COUNT;
+    RETURN v_deleted;
+END;
+$$;
+
+
+--
+-- Name: prune_audit_log(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.prune_audit_log(p_days integer DEFAULT 365) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_deleted bigint;
+BEGIN
+    DELETE FROM audit_log
+     WHERE created_at < now() - make_interval(days => p_days);
+    GET DIAGNOSTICS v_deleted = ROW_COUNT;
+    RETURN v_deleted;
+END;
+$$;
+
+
+--
+-- Name: prune_door_sync_receipts(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.prune_door_sync_receipts(p_days integer DEFAULT 30) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_deleted bigint;
+BEGIN
+    DELETE FROM door_sync_receipts
+     WHERE created_at < now() - make_interval(days => p_days);
+    GET DIAGNOSTICS v_deleted = ROW_COUNT;
+    RETURN v_deleted;
+END;
+$$;
+
+
+--
+-- Name: prune_expired(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.prune_expired() RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_total bigint := 0;
+BEGIN
+    v_total := v_total + prune_door_sync_receipts();
+    v_total := v_total + prune_push_outbox();
+    v_total := v_total + prune_notifications();
+    v_total := v_total + prune_analytics_events();
+    v_total := v_total + prune_audit_log();
+    RETURN v_total;
+END;
+$$;
+
+
 -- Name: prune_login_attempts(integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1194,6 +1267,44 @@ CREATE FUNCTION public.prune_login_attempts(p_window_minutes integer DEFAULT 60)
     AS $$
     DELETE FROM login_attempts
      WHERE at < now() - make_interval(mins => p_window_minutes);
+$$;
+
+
+--
+-- Name: prune_notifications(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.prune_notifications(p_days integer DEFAULT 90) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_deleted bigint;
+BEGIN
+    DELETE FROM notifications
+     WHERE read_at IS NOT NULL
+       AND created_at < now() - make_interval(days => p_days);
+    GET DIAGNOSTICS v_deleted = ROW_COUNT;
+    RETURN v_deleted;
+END;
+$$;
+
+
+--
+-- Name: prune_push_outbox(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.prune_push_outbox(p_days integer DEFAULT 7) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_deleted bigint;
+BEGIN
+    DELETE FROM push_outbox
+     WHERE processed_at IS NOT NULL
+       AND processed_at < now() - make_interval(days => p_days);
+    GET DIAGNOSTICS v_deleted = ROW_COUNT;
+    RETURN v_deleted;
+END;
 $$;
 
 
@@ -1212,6 +1323,7 @@ $$;
 --
 -- Name: rate_limit_hit(text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
+
 
 CREATE FUNCTION public.rate_limit_hit(p_key text, p_max_hits integer, p_window_seconds integer) RETURNS boolean
     LANGUAGE plpgsql

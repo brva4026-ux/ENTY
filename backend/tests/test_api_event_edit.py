@@ -10,7 +10,6 @@ import secrets
 import psycopg
 import pytest
 
-
 FUTURE_STARTS = "2099-10-01T20:00:00+00:00"
 FUTURE_ENDS = "2099-10-02T02:00:00+00:00"
 

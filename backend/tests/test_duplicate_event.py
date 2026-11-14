@@ -120,12 +120,6 @@ def test_duplicate_skips_archived_type_and_inactive_allocation(api, world):
 
 def test_duplicate_carries_no_tickets(api, world):
     ev, general, _c = _setup_full_event(api, world)
-    allocs = api.get(
-        api.event_url(world["venue_a"], ev["id"]) + "/allocations", "admin"
-    ).json()
-    alloc = next(
-        a for a in allocs if a["ticket_type_id"] == general["id"]
-    )
     res = api.post(
         api.event_url(world["venue_a"], ev["id"]) + "/publish", "admin"
     )

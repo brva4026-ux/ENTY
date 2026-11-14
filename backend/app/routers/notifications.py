@@ -15,7 +15,7 @@ Aislamiento: un usuario SOLO ve sus filas (user_id = token). No hay endpoint
 from typing import Annotated
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from app.core.db import get_db
 from app.deps import get_current_user

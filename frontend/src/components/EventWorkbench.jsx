@@ -137,17 +137,9 @@ export default function EventWorkbench({
   preflight,
 }) {
   // Hooks SIEMPRE antes de cualquier return condicional (reglas de hooks:
-  // un return temprano encima de useState crashea al re-render con ev=null).
+  // un return temprano encima de useState/useTabKeys crashea al re-render con
+  // ev=null).
   const [badFlyer, setBadFlyer] = useState("");
-  if (!ev) return null;
-  const status = STATUS_META[ev.status] ?? STATUS_META.draft;
-  // URL de flyer que ya falló al cargar: el padre reinicia esto al editar.
-  const showFlyer = ev.flyer_url && ev.flyer_url !== badFlyer;
-
-  // KPIs del header: el pulso del evento sin entrar a ninguna pestaña.
-  const issued = report?.issued ?? null;
-  const redeemed = report?.redeemed ?? null;
-  const revenue = report?.revenue_cents ?? null;
   // Solo pestañas DE ESTE evento. Equipo/Liquidaciones/Invitaciones son de la
   // venue (no cambian con el evento elegido): viven en la lista, no dentro del
   // backstage — mezclarlas aquí es lo que hacia sentir "todo amontonado".
@@ -168,6 +160,15 @@ export default function EventWorkbench({
     onSelect: onTab,
     idOf: (id) => `evx-tab-${id}`,
   });
+  if (!ev) return null;
+  const status = STATUS_META[ev.status] ?? STATUS_META.draft;
+  // URL de flyer que ya falló al cargar: el padre reinicia esto al editar.
+  const showFlyer = ev.flyer_url && ev.flyer_url !== badFlyer;
+
+  // KPIs del header: el pulso del evento sin entrar a ninguna pestaña.
+  const issued = report?.issued ?? null;
+  const redeemed = report?.redeemed ?? null;
+  const revenue = report?.revenue_cents ?? null;
 
   return (
     <div className="space-y-4">

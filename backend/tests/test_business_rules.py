@@ -10,7 +10,6 @@ sobreventa, reuso de boletas y ventas fuera de ventana.
 import secrets
 
 import psycopg
-import pytest
 
 
 # ---------------------------------------------------------------------------
@@ -207,9 +206,9 @@ def test_ended_event_rejects_sales(dbcur):
 # ---------------------------------------------------------------------------
 def test_publish_live_end_happy_path(dbcur):
     v = _venue(dbcur, "t-life")
-    u = _user(dbcur, "life@test.co")
+    _user(dbcur, "life@test.co")
     e = _event(dbcur, v, "Life Event", capacity=10, status="draft")
-    t = _type(dbcur, e, "General", qty=10)
+    _type(dbcur, e, "General", qty=10)
 
     dbcur.execute("SELECT set_event_status(%s, 'draft', 'published')", (e,))
     dbcur.execute("SELECT set_event_status(%s, 'published', 'live')", (e,))
@@ -220,7 +219,7 @@ def test_publish_live_end_happy_path(dbcur):
 
 def test_invalid_transition_rejected(dbcur):
     v = _venue(dbcur, "t-invalid")
-    u = _user(dbcur, "invalid@test.co")
+    _user(dbcur, "invalid@test.co")
     e = _event(dbcur, v, "Invalid Event", capacity=10, status="draft")
     _type(dbcur, e, "General", qty=10)
 

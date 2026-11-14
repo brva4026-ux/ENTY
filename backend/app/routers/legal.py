@@ -317,7 +317,7 @@ async def accept_document(
                 email, phone, ip, user_agent,
             ),
         )
-        inserted = int((await cur.fetchone())["inserted"] or 0)
+        await cur.fetchone()
         # Se devuelve la fecha de la fila que acaba de existir. `IS NOT
         # DISTINCT FROM` compara tambien los NULL: en el caso anonimo la
         # identidad son el correo y el telefono, no el user_id.

@@ -168,7 +168,7 @@ async def export_redemptions_csv(
     ensure_roles(user, venue_id, "super_admin", "admin")
     f = _filters(outcome, q, since, until)
     async with db.cursor() as cur:
-        ev = await _event_or_404(cur, event_id, venue_id)
+        await _event_or_404(cur, event_id, venue_id)
         await cur.execute(
             f"""
             SELECT r.id,

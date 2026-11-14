@@ -41,7 +41,6 @@ export function useLiveRefresh(refresh, enabled, intervalMs = 15_000) {
     };
     // `refresh` va vía ref (patrón latest-ref): las deps solo incluyen lo que
     // debe reiniciar el intervalo.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, intervalMs]);
 
   return lastUpdated;

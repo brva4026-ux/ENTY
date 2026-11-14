@@ -6,7 +6,6 @@ Aquí se verifica el contrato de las funciones SQL (no el worker, que necesita
 VAPID y red): una llamada a notify_user produce notificación + carta
 pendiente, y notify_venue_admins una carta por admin.
 """
-import pytest
 
 
 def test_notify_user_writes_outbox_letter(db, dbcur, world):

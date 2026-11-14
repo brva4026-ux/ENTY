@@ -46,7 +46,7 @@ def test_summary_window_acota_caja(api):
     """Sin rango = todo el evento; con since/until solo la ventana."""
     venue, event_id, tipo = _published_event(api, "Caja por rango", 30000)
     vieja = _emit(api, venue, event_id, tipo["id"], "Vieja")
-    nueva = _emit(api, venue, event_id, tipo["id"], "Nueva")
+    _emit(api, venue, event_id, tipo["id"], "Nueva")
     _age_ticket(api, vieja["ticket_id"], days=10)
 
     url = f"/venues/{venue}/events/{event_id}/summary"

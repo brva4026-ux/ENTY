@@ -265,6 +265,25 @@ nunca lo subas para "pasar".
 No te fíes del exit code de un `npm run` a través de un pipe (`cmd | tail` te da
 el exit de `tail`): redirigí a archivo y mirá `$?`.
 
+### eslint: mismo trinquete que stylelint (y ruff en el backend)
+
+`npm run lint:js` es `eslint "src/**/*.{js,jsx}" --max-warnings 14` y **es un
+gate de CI** (job `frontend`, paso "Lint JS"). Igual que `lint:css`, el número
+es un **techo que solo puede BAJAR**: los 14 warnings de hoy son todos
+`react-hooks/exhaustive-deps` en efectos deliberados (patrón latest-ref); si tu
+cambio agrega uno más, el job se pone rojo. La config vive en
+`frontend/eslint.config.mjs` y el gate es de **errores**; `rules-of-hooks` es
+error (una llamada condicional a un hook es un bug real — hubo uno en
+`EventWorkbench`), y las reglas del React Compiler que trae
+`eslint-plugin-react-hooks` 7.x (`set-state-in-effect`, `immutability`,
+`purity`, `refs`) **no** se activan: marcan cientos de sitios que funcionan.
+
+El backend tiene su propio lint: `cd backend && ruff check app/ tests/` (job
+`backend`, paso "Lint backend"). El set de reglas (`E4,E7,E9,F,I`) está en
+`backend/pyproject.toml` y **solo incluye reglas que hoy pasan en limpio**: es
+un gate que puede crecer, no uno que arranque en rojo. Si agregás un set nuevo
+(p. ej. `B` o `UP`), primero limpiá todo el repo.
+
 ### El job `e2e` de CI ahora corre de verdad
 
 Históricamente el job `e2e` estaba **siempre skipped**: dependía de `backend`,

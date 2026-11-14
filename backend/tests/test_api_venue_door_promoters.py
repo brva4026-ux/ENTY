@@ -9,7 +9,7 @@ mes: la puerta es operación de esta noche, no caja histórica. El cupo de
 promotores sale de `promoter_allocations`, que es lo que `top_promoters` del
 overview no miraba.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 
 def _open_night(api, name: str, capacity: int = 100) -> tuple[int, int]:

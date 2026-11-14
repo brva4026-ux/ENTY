@@ -6,10 +6,6 @@ import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
 
-const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-const reducedMotionClass = prefersReducedMotion ? "motion-reduced" : "";
-
 /**
  * Inicio — la cara publica de Enty para el fan (mockup "1 · Inicio").
  *

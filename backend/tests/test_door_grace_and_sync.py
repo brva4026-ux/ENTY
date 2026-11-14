@@ -343,6 +343,39 @@ def test_catalogo_publico_corta_tras_el_cupo(api_client, dbcur):
     assert res.status_code == 429, res.text
 
 
+def test_waitlist_corta_tras_el_cupo(api_client, dbcur):
+    """La lista de espera usa el limiter en DB (mig 041): el dict en memoria
+    que vivía en waitlist.py no frenaba nada en serverless y su cupo era
+    distinto al del catálogo (scope propio)."""
+    ip = f"10.8.{uuid.uuid4().int % 256}.{uuid.uuid4().int % 256}"
+    key = f"public:waitlist:{ip}"
+    dbcur.execute("DELETE FROM rate_limit_hits WHERE key = %s", (key,))
+    for _ in range(60):
+        dbcur.execute("SELECT rate_limit_hit(%s, 60, 300)", (key,))
+    res = api_client.post(
+        "/waitlist/status",
+        json={"token": "x" * 32},
+        headers={"x-real-ip": ip},
+    )
+    assert res.status_code == 429, res.text
+
+
+def test_analytics_ingesta_corta_tras_el_cupo(api_client, dbcur):
+    """La ingesta de analítica usa el limiter en DB (mig 041): antes vivía en
+    un dict que además nunca evictaba sus claves (fuga por instancia)."""
+    ip = f"10.7.{uuid.uuid4().int % 256}.{uuid.uuid4().int % 256}"
+    key = f"public:analytics:{ip}"
+    dbcur.execute("DELETE FROM rate_limit_hits WHERE key = %s", (key,))
+    for _ in range(60):
+        dbcur.execute("SELECT rate_limit_hit(%s, 60, 60)", (key,))
+    res = api_client.post(
+        "/public/analytics/events",
+        json={"session_id": "abcdefgh", "events": [{"name": "view_home"}]},
+        headers={"x-real-ip": ip},
+    )
+    assert res.status_code == 429, res.text
+
+
 # ---------------------------------------------------------------------------
 # 6) El cierre no depende de que el ADMIN abra su panel (Ley de Tesler)
 # ---------------------------------------------------------------------------
@@ -358,7 +391,7 @@ def test_el_cierre_ocurre_desde_el_panel_del_promotor(api, world):
     """
     venue = world["venue_a"]
     ev = api.create_event("admin", venue, name="Cierre por promotor")
-    t = api.add_type("admin", venue, ev["id"])
+    api.add_type("admin", venue, ev["id"])
     api.publish("admin", venue, ev["id"])
     api.post(f"/venues/{venue}/events/{ev['id']}/live", "admin")
     # Asignar al promotor a la noche (sin roster, /events/mine no lo lista).

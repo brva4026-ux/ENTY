@@ -8,7 +8,6 @@ que el bloqueo cruza requests (como en producción, donde cruza lambdas).
 Nota: los tests de API comparten IP de TestClient, así que los cubos por IP
 se controlan limpiando la tabla entre escenarios.
 """
-import pytest
 
 
 def _cleanup(db):
@@ -67,7 +66,7 @@ def test_clear_failures_only_removes_exact_pair(db):
 def test_api_login_locks_after_repeated_failures(api, db):
     """El login real consulta el mismo cubo: 8 fallos HTTP => 429."""
     _cleanup(db)
-    s = api.scenario()
+    api.scenario()
     wrong = {
         "email": api.world["admin"]["email"],
         "password": "contra-equivocada",
@@ -93,7 +92,7 @@ def test_api_login_locks_after_repeated_failures(api, db):
 def test_api_success_clears_only_that_pair(api, db):
     """Acertar la contraseña limpia el cubo del par (email, ip)."""
     _cleanup(db)
-    s = api.scenario()
+    api.scenario()
     creds = {
         "email": api.world["admin"]["email"],
         "password": api.world["password"],

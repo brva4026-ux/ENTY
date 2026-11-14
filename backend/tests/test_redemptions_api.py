@@ -4,7 +4,6 @@
 quien escaneo, a que hora, que boleta dio duplicada. Ese registro es la
 evidencia cuando hay una discusion con un portero o un promotor.
 """
-import pytest
 
 
 def _open_doors(api, venue: int, event_id: int) -> None:

@@ -21,14 +21,14 @@ from zoneinfo import ZoneInfo
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
+from app.core.audit import write_audit
 from app.core.db import get_db
-from app.core.lifecycle import auto_close_expired
+from app.core.lifecycle import auto_close_expired, prune_expired_rows
 from app.core.phone import phone_tail_sql
 from app.deps import ensure_roles, get_current_user
-from app.core.audit import write_audit
 from app.schemas import (
-    EventReport,
     EventPulse,
+    EventReport,
     ReportByDoor,
     ReportByPaymentMethod,
     ReportByPromoter,
@@ -854,6 +854,7 @@ async def venue_overview(
     # La caja del negocio también cierra lo vencido: es otra pantalla por la
     # que el admin entra sin pasar por el listado de eventos.
     await auto_close_expired(db, context="venue_overview")
+    await prune_expired_rows(db, context="venue_overview")
 
     async with db.cursor() as cur:
         await cur.execute(_OVERVIEW_SQL, params)

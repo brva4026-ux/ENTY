@@ -6,12 +6,10 @@ endpoint (rewrite por User-Agent), asi que lo que importa aqui es: metaetiquetas
 correctas y absolutas, JSON-LD valido, nada de borradores filtrados y ningun
 nombre capaz de romper el HTML/JSON.
 """
-from datetime import datetime, timezone
-from html import escape
 import json
 import uuid
-
-import pytest
+from datetime import datetime, timezone
+from html import escape
 
 from app.routers.public import _share_event_html
 

@@ -210,7 +210,7 @@ def test_feed_is_private_per_user(api):
 
 def test_mark_read_specific_ids_only(api):
     venue = api.world["venue_a"]
-    p1 = _payout(api, venue, api.world["promoter"]["id"])
+    _payout(api, venue, api.world["promoter"]["id"])
     # Segunda liquidación: el rango secuencial debe empezar después del cierre anterior.
     res = api.post(
         f"/venues/{venue}/payouts/generate",

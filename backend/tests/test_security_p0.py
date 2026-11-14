@@ -10,7 +10,6 @@ cubren lo NUEVO:
 - El escaneo en puerta tiene rate limit (anti spam, no anti fuerza bruta:
   para eso el token de 192 bits ya es suficiente).
 """
-import pytest
 
 
 # ---------------------------------------------------------------------------

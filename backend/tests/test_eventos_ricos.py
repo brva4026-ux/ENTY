@@ -12,7 +12,6 @@ La segunda mitad de la tanda "operar la noche". Lo que protegen estos tests:
     ahora): libera cupo, deja la salida en caja y es idempotente.
   * El RECORDATORIO avisa una sola vez por evento (marca reminded_at).
 """
-import hashlib
 import uuid
 
 import pytest

@@ -5,22 +5,26 @@ from typing import Annotated
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.audit import write_audit
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
-from app.core.lifecycle import auto_close_expired, remind_upcoming_events
-from app.deps import ensure_roles, get_current_user
-from app.core.audit import write_audit
+from app.core.lifecycle import (
+    auto_close_expired,
+    prune_expired_rows,
+    remind_upcoming_events,
+)
 from app.core.observability import capture_exception
+from app.deps import ensure_roles, get_current_user
 from app.schemas import (
     AllocationBulkCreate,
     AllocationBulkOut,
     AllocationCreate,
     AllocationOut,
     AllocationUpdate,
-    DeleteOut,
     CouponCreate,
     CouponOut,
     CouponUpdate,
+    DeleteOut,
     EventCreate,
     EventOut,
     EventUpdate,
@@ -241,6 +245,7 @@ async def list_events(
     # cierre no depende de que el ADMIN sea quien pase por su panel.
     await auto_close_expired(db, context="list_events")
     await remind_upcoming_events(db, context="list_events")
+    await prune_expired_rows(db, context="list_events")
     async with db.cursor() as cur:
         await cur.execute(
             f"SELECT {EVENT_COLUMNS} FROM events "
@@ -675,7 +680,7 @@ async def create_allocation(
         if not await cur.fetchone():
             raise HTTPException(404, "Tipo de boleta no pertenece a este evento")
         await cur.execute(
-            f"""
+            """
             INSERT INTO promoter_allocations AS a (event_id, ticket_type_id, promoter_id, capacity)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (event_id, ticket_type_id, promoter_id) DO UPDATE SET capacity=EXCLUDED.capacity

@@ -15,6 +15,8 @@ La llamada NUNCA debe tumbar la lectura que la invoca: si la función no existe
 (DB sin la migración) o falla, se hace rollback —la transacción queda limpia—
 y se sigue con la consulta real. El error se reporta, no se propaga.
 """
+import time
+
 import psycopg
 
 from app.core.observability import capture_exception
@@ -44,3 +46,28 @@ async def remind_upcoming_events(db, *, context: str) -> None:
     except psycopg.Error as e:
         await db.rollback()
         capture_exception(e, context={"kind": "watchdog_event_reminder", "from": context})
+
+
+# La poda de retención (mig 046) no es un límite de seguridad: es mantenimiento.
+# Correrla en cada lectura sería un DELETE por request sin necesidad. Este
+# throttle en proceso la limita a una vez por ventana POR INSTANCIA; como es
+# idempotente y barata cuando no hay nada viejo, la redundancia entre instancias
+# es inofensiva (a diferencia del rate limit, aquí la corrección no depende del
+# estado compartido: el DELETE es correcto sin importar quién lo dispare).
+_PRUNE_EVERY_SECONDS = 3600.0
+_last_prune: float = 0.0
+
+
+async def prune_expired_rows(db, *, context: str) -> None:
+    """Poda las tablas que crecen (mig 046). Best-effort: nunca lanza."""
+    global _last_prune
+    now = time.monotonic()
+    if now - _last_prune < _PRUNE_EVERY_SECONDS:
+        return
+    _last_prune = now
+    try:
+        async with db.cursor() as cur:
+            await cur.execute("SELECT prune_expired()")
+    except psycopg.Error as e:
+        await db.rollback()
+        capture_exception(e, context={"kind": "retention_prune", "from": context})

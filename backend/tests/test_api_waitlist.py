@@ -6,7 +6,6 @@ una boleta (E1) -> el lugar se ofrece al PRIMERO con ventana corta -> si no
 reclama, hereda al siguiente -> reclamar EMITE una boleta nueva (nunca
 revive el token devuelto).
 """
-from datetime import datetime, timedelta, timezone
 
 from tests.test_api_ticket_return import _hash  # espejo del SHA-256 hex
 

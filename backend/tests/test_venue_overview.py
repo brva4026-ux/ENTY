@@ -13,7 +13,7 @@ def test_overview_counts_live_tickets_only(api, db):
     venue = s["venue"]
     # Emitir 3 boletas (2 quedarán vivas, 1 anulada).
     t1 = api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"]["id"])
-    t2 = api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"]["id"])
+    api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"]["id"])
     api.emit("promoter", venue, s["event"], ticket_type_id=s["type"], allocation_id=s["allocation"]["id"])
     # Anular la tercera (admin).
     res = api.client.post(
@@ -247,7 +247,7 @@ def test_overview_csv_includes_sales_curve(api):
     assert "Ritmo de venta" in text
     assert "15-29" in text
     # La fila del tramo 15-29 lleva la boleta que backdateamos.
-    line = next(l for l in text.splitlines() if l.startswith("15-29"))
+    line = next(ln for ln in text.splitlines() if ln.startswith("15-29"))
     assert line.split(",")[1] == "1"
 
 

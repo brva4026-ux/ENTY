@@ -38,8 +38,8 @@ from app.routers.auth import _client_ip, _login_locked, _register_failure
 from app.schemas import (
     AcceptInvitationRequest,
     InvitationPreview,
-    StaffInvitationCreated,
     StaffInvitationCreate,
+    StaffInvitationCreated,
     StaffInvitationOut,
     TokenResponse,
 )

@@ -24,6 +24,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
 from app.core.db import get_db
+from app.core.rate_limit import enforce_rate_limit
 from app.deps import ensure_roles, get_current_user
 
 router = APIRouter(tags=["analitica"])
@@ -35,9 +36,11 @@ _MAX_PROPS_CHARS = 2_000
 # Cubo propio de rate limit: la ingesta no debe competir con el de las rutas
 # publicas de boleta (public.py) ni inflarlo. 60/min por IP alcanza para una
 # pestana (el cliente agrupa) y frena a un script que intente inflar el embudo.
+# El contador vive en la DB (mig 041): un dict en memoria no frena nada en
+# serverless y ademas no evictaba sus claves (fuga por instancia).
+_RATE_SCOPE = "public:analytics"
 _LIMIT = 60
-_WINDOW = 60.0
-_bucket: dict[str, list[float]] = {}
+_WINDOW = 60
 
 
 class _EventIn(BaseModel):
@@ -52,26 +55,17 @@ class _BatchIn(BaseModel):
     events: list[_EventIn] = Field(min_length=1, max_length=_MAX_BATCH)
 
 
-def _client_key(request: Request) -> str:
-    """IP del cliente real detras del edge (mismo criterio que public.py)."""
-    fwd = request.headers.get("x-forwarded-for", "")
-    return (
-        request.headers.get("x-real-ip")
-        or (fwd.split(",")[0].strip() if fwd else "")
-        or (request.client.host if request.client else "unknown")
+async def _rate_limit(
+    request: Request,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+) -> None:
+    await enforce_rate_limit(
+        request,
+        db,
+        scope=_RATE_SCOPE,
+        max_hits=_LIMIT,
+        window_seconds=_WINDOW,
     )
-
-
-def _rate_limit(request: Request) -> None:
-    import time
-
-    key = _client_key(request)
-    now = time.monotonic()
-    bucket = [t for t in _bucket.get(key, []) if now - t < _WINDOW]
-    if len(bucket) >= _LIMIT:
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Demasiadas peticiones")
-    bucket.append(now)
-    _bucket[key] = bucket
 
 
 @router.post(

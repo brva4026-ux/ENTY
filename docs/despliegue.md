@@ -31,7 +31,14 @@ repo (`render.yaml`) pero **no es la activa**.
 | `DATABASE_URL` | `postgresql://postgres.<ref>:<pass>@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require` |
 | `JWT_SECRET` | secreto de 64+ caracteres (ya generado) |
 | `SENTRY_DSN` | DSN de Sentry (opcional pero **recomendado**: sin ella los 500 no se reportan a nadie; el arranque avisa con un WARNING en producción) |
+| `RESEND_API_KEY` | clave de Resend (opcional: sin ella el reset self-service y las invitaciones no envían correo y el flujo guía al reset operado por admin) |
+| `APP_PUBLIC_URL` | URL pública de la app (construye los links de reset/invitación) |
 | `ENVIRONMENT` | `production` (activa el aviso de observabilidad y el chequeo de JWT_SECRET) |
+
+La lista completa vive en `.env.example` (espeja `app/core/config.py`). El
+endpoint `/api/health` publica cuáles de estos canales están **encendidos de
+verdad**: `error_tracking` (Sentry), `email_enabled` (Resend) y `push_enabled`
+(VAPID). Un `false` ahí no es un error de la app: es una variable sin definir.
 
 ## Guard de esquema (código y base en carriles distintos)
 

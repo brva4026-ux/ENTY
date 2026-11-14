@@ -25,9 +25,7 @@ from app.core.db import get_db
 from app.core.mailer import Mailer
 from app.core.security import create_access_token, hash_password, verify_password
 from app.deps import ensure_roles, get_current_user
-# El almacenamiento de imagenes ya vive en media (mig 018): el avatar reusa la
-# validacion y la tabla en vez de duplicar el limite de 600 KB y los mime.
-from app.routers.media import store_image
+
 # El catalogo y el registro de aceptaciones legales (mig 026) viven en el
 # router legal: se importan las funciones, no se duplica el SQL.
 from app.routers.legal import (
@@ -35,6 +33,10 @@ from app.routers.legal import (
     record_acceptances,
     terms_fingerprint,
 )
+
+# El almacenamiento de imagenes ya vive en media (mig 018): el avatar reusa la
+# validacion y la tabla en vez de duplicar el limite de 600 KB y los mime.
+from app.routers.media import store_image
 from app.schemas import (
     AvatarUpload,
     ChangeEmailRequest,

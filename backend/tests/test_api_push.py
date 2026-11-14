@@ -15,8 +15,6 @@ import base64
 import os
 import uuid
 
-import pytest
-
 
 def _fake_subscription() -> dict:
     """Suscripción con el shape de pushManager.subscribe() y claves de

@@ -10,15 +10,15 @@ token crudo viaja en el cuerpo (nunca en la URL) por la misma razon que el
 token de la boleta: no terminar en logs ni historial.
 """
 from datetime import datetime, timedelta
-from time import monotonic
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
+from app.core.rate_limit import enforce_rate_limit
 from app.core.security import digest_token
 from app.schemas import (
     WaitlistClaimOut,
@@ -30,30 +30,26 @@ from app.schemas import (
 
 router = APIRouter(prefix="/waitlist", tags=["lista-de-espera"])
 
-# Rate limit en memoria por IP (best-effort, igual que las boletas publicas):
-# sin el, el join es un vector de escritura barato contra la fila.
+# Rate limit por IP en la DB (mig 041): sin el, el join es un vector de
+# escritura barato contra la fila. Un dict en memoria no frenaba nada en
+# serverless (cada invocacion puede caer en otra instancia). Scope propio para
+# no mezclar el cupo con el de las boletas publicas ni el de la analitica.
 _MAX_REQUESTS = 60
-_WINDOW_SECONDS = 300.0
-_HITS: dict[str, list[float]] = {}
+_WINDOW_SECONDS = 300
 
 
-def _check_rate(request: Request) -> None:
-    fwd = request.headers.get("x-forwarded-for", "")
-    ip = (
-        request.headers.get("x-real-ip")
-        or (fwd.split(",")[0].strip() if fwd else "")
-        or "unknown"
+async def _check_rate(
+    request: Request,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+) -> None:
+    await enforce_rate_limit(
+        request,
+        db,
+        scope="public:waitlist",
+        max_hits=_MAX_REQUESTS,
+        window_seconds=_WINDOW_SECONDS,
+        message="Demasiadas solicitudes",
     )
-    now = monotonic()
-    q = _HITS.setdefault(ip, [])
-    while q and now - q[0] > _WINDOW_SECONDS:
-        q.pop(0)
-    if len(q) >= _MAX_REQUESTS:
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Demasiadas solicitudes")
-    q.append(now)
-    if len(_HITS) > 10_000:
-        for k in [k for k, v in _HITS.items() if not v or now - v[-1] > _WINDOW_SECONDS]:
-            _HITS.pop(k, None)
 
 
 def _handle_waitlist_error(e: psycopg.errors.Error) -> None:
@@ -102,7 +98,7 @@ async def join_waitlist(
     (en la DB queda su hash): quien perdio su enlace no puede recuperar la
     credencial (igual que una boleta), pero no pierde su lugar.
     """
-    _check_rate(request)
+    await _check_rate(request, db)
     import secrets
 
     raw_token = ""
@@ -152,7 +148,7 @@ async def waitlist_status(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     """Estado del fan en la fila: posicion, u oferta con su cuenta regresiva."""
-    _check_rate(request)
+    await _check_rate(request, db)
     token_hash = digest_token(body.token)
     async with db.cursor() as cur:
         await _expire_stale(cur)
@@ -224,7 +220,7 @@ async def claim_waitlist(
     respuesta; en la DB queda su hash (mismo contrato que emitir). La
     credencial del fan deja de servir tras el reclamo.
     """
-    _check_rate(request)
+    await _check_rate(request, db)
     import secrets
 
     raw_ticket_token = secrets.token_urlsafe(24)
@@ -252,7 +248,7 @@ async def leave_waitlist(
 ):
     """El fan se va de la fila por voluntad propia; si tenia oferta activa,
     el turno se hereda al siguiente con el mismo lugar."""
-    _check_rate(request)
+    await _check_rate(request, db)
     async with db.cursor() as cur:
         try:
             await cur.execute(

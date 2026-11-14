@@ -34,7 +34,6 @@ export default function QrTesterModal({ onClose }) {
   useEffect(() => {
     // Escape y foco los maneja useDialogA11y; aquí solo se apaga la cámara.
     return () => stopCam();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Al arrancar la cámara, el botón "Escanear" desaparece. Sin esto el foco

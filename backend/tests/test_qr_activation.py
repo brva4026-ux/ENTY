@@ -20,7 +20,7 @@ def _closed_window_event(api, venue: int, *, hours: int = 72) -> dict:
         venue,
         starts_at=(datetime.now(timezone.utc) + timedelta(hours=hours)).isoformat(),
     )
-    t = api.add_type("admin", venue, ev["id"], quantity=20)
+    api.add_type("admin", venue, ev["id"], quantity=20)
     api.publish("admin", venue, ev["id"])
     return ev
 
@@ -37,7 +37,7 @@ def _open_window_event(api, venue: int) -> dict:
         venue,
         starts_at=(datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat(),
     )
-    t = api.add_type("admin", venue, ev["id"], quantity=20)
+    api.add_type("admin", venue, ev["id"], quantity=20)
     api.publish("admin", venue, ev["id"])
     return ev
 

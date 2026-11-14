@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
-import { useAuth } from "../lib/auth";
 import { haptics } from "../lib/haptics";
 import { useUI } from "../lib/ui";
 import Icon from "./Icon";
@@ -18,7 +17,6 @@ import Icon from "./Icon";
  * admin recarga, tiene que pedir uno nuevo en vez de creer que lo tiene.
  */
 export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }) {
-  const { user } = useAuth();
   const ui = useUI();
   const [rows, setRows] = useState(null); // null = cargando
   const [candidatos, setCandidatos] = useState([]);

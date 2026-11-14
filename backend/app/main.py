@@ -11,11 +11,10 @@ if sys.platform == "win32":
     # uvicorn cree el loop (la policy se aplica en asyncio.run).
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+import psycopg
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
-import psycopg
 
 from app.core.config import get_settings
 from app.core.db import _CONNECT_KWARGS, close_pool, init_pool
@@ -30,27 +29,26 @@ from app.core.schema_guard import verify_schema_at_boot
 from app.routers import (
     analytics,
     auth,
-    invitations,
+    event_staff,
     events,
+    invitations,
     legal,
     lifecycle,
     media,
     notifications,
+    payments,
+    payouts,
     public,
     public_tickets,
     push,
-    payouts,
     redemptions,
     report,
+    scanner,
     seed,
     team,
-    event_staff,
-    scanner,
     tickets,
     waitlist,
-    payments,
 )
-
 
 logger = logging.getLogger("ticketflow.main")
 

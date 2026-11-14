@@ -4,7 +4,6 @@ Un solo GET devuelve por evento: boletas vivas (issued+redeemed), cuantas
 entraron (redeemed) y el recaudo de las vivas. Las anuladas dejan de contar.
 Solo el admin de la venue puede leerlo.
 """
-import pytest
 
 
 def test_counts_active_tickets_per_event(api, world):

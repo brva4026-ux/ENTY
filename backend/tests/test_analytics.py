@@ -74,7 +74,6 @@ def test_ingest_rejects_oversized_batches_and_short_sessions(api_client):
 
 def test_funnel_counts_sessions_and_money_per_venue(api, api_client, db):
     venue = api.world["venue_a"]
-    other_venue = api.world["venue_b"]
     event = api.create_event("admin", venue, name=f"Embudo {_tag()}", capacity=50)
     api.add_type(
         "admin", venue, event["id"],

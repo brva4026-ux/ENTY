@@ -11,6 +11,7 @@
     "icons": "node build-icons.mjs",
     "test:e2e": "playwright test",
     "lint:css": "stylelint \"src/**/*.css\" --max-warnings 41",
+    "lint:js": "eslint \"src/**/*.{js,jsx}\" --max-warnings 14",
     "lint:design": "node scripts/design-gate.mjs"
   },
   "dependencies": {
@@ -22,9 +23,14 @@
     "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
     "stylelint": "^17.16.0",
     "stylelint-config-standard": "^40.0.0",
     "tailwindcss": "^4.3.3",

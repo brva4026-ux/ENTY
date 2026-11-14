@@ -31,6 +31,14 @@ jobs:
         run: |
           cd frontend
           npm run lint:css
+      - name: Lint JS (eslint)
+        # Gate de errores + presupuesto de warnings (--max-warnings en
+        # package.json). El techo solo puede BAJAR, igual que lint:css. Los 14
+        # warnings de hoy son todos de react-hooks/exhaustive-deps en efectos
+        # deliberados (latest-ref); no se sube el numero para "pasar".
+        run: |
+          cd frontend
+          npm run lint:js
       - name: Lint de diseno (gate del skill, con allowlist de marca)
         # Este gate corre el lint del skill de diseno (design-taste-frontend) con
         # la allowlist de marca del proyecto. El skill vive en .agents/, que esta
@@ -82,6 +90,14 @@ jobs:
           cd backend
           pip install --no-cache-dir ".[dev]" || pip install --no-cache-dir -e "."
           pip install --no-cache-dir pytest
+      - name: Lint backend (ruff)
+        # Gate de estilo barato y rapido. El set de reglas esta en
+        # backend/pyproject.toml ([tool.ruff.lint].select) y solo incluye
+        # reglas que HOY pasan en limpio: es un gate que puede crecer, no uno
+        # que arranque en rojo. Correlo local con `ruff check app/ tests/`.
+        run: |
+          cd backend
+          python -m ruff check app/ tests/
       - name: Run business-rule tests
         run: |
           cd backend

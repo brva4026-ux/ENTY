@@ -218,7 +218,6 @@ export default function BouncerScanner() {
   // siente el progreso sin mirar la barra.
   const holdBuzz50Ref = useRef(false);
   const holdBuzz100Ref = useRef(false);
-  const scannerRef = useRef(null);
   const html5Ref = useRef(null);
   const lastScannedRef = useRef("");
   const resetTimerRef = useRef(null);

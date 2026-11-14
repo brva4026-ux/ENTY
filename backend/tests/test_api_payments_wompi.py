@@ -16,7 +16,6 @@ tocan sandbox.wompi.co. La emision real del webhook SI pasa por la DB
 """
 
 import hashlib
-import json
 
 import pytest
 

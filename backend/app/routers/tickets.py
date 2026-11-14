@@ -5,7 +5,7 @@ expresamos los parametros y generamos el token crudo de alta entropia que va
 en el QR (en la DB se guarda unicamente su SHA-256).
 """
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
@@ -23,8 +23,8 @@ from app.schemas import (
     DoorSyncOut,
     DoorSyncResult,
     RedeemOut,
-    TicketContactEditRequest,
     TicketContactEditOut,
+    TicketContactEditRequest,
     TicketContactEditResponse,
     TicketEmitRequest,
     TicketEmitResponse,
@@ -309,7 +309,9 @@ async def redeem(
                 tz = ZoneInfo(ev["event_timezone"])
             except Exception:
                 tz = ZoneInfo("UTC")
-            fmt = lambda d: d.astimezone(tz).strftime("%H:%M")
+            def fmt(d):
+                return d.astimezone(tz).strftime("%H:%M")
+
             out.detail = (
                 f"QR se activa a las {fmt(ev['ready_at'])} "
                 f"(evento {fmt(ev['starts_at'])})"

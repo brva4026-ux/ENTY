@@ -8,17 +8,16 @@ terminaria en logs e historial del navegador).
 
 Sin autenticacion a proposito: el invitado no tiene cuenta en el sistema.
 """
+from datetime import datetime, timedelta
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
-
 from app.core.db import get_db
-from app.core.rate_limit import enforce_rate_limit
 from app.core.db_errors import translate_db_error
+from app.core.rate_limit import enforce_rate_limit
 from app.core.security import digest_token
 from app.schemas import (
     PublicTicketOut,
@@ -117,7 +116,9 @@ def _activation(row: dict) -> tuple[bool, str | None]:
         tz = ZoneInfo(row["event_timezone"])
     except Exception:
         tz = qr_ready_at.tzinfo
-    fmt = lambda d: d.astimezone(tz).strftime("%d/%m %H:%M")
+    def fmt(d):
+        return d.astimezone(tz).strftime("%d/%m %H:%M")
+
     return False, f"Tu QR se activa el {fmt(qr_ready_at)} · El evento empieza el {fmt(starts_at)}"
 
 

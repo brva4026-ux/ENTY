@@ -1,21 +1,21 @@
 """Ciclo de vida del evento (publish/live/end/cancel), anulacion de boletas
 y listado de usuarios de la venue (para asignar cupos con nombres reales)."""
-from typing import Annotated
-
 import csv
 import io
+from typing import Annotated
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
+from app.core.audit import write_audit
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
 from app.core.observability import capture_exception
-from app.core.pusher import notify_venue
 from app.core.phone import digits_only, phone_tail_sql
+from app.core.pusher import notify_venue
 from app.deps import ensure_roles, get_current_user
-from app.core.audit import write_audit
+
 # fetch_event vive en events.py para que listar, crear y transicionar devuelvan
 # el mismo shape de evento (ver EVENT_COLUMNS).
 from app.routers.events import fetch_event
@@ -29,7 +29,6 @@ from app.schemas import (
     RefundRequest,
     ResetPassword,
     TicketListOut,
-    TicketOut,
     UpdateVenueUser,
     VenueUserOut,
     VoidRequest,

@@ -9,6 +9,7 @@ Transplante de la disciplina payment_issues de unicall-blue:
 """
 from datetime import date
 
+
 # ---------------------------------------------------------------------------
 # Generación
 # ---------------------------------------------------------------------------

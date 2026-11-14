@@ -12,7 +12,6 @@ join acepte justo en ese punto (y rechace uno antes).
 import uuid
 
 
-
 def _tag() -> str:
     return uuid.uuid4().hex[:8]
 

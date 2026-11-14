@@ -2,10 +2,16 @@ import re
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
-from app.core.password_policy import PasswordStr, check_password_strength
 from app.core.categories import validate_event_category
+from app.core.password_policy import PasswordStr, check_password_strength
 from app.core.urlguard import validate_flyer_url, validate_public_http_url
 
 # Regex de email pragmática: acepta tlds de prueba (.test, .local) y hosts reales.

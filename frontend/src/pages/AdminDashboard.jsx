@@ -86,19 +86,6 @@ function toLocalInput(date) {
   );
 }
 
-/** Fecha corta para la franja de eventos (los chips no dan para más). */
-function formatShortDate(value) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString("es-CO", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 /** Minuto del día 0-1439 -> etiqueta "8 p.m." (para la píldora de apertura). */
 function minuteLabel(mins) {
   const h24 = Math.floor(mins / 60);
@@ -219,10 +206,6 @@ export default function AdminDashboard() {
   const [allocations, setAllocations] = useState([]);
   const [report, setReport] = useState(null);
   const [users, setUsers] = useState([]);
-  // tickets: el listado real vive en TicketList (server-driven, paginado).
-  // El fetch que llenaba este estado quedó muerto: nadie lo lee. Solo setTickets
-  // se usa para limpiar al cambiar de evento — por eso este useState se queda.
-  const [tickets, setTickets] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   // Fuente de verdad de la URL: el evento abierto y su pestaña viven en
   // /admin?event=<id>&tab=<tab> — compartible, sobrevive recargas y back.

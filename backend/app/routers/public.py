@@ -6,10 +6,10 @@ SHA-256. Quien tiene el link, tiene la boleta — que es exactamente lo que se
 busca al entregarla. Por eso el nombre del asistente va impreso en la imagen y
 el bouncer lo compara en la puerta (ver docs/arquitectura/03-seguridad.md).
 """
-from html import escape
 import json
 import secrets
 from datetime import datetime, timedelta, timezone
+from html import escape
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
@@ -18,8 +18,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 
-from app.core.config import get_settings
 from app.core.categories import EVENT_CATEGORIES
+from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.fan_access import create_fan_access_token, verify_fan_access_token
 from app.core.mailer import Mailer
@@ -29,8 +29,8 @@ from app.core.refs import payment_reference
 from app.schemas import (
     FanCredentialRequest,
     FanLookupRequest,
-    FanTicketTokenOut,
     FanTicketsOut,
+    FanTicketTokenOut,
     PublicCheckoutOut,
     PublicCheckoutRequest,
     PublicCheckoutStatusOut,
@@ -396,9 +396,9 @@ async def public_event_detail(
             for t in types
         ],
         "lineup": [
-            {"id": l["id"], "name": l["name"], "role": l["role"],
-             "sort_order": l["sort_order"]}
-            for l in lineup_rows
+            {"id": row["id"], "name": row["name"], "role": row["role"],
+             "sort_order": row["sort_order"]}
+            for row in lineup_rows
         ],
         # Si el pago en línea está configurado: sin esto la pantalla ofrece
         # "Comprar boleto" y el POST devuelve 503. La UI muestra el contacto

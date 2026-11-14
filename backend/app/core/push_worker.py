@@ -22,7 +22,6 @@ import asyncio
 import logging
 
 import psycopg
-from psycopg.rows import dict_row
 
 from app.core.config import get_settings
 from app.core.observability import capture_exception
@@ -59,14 +58,14 @@ async def _drain_once(db) -> int:
         return 0
 
     # Suscripciones de TODOS los destinatarios de esta tanda, en una query.
-    user_ids = sorted({l["user_id"] for l in letters if l["user_id"]})
+    user_ids = sorted({letter["user_id"] for letter in letters if letter["user_id"]})
     if not user_ids:
         # Notificaciones sin destinatario válido: se marcan procesadas para
         # no quedar eternamente pendientes.
         async with db.cursor() as cur:
             await cur.execute(
                 "UPDATE push_outbox SET processed_at=now() WHERE id = ANY(%s)",
-                ([l["outbox_id"] for l in letters],),
+                ([letter["outbox_id"] for letter in letters],),
             )
         return len(letters)
 
@@ -86,7 +85,6 @@ async def _drain_once(db) -> int:
 
     settings = get_settings()
     dead_ids: set[int] = set()
-    sent = 0
 
     async def _send(letter: dict) -> bool:
         """Envía la carta a todos los dispositivos del usuario. True = procesada."""
@@ -121,13 +119,15 @@ async def _drain_once(db) -> int:
 
     try:
         results = await asyncio.wait_for(
-            asyncio.gather(*(_send(l) for l in letters)), timeout=20.0
+            asyncio.gather(*(_send(letter) for letter in letters)), timeout=20.0
         )
     except asyncio.TimeoutError:
         # El drenaje nunca puede colgar el API: lo que no alcanzó se reintenta.
         return 0
 
-    done_ids = [l["outbox_id"] for l, ok in zip(letters, results) if ok]
+    done_ids = [
+        letter["outbox_id"] for letter, ok in zip(letters, results) if ok
+    ]
     if done_ids:
         async with db.cursor() as cur:
             await cur.execute(
@@ -147,8 +147,8 @@ async def drain_push_outbox() -> None:
     """Drena con el pool global (o conexión efímera en serverless). Nunca
     lanza: el fallo de una pasada solo queda en el log; el próximo tick
     reintenta."""
-    from app.core.config import get_settings
     import app.core.db as dbmod
+    from app.core.config import get_settings
 
     settings = get_settings()
     if not (settings.vapid_public_key_b64 and settings.vapid_private_key_b64):

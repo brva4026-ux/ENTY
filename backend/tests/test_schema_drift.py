@@ -21,8 +21,8 @@ import subprocess
 import uuid
 from pathlib import Path
 
-import pytest
 import psycopg
+import pytest
 from psycopg import conninfo
 
 ROOT = Path(__file__).resolve().parents[2]

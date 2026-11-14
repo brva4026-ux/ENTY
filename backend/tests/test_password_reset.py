@@ -9,8 +9,6 @@ El flujo completo sin email real (sin RESEND_API_KEY el mailer es no-op):
 """
 import hashlib
 
-from app.core.config import get_settings
-
 
 def _hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
@@ -170,7 +168,6 @@ def test_full_reset_flow_changes_credentials(api, db):
     # conocido (el flujo real email->usuario ya esta cubierto por
     # test_forgot_creates_token_row).
     raw = "token-crudo-de-test-0123456789abcdef"
-    import psycopg
 
     with db.cursor() as cur:
         cur.execute(

@@ -11,7 +11,6 @@ Reglas de oro:
   (los ajustes son otra liquidación con otro rango).
 - El rango es la identidad: no se generan rangos que se pisen.
 """
-from datetime import date, timedelta
 from typing import Annotated
 
 import psycopg
