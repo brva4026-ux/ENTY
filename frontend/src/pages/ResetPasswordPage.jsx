@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               <h1 className="display mb-1 text-lg">Nueva contraseña</h1>
-              <p className="eyebrow mb-5">Vence en 60 minutos · un solo uso</p>
+              <p className="mb-5 text-sm text-zinc-400">Vence en 60 minutos · un solo uso</p>
 
               <form onSubmit={submit}>
                 <label

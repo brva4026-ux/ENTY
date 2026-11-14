@@ -10,8 +10,9 @@
     "preview": "vite preview --host 0.0.0.0 --port 12000",
     "icons": "node build-icons.mjs",
     "test:e2e": "playwright test",
-    "lint:css": "stylelint \"src/**/*.css\" --max-warnings 41",
-    "lint:design": "node scripts/design-gate.mjs"
+    "lint:css": "stylelint \"src/**/*.css\" --max-warnings 40",
+    "lint:design": "node scripts/design-gate.mjs",
+    "test:design": "node --test scripts/design-linter.test.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.75.0",

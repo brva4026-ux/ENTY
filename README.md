@@ -4,8 +4,27 @@ Plataforma SaaS B2B2C para organizadores de eventos y discotecas: crea eventos,
 asigna cupos a promotores, emite boletas con código QR único y valida en puerta
 con escaneo atómico anti-reuso y anti-sobreventa.
 
-**Estado:** MVP (Etapa 0). Base de datos validada; backend/frontend parten desde
-aquí.
+**Estado:** MVP con API FastAPI, frontend React/Vite y PostgreSQL, desplegado
+en Vercel con base de datos en Supabase. Ver `docs/despliegue.md`.
+
+## Desarrollo y comprobaciones
+
+1. Copia `.env.example` a `backend/.env` y configura una base PostgreSQL local y un
+   `JWT_SECRET` propio; nunca uses la base de producción para pruebas.
+2. Backend: `cd backend`, `python -m pip install -e ".[dev]"`, `python run.py`.
+3. Frontend: `cd frontend`, `npm ci`, `npm run dev`. Define
+   `VITE_BACKEND_URL=http://127.0.0.1:8001` para el proxy local y agrega
+   `http://127.0.0.1:12000,http://localhost:12000` a `CORS_ORIGINS` del backend.
+4. Backend: `REQUIRE_TEST_DB=true TEST_DATABASE_URL=<base-desechable> python -m pytest tests/ -q`.
+   Esta suite recrea tablas: utiliza exclusivamente una base desechable.
+5. Frontend: `npm run build`, `npm run lint:css`, `npm run lint:design`,
+   `npm run test:design`; para E2E usa una segunda base local con `IS_DEMO=true`.
+
+La sesión web usa cookie HttpOnly y SameSite; las solicitudes autenticadas
+que cambian datos verifican Origin. Los clientes API mantienen soporte Bearer.
+El checkout reserva inventario y cupones durante 15 minutos. Un pago confirmado
+que llega sin cupo queda visible como «Pagado: revisar entrada o reembolso» y
+avisa al organizador; no se muestra una boleta inexistente ni se pide pagar otra vez.
 
 ## Estructura
 

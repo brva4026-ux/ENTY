@@ -13,9 +13,7 @@
 // actuales estan aceptados, pero crecer en cualquier regla falla, y una regla
 // que no este en el baseline tambien falla. Asi el numero solo puede bajar.
 //
-// El skill vive en .agents/ (gitignored: "skills locales de la sesion"), asi que
-// en CI este gate se salta con un aviso. Para correrlo en CI habria que vendorizar
-// el skill en el repo.
+// El linter esta versionado en scripts/vendor/design-taste: corre tambien en CI.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, resolve, join } from 'node:path';
@@ -33,19 +31,14 @@ const asJson = args.includes('--json');
 // El skill puede estar en el repo o en un checkout aparte (TASTE_SKILL_DIR).
 const skillDir = process.env.TASTE_SKILL_DIR
   ? resolve(process.env.TASTE_SKILL_DIR)
-  : join(repo, '.agents', 'skills', 'design-taste-frontend');
-const linter = join(skillDir, 'scripts', 'lint.mjs');
+  : join(here, 'vendor', 'design-taste');
+const linter = process.env.TASTE_SKILL_DIR
+  ? join(skillDir, 'scripts', 'lint.mjs')
+  : join(skillDir, 'lint.mjs');
 
 if (!existsSync(linter)) {
-  // En CI el skip se hace visible como anotacion (amarillo en el PR), para que
-  // no pase por un verde real. Un gate que no puede fallar no es un gate.
-  const inCi = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
-  const msg = `design-gate NO VERIFICO: el skill de diseno no esta instalado (${linter}).`;
-  if (inCi) console.log(`::warning title=design-gate::${msg}`);
-  console.log(`[design-gate] SKIP: ${msg}`);
-  console.log('[design-gate] Es una skill local de sesion (.agents/ esta en .gitignore).');
-  console.log('[design-gate] Para que verifique en CI, vendoriza el skill (o define TASTE_SKILL_DIR).');
-  process.exit(0);
+  console.error(`[design-gate] FAIL: falta el linter versionado (${linter}).`);
+  process.exit(2);
 }
 
 const run = spawnSync(process.execPath, [linter, 'frontend/src', '--app', '--json'], {

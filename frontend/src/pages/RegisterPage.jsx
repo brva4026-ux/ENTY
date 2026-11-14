@@ -136,7 +136,6 @@ export default function RegisterPage() {
     <AuthShell>
       <div className="relative w-full">
         <div className="auth-card reveal p-6 sm:p-7">
-          <p className="eyebrow">Empieza gratis</p>
           <h1 className="display mt-1 mb-1 text-2xl">Crea tu cuenta</h1>
           <p className="mb-5 text-sm leading-relaxed text-zinc-400">
             Crea el panel de tu negocio en un minuto. Serás su administrador.

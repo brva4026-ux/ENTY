@@ -44,7 +44,7 @@
   /* Pergamino/violeta claro: el rotulo "Enty". */
   --color-cream: #F3E8FF;
   /* Brasa: peligro y estado "en puerta". */
-  --color-ember: #ef4444;
+  --color-ember: var(--e-red-600);
   /* ESCALA TIPOGRÁFICA (Fase 2): fuente única para las utilidades `text-*`
      de Tailwind y espejo de `--e-text-*` en tokens.css. El piso es 2xs
      (0.875rem = 14px), igual que la hoja de tokens: por debajo de 14px el texto
@@ -3346,14 +3346,9 @@ html[data-theme="light"] .card-hero {
    DIALOGOS: superficie propia (deja de ser un bg-zinc-900 plano), blur
    de fondo más presente y sombra profunda: la conversación modal flota.
    ---------------------------------------------------------------------- */
-.dialog-backdrop {
-  backdrop-filter: blur(5px);
-}
 .dialog-panel {
   border: 1px solid rgba(255, 255, 255, 0.09);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 40%),
-    var(--e-panel-650);
+  background: var(--e-panel-650);
   border-radius: 1.15rem;
   box-shadow:
     var(--e-elev-overlay),

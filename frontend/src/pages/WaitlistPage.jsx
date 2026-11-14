@@ -187,7 +187,6 @@ export default function WaitlistPage() {
                 <Icon name="users" className="h-4 w-4 text-brand-400" />
               </span>
               <div>
-                <p className="eyebrow">Lista de espera</p>
                 <h1 className="text-sm font-bold text-ink">
                   Entra a la fila del evento
                 </h1>
