@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TransitionLink from "./TransitionLink";
 import { useAuth } from "../lib/auth";
+import { useUI } from "../lib/ui";
 import { navTabsFor, topRoleLabel } from "../lib/roles";
 import { haptics } from "../lib/haptics";
 import { Logo } from "./Brand";
@@ -85,6 +86,7 @@ const TAB_ICONS = {
 };
 
 export default function Layout({ children }) {
+  const ui = useUI();
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const { pathname } = useLocation();
@@ -172,14 +174,18 @@ export default function Layout({ children }) {
               {initials}
             </TransitionLink>
             <button
-              onClick={() => {
-                logout();
+              onClick={async () => {
+                try {
+                  await logout();
                 // replace: /login queda SIN location.state.from; si se apila
                 // con push, el guard RequireAuth de la ruta en la que estabas
                 // corria despues y sembraba from=/perfil (o la ruta actual) —
                 // el siguiente login aterrizaba en el perfil en vez del panel
                 // de tu rol.
                 nav("/login", { replace: true });
+                } catch {
+                  ui.toast("No pudimos cerrar la sesión. Intenta de nuevo.", "error");
+                }
               }}
               className="topbar-hit btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs"
             aria-label="Cerrar sesión"

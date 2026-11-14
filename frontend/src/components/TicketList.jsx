@@ -269,9 +269,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
       const res = await fetch(
         `/api/venues/${venueId}/events/${eventId}/${kind}`,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("tf_token")}`,
-          },
+          credentials: "same-origin",
         },
       );
       if (!res.ok) throw new Error("No se pudo generar el archivo");

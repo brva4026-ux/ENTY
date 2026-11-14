@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "./api";
 
 const AuthContext = createContext(null);
@@ -6,43 +6,63 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState(false);
+  const sessionAttempt = useRef(0);
 
-  useEffect(() => {
-    const token = localStorage.getItem("tf_token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    apiFetch("/auth/me")
-      .then((me) => setUser(me))
-      .catch(() => {
+  const restoreSession = useCallback(async () => {
+    const attempt = ++sessionAttempt.current;
+    setLoading(true);
+    setSessionError(false);
+    try {
+      const me = await apiFetch("/auth/me");
+      if (attempt !== sessionAttempt.current) return;
+      // /me migra la credencial antigua a una cookie HttpOnly.
+      localStorage.removeItem("tf_token");
+      setUser(me);
+    } catch (error) {
+      if (attempt !== sessionAttempt.current) return;
+      if (error.status === 401) {
         localStorage.removeItem("tf_token");
         setUser(null);
-      })
-      .finally(() => setLoading(false));
+      } else {
+        setSessionError(true);
+      }
+    } finally {
+      if (attempt === sessionAttempt.current) setLoading(false);
+    }
   }, []);
 
+  useEffect(() => { restoreSession(); }, [restoreSession]);
+
   async function login(email, password) {
+    ++sessionAttempt.current;
+    setLoading(false);
     const data = await apiFetch("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-    localStorage.setItem("tf_token", data.access_token);
+    localStorage.removeItem("tf_token");
+    setSessionError(false);
     setUser(data.user);
     return data.user;
   }
 
   async function register(payload) {
+    ++sessionAttempt.current;
+    setLoading(false);
     const data = await apiFetch("/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    localStorage.setItem("tf_token", data.access_token);
+    localStorage.removeItem("tf_token");
+    setSessionError(false);
     setUser(data.user);
     return data.user;
   }
 
-  function logout() {
+  async function logout() {
+    await apiFetch("/auth/logout", { method: "POST" });
+    ++sessionAttempt.current;
     localStorage.removeItem("tf_token");
     setUser(null);
     // Marcar la salida INTENCIONAL: el guard de rutas ve user=null con la URL
@@ -55,7 +75,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, setUser }}>
+    <AuthContext.Provider value={{ user, loading, sessionError, restoreSession, login, register, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );

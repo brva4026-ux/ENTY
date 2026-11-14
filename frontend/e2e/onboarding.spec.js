@@ -94,13 +94,9 @@ test("la eleccion se guarda en el servidor, no en el navegador", async ({
   // La venue activa no siempre esta en localStorage (con un solo negocio el
   // panel cae a la primera disponible), asi que se pregunta a /auth/me.
   const prefs = await page.evaluate(async () => {
-    const token = localStorage.getItem("tf_token");
-    const headers = { Authorization: `Bearer ${token}` };
-    const me = await (await fetch("/api/auth/me", { headers })).json();
+    const me = await (await fetch("/api/auth/me")).json();
     const venueId = Object.keys(me.roles || {})[0];
-    const res = await fetch(`/api/auth/me/preferences?venue_id=${venueId}`, {
-      headers,
-    });
+    const res = await fetch(`/api/auth/me/preferences?venue_id=${venueId}`);
     return res.json();
   });
   const onboarding = prefs.preferences.find((p) => p.key === "onboarding");

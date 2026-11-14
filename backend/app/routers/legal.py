@@ -31,6 +31,7 @@ from fastapi.responses import PlainTextResponse
 from app.core.db import get_db
 from app.core.rate_limit import client_ip, enforce_rate_limit
 from app.deps import get_current_user
+from app.core.session import COOKIE_NAME
 from app.schemas import (
     LegalAcceptanceCreate,
     LegalAcceptanceOut,
@@ -240,10 +241,15 @@ async def accept_document(
 
     user = None
     auth = request.headers.get("authorization")
-    if auth:
+    # Una aceptacion explicita del invitado sigue siendo del invitado aunque
+    # quien abra la boleta tenga tambien una sesion de staff en el navegador.
+    cookie_subject = request.cookies.get(COOKIE_NAME) and not (
+        body.ticket_token or body.subject_email or body.subject_phone
+    )
+    if auth or cookie_subject:
         # Token presente pero invalido = 401, no "anonimo": registrar la
         # aceptacion bajo un sujeto equivocado es peor que rechazar.
-        user = await get_current_user(auth, db)
+        user = await get_current_user(request=request, authorization=auth, db=db)
 
     ip = _client_ip(request)
     user_agent = (request.headers.get("user-agent") or "")[:400] or None

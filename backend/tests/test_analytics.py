@@ -125,4 +125,5 @@ def test_funnel_counts_sessions_and_money_per_venue(api, api_client, db):
     assert denied.status_code == 403, denied.text
 
     # Ni un visitante sin sesion.
+    api_client.cookies.clear()
     assert api_client.get(f"/venues/{venue}/funnel").status_code == 401

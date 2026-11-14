@@ -92,10 +92,11 @@ import { SplashScreen } from "./components/SplashScreen";
 import Layout from "./components/Layout";
 
 function RequireRole({ role, children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, sessionError } = useAuth();
   const location = useLocation();
   // Splash de marca mientras se restaura la sesión (nunca un flash de login).
   if (loading) return <SplashScreen />;
+  if (sessionError) return <SessionRecovery />;
   // "from" viaja en location.state: el login lo lee y aterriza donde el
   // usuario iba, no en su dashboard por defecto. EXCEPCIÓN: un logout
   // intencional (bandera de lib/auth) redirige sin state — si el guard
@@ -116,9 +117,10 @@ function RequireRole({ role, children }) {
 }
 
 function RequireAuth({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, sessionError } = useAuth();
   const location = useLocation();
   if (loading) return <SplashScreen />;
+  if (sessionError) return <SessionRecovery />;
   if (!user)
     return (
       <Navigate
@@ -128,6 +130,17 @@ function RequireAuth({ children }) {
       />
     );
   return children;
+}
+
+function SessionRecovery() {
+  const { restoreSession } = useAuth();
+  return (
+    <main className="mx-auto max-w-md space-y-4 p-6" role="alert">
+      <h1 className="display text-xl">No pudimos verificar tu sesión</h1>
+      <p>Comprueba tu conexión e intenta de nuevo. Conservamos tu sesión.</p>
+      <button type="button" className="btn-primary" onClick={restoreSession}>Reintentar</button>
+    </main>
+  );
 }
 
 function App() {

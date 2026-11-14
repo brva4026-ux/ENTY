@@ -548,10 +548,8 @@ export default function ProfilePage() {
         method: "POST",
         body: JSON.stringify({ password: sessPass }),
       });
-      // El backend invalida TODOS los tokens (bump de token_version) y nos
-      // devuelve uno nuevo: si no lo guardáramos, esta misma sesión caería
-      // al login junto con las demás.
-      localStorage.setItem("tf_token", res.access_token);
+      // El backend invalida las otras sesiones y renueva nuestra cookie.
+      localStorage.removeItem("tf_token");
       setUser(res.user);
       setSessPass("");
       setSessOpen(false);
@@ -600,7 +598,7 @@ export default function ProfilePage() {
         method: "DELETE",
         body: JSON.stringify({ password: delPass, confirm: delConfirm }),
       });
-      logout();
+      await logout();
       nav("/login", { state: { deleted: true } });
     } catch (err) {
       setDelErr(err.message);
@@ -668,9 +666,13 @@ export default function ProfilePage() {
           <div className="pf-hero-actions">
             <button
               type="button"
-              onClick={() => {
-                logout();
-                nav("/login", { replace: true });
+              onClick={async () => {
+                try {
+                  await logout();
+                  nav("/login", { replace: true });
+                } catch {
+                  ui.toast("No pudimos cerrar la sesión. Intenta de nuevo.", "error");
+                }
               }}
               className="btn-ghost pf-action"
             >

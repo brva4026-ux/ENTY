@@ -29,6 +29,7 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from starlette.concurrency import run_in_threadpool
 
+from app.core.session import check_session_origin, session_response
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.mailer import Mailer
@@ -239,6 +240,7 @@ async def accept_invitation(
     request: Request,
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
+    check_session_origin(request)
     # Lockout en DB (mig 016): cubo por IP con email sentinel. Cada intento
     # de canje cuenta como fallo (defensa contra fuerza bruta del token), pero
     # el ÉXITO limpia el cubo: sin eso, invitar a un equipo de 20 desde la
@@ -323,4 +325,4 @@ async def accept_invitation(
     roles = {str(inv["venue_id"]): [inv["role"]]}
     token = create_access_token(user_id, [inv["venue_id"]], roles, 1)
     summary = await _build_user_summary(db, user_id)
-    return TokenResponse(access_token=token, user=summary)
+    return session_response(token, summary)

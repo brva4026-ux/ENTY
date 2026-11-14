@@ -17,9 +17,10 @@ from secrets import token_hex
 from typing import Annotated
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from starlette.concurrency import run_in_threadpool
 
+from app.core.session import COOKIE_NAME, check_session_origin, session_response, set_session_cookie
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.mailer import Mailer
@@ -190,6 +191,7 @@ async def login(
     request: Request,
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
+    check_session_origin(request)
     ip = _client_ip(request)
     # El identificador puede ser un correo o un nombre de usuario (mig 035).
     # Se usa tal cual como clave del lockout, en minusculas: el par
@@ -247,14 +249,21 @@ async def login(
 
     token = create_access_token(user["id"], venue_ids, roles, user["token_version"])
     summary = await _build_user_summary(db, user["id"])
-    return TokenResponse(access_token=token, user=summary)
+    return session_response(token, summary)
 
 
 @router.get("/me", response_model=UserSummary)
 async def me(
+    request: Request,
+    response: Response,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
+    # Migra una sesion anterior a cookie sin pedir login otra vez.
+    authorization = request.headers.get("authorization", "")
+    if authorization.lower().startswith("bearer "):
+        set_session_cookie(response, authorization.split(" ", 1)[1].strip())
+    response.headers["Cache-Control"] = "no-store"
     return await _build_user_summary(db, user["id"])
 
 
@@ -390,6 +399,7 @@ async def register(
     Rate-limited con el lockout en DB (mig 016, cubo por IP con email
     sentinel): es un endpoint público que crea filas, sin límite sería un
     vector de basura en la DB."""
+    check_session_origin(request)
     ip = _client_ip(request)
     if await _login_locked(db, "__register__", ip):
         raise HTTPException(
@@ -473,7 +483,7 @@ async def register(
     roles = {str(venue_id): ["admin"]}
     token = create_access_token(user_id, [venue_id], roles, 1)
     summary = await _build_user_summary(db, user_id)
-    return TokenResponse(access_token=token, user=summary)
+    return session_response(token, summary, status_code=201)
 
 
 # ---------------------------------------------------------------------------
@@ -1015,7 +1025,7 @@ async def close_other_sessions(
         user["id"], user["venue_ids"], user["roles"], new_version
     )
     summary = await _build_user_summary(db, user["id"])
-    return TokenResponse(access_token=token, user=summary)
+    return session_response(token, summary)
 
 
 # ---------------------------------------------------------------------------
@@ -1181,3 +1191,10 @@ async def export_own_data(
 # NOTA: la purga definitiva de un usuario vive en lifecycle.py (rutas de
 # gestión del equipo, prefijo /venues/{venue_id}).
 # ---------------------------------------------------------------------------
+
+@router.post("/logout")
+async def logout(request: Request, response: Response):
+    check_session_origin(request, required=bool(request.cookies.get(COOKIE_NAME)))
+    response.delete_cookie(COOKIE_NAME, path="/", httponly=True, samesite="lax")
+    response.headers["Cache-Control"] = "no-store"
+    return {"message": "Sesion cerrada"}

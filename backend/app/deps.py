@@ -1,27 +1,32 @@
 """Dependencias de autenticacion y autorizacion por rol/venue.
 
-Los roles viajan en el JWT (claim `roles`: {"<venue_id>": [...]}), de modo que
-cada request decide autorizacion sin tocar la DB. La DB se consulta solo para
-verificar que el usuario sigue activo.
+La identidad llega por cookie HttpOnly o Bearer para clientes API. Cada
+request revalida usuario, version de sesion y roles contra la base de datos.
 """
 from typing import Annotated
 
 import psycopg
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from jwt import PyJWTError, decode
 
+from app.core.session import COOKIE_NAME, check_session_origin
 from app.core.config import get_settings
 from app.core.db import get_db
 
 
 async def get_current_user(
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)] = None,
 ) -> dict:
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "No autenticado")
-
-    token = authorization.split(" ", 1)[1].strip()
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+    else:
+        token = request.cookies.get(COOKIE_NAME)
+        if not token:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "No autenticado")
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            check_session_origin(request, required=True)
     settings = get_settings()
     try:
         payload = decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
