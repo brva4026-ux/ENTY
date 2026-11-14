@@ -37,7 +37,7 @@ from app.schemas import (
 )
 from app.services import wompi
 from app.services.ticket_image import build_ticket_image
-from app.services.wompi import WompiError
+from app.services.checkout import create_reserved_payment
 
 router = APIRouter(prefix="/public", tags=["publico"])
 
@@ -461,7 +461,9 @@ async def _resolve_coupon(
         return None, 0
     await cur.execute(
         """
-        SELECT id, code, kind, value, max_uses, used_count, expires_at, is_active
+        SELECT id, code, kind, value, max_uses, used_count, expires_at, is_active,
+               (SELECT count(*) FROM ticket_payments p WHERE p.coupon_id=coupons.id
+                AND p.status='pending' AND p.reservation_expires_at > now()) AS reserved
           FROM coupons
          WHERE event_id = %s AND lower(code) = lower(%s)
         """,
@@ -472,7 +474,7 @@ async def _resolve_coupon(
         return None, 0
     if coupon["expires_at"] is not None and coupon["expires_at"] <= datetime.now(timezone.utc):
         return None, 0
-    if coupon["max_uses"] is not None and coupon["used_count"] >= coupon["max_uses"]:
+    if coupon["max_uses"] is not None and (coupon["used_count"] + coupon["reserved"]) >= coupon["max_uses"]:
         return None, 0
     discount = _coupon_discount(coupon["kind"], coupon["value"], price_cents)
     return coupon, discount
@@ -567,7 +569,7 @@ async def public_checkout(
             )
 
         now = datetime.now(timezone.utc)
-        expires_at = min(row["end_at"], now + timedelta(days=7))
+        expires_at = min(row["end_at"], now + timedelta(minutes=15))
         if expires_at <= now:
             raise HTTPException(409, "El evento ya termino: no se puede comprar")
 
@@ -591,37 +593,15 @@ async def public_checkout(
 
         reference = payment_reference(event_id)
         email = (body.customer_email or "").strip() or None
-        try:
-            link = await wompi.create_payment_link(
-                name=f"Boleta - {row['event_name']}",
-                description=f"Compra del fan ({row['event_name']})",
-                amount_in_cents=charge_cents,
-                expires_at_iso=expires_at.isoformat(),
-                # Vuelve al detalle con la referencia para el polling de estado.
-                redirect_url=f"{s.app_public_url}/evento/{event_id}?pago={reference}",
-            )
-        except WompiError as e:
-            raise HTTPException(502, f"Wompi rechazo el cobro: {e}")
-
-        # created_by_user_id NULL: no hay usuario; el cobro es del fan.
-        await cur.execute(
-            """
-            INSERT INTO ticket_payments
-                (venue_id, event_id, ticket_type_id, reference, provider,
-                 provider_ref, amount_in_cents, customer_name, customer_phone,
-                 customer_email, created_by_user_id, coupon_id,
-                 discount_in_cents)
-            VALUES (%s, %s, %s, %s, 'wompi', %s, %s, %s, %s, %s, NULL, %s, %s)
-            RETURNING id
-            """,
-            (
-                row["venue_id"], event_id, body.ticket_type_id, reference,
-                str(link.get("id")), charge_cents, body.customer_name,
-                body.customer_phone, email,
-                coupon["id"] if coupon else None, discount,
-            ),
+        _, link = await create_reserved_payment(
+            db, event_id=event_id, ticket_type_id=body.ticket_type_id,
+            reference=reference, amount=charge_cents, customer_name=body.customer_name,
+            customer_phone=body.customer_phone, customer_email=email, user_id=None,
+            coupon_id=coupon["id"] if coupon else None, discount=discount,
+            expires_at=expires_at, name=f"Boleta - {row['event_name']}",
+            description=f"Compra del fan ({row['event_name']})",
+            redirect_url=f"{s.app_public_url}/evento/{event_id}?pago={reference}",
         )
-        await db.commit()
 
     return PublicCheckoutOut(
         reference=reference,

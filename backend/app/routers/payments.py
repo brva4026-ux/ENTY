@@ -35,7 +35,7 @@ from app.schemas import (
     PaymentsListOut,
 )
 from app.services import wompi
-from app.services.wompi import WompiError
+from app.services.checkout import create_reserved_payment
 
 router = APIRouter(tags=["payments"])
 
@@ -117,41 +117,21 @@ async def create_payment(
         if not ev:
             raise HTTPException(404, "Evento no encontrado")
         now = datetime.now(timezone.utc)
-        expires_at = min(ev["end_at"], now + timedelta(days=7))
+        expires_at = min(ev["end_at"], now + timedelta(minutes=15))
         if expires_at <= now:
             raise HTTPException(409, "El evento ya termino: no se pueden crear cobros")
 
         reference = payment_reference(event_id)
-        try:
-            link = await wompi.create_payment_link(
-                name=f"Boleta - {ev['event_name']}",
-                description=f"Cobro para {body.customer_name} (evento {ev['event_name']})",
-                amount_in_cents=body.amount_in_cents,
-                expires_at_iso=expires_at.isoformat(),
-                redirect_url=f"{s.app_public_url}/t",
-            )
-        except WompiError as e:
-            raise HTTPException(502, f"Wompi rechazo el cobro: {e}")
-
-        # La DB registra solo lo que Wompi acepto: si el link no se creo, no
-        # hay fila 'pending' huerfana.
-        await cur.execute(
-            """
-            INSERT INTO ticket_payments
-                (venue_id, event_id, ticket_type_id, reference, provider,
-                 provider_ref, amount_in_cents, customer_name, customer_phone,
-                 customer_email, created_by_user_id)
-            VALUES (%s, %s, %s, %s, 'wompi', %s, %s, %s, %s, %s, %s)
-            RETURNING id
-            """,
-            (
-                venue_id, event_id, body.ticket_type_id, reference,
-                str(link.get("id")), body.amount_in_cents, body.customer_name,
-                body.customer_phone, body.customer_email, user["id"],
-            ),
+        payment_id, link = await create_reserved_payment(
+            db, event_id=event_id, ticket_type_id=body.ticket_type_id,
+            reference=reference, amount=body.amount_in_cents,
+            customer_name=body.customer_name, customer_phone=body.customer_phone,
+            customer_email=body.customer_email, user_id=user["id"],
+            coupon_id=None, discount=0, expires_at=expires_at,
+            name=f"Boleta - {ev['event_name']}",
+            description=f"Cobro para {body.customer_name} (evento {ev['event_name']})",
+            redirect_url=f"{s.app_public_url}/evento/{event_id}?pago={reference}",
         )
-        payment_id = (await cur.fetchone())["id"]
-        await db.commit()
 
     return PaymentCreateOut(
         payment_id=payment_id,
@@ -273,7 +253,6 @@ async def wompi_webhook(
             """
             SELECT id, reference FROM ticket_payments
              WHERE provider = 'wompi' AND provider_ref = %s
-             FOR UPDATE
             """,
             (link_id,),
         )

@@ -108,7 +108,7 @@ BEGIN
 
     -- Idempotencia: el reintento del webhook llega aqui con el cobro ya
     -- aprobado. Devolver el MISMO ticket_id sin tocar nada.
-    IF v_payment.status = 'approved' THEN
+    IF v_payment.status IN ('approved', 'paid_unfulfilled') THEN
         RETURN v_payment.ticket_id;
     END IF;
 
@@ -141,47 +141,46 @@ BEGIN
         RAISE EXCEPTION 'payment_amount_mismatch';
     END IF;
 
-    SELECT * INTO v_event FROM events WHERE id = v_payment.event_id;
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'event_not_found';
-    END IF;
-    -- Misma guardia que emit_ticket: un evento cerrado no vende (si el fan
-    -- pago tarde, el dinero esta pero la boleta no se emite: el 409 deja
-    -- la situacion visible para resolverla a mano).
-    IF v_event.status NOT IN ('published', 'live') THEN
-        RAISE EXCEPTION 'event_not_open_for_sales';
-    END IF;
-
-    SELECT * INTO v_type FROM ticket_types WHERE id = v_payment.ticket_type_id;
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'ticket_type_not_found';
-    END IF;
-
-    -- Emision de venta directa: cupo NULL (una boleta de pago no usa cupo
-    -- de promotor) y created_by = quien creo el cobro (reportes "vendida
-    -- por"). La DB jamas devuelve el token: lo guarda hasheado.
-    v_ticket := emit_ticket(
-        v_payment.event_id,
-        v_payment.ticket_type_id,
-        NULL,
-        v_payment.created_by_user_id,
-        v_payment.customer_name,
-        p_raw_token,
-        v_payment.customer_phone,
-        v_payment.customer_email,
-        'online'
-    );
-
-    -- Cupón aplicado (mig 043): la boleta nace con el precio de lista; aquí se
-    -- corrige al NETO que el fan pagó, para que el recaudo y el cierre de caja
-    -- reflejen el descuento. Sin cupón, amount_in_cents == precio de lista y
-    -- este bloque no hace nada.
-    IF v_payment.discount_in_cents > 0 THEN
-        UPDATE tickets SET price_cents_snapshot = v_payment.amount_in_cents
-         WHERE id = v_ticket;
-        UPDATE coupons SET used_count = used_count + 1
-         WHERE id = v_payment.coupon_id;
-    END IF;
+    BEGIN
+        -- Libera solo NUESTRA reserva dentro de esta transaccion; los locks
+        -- de emit_ticket protegen las demas ventas. Un error revierte el bloque.
+        UPDATE ticket_payments SET reservation_expires_at=NULL WHERE id=v_payment.id;
+        IF v_payment.coupon_id IS NOT NULL THEN
+            PERFORM 1 FROM ticket_types WHERE id=v_payment.ticket_type_id FOR UPDATE;
+            PERFORM 1 FROM events WHERE id=v_payment.event_id FOR UPDATE;
+            PERFORM 1 FROM coupons WHERE id=v_payment.coupon_id FOR UPDATE;
+            IF EXISTS (SELECT 1 FROM coupons c WHERE c.id=v_payment.coupon_id
+                       AND c.max_uses IS NOT NULL AND c.used_count +
+                         (SELECT count(*) FROM ticket_payments p WHERE p.coupon_id=c.id
+                          AND p.status='pending' AND p.reservation_expires_at > now()) >= c.max_uses) THEN
+                RAISE EXCEPTION 'coupon_unavailable';
+            END IF;
+        END IF;
+        v_ticket := emit_ticket(v_payment.event_id, v_payment.ticket_type_id, NULL,
+            v_payment.created_by_user_id, v_payment.customer_name, p_raw_token,
+            v_payment.customer_phone, v_payment.customer_email, 'online');
+        -- El monto historico siempre es lo realmente pagado, incluso si un
+        -- admin negocio un precio o cambio la tarifa despues de crear el link.
+        UPDATE tickets SET price_cents_snapshot=v_payment.amount_in_cents WHERE id=v_ticket;
+        IF v_payment.coupon_id IS NOT NULL THEN
+            UPDATE coupons SET used_count=used_count+1 WHERE id=v_payment.coupon_id;
+        END IF;
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM NOT IN ('ticket_type_sold_out','event_at_capacity',
+            'event_not_open_for_sales','ticket_type_inactive','coupon_unavailable') THEN
+            RAISE;
+        END IF;
+        UPDATE ticket_payments SET status='paid_unfulfilled',
+            reservation_expires_at=NULL, transaction_id=p_transaction_id,
+            approved_at=now(), raw_payload=p_payload, fulfillment_error=SQLERRM
+         WHERE id=v_payment.id;
+        PERFORM notify_venue_admins(v_payment.venue_id, 'payment_approved',
+            'Pago recibido: requiere revision',
+            format('El pago %s de %s se recibio sin emitir boleta. Revisar disponibilidad o gestionar reembolso. Motivo: %s',
+                v_payment.reference, v_payment.customer_name, SQLERRM),
+            '/admin?event=' || v_payment.event_id || '&tab=cobros');
+        RETURN NULL;
+    END;
 
     UPDATE ticket_payments
        SET status = 'approved',
@@ -565,6 +564,8 @@ BEGIN
      WHERE event_id = p_event_id
        AND ticket_type_id = p_ticket_type_id
        AND status NOT IN ('voided', 'refunded');
+    v_used_in_type := v_used_in_type + (SELECT count(*) FROM ticket_payments
+     WHERE ticket_type_id=p_ticket_type_id AND status='pending' AND reservation_expires_at > now());
     IF v_used_in_type >= v_type.quantity THEN
         RAISE EXCEPTION 'ticket_type_sold_out';
     END IF;
@@ -574,6 +575,8 @@ BEGIN
       FROM tickets
      WHERE event_id = p_event_id
        AND status NOT IN ('voided', 'refunded');
+    v_used_total := v_used_total + (SELECT count(*) FROM ticket_payments
+     WHERE event_id=p_event_id AND status='pending' AND reservation_expires_at > now());
     IF v_used_total >= v_event_capacity THEN
         RAISE EXCEPTION 'event_at_capacity';
     END IF;
@@ -2596,9 +2599,11 @@ CREATE TABLE public.ticket_payments (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     coupon_id bigint,
     discount_in_cents bigint DEFAULT 0 NOT NULL,
+    reservation_expires_at timestamp with time zone,
+    fulfillment_error text,
     CONSTRAINT ticket_payments_amount_in_cents_check CHECK ((amount_in_cents > 0)),
     CONSTRAINT ticket_payments_provider_check CHECK ((provider = 'wompi'::text)),
-    CONSTRAINT ticket_payments_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'declined'::text, 'voided'::text, 'expired'::text])))
+    CONSTRAINT ticket_payments_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'declined'::text, 'voided'::text, 'expired'::text, 'paid_unfulfilled'::text])))
 );
 
 
@@ -4202,3 +4207,57 @@ ALTER TABLE ONLY public.venue_user_roles
 --
 
 COMMIT;
+
+
+CREATE FUNCTION public.reserve_ticket_payment(p_event_id bigint, p_type_id bigint, p_reference text, p_amount bigint, p_name text, p_phone text, p_email text, p_user_id bigint, p_coupon_id bigint, p_discount bigint, p_expires timestamptz) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_type ticket_types%ROWTYPE;
+    v_event events%ROWTYPE;
+    v_coupon coupons%ROWTYPE;
+    v_count bigint;
+    v_id bigint;
+BEGIN
+    -- Mismo orden de locks que emit_ticket: localidad, evento, cupon.
+    SELECT * INTO v_type FROM ticket_types WHERE id=p_type_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'ticket_type_not_found'; END IF;
+    IF v_type.event_id <> p_event_id THEN RAISE EXCEPTION 'ticket_type_not_in_event'; END IF;
+    IF NOT v_type.is_active THEN RAISE EXCEPTION 'ticket_type_inactive'; END IF;
+    SELECT * INTO v_event FROM events WHERE id=p_event_id FOR UPDATE;
+    IF v_event.status NOT IN ('published','live') THEN RAISE EXCEPTION 'event_not_open_for_sales'; END IF;
+    IF p_expires <= now() THEN RAISE EXCEPTION 'payment_reservation_expired'; END IF;
+
+    SELECT count(*) INTO v_count FROM tickets
+     WHERE ticket_type_id=p_type_id AND status NOT IN ('voided','refunded');
+    v_count := v_count + (SELECT count(*) FROM ticket_payments
+     WHERE ticket_type_id=p_type_id AND status='pending' AND reservation_expires_at > now());
+    IF v_count >= v_type.quantity THEN RAISE EXCEPTION 'ticket_type_sold_out'; END IF;
+    SELECT count(*) INTO v_count FROM tickets
+     WHERE event_id=p_event_id AND status NOT IN ('voided','refunded');
+    v_count := v_count + (SELECT count(*) FROM ticket_payments
+     WHERE event_id=p_event_id AND status='pending' AND reservation_expires_at > now());
+    IF v_count >= v_event.capacity THEN RAISE EXCEPTION 'event_at_capacity'; END IF;
+
+    IF p_coupon_id IS NOT NULL THEN
+        SELECT * INTO v_coupon FROM coupons WHERE id=p_coupon_id AND event_id=p_event_id FOR UPDATE;
+        IF NOT FOUND OR NOT v_coupon.is_active OR v_coupon.expires_at <= now() THEN
+            RAISE EXCEPTION 'coupon_unavailable';
+        END IF;
+        SELECT count(*) INTO v_count FROM ticket_payments
+         WHERE coupon_id=p_coupon_id AND status='pending' AND reservation_expires_at > now();
+        IF v_coupon.max_uses IS NOT NULL AND v_coupon.used_count + v_count >= v_coupon.max_uses THEN
+            RAISE EXCEPTION 'coupon_unavailable';
+        END IF;
+    END IF;
+    INSERT INTO ticket_payments (venue_id,event_id,ticket_type_id,reference,
+        amount_in_cents,customer_name,customer_phone,customer_email,created_by_user_id,
+        coupon_id,discount_in_cents,reservation_expires_at)
+    VALUES (v_event.venue_id,p_event_id,p_type_id,p_reference,p_amount,p_name,p_phone,
+        p_email,p_user_id,p_coupon_id,p_discount,p_expires) RETURNING id INTO v_id;
+    RETURN v_id;
+END;
+$$;
+
+CREATE INDEX ix_ticket_payments_reservations ON public.ticket_payments (event_id, ticket_type_id, reservation_expires_at) WHERE status='pending';
+CREATE INDEX ix_ticket_payments_coupon_reservations ON public.ticket_payments (coupon_id, reservation_expires_at) WHERE status='pending' AND coupon_id IS NOT NULL;
