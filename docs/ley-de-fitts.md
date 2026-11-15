@@ -58,9 +58,12 @@ había sacado las acciones destructivas a la primera fila.
   (un único rail de compra pegajoso que reemplace la barra en esta pantalla)
   exige rehacer el layout móvil y su verificación visual; queda **propuesta**,
   no aplicada a ciegas.
-- **Checkboxes nativos (login "Recordarme", registro)**: el checkbox mide 16-18px,
-  pero su `<label>` asociado es el objetivo real y cumple. Se dejan nativos: su
-  tamaño es el del sistema a propósito.
+- **Checkboxes (login "Recordarme", registro, legal)**: los controles de
+  consentimiento tienen el `<label>` asociado como objetivo real y cumplen; los
+  que van en línea con una frase larga (registro, legal) se dejan al tamaño del
+  sistema a propósito. La casilla de "Recordarme" **sí** subió a 24×24 (WCAG 2.2
+  SC 2.5.8) porque es una acción suelta, no un consentimiento en línea, y el
+  usuario la pulsa sin el texto.
 - **Enlaces legales en línea** (footer, párrafo de aceptación): exentos por
   WCAG 2.5.8 (objetivo *inline* en una frase).
 - **Escritorio**: los controles por debajo de 44px en puntero fino (p. ej. el
