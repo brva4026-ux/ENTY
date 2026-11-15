@@ -333,4 +333,13 @@ async def seed(settings=Depends(get_settings), db=Depends(get_db)):
             403,
             "Seed deshabilitado. Define IS_DEMO=true solo en entornos de prueba.",
         )
-    return await seed_demo_data(db)
+    # El seed es el punto de reinicio de un entorno de prueba: ademas de los
+    # datos demo, deja el lockout limpio. Sin esto, dos corridas seguidas de la
+    # suite dentro de la ventana de 15 min comparten el cubo de IP del registro
+    # (`__register__`, que no se limpia al acertar) y a mitad de la segunda
+    # corrida todo login responde 429 — un fallo que parece del producto y es
+    # estado de la DB. `seed_demo_data` no lo hace porque tambien lo usan los
+    # tests, que gestionan su propio estado.
+    result = await seed_demo_data(db)
+    await db.execute("DELETE FROM login_attempts")
+    return result

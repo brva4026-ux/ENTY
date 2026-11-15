@@ -143,3 +143,32 @@ def test_demo_event_is_visible_in_the_public_catalog_after_reseed(db, dbcur, api
     assert any(e["id"] == event_id for e in despues["events"]), (
         "tras re-sembrar el evento demo debe volver a la vitrina"
     )
+
+
+def test_seed_endpoint_clears_the_login_lockout(db, dbcur, api_client, monkeypatch):
+    """`POST /seed` deja el lockout limpio, no solo los datos demo.
+
+    El registro (cubo `__register__`) NO limpia su contador al acertar: los 8
+    fallos por IP de una corrida de la suite dejan la siguiente con 429 en todo
+    login (fallo que parece del producto y es estado de la DB). El seed es el
+    punto de reinicio de un entorno de prueba y debe limpiarlo. El reset script
+    ya lo hacia; el endpoint que usan los e2e, no.
+    """
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("IS_DEMO", "true")
+    get_settings.cache_clear()
+
+    # Deja el cubo como lo dejaria una corrida previa (umbral = 8).
+    for _ in range(8):
+        dbcur.execute(
+            "INSERT INTO login_attempts (email_norm, ip) "
+            "VALUES ('__register__', 'testclient')"
+        )
+    assert dbcur.execute("SELECT count(*) AS n FROM login_attempts").fetchone()["n"] == 8
+
+    res = api_client.post("/seed")
+    assert res.status_code == 200, res.text
+
+    n = dbcur.execute("SELECT count(*) AS n FROM login_attempts").fetchone()["n"]
+    assert n == 0, "el seed debe limpiar el lockout para que la suite sea repetible"
