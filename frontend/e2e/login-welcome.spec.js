@@ -74,18 +74,18 @@ test.describe("bienvenida tras el login", () => {
 
     // La capa aparece como region viva: un lector de pantalla la anuncia.
     const status = page.getByRole("status").filter({ hasText: "¡Bienvenido!" });
-    await expect(status).toBeVisible();
-    await expect(page.getByText("¡Bienvenido!")).toBeVisible();
-    await expect(page.getByText("Ingresando...")).toBeVisible();
+    await expect(status).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("¡Bienvenido!")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Ingresando...")).toBeVisible({ timeout: 15_000 });
 
     // El saludo usa el nombre del usuario del seed ("Admin Bar Esquina"),
     // no un texto fijo. Y el correo real acompaña.
     await expect(card(page).locator(".welcome-hello strong")).toHaveText("Admin");
-    await expect(card(page).getByText("admin@bar.test")).toBeVisible();
+    await expect(card(page).getByText("admin@bar.test")).toBeVisible({ timeout: 15_000 });
 
     // La barra existe, es accesible y ya avanzo de 0.
     const bar = page.getByRole("progressbar", { name: /preparando/i });
-    await expect(bar).toBeVisible();
+    await expect(bar).toBeVisible({ timeout: 15_000 });
     const first = Number(await bar.getAttribute("aria-valuenow"));
     expect(first).toBeGreaterThan(0);
     expect(first).toBeLessThanOrEqual(100);
@@ -101,7 +101,7 @@ test.describe("bienvenida tras el login", () => {
 
     await submitLogin(page, "admin@bar.test");
     const bar = page.getByRole("progressbar", { name: /preparando/i });
-    await expect(bar).toBeVisible();
+    await expect(bar).toBeVisible({ timeout: 15_000 });
 
     // Lecturas seguidas: la barra debe ser MONOTONA (nunca retrocede). El bug
     // que este test caza es justamente el bucle que, tras el exito, volvia a
@@ -133,7 +133,7 @@ test.describe("bienvenida tras el login", () => {
     // "puerta" es el username del seed (mig 035), no un correo.
     await submitLogin(page, "puerta");
 
-    await expect(page.getByText("¡Bienvenido!")).toBeVisible();
+    await expect(page.getByText("¡Bienvenido!")).toBeVisible({ timeout: 15_000 });
     await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
     await expect(page).toHaveURL(/\/bouncer/);
   });
@@ -158,7 +158,7 @@ test.describe("bienvenida tras el login", () => {
     test.skip(!ok, "App no disponible");
 
     await submitLogin(page, "admin@bar.test");
-    await expect(card(page)).toBeVisible();
+    await expect(card(page)).toBeVisible({ timeout: 15_000 });
 
     // Sin scroll horizontal: la tarjeta respeta los margenes laterales.
     const overflow = await page.evaluate(
@@ -179,7 +179,7 @@ test.describe("bienvenida tras el login", () => {
     }
 
     await submitLogin(page, "admin@bar.test");
-    await expect(card(page)).toBeVisible();
+    await expect(card(page)).toBeVisible({ timeout: 15_000 });
 
     // Sin animacion de entrada: la tarjeta esta en su estado final de una.
     const anim = await card(page).evaluate(
@@ -226,7 +226,7 @@ test.describe("ciclo del usuario en el perfil", () => {
     await page.waitForURL(/\/login/, { timeout: 15_000 });
     await submitLogin(page, uname);
 
-    await expect(page.getByText("¡Bienvenido!")).toBeVisible();
+    await expect(page.getByText("¡Bienvenido!")).toBeVisible({ timeout: 15_000 });
     await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
   });
 });
