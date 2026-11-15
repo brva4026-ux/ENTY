@@ -374,6 +374,7 @@ export default function TypeManager({ venueId, eventId, types, onChange, capacit
         {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
         {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
         <button
+          type="submit"
           className={`btn-primary sm:col-start-4 sm:row-start-1 sm:self-start ${
             saving ? "is-busy" : ""
           }`}

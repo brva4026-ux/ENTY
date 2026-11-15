@@ -203,7 +203,7 @@ export default function AcceptInvitationPage() {
 
                 {err && <p className="text-xs text-red-400">{err}</p>}
 
-                <button disabled={!canSubmit} className="btn-primary w-full">
+                <button type="submit" disabled={!canSubmit} className="btn-primary w-full">
                   {busy ? "Creando tu cuenta…" : "Crear mi cuenta y entrar"}
                 </button>
                 <p className="text-center text-2xs text-zinc-600">

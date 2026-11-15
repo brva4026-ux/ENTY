@@ -148,7 +148,11 @@ export default function PayoutsManager({ venueId, users }) {
             required
             aria-label="Hasta"
           />
-          <button disabled={busy || promoters.length === 0} className="btn-primary">
+          <button
+            type="submit"
+            disabled={busy || promoters.length === 0}
+            className="btn-primary"
+          >
             {busy ? "Calculando…" : "Cerrar liquidación"}
           </button>
         </form>

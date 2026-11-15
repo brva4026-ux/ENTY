@@ -342,7 +342,7 @@ export default function PaymentsPanel({ venueId, events = [] }) {
             )}
 
             <div className="mt-4">
-              <button className="btn-primary" disabled={busy}>
+              <button type="submit" className="btn-primary" disabled={busy}>
                 {busy && (
                   <svg
                     className="btn-spinner"

@@ -510,7 +510,7 @@ export default function InvitationsManager({ venueId }) {
               <option value={168}>Vigencia: 7 días</option>
               <option value={336}>Vigencia: 14 días</option>
             </select>
-            <button disabled={busy} className="btn-primary sm:col-span-2">
+            <button type="submit" disabled={busy} className="btn-primary sm:col-span-2">
               {busy ? "Generando…" : "Generar enlace de invitación"}
             </button>
           </form>

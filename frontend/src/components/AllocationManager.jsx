@@ -388,6 +388,7 @@ export default function AllocationManager({
                 : "se reparte en partes iguales"}
             </span>
             <button
+              type="submit"
               className={`btn-primary ml-auto ${saving ? "is-busy" : ""}`}
               disabled={saving}
             >
@@ -445,6 +446,7 @@ export default function AllocationManager({
             required
           />
           <button
+            type="submit"
             className={`btn-primary ${saving ? "is-busy" : ""}`}
             disabled={saving}
           >

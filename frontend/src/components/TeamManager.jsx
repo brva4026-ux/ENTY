@@ -957,7 +957,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
               required
             />
             {form.password && <PasswordMeter value={form.password} />}
-            <button disabled={busy} className="btn-primary col-span-full">
+            <button type="submit" disabled={busy} className="btn-primary col-span-full">
               {busy ? "Creando…" : "Crear usuario"}
             </button>
             <p className="col-span-full text-xs text-zinc-500">

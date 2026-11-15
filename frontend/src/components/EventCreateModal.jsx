@@ -870,7 +870,12 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   Continuar
                 </button>
               ) : (
-                <button key="submit" className="btn-primary" disabled={creating}>
+                <button
+                  key="submit"
+                  type="submit"
+                  className="btn-primary"
+                  disabled={creating}
+                >
                   {creating && (
                     <svg
                       className="btn-spinner"
