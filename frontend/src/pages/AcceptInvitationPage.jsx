@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Logo } from "../components/Brand";
 import { apiFetch } from "../lib/api";
+import { setToken } from "../lib/tokenStore";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
 
@@ -90,7 +91,7 @@ export default function AcceptInvitationPage() {
         body: JSON.stringify({ token, password }),
       });
       // Sesión inmediata: la persona ya está dentro, como en /register.
-      localStorage.setItem("tf_token", data.access_token);
+      setToken(data.access_token);
       setPhase("done");
     } catch (e2) {
       setErr(e2.message);

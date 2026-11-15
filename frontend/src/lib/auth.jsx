@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { apiFetch } from "./api";
+import { getToken, setToken, clearToken } from "./tokenStore";
 
 const AuthContext = createContext(null);
 
@@ -8,7 +9,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("tf_token");
+    const token = getToken();
     if (!token) {
       setLoading(false);
       return;
@@ -16,18 +17,18 @@ export function AuthProvider({ children }) {
     apiFetch("/auth/me")
       .then((me) => setUser(me))
       .catch(() => {
-        localStorage.removeItem("tf_token");
+        clearToken();
         setUser(null);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email, password) {
+  async function login(email, password, { remember = true } = {}) {
     const data = await apiFetch("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-    localStorage.setItem("tf_token", data.access_token);
+    setToken(data.access_token, { remember });
     setUser(data.user);
     return data.user;
   }
@@ -37,13 +38,13 @@ export function AuthProvider({ children }) {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    localStorage.setItem("tf_token", data.access_token);
+    setToken(data.access_token);
     setUser(data.user);
     return data.user;
   }
 
   function logout() {
-    localStorage.removeItem("tf_token");
+    clearToken();
     setUser(null);
     // Marcar la salida INTENCIONAL: el guard de rutas ve user=null con la URL
     // vieja un instante (el update de location va en transicion) y siembra

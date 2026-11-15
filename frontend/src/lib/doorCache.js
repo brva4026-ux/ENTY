@@ -20,6 +20,8 @@
  * already_redeemed en la DB.
  */
 
+import { getToken } from "./tokenStore";
+
 const DB_NAME = "ticketflow-door";
 const DB_VERSION = 2;
 const STORE_SNAPSHOT = "snapshot"; // key = eventId -> DoorSnapshotOut
@@ -290,7 +292,7 @@ export async function syncQueue(venueId, eventId) {
 // ese grafo (y ciclos) al service worker futuro, aquí va un fetch mínimo con
 // el token de la app (misma clave que api.js).
 async function apiFetchJson(path, init = {}) {
-  const token = localStorage.getItem("tf_token");
+  const token = getToken();
   const res = await fetch(`/api${path}`, {
     ...init,
     headers: {

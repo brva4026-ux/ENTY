@@ -8,6 +8,7 @@ import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
 import { initials } from "../lib/initials";
 import { fileToDataUrl } from "../lib/imageUpload";
+import { setToken, isRemembered } from "../lib/tokenStore";
 import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
 import PasswordMeter from "../components/PasswordMeter";
@@ -547,7 +548,7 @@ export default function ProfilePage() {
       // El backend invalida TODOS los tokens (bump de token_version) y nos
       // devuelve uno nuevo: si no lo guardáramos, esta misma sesión caería
       // al login junto con las demás.
-      localStorage.setItem("tf_token", res.access_token);
+      setToken(res.access_token, { remember: isRemembered() });
       setUser(res.user);
       setSessPass("");
       setSessOpen(false);

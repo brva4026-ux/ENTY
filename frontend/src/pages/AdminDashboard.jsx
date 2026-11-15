@@ -12,6 +12,7 @@ import { InstallPrompt } from "../components/InstallPrompt";
 import { SelectSkeleton, StatSkeletonRow } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
 import { activeVenueId } from "../lib/venue";
+import { getToken } from "../lib/tokenStore";
 import { toLocalInput } from "../lib/datetime";
 import { money, currentYM } from "../lib/format";
 import EmptyState from "../components/EmptyState";
@@ -879,7 +880,7 @@ export default function AdminDashboard() {
   async function closeNight() {
     setError("");
     try {
-      const token = localStorage.getItem("tf_token");
+      const token = getToken();
       const res = await fetch(
         `/api/venues/${venueId}/events/${selectedEvent}/closing.csv`,
         { headers: token ? { Authorization: `Bearer ${token}` } : {} },
@@ -904,7 +905,7 @@ export default function AdminDashboard() {
     setError("");
     setCajaBusy(true);
     try {
-      const token = localStorage.getItem("tf_token");
+      const token = getToken();
       const qs = new URLSearchParams();
       if (cajaRange.desde) qs.set("since", cajaRange.desde);
       // El API cierra el rango en forma semiabierta [since, until), pero el

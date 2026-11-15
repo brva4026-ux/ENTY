@@ -86,6 +86,14 @@ export default function LoginPage() {
   const [errorTick, setErrorTick] = useState(0);
   const [entered, setEntered] = useState(null);
   const [capsLock, setCapsLock] = useState(false);
+  // "Recordarme" decide DONDE vive el token (localStorage vs sessionStorage),
+  // no solo el correo: al desmarcarlo, la sesion muere al cerrar el navegador.
+  // Por defecto queda marcado (equivale al comportamiento historico, que
+  // persistia siempre); solo se desmarca si el usuario lo pidio explicitamente.
+  const [remember, setRemember] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("enty_remember_me") !== "0";
+  });
   // Recuperación de acceso: se pide el enlace desde el propio login (antes el
   // endpoint existía pero NINGUNA pantalla lo llamaba). `forgotSent` muestra
   // la respuesta genérica del backend en el mismo lugar donde aparecería el
@@ -123,7 +131,7 @@ export default function LoginPage() {
     setError("");
     setBusy(true);
     try {
-      const user = await login(ident, password);
+      const user = await login(ident, password, { remember });
       const home = homeForRole(user);
       if (home === "/login") {
         setError("Tu usuario no tiene un rol asignado");
@@ -342,16 +350,15 @@ export default function LoginPage() {
                 id="remember-me"
                 name="remember-me"
                 className="auth-checkbox"
-                checked={
-                  typeof window !== "undefined" &&
-                  localStorage.getItem("enty_remember_me") === "1"
-                }
+                checked={remember}
                 onChange={(e) => {
-                  if (e.target.checked) {
-                    localStorage.setItem("enty_remember_me", "1");
-                  } else {
-                    localStorage.removeItem("enty_remember_me");
-                  }
+                  setRemember(e.target.checked);
+                  // Se guarda "1"/"0" explicito: borrar la clave volveria al
+                  // default (marcado) y el "no recordarme" no sobreviviria.
+                  localStorage.setItem(
+                    "enty_remember_me",
+                    e.target.checked ? "1" : "0",
+                  );
                 }}
                 aria-label="Recordarme para la próxima visita"
               />

@@ -1,6 +1,7 @@
 // Cliente API. En dev, Vite hace proxy de /api -> backend:8000.
 // En producción el frontend se sirve junto al backend o via gateway.
 import { captureApiError } from "./sentry";
+import { getToken, clearToken } from "./tokenStore";
 
 const BASE = "/api";
 
@@ -151,7 +152,7 @@ export async function downloadTicketsCsv(venueId, eventId, filters = {}) {
   if (filters.status) qs.set("status", filters.status);
   if (filters.type_id) qs.set("type_id", filters.type_id);
   if (filters.q) qs.set("q", filters.q);
-  const token = localStorage.getItem("tf_token");
+  const token = getToken();
   const res = await fetch(
     `/api/venues/${venueId}/events/${eventId}/tickets?${qs}`,
     {
@@ -307,7 +308,7 @@ export function quotePublicCoupon(eventId, ticketTypeId, code) {
 }
 
 export async function apiFetch(path, options = {}) {
-  const token = localStorage.getItem("tf_token");
+  const token = getToken();
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
@@ -336,14 +337,14 @@ export async function apiFetch(path, options = {}) {
   if (!res.ok) {
     // Token expirado/revocado en un endpoint autenticado: cerrar sesion
     // y mandar al login (el login mismo y el /auth/me ya manejan su caso).
-    const hadToken = localStorage.getItem("tf_token");
+    const hadToken = getToken();
     if (
       res.status === 401 &&
       hadToken &&
       path !== "/auth/login" &&
       path !== "/auth/me"
     ) {
-      localStorage.removeItem("tf_token");
+      clearToken();
       window.location.assign("/login");
       const err = new Error("Tu sesión expiró. Ingresa de nuevo.");
       err.status = 401;

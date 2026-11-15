@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
+import { getToken } from "../lib/tokenStore";
 import { money, labelMonth } from "../lib/format";
 import CountUpNumber from "./CountUpNumber";
 import { STATUS_META } from "./EventWorkbench";
@@ -8,7 +9,7 @@ import Icon from "./Icon";
 
 /** Descarga autenticada del resumen mensual (CSV para el contador). */
 async function downloadOverviewCsv(venueId, month) {
-  const token = localStorage.getItem("tf_token");
+  const token = getToken();
   const res = await fetch(
     `/api/venues/${venueId}/overview.csv${month ? `?month=${month}` : ""}`,
     { headers: token ? { Authorization: `Bearer ${token}` } : {} },

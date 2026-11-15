@@ -230,3 +230,43 @@ test.describe("ciclo del usuario en el perfil", () => {
     await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
   });
 });
+
+/**
+ * "Recordarme" decide DONDE vive el token: marcado (default) persiste en
+ * localStorage y sobrevive al cierre del navegador; sin marcar queda en
+ * sessionStorage y muere con la pestaña. Antes la casilla no cambiaba nada
+ * (siempre localStorage), asi que esto lo protege de volver a ser decorativa.
+ */
+test.describe("Recordarme elige el almacen del token", () => {
+  test("sin marcar, el token queda en sessionStorage (no persiste)", async ({ page }) => {
+    const ok = await available(page, "/login");
+    test.skip(!ok, "App no disponible");
+
+    await page.locator("#remember-me").uncheck();
+    await submitLogin(page, "promo2@bar.test");
+    await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
+
+    const stores = await page.evaluate(() => ({
+      local: localStorage.getItem("tf_token"),
+      session: sessionStorage.getItem("tf_token"),
+    }));
+    expect(stores.session).toBeTruthy();
+    expect(stores.local).toBeNull();
+  });
+
+  test("marcado, el token persiste en localStorage", async ({ page }) => {
+    const ok = await available(page, "/login");
+    test.skip(!ok, "App no disponible");
+
+    await page.locator("#remember-me").check();
+    await submitLogin(page, "promo2@bar.test");
+    await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
+
+    const stores = await page.evaluate(() => ({
+      local: localStorage.getItem("tf_token"),
+      session: sessionStorage.getItem("tf_token"),
+    }));
+    expect(stores.local).toBeTruthy();
+    expect(stores.session).toBeNull();
+  });
+});
