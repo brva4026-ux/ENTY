@@ -895,7 +895,9 @@ avisar.
 "Recordarme": marcado (default) el token va a `localStorage` y sobrevive al
 cierre del navegador; sin marcar va a `sessionStorage` y muere con la pestaña
 (el modo compartido de la puerta lo pide, `docs/arquitectura/03-seguridad.md`).
-`getToken()` mira **los dos** almacenes: un consumidor que lea solo
+La misma casilla gobierna `enty_last_email`: sin recordar la sesión, el campo
+de correo tampoco se precarga (no delata al usuario anterior en el dispositivo
+compartido). `getToken()` mira **los dos** almacenes: un consumidor que lea solo
 `localStorage` trataría una sesión sin "Recordarme" como si no hubiera token.
 Si necesitás el token en un componente, importá `getToken`, no leas el storage
 a mano.
