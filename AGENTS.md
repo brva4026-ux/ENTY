@@ -888,6 +888,18 @@ preview y recargar. El preview comparte la **DB de producción**, así que las
 boletas que emitas ahí quedan de verdad: no lo uses para probar en serio sin
 avisar.
 
+### El token de sesión tiene un dueño único
+
+`frontend/src/lib/tokenStore.js` es el único módulo que toca `tf_token`
+(`getToken` / `setToken` / `clearToken` / `isRemembered`). El login ofrece
+"Recordarme": marcado (default) el token va a `localStorage` y sobrevive al
+cierre del navegador; sin marcar va a `sessionStorage` y muere con la pestaña
+(el modo compartido de la puerta lo pide, `docs/arquitectura/03-seguridad.md`).
+`getToken()` mira **los dos** almacenes: un consumidor que lea solo
+`localStorage` trataría una sesión sin "Recordarme" como si no hubiera token.
+Si necesitás el token en un componente, importá `getToken`, no leas el storage
+a mano.
+
 ## Git / GitHub
 
 - **Para pushear: el remote guarda un PAT clásico con `contents: write`.**
