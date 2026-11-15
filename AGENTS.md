@@ -256,9 +256,9 @@ Si un test falla, **reproducí el fallo en la base limpia antes de tocar el
 código**.
 ### stylelint: el presupuesto es un techo que solo puede BAJAR
 
-`npm run lint:css` es `stylelint "src/**/*.css" --max-warnings 41` y **sí es un
+`npm run lint:css` es `stylelint "src/**/*.css" --max-warnings 35` y **sí es un
 gate de CI** (job `frontend`, paso "Lint CSS"). El número es un techo: si tu
-cambio agrega warnings por encima de 41, el job se pone rojo aunque no haya
+cambio agrega warnings por encima de 35, el job se pone rojo aunque no haya
 errores (`Max warnings exceeded`). Bajá el presupuesto cuando limpies warnings;
 nunca lo subas para "pasar".
 
@@ -618,7 +618,7 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
 - **Superficies insensibles al tema** (p. ej. `.auth-brand`, el panel navy de la
   entrada) fijan sus propios tokens de tinta en `tokens.css`, para que el
   wordmark siga legible sobre el navy también en claro.
-- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 41`
+- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 35`
   es un presupuesto que solo puede **bajar**. `color-no-hex` (todo `src/**/*.css`
   menos `tokens.css`; el bloque `@theme` de `index.css` está exento con
   `stylelint-disable` y rationale: es la fuente de los tokens Tailwind),
@@ -631,7 +631,8 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   --in-*` solo apuntaban a primitivas `--e-*` (retirados del todo en Fase 6);
   `!important` bajó 11→3 (solo el override de `prefers-reduced-motion`) y el
   JSX ya no fija hex (el punto de estado usa `data-status` en CSS). El
-  presupuesto de 41 son **35 `no-duplicate-selectors`** (F4) y **6 `color-no-hex`**;
+  presupuesto de 35 son **35 `no-duplicate-selectors`** (F4); los 6 `color-no-hex`
+  de la página legal se pasaron a tokens (F5, oct-2026);
   quedan 21 `style={{}}` de geometría dinámica (no color).
 - **Estado Fase 2 (HECHA, corte de escala)**: la tipografía es **una escala
   cerrada de 9 pasos**, compartida entre CSS (`--e-text-*` en `tokens.css`) y
