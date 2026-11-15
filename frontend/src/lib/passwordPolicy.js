@@ -18,11 +18,6 @@ export function missingRequirements(pw) {
   return REQUIREMENTS.filter((r) => !r.test(pw));
 }
 
-/** ¿Cumple la política completa? (igual criterio que el 422 del backend) */
-export function isValid(pw) {
-  return missingRequirements(pw).length === 0;
-}
-
 /** Etiquetas de lo que falta: para mensajes "Le falta: ...". */
 export function missingList(pw) {
   return missingRequirements(pw).map((r) => r.label);

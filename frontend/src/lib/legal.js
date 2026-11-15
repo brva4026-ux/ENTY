@@ -33,9 +33,6 @@ export const LEGAL_DOCS = [
   { slug: "encargo-datos", path: "/encargo-datos", label: "Encargo de Datos" },
 ];
 
-/** Los documentos que el registro exige aceptar (los demás solo se informan). */
-export const REQUIRED_SLUGS = ["terminos-plataforma", "privacidad"];
-
 /** Catálogo vigente + huella agregada de versiones (público). */
 export function fetchLegalDocuments() {
   return apiFetch("/legal/documents");

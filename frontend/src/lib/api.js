@@ -127,13 +127,6 @@ export function fetchMyTicketToken(ticketId, credential) {
   });
 }
 
-export function listTickets(venueId, eventId, phone) {
-  const q = phone ? `?phone=${encodeURIComponent(phone)}` : "";
-  return apiFetch(`/venues/${venueId}/events/${eventId}/tickets${q}`).then(
-    (d) => d.items, // compat: los consumidores quieren el array
-  );
-}
-
 /**
  * Listado paginado y filtrado de boletas. Devuelve { total, items }.
  * filters: { status, type_id, q, limit, offset } (todos opcionales).
@@ -387,15 +380,6 @@ export async function apiFetch(path, options = {}) {
     throw err;
   }
   return data;
-}
-
-/**
- * URL pública de la boleta (imagen con QR) que se envía al cliente.
- * No requiere sesión: el token crudo es el secreto de la boleta. Sirve tanto
- * en dev (Vite proxya /api) como en producción (mismo origen).
- */
-export function publicTicketImageUrl(rawToken) {
-  return `${window.location.origin}${BASE}/public/tickets/${encodeURIComponent(rawToken)}/image.jpg`;
 }
 
 /**

@@ -1358,6 +1358,8 @@ export default function AdminDashboard() {
                                     <img
                                       src={ev.flyer_url}
                                       alt=""
+                                      loading="lazy"
+                                      decoding="async"
                                       onError={() =>
                                         setBadFlyers((m) => ({
                                           ...m,
