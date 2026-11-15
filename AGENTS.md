@@ -36,7 +36,15 @@ sudo -u postgres psql -c "CREATE DATABASE ticketflow OWNER postgres;"
 for f in db/schema.sql db/migrations/*.sql; do PGPASSWORD=devpassword psql -h 127.0.0.1 -U postgres -d ticketflow -f "$f"; done
 
 # 2. Backend (env de backend/.env.local) y frontend
-cd backend && (set -a; . ./.env.local; set +a; nohup .venv/bin/python run.py >/tmp/backend.log 2>&1 &)
+#    Las claves Wompi de mentira NO son opcionales para la suite: sin ellas
+#    `payments_enabled` es false, el CTA cae al WhatsApp y 3 specs de compra
+#    fallan (no es un bug de la app; es config de test). CI las define.
+cd backend
+cat >> .env.local <<'ENV'
+WOMPI_PRIVATE_KEY=prv_test_local
+WOMPI_EVENTS_SECRET=test_events_local
+ENV
+(set -a; . ./.env.local; set +a; nohup .venv/bin/python run.py >/tmp/backend.log 2>&1 &)
 cd frontend && (VITE_BACKEND_URL=http://127.0.0.1:8001 nohup npm run dev >/tmp/vite.log 2>&1 &)
 
 # 3. Navegador de Playwright (por defecto NO viene instalado)
@@ -1127,14 +1135,14 @@ Configurá `SENTRY_DSN` en las env vars de Vercel.
   server con proxy `/api`). Local:
   `E2E_BASE_URL=http://127.0.0.1:12000 npx playwright test`. Si apuntás al 8001,
   los specs de UI pasan el `test.skip` por "App no disponible" y parece que no corren.
-  - **Re-correr la suite muchas veces bloquea el login (429), y NO es una
-    regresión.** El lockout de auth (mig 016) corta a los 8 fallos por par
-    (email, IP) en 15 min. Pasadas unas cuantas corridas, el `login()` de las
-    specs empieza a recibir `429 Demasiados intentos fallidos` y ~24 tests caen
-    con `waitForURL: Timeout` (admin, puerta, onboarding, portada). Un login
-    exitoso limpia solo su propio par (email, IP), así que no se destraba solo.
-    Se limpia la tabla: `DELETE FROM login_attempts;`
-    (`/usr/lib/postgresql/17/bin/psql -U postgres -d ticketflow`, `PGPASSWORD=devpassword`).
+  - **Re-correr la suite bloqueaba el login (429).** El lockout de auth (mig
+    016) corta a los 8 fallos por par (email, IP) en 15 min, y el cubo de IP
+    del registro (`__register__`) **no** se limpia al acertar. Dos corridas
+    seguidas dentro de la ventana compartían ese cubo y a mitad de la segunda
+    ~24 tests caían con `waitForURL: Timeout` (admin, puerta, onboarding,
+    portada): parecía una regresión y era estado de la DB. **Arreglado**: el
+    `POST /seed` del `global-setup` ahora limpia `login_attempts`, así que la
+    suite es repetible sin pasos manuales (antes: `DELETE FROM login_attempts;`).
   - **Ojo con apuntar los E2E al :12001.** Ese puerto puede ser un
     `vite preview` sirviendo `dist/`, que queda congelado en el último build: un
     cambio en `src/` no se ve hasta recompilar, y los tests pasan en verde sobre
@@ -1206,7 +1214,8 @@ Configurá `SENTRY_DSN` en las env vars de Vercel.
   los exitosos, porque el registro **no** limpia su contador al acertar (el
   login sí: `_clear_failures`). Corriendo specs que registran varias veces
   seguidas, el 429 aparece a mitad de la suite y parece un fallo del producto.
-  Antes de re-correr: `DELETE FROM login_attempts WHERE email_norm='__register__'`.
+  El `POST /seed` del `global-setup` limpia `login_attempts` (ver más arriba),
+  así que ya no hace falta limpiar a mano antes de cada corrida.
 - **El aviso de cookies tapa los clics** en un navegador recién abierto (se
   pinta fijo arriba). Los specs que hacen clic en el panel deben marcarlo como
   visto: `page.addInitScript(() => localStorage.setItem("tf_cookie_notice", "1.1"))`
