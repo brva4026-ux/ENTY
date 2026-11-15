@@ -269,4 +269,25 @@ test.describe("Recordarme elige el almacen del token", () => {
     expect(stores.local).toBeTruthy();
     expect(stores.session).toBeNull();
   });
+
+  test("sin marcar, tampoco recuerda el correo en el campo", async ({ page }) => {
+    const ok = await available(page, "/login");
+    test.skip(!ok, "App no disponible");
+
+    const field = page.locator("#login-email");
+    await field.fill("promo2@bar.test");
+    // Con "Recordarme" marcado (default), el correo queda guardado.
+    await page.reload();
+    await expect(page.locator("#login-email")).toHaveValue("promo2@bar.test");
+
+    // Al desmarcarlo, el correo se borra y no se vuelve a precargar: en un
+    // dispositivo compartido el campo no debe delatar a la persona anterior.
+    await page.locator("#remember-me").uncheck();
+    await page.reload();
+    await expect(page.locator("#login-email")).toHaveValue("");
+    const leftover = await page.evaluate(() =>
+      localStorage.getItem("enty_last_email"),
+    );
+    expect(leftover).toBeNull();
+  });
 });

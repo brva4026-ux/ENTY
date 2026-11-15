@@ -55,15 +55,33 @@ export default function LoginPage() {
   const location = useLocation();
   const from = location.state?.from;
 
+  // "Recordarme" decide DONDE vive el token (localStorage vs sessionStorage):
+  // al desmarcarlo, la sesion muere al cerrar el navegador. Por defecto queda
+  // marcado (equivale al comportamiento historico, que persistia siempre);
+  // solo se desmarca si el usuario lo pidio explicitamente.
+  const [remember, setRemember] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("enty_remember_me") !== "0";
+  });
+
+  // El correo se recuerda junto con "Recordarme": en un dispositivo compartido
+  // (la puerta), no recordar la sesion tampoco debe dejar el correo de la
+  // persona anterior escrito en el campo.
   const storedIdent =
-    typeof window !== "undefined" ? localStorage.getItem("enty_last_email") : null;
+    typeof window !== "undefined" && remember
+      ? localStorage.getItem("enty_last_email")
+      : null;
   const [ident, setIdent] = useState(storedIdent || "");
 
   useEffect(() => {
+    if (!remember) {
+      localStorage.removeItem("enty_last_email");
+      return;
+    }
     if (ident.trim().length > 0) {
       localStorage.setItem("enty_last_email", ident);
     }
-  }, [ident]);
+  }, [ident, remember]);
 
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -86,14 +104,6 @@ export default function LoginPage() {
   const [errorTick, setErrorTick] = useState(0);
   const [entered, setEntered] = useState(null);
   const [capsLock, setCapsLock] = useState(false);
-  // "Recordarme" decide DONDE vive el token (localStorage vs sessionStorage),
-  // no solo el correo: al desmarcarlo, la sesion muere al cerrar el navegador.
-  // Por defecto queda marcado (equivale al comportamiento historico, que
-  // persistia siempre); solo se desmarca si el usuario lo pidio explicitamente.
-  const [remember, setRemember] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("enty_remember_me") !== "0";
-  });
   // Recuperación de acceso: se pide el enlace desde el propio login (antes el
   // endpoint existía pero NINGUNA pantalla lo llamaba). `forgotSent` muestra
   // la respuesta genérica del backend en el mismo lugar donde aparecería el
