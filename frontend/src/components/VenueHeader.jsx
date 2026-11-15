@@ -21,6 +21,7 @@ import Icon from "./Icon";
 import { Skeleton } from "./Skeleton";
 import { Star5 } from "./Doodles";
 import TransitionLink from "./TransitionLink";
+import { initials } from "../lib/initials";
 
 /** Iniciales del negocio para el tile y la marca de agua: dos letras.
  *
@@ -28,13 +29,6 @@ import TransitionLink from "./TransitionLink";
  * el CSS ya reservaba `letter-spacing` para dos. Una palabra sola ("Fonda")
  * usa sus dos primeras letras, no una.
  */
-function initialsOf(name) {
-  const words = (name || "").trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return "?";
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-}
-
 export default function VenueHeader({
   venueId,
   user,
@@ -70,7 +64,7 @@ export default function VenueHeader({
   // termina dentro de un `style`.
   const rawColor = venue?.primary_color || "";
   const brand = /^#[0-9a-f]{6}$/i.test(rawColor) ? rawColor.toLowerCase() : null;
-  const initials = initialsOf(venue?.name);
+  const venueInitials = initials(venue?.name);
 
   // El tile de iniciales se pinta con el color del negocio, así que el texto
   // no puede ser siempre blanco: sobre un amarillo claro no se lee. Luminancia
@@ -149,7 +143,7 @@ export default function VenueHeader({
         flyer quede como una caja vacía — hay portada aunque no haya imagen.
         Puramente decorativo: el nombre real vive abajo, en el lockup. */}
       <div className="vh-banner" aria-hidden="true">
-        <span className="vh-banner-initials">{initials}</span>
+        <span className="vh-banner-initials">{venueInitials}</span>
       </div>
 
       {/* Fila superior: identidad (logo + nombre) a la izquierda, la cifra
@@ -174,7 +168,7 @@ export default function VenueHeader({
             />
           ) : (
             <span className="vh-logo vh-logo-fallback" aria-hidden="true">
-              {initials}
+              {venueInitials}
             </span>
           )}
           {/* Lockup: el tile y el bloque de texto van juntos (gap corto) y

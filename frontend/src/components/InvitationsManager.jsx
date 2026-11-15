@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
 import EmptyState from "./EmptyState";
 import { useUI } from "../lib/ui";
+import { initials } from "../lib/initials";
 
 const ico = "h-4 w-4 shrink-0";
 
@@ -179,15 +180,6 @@ const ROLE_META = {
     tabAccent: "text-amber-300",
   },
 };
-
-function initials(name) {
-  return (name || "?")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-}
 
 function relTime(value) {
   const diff = new Date(value).getTime() - Date.now();

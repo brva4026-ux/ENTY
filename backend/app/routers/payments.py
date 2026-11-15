@@ -131,7 +131,7 @@ async def create_payment(
                 redirect_url=f"{s.app_public_url}/t",
             )
         except WompiError as e:
-            raise HTTPException(502, f"Wompi rechazo el cobro: {e}")
+            raise HTTPException(502, f"Wompi rechazo el cobro: {e}") from e
 
         # La DB registra solo lo que Wompi acepto: si el link no se creo, no
         # hay fila 'pending' huerfana.
@@ -241,8 +241,8 @@ async def wompi_webhook(
     """
     try:
         payload = await request.json()
-    except Exception:
-        raise HTTPException(400, "Cuerpo no es JSON valido")
+    except Exception as e:
+        raise HTTPException(400, "Cuerpo no es JSON valido") from e
     if not isinstance(payload, dict) or "event" not in payload:
         raise HTTPException(400, "Evento malformado")
     if payload.get("event") != "transaction.updated":

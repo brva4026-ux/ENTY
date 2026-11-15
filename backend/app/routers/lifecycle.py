@@ -105,7 +105,7 @@ async def _transition(venue_id, event_id, user, db, action):
         try:
             await cur.execute("SELECT set_event_status(%s, %s, %s)", (event_id, p_from, p_to))
         except psycopg.errors.Error as e:
-            raise _error_to_http(e)
+            raise _error_to_http(e) from e
 
         # La reapertura es la única transición que "resucita" un evento y
         # devuelve la puerta: merece rastro (mig 034).
@@ -885,7 +885,7 @@ async def void_ticket(
                 "SELECT void_ticket(%s, %s, %s)", (ticket_id, body.reason, user["id"])
             )
         except psycopg.errors.Error as e:
-            raise _error_to_http(e)
+            raise _error_to_http(e) from e
         await db.commit()
     return MessageOut(detail="Boleta anulada. El cupo quedó liberado.")
 
@@ -932,7 +932,7 @@ async def refund_ticket(
                 (ticket_id, amount, body.reason, user["id"]),
             )
         except psycopg.errors.Error as e:
-            raise _error_to_http(e)
+            raise _error_to_http(e) from e
         await write_audit(
             cur, venue_id, user["id"], "ticket_refunded", "ticket", ticket_id,
             {"event_id": event_id, "amount_in_cents": amount,

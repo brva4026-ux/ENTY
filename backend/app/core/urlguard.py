@@ -79,8 +79,8 @@ def validate_public_http_url(url: str) -> str:
     # mezcla una IP pública con una interna se rechaza entero).
     try:
         infos = socket.getaddrinfo(host, None)
-    except OSError:
-        raise ValueError("No se pudo resolver el host de la imagen.")
+    except OSError as e:
+        raise ValueError("No se pudo resolver el host de la imagen.") from e
 
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])

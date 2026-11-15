@@ -365,24 +365,13 @@ async def event_pulse(
         )
         tk = await cur.fetchone()
 
-        # El aforo del bouncer es el que tiene asignado (mig 025). Si no tiene
-        # grupo, el aforo es el del evento entero.
-        bouncer_id = user.get("id")
-        if bouncer_id:
-            await cur.execute(
-                "SELECT e.capacity FROM event_staff s "
-                "JOIN events e ON e.id = s.event_id "
-                "WHERE s.event_id=%s AND s.user_id=%s AND s.role='bouncer'",
-                (event_id, bouncer_id),
-            )
-            ev_cap = await cur.fetchone()
-            capacity = ev["capacity"] if ev_cap else ev["capacity"]
-
     return EventPulse(
         event_id=event_id,
         event_name=ev["name"],
         status=ev["status"],
-        capacity=capacity,
+        # event_staff (mig 025) no tiene aforo propio: el aforo de la noche es
+        # el del evento, sin importar quien escanee.
+        capacity=ev["capacity"],
         issued=tk["issued"],
         redeemed=tk["redeemed"],
     )
@@ -823,7 +812,7 @@ def _resolve_month(month: str | None, tz: str) -> tuple[str, datetime]:
             if not 1 <= mon <= 12:
                 raise ValueError
         except ValueError:
-            raise HTTPException(400, "month debe ser YYYY-MM")
+            raise HTTPException(400, "month debe ser YYYY-MM") from None
         month_start = datetime(year, mon, 1)
     else:
         now = datetime.now(tzinfo)

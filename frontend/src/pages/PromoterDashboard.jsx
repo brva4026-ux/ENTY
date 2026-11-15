@@ -17,14 +17,10 @@ import Icon from "../components/Icon";
 import { ticketWaMessage, waLink } from "../lib/whatsapp";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
-function firstVenueId(user) {
-  return activeVenueId(user);
-}
-
 export default function PromoterDashboard() {
   useDocumentTitle("Panel del promotor");
   const { user } = useAuth();
-  const venueId = firstVenueId(user);
+  const venueId = activeVenueId(user);
   // Pestaña en la URL (compartible, sobrevive recargas); "vender" es el default.
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = ["vender", "boletas", "liquidaciones"].includes(

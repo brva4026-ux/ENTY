@@ -168,7 +168,10 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
                 commission_pct=float(row["commission_pct"] or 0),
                 contact_name=row["contact_name"], contact_phone=row["contact_phone"],
             )
-        roles_by_venue[str(venue_id)] = roles_by_venue.get(str(venue_id), []) + [row["role"]]
+        roles_by_venue[str(venue_id)] = [
+            *roles_by_venue.get(str(venue_id), []),
+            row["role"],
+        ]
 
     return UserSummary(
         id=user["id"],
@@ -670,12 +673,12 @@ async def update_profile(
                 f"UPDATE users SET {', '.join(columnas)} WHERE id=%s",
                 tuple(valores),
             )
-        except psycopg.errors.UniqueViolation:
+        except psycopg.errors.UniqueViolation as e:
             await db.rollback()
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
                 "Ese nombre de usuario ya esta en uso. Elige otro.",
-            )
+            ) from e
         await db.commit()
     return await _build_user_summary(db, user["id"])
 
@@ -968,13 +971,13 @@ async def change_email(
             await cur.execute(
                 "UPDATE users SET email=%s WHERE id=%s", (nuevo, user["id"])
             )
-        except psycopg.errors.UniqueViolation:
+        except psycopg.errors.UniqueViolation as e:
             # Carrera con un registro o cambio simultáneo: la restricción de la
             # base tiene la última palabra y se traduce al mismo 409.
             await db.rollback()
             raise HTTPException(
                 status.HTTP_409_CONFLICT, "Ese correo ya tiene una cuenta."
-            )
+            ) from e
         await db.commit()
 
     return await _build_user_summary(db, user["id"])

@@ -56,8 +56,8 @@ def _decode_data_url(data_url: str) -> tuple[str, bytes]:
     mime, payload = m.group(1), m.group(2)
     try:
         raw = base64.b64decode(payload, validate=True)
-    except (binascii.Error, ValueError):
-        raise HTTPException(422, "El contenido base64 de la imagen no es válido.")
+    except (binascii.Error, ValueError) as e:
+        raise HTTPException(422, "El contenido base64 de la imagen no es válido.") from e
     if not raw:
         raise HTTPException(422, "La imagen llega vacía.")
     if len(raw) > MAX_BYTES:

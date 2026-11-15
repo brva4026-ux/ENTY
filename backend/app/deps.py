@@ -25,8 +25,8 @@ async def get_current_user(
     settings = get_settings()
     try:
         payload = decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-    except PyJWTError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token invalido")
+    except PyJWTError as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token invalido") from e
 
     user_id = int(payload["sub"])
     async with db.cursor() as cur:

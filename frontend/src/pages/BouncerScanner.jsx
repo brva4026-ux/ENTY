@@ -28,10 +28,6 @@ import Icon from "../components/Icon";
 import ActionMenu from "../components/ActionMenu";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
-function firstVenueId(user) {
-  return activeVenueId(user);
-}
-
 const RESULT_STYLES = {
   GRANTED: {
     bg: "bg-emerald-600",
@@ -161,7 +157,7 @@ export default function BouncerScanner() {
   useDocumentTitle("Control de puerta");
   const { user, logout } = useAuth();
   const ui = useUI();
-  const venueId = firstVenueId(user);
+  const venueId = activeVenueId(user);
 
   // La puerta SIEMPRE oscura: en un recinto a oscuras un flash de fondo
   // blanco ciega al portero. forceDarkOnce pone el candado y devuelve el

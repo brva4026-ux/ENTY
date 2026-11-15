@@ -5,18 +5,8 @@ import { eventDate } from "../lib/format";
 import Icon from "./Icon";
 import { useDialogA11y } from "../lib/useDialogA11y";
 import { EVENT_CATEGORIES } from "../lib/eventCategories";
-
-/** Date -> valor para <input type="datetime-local"> (hora LOCAL, sin zona). */
-function pad2(n) {
-  return String(n).padStart(2, "0");
-}
-
-function toLocalInput(date) {
-  return (
-    `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}` +
-    `T${pad2(date.getHours())}:${pad2(date.getMinutes())}`
-  );
-}
+import { fileToDataUrl } from "../lib/imageUpload";
+import { toLocalInput } from "../lib/datetime";
 
 /** Siguiente dia de semana (0=dom) a cierta hora: "proximo viernes 8pm". */
 function nextWeekday(weekday, hour) {
@@ -55,35 +45,6 @@ const DESCRIPTION_IDEAS = [
   ["🎉 Bienvenida con shots", "Bienvenida con shots para los primeros grupos."],
   ["💃 Zona VIP con mesa", "Zona VIP con mesa y botella incluida."],
 ];
-
-/**
- * Reduce la imagen elegida en un canvas (máx 900px, JPEG 0.82) y devuelve
- * un data-URL listo para POST /media. Sin librerías: canvas nativo.
- */
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () =>
-        reject(new Error("El archivo no es una imagen válida."));
-      img.onload = () => {
-        const maxSide = 900;
-        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas
-          .getContext("2d")
-          .drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.82));
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 const STEPS = [
   { id: "basico", label: "El evento" },

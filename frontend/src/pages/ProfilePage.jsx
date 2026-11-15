@@ -6,6 +6,7 @@ import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { ROLE_LABELS, ROLE_VISUALS, topRole } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
+import { initials } from "../lib/initials";
 import { fileToDataUrl } from "../lib/imageUpload";
 import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
@@ -33,12 +34,7 @@ const BRAND_DEFAULT = "#7c3aed";
  *  de un vistazo, sin leer la etiqueta. Decorativo: el nombre va al lado. */
 function PremiumAvatar({ user, className: extraClass }) {
   const visual = ROLE_VISUALS[topRole(user)] ?? ROLE_VISUALS.bouncer;
-  const initials = (user.full_name || "?")
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const userInitials = initials(user.full_name);
 
   return (
     <span className={`pf-avatar ${visual.avatar} ${extraClass}`} aria-hidden="true">
@@ -48,7 +44,7 @@ function PremiumAvatar({ user, className: extraClass }) {
         // que un admin sigue distinguiéndose a un vistazo.
         <img src={user.avatar_url} alt="" className="pf-avatar-img" />
       ) : (
-        initials
+        userInitials
       )}
     </span>
   );

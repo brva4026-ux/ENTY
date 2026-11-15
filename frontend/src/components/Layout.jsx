@@ -4,6 +4,7 @@ import TransitionLink from "./TransitionLink";
 import { useAuth } from "../lib/auth";
 import { navTabsFor, topRoleLabel } from "../lib/roles";
 import { haptics } from "../lib/haptics";
+import { initials } from "../lib/initials";
 import { Logo } from "./Brand";
 import Icon from "./Icon";
 import NotificationBell from "./NotificationBell";
@@ -98,12 +99,7 @@ export default function Layout({ children }) {
     icon: TAB_ICONS[t.to.slice(1)],
   }));
 
-  const initials = (user?.full_name || "?")
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const userInitials = initials(user?.full_name);
 
   // Aceptación legal de cuentas existentes (mig 028/029): si /legal/status
   // lista pendientes, se bloquea el contenido con LegalGate. El gate vive
@@ -169,7 +165,7 @@ export default function Layout({ children }) {
               aria-label="Tu perfil"
               className="topbar-avatar topbar-hit"
             >
-              {initials}
+              {userInitials}
             </TransitionLink>
             <button
               onClick={() => {

@@ -12,6 +12,7 @@ import { apiFetch } from "../lib/api";
 import { ROLE_VISUALS } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { missingList } from "../lib/passwordPolicy";
+import { initials } from "../lib/initials";
 import PasswordMeter from "./PasswordMeter";
 
 const fmtCOP = (cents) =>
@@ -216,15 +217,6 @@ function primaryRoleOf(m) {
   if (m.roles.includes("admin")) return "admin";
   if (m.roles.includes("super_admin")) return "admin";
   return "promotor";
-}
-
-function initials(name) {
-  return (name || "?")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
 }
 
 function relTime(value) {

@@ -116,7 +116,7 @@ async def ingest_events(
                     "VALUES (%s, %s, %s, %s, %s::jsonb)",
                     rows,
                 )
-            except psycopg.errors.UndefinedTable:
+            except psycopg.errors.UndefinedTable as e:
                 # Despliegue sin la migracion 031: mejor un 503 con el archivo
                 # exacto que un 500 opaco en cada visita. La app ignora esta
                 # respuesta (la analitica nunca bloquea la compra).
@@ -124,7 +124,7 @@ async def ingest_events(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Analitica no disponible: falta aplicar "
                     "db/migrations/031_analytics_events.sql",
-                )
+                ) from e
             await db.commit()
 
     return None
@@ -174,12 +174,12 @@ async def venue_funnel(
             """,
                 {"venue": venue_id, "since": since},
             )
-        except psycopg.errors.UndefinedTable:
+        except psycopg.errors.UndefinedTable as e:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Metricas no disponibles: falta aplicar "
                 "db/migrations/031_analytics_events.sql",
-            )
+            ) from e
         sessions = await cur.fetchone()
 
         await cur.execute(

@@ -10,7 +10,8 @@
  *   if (await ui.confirm("¿Anular la boleta?", { danger: true })) { ... }
  *   const nombre = await ui.prompt("Escribe el nombre del evento para confirmar");
  *
- * ToastHost + ConfirmHost se montan una vez en <App/> (main.jsx).
+ * ToastHost + ConfirmHost se montan dentro de <UIProvider> (main.jsx): el
+ * provider es dueño del estado y pinta los hosts al final de su árbol.
  */
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { haptics } from "./haptics";

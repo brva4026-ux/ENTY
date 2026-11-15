@@ -19,13 +19,9 @@ import { apiFetch } from "../lib/api";
 import { money, labelMonth } from "../lib/format";
 import CountUpNumber from "./CountUpNumber";
 import EmptyState from "./EmptyState";
+import { initials } from "../lib/initials";
 
 /** Iniciales para el avatar (2 letras, tolera un solo nombre). */
-function initials(name) {
-  const parts = (name || "?").trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
-}
-
 /* Avance contra el cupo, con la etiqueta a la derecha. Sin cupo no hay meta:
  *  una barra llena haría ver "cumplido" a quien nunca tuvo objetivo. */
 function AdvanceBar({ pct, hasCapacity }) {

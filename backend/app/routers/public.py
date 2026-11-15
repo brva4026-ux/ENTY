@@ -601,7 +601,7 @@ async def public_checkout(
                 redirect_url=f"{s.app_public_url}/evento/{event_id}?pago={reference}",
             )
         except WompiError as e:
-            raise HTTPException(502, f"Wompi rechazo el cobro: {e}")
+            raise HTTPException(502, f"Wompi rechazo el cobro: {e}") from e
 
         # created_by_user_id NULL: no hay usuario; el cobro es del fan.
         await cur.execute(
@@ -875,7 +875,7 @@ async def fan_ticket_token(
                 (ticket_id, raw_token, None, "fan_self_service"),
             )
         except psycopg.errors.Error as e:
-            raise _fan_reissue_error(e)
+            raise _fan_reissue_error(e) from e
 
     return {"ticket_id": ticket_id, "raw_token": raw_token}
 

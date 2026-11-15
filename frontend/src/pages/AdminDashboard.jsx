@@ -12,6 +12,7 @@ import { InstallPrompt } from "../components/InstallPrompt";
 import { SelectSkeleton, StatSkeletonRow } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
 import { activeVenueId } from "../lib/venue";
+import { toLocalInput } from "../lib/datetime";
 import { money, currentYM } from "../lib/format";
 import EmptyState from "../components/EmptyState";
 import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
@@ -44,12 +45,6 @@ import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
 import { EVENT_CATEGORIES } from "../lib/eventCategories";
 
-function firstVenueId(user) {
-  // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
-  // sin elección, la primera disponible (comportamiento de siempre).
-  return activeVenueId(user);
-}
-
 /** Pestañas del backstage de un evento. Las del negocio (Puerta, Equipo,
  *  Liquidaciones…) viven en /admin/negocio, no aquí. */
 const EVENT_TABS = [
@@ -73,18 +68,6 @@ const VENUE_TABS = [
   "liquidaciones",
   "invitaciones",
 ];
-
-function pad2(n) {
-  return String(n).padStart(2, "0");
-}
-
-/** Date -> valor para <input type="datetime-local"> (hora LOCAL, sin zona). */
-function toLocalInput(date) {
-  return (
-    `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}` +
-    `T${pad2(date.getHours())}:${pad2(date.getMinutes())}`
-  );
-}
 
 /** Minuto del día 0-1439 -> etiqueta "8 p.m." (para la píldora de apertura). */
 function minuteLabel(mins) {
@@ -192,7 +175,9 @@ export default function AdminDashboard() {
   useDocumentTitle("Panel del negocio");
   const { user } = useAuth();
   const ui = useUI();
-  const venueId = firstVenueId(user);
+  // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
+  // sin elección, la primera disponible (comportamiento de siempre).
+  const venueId = activeVenueId(user);
   const realVenueId = venueId ?? 0;
 
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)

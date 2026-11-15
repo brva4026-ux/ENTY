@@ -1132,10 +1132,10 @@ async def create_coupon(
                     body.expires_at, body.is_active, user["id"],
                 ),
             )
-        except psycopg.errors.UniqueViolation:
+        except psycopg.errors.UniqueViolation as e:
             raise HTTPException(
                 409, "Ya existe un cupón con ese código en este evento"
-            )
+            ) from e
         created = await cur.fetchone()
         await write_audit(
             cur, venue_id, user["id"], "coupon_created", "coupon",
@@ -1191,10 +1191,10 @@ async def update_coupon(
                     merged["expires_at"], merged["is_active"], coupon_id, event_id,
                 ),
             )
-        except psycopg.errors.CheckViolation:
+        except psycopg.errors.CheckViolation as e:
             raise HTTPException(
                 400, "Valor de cupón inválido (porcentaje 1-99, fijo > 0)"
-            )
+            ) from e
         updated = await cur.fetchone()
         await db.commit()
     return updated
