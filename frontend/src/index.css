@@ -4608,8 +4608,10 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
 }
 .auth-checkbox {
   appearance: none;
-  height: 1.1rem;
-  width: 1.1rem;
+  /* 24px: piso de WCAG 2.2 SC 2.5.8 (Target Size Minimum). A 1.1rem medía
+     17.6px y el único acierto seguro era el texto de al lado. */
+  height: 1.5rem;
+  width: 1.5rem;
   flex-shrink: 0;
   border-radius: 0.375rem;
   border: 1.5px solid var(--color-zinc-600);
@@ -4624,8 +4626,8 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
 }
 .auth-checkbox::before {
   content: "";
-  height: 0.62rem;
-  width: 0.62rem;
+  height: 0.75rem;
+  width: 0.75rem;
   transform: scale(0);
   transition: transform var(--e-dur-base) var(--e-ease-spring);
   clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
@@ -6942,7 +6944,7 @@ html[data-motion="reduce"] *::after {
 }
 html[data-theme="light"] .legal-page {
   background: var(--color-cream);
-  color: #27272a;
+  color: var(--e-neutral-875);
 }
 
 .legal-header {
@@ -6956,21 +6958,21 @@ html[data-theme="light"] .legal-header {
 }
 
 .legal-muted {
-  color: #a1a1aa;
+  color: var(--e-neutral-500);
 }
 html[data-theme="light"] .legal-muted {
-  color: #52525b;
+  color: var(--e-neutral-600);
 }
 
 .legal-note {
   border: 1px solid rgba(245, 158, 11, 0.35);
   background: rgba(120, 53, 15, 0.18);
-  color: #fcd34d;
+  color: var(--e-amber-300);
 }
 html[data-theme="light"] .legal-note {
   border-color: rgba(180, 83, 9, 0.35);
   background: rgba(254, 243, 199, 0.6);
-  color: #92400e;
+  color: var(--e-amber-700);
 }
 
 .legal-doc {
@@ -7014,7 +7016,7 @@ html[data-theme="light"] .legal-note {
 .legal-doc blockquote {
   margin: 1rem 0;
   padding: 0.25rem 0 0.25rem 1rem;
-  border-left: 3px solid #7c3aed;
+  border-left: 3px solid var(--e-violet-500);
   font-style: italic;
   opacity: 0.88;
 }
