@@ -287,13 +287,22 @@ un gate que puede crecer, no uno que arranque en rojo. Si agregás un set nuevo
 ### El job `e2e` de CI ahora corre de verdad
 
 Históricamente el job `e2e` estaba **siempre skipped**: dependía de `backend`,
-que estaba rojo, así que nunca ejecutaba sus 57 tests. Con backend en verde
-arranca y corre la suite completa contra un Postgres limpio. Hoy da **53
-passed / 3 failed** de forma reproducible, y los 3 fallos son **flakes de
-aislamiento bajo 2 workers** (pasan aislados, sin 429 en el log): contraste del
-eyebrow de `/inicio` sobre flyer claro (`a11y.spec.js:655`), el asistente de
-evento (`audit-event-create.spec.js:14`) y el cierre de caja
-(`caja-rango.spec.js:43`). Ninguno toca la landing pública de `/`.
+que estaba rojo, así que nunca ejecutaba sus tests. Con backend en verde arranca
+y corre la suite completa contra un Postgres limpio. Hoy la suite son **73 tests
+en 18 archivos** (antes 57). En CI el job define claves Wompi de mentira
+(`WOMPI_PRIVATE_KEY`, `WOMPI_EVENTS_SECRET`), así que `wompi_enabled` es true, el
+CTA "Comprar boleto" aparece y las specs de compra corren completas.
+
+Localmente, **sin** esas claves, 3 specs de checkout fallan por diseño (no por
+código): el CTA cae al WhatsApp del organizador y la spec espera "Comprar
+boleto". Son `fan-checkout.spec.js`, `fan-waitlist.spec.js:106` y
+`fan.spec.js:18`. No las "arregles" tocando la app: corré con las claves Wompi
+de CI o aceptá esas 3 como el piso local (`68-69 passed / 3 failed`). Los flakes
+de aislamiento que documentaba esta sección (eyebrow de `/inicio`,
+`audit-event-create`, `caja-rango`) ya **no** reproducen en las corridas
+actuales; el único que se vio de nuevo es un login del admin que a veces no
+alcanza a montar la tarjeta de bienvenida bajo 2 workers
+(`login-welcome.spec.js:172`), y pasa aislado.
 
 ## Convenciones
 
