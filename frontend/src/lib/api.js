@@ -337,10 +337,11 @@ export async function apiFetch(path, options = {}) {
   if (!res.ok) {
     // Token expirado/revocado en un endpoint autenticado: cerrar sesion
     // y mandar al login (el login mismo y el /auth/me ya manejan su caso).
-    const hadToken = getToken();
+    const authenticatedPath = path.startsWith("/venues/") || path.startsWith("/events/") ||
+      (path.startsWith("/auth/") && !["/auth/login", "/auth/register", "/auth/me", "/auth/logout", "/auth/forgot-password", "/auth/reset-password", "/auth/invitations/accept"].includes(path));
     if (
       res.status === 401 &&
-      hadToken &&
+      authenticatedPath &&
       path !== "/auth/login" &&
       path !== "/auth/me"
     ) {

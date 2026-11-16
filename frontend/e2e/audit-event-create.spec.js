@@ -55,15 +55,9 @@ test("el asistente de evento solo crea al pulsar Crear evento", async ({
 
   // El evento quedó con el aforo que el admin eligió, no con el default.
   const evId = new URL(page.url()).searchParams.get("event");
-  const token = await page.evaluate(() => localStorage.getItem("tf_token"));
-  // El venue no viaja en la URL: lo saca del token (campo `vids`), así el
-  // test no depende de un id de seed concreto.
-  const { vids } = JSON.parse(
-    Buffer.from(token.split(".")[1], "base64").toString("utf8"),
-  );
-  const res = await request.get(`/api/venues/${vids[0]}/events`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const me = await (await page.request.get('/api/auth/me')).json();
+  const venue = Object.keys(me.roles)[0];
+  const res = await page.request.get(`/api/venues/${venue}/events`);
   expect(res.ok()).toBeTruthy();
   const ev = (await res.json()).find((e) => String(e.id) === evId);
   expect(ev, "el evento creado aparece en la lista del admin").toBeTruthy();

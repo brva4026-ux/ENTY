@@ -32,6 +32,9 @@ class LoginRequest(BaseModel):
     # max_length=128: sin cota, el cuerpo del login era un vector de DoS barato
     # (bcrypt de un string de megabytes consume CPU real por request).
     password: str = Field(max_length=128)
+    # "Recordarme": marcado (default) la cookie de sesion persiste tras cerrar
+    # el navegador; sin marcar es una cookie de sesion. No cambia el token.
+    remember: bool = True
 
     @model_validator(mode="after")
     def _one_identifier(self):

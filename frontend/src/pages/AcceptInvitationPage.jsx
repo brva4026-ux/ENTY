@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Logo } from "../components/Brand";
 import { apiFetch } from "../lib/api";
-import { setToken } from "../lib/tokenStore";
+import { useAuth } from "../lib/auth";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
 
@@ -40,6 +40,7 @@ function passStrength(p) {
 }
 
 export default function AcceptInvitationPage() {
+  const { setUser } = useAuth();
   useDocumentTitle("Invitación");
   const [params] = useSearchParams();
   const token = params.get("token") || "";
@@ -91,7 +92,8 @@ export default function AcceptInvitationPage() {
         body: JSON.stringify({ token, password }),
       });
       // Sesión inmediata: la persona ya está dentro, como en /register.
-      setToken(data.access_token);
+      localStorage.removeItem("tf_token");
+      setUser(data.user);
       setPhase("done");
     } catch (e2) {
       setErr(e2.message);
@@ -139,7 +141,6 @@ export default function AcceptInvitationPage() {
 
           {phase === "form" && preview && (
             <>
-              <p className="eyebrow">Invitación</p>
               <h1 className="display mt-0.5 text-xl">
                 {preview.venue_name} te invita a su equipo
               </h1>
@@ -203,7 +204,7 @@ export default function AcceptInvitationPage() {
 
                 {err && <p className="text-xs text-red-400">{err}</p>}
 
-                <button type="submit" disabled={!canSubmit} className="btn-primary w-full">
+                <button disabled={!canSubmit} className="btn-primary w-full">
                   {busy ? "Creando tu cuenta…" : "Crear mi cuenta y entrar"}
                 </button>
                 <p className="text-center text-2xs text-zinc-600">

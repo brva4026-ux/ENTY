@@ -15,6 +15,10 @@ import Icon from "./Icon";
  */
 
 const PAY_STATUS = {
+  paid_unfulfilled: {
+    label: "Pagado: revisar entrada o reembolso",
+    cls: "bg-red-950/80 text-red-400 ring-red-500/30",
+  },
   pending: {
     label: "Pendiente",
     cls: "bg-amber-950/80 text-amber-400 ring-amber-500/30",

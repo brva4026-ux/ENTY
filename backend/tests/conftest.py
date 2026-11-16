@@ -60,6 +60,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "041_rate_limit.sql",
     ROOT / "db" / "migrations" / "042_ops_conciliacion.sql",
     ROOT / "db" / "migrations" / "043_eventos_ricos.sql",
+    ROOT / "db" / "migrations" / "044_checkout_reservations.sql",
 ]
 
 
@@ -77,6 +78,8 @@ def db():
     try:
         conn = psycopg.connect(dsn, autocommit=True, row_factory=dict_row)
     except psycopg.OperationalError:
+        if os.environ.get("REQUIRE_TEST_DB") == "true":
+            pytest.fail("DB de prueba obligatoria no disponible")
         pytest.skip("DB de prueba no disponible (configura TEST_DATABASE_URL)")
 
     # Esquema limpio en cada sesión de tests (orden inverso de dependencias)

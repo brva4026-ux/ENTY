@@ -1,34 +1,21 @@
 /**
- * Dueño único del token de sesión. El login ofrece "Recordarme": marcado, el
- * token vive en localStorage y sobrevive al cierre del navegador; sin marcar,
- * en sessionStorage y muere con la pestaña (lo que pide el modo compartido de
- * la puerta, ver docs/arquitectura/03-seguridad.md). El JWT es el mismo en los
- * dos casos: solo cambia dónde se guarda.
+ * Dueño único de la credencial heredada `tf_token` en el navegador.
  *
- * Antes cada consumidor leía/escribía localStorage a mano, así que la casilla
- * no cambiaba nada: el token quedaba persistente siempre. Centralizar evita que
- * un sitio olvide mirar los dos almacenes (y trate una sesión viva como si no
- * hubiera token).
+ * La sesión web vive en una cookie HttpOnly (`tf_session`): JavaScript no la
+ * lee ni la escribe, y `/auth/me` borra `tf_token` en cuanto migra una sesión
+ * vieja a la cookie. Ese token en `localStorage` solo sobrevive para el camino
+ * heredado (una pestaña abierta antes del cambio) y para el respaldo Bearer de
+ * clientes que aún lo mandan.
+ *
+ * Centralizar la lectura evita que cada consumidor toque el storage a mano y
+ * que alguno mire una clave distinta de la que se limpia.
  */
 const KEY = "tf_token";
 
 export function getToken() {
-  return localStorage.getItem(KEY) ?? sessionStorage.getItem(KEY);
-}
-
-export function setToken(token, { remember = true } = {}) {
-  const keep = remember ? localStorage : sessionStorage;
-  const drop = remember ? sessionStorage : localStorage;
-  keep.setItem(KEY, token);
-  drop.removeItem(KEY);
+  return localStorage.getItem(KEY);
 }
 
 export function clearToken() {
   localStorage.removeItem(KEY);
-  sessionStorage.removeItem(KEY);
-}
-
-/** ¿La sesión actual se guardó para sobrevivir al cierre del navegador? */
-export function isRemembered() {
-  return localStorage.getItem(KEY) !== null;
 }

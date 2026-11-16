@@ -6,9 +6,7 @@ import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { ROLE_LABELS, ROLE_VISUALS, topRole } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
-import { initials } from "../lib/initials";
 import { fileToDataUrl } from "../lib/imageUpload";
-import { setToken, isRemembered } from "../lib/tokenStore";
 import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
 import PasswordMeter from "../components/PasswordMeter";
@@ -35,7 +33,12 @@ const BRAND_DEFAULT = "#7c3aed";
  *  de un vistazo, sin leer la etiqueta. Decorativo: el nombre va al lado. */
 function PremiumAvatar({ user, className: extraClass }) {
   const visual = ROLE_VISUALS[topRole(user)] ?? ROLE_VISUALS.bouncer;
-  const userInitials = initials(user.full_name);
+  const initials = (user.full_name || "?")
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <span className={`pf-avatar ${visual.avatar} ${extraClass}`} aria-hidden="true">
@@ -45,7 +48,7 @@ function PremiumAvatar({ user, className: extraClass }) {
         // que un admin sigue distinguiéndose a un vistazo.
         <img src={user.avatar_url} alt="" className="pf-avatar-img" />
       ) : (
-        userInitials
+        initials
       )}
     </span>
   );
@@ -545,10 +548,8 @@ export default function ProfilePage() {
         method: "POST",
         body: JSON.stringify({ password: sessPass }),
       });
-      // El backend invalida TODOS los tokens (bump de token_version) y nos
-      // devuelve uno nuevo: si no lo guardáramos, esta misma sesión caería
-      // al login junto con las demás.
-      setToken(res.access_token, { remember: isRemembered() });
+      // El backend invalida las otras sesiones y renueva nuestra cookie.
+      localStorage.removeItem("tf_token");
       setUser(res.user);
       setSessPass("");
       setSessOpen(false);
@@ -597,7 +598,7 @@ export default function ProfilePage() {
         method: "DELETE",
         body: JSON.stringify({ password: delPass, confirm: delConfirm }),
       });
-      logout();
+      await logout();
       nav("/login", { state: { deleted: true } });
     } catch (err) {
       setDelErr(err.message);
@@ -665,9 +666,13 @@ export default function ProfilePage() {
           <div className="pf-hero-actions">
             <button
               type="button"
-              onClick={() => {
-                logout();
-                nav("/login", { replace: true });
+              onClick={async () => {
+                try {
+                  await logout();
+                  nav("/login", { replace: true });
+                } catch {
+                  ui.toast("No pudimos cerrar la sesión. Intenta de nuevo.", "error");
+                }
               }}
               className="btn-ghost pf-action"
             >

@@ -255,7 +255,7 @@ def test_sync_persiste_la_hora_real_del_escaneo(api, world):
         f"/venues/{venue}/events/{ev['id']}/door-sync", "bouncer", body
     ).json()
     assert out["granted"] == 1
-    assert _scanned_at_of(api, tk["ticket_id"]).hour == 2
+    assert _scanned_at_of(api, tk["ticket_id"]).astimezone(timezone.utc) == scanned
 
 
 def test_sync_sanea_una_hora_imposible(api, world):

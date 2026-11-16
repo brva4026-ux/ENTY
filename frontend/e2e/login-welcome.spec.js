@@ -232,13 +232,14 @@ test.describe("ciclo del usuario en el perfil", () => {
 });
 
 /**
- * "Recordarme" decide DONDE vive el token: marcado (default) persiste en
- * localStorage y sobrevive al cierre del navegador; sin marcar queda en
- * sessionStorage y muere con la pestaña. Antes la casilla no cambiaba nada
- * (siempre localStorage), asi que esto lo protege de volver a ser decorativa.
+ * "Recordarme" decide la VIDA de la cookie de sesion: marcado (default) lleva
+ * max_age y sobrevive al cierre del navegador; sin marcar es una cookie de
+ * sesion y muere con la pestaña. El token NUNCA vive en localStorage (la
+ * sesion es HttpOnly), asi que lo que se protege es la expiracion, no el
+ * almacen.
  */
-test.describe("Recordarme elige el almacen del token", () => {
-  test("sin marcar, el token queda en sessionStorage (no persiste)", async ({ page }) => {
+test.describe("Recordarme elige la vida de la cookie de sesion", () => {
+  test("sin marcar, la cookie es de sesion (no persiste)", async ({ page }) => {
     const ok = await available(page, "/login");
     test.skip(!ok, "App no disponible");
 
@@ -246,15 +247,14 @@ test.describe("Recordarme elige el almacen del token", () => {
     await submitLogin(page, "promo2@bar.test");
     await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
 
-    const stores = await page.evaluate(() => ({
-      local: localStorage.getItem("tf_token"),
-      session: sessionStorage.getItem("tf_token"),
-    }));
-    expect(stores.session).toBeTruthy();
-    expect(stores.local).toBeNull();
+    const session = (await page.context().cookies()).find((c) => c.name === "tf_session");
+    expect(session).toBeTruthy();
+    // Playwright marca las cookies de sesion con expires === -1.
+    expect(session.expires).toBe(-1);
+    expect(await page.evaluate(() => localStorage.getItem("tf_token"))).toBeNull();
   });
 
-  test("marcado, el token persiste en localStorage", async ({ page }) => {
+  test("marcado, la cookie persiste (lleva expiracion)", async ({ page }) => {
     const ok = await available(page, "/login");
     test.skip(!ok, "App no disponible");
 
@@ -262,12 +262,9 @@ test.describe("Recordarme elige el almacen del token", () => {
     await submitLogin(page, "promo2@bar.test");
     await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
 
-    const stores = await page.evaluate(() => ({
-      local: localStorage.getItem("tf_token"),
-      session: sessionStorage.getItem("tf_token"),
-    }));
-    expect(stores.local).toBeTruthy();
-    expect(stores.session).toBeNull();
+    const session = (await page.context().cookies()).find((c) => c.name === "tf_session");
+    expect(session).toBeTruthy();
+    expect(session.expires).toBeGreaterThan(0);
   });
 
   test("sin marcar, tampoco recuerda el correo en el campo", async ({ page }) => {
@@ -291,3 +288,4 @@ test.describe("Recordarme elige el almacen del token", () => {
     expect(leftover).toBeNull();
   });
 });
+

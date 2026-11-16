@@ -905,19 +905,20 @@ preview y recargar. El preview comparte la **DB de producción**, así que las
 boletas que emitas ahí quedan de verdad: no lo uses para probar en serio sin
 avisar.
 
-### El token de sesión tiene un dueño único
+### La sesión web vive en una cookie HttpOnly
 
-`frontend/src/lib/tokenStore.js` es el único módulo que toca `tf_token`
-(`getToken` / `setToken` / `clearToken` / `isRemembered`). El login ofrece
-"Recordarme": marcado (default) el token va a `localStorage` y sobrevive al
-cierre del navegador; sin marcar va a `sessionStorage` y muere con la pestaña
-(el modo compartido de la puerta lo pide, `docs/arquitectura/03-seguridad.md`).
-La misma casilla gobierna `enty_last_email`: sin recordar la sesión, el campo
-de correo tampoco se precarga (no delata al usuario anterior en el dispositivo
-compartido). `getToken()` mira **los dos** almacenes: un consumidor que lea solo
-`localStorage` trataría una sesión sin "Recordarme" como si no hubiera token.
-Si necesitás el token en un componente, importá `getToken`, no leas el storage
-a mano.
+La credencial de sesión del navegador es la cookie **`tf_session`** (HttpOnly,
+`SameSite=Lax`, `Secure` en producción): JavaScript no la lee ni la escribe, así
+que un XSS no puede exfiltrar el token. `POST /auth/login` y `/auth/register`
+la emiten; `POST /auth/logout` la borra; y las mutaciones rechazan un `Origin`
+ajeno (CSRF). El `access_token` que devuelven los endpoints de auth se mantiene
+solo por compatibilidad con clientes API que usan `Authorization: Bearer`.
+
+`frontend/src/lib/tokenStore.js` es el dueño único de la clave **heredada**
+`tf_token` en `localStorage`: sobrevive para pestañas abiertas antes del cambio
+y para el respaldo Bearer, y `/auth/me` la borra al migrar la sesión vieja a la
+cookie. Si necesitás el token heredado en un componente, importá `getToken`, no
+leas el storage a mano.
 
 ## Git / GitHub
 

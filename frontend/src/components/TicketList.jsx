@@ -6,7 +6,6 @@ import {
   publicTicketPageUrl,
   refundTicket,
 } from "../lib/api";
-import { getToken } from "../lib/tokenStore";
 import { useUI } from "../lib/ui";
 import ContactEditsHistory from "./ContactEditsHistory";
 import EmptyState from "./EmptyState";
@@ -270,9 +269,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
       const res = await fetch(
         `/api/venues/${venueId}/events/${eventId}/${kind}`,
         {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
+          credentials: "same-origin",
         },
       );
       if (!res.ok) throw new Error("No se pudo generar el archivo");

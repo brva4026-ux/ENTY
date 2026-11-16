@@ -271,6 +271,7 @@ def test_access_requires_authentication(api_client, world):
     )
     assert ev.status_code == 201, ev.text
 
-    # Sin cabecera Authorization: ni la vista previa ni el canje.
+    # Sin cabecera Authorization ni cookie: ni la vista previa ni el canje.
+    api_client.cookies.clear()
     assert api_client.get("/escaner/acceso?token=cualquiera").status_code == 401
     assert api_client.post("/escaner/acceso?token=cualquiera").status_code == 401

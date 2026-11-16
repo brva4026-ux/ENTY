@@ -248,6 +248,12 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
                   Ver mis boletas
                 </button>
               </>
+            ) : status?.status === "paid_unfulfilled" ? (
+              <>
+                <p className="text-sm font-semibold text-amber-300">Recibimos tu pago y requiere revisión.</p>
+                <p className="text-xs text-zinc-400">No vuelvas a pagar. El organizador recibió un aviso para resolver tu entrada o gestionar el reembolso.</p>
+                <p className="text-xs text-zinc-400">Referencia: {reference}</p>
+              </>
             ) : status && status.status !== "pending" ? (
               <>
                 <p className="text-sm font-semibold text-rose-300">

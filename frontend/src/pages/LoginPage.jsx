@@ -55,18 +55,17 @@ export default function LoginPage() {
   const location = useLocation();
   const from = location.state?.from;
 
-  // "Recordarme" decide DONDE vive el token (localStorage vs sessionStorage):
-  // al desmarcarlo, la sesion muere al cerrar el navegador. Por defecto queda
-  // marcado (equivale al comportamiento historico, que persistia siempre);
-  // solo se desmarca si el usuario lo pidio explicitamente.
+  // "Recordarme" decide la VIDA de la cookie de sesion (el backend la emite
+  // persistente o de sesion). Por defecto marcado, como el comportamiento
+  // historico; solo se desmarca si la persona lo pide (dispositivo compartido
+  // en la puerta).
   const [remember, setRemember] = useState(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("enty_remember_me") !== "0";
   });
 
   // El correo se recuerda junto con "Recordarme": en un dispositivo compartido
-  // (la puerta), no recordar la sesion tampoco debe dejar el correo de la
-  // persona anterior escrito en el campo.
+  // no recordar la sesion tampoco debe dejar el correo de la persona anterior.
   const storedIdent =
     typeof window !== "undefined" && remember
       ? localStorage.getItem("enty_last_email")
