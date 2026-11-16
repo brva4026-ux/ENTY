@@ -171,8 +171,9 @@ alias del área que toca. El namespace muere al final de la Fase 6.
   (porcentajes, `env(safe-area)`, delays) que NO son color ni violan el guard.
 - *Aceptación*: `color-no-hex` pasa en todo `src/**/*.css` menos `tokens.css`;
   cero regresión visual; un cambio de `--brand` re-viste todas las pantallas.
-  Cumplida. Lo único pendiente del presupuesto son 31 `no-duplicate-selectors`
-  (F4, profundidad/material), no color.
+  Cumplida. Los 34 `no-duplicate-selectors` (F4, profundidad/material) se
+  consolidaron a 0 en nov-2026 (fusión de reglas con el mismo selector y
+  contexto, verificada en navegador sin cambios de estilo computado).
 
 ### Fase 2 — Tipografía y ritmo editorial — **HECHA (corte de escala)**
 

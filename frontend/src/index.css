@@ -79,24 +79,6 @@ body,
 
 /* Widgets nativos (date/time pickers, select, autoscroll) siguen el tema:
    en dark el calendario nativo se pinta oscuro; en claro, blanco. */
-html {
-  color-scheme: dark;
-}
-html[data-theme="light"] {
-  color-scheme: light;
-}
-
-body {
-  font-family: var(--font-sans);
-  /* Canvas plano (Tesla/Apple): un solo tono, sin lavados ni gradientes.
-     La jerarquía viene de tipografía, aire y el cambio de superficie —
-     nunca de brillo decorativo. */
-  background: var(--color-zinc-950);
-  color: var(--color-zinc-200);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: "cv05" 1; /* Inter: 'l' con cola, más legible */
-}
 
 ::selection {
   background: color-mix(in srgb, var(--e-violet-400) 40%, transparent);
@@ -110,10 +92,6 @@ body {
    ---------------------------------------------------------------------- */
 :focus {
   outline: none;
-}
-:focus-visible {
-  outline: 2px solid var(--e-focus-ring);
-  outline-offset: 2px;
 }
 
 /* Skip link: primer Tab del sitio lo muestra; es invisible al mouse. */
@@ -211,11 +189,6 @@ body {
    La elevación es el CAMBIO DE COLOR de la superficie (canvas var(--e-panel-850) →
    tarjeta var(--e-panel-750)), no una sombra. Radio 16px: el mismo token de card
    que .card — una sola escala de radios (8 control, 16 card, 999 pill). */
-.auth-card {
-  border-radius: 1rem;
-  border: 1px solid var(--color-zinc-800);
-  background: var(--color-zinc-925);
-}
 
 /* Separadores internos consistentes */
 .divide-list > :not([hidden]) ~ :not([hidden]) {
@@ -647,9 +620,6 @@ select.field option {
   background: var(--color-zinc-925);
   color: var(--color-zinc-50);
 }
-html[data-theme="light"] select.field {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2352525b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-}
 html[data-theme="light"] select.field option {
   background: var(--e-white);
   color: var(--color-zinc-50);
@@ -766,18 +736,6 @@ html[data-theme="light"] select.field option {
   color: var(--color-zinc-200);
   background: rgba(255, 255, 255, 0.05);
 }
-.tabbar-item[aria-selected="true"] {
-  background: linear-gradient(180deg, var(--color-zinc-800), var(--color-zinc-850));
-  color: var(--color-zinc-50);
-  font-weight: 600;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    0 2px 8px -2px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-.tabbar-item[aria-selected="true"] .text-brand-300 {
-  color: var(--e-violet-300);
-}
 /* La activa tinta de marca la pone el bloque WB (más abajo): aquí queda la
    base neutral si ese bloque no aplica (por ejemplo dentro de[data-theme-lock]). */
 
@@ -820,18 +778,10 @@ html[data-theme="light"] select.field option {
   border-radius: 0.5rem;
   transition: background var(--e-dur-fast);
 }
-.row:hover {
-  background: var(--e-panel-650);
-}
 
 /* Fila de listado (tipos, cupos, boletas): superficie que sigue el tema.
    Antes usaba utilidades de dark hardcodeadas y en tema claro el texto
    desaparecía. La clase encapsula superficie + tinta por tema. */
-.list-row {
-  border-radius: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.03);
-}
 .list-row .text-zinc-200 {
   color: var(--color-zinc-200);
 }
@@ -878,29 +828,6 @@ html[data-theme="light"] header nav a[aria-current="page"] {
   padding: 2.25rem 1.5rem;
   max-width: 420px;
   margin: 0 auto;
-}
-.empty-state-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 1rem;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  color: var(--e-violet-300);
-  background: linear-gradient(
-    135deg,
-    rgba(187, 92, 246, 0.24),
-    rgba(187, 92, 246, 0.07)
-  );
-  box-shadow:
-    inset 0 0 0 1px rgba(187, 92, 246, 0.35),
-    0 0 26px -10px rgba(187, 92, 246, 0.55);
-}
-.empty-state-title {
-  font-size: var(--e-text-base);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--color-zinc-50);
 }
 .empty-state-text {
   margin-top: 0.3rem;
@@ -1263,9 +1190,6 @@ html[data-theme="light"] header nav a[aria-current="page"] {
 /* ===========================================================================
    TOASTS Y DIÁLOGOS (lib/ui.jsx) — reemplazan window.confirm/prompt/alert
    =========================================================================== */
-.toast-in {
-  animation: enter var(--e-dur-slow) var(--e-ease-expo) both;
-}
 
 .dialog-backdrop {
   background: rgba(0, 0, 0, 0.62);
@@ -1998,11 +1922,6 @@ html[data-theme="light"] .vh-delta.is-down {
 }
 
 @media (max-width: 640px) {
-  .vh-top {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--e-gap-group);
-  }
   /* En columna el banner se acorta: el contenido crece hacia abajo y una
      franja alta competiría con el KPI en vez de enmarcarlo. */
   .vh-banner {
@@ -2011,15 +1930,6 @@ html[data-theme="light"] .vh-delta.is-down {
   .vh-banner-initials {
     font-size: 6rem;
     top: -1rem;
-  }
-  .vh-kpi {
-    text-align: left;
-    width: 100%;
-    padding-top: 0.85rem;
-    padding-right: 0;
-    /* El separador vertical se vuelve horizontal (hairline del sistema). */
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-    /* En columna la viga vertical no tiene sentido: hairline horizontal. */
   }
   .vh-kpi::before {
     display: none;
@@ -2340,12 +2250,6 @@ html[data-theme="light"] .ec-when-soon {
 }
 /* El toggle de densidad va anclado a la derecha y con filete vertical: antes
    flotaba pegado al borde del card y se leia como un icono perdido. */
-.evx-toolbar > .btn-icon {
-  margin-left: auto;
-  border-left: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 0.5rem;
-  padding-left: 0.65rem;
-}
 html[data-theme="light"] .evx-toolbar > .btn-icon {
   border-left-color: var(--e-neutral-300);
 }
@@ -2453,6 +2357,10 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
    sin reachable de 44, y en un toolbar de 40px el error de pulsacion es
    facil. min-height lo sube sin cambiar el ancho ni el peso visual. */
 .evx-toolbar > .btn-icon {
+  margin-left: auto;
+  border-left: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 0.5rem;
+  padding-left: 0.65rem;
   min-height: 2.75rem;
   min-width: 2.75rem;
 }
@@ -2517,29 +2425,6 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
     grid-template-columns: 1fr 1fr;
   }
 }
-.evx-card {
-  padding: 0;
-  /* La tarjeta ENTERA es un enlace (el <Link absolute inset-0> de abajo):
-     el cursor de mano lo dice aunque el usuario no descubra el hover. */
-  cursor: pointer;
-  /* position: relative OBLIGATORIO: el <Link absolute inset-0> que hace
-     clickeable la tarjeta se ancla a SU tarjeta. Sin esto, todos los
-     enlaces del grid comparten una sola caja gigante sobre la sección y
-     los clics caen en el evento equivocado (o no navegan). */
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  transition: transform var(--e-dur-base) var(--e-ease-expo),
-    border-color var(--e-dur-base) var(--e-ease-standard),
-    box-shadow var(--e-dur-base) var(--e-ease-standard);
-  /* Misma superficie sutil de los ítems del dock Del negocio: la tarjeta
-     se lee como tarjeta sin competir con el card de la portada. */
-  border-radius: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0) 42%),
-    rgba(255, 255, 255, 0.02);
-}
 /* Barra superior: la única línea de color por tarjeta la dice el ESTADO
    (verde = en puerta, brand = a la venta; cancelado/finalizado usan su
    color de punto via --evx-bar). El ciclo de vida se lee sin leer palabra. */
@@ -2564,20 +2449,6 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
 }
 /* Halo de marca que emerge al hover (profundidad, no decoración): la
    tarjeta "se enciende" — la que vas a abrir responde. */
-.evx-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    90% 70% at 50% -10%,
-    rgba(187, 92, 246, 0.13),
-    transparent 62%
-  );
-  opacity: 0;
-  transition: opacity var(--e-dur-base) var(--e-ease-standard);
-  pointer-events: none;
-  z-index: 0;
-}
 .evx-card:hover::after {
   opacity: 1;
 }
@@ -2600,13 +2471,6 @@ html[data-theme="light"] .evx-toolbar > .btn-icon {
   box-shadow:
     0 14px 34px -16px rgba(0, 0, 0, 0.6),
     0 10px 32px -14px rgba(16, 185, 129, 0.35);
-}
-.evx-name {
-  font-size: var(--e-text-2xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-zinc-50);
-  font-variation-settings: "opsz" 24;
 }
 /* Pulso operativo de la cabecera: cuántas noches están EN PUERTA. Es el único
    estado que exige atención en vivo y se dice con el mismo verde del ciclo de
@@ -3362,6 +3226,7 @@ html[data-theme="light"] .dialog-panel {
 /* Toast con barra de acento por tipo: el color del mensaje se LEE (éxito
    verde, error rojo) sin depender de leer el texto completo. */
 .toast-in {
+  animation: enter var(--e-dur-slow) var(--e-ease-expo) both;
   backdrop-filter: blur(10px);
   box-shadow: var(--e-elev-overlay);
 }
@@ -3672,6 +3537,9 @@ html[data-theme="light"] .tour-confirm-panel {
    LISTAS: filas que responden al hover (lift sutil + hairline de marca).
    ---------------------------------------------------------------------- */
 .list-row {
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
   transition: border-color var(--e-dur-fast) var(--e-ease-standard),
     background var(--e-dur-fast) var(--e-ease-standard),
     transform var(--e-dur-fast) var(--e-ease-standard);
@@ -3686,6 +3554,7 @@ html[data-theme="light"] .list-row:hover {
   background: var(--e-white);
 }
 .row:hover {
+  background: var(--e-panel-650);
   background: rgba(255, 255, 255, 0.045);
 }
 
@@ -3762,9 +3631,27 @@ html[data-theme="light"] .bottomnav-item.is-active > span:first-child {
   }
 }
 .empty-state-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--e-violet-300);
+  background: linear-gradient(
+    135deg,
+    rgba(187, 92, 246, 0.24),
+    rgba(187, 92, 246, 0.07)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(187, 92, 246, 0.35),
+    0 0 26px -10px rgba(187, 92, 246, 0.55);
   animation: breathe 3.4s ease-in-out infinite;
 }
 .empty-state-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-zinc-50);
   font-size: var(--e-text-lg);
   font-variation-settings: "opsz" 24;
 }
@@ -3818,9 +3705,6 @@ html[data-theme="light"] .evx-card.is-live:hover {
   box-shadow:
     0 14px 34px -18px rgba(24, 24, 27, 0.28),
     0 10px 32px -14px rgba(5, 150, 105, 0.22);
-}
-html[data-theme="light"] .evx-name {
-  color: var(--color-zinc-50);
 }
 html[data-theme="light"] .evx-state {
   color: var(--e-neutral-600);
@@ -4055,6 +3939,7 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
    - Sin resaltado azul de tap y sin rebotes horizontales.
    =========================================================================== */
 html {
+  color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
 }
 /*
@@ -4075,50 +3960,11 @@ html {
  * puerta (bg-emerald-600…) no se remapean: esa superficie siempre es oscura.
  * ============================================================================
  */
-html[data-theme="light"] {
-  /* --- zinc: remapeo de superficie/tinta (bordes 400 y 50 intactos) --- */
-  --color-zinc-50: var(--color-zinc-50);
-  --color-zinc-100: var(--color-zinc-100);
-  --color-zinc-200: var(--color-zinc-200);
-  --color-zinc-300: var(--color-zinc-300);
-  --color-zinc-500: var(--color-zinc-500);
-  --color-zinc-600: var(--e-neutral-600);
-  --color-zinc-700: var(--color-zinc-300);
-  --color-zinc-800: var(--e-white);
-  --color-zinc-900: var(--e-white);
-  --color-zinc-950: var(--color-zinc-50);
-
-  /* --- texto semántico: par más oscuro de la misma familia --- */
-  --color-emerald-200: var(--e-emerald-700);
-  --color-emerald-300: var(--e-emerald-600);
-  --color-emerald-400: var(--e-emerald-500);
-  --color-amber-200: var(--e-brasa-600);
-  --color-amber-300: var(--e-brasa-500);
-  --color-amber-400: var(--e-brasa-400);
-  --color-red-200: var(--e-red-800);
-  --color-red-300: var(--e-red-700);
-  --color-red-400: var(--e-red-600);
-  --color-sky-200: var(--e-sky-800);
-  --color-sky-300: var(--e-sky-700);
-  --color-sky-400: var(--e-sky-600);
-  --color-violet-300: var(--e-violet-600);
-
-  /* --- texto de marca sobre claro: violeta profundo (legible en AA) --- */
-  --color-brand-300: var(--e-violet-600);
-  --color-brand-400: var(--e-violet-800);
-
-  color-scheme: light;
-}
 
 /* ----------------------------------------------------------------------
    Cuerpo, superficies y componentes — variante clara.
    Mismos selectores, nuevos valores: el design system no cambia de forma.
    ---------------------------------------------------------------------- */
-html[data-theme="light"] body {
-  /* Canvas claro plano (Tesla): un solo tono, sin lavados. */
-  background: var(--e-neutral-150);
-  color: var(--e-neutral-900);
-}
 html[data-theme="light"] ::selection {
   background: rgba(187, 92, 246, 0.18);
   color: var(--e-neutral-900);
@@ -4178,6 +4024,7 @@ html[data-theme="light"] .field {
 /* Refuerzo especifico: el chevron del select NO se repite en ningun tema
    (la regla clara de .field ganaba por especificidad y lo rompia). */
 html[data-theme="light"] select.field {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2352525b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
 }
 html[data-theme="light"] .field::placeholder {
@@ -4421,6 +4268,9 @@ html[data-theme="light"] .auth-field:focus-within .auth-field-icon {
    Usa transform/opacity solo, nunca filter/backdrop-filter.
    Respeta prefers-reduced-motion igual que el resto del sistema. */
 .auth-card {
+  border-radius: 1rem;
+  border: 1px solid var(--color-zinc-800);
+  background: var(--color-zinc-925);
   /* Estado inicial: ligeramente reducido y transparente para la entrada */
   @starting-style {
     opacity: 0;
@@ -4762,6 +4612,15 @@ html[data-theme="light"] .auth-row-label {
 }
 
 body {
+  font-family: var(--font-sans);
+  /* Canvas plano (Tesla/Apple): un solo tono, sin lavados ni gradientes.
+     La jerarquía viene de tipografía, aire y el cambio de superficie —
+     nunca de brillo decorativo. */
+  background: var(--color-zinc-950);
+  color: var(--color-zinc-200);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv05" 1; /* Inter: 'l' con cola, más legible */
   overscroll-behavior-y: none;
 }
 
@@ -5364,6 +5223,31 @@ html[data-theme="light"] .ribbon-divider .rd-star {
   --color-zinc-500: var(--e-zinc-500);
 }
 html[data-theme="light"] {
+  /* --- zinc: remapeo de superficie/tinta (bordes 400 y 50 intactos) --- */
+  --color-zinc-700: var(--color-zinc-300);
+  --color-zinc-800: var(--e-white);
+  --color-zinc-900: var(--e-white);
+  --color-zinc-950: var(--color-zinc-50);
+
+  /* --- texto semántico: par más oscuro de la misma familia --- */
+  --color-emerald-200: var(--e-emerald-700);
+  --color-emerald-300: var(--e-emerald-600);
+  --color-emerald-400: var(--e-emerald-500);
+  --color-amber-200: var(--e-brasa-600);
+  --color-amber-300: var(--e-brasa-500);
+  --color-amber-400: var(--e-brasa-400);
+  --color-red-200: var(--e-red-800);
+  --color-red-300: var(--e-red-700);
+  --color-red-400: var(--e-red-600);
+  --color-sky-200: var(--e-sky-800);
+  --color-sky-300: var(--e-sky-700);
+  --color-sky-400: var(--e-sky-600);
+  --color-violet-300: var(--e-violet-600);
+
+  /* --- texto de marca sobre claro: violeta profundo (legible en AA) --- */
+  --color-brand-300: var(--e-violet-600);
+  --color-brand-400: var(--e-violet-800);
+  color-scheme: light;
   /* La mitad de TEXTO se invierte a tinta: en claro el numero alto es el
      MAS oscuro, que es lo que necesita el contraste. Superficie y borde ya
      los resuelven las reglas `html[data-theme="light"]`, que en vez de
@@ -5387,6 +5271,8 @@ html:not([data-theme="light"]) body {
   background: var(--color-zinc-950);
 }
 html[data-theme="light"] body {
+  /* Canvas claro plano (Tesla): un solo tono, sin lavados. */
+  color: var(--e-neutral-900);
   background: var(--e-neutral-150);
 }
 /* El scrollbar tomaba el token de superficie, que en claro vale blanco:
@@ -5439,6 +5325,8 @@ html[data-theme="light"] .rubber-stamp {
    El color del anillo vive en el token --e-focus-ring (crema en oscuro,
    tinta en claro): aquí ya no hace falta parche por tema. */
 :focus-visible {
+  outline: 2px solid var(--e-focus-ring);
+  outline-offset: 2px;
   outline-color: var(--e-focus-ring);
 }
 
@@ -5451,6 +5339,27 @@ html[data-theme="light"] .rubber-stamp {
    navy, sobre el claro y sobre cualquier superficie que cambie despues.
    =========================================================================== */
 .evx-card {
+  padding: 0;
+  /* La tarjeta ENTERA es un enlace (el <Link absolute inset-0> de abajo):
+     el cursor de mano lo dice aunque el usuario no descubra el hover. */
+  cursor: pointer;
+  /* position: relative OBLIGATORIO: el <Link absolute inset-0> que hace
+     clickeable la tarjeta se ancla a SU tarjeta. Sin esto, todos los
+     enlaces del grid comparten una sola caja gigante sobre la sección y
+     los clics caen en el evento equivocado (o no navegan). */
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform var(--e-dur-base) var(--e-ease-expo),
+    border-color var(--e-dur-base) var(--e-ease-standard),
+    box-shadow var(--e-dur-base) var(--e-ease-standard);
+  /* Misma superficie sutil de los ítems del dock Del negocio: la tarjeta
+     se lee como tarjeta sin competir con el card de la portada. */
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0) 42%),
+    rgba(255, 255, 255, 0.02);
   --notch: 7px;
   -webkit-mask:
     radial-gradient(
@@ -5480,6 +5389,13 @@ html[data-theme="light"] .rubber-stamp {
 /* El perno del talon: linea punteada que separa el cuerpo del codigo, como
    en la boleta del logo. Solo en grid (en la fila compacta seria ruido). */
 .evx-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--e-dur-base) var(--e-ease-standard);
+  pointer-events: none;
+  z-index: 0;
   background: radial-gradient(
     90% 70% at 50% -10%,
     rgba(187, 92, 246, 0.13),
@@ -5508,6 +5424,9 @@ html[data-theme="light"] .evx-card > .evx-perf {
    (Baloo 2, ya cargada) con mas cuerpo y tracking cerrado: jerarquia sin
    cambiar la fuente de la app ni recargar nada. */
 .evx-name {
+  font-size: var(--e-text-2xl);
+  color: var(--color-zinc-50);
+  font-variation-settings: "opsz" 24;
   font-family: "Sora", system-ui, sans-serif;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -6071,12 +5990,6 @@ html[data-theme="light"] .pf-hero .text-amber-300 {
   min-width: 0;
   flex: 1 1 16rem;
 }
-.pf-hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-left: auto;
-}
 
 .pf-avatar {
   position: relative;
@@ -6092,19 +6005,6 @@ html[data-theme="light"] .pf-hero .text-amber-300 {
 }
 /* Anillo de rol: el color del rol rodea el avatar. Un admin se ve distinto
    de un portero de un vistazo, sin leer la etiqueta. */
-.pf-avatar-ring {
-  position: absolute;
-  inset: -3px;
-  border-radius: 999px;
-  padding: 3px;
-  background: currentColor;
-  -webkit-mask:
-    linear-gradient(var(--e-mask) 0 0) content-box,
-    linear-gradient(var(--e-mask) 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
 
 /* Nombre del hero: grande, con la voz display de la marca. */
 .pf-name {
@@ -6257,12 +6157,6 @@ html[data-theme="light"] .pf-dirty-summary {
 /* ----------------------------------------------------------------------
    PANELES: una cosa a la vez. Un h2 por panel, colgando del h1 del hero.
    ---------------------------------------------------------------------- */
-.pf-panel {
-  padding: 1.25rem;
-  /* Al cambiar de pestaña el foco viaja al panel: sin este margen el título
-     quedaba debajo de la barra pegajosa. */
-  scroll-margin-top: 9rem;
-}
 .pf-panel:focus-visible {
   outline: 2px solid var(--e-focus-ring);
   outline-offset: 2px;
@@ -6815,6 +6709,10 @@ html[data-theme="light"] .pf-delete-warn {
   animation-delay: 260ms;
 }
 .pf-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
   animation-delay: 300ms;
 }
 
@@ -6822,12 +6720,27 @@ html[data-theme="light"] .pf-delete-warn {
    vacío. Es la única cosa en bucle del perfil, y es lo que lo hace sentir
    vivo en reposo. */
 .pf-avatar-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  padding: 3px;
+  background: currentColor;
+  -webkit-mask:
+    linear-gradient(var(--e-mask) 0 0) content-box,
+    linear-gradient(var(--e-mask) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
   animation: breathe 3.4s ease-in-out infinite;
 }
 
 /* El panel entra al visitarlo. Como cada panel se monta al activarse la
    pestaña, la animación corre sola en cada cambio — sin JS que la dispare. */
 .pf-panel {
+  padding: 1.25rem;
+  /* Al cambiar de pestaña el foco viaja al panel: sin este margen el título
+     quedaba debajo de la barra pegajosa. */
+  scroll-margin-top: 9rem;
   animation: pf-rise var(--e-dur-slow) var(--e-ease-expo) both;
 }
 
@@ -7264,15 +7177,13 @@ html[data-theme="light"] .legal-doc code {
     display: flex;
     flex-direction: column;
   }
-  .vh-top { order: 1; }
-  .vh-embedded { order: 2; }
   .vh-tally { order: 3; }
   .vh-mesnav { order: 4; }
   .vh-rank { order: 5; }
   /* Al cambiar de sitio, la franja deja de ser el cierre de la portada y
      pasa a ser su contenido: el hairline de arriba ya no separa nada y el
      hueco de antes del reporte lo pone el tally. */
-  .vh-embedded {
+  .vh-embedded { order: 2;
     margin-top: 0.85rem;
     padding-top: 0.85rem;
   }
@@ -7281,7 +7192,7 @@ html[data-theme="light"] .legal-doc code {
   /* La identidad y la cifra del mes comparten fila (antes se apilaban: 145px
      de portada antes de llegar a nada). El nombre manda a la izquierda, la
      cifra se apoya a la derecha. */
-  .vh-top {
+  .vh-top { order: 1;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -7308,6 +7219,8 @@ html[data-theme="light"] .legal-doc code {
      la cifra es bruta o neta de comisiones, y sin él el número miente. La
      meta ("8 eventos · 5 boletas") sí baja: la repite la tira de cifras. */
   .vh-kpi {
+    /* El separador vertical se vuelve horizontal (hairline del sistema). */
+    /* En columna la viga vertical no tiene sentido: hairline horizontal. */
     /* Antes flex-shrink: 0: el rótulo ("Recaudado del mes", 202px en una
        línea) se quedaba con la fila entera y el nombre del negocio colapsaba a
        0px — invisible — a 320 y 360px. Con shrink y tope del 52%, el rótulo se
@@ -7535,11 +7448,6 @@ html[data-theme="light"] .legal-doc code {
   transition: width 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.welcome-bar-fill.is-complete {
-  width: 100%;
-  animation: none;
-}
-
 @keyframes welcome-bar-fill {
   /* Este keyframe deja de ser la regla principal de llenado y se queda solo
      como el ancla del estado `is-complete` (ver siguiente bloque): el overlay
@@ -7559,6 +7467,8 @@ html[data-theme="light"] .legal-doc code {
   }
 }
 .welcome-bar-fill.is-complete {
+  width: 100%;
+  animation: none;
   animation: welcome-bar-fill 1000ms linear both;
 }
 @keyframes welcome-scrim-in {

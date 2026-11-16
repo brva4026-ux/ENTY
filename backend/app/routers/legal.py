@@ -287,7 +287,7 @@ async def accept_document(
         # forma de atribuirla no prueba nada (mismo CHECK que exige la DB).
         if user is None and not email and not phone:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
                 "Falta el correo o el telefono de quien acepta.",
             )
 

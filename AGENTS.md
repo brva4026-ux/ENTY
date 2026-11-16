@@ -310,6 +310,35 @@ para generación y review simultáneos; `test_user_writes_atomicity.py` fuerza e
 fallo a mitad con un **trigger real** de Postgres, no un mock.
 
 
+### Higiene de índices: el conteo de vendidos y los duplicados (mig 050)
+
+`db/migrations/050_index_hygiene.sql` (consolidada en `db/schema.sql`) sale de
+la auditoría de rendimiento. Tres hallazgos, todos medidos con `EXPLAIN ANALYZE`
+sobre 400.000 tickets en una base scratch:
+
+- **Faltaba índice para el conteo por localidad.** La página pública del evento
+  (y el detalle que reusa el checkout) corre, por cada localidad activa,
+  `count(*) FROM tickets WHERE ticket_type_id = t.id AND status NOT IN
+  ('voided','refunded')`. Sin índice es un Parallel Seq Scan (~30.8 ms por
+  localidad, y crece lineal con la tabla). Se agrega `idx_tickets_type_active`,
+  **parcial** con la misma condición de la consulta (`WHERE status NOT IN
+  ('voided','refunded')`): Index Only Scan en ~10.2 ms (~3x), ~1.4 MB sobre
+  400k filas.
+- **`idx_tickets_token_hash` era redundante:** `tickets_token_hash_key`
+  (constraint UNIQUE, mismo `token_hash`) ya sirve el lookup del canje. Dos
+  btrees idénticos = doble costo en cada INSERT/UPDATE y en autovacuum, sin
+  beneficio de lectura. Se elimina el suelto; el UNIQUE (garantía de unicidad)
+  queda.
+- **Mismo caso en `password_reset_tokens`:** la 017 declaró `token_hash UNIQUE`
+  (crea `password_reset_tokens_token_hash_key`) **y** un
+  `idx_password_reset_token_hash` idéntico. Se retira el suelto.
+
+Regla de casa: **un índice que empieza por la columna de igualdad de una
+consulta caliente, con el `WHERE` de la consulta como predicado parcial, es
+casi siempre mejor que un índice amplio.** Y antes de agregar uno, mirá si un
+UNIQUE existente ya lo cubre.
+
+
 ### Correr la suite E2E dos veces seguidas (importante)
 
 La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los
@@ -358,9 +387,9 @@ Si un test falla, **reproducí el fallo en la base limpia antes de tocar el
 código**.
 ### stylelint: el presupuesto es un techo que solo puede BAJAR
 
-`npm run lint:css` es `stylelint "src/**/*.css" --max-warnings 35` y **sí es un
+`npm run lint:css` es `stylelint "src/**/*.css" --max-warnings 0` y **sí es un
 gate de CI** (job `frontend`, paso "Lint CSS"). El número es un techo: si tu
-cambio agrega warnings por encima de 35, el job se pone rojo aunque no haya
+cambio agrega warnings, el job se pone rojo aunque no haya
 errores (`Max warnings exceeded`). Bajá el presupuesto cuando limpies warnings;
 nunca lo subas para "pasar".
 
@@ -738,7 +767,7 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
 - **Superficies insensibles al tema** (p. ej. `.auth-brand`, el panel navy de la
   entrada) fijan sus propios tokens de tinta en `tokens.css`, para que el
   wordmark siga legible sobre el navy también en claro.
-- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 35`
+- **`npm run lint:css`** (stylelint) es un **trinquete**: `--max-warnings 0`
   es un presupuesto que solo puede **bajar**. `color-no-hex` (todo `src/**/*.css`
   menos `tokens.css`; el bloque `@theme` de `index.css` está exento con
   `stylelint-disable` y rationale: es la fuente de los tokens Tailwind),
@@ -750,8 +779,11 @@ Ver `docs/estetica-plan.md`. Resumen operativo:
   están sin hex; los alias históricos `--tf-* / --home-* / --evd-* / --tkt-* /
   --in-*` solo apuntaban a primitivas `--e-*` (retirados del todo en Fase 6);
   `!important` bajó 11→3 (solo el override de `prefers-reduced-motion`) y el
-  JSX ya no fija hex (el punto de estado usa `data-status` en CSS). El
-  presupuesto de 35 son **35 `no-duplicate-selectors`** (F4); los 6 `color-no-hex`
+  JSX ya no fija hex (el punto de estado usa `data-status` en CSS). Los 34
+  `no-duplicate-selectors` (F4) se consolidaron a 0 en nov-2026: cada grupo de
+  reglas con el mismo selector y contexto (`@media`) se fusionó en una sola,
+  verificando en navegador (90 variantes de página/tema/viewport, 0 cambios de
+  estilo computado); los 6 `color-no-hex`
   de la página legal se pasaron a tokens (F5, oct-2026);
   quedan 21 `style={{}}` de geometría dinámica (no color).
 - **Estado Fase 2 (HECHA, corte de escala)**: la tipografía es **una escala

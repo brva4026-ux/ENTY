@@ -1,12 +1,10 @@
-"""Auth: hash de passwords (bcrypt via passlib) y tokens JWT."""
+"""Auth: hash de passwords (bcrypt directo) y tokens JWT."""
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 import jwt
-from passlib.context import CryptContext
 
 from app.core.config import get_settings
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def digest_token(raw: str) -> str:
@@ -21,11 +19,18 @@ def digest_token(raw: str) -> str:
 
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    """bcrypt directo (sin passlib): la API hashpw/checkpw es la misma que
+    passlib usaba por debajo, y el prefijo $2b$ y el costo (12) coinciden, así
+    que los hashes ya guardados siguen verificando."""
+    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("ascii")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("ascii"))
+    except ValueError:
+        # Hash con formato inválido/corrupto: credencial inválida, no un 500.
+        return False
 
 
 def create_access_token(

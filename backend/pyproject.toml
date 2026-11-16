@@ -12,8 +12,7 @@ dependencies = [
     "pydantic-settings>=2.3",
     "email-validator>=2.2",
     "PyJWT>=2.8",
-    "passlib[bcrypt]>=1.7.4",
-    "bcrypt==4.0.1",  # pin: passlib se rompe con bcrypt>=4.1 (bug de deteccion del wrap)
+    "bcrypt>=4.1",
     "qrcode[pil]>=7.4",
     "Pillow>=10.3",
     "python-multipart>=0.0.9",

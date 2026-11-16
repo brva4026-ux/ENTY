@@ -555,45 +555,8 @@ html[data-theme="light"] .bizdock-count {
   background: var(--e-canvas);
 }
 
-.tkt {
-  border-radius: 1.25rem;
-  background:
-    radial-gradient(26rem 18rem at 78% 12%, rgba(187, 92, 246, 0.14), transparent 60%),
-    radial-gradient(18rem 10rem at 14% 72%, rgba(255, 45, 152, 0.1), transparent 62%),
-    linear-gradient(180deg, var(--e-panel-700), var(--e-panel-900));
-  color: var(--e-white);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 28px 70px -38px rgba(0, 0, 0, 1), 0 0 0 1px rgba(187, 92, 246, 0.08);
-}
-
-.tkt::before {
-  opacity: 0.16;
-}
-
-.tkt-head {
-  color: var(--e-white);
-}
-
 .tkt-footer, .tkt-brandline {
   color: rgba(247, 247, 251, 0.72);
-}
-
-.tkt-body {
-  background:
-    radial-gradient(18rem 10rem at 18% 0%, rgba(0, 230, 171, 0.08), transparent 64%),
-    rgba(255, 255, 255, 0.035);
-}
-
-.tkt-qr {
-  border-radius: 1rem;
-  background: var(--e-white);
-  box-shadow: 0 18px 34px -18px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.75);
-}
-
-.tkt-qr::before,
-.tkt-qr::after {
-  border-color: var(--e-success);
-  filter: drop-shadow(0 0 8px rgba(0, 230, 171, 0.45));
 }
 
 .tkt-note strong, .tkt-note p {
@@ -636,39 +599,6 @@ html[data-theme="light"] .bizdock-count {
     radial-gradient(46rem 30rem at 50% -12rem, rgba(187, 92, 246, 0.16), transparent 62%),
     var(--e-panel-950);
 }
-.tkt {
-  position: relative;
-  border: 0;
-  border-radius: 0.35rem;
-  overflow: hidden;
-  isolation: isolate;
-  color: var(--e-white);
-  background:
-    radial-gradient(120% 80% at 50% -10%, var(--e-panel-600) 0%, transparent 55%),
-    linear-gradient(180deg, var(--e-panel-800), var(--e-ticket-paper));
-  box-shadow:
-    0 30px 70px -30px rgba(0, 0, 0, 0.85),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  /* Borde rasgado irregular arriba/abajo: cientos de puntos de una polilinea
-     con jitter determinista (el mismo trazo en cada render). */
-  clip-path: polygon(
-    0px 8.6px, 12px 3.1px, 24px 9.4px, 36px 4.8px, 48px 10.2px, 60px 2.6px,
-    72px 8.1px, 84px 5.5px, 96px 11.3px, 108px 3.9px, 120px 9.1px, 132px 2.2px,
-    144px 7.7px, 156px 4.4px, 168px 10.6px, 180px 3.3px, 192px 8.9px, 204px 5.1px,
-    216px 11.7px, 228px 2.9px, 240px 7.4px, 252px 4.1px, 264px 10.9px, 276px 3.6px,
-    288px 8.4px, 300px 5.8px, 312px 11.1px, 324px 2.4px, 336px 7.9px, 348px 4.7px,
-    360px 10.4px, 372px 3.2px, 384px 8.7px, 396px 5.3px, 408px 11.5px, 420px 2.7px,
-    432px 0px,
-    432px 640px,
-    420px 630.9px, 408px 637.2px, 396px 632.6px, 384px 638.4px, 372px 629.8px,
-    360px 636.1px, 348px 631.5px, 336px 637.9px, 324px 630.4px, 312px 636.6px,
-    300px 632.1px, 288px 638.7px, 276px 629.4px, 264px 635.9px, 252px 631.2px,
-    240px 637.6px, 228px 630.7px, 216px 636.9px, 204px 632.4px, 192px 638.2px,
-    180px 629.9px, 168px 636.3px, 156px 631.7px, 144px 637.8px, 132px 630.2px,
-    120px 636.8px, 108px 632.3px, 96px 638.6px, 84px 629.6px, 72px 636.4px,
-    60px 631.4px, 48px 637.4px, 36px 630.8px, 24px 636.2px, 12px 631.9px, 0px 638px
-  );
-}
 /* Grano / desgaste sutil (no ensucia la lectura). */
 .tkt::after {
   content: "";
@@ -682,11 +612,13 @@ html[data-theme="light"] .bizdock-count {
 }
 /* La onda decorativa de index.css ya no aplica en el papel negro. */
 .tkt::before {
+  opacity: 0.16;
   content: none;
 }
 
 /* Cabecera */
 .tkt-head {
+  color: var(--e-white);
   padding: 1.35rem 1.4rem 0;
   align-items: flex-start;
 }
@@ -841,6 +773,8 @@ html[data-theme="light"] .bizdock-count {
 }
 .tkt-qr::before,
 .tkt-qr::after {
+  border-color: var(--e-success);
+  filter: drop-shadow(0 0 8px rgba(0, 230, 171, 0.45));
   content: none;
 }
 .tkt-qr img,
@@ -1324,20 +1258,6 @@ html[data-theme="light"] .bizdock-count {
   flex-direction: column;
   gap: 0.6rem;
 }
-.home-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  min-height: 4.1rem;
-  padding: 0.7rem 1rem;
-  border-radius: 1.1rem;
-  /* Superficie sólida, no cristal: una lista que scrollea con backdrop-filter
-     fuerza al compositor a recomponer el blur en cada frame (iOS sobre todo).
-     El cristal queda para lo fijo (nav) y el hero; acá manda el rendimiento. */
-  background: rgba(23, 22, 34, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: border-color var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
-}
 .home-list .home-row:last-child {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -1750,6 +1670,16 @@ html[data-theme="light"] .bizdock-count {
 
 /* La fila ahora envuelve un enlace (main) + boton de favorito. */
 .home-row {
+  display: flex;
+  align-items: center;
+  min-height: 4.1rem;
+  border-radius: 1.1rem;
+  /* Superficie sólida, no cristal: una lista que scrollea con backdrop-filter
+     fuerza al compositor a recomponer el blur en cada frame (iOS sobre todo).
+     El cristal queda para lo fijo (nav) y el hero; acá manda el rendimiento. */
+  background: rgba(23, 22, 34, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color var(--e-dur-fast) var(--e-ease-standard), transform var(--e-dur-fast) var(--e-ease-standard), box-shadow var(--e-dur-base) var(--e-ease-standard);
   padding: 0;
   gap: 0;
   overflow: hidden;
@@ -2227,6 +2157,36 @@ html[data-theme="light"] .bizdock-count {
    semicirculos en su borde (arriba / abajo). La union deja el cuerpo
    intacto y las dos orillas dentadas, sin tocar el DOM. */
 .tkt {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  /* Borde rasgado irregular arriba/abajo: cientos de puntos de una polilinea
+     con jitter determinista (el mismo trazo en cada render). */
+  clip-path: polygon(
+    0px 8.6px, 12px 3.1px, 24px 9.4px, 36px 4.8px, 48px 10.2px, 60px 2.6px,
+    72px 8.1px, 84px 5.5px, 96px 11.3px, 108px 3.9px, 120px 9.1px, 132px 2.2px,
+    144px 7.7px, 156px 4.4px, 168px 10.6px, 180px 3.3px, 192px 8.9px, 204px 5.1px,
+    216px 11.7px, 228px 2.9px, 240px 7.4px, 252px 4.1px, 264px 10.9px, 276px 3.6px,
+    288px 8.4px, 300px 5.8px, 312px 11.1px, 324px 2.4px, 336px 7.9px, 348px 4.7px,
+    360px 10.4px, 372px 3.2px, 384px 8.7px, 396px 5.3px, 408px 11.5px, 420px 2.7px,
+    432px 0px,
+    432px 640px,
+    420px 630.9px, 408px 637.2px, 396px 632.6px, 384px 638.4px, 372px 629.8px,
+    360px 636.1px, 348px 631.5px, 336px 637.9px, 324px 630.4px, 312px 636.6px,
+    300px 632.1px, 288px 638.7px, 276px 629.4px, 264px 635.9px, 252px 631.2px,
+    240px 637.6px, 228px 630.7px, 216px 636.9px, 204px 632.4px, 192px 638.2px,
+    180px 629.9px, 168px 636.3px, 156px 631.7px, 144px 637.8px, 132px 630.2px,
+    120px 636.8px, 108px 632.3px, 96px 638.6px, 84px 629.6px, 72px 636.4px,
+    60px 631.4px, 48px 637.4px, 36px 630.8px, 24px 636.2px, 12px 631.9px, 0px 638px
+  );
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(26rem 18rem at 78% 12%, rgba(187, 92, 246, 0.14), transparent 60%),
+    radial-gradient(18rem 10rem at 14% 72%, rgba(255, 45, 152, 0.1), transparent 62%),
+    linear-gradient(180deg, var(--e-panel-700), var(--e-panel-900));
+  color: var(--e-white);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 28px 70px -38px rgba(0, 0, 0, 1), 0 0 0 1px rgba(187, 92, 246, 0.08);
   --notch: 0.5rem;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.16) inset,
