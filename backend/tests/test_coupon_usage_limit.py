@@ -13,7 +13,6 @@ import uuid
 import pytest
 
 from app.routers import public as public_mod
-from app.routers import payments as payments_mod
 
 _LINK = {"id": ""}
 _TX = {"n": 0}
