@@ -692,11 +692,12 @@ fuerzan oscuras con `forceDarkOnce()` — son de marca, no siguen el tema del SO
 
 ## Capas de diseño (auditoría)
 
-El frontend importa **cinco** hojas en este orden (main.jsx):
+El frontend importa **siete** hojas en este orden (main.jsx):
 `tokens.css` → `index.css` → `aesthetic-refresh.css` → `enty-system.css` →
-`enty-fan.css`. `tokens.css` es la fuente única de color/forma/movimiento; las
-demás elevan la anterior sin reescribirla y `enty-fan.css` es la última palabra
-sobre las superficies del fan.
+`panel-cockpit.css` → `enty-fan.css` → `landing.css`. `tokens.css` es la fuente
+única de color/forma/movimiento; las demás elevan la anterior sin reescribirla,
+`enty-fan.css` es la última palabra sobre las superficies del fan y
+`landing.css` (portada pública, no ligada a `data-theme`) cierra.
 
 | Capa | Alcance |
 | --- | --- |
@@ -704,7 +705,9 @@ sobre las superficies del fan.
 | `index.css` | Base del design system (clases `.card`, `.field`, `.btn-*`), tema claro/oscuro y la vitrina del fan (`.home`, `.evd`). |
 | `aesthetic-refresh.css` | Marca aplicada: `.home` (Inicio/boletas), `.evd` (detalle), `.tkt` (boleta pública) y la capa `.app-shell` del interior. |
 | `enty-system.css` | Retoques del sistema ("eleva sin reescribir"). |
+| `panel-cockpit.css` | Cabina del panel interno (`.venue-header`, tablero del negocio). |
 | `enty-fan.css` | **Experiencia del fan (vitrina editorial)**: responsive real, motivo de boleto perforado, ticker cinético y estados completos. |
+| `landing.css` | Portada pública (`.lp`): papel claro, insensible a `data-theme`. |
 
 **Clasificación del rediseño (qué se conservó y qué se rehízo):**
 

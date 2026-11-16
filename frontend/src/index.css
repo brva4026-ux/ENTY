@@ -2875,6 +2875,12 @@ html[data-theme="light"] .evx-open-label {
   /* Rail de estado: la fila pinta su ciclo de vida como la tarjeta (verde
      vivo = en puerta). El listado se lee como pulso, no como tabla. */
   border-left: 2px solid transparent;
+  /* Con 20+ noches la lista es larga y casi toda fuera de pantalla: el
+     navegador salta el layout/pintado de las filas que no se ven (coste
+     constante por scroll). `contain-intrinsic-size` reserva la altura de la
+     fila para que la barra de scroll no salte. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 56px;
 }
 .evx-row::before {
   content: "";
@@ -3941,6 +3947,13 @@ html[data-theme="light"] .is-ended .evx-meter-fill { background: var(--color-zin
 html {
   color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
+  /* Focus Not Obscured (WCAG 2.2 AA): el topbar del shell es `sticky` a 3.5rem
+     y el pie de diálogo es `sticky` abajo. Sin este respaldo, al tabular el
+     foco puede quedar tapado por una barra pegajosa. El `scroll-padding`
+     desplaza el destino de cualquier salto (ancla, focus, scrollIntoView)
+     fuera de esas barras; los ajustes puntuales siguen por `scroll-margin`. */
+  scroll-padding-top: 4.5rem;
+  scroll-padding-bottom: 5rem;
 }
 /*
  * ============================================================================

@@ -511,9 +511,22 @@ export default function PublicTicketPage() {
         {lifecycle && !error && (
           <div className="ticket-timeline mx-auto mt-4 w-fit rounded-xl bg-zinc-900/50 px-4 py-3 ring-1 ring-zinc-800/80">
             {lifecycle.map((step) => (
-              <div key={step.label} className={`ticket-step ${step.state}`}>
+              <div
+                key={step.label}
+                className={`ticket-step ${step.state}`}
+                aria-current={step.state === "current" ? "step" : undefined}
+              >
                 <span className="ticket-step-dot" aria-hidden="true" />
                 <span className="ticket-step-label">{step.label}</span>
+                {/* El color del punto NO basta (WCAG 1.4.1): el estado de cada
+                    paso se anuncia en texto para quien no ve el verde/violeta. */}
+                <span className="sr-only">
+                  {step.state === "done"
+                    ? " (completado)"
+                    : step.state === "current"
+                      ? " (paso actual)"
+                      : " (pendiente)"}
+                </span>
               </div>
             ))}
           </div>

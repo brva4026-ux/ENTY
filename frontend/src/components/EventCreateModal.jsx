@@ -112,6 +112,10 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(defaultEventForm);
   const [formError, setFormError] = useState("");
+  // `errorTick` fuerza el efecto de foco cuando el error se repite (mismo
+  // texto dos veces seguidas): sin él, el resumen no volvería a recibir foco.
+  const [errorTick, setErrorTick] = useState(0);
+  const errorRef = useRef(null);
   const [creating, setCreating] = useState(false);
   // URL de flyer que ya falló al cargar: evita pintar el ícono de imagen rota.
   const [badFlyer, setBadFlyer] = useState("");
@@ -140,6 +144,21 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
     );
     (first ?? stepRef.current)?.focus?.();
   }, [step]);
+
+  // Error summary (WCAG / guía "Focusable Error Summary"): cuando el wizard
+  // rechaza un paso, el foco viaja al resumen, que está sobre el formulario.
+  // Así el usuario de teclado no queda al pie sin saber qué corregir, y el
+  // lector anuncia el motivo (role="alert"). `errorTick` re-dispara el foco
+  // si el mismo error se repite.
+  useEffect(() => {
+    if (formError) errorRef.current?.focus?.();
+  }, [formError, errorTick]);
+
+  /** Fija el error y marca el tick para (re)enfocar el resumen. */
+  const fail = (message) => {
+    setFormError(message);
+    setErrorTick((t) => t + 1);
+  };
   const showFlyer = form.flyer_url && form.flyer_url !== badFlyer;
 
   /** Sube el archivo reducido y guarda su URL /media/{id} en el form. */
@@ -202,7 +221,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   function next() {
     const err = validate(step);
     if (err) {
-      setFormError(err);
+      fail(err);
       return;
     }
     setFormError("");
@@ -220,7 +239,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
     for (let s = 0; s < STEPS.length; s++) {
       const err = validate(s);
       if (err) {
-        setFormError(err);
+        fail(err);
         setStep(s);
         return;
       }
@@ -348,6 +367,19 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
         </ol>
 
         <form onSubmit={createEvent} className="dialog-body">
+          {/* Resumen de errores: arriba del formulario y con foco (WCAG
+              "Focusable Error Summary"). Antes el aviso vivía al pie, donde el
+              usuario de teclado no lo veía sin scrollear. */}
+          {formError && (
+            <p
+              ref={errorRef}
+              tabIndex={-1}
+              role="alert"
+              className="mb-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--e-focus-ring)]"
+            >
+              {formError}
+            </p>
+          )}
           {/* ====== Paso 1: qué es y dónde ====== */}
           {step === 0 && (
             <div
@@ -830,12 +862,6 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </div>
               </div>
             </div>
-          )}
-
-          {formError && (
-            <p className="mt-3 text-xs text-red-400" role="alert">
-              {formError}
-            </p>
           )}
 
           {/* ====== Navegación del asistente ====== */}
