@@ -445,6 +445,15 @@ alcanza a montar la tarjeta de bienvenida bajo 2 workers
 
   Se arregla en GitHub > Settings > Billing. Mientras tanto, el gate real es
   correr las suites localmente (backend, frontend y e2e) y el deploy de Vercel.
+- **Test del throttle de poda (`test_prune_expired_rows_tiene_throttle`) que
+  pasa local y falla en CI**: el test fijaba `_last_prune = 0.0` para caer
+  "fuera de la ventana", pero `prune_expired_rows` compara contra
+  `time.monotonic()`. En un contenedor recién arrancado el reloj monotónico
+  puede ir por debajo de la ventana (`_PRUNE_EVERY_SECONDS = 3600`), así que
+  `now - 0.0 < 3600` devolvía temprano y el `assert calls["n"] == 1` fallaba
+  sin que el código estuviera mal. En este host lleva horas encendido, por eso
+  pasaba local. Si un test depende del paso del tiempo, fijá el estado
+  **relativo** a `time.monotonic()`, no un `0.0` absoluto.
 - **`prepare_threshold`**: en psycopg3, `None` desactiva los prepared
   statements y `0` los prepara en el **primer** uso. Debe ser `None` detrás de
   un pooler en modo transaction (Supabase `:6543`, pgBouncer), o `redeem`
