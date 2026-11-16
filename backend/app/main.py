@@ -102,6 +102,13 @@ def create_app() -> FastAPI:
         description="Sistema de boleteria y control de aforo (Etapa 0 MVP)",
         lifespan=lifespan,
         root_path=settings.api_root_path,
+        # En producción no se publican /docs, /redoc ni /openapi.json: describen
+        # las 100+ rutas de la API (incluidas las de dinero y administración) a
+        # cualquiera que las pida, y no aportan nada al usuario final. En local
+        # siguen encendidas para el desarrollo. La UI no depende de ellas.
+        docs_url=None if settings.is_production else "/docs",
+        redoc_url=None if settings.is_production else "/redoc",
+        openapi_url=None if settings.is_production else "/openapi.json",
     )
 
     app.add_middleware(

@@ -1,7 +1,19 @@
 from functools import lru_cache
+from urllib.parse import urlparse
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Hosts de desarrollo que NUNCA deben quedar permitidos en producción. El
+# default de CORS_ORIGINS los incluye para el dev server de Vite; en prod se
+# descartan solos (ver cors_origins_list).
+_DEV_HOSTNAMES = {"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"}
+
+
+def _is_dev_origin(origin: str) -> bool:
+    """True si el origen apunta a un host de desarrollo local."""
+    host = urlparse(origin).hostname
+    return host is not None and host.lower() in _DEV_HOSTNAMES
 
 
 class Settings(BaseSettings):
@@ -83,8 +95,20 @@ class Settings(BaseSettings):
         return bool(self.wompi_private_key and self.wompi_events_secret)
 
     @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() == "production"
+
+    @property
     def cors_origins_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if not self.is_production:
+            return origins
+        # En producción la UI es same-origin (`/api` del mismo dominio): CORS no
+        # hace falta. El default de desarrollo (localhost) no debe viajar a
+        # producción — un origen local permitido es un agujero que nadie ve.
+        # Si de verdad hay que permitir un origen cruzado (dominio propio),
+        # defínelo explícito en CORS_ORIGINS con la URL pública https.
+        return [o for o in origins if not _is_dev_origin(o)]
 
 
 @lru_cache

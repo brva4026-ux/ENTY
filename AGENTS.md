@@ -1066,6 +1066,23 @@ que `deploy.sh` liste todas las migraciones.
 y no hay `SENTRY_DSN` (modo no-op silencioso = un 500 no le llega a nadie).
 Configurá `SENTRY_DSN` en las env vars de Vercel.
 
+**Superficie de producción (endurecida).** Dos cosas que existían por comodidad
+de desarrollo y viajaban al deploy sin que nadie las mirara; `create_app` las
+cierra con `settings.is_production`:
+
+- **`/docs`, `/redoc` y `/openapi.json` se apagan en producción** (`docs_url=None`
+  etc.). Describían las 100+ rutas de la API (dinero, admin, escáner) a
+  cualquiera que las pidiera; la UI no las usa. En local siguen encendidas.
+  `backend/tests/test_prod_hardening.py` fija el contrato.
+- **`CORS_ORIGINS` descarta los hosts locales en producción.** El default trae
+  `localhost` para el dev server de Vite; en prod la UI es same-origin (`/api`)
+  y CORS no hace falta, así que `cors_origins_list` filtra `localhost/127.0.0.1`.
+  Si algún día hay un origen cruzado real (dominio propio), definilo explícito
+  en `CORS_ORIGINS` con la URL pública `https`.
+
+Si ves `/api/openapi.json` respondiendo 200 en producción, es que `ENVIRONMENT`
+no está en `production` en las env vars de Vercel.
+
 ## Seguridad del origen y smoke SQL (Fase 0)
 
 - **CSP por hash, no `unsafe-inline`.** La cabecera `Content-Security-Policy`
