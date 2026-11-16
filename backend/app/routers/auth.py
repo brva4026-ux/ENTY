@@ -451,7 +451,7 @@ async def register(
             # términos sin poder probar quién los aceptó es lo mismo que no
             # tenerlos.
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
                 "Debes aceptar los Términos y la Política de Datos para crear la cuenta.",
             )
 

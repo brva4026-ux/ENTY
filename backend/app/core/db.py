@@ -58,10 +58,11 @@ async def init_pool(
         # medias) deja cada request esperando el PoolTimeout de 30 s. Con
         # 8 s el usuario recibe un error accionable y el pool sigue vivo.
         timeout=8,
-        # open(wait=False): no bloquea el arranque y NO cierra el pool si la
+        # open=False + await pool.open(wait=False) es el equivalente exacto del
+        # deprecado open=True: no bloquea el arranque y NO cierra el pool si la
         # DB no responde todavia; las conexiones se establecen en background y
         # cada request reintenta. Evita el modo "pool cacheado y cerrado".
-        open=True,
+        open=False,
         kwargs={
             "row_factory": dict_row,
             "autocommit": True,
@@ -74,6 +75,7 @@ async def init_pool(
             "prepare_threshold": None,
         },
     )
+    await pool.open(wait=False)
 
 
 async def close_pool() -> None:

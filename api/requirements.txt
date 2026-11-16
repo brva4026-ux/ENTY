@@ -4,8 +4,7 @@ psycopg-pool>=3.2
 pydantic>=2.7
 pydantic-settings>=2.3
 PyJWT>=2.8
-passlib[bcrypt]>=1.7.4
-bcrypt==4.0.1
+bcrypt>=4.1
 # Sin email-validator ni python-multipart: nadie usa EmailStr ni endpoints
 # Form/UploadFile (el login es JSON y media.py decodea base64 a proposito).
 # Cada paquete de mas son ~4 MB que viajan en el bundle de la funcion serverless

@@ -4,7 +4,7 @@ BEGIN;
 -- TicketFlow — ESQUEMA COMPLETO (v2, consolidado)
 -- ============================================================================
 -- Fuente UNICA de verdad: este archivo + las migraciones de db/migrations/ en
--- orden (002..043) reproducen EXACTAMENTE la misma base. Aplicar ambos es
+-- orden (002..050) reproducen EXACTAMENTE la misma base. Aplicar ambos es
 -- seguro en cualquier estado:
 --   * instalacion nueva: schema.sql crea todo; las migraciones quedan en
 --     no-ops (todas son idempotentes: IF NOT EXISTS / OR REPLACE).
@@ -3500,6 +3500,13 @@ CREATE INDEX idx_events_ends_unended ON public.events USING btree (ends_at) WHER
 
 
 --
+-- Name: idx_events_venue_starts; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_events_venue_starts ON public.events USING btree (venue_id, starts_at DESC);
+
+
+--
 -- Name: idx_invitations_venue_open; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3553,13 +3560,6 @@ CREATE INDEX idx_notifications_user_unread ON public.notifications USING btree (
 --
 
 CREATE INDEX idx_notifications_venue ON public.notifications USING btree (venue_id, user_id);
-
-
---
--- Name: idx_password_reset_token_hash; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_password_reset_token_hash ON public.password_reset_tokens USING btree (token_hash);
 
 
 --
@@ -3724,10 +3724,10 @@ CREATE INDEX idx_tickets_phone ON public.tickets USING btree (customer_phone) WH
 
 
 --
--- Name: idx_tickets_token_hash; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_tickets_type_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_tickets_token_hash ON public.tickets USING btree (token_hash);
+CREATE INDEX idx_tickets_type_active ON public.tickets USING btree (ticket_type_id) WHERE (status <> ALL (ARRAY['voided'::ticket_status, 'refunded'::ticket_status]));
 
 
 --
