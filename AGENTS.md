@@ -216,6 +216,32 @@ mergear a `master`, pero la 043 hay que aplicarla a mano contra Supabase
 `"schema": "behind"`. Es esperable tras este cambio hasta que corra `deploy.sh`.
 
 
+### Reservas de checkout y retención de tablas (migs 044 y 046)
+
+Dos migraciones llegaron juntas con el merge de las reservas de inventario:
+
+- **`044_checkout_reservations.sql`** — índices parciales sobre
+  `ticket_payments` (`reservation_expires_at`) para que la reserva de cupo/cupón
+  antes de pagar y su expiración sean baratas. Sin ellos la consulta de
+  reservas vencidas escanea la tabla completa. El código
+  (`app/services/checkout.py`) ya los usa.
+- **`046_retention.sql`** — funciones `prune_*` y el agregado `prune_expired()`
+  que podan las tablas que crecen (`door_sync_receipts`, `push_outbox`,
+  `notifications`, `analytics_events`, `audit_log`). Se disparan desde lecturas
+  baratas (`prune_expired_rows`, enganchado al listado de eventos y a la caja);
+  no hay cron en serverless. Es mantenimiento, no seguridad: la poda corre con
+  throttle por instancia y es best-effort.
+
+**La migración no viaja con el push.** El código se despliega en Vercel al
+mergear a `master`, pero la 044 y la 046 hay que aplicarlas a mano contra
+Supabase (`bash scripts/deploy.sh`). Mientras no corran, `/health` reporta
+`"schema": "behind"` con `funciones: prune_expired`. Las rutas que la usan
+(`GET /venues/{id}/events`, `GET /venues/{id}/overview`) **no** se caen: la poda
+atrapa el error, hace `rollback` y sigue. El resto del checkout solo pierde
+velocidad, no corrección. Es esperable tras este merge hasta que corra
+`deploy.sh`.
+
+
 ### Correr la suite E2E dos veces seguidas (importante)
 
 La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los
