@@ -170,6 +170,36 @@ def test_percent_coupon_out_of_range_is_rejected(api):
     assert res.status_code == 422, res.text
 
 
+def test_coupon_max_uses_cannot_drop_below_used(api):
+    """El tope no puede quedar por debajo de los usos ya hechos.
+
+    Sin esta guarda, bajar `max_uses` por debajo de `used_count` dejaba el
+    cupón en un estado imposible (usado más veces que su tope) que el arqueo no
+    puede explicar.
+    """
+    venue = api.world["venue_a"]
+    ev = api.create_event("admin", venue, name=f"Cupón tope {_tag()}")
+    base = f"/venues/{venue}/events/{ev['id']}/coupons"
+    coupon = api.post(
+        base, "admin",
+        {"code": "TOPE", "kind": "percent", "value": 10, "max_uses": 5},
+    ).json()
+
+    # Simula 3 usos ya consumidos (el checkout real los cuenta al aprobar).
+    api.run_sql(
+        "UPDATE coupons SET used_count = 3 WHERE id = %d" % coupon["id"]
+    )
+
+    # Bajar el tope a 2 (< 3 usados) se rechaza.
+    res = api.patch(f"{base}/{coupon['id']}", "admin", {"max_uses": 2})
+    assert res.status_code == 409, res.text
+
+    # Un tope igual o mayor al usado sí se acepta.
+    res = api.patch(f"{base}/{coupon['id']}", "admin", {"max_uses": 3})
+    assert res.status_code == 200, res.text
+    assert res.json()["max_uses"] == 3
+
+
 # ---------------------------------------------------------------------------
 # Cupones: checkout público
 # ---------------------------------------------------------------------------
@@ -237,6 +267,30 @@ def test_checkout_ignores_invalid_coupon(api, wompi_on):
     venue, ev_id, t = _priced_event(api, price=1000000)
     # No existe el cupón: se cobra el precio de lista, no se rechaza la compra.
     res = _checkout(api, ev_id, t["id"], extra={"coupon_code": "NOEXISTE"})
+    assert res.status_code == 201, res.text
+    assert res.json()["amount_in_cents"] == 1000000
+
+
+def test_checkout_charges_list_price_for_exhausted_coupon(api, wompi_on):
+    """Un cupón agotado antes del checkout no aplica: se cobra el precio de lista.
+
+    Contrato del checkout público: un código que no aplica (inexistente, vencido,
+    desactivado o agotado) NO rechaza la venta; se cobra el precio de lista. La
+    invariante de tope la sostiene el modelo de reservas (el cupón no se puede
+    aplicar más veces que `max_uses`), no un 409 en el checkout.
+    """
+    venue, ev_id, t = _priced_event(api, price=1000000)
+    base = f"/venues/{venue}/events/{ev_id}/coupons"
+    coupon = api.post(
+        base, "admin",
+        {"code": "ULTIMO", "kind": "percent", "value": 20, "max_uses": 1},
+    ).json()
+    # Agotado antes de que este fan llegue al checkout.
+    api.run_sql(
+        "UPDATE coupons SET used_count = 1 WHERE id = %d" % coupon["id"]
+    )
+
+    res = _checkout(api, ev_id, t["id"], extra={"coupon_code": "ULTIMO"})
     assert res.status_code == 201, res.text
     assert res.json()["amount_in_cents"] == 1000000
 
@@ -312,6 +366,35 @@ def test_refund_requires_admin_role(api):
     )
     res = api.post(url, "promoter", {"reason": "no soy admin"})
     assert res.status_code == 403, res.text
+
+
+def test_refund_amount_cannot_exceed_price_paid(api):
+    """El monto reembolsado no puede superar lo que costó la boleta.
+
+    El esquema registraba el monto tal cual (COALESCE(amount,
+    price_cents_snapshot)) y el endpoint lo aceptaba del cliente sin tope: un
+    admin podía dejar en caja una salida mayor que el recaudo real.
+    """
+    scen = api.scenario()  # el tipo del scenario es cortesía (precio 0)
+    ticket = api.emit(
+        "promoter", scen["venue"], scen["event"],
+        ticket_type_id=scen["type"], allocation_id=scen["allocation"]["id"],
+    )
+    url = (
+        f"/venues/{scen['venue']}/events/{scen['event']}"
+        f"/tickets/{ticket['ticket_id']}/refund"
+    )
+    res = api.post(
+        url, "admin",
+        {"reason": "devolución inflada", "amount_in_cents": 99999999},
+    )
+    assert res.status_code == 409, res.text
+    assert api.run_sql(
+        f"SELECT count(*) FROM ticket_refunds WHERE ticket_id = {ticket['ticket_id']}"
+    ) == 0
+    assert api.run_sql(
+        f"SELECT status FROM tickets WHERE id = {ticket['ticket_id']}"
+    ) == "issued"
 
 
 # ---------------------------------------------------------------------------

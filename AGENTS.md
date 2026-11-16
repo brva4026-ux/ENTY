@@ -233,13 +233,81 @@ Dos migraciones llegaron juntas con el merge de las reservas de inventario:
   throttle por instancia y es best-effort.
 
 **La migración no viaja con el push.** El código se despliega en Vercel al
-mergear a `master`, pero la 044 y la 046 hay que aplicarlas a mano contra
-Supabase (`bash scripts/deploy.sh`). Mientras no corran, `/health` reporta
-`"schema": "behind"` con `funciones: prune_expired`. Las rutas que la usan
-(`GET /venues/{id}/events`, `GET /venues/{id}/overview`) **no** se caen: la poda
-atrapa el error, hace `rollback` y sigue. El resto del checkout solo pierde
+mergear a `master`, pero la 044, la 046, la 047 y la 048 hay que aplicarlas a
+mano contra Supabase (`bash scripts/deploy.sh`). Mientras no corran, `/health`
+reporta `"schema": "behind"` con `funciones: prune_expired`. Las rutas que la
+usan (`GET /venues/{id}/events`, `GET /venues/{id}/overview`) **no** se caen: la
+poda atrapa el error, hace `rollback` y sigue. El resto del checkout solo pierde
 velocidad, no corrección. Es esperable tras este merge hasta que corra
 `deploy.sh`.
+
+### Guardas de dinero en la DB y atomicidad por endpoint (migs 047 y 048)
+
+`db/migrations/047_refund_amount_guard.sql` y `048_payout_no_overlap.sql`
+(consolidadas en `db/schema.sql`) cierran huecos de dinero que la 043 dejó
+abiertos. La forma del hallazgo se repite: **una validación que vivía fuera de
+la DB, en un lugar que no era el punto de consumo.**
+
+- **Tope de reembolso (047).** `refund_ticket` aceptaba el `amount_in_cents`
+  del cliente sin tope: un admin podía dejar en caja una salida mayor que el
+  recaudo (hasta reembolsar una cortesía por un monto inventado). Ahora rechaza
+  negativo (`refund_amount_negative`) o mayor que `price_cents_snapshot`
+  (`refund_amount_exceeds_price`), ambos 409.
+- **Solape de liquidaciones (048).** `generate_payout` leía `max(period_end)` e
+  insertaba después; el índice único `idx_payouts_unique_period` solo cubría
+  `period_start` idéntico, así que un solape con otro inicio (`01-01..01-31` vs
+  `01-15..02-15`) pasaba limpio y el promotor cobraba dos veces. Ahora una
+  **exclusion constraint** (`EXCLUDE USING gist` con `btree_gist` sobre
+  `venue_id WITH =, promoter_id WITH =, daterange(...) WITH &&`) lo hace
+  imposible en el INSERT. Requiere `CREATE EXTENSION btree_gist` (está en
+  `schema.sql` y en la migración).
+
+**El advisory lock evita el `DeadlockDetected`.** Con la exclusion constraint
+puesta, dos INSERT concurrentes que se solapan chocan en el índice GiST y
+Postgres responde `DeadlockDetected` (un 500) en vez del 409 limpio. Por eso
+`generate_payout` toma `pg_advisory_xact_lock(hashtextextended(venue || ':' ||
+promoter, 0))` al entrar: serializa las generaciones del MISMO promotor, y la
+segunda cae en el chequeo de solape → 409. **Lección: al añadir una exclusion
+constraint a un endpoint concurrente, hay que serializar también a nivel de
+aplicación.**
+
+**Transiciones de estado.** `dispute_payout` y `review_payout` van en
+`db.transaction()` y leen la fila con `FOR UPDATE OF p` (el `OF p` evita
+bloquear la fila del `users` del JOIN). Sin el lock, dos acciones concurrentes
+leían ambas `pending` y resolvían el pago dos veces. `purge_venue_user`
+serializa su guarda con `SELECT ... FROM venues ... FOR UPDATE` (bajo READ
+COMMITTED la transacción sola no basta para una guarda tipo "queda otro
+admin": hay que fijar la fila que ancla la decisión).
+
+**Atomicidad: las conexiones son `autocommit=True` (`core/db.py`).** Un
+`db.commit()` a mitad de un endpoint no agrupa nada: cada statement ya se
+confirmó solo. Para que un endpoint multi-escritura sea todo-o-nada hay que
+envolverlo en `async with db.transaction():` y **quitar el `db.commit()` de
+adentro** (psycopg prohíbe el commit explícito dentro de un bloque
+`transaction()`). Ya lo hacen `/register`, `reset_password`,
+`accept_invitation`, `create_venue_user`, `update_venue_user` y
+`remove_venue_user`. Patrón: los contadores de lockout se registran ANTES del
+bloque y quedan confirmados a propósito (un intento fallido debe contar aunque
+el resto revierta).
+
+**Cupones:** `update_coupon` rechaza (409) bajar `max_uses` por debajo de
+`used_count` (estado imposible para el arqueo). El tope de usos en el consumo
+NO se reimplementa en la aprobación: el modelo de RESERVAS (mig 044) ya aparta
+el cupo al crear el pago y `approve_ticket_payment` lo revalida con `FOR UPDATE`
+antes de incrementar `used_count`.
+
+**Preview del cierre (`GET /payouts/preview`).** El cierre es inmutable, así que
+el admin no debería comprometerlo a ciegas. El preview corre el MISMO agregado
+(`_sales_aggregate`) que `generate_payout` y devuelve el monto sin escribir, con
+`blocked_reason` (solape / comisión 0). La UI propone el rango que continúa el
+último cierre y deshabilita el botón si hay bloqueo. Regla de casa: **una acción
+irreversible (asiento contable, envío, borrado) se muestra con su resultado
+antes de confirmarla.** Los tests de liquidaciones limpian sus notificaciones
+(`push_outbox` global).
+
+**Tests de concurrencia sin mocks:** `ThreadPoolExecutor` sobre el `TestClient`
+para generación y review simultáneos; `test_user_writes_atomicity.py` fuerza el
+fallo a mitad con un **trigger real** de Postgres, no un mock.
 
 
 ### Correr la suite E2E dos veces seguidas (importante)
