@@ -122,8 +122,12 @@ def test_prune_expired_rows_tiene_throttle(monkeypatch):
     asyncio.run(lifecycle.prune_expired_rows(_Conn(), context="test"))
     assert calls["n"] == 0
 
-    # Fuera de la ventana sí ejecuta el SELECT (abre el cursor).
-    monkeypatch.setattr(lifecycle, "_last_prune", 0.0)
+    # Fuera de la ventana sí ejecuta el SELECT (abre el cursor). El valor debe
+    # ser relativo a `time.monotonic()`: en un contenedor recién arrancado el
+    # reloj puede ir por debajo de la ventana, y `0.0` quedaría "dentro".
+    monkeypatch.setattr(
+        lifecycle, "_last_prune", time.monotonic() - lifecycle._PRUNE_EVERY_SECONDS - 1
+    )
 
     class _Cursor:
         async def __aenter__(self):

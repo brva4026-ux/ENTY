@@ -120,6 +120,13 @@ DB_ERRORS: dict[str, tuple[int, str]] = {
         409, "La boleta ya entró al evento: el reembolso es manual"
     ),
     "cannot_refund_ticket": (409, "La boleta no puede reembolsarse en este estado"),
+    # Tope del monto reembolsado (mig 044): sin esto la caja registraba una
+    # salida mayor que el recaudo.
+    "refund_amount_negative": (409, "El monto a reembolsar no puede ser negativo"),
+    "refund_amount_exceeds_price": (
+        409,
+        "El monto a reembolsar no puede superar el precio que costó la boleta",
+    ),
 }
 
 # Claves ordenadas de mayor a menor: la primera coincidencia gana, así los

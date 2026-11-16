@@ -72,6 +72,14 @@ def _error_to_http(e: psycopg.errors.Error) -> HTTPException:
             "cannot_refund_ticket": (
                 409, "La boleta no puede reembolsarse en este estado"
             ),
+            "refund_amount_negative": (
+                409, "El monto a reembolsar no puede ser negativo"
+            ),
+            "refund_amount_exceeds_price": (
+                409,
+                "El monto a reembolsar no puede superar el precio que costó la "
+                "boleta",
+            ),
         },
     ) or HTTPException(500, "Error interno")
 
@@ -540,7 +548,10 @@ async def update_venue_user(
     - El admin no puede desactivarse a sí mismo ni modificar a un super_admin.
     """
     ensure_roles(user, venue_id, "super_admin", "admin")
-    async with db.cursor() as cur:
+    # Atómico: cambiar rol borra el anterior e inserta el nuevo. Sin
+    # transacción, un fallo entre el DELETE y el INSERT dejaba al usuario sin
+    # ningún rol (la conexión es autocommit: cada statement ya está confirmado).
+    async with db.transaction(), db.cursor() as cur:
         roles = await _target_membership(cur, venue_id, user_id)
         if "super_admin" in roles:
             raise HTTPException(400, "No puedes modificar a un super_admin desde aquí")
@@ -578,7 +589,7 @@ async def update_venue_user(
             (venue_id, user_id),
         )
         out = await cur.fetchone()
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     if not out:
         raise HTTPException(404, "Usuario no encontrado")
     return out
@@ -598,7 +609,7 @@ async def remove_venue_user(
     para que no pueda iniciar sesión en ningún lado.
     """
     ensure_roles(user, venue_id, "super_admin", "admin")
-    async with db.cursor() as cur:
+    async with db.transaction(), db.cursor() as cur:
         roles = await _target_membership(cur, venue_id, user_id)
         if "super_admin" in roles:
             raise HTTPException(400, "No puedes revocar a un super_admin")
@@ -617,7 +628,7 @@ async def remove_venue_user(
         remaining = (await cur.fetchone())["n"]
         if remaining == 0:
             await cur.execute("UPDATE users SET is_active=false WHERE id=%s", (user_id,))
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     return MessageOut(detail="Usuario removido de la venue.")
 
 
@@ -658,7 +669,12 @@ async def purge_venue_user(
     `confirm` debe ser el email exacto del usuario. Protege al último admin
     con miembros a cargo y nunca aplica a un super_admin."""
     ensure_roles(user, venue_id, "super_admin", "admin")
-    async with db.cursor() as cur:
+    # Atómico + serializado: la guarda del "último admin" y el DELETE deben ver
+    # el mismo estado. La transacción los hace todo-o-nada, y el lock de la
+    # fila de la venue serializa dos purgas concurrentes (bajo READ COMMITTED,
+    # sin el lock, ambas leían "hay otro admin" y borraban a los dos últimos).
+    async with db.transaction(), db.cursor() as cur:
+        await cur.execute("SELECT 1 FROM venues WHERE id=%s FOR UPDATE", (venue_id,))
         roles = await _target_membership(cur, venue_id, user_id)
         if "super_admin" in roles:
             raise HTTPException(400, "No puedes eliminar a un super_admin")
@@ -693,7 +709,7 @@ async def purge_venue_user(
             )
 
         await cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     return MessageOut(detail="Usuario eliminado definitivamente.")
 
 
@@ -908,7 +924,10 @@ async def refund_ticket(
     puede caer después de la noche.
     """
     ensure_roles(user, venue_id, "super_admin", "admin")
-    async with db.cursor() as cur:
+    # Atómico: el reembolso (función) y su rastro en audit_log deben caer
+    # juntos. Sin transacción, un fallo del audit dejaba la salida de caja sin
+    # registro.
+    async with db.transaction(), db.cursor() as cur:
         await cur.execute(
             """
             SELECT t.id, t.price_cents_snapshot
@@ -938,7 +957,7 @@ async def refund_ticket(
             {"event_id": event_id, "amount_in_cents": amount,
              "reason": body.reason},
         )
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     return MessageOut(detail="Boleta reembolsada. El cupo quedó liberado.")
 
 
@@ -991,7 +1010,10 @@ async def create_venue_user(
     from app.core.security import hash_password
 
     ensure_roles(user, venue_id, "super_admin", "admin")
-    async with db.cursor() as cur:
+    # Todo-o-nada: crear el usuario y asignarle el rol debe ser una sola
+    # unidad. La conexión es autocommit, así que sin el bloque un fallo en el
+    # INSERT del rol dejaba un usuario huérfano (sin ninguna venue).
+    async with db.transaction(), db.cursor() as cur:
         await cur.execute("SELECT id FROM venues WHERE id=%s", (venue_id,))
         if not await cur.fetchone():
             raise HTTPException(404, "Venue no encontrada")
@@ -1041,7 +1063,7 @@ async def create_venue_user(
             (venue_id, target_id),
         )
         out = await cur.fetchone()
-        await db.commit()
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     return out
 
 
