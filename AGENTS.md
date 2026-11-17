@@ -339,6 +339,54 @@ casi siempre mejor que un índice amplio.** Y antes de agregar uno, mirá si un
 UNIQUE existente ya lo cubre.
 
 
+### Edad mínima real: la restricción que era decoración (mig 051)
+
+`db/migrations/051_edad_minima.sql` (consolidada en `db/schema.sql`) sale de
+una prueba con 20 personas de 8 a 78 años contra la API local: `events.min_age`
+existía desde la mig 043 y se mostraba en la ficha pública («Edad mínima:
+18+»), pero **no se validaba en ningún punto**. Un niño de 8 años entró sin
+problema a un evento 21+.
+
+El problema de fondo: no había de dónde saber la edad. `users` no guarda fecha
+de nacimiento y el checkout solo pedía nombre y teléfono. Sin capturar el dato,
+«18+» es decoración. Ahora el comprador declara `customer_birth_date` y la
+restricción muerde en las tres puertas donde importa:
+
+- **Compra online** (`reserve_ticket_payment`): rechaza ANTES de cobrar
+  (`under_age_restriction`, 403). Cobrar y luego no poder emitir dejaría el pago
+  en `paid_unfulfilled` y obligaría a un reembolso manual.
+- **Emisión de taquilla** (`emit_ticket`): valida al emitir, que es donde se
+  conoce la fecha (la declara el comprador).
+- **Puerta** (`redeem_ticket`): devuelve `UNDER_AGE` sin consumir el QR. Es
+  defensa en profundidad: una boleta emitida antes de activar la restricción (o
+  con la fecha cambiada después) no entra. El bouncer lo ve en ámbar (no es
+  fraude: es corregir), con el nombre y la edad mínima en pantalla.
+
+**La regla es la fecha del EVENTO, no hoy**: `date_part('year', age(starts_at,
+birth_date)) < min_age`. Quien cumple los años antes de la fiesta entra, y un
+cumpleaños el mismo día del evento cuenta. Sin fecha de nacimiento no hay nada
+que verificar (venta de taquilla a ciegas): se permite, como antes.
+
+**Ojo con la sobrecarga de `emit_ticket`.** La 042 recrea `emit_ticket`; al
+re-aplicar migraciones sobre el `schema.sql` ya consolidado, la firma de 10
+args (la de la 051) convivía con la de 9 y volvía **ambiguo** el self-test de la
+042 (`function emit_ticket(...) is not unique`). Por eso la 042 ahora suelta
+**todas** las sobrecargas (`DROP FUNCTION ... (bigint, ..., text)`, sin
+`date`) antes de recrear la suya. Lección: al agregar un parámetro al final de
+una función con `DEFAULT`, hay que soltar la firma vieja explícitamente
+(`CREATE OR REPLACE` no cambia la firma) **y** revisar quién más la dropea.
+
+**La migración no viaja con el push.** El código se despliega en Vercel al
+mergear a `master`, pero la 051 hay que aplicarla a mano contra Supabase
+(`bash scripts/deploy.sh`). Mientras no corra, `/health` reporta
+`"schema": "behind"` con `columnas: ticket_payments.customer_birth_date,
+tickets.customer_birth_date`. Y a diferencia de las migraciones de poda, **acá
+sí se cae la ruta**: `emit_ticket`/`reserve_ticket_payment` ya se llaman con la
+firma nueva, así que emitir una boleta o comprar online devuelve 500 hasta que
+corra `deploy.sh`. Es esperable tras este merge hasta que se aplique.
+
+
+
 ### Correr la suite E2E dos veces seguidas (importante)
 
 La suite **no es idempotente**: sus tests crean eventos reales (`E2E-*`), los
