@@ -1,8 +1,24 @@
-import { useEffect, useState } from "react";
+/* ThemeToggle — el interruptor de tema de la cabecera.
+ *
+ * Antes era un botón que CICLABA sistema → claro → oscuro a ciegas: el ícono
+ * cambiaba sin decir a qué modo se iba ni cuál estaba activo, así que nadie
+ * entendía qué pasaba al pulsarlo. Ahora abre un menú con las tres opciones a
+ * la vista (Sistema / Claro / Oscuro), marca la activa con un check y explica
+ * cada una. El mismo patrón de menú que la campana de notificaciones y el
+ * menú "…": cierra al hacer click fuera y con Escape, y devuelve el foco.
+ *
+ * La preferencia vive en localStorage (tf_theme) y la aplica lib/theme.js
+ * remapeando los tokens bajo html[data-theme="light"].
+ *
+ * El aria-label del botón DEBE empezar por "Cambiar tema": la regla de área
+ * táctil del topbar (index.css, @media pointer:coarse) engancha por
+ * [aria-label^="Cambiar tema"]; cambiar ese prefijo deja el botón a 32px.
+ */
+import { useEffect, useId, useRef, useState } from "react";
 import { getPreference, resolvedTheme, setPreference } from "../lib/theme";
 import { haptics } from "../lib/haptics";
 
-/** Iconos sol/luna/auto (trazo 1.8, mismo lenguaje que el resto). */
+/** Iconos (trazo 1.8, mismo lenguaje del resto de la app). */
 const ICONS = {
   light: (
     <svg
@@ -42,19 +58,25 @@ const ICONS = {
     >
       <rect x="3" y="4.5" width="18" height="12" rx="2" />
       <path d="M9 20.5h6M12 16.5v4" />
-      <path d="M7.5 12.2l2.4-3.4 2 2.4 1.5-1.9 2.6 2.9" />
     </svg>
   ),
 };
 
+const OPTIONS = ["system", "light", "dark"];
 const LABEL = { system: "Sistema", light: "Claro", dark: "Oscuro" };
-const NEXT = { system: "light", light: "dark", dark: "system" };
+const DESC = {
+  system: "Sigue la preferencia de tu dispositivo",
+  light: "Ideal de día o en exteriores",
+  dark: "Ideal de noche y en la puerta",
+};
 
-/** Ciclo sistema → claro → oscuro. El ícono muestra el modo RESUELTO si el
-    modo es sistema (lo que el usuario ve), con un puntito que delata "auto". */
 export default function ThemeToggle() {
+  const [open, setOpen] = useState(false);
   const [pref, setPref] = useState(getPreference);
   const [resolved, setResolved] = useState(() => resolvedTheme());
+  const rootRef = useRef(null);
+  const btnRef = useRef(null);
+  const menuId = useId();
 
   // Si está en "system", el ícono sigue al SO en vivo.
   useEffect(() => {
@@ -65,29 +87,126 @@ export default function ThemeToggle() {
     return () => mql.removeEventListener("change", on);
   }, [pref]);
 
+  // Cerrar al hacer click fuera y con Escape (mismo patrón que la campana).
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   const shown = pref === "system" ? resolved : pref;
-  const isAuto = pref === "system";
+
+  const choose = (opt) => {
+    setPreference(opt);
+    setPref(opt);
+    setResolved(resolvedTheme(opt));
+    haptics.tick();
+    setOpen(false);
+    btnRef.current?.focus();
+  };
 
   return (
-    <button
-      onClick={() => {
-        const next = NEXT[pref];
-        setPreference(next);
-        setPref(next);
-        setResolved(resolvedTheme(next));
-        haptics.tick();
-      }}
-      data-tip={`Tema: ${LABEL[pref]}${isAuto ? " (sigue al sistema)" : ""}`}
-      aria-label={`Cambiar tema (actual: ${LABEL[pref]})`}
-      className="topbar-hit relative grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-200"
-    >
-      {ICONS[shown]}
-      {isAuto && (
-        <span
-          className="absolute right-1 top-1 h-1 w-1 rounded-full bg-brand-400"
-          aria-hidden="true"
-        />
+    <div className="relative" ref={rootRef}>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        data-tip={`Tema: ${LABEL[pref]}${pref === "system" ? " (sigue al sistema)" : ""}`}
+        aria-label={`Cambiar tema: ${LABEL[pref]}`}
+        className="topbar-hit relative grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-200"
+      >
+        {ICONS[shown]}
+        {pref === "system" && (
+          <span
+            className="absolute right-1 top-1 h-1 w-1 rounded-full bg-brand-400"
+            aria-hidden="true"
+          />
+        )}
+      </button>
+
+      {open && (
+        <div
+          id={menuId}
+          role="menu"
+          aria-label="Tema de la aplicación"
+          className="menu-pop absolute right-0 z-40 mt-2 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 p-1 shadow-xl shadow-black/40"
+        >
+          {OPTIONS.map((opt) => {
+            const active = pref === opt;
+            const shows = opt === "system" ? resolved : opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                onClick={() => choose(opt)}
+                className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                  active ? "bg-brand-500/10" : "hover:bg-zinc-800"
+                }`}
+              >
+                <span
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
+                    active
+                      ? "bg-brand-500/15 text-brand-400"
+                      : "bg-zinc-800/80 text-zinc-400"
+                  }`}
+                  aria-hidden="true"
+                >
+                  {ICONS[shows]}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={`block text-sm font-semibold ${
+                      active ? "text-zinc-50" : "text-zinc-200"
+                    }`}
+                  >
+                    {LABEL[opt]}
+                    {opt === "system" && (
+                      <span className="ml-1.5 text-2xs font-medium text-zinc-500">
+                        ({resolved === "light" ? "claro ahora" : "oscuro ahora"})
+                      </span>
+                    )}
+                  </span>
+                  <span className="block truncate text-2xs leading-tight text-zinc-500">
+                    {DESC[opt]}
+                  </span>
+                </span>
+                {active && (
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4 shrink-0 text-brand-400"
+                    aria-hidden="true"
+                  >
+                    <path d="M4.5 12.5l5 5 10-11" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
       )}
-    </button>
+    </div>
   );
 }
