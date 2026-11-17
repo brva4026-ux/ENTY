@@ -39,6 +39,7 @@ export default function PromoterDashboard() {
     customer_name: "",
     customer_phone: "",
     customer_email: "",
+    customer_birth_date: "",
     payment_method: "efectivo",
   });
   const [lastTicket, setLastTicket] = useState(null);
@@ -147,6 +148,11 @@ export default function PromoterDashboard() {
   );
   const sellingOpen = ["published", "live"].includes(selectedEventData?.status);
   const sellClosed = !!selectedEventData && !sellingOpen;
+  // Edad mínima del evento (mig 051): si la tiene, la taquilla captura la
+  // fecha de nacimiento. Sin ella el server no puede validar la restricción.
+  const minAge = Number(selectedEventData?.min_age) > 0
+    ? Number(selectedEventData.min_age)
+    : null;
   const refreshOperational = useCallback(
     async () => Promise.all([loadAllocations(), loadHistory()]),
     [loadAllocations, loadHistory],
@@ -206,6 +212,9 @@ export default function PromoterDashboard() {
           body: JSON.stringify({
             ...form,
             allocation_id: form.allocation_id || null,
+            // Fecha de nacimiento (mig 051): "" -> null (el server solo la
+            // exige si el evento tiene edad mínima; sin dato no hay verificación).
+            customer_birth_date: form.customer_birth_date || null,
           }),
         },
       );
@@ -221,6 +230,7 @@ export default function PromoterDashboard() {
         customer_name: "",
         customer_phone: "",
         customer_email: "",
+        customer_birth_date: "",
       });
       await Promise.all([loadAllocations(), loadHistory()]);
     } catch (err) {
@@ -692,6 +702,31 @@ export default function PromoterDashboard() {
                           placeholder="asistente@correo.com"
                         />
                       </div>
+
+                      {minAge && (
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-zinc-400">
+                            Fecha de nacimiento (evento {minAge}+)
+                          </label>
+                          <input
+                            aria-label="Fecha de nacimiento del asistente"
+                            value={form.customer_birth_date}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                customer_birth_date: e.target.value,
+                              })
+                            }
+                            className="field"
+                            type="date"
+                            max={new Date().toISOString().slice(0, 10)}
+                          />
+                          <p className="mt-1 text-2xs text-zinc-500">
+                            Se verifica contra la fecha del evento: sin este
+                            dato no hay validación de edad.
+                          </p>
+                        </div>
+                      )}
 
                       {/* Medio de pago (mig 042): solo para boletas de pago.
                           Es lo que convierte el "Recaudo" del cierre en un

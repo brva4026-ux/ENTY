@@ -48,6 +48,7 @@ const OUTCOME_META = {
   not_found: { label: "No existe", ok: false },
   voided: { label: "Anulada", ok: false },
   wrong_event: { label: "Otra noche", ok: false },
+  under_age: { label: "No cumple edad", ok: false },
 };
 
 function outcomeMeta(outcome) {

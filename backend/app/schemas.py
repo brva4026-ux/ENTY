@@ -422,6 +422,9 @@ class TicketEmitRequest(BaseModel):
     customer_name: str = Field(min_length=1, max_length=200)
     customer_phone: str = Field(min_length=5, max_length=30)
     customer_email: str | None = Field(default=None, max_length=200)
+    # Fecha de nacimiento (mig 051): el staff la captura en la venta de taquilla
+    # cuando el evento tiene edad mínima. Sin ella no hay verificación posible.
+    customer_birth_date: date | None = None
     # Medio de pago de la venta directa (taquilla). Es lo que hace que el
     # "Recaudo" del cierre sea un arqueo y no una suma de precios: el admin
     # sabe cuánto efectivo debería haber. En una boleta gratis se ignora
@@ -848,6 +851,9 @@ class PaymentCreateRequest(BaseModel):
     customer_name: str = Field(min_length=1, max_length=200)
     customer_phone: str = Field(min_length=5, max_length=30)
     customer_email: str | None = Field(default=None, max_length=200)
+    # Fecha de nacimiento (mig 051): se valida la edad mínima del evento antes
+    # de generar el link de cobro.
+    customer_birth_date: date | None = None
 
 
 # --- App del fan: "mis boletas" (magic link) --------------------------------
@@ -954,6 +960,11 @@ class PublicCheckoutRequest(BaseModel):
     customer_name: str = Field(min_length=1, max_length=200)
     customer_phone: str = Field(min_length=5, max_length=30)
     customer_email: str | None = Field(default=None, max_length=200)
+    # Fecha de nacimiento del comprador (mig 051). Se usa para validar la edad
+    # mínima del evento ANTES de cobrar. Opcional para no romper compras de
+    # eventos sin restricción; si el evento la exige y falta, el server la
+    # rechaza (no aquí: el schema no conoce el evento).
+    customer_birth_date: date | None = None
     # Código de descuento (mig 043), opcional. El servidor lo valida contra el
     # evento; un código inválido NO tumba la compra: se ignora (mejor vender
     # sin descuento que perder la venta por un typo).
@@ -1056,7 +1067,7 @@ class WaitlistClaimOut(BaseModel):
 
 
 class RedeemOut(BaseModel):
-    code: str = ""  # GRANTED | ALREADY_REDEEMED | NOT_FOUND | INVALID_EVENT | EVENT_NOT_LIVE | NOT_VALID | WRONG_TYPE
+    code: str = ""  # GRANTED | ALREADY_REDEEMED | NOT_FOUND | INVALID_EVENT | EVENT_NOT_LIVE | NOT_VALID | WRONG_TYPE | UNDER_AGE
     ticket_id: int | None = None
     customer_name: str | None = None
     redeemed: bool = False

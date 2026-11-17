@@ -9,14 +9,15 @@ from app.services import wompi
 async def create_reserved_payment(
     db, *, event_id, ticket_type_id, reference, amount, customer_name,
     customer_phone, customer_email, user_id, coupon_id, discount,
-    expires_at, name, description, redirect_url,
+    expires_at, name, description, redirect_url, customer_birth_date=None,
 ):
     try:
         async with db.cursor() as cur:
             await cur.execute(
-                "SELECT reserve_ticket_payment(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) AS id",
+                "SELECT reserve_ticket_payment(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) AS id",
                 (event_id, ticket_type_id, reference, amount, customer_name,
-                 customer_phone, customer_email, user_id, coupon_id, discount, expires_at),
+                 customer_phone, customer_email, user_id, coupon_id, discount, expires_at,
+                 customer_birth_date),
             )
             payment_id = (await cur.fetchone())["id"]
         await db.commit()
@@ -24,6 +25,11 @@ async def create_reserved_payment(
         http = translate_db_error(error, overrides={
             "coupon_unavailable": (409, "El cupon ya no esta disponible. Revisa el precio e intenta de nuevo."),
             "payment_reservation_expired": (409, "El plazo para comprar termino."),
+            "under_age_restriction": (
+                403,
+                "Este evento es para mayores de la edad minima indicada. "
+                "Revisa la fecha de nacimiento o elige otro evento.",
+            ),
         })
         if http:
             raise http from error

@@ -65,6 +65,15 @@ const RESULT_STYLES = {
     icon: "✗",
     sub: "Boleta revocada",
   },
+  // Edad mínima (mig 051): la boleta es válida, pero su dueño no cumple la
+  // restricción del evento. Ámbar, no rojo: no es fraude ni QR quemado — es
+  // una persona que no puede pasar (y el detalle trae la edad mínima).
+  UNDER_AGE: {
+    bg: "bg-amber-600",
+    text: "NO CUMPLE EDAD",
+    icon: "!",
+    sub: "Evento con edad mínima",
+  },
   // Boleta válida del evento pero de otra fila: no entra y NO se consume
   // (puede entrar por la fila correcta). El detalle dice de qué fila era.
   WRONG_TYPE: {
@@ -135,6 +144,7 @@ const SCAN_LOG_LABEL = {
   INVALID_EVENT: "OTRO EVENTO",
   EVENT_NOT_LIVE: "EVENTO CERRADO",
   NOT_VALID: "ANULADA",
+  UNDER_AGE: "NO CUMPLE EDAD",
   WRONG_TYPE: "FILA EQUIVOCADA",
   NETWORK_ERROR: "SIN RED",
   SCAN_ERROR: "ERROR",
@@ -455,7 +465,9 @@ export default function BouncerScanner() {
       } else if (data.code === "NOT_ACTIVE") {
         haptics.door.wait(); // no es rechazo: es "espera, tu boleta sirve"
       } else if (
-        ["WRONG_TYPE", "INVALID_EVENT", "EVENT_NOT_LIVE"].includes(data.code)
+        ["WRONG_TYPE", "INVALID_EVENT", "EVENT_NOT_LIVE", "UNDER_AGE"].includes(
+          data.code,
+        )
       ) {
         haptics.door.attention(); // ámbar: corregir, no castigar
       } else {
@@ -919,6 +931,7 @@ export default function BouncerScanner() {
             {(result?.code === "SCAN_ERROR" ||
               result?.code === "WRONG_TYPE" ||
               result?.code === "ALREADY_REDEEMED" ||
+              result?.code === "UNDER_AGE" ||
               result?.code === "NOT_ACTIVE") &&
             result.detail
               ? result.detail

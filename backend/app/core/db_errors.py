@@ -59,6 +59,12 @@ DB_ERRORS: dict[str, tuple[int, str]] = {
     "invalid_phone": (400, "El teléfono no parece válido"),
     "invalid_name": (400, "El nombre no puede quedar vacío"),
     "invalid_token_format": (400, "Datos incompletos"),
+    # Edad mínima del evento (mig 051): el comprador no cumple la restricción.
+    "under_age_restriction": (
+        403,
+        "Este evento tiene edad mínima: el asistente no la cumple según la "
+        "fecha de nacimiento indicada.",
+    ),
     # Conciliación de caja (mig 042): medio de pago de una venta directa.
     "invalid_payment_method": (
         400,

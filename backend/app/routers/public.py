@@ -601,6 +601,7 @@ async def public_checkout(
             expires_at=expires_at, name=f"Boleta - {row['event_name']}",
             description=f"Compra del fan ({row['event_name']})",
             redirect_url=f"{s.app_public_url}/evento/{event_id}?pago={reference}",
+            customer_birth_date=body.customer_birth_date,
         )
 
     return PublicCheckoutOut(

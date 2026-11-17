@@ -98,7 +98,7 @@ async def emit_ticket(
         try:
             await cur.execute(
                 """
-                SELECT emit_ticket(%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                SELECT emit_ticket(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     event_id,
@@ -110,6 +110,7 @@ async def emit_ticket(
                     body.customer_phone,
                     body.customer_email,
                     body.payment_method,
+                    body.customer_birth_date,
                 ),
             )
             row = await cur.fetchone()
@@ -365,6 +366,25 @@ async def redeem(
                 out.detail = f"Ya entró a las {when}"
             else:
                 out.detail = "Ya presentada anteriormente"
+    if code == "UNDER_AGE":
+        # Edad mínima (mig 051): la boleta es válida, pero su dueño no cumple
+        # la restricción del evento. No se consumió. Se muestra el nombre y la
+        # edad mínima para que el bouncer lo resuelva en la puerta.
+        async with db.cursor() as cur2:
+            await cur2.execute(
+                """
+                SELECT t.id, t.customer_name, e.min_age
+                FROM tickets t JOIN events e ON e.id = t.event_id
+                WHERE t.event_id=%s
+                  AND t.token_hash = encode(digest(%s, 'sha256'), 'hex')
+                """,
+                (event_id, body.raw_token),
+            )
+            info = await cur2.fetchone()
+        if info:
+            out.ticket_id = info["id"]
+            out.customer_name = info["customer_name"]
+            out.detail = f"Evento para {info['min_age']}+: no puede entrar"
     if code == "GRANTED":
         async with db.cursor() as cur2:
             await cur2.execute(
