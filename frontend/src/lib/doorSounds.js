@@ -82,6 +82,7 @@ export function playForCode(code) {
   if (
     code === "NOT_ACTIVE" ||
     code === "WRONG_TYPE" ||
+    code === "UNDER_AGE" ||
     code === "NOT_IN_CACHE"
   )
     return playAttention();

@@ -165,7 +165,8 @@ BEGIN
         END IF;
         v_ticket := emit_ticket(v_payment.event_id, v_payment.ticket_type_id, NULL,
             v_payment.created_by_user_id, v_payment.customer_name, p_raw_token,
-            v_payment.customer_phone, v_payment.customer_email, 'online');
+            v_payment.customer_phone, v_payment.customer_email, 'online',
+            v_payment.customer_birth_date);
         -- El monto historico siempre es lo realmente pagado, incluso si un
         -- admin negocio un precio o cambio la tarifa despues de crear el link.
         UPDATE tickets SET price_cents_snapshot=v_payment.amount_in_cents WHERE id=v_ticket;
@@ -505,7 +506,7 @@ $$;
 -- Name: emit_ticket(bigint, bigint, bigint, bigint, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.emit_ticket(p_event_id bigint, p_ticket_type_id bigint, p_allocation_id bigint, p_sold_by_user_id bigint, p_customer_name text, p_raw_token text, p_customer_phone text DEFAULT NULL::text, p_customer_email text DEFAULT NULL::text, p_payment_method text DEFAULT NULL::text) RETURNS bigint
+CREATE FUNCTION public.emit_ticket(p_event_id bigint, p_ticket_type_id bigint, p_allocation_id bigint, p_sold_by_user_id bigint, p_customer_name text, p_raw_token text, p_customer_phone text DEFAULT NULL::text, p_customer_email text DEFAULT NULL::text, p_payment_method text DEFAULT NULL::text, p_customer_birth_date date DEFAULT NULL::date) RETURNS bigint
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -516,6 +517,8 @@ DECLARE
     v_used_total     bigint;
     v_event_capacity bigint;
     v_status_allowed text;
+    v_event_min_age  integer;
+    v_event_starts_at timestamptz;
     v_token_hash     text;
     v_ticket_id      bigint;
     v_payment_method text;
@@ -544,10 +547,24 @@ BEGIN
     END IF;
 
     -- 1) Bloquear el evento: serializa emisiones concurrentes y valida estado.
-    SELECT capacity, status INTO v_event_capacity, v_status_allowed
+    SELECT capacity, status, min_age, starts_at
+      INTO v_event_capacity, v_status_allowed, v_event_min_age, v_event_starts_at
       FROM events WHERE id = p_event_id FOR UPDATE;
     IF v_status_allowed NOT IN ('published', 'live') THEN
         RAISE EXCEPTION 'event_not_open_for_sales';
+    END IF;
+
+    -- 1b) Edad mínima del evento (mig 051): la restricción se aplica AL
+    -- EMITIR, no al escanear, porque la fecha de nacimiento solo se conoce
+    -- aquí (es el comprador quien la declara). Se compara contra la fecha de
+    -- inicio del evento, no contra hoy: quien cumple los años antes de la
+    -- fiesta puede entrar. Sin fecha de nacimiento no hay verificación
+    -- posible (venta de taquilla a ciegas): se permite, como antes.
+    IF v_event_min_age IS NOT NULL AND v_event_min_age > 0
+       AND p_customer_birth_date IS NOT NULL THEN
+        IF date_part('year', age(v_event_starts_at::date, p_customer_birth_date)) < v_event_min_age THEN
+            RAISE EXCEPTION 'under_age_restriction';
+        END IF;
     END IF;
 
     -- 2) Cupo del promotor (si aplica): bloquear fila y validar capacidad.
@@ -592,12 +609,12 @@ BEGIN
 
     INSERT INTO tickets (
         event_id, ticket_type_id, allocation_id, sold_by_user_id,
-        customer_name, customer_phone, customer_email, token_hash,
-        price_cents_snapshot, payment_method
+        customer_name, customer_phone, customer_email, customer_birth_date,
+        token_hash, price_cents_snapshot, payment_method
     ) VALUES (
         p_event_id, p_ticket_type_id, p_allocation_id, p_sold_by_user_id,
-        p_customer_name, p_customer_phone, p_customer_email, v_token_hash,
-        v_type.price_cents, v_payment_method
+        p_customer_name, p_customer_phone, p_customer_email, p_customer_birth_date,
+        v_token_hash, v_type.price_cents, v_payment_method
     ) RETURNING id INTO v_ticket_id;
 
     RETURN v_ticket_id;
@@ -1398,6 +1415,7 @@ DECLARE
     v_event_status text;
     v_event_starts_at timestamptz;
     v_event_unlock integer;
+    v_event_min_age integer;
     v_scanned_at timestamptz;
     v_door_id    text;
 BEGIN
@@ -1440,8 +1458,8 @@ BEGIN
         RETURN 'INVALID_EVENT';
     END IF;
 
-    SELECT status, starts_at, qr_unlock_minutes
-      INTO v_event_status, v_event_starts_at, v_event_unlock
+    SELECT status, starts_at, qr_unlock_minutes, min_age
+      INTO v_event_status, v_event_starts_at, v_event_unlock, v_event_min_age
       FROM events WHERE id = p_event_id;
     IF v_event_status <> 'live' AND v_event_status <> 'published' THEN
         INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
@@ -1464,6 +1482,19 @@ BEGIN
         INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
         VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'wrong_type', v_scanned_at, v_door_id);
         RETURN 'WRONG_TYPE';
+    END IF;
+
+    -- Edad mínima (mig 051): defensa en la puerta. La validación de verdad
+    -- ocurre al emitir (ahi se conoce la fecha de nacimiento), pero una boleta
+    -- emitida antes de activar la restriccion, o con la fecha cambiada despues,
+    -- no debe entrar: el bouncer ve el mismo "UNDER_AGE" que ve el que compra.
+    IF v_event_min_age IS NOT NULL AND v_event_min_age > 0
+       AND v_ticket.customer_birth_date IS NOT NULL THEN
+        IF date_part('year', age(v_event_starts_at::date, v_ticket.customer_birth_date)) < v_event_min_age THEN
+            INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+            VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'under_age', v_scanned_at, v_door_id);
+            RETURN 'UNDER_AGE';
+        END IF;
     END IF;
 
     IF v_ticket.status = 'voided' OR v_ticket.status = 'refunded' THEN
@@ -2723,6 +2754,7 @@ CREATE TABLE public.ticket_payments (
     customer_name text NOT NULL,
     customer_phone text NOT NULL,
     customer_email text,
+    customer_birth_date date,
     created_by_user_id bigint,
     approved_at timestamp with time zone,
     ticket_id bigint,
@@ -2884,6 +2916,7 @@ CREATE TABLE public.tickets (
     customer_name text NOT NULL,
     customer_phone text,
     customer_email text,
+    customer_birth_date date,
     token_hash text NOT NULL,
     status public.ticket_status DEFAULT 'issued'::public.ticket_status NOT NULL,
     issued_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -4341,7 +4374,7 @@ ALTER TABLE ONLY public.venue_user_roles
 COMMIT;
 
 
-CREATE FUNCTION public.reserve_ticket_payment(p_event_id bigint, p_type_id bigint, p_reference text, p_amount bigint, p_name text, p_phone text, p_email text, p_user_id bigint, p_coupon_id bigint, p_discount bigint, p_expires timestamptz) RETURNS bigint
+CREATE FUNCTION public.reserve_ticket_payment(p_event_id bigint, p_type_id bigint, p_reference text, p_amount bigint, p_name text, p_phone text, p_email text, p_user_id bigint, p_coupon_id bigint, p_discount bigint, p_expires timestamptz, p_birth_date date DEFAULT NULL::date) RETURNS bigint
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -4359,6 +4392,18 @@ BEGIN
     SELECT * INTO v_event FROM events WHERE id=p_event_id FOR UPDATE;
     IF v_event.status NOT IN ('published','live') THEN RAISE EXCEPTION 'event_not_open_for_sales'; END IF;
     IF p_expires <= now() THEN RAISE EXCEPTION 'payment_reservation_expired'; END IF;
+
+    -- Edad mínima (mig 051): se valida ANTES de cobrar. Cobrar y luego no
+    -- poder emitir dejaria el pago en 'paid_unfulfilled' y obligaria a un
+    -- reembolso manual: mejor rechazar al fan antes de que pague. Misma regla
+    -- que emit_ticket (se compara contra la fecha del evento, y sin fecha de
+    -- nacimiento no hay nada que verificar).
+    IF v_event.min_age IS NOT NULL AND v_event.min_age > 0
+       AND p_birth_date IS NOT NULL THEN
+        IF date_part('year', age(v_event.starts_at::date, p_birth_date)) < v_event.min_age THEN
+            RAISE EXCEPTION 'under_age_restriction';
+        END IF;
+    END IF;
 
     SELECT count(*) INTO v_count FROM tickets
      WHERE ticket_type_id=p_type_id AND status NOT IN ('voided','refunded');
@@ -4384,9 +4429,9 @@ BEGIN
     END IF;
     INSERT INTO ticket_payments (venue_id,event_id,ticket_type_id,reference,
         amount_in_cents,customer_name,customer_phone,customer_email,created_by_user_id,
-        coupon_id,discount_in_cents,reservation_expires_at)
+        coupon_id,discount_in_cents,reservation_expires_at,customer_birth_date)
     VALUES (v_event.venue_id,p_event_id,p_type_id,p_reference,p_amount,p_name,p_phone,
-        p_email,p_user_id,p_coupon_id,p_discount,p_expires) RETURNING id INTO v_id;
+        p_email,p_user_id,p_coupon_id,p_discount,p_expires,p_birth_date) RETURNING id INTO v_id;
     RETURN v_id;
 END;
 $$;

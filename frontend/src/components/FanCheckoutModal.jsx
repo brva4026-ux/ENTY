@@ -34,6 +34,11 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  // Fecha de nacimiento (mig 051): solo se pide cuando el evento tiene edad
+  // mínima. Sin este dato el server no puede validar nada y la restricción
+  // sería decorativa (como antes de la migración).
+  const [birthDate, setBirthDate] = useState("");
+  const minAge = Number(event?.min_age) > 0 ? Number(event.min_age) : null;
   // Cupón (mig 043): el fan escribe el código y ve el precio final antes de
   // ir a Wompi. La cotización NO consume el cupón (eso pasa en el checkout).
   const [coupon, setCoupon] = useState("");
@@ -162,6 +167,16 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
       fail("email", "Ese correo no parece válido. Revísalo o déjalo vacío.");
       return;
     }
+    // Edad mínima (mig 051): si el evento la exige, la fecha es obligatoria.
+    // El servidor la vuelve a validar (y rechaza con 403); aquí solo se evita
+    // mandar al fan a pagar para que lo devuelvan.
+    if (minAge && !birthDate) {
+      fail(
+        "birthDate",
+        `Este evento es para mayores de ${minAge}. Indica tu fecha de nacimiento.`,
+      );
+      return;
+    }
     setBusy(true);
     setError("");
     setErrorField(null);
@@ -171,6 +186,7 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
         customer_name: name.trim(),
         customer_phone: phone.trim(),
         customer_email: email.trim() || null,
+        customer_birth_date: minAge ? birthDate || null : null,
         // Solo se manda el cupón si la cotización lo validó: un código a
         // medias no debe viajar al cobro.
         coupon_code: quote?.valid ? coupon.trim() : null,
@@ -368,6 +384,35 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
                 }
               />
             </label>
+            {minAge && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-zinc-400">
+                  Fecha de nacimiento (para verificar la edad)
+                </span>
+                <input
+                  ref={(el) => {
+                    fieldRefs.current.birthDate = el;
+                  }}
+                  className="field"
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => {
+                    setBirthDate(e.target.value);
+                    clearErrorOn("birthDate");
+                  }}
+                  max={new Date().toISOString().slice(0, 10)}
+                  aria-label="Fecha de nacimiento"
+                  aria-invalid={errorField === "birthDate" ? "true" : undefined}
+                  aria-describedby={
+                    errorField === "birthDate" ? "checkout-error" : undefined
+                  }
+                />
+                <span className="mt-1 block text-2xs text-zinc-500">
+                  Evento para mayores de {minAge}: lo verificamos antes de
+                  cobrar.
+                </span>
+              </label>
+            )}
 
             <label className="block">
               <span className="mb-1 block text-xs font-semibold text-zinc-400">

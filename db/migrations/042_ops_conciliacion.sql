@@ -70,11 +70,27 @@ CREATE INDEX IF NOT EXISTS idx_tickets_event_payment_method
 -- OJO: CREATE OR REPLACE FUNCTION NO reemplaza al agregar un parámetro —
 -- crea una SOBRECARGA. Con las dos firmas vivas, la llamada de 8 argumentos
 -- (la de los tests, el seed y la waitlist) sería AMBIGUA y reventaría con
--- "function is not unique". Hay que tirar la firma vieja primero. Es seguro:
+-- "function is not unique". Hay que tirar las firmas viejas primero. Es seguro:
 -- PL/pgSQL no crea dependencias duras sobre las funciones que llama.
-DROP FUNCTION IF EXISTS public.emit_ticket(
-    bigint, bigint, bigint, bigint, text, text, text, text
-);
+--
+-- Se sueltan TODAS las sobrecargas de emit_ticket (no solo la de 8 args): una
+-- migración posterior (la 051) agrega otro parámetro al final y, al re-aplicar
+-- esta migración sobre el schema consolidado, la firma de 10 args del schema
+-- quedaría viva junto a la de 9 que se crea aquí -> el self-test de abajo
+-- volvería a ser ambiguo. Soltar por nombre completo evita ese acoplamiento.
+DO $$
+DECLARE
+    v_sig text;
+BEGIN
+    FOR v_sig IN
+        SELECT p.oid::regprocedure::text
+          FROM pg_proc p
+          JOIN pg_namespace n ON n.oid = p.pronamespace
+         WHERE n.nspname = 'public' AND p.proname = 'emit_ticket'
+    LOOP
+        EXECUTE 'DROP FUNCTION ' || v_sig;
+    END LOOP;
+END $$;
 
 -- El parámetro va AL FINAL con DEFAULT: las llamadas existentes (tests,
 -- waitlist, payments) siguen funcionando sin cambios.

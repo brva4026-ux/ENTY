@@ -131,6 +131,7 @@ async def create_payment(
             name=f"Boleta - {ev['event_name']}",
             description=f"Cobro para {body.customer_name} (evento {ev['event_name']})",
             redirect_url=f"{s.app_public_url}/evento/{event_id}?pago={reference}",
+            customer_birth_date=body.customer_birth_date,
         )
 
     return PaymentCreateOut(
