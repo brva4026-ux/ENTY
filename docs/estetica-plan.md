@@ -143,8 +143,13 @@ alias del área que toca. El namespace muere al final de la Fase 6.
 - [x] Endurecer **contraste AA** y **tap targets ≥ 44px** como test permanente:
   `e2e/a11y.spec.js` (público × oscuro/claro, interior admin/promotor, puerta).
   Cazó y cerró 3 bugs reales (ver Fase 3).
-- [ ] **Regresión visual** `toHaveScreenshot()` × breakpoints × temas — pendiente
-  (la cubren los E2E de flujo + el spec de a11y mientras tanto).
+- [x] **Regresión visual** `toHaveScreenshot()` × breakpoints × temas:
+  `e2e/visual.spec.js` congela las tres fuentes de no-determinismo (reloj fijo,
+  catálogo mockeado, animaciones apagadas) y compara portada, vitrina y login en
+  móvil y escritorio. Líneas base en `e2e/visual.spec.js-snapshots/`, generadas
+  en la imagen oficial de Playwright (Ubuntu, mismo SO que CI). La portada y la
+  vitrina son papel (no voltean con el tema): solo el login se captura en oscuro
+  y claro — capturar un tema que no cambia el render duplicaría la línea base.
 
 ### Fase 1 — Tokens y aplanado de la cascada — **HECHA (corte de tokens/color)**
 

@@ -1028,10 +1028,13 @@ export default function BouncerScanner() {
           </form>
 
           {/* Filtro de fila: chips horizontales (scroll en pantallas chicas).
-              Activo = blanco, igual que el patrón de chips del admin. */}
+              Activo = blanco, igual que el patrón de chips del admin.
+              `gap-2` (8px) cumple la separación mínima entre objetivos
+              táctiles adyacentes: con dedos en la puerta, 6px pegaban el
+              toque a la fila de al lado. */}
           {types.length > 0 && (
             <div className="no-scrollbar mt-3 w-full max-w-sm overflow-x-auto">
-              <div className="flex w-max items-center gap-1.5">
+              <div className="flex w-max items-center gap-2">
                 <button
                   onClick={() => {
                     setRowFilter("");
