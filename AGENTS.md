@@ -1174,6 +1174,30 @@ leas el storage a mano.
 - Para consultar el estado de un deploy sin entrar al dashboard:
   `GET /repos/{owner}/{repo}/commits/{sha}/status` (campo `context == "Vercel"`).
 
+#### Desplegar sin el CLI (token con scope de equipo)
+
+`bash scripts/deploy.sh` (que llama a `npx vercel --prod`) falla con un token
+de Vercel **de equipo**: el CLI intenta cargar el usuario y muere con
+`Error: Not able to load user because of unexpected error: User not found. (404)`
+— el mismo 404 que da `GET /v2/user` con ese token. El token **sí** funciona
+por API REST; pasá el `teamId` explícito:
+
+```bash
+TEAM=team_SzMJa6AjuBQO0qRPQ5WsfyL4      # brva4026-uxs-projects
+PROJ=prj_y7ZDrTS7LKl0h2mFPawJvOhhhdAC   # proyecto "ticketflow"
+# estado de un deploy:
+curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+  "https://api.vercel.com/v13/deployments/<dpl_id>?teamId=$TEAM"
+# últimos deploys de producción:
+curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+  "https://api.vercel.com/v6/deployments?projectId=$PROJ&teamId=$TEAM&limit=5&target=production"
+```
+
+**El camino corto igual es mergear a `master`**: el proyecto está enlazado a
+GitHub, así que Vercel construye solo y además deja un preview por rama al
+pushear. Ese preview (y el deploy de producción tras el merge) es la vía
+normal; el CLI solo hace falta para desplegar **sin** pasar por GitHub.
+
 ### Guard de esquema (evita el 500 silencioso por migración sin aplicar)
 
 El deploy va en **dos carriles**: el push a `master` despliega el código YA
