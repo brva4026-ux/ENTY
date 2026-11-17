@@ -86,6 +86,35 @@ body,
 }
 
 /* ----------------------------------------------------------------------
+   CURSOR DE LO PULSABLE
+   Tailwind v4 retiró `cursor: pointer` del preflight. Todo control que no
+   lleva una clase .btn-* (el interruptor de tema, la campana, las tarjetas
+   que son botón, los chips) se quedaba con la flecha del sistema: no se leía
+   como algo que se puede pulsar. Va en @layer base (no suelta): así una
+   utilidad `cursor-not-allowed` / `cursor-default` puesta a propósito en el
+   JSX sigue ganando, como corresponde.
+   ---------------------------------------------------------------------- */
+@layer base {
+  :where(
+    button,
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [role="radio"],
+    [role="switch"],
+    [role="option"],
+    a[href],
+    summary
+  ) {
+    cursor: pointer;
+  }
+  :where(button, [role="button"]):disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+/* ----------------------------------------------------------------------
    ACCESIBILIDAD: foco de teclado visible y consistente.
    :focus-visible solo activa el anillo con teclado (Tab); el clic no pinta
    halos molestos. Nunca outline: none a secas — eso ciega la navegación.
@@ -2028,9 +2057,18 @@ html[data-theme="light"] .vh-embedded {
   background: var(--color-zinc-800);
 }
 .vh-rank-pos.is-first {
+  /* Un solo box-shadow que cambia de color por tema (si no, la variante clara
+     duplicaba la declaración y engordaba el presupuesto del design-gate). */
+  --vh-rank-ring: 251, 191, 36;
   color: var(--e-amber-300);
-  background: rgba(251, 191, 36, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.4);
+  background: rgba(var(--vh-rank-ring), 0.14);
+  box-shadow: inset 0 0 0 1px rgba(var(--vh-rank-ring), 0.4);
+}
+html[data-theme="light"] .vh-rank-pos.is-first {
+  /* El brasa-300 es un amarillo de pantalla oscura: sobre el papel daba 1.3:1.
+     El brasa-700 mantiene la lectura "primero" con contraste de verdad. */
+  --vh-rank-ring: 217, 119, 6;
+  color: var(--e-brasa-700);
 }
 .vh-rank-name {
   min-width: 0;
@@ -5246,12 +5284,20 @@ html[data-theme="light"] {
   --color-emerald-200: var(--e-emerald-700);
   --color-emerald-300: var(--e-emerald-600);
   --color-emerald-400: var(--e-emerald-500);
+  /* 300 sobre un tinte ámbar (bg-amber-400/20) rozaba el límite (4.05:1): el
+     aviso de promotor del mes. El brasa-600 sube a ~7:1 sin perder el tono. */
   --color-amber-200: var(--e-brasa-600);
-  --color-amber-300: var(--e-brasa-500);
+  --color-amber-300: var(--e-brasa-600);
   --color-amber-400: var(--e-brasa-400);
   --color-red-200: var(--e-red-800);
   --color-red-300: var(--e-red-700);
   --color-red-400: var(--e-red-600);
+  /* rose no tenía par claro: sus 300/400 de Tailwind son rosas pálidos que
+     desaparecen sobre papel (el "$0" de negocio daba 1.9:1). Se alinean con
+     la escala roja, igual que el resto de estados. */
+  --color-rose-200: var(--e-red-800);
+  --color-rose-300: var(--e-red-700);
+  --color-rose-400: var(--e-red-600);
   --color-sky-200: var(--e-sky-800);
   --color-sky-300: var(--e-sky-700);
   --color-sky-400: var(--e-sky-600);

@@ -337,7 +337,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   i < step
                     ? "bg-brand-500/20 text-brand-300"
                     : i === step
-                      ? "bg-brand-500 text-white"
+                      ? "bg-enty-violet text-white"
                       : "bg-zinc-800 text-zinc-500"
                 }`}
               >
