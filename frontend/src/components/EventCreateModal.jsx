@@ -468,6 +468,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                       src={form.flyer_url}
                       alt="Previsualización del flyer"
                       onError={() => setBadFlyer(form.flyer_url)}
+                      decoding="async"
                       className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
                     />
                   ) : (
@@ -831,6 +832,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                       src={form.flyer_url}
                       alt=""
                       onError={() => setBadFlyer(form.flyer_url)}
+                      decoding="async"
                       className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
                     />
                   ) : (

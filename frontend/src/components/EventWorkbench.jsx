@@ -183,6 +183,7 @@ export default function EventWorkbench({
               src={ev.flyer_url}
               alt=""
               onError={() => setBadFlyer(ev.flyer_url)}
+              decoding="async"
               className="wb-flyer h-16 w-16 shrink-0 sm:h-20 sm:w-20"
             />
           )}

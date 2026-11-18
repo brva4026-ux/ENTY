@@ -46,7 +46,12 @@ function PremiumAvatar({ user, className: extraClass }) {
       {user.avatar_url ? (
         // La foto sustituye a las iniciales; el anillo del rol se mantiene, así
         // que un admin sigue distinguiéndose a un vistazo.
-        <img src={user.avatar_url} alt="" className="pf-avatar-img" />
+        <img
+          src={user.avatar_url}
+          alt=""
+          decoding="async"
+          className="pf-avatar-img"
+        />
       ) : (
         initials
       )}
@@ -1236,6 +1241,7 @@ export default function ProfilePage() {
                     src={venueLogo}
                     alt="Logo actual"
                     onError={() => setLogoError("No se pudo cargar la imagen")}
+                    decoding="async"
                     className="pf-logo"
                   />
                 ) : (

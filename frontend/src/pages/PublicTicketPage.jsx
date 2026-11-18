@@ -344,7 +344,11 @@ export default function PublicTicketPage() {
                   <div className="tkt-qr-zone">
                     <div className={`tkt-qr${qrDataUrl ? " reveal-qr" : ""}`}>
                       {qrDataUrl ? (
-                        <img src={qrDataUrl} alt="QR de tu boleta" />
+                        <img
+                          src={qrDataUrl}
+                          alt="QR de tu boleta"
+                          decoding="async"
+                        />
                       ) : (
                         <div className="skeleton" />
                       )}
@@ -533,7 +537,7 @@ export default function PublicTicketPage() {
         )}
 
         <div className="tkt-brandline">
-          <img src="/icon.svg" alt="" aria-hidden="true" />
+          <img src="/icon.svg" alt="" aria-hidden="true" decoding="async" />
           <span>Enty</span>
         </div>
         <p className="tkt-footer">Guarda esta página: la necesitas en la entrada</p>

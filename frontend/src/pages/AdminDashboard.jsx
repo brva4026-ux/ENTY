@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -255,7 +255,11 @@ export default function AdminDashboard() {
     ["cancelled", "Cancelados"],
   ];
   const venueForTeam = realVenueId;
-  const q = eventQuery.trim().toLowerCase();
+  // Igual que el buscador de la vitrina: el input responde en cada tecla y el
+  // filtrado de la lista puede diferirse, para no bloquear el tecleo cuando la
+  // venue tiene muchas noches.
+  const deferredEventQuery = useDeferredValue(eventQuery);
+  const q = deferredEventQuery.trim().toLowerCase();
   // Pulso operativo de la cabecera: cuántas noches están EN PUERTA ahora. Es
   // el único estado que exige atención en vivo, así que la cabecera lo dice
   // sin que el admin tenga que tocar el filtro "En puerta" para descubrirlo.
@@ -2009,6 +2013,7 @@ export default function AdminDashboard() {
                             [editingEvent.flyer_url]: true,
                           }))
                         }
+                        decoding="async"
                         className="h-12 w-12 rounded-lg object-cover ring-1 ring-zinc-700"
                       />
                     )}

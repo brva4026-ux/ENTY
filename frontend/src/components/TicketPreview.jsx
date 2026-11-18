@@ -47,7 +47,12 @@ export default function TicketPreview({ rawToken, ticketId, name, eventName }) {
         </div>
         <div className="shrink-0 rounded-lg bg-white p-1.5">
           {qrDataUrl ? (
-            <img src={qrDataUrl} alt="QR de la boleta" className="h-24 w-24" />
+            <img
+              src={qrDataUrl}
+              alt="QR de la boleta"
+              decoding="async"
+              className="h-24 w-24"
+            />
           ) : (
             <div className="skeleton h-24 w-24 !rounded-md" />
           )}

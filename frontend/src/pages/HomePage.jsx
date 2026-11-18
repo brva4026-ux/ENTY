@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
 import { track } from "../lib/analytics";
@@ -325,6 +325,11 @@ export default function HomePage({ explorar = false }) {
   const [error, setError] = useState("");
   const [cat, setCat] = useState("todos");
   const [query, setQuery] = useState("");
+  // Diferir el TEXTO que alimenta el filtrado: el input se mantiene en cada
+  // tecla (respuesta inmediata) mientras React puede interrumpir el re-filtro
+  // del catálogo si llega otra tecla. Con 100 eventos y varios filtros encima,
+  // filtrar en cada pulsación bloqueaba el hilo principal en móviles lentos.
+  const deferredQuery = useDeferredValue(query);
   const [range, setRange] = useState("todos");
   const [favs, setFavs] = useState(() => new Set());
   // Solo la última tarjeta marcada celebra (rebote): no todas al montar.
@@ -492,7 +497,7 @@ export default function HomePage({ explorar = false }) {
   }, [events]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return events.filter((e) => {
       if (city && cityOf(e) !== city) return false;
       if (!inDateRange(e.starts_at, range)) return false;
@@ -504,7 +509,7 @@ export default function HomePage({ explorar = false }) {
         (e.location ?? "").toLowerCase().includes(q)
       );
     });
-  }, [events, chip, query, city, range]);
+  }, [events, chip, deferredQuery, city, range]);
 
   // En modo explorar no hay destacado: la rejilla es el catálogo completo y
   // el primer evento no se roba el sitio (es lo que diferencia la pestaña

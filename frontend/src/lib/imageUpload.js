@@ -12,10 +12,15 @@
  *
  * Sin librerias: FileReader + canvas nativo.
  *
+ * Formato: se prefiere WebP (el backend y el CHECK de la DB ya lo aceptan) y se
+ * cae a JPEG solo si el navegador no sabe codificarlo. Un flyer de 900px pesa
+ * ~30% menos en WebP con la misma calidad percibida, y ese ahorro lo paga el
+ * invitado en su plan de datos cada vez que abre la vitrina.
+ *
  * @param {File} file imagen elegida por la persona
  * @param {{maxSide?: number, quality?: number}} opts lado mayor maximo en px y
- *   calidad JPEG (0-1). Default 900px / 0.82, que es lo que usa el flyer.
- * @returns {Promise<string>} data-URL `data:image/jpeg;base64,...`
+ *   calidad (0-1). Default 900px / 0.82, que es lo que usa el flyer.
+ * @returns {Promise<string>} data-URL `data:image/webp;base64,...` (o jpeg).
  */
 export function fileToDataUrl(file, { maxSide = 900, quality = 0.82 } = {}) {
   return new Promise((resolve, reject) => {
@@ -32,6 +37,14 @@ export function fileToDataUrl(file, { maxSide = 900, quality = 0.82 } = {}) {
         canvas
           .getContext("2d")
           .drawImage(img, 0, 0, canvas.width, canvas.height);
+        // Safari <14 y navegadores viejos devuelven un data-URL PNG cuando el
+        // tipo pedido no está soportado (no lanzan): por eso se verifica el
+        // prefijo real en vez de confiar en el pedido.
+        const webp = canvas.toDataURL("image/webp", quality);
+        if (webp.startsWith("data:image/webp")) {
+          resolve(webp);
+          return;
+        }
         resolve(canvas.toDataURL("image/jpeg", quality));
       };
       img.src = reader.result;

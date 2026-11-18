@@ -45,6 +45,10 @@ jobs:
           cd frontend
           npm run lint:design
           npm run test:design
+      - name: Tests unitarios del frontend (node --test)
+        run: |
+          cd frontend
+          npm run test:unit
       - name: Check dist output
         run: test -f frontend/dist/index.html
       - name: npm audit (dependencias de runtime)

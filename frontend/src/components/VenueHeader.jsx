@@ -164,6 +164,8 @@ export default function VenueHeader({
             <img
               src={venue.logo_url}
               alt={`Logo de ${venue.name}`}
+              loading="lazy"
+              decoding="async"
               className="vh-logo vh-logo-img"
             />
           ) : (

@@ -1,6 +1,7 @@
 """TicketFlow API — FastAPI application factory."""
 import asyncio
 import logging
+import os
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -132,6 +133,46 @@ def create_app() -> FastAPI:
         # La puerta usa cámara (escáner) y geolocalización (check-in); nada
         # más necesita permisos potentes desde el origen de la API.
         h.setdefault("Permissions-Policy", "camera=(self), geolocation=(self)")
+        return response
+
+    # Medición de latencia por request: "el usuario siente lento" solo se puede
+    # arreglar si se sabe QUÉ endpoint lo está causando. Un umbral alto evita
+    # ruido (la mayoría de requests son <100 ms); los que pasan quedan en el
+    # log y —si Sentry está configurado— como evento, que es donde el dueño de
+    # la app los va a ver sin tener que leer logs de Vercel. Se excluye /health:
+    # lo sondean los monitores cada pocos segundos y no aporta señal.
+    slow_ms = float(os.environ.get("SLOW_REQUEST_MS", "1500"))
+
+    @app.middleware("http")
+    async def latency_watchdog(request, call_next):
+        started = time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception:
+            # Un 500 se reporta por su propia vía (error tracking); acá solo
+            # interesa que la medición no se pierda si el handler revienta.
+            elapsed = (time.perf_counter() - started) * 1000
+            logger.warning(
+                "request fallida: %s %s tras %.0f ms",
+                request.method,
+                request.url.path,
+                elapsed,
+            )
+            raise
+        elapsed = (time.perf_counter() - started) * 1000
+        if elapsed >= slow_ms and request.url.path != "/health":
+            logger.warning(
+                "request lenta: %s %s -> %s en %.0f ms",
+                request.method,
+                request.url.path,
+                response.status_code,
+                elapsed,
+            )
+            capture_message(
+                f"Request lenta: {request.method} {request.url.path} "
+                f"({elapsed:.0f} ms, status {response.status_code})",
+                level="warning",
+            )
         return response
 
     app.include_router(invitations.router)

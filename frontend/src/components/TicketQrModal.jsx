@@ -103,6 +103,7 @@ export default function TicketQrModal({ ticket, onClose }) {
             <img
               src={qr}
               alt={`QR de la boleta #${ticket?.id}`}
+              decoding="async"
               className="mx-auto h-56 w-56 rounded-lg bg-white p-2"
             />
           ) : (

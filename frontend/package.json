@@ -13,7 +13,8 @@
     "lint:css": "stylelint \"src/**/*.css\" --max-warnings 0",
     "lint:js": "eslint \"src/**/*.{js,jsx}\" --max-warnings 14",
     "lint:design": "node scripts/design-gate.mjs",
-    "test:design": "node --test scripts/design-linter.test.mjs"
+    "test:design": "node --test scripts/design-linter.test.mjs",
+    "test:unit": "node --test \"src/**/*.test.mjs\""
   },
   "dependencies": {
     "@sentry/react": "^10.75.0",

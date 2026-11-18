@@ -2,6 +2,7 @@
 // En producción el frontend se sirve junto al backend o via gateway.
 import { captureApiError } from "./sentry";
 import { getToken, clearToken } from "./tokenStore";
+import { cacheKey, dedupeGet } from "./apiCache";
 
 const BASE = "/api";
 
@@ -307,7 +308,35 @@ export function quotePublicCoupon(eventId, ticketTypeId, code) {
   return apiFetch(`/public/events/${eventId}/coupon?${qs}`);
 }
 
-export async function apiFetch(path, options = {}) {
+// Micro-caché por ruta (segundos). Solo lecturas públicas y de cambio lento:
+// el catálogo del fan (que la vitrina pide al montar y al que varias pantallas
+// vuelven) y los textos legales (idénticos para todos). Todo lo demás queda en
+// 0: los paneles con datos de negocio nunca sirven un dato viejo.
+const TTL_MS = {
+  "/public/events": 20_000,
+  "/public/legal": 300_000,
+};
+
+function ttlFor(path) {
+  for (const prefix of Object.keys(TTL_MS)) {
+    if (path === prefix || path.startsWith(`${prefix}?`)) return TTL_MS[prefix];
+  }
+  return 0;
+}
+
+export function apiFetch(path, options = {}) {
+  const method = (options.method ?? "GET").toUpperCase();
+  // Solo GET: un POST/PATCH/DELETE muta estado y su respuesta no se comparte.
+  if (method !== "GET") return apiRequest(path, options);
+  const token = getToken();
+  const key = cacheKey("GET", path, token);
+  return dedupeGet(key, () => apiRequest(path, options), {
+    ttlMs: ttlFor(path),
+    bypass: options.fresh === true,
+  });
+}
+
+async function apiRequest(path, options = {}) {
   const token = getToken();
   const headers = {
     "Content-Type": "application/json",
@@ -315,9 +344,14 @@ export async function apiFetch(path, options = {}) {
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
+  // `fresh` es una marca nuestra (bypass del micro-caché), no una opción de
+  // fetch: se descarta antes de la llamada.
+  const fetchOptions = { ...options };
+  delete fetchOptions.fresh;
+
   let res;
   try {
-    res = await fetch(`${BASE}${path}`, { ...options, headers });
+    res = await fetch(`${BASE}${path}`, { ...fetchOptions, headers });
   } catch (networkErr) {
     // Sin respuesta (offline, DNS, abort): también es señal operativa.
     captureApiError(networkErr, {
