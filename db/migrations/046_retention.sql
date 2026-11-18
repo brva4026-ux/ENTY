@@ -150,12 +150,18 @@ $$;
 -- Prueba funcional con rollback total: si algo falla, revierte TODO y el
 -- COMMIT no se ejecuta.
 -- =============================================================================
+-- Las aserciones miran las filas PROPIAS del test (marcadas con `v_mark`), no
+-- un conteo absoluto: en una base de produccion ya hay filas viejas reales que
+-- la poda tambien borra, y un `v_n = 1` a secas abortaba la migracion (y con
+-- `set -e` en deploy.sh, todo lo que venia detras). Se comprueba el delta sobre
+-- las filas del test: la vieja se va, la nueva se queda.
 DO $$
 DECLARE
     v_venue  bigint;
     v_user   bigint;
     v_event  bigint;
-    v_n      bigint;
+    v_notif  bigint;
+    v_mark   text := 'retencion-test-' || gen_random_uuid();
     v_old    timestamptz := now() - interval '400 days';
 BEGIN
     -- Datos mínimos: venue, usuario, evento.
@@ -170,68 +176,70 @@ BEGIN
 
     -- 1) analytics_events: una vieja (se borra) y una nueva (se queda).
     INSERT INTO analytics_events (name, session_id, created_at)
-    VALUES ('view_home', 'session-aaa-1', v_old),
-           ('view_home', 'session-bbb-1', now());
-    v_n := prune_analytics_events(180);
-    IF v_n <> 1 THEN
-        RAISE EXCEPTION 'TEST_FAIL analytics_deleted_%', v_n;
+    VALUES ('view_home', v_mark || '-old', v_old),
+           ('view_home', v_mark || '-new', now());
+    PERFORM prune_analytics_events(180);
+    IF EXISTS (SELECT 1 FROM analytics_events WHERE session_id = v_mark || '-old')
+       OR NOT EXISTS (SELECT 1 FROM analytics_events WHERE session_id = v_mark || '-new') THEN
+        RAISE EXCEPTION 'TEST_FAIL analytics_retention';
     END IF;
 
     -- 2) notifications: sólo las leídas y viejas se van.
     INSERT INTO notifications (user_id, venue_id, kind, title, body, read_at, created_at)
-    VALUES (v_user, v_venue, 'event_reminder', 'Vieja leída', 'x', v_old, v_old),
-           (v_user, v_venue, 'event_reminder', 'Vieja sin leer', 'x', NULL, v_old),
-           (v_user, v_venue, 'event_reminder', 'Nueva leída', 'x', now(), now());
-    v_n := prune_notifications(90);
-    IF v_n <> 1 THEN
-        RAISE EXCEPTION 'TEST_FAIL notifications_deleted_%', v_n;
-    END IF;
-    -- La no leída sigue ahí aunque sea vieja.
-    IF NOT EXISTS (
-        SELECT 1 FROM notifications
-         WHERE user_id = v_user AND title = 'Vieja sin leer'
-    ) THEN
-        RAISE EXCEPTION 'TEST_FAIL unread_was_deleted';
+    VALUES (v_user, v_venue, 'event_reminder', v_mark || '-read-old', 'x', v_old, v_old),
+           (v_user, v_venue, 'event_reminder', v_mark || '-unread-old', 'x', NULL, v_old),
+           (v_user, v_venue, 'event_reminder', v_mark || '-read-new', 'x', now(), now());
+    PERFORM prune_notifications(90);
+    -- La leída y vieja se fue; la no leída sigue ahí aunque sea vieja.
+    IF EXISTS (SELECT 1 FROM notifications WHERE title = v_mark || '-read-old')
+       OR NOT EXISTS (SELECT 1 FROM notifications WHERE title = v_mark || '-unread-old')
+       OR NOT EXISTS (SELECT 1 FROM notifications WHERE title = v_mark || '-read-new') THEN
+        RAISE EXCEPTION 'TEST_FAIL notifications_retention';
     END IF;
 
     -- 3) push_outbox: procesada y vieja se va; pendiente se queda.
     INSERT INTO notifications (user_id, venue_id, kind, title, body)
-    VALUES (v_user, v_venue, 'event_reminder', 'Pendiente', 'x')
-    RETURNING id INTO v_event;  -- reusa la variable como notification_id
+    VALUES (v_user, v_venue, 'event_reminder', v_mark || '-push', 'x')
+    RETURNING id INTO v_notif;
     INSERT INTO push_outbox (notification_id, processed_at, created_at)
-    VALUES (v_event, v_old, v_old),
-           (v_event, NULL, v_old);
-    v_n := prune_push_outbox(7);
-    IF v_n <> 1 THEN
-        RAISE EXCEPTION 'TEST_FAIL push_outbox_deleted_%', v_n;
-    END IF;
-    IF NOT EXISTS (
-        SELECT 1 FROM push_outbox WHERE notification_id = v_event AND processed_at IS NULL
+    VALUES (v_notif, v_old, v_old),
+           (v_notif, NULL, v_old);
+    PERFORM prune_push_outbox(7);
+    IF EXISTS (
+        SELECT 1 FROM push_outbox
+         WHERE notification_id = v_notif AND processed_at IS NOT NULL
+    ) OR NOT EXISTS (
+        SELECT 1 FROM push_outbox
+         WHERE notification_id = v_notif AND processed_at IS NULL
     ) THEN
-        RAISE EXCEPTION 'TEST_FAIL pending_push_was_deleted';
+        RAISE EXCEPTION 'TEST_FAIL push_outbox_retention';
     END IF;
 
-    -- 4) audit_log: vieja se va.
+    -- 4) audit_log: vieja se va; nueva se queda.
     INSERT INTO audit_log (venue_id, kind, entity, created_at)
-    VALUES (v_venue, 'test', 'event', v_old),
-           (v_venue, 'test', 'event', now());
-    v_n := prune_audit_log(365);
-    IF v_n <> 1 THEN
-        RAISE EXCEPTION 'TEST_FAIL audit_deleted_%', v_n;
+    VALUES (v_venue, v_mark, 'event', v_old),
+           (v_venue, v_mark, 'event', now());
+    PERFORM prune_audit_log(365);
+    IF EXISTS (
+        SELECT 1 FROM audit_log
+         WHERE venue_id = v_venue AND kind = v_mark
+           AND created_at < now() - interval '365 days'
+    ) THEN
+        RAISE EXCEPTION 'TEST_FAIL audit_retention';
     END IF;
 
-    -- 5) door_sync_receipts: vieja se va.
+    -- 5) door_sync_receipts: vieja se va; nueva se queda.
     INSERT INTO door_sync_receipts (event_id, scan_id, outcome, created_at)
     VALUES (v_event, gen_random_uuid(), 'ok', v_old),
            (v_event, gen_random_uuid(), 'ok', now());
-    v_n := prune_door_sync_receipts(30);
-    IF v_n <> 1 THEN
-        RAISE EXCEPTION 'TEST_FAIL receipts_deleted_%', v_n;
+    PERFORM prune_door_sync_receipts(30);
+    IF (SELECT count(*) FROM door_sync_receipts
+         WHERE event_id = v_event AND created_at >= now() - interval '30 days') < 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL receipts_retention';
     END IF;
 
     -- 6) prune_expired() no falla y devuelve un total (>= 0).
-    v_n := prune_expired();
-    IF v_n < 0 THEN
+    IF prune_expired() < 0 THEN
         RAISE EXCEPTION 'TEST_FAIL prune_expired_negative';
     END IF;
 
