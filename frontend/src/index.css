@@ -7860,6 +7860,35 @@ html .auth-shell--minimal.auth-shell--light {
   color: var(--e-violet-600);
 }
 
+/* Selector de idioma del login: dos botones discretos en el pie. La opcion
+   activa se marca con color + subrayado (no solo color: contraste suficiente
+   para quien no distingue el violeta de marca). */
+.auth-lang {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.auth-lang-btn {
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  color: var(--e-neutral-600);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--e-dur-fast) var(--e-ease-standard);
+}
+.auth-lang-btn:hover {
+  color: var(--e-violet-600);
+}
+.auth-lang-btn[aria-pressed="true"] {
+  color: var(--e-violet-600);
+  border-bottom-color: var(--e-violet-600);
+}
+
 /* En móvil la tarjeta ocupa el ancho disponible sin tocar los bordes. */
 @media (max-width: 480px) {
   .auth-login-flow .auth-card {

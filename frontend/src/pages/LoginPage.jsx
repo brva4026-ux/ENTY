@@ -12,6 +12,30 @@ import useDocumentTitle from "../lib/useDocumentTitle";
 import { forgotPassword } from "../lib/api";
 import { withViewTransition } from "../lib/viewTransition";
 import { prefersReducedMotion } from "../lib/motion";
+import { useI18n } from "../i18n";
+
+/** Etiqueta de cada idioma en su propia lengua (así se reconoce sin traducir). */
+const LANGUAGE_LABELS = { es: "Español", en: "English" };
+
+/** Selector de idioma del pie del login: dos botones, el activo marcado. */
+function LanguageToggle() {
+  const { locale, setLocale, locales } = useI18n();
+  return (
+    <p className="auth-lang" role="group" aria-label="Idioma / Language">
+      {locales.map((loc) => (
+        <button
+          key={loc}
+          type="button"
+          className="auth-lang-btn"
+          aria-pressed={locale === loc}
+          onClick={() => setLocale(loc)}
+        >
+          {LANGUAGE_LABELS[loc] ?? loc}
+        </button>
+      ))}
+    </p>
+  );
+}
 
 /** Icono del ojo (mostrar/ocultar contraseña). Sin dependencias externas. */
 function EyeIcon({ open }) {
@@ -39,17 +63,17 @@ function EyeIcon({ open }) {
  * de los casos que el usuario sí merece entender: credenciales mal, límite de
  * intentos y caída de red.
  */
-function loginErrorMessage(err) {
+function loginErrorMessage(err, t) {
   const status = err?.status;
-  if (status === 401) return "Usuario o contraseña incorrectos.";
-  if (status === 429)
-    return "Demasiados intentos. Espera un minuto e intenta de nuevo.";
-  if (!status) return "No hay conexión con el servidor. Revisa tu internet.";
-  return err?.message || "No se pudo iniciar sesión. Intenta de nuevo.";
+  if (status === 401) return t("login.errors.badCredentials");
+  if (status === 429) return t("login.errors.tooMany");
+  if (!status) return t("login.errors.network");
+  return err?.message || t("login.errors.generic");
 }
 
 export default function LoginPage() {
-  useDocumentTitle("Iniciar sesión");
+  const { t } = useI18n();
+  useDocumentTitle(t("login.documentTitle"));
   const { login } = useAuth();
   const nav = useNavigate();
   const location = useLocation();
@@ -126,13 +150,13 @@ export default function LoginPage() {
     // El form lleva noValidate: sin el, el navegador corta el envio con
     // "Please fill out this field." en ingles antes de que corra este codigo.
     if (!ident.trim()) {
-      setError("Escribe tu correo.");
+      setError(t("login.errors.requiredEmail"));
       setErrorTick((n) => n + 1);
       emailRef.current?.focus();
       return;
     }
     if (!password) {
-      setError("Escribe tu contraseña.");
+      setError(t("login.errors.requiredPassword"));
       setErrorTick((n) => n + 1);
       passwordRef.current?.focus();
       return;
@@ -143,7 +167,7 @@ export default function LoginPage() {
       const user = await login(ident, password, { remember });
       const home = homeForRole(user);
       if (home === "/login") {
-        setError("Tu usuario no tiene un rol asignado");
+        setError(t("login.errors.noRole"));
         setErrorTick((n) => n + 1);
         setBusy(false);
         return;
@@ -154,7 +178,7 @@ export default function LoginPage() {
       await new Promise((r) => setTimeout(r, pause));
       withViewTransition(() => nav(from || home, { replace: true }));
     } catch (err) {
-      setError(loginErrorMessage(err));
+      setError(loginErrorMessage(err, t));
       setErrorTick((n) => n + 1);
       passwordRef.current?.focus();
       setBusy(false);
@@ -176,7 +200,7 @@ export default function LoginPage() {
   async function requestReset() {
     const email = ident.trim();
     if (!email.includes("@")) {
-      setError("Escribe tu correo arriba y vuelve a intentarlo.");
+      setError(t("login.errors.forgotNeedEmail"));
       setErrorTick((n) => n + 1);
       emailRef.current?.focus();
       return;
@@ -189,14 +213,9 @@ export default function LoginPage() {
       // El backend decide el texto: promete un enlace solo si el correo está
       // configurado; si no, orienta al reset operado por admin. Este fallback
       // (solo si la respuesta viniera sin `detail`) es neutral a propósito.
-      setForgotSent(
-        r?.detail ||
-          "Revisa tu correo o pídele a un administrador que restablezca tu contraseña.",
-      );
+      setForgotSent(r?.detail || t("login.errors.forgotFallback"));
     } catch (err) {
-      setError(
-        err?.message || "No pudimos enviar el enlace. Intenta de nuevo.",
-      );
+      setError(err?.message || t("login.errors.forgotSend"));
       setErrorTick((n) => n + 1);
     } finally {
       setForgotBusy(false);
@@ -212,18 +231,16 @@ export default function LoginPage() {
             logotipo y la etiqueta encabezan la columna del formulario. */}
         <div className="auth-login-brand">
           <Logo size="lg" />
-          <p className="auth-login-tag">Boletería, aforo y control de puerta</p>
+          <p className="auth-login-tag">{t("login.brandTag")}</p>
         </div>
 
         <div className="auth-card auth-card-enter">
-          <h1 className="auth-login-title">Iniciar sesión</h1>
-          <p className="auth-login-sub">
-            Entra con tu usuario o correo para continuar.
-          </p>
+          <h1 className="auth-login-title">{t("login.title")}</h1>
+          <p className="auth-login-sub">{t("login.subtitle")}</p>
 
           <form onSubmit={submit} noValidate className="auth-login-form">
             <label htmlFor="login-email" className="auth-label">
-              Usuario o correo
+              {t("login.labelIdent")}
             </label>
             <div className="auth-field auth-field--md">
               <MailIcon className="auth-field-icon" />
@@ -240,14 +257,12 @@ export default function LoginPage() {
                   // Un nombre de usuario sin @ es válido (mig 035), así que
                   // el aviso es suave y nunca bloquea el envío.
                   if (!value.includes("@") && value.trim().length > 0) {
-                    setEmailError(
-                      "Si usas correo, revisa que incluya @ y el dominio.",
-                    );
+                    setEmailError(t("login.emailHint"));
                   } else {
                     setEmailError("");
                   }
                 }}
-                placeholder="usuario o tu@"
+                placeholder={t("login.placeholderIdent")}
                 className="field auth-field-has-icon"
                 inputMode="email"
                 enterKeyHint="next"
@@ -265,7 +280,7 @@ export default function LoginPage() {
             )}
 
             <label htmlFor="login-password" className="auth-label auth-label--gap">
-              Contraseña
+              {t("login.labelPassword")}
             </label>
             <div className="auth-field auth-field--md auth-field--reveal">
               <LockIcon className="auth-field-icon" />
@@ -278,11 +293,11 @@ export default function LoginPage() {
                   setPassword(value);
                   setPasswordError(
                     value.length > 0 && value.length < 6
-                      ? "La contraseña debe tener al menos 6 caracteres."
+                      ? t("login.passwordHint")
                       : "",
                   );
                 }}
-                placeholder="Tu contraseña"
+                placeholder={t("login.placeholderPassword")}
                 ref={passwordRef}
                 name="password"
                 className="field auth-field-has-icon"
@@ -300,7 +315,7 @@ export default function LoginPage() {
                 onClick={() => setShowPass((v) => !v)}
                 className="auth-eye"
                 aria-label={
-                  showPass ? "Ocultar contraseña" : "Mostrar contraseña"
+                  showPass ? t("login.hidePassword") : t("login.showPassword")
                 }
                 aria-pressed={showPass}
               >
@@ -328,7 +343,7 @@ export default function LoginPage() {
                   <rect x="3" y="11" width="18" height="10" rx="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
-                Bloq Mayús está activado.
+                {t("login.capsLock")}
               </p>
             )}
 
@@ -369,10 +384,10 @@ export default function LoginPage() {
                     e.target.checked ? "1" : "0",
                   );
                 }}
-                aria-label="Recordarme para la próxima visita"
+                aria-label={t("login.rememberAria")}
               />
               <label htmlFor="remember-me" className="auth-row-label">
-                Recordarme
+                {t("login.remember")}
               </label>
               <button
                 type="button"
@@ -380,12 +395,16 @@ export default function LoginPage() {
                 disabled={forgotBusy}
                 className="auth-forgot"
               >
-                {forgotBusy ? "Enviando…" : "¿Olvidaste tu contraseña?"}
+                {forgotBusy ? t("login.forgotBusy") : t("login.forgot")}
               </button>
             </div>
 
             <button type="submit" disabled={busy || ok} className="btn-primary btn-primary--lg">
-              {ok ? "¡Listo!" : busy ? "Entrando…" : "Entrar"}
+              {ok
+                ? t("login.submitOk")
+                : busy
+                  ? t("login.submitBusy")
+                  : t("login.submit")}
             </button>
 
             {busy && (
@@ -400,23 +419,26 @@ export default function LoginPage() {
           {/* Contacto: queda fuera del form para que Enter no lo dispare. */}
           <div className="auth-foot">
             <ContactSupport
-              prompt="¿Problemas para entrar?"
-              label="Contáctanos"
-              message="Hola, necesito ayuda para entrar a Enty."
+              prompt={t("login.contactPrompt")}
+              label={t("login.contactLabel")}
+              message={t("login.contactMessage")}
             />
 
-            <p className="auth-trust">
-              Conexión segura. Nunca te pediremos tu contraseña por chat.
-            </p>
+            <p className="auth-trust">{t("login.trust")}</p>
 
             {/* Sin este enlace /register era una ruta inalcanzable: existía,
                 funcionaba y nadie podía llegar a ella desde la entrada. */}
             <p className="auth-alt">
-              ¿Aún no tienes cuenta?{" "}
+              {t("login.noAccount")}{" "}
               <TransitionLink to="/register" className="auth-alt-link">
-                Crear cuenta
+                {t("login.createAccount")}
               </TransitionLink>
             </p>
+
+            {/* Selector de idioma: la UI nace en español (default del
+                producto); aquí la persona puede cambiarla y la elección se
+                recuerda (localStorage enty_locale). Solo dos idiomas hoy. */}
+            <LanguageToggle />
           </div>
         </div>
       </div>

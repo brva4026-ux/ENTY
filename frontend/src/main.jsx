@@ -43,6 +43,7 @@ applyMotion();
 import "./lib/validationMessages";
 import { AuthProvider, useAuth, consumeLoggedOut } from "./lib/auth";
 import { UIProvider } from "./lib/ui";
+import { I18nProvider } from "./i18n";
 import { hasRole, homeForRole } from "./lib/roles";
 import { OfflineBanner } from "./components/OfflineBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -147,6 +148,7 @@ function App() {
   return (
     <AuthProvider>
       <UIProvider>
+        <I18nProvider>
         <OfflineBanner />
         <BrowserRouter>
           {/* El aviso de cookies va en FLUJO (sticky) y ANTES del contenido:
@@ -278,6 +280,7 @@ function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
+        </I18nProvider>
       </UIProvider>
     </AuthProvider>
   );
