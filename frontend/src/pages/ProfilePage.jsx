@@ -7,6 +7,7 @@ import { ROLE_LABELS, ROLE_VISUALS, topRole } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
 import { fileToDataUrl } from "../lib/imageUpload";
+import { clearToken } from "../lib/tokenStore";
 import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
 import PasswordMeter from "../components/PasswordMeter";
@@ -554,7 +555,7 @@ export default function ProfilePage() {
         body: JSON.stringify({ password: sessPass }),
       });
       // El backend invalida las otras sesiones y renueva nuestra cookie.
-      localStorage.removeItem("tf_token");
+      clearToken();
       setUser(res.user);
       setSessPass("");
       setSessOpen(false);

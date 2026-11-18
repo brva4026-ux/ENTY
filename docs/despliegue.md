@@ -33,7 +33,7 @@ repo (`render.yaml`) pero **no es la activa**.
 | `SENTRY_DSN` | DSN de Sentry (opcional pero **recomendado**: sin ella los 500 no se reportan a nadie; el arranque avisa con un WARNING en producción) |
 | `RESEND_API_KEY` | clave de Resend (opcional: sin ella el reset self-service y las invitaciones no envían correo y el flujo guía al reset operado por admin) |
 | `APP_PUBLIC_URL` | URL pública de la app (construye los links de reset/invitación) |
-| `ENVIRONMENT` | `production` (activa el aviso de observabilidad y el chequeo de JWT_SECRET) |
+| `ENVIRONMENT` | `production` (opcional en Vercel: el entorno prod se detecta solo por `VERCEL_ENV`; definila explícito en hosts que no sean Vercel) |
 
 La lista completa vive en `.env.example` (espeja `app/core/config.py`). El
 endpoint `/api/health` publica cuáles de estos canales están **encendidos de

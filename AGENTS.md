@@ -1311,6 +1311,24 @@ cierra con `settings.is_production`:
 Si ves `/api/openapi.json` respondiendo 200 en producción, es que `ENVIRONMENT`
 no está en `production` en las env vars de Vercel.
 
+**Detección automática de producción (2026-11).** Depender de que alguien
+escriba `ENVIRONMENT=production` a mano en el dashboard era un modo de fallo
+silencioso: si se olvidaba, la app arrancaba con la postura de desarrollo
+(cookie sin `Secure`, CORS de localhost, `/docs` y `/openapi.json` públicos)
+sin que nada avisara — y así pasó en el deploy real. `Settings.is_production`
+ahora es `ENVIRONMENT == "production"` **O** el entorno prod de Vercel
+(`VERCEL_ENV=production`, que Vercel inyecta sola; `VERCEL=1` como respaldo).
+El mismo criterio lo usan el validador de `JWT_SECRET` y el aviso de Sentry
+(`app/core/observability.py::_in_production`). `backend/tests/test_security_hardening.py`
+fija el contrato (Vercel prod, preview, y host sin Vercel).
+
+**Cabeceras de seguridad de la API.** Además de `X-Content-Type-Options`,
+`X-Frame-Options`, `Referrer-Policy` y `Permissions-Policy` (ya presentes), la
+función serverless agrega en producción `Strict-Transport-Security` y, siempre,
+una `Content-Security-Policy` de origen API (`default-src 'none'`,
+`script-src` implícito en `none`, `frame-ancestors 'none'`): la mayoría de
+respuestas son JSON y las dos páginas HTML propias no ejecutan JavaScript.
+
 ## Seguridad del origen y smoke SQL (Fase 0)
 
 - **CSP por hash, no `unsafe-inline`.** La cabecera `Content-Security-Policy`

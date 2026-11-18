@@ -10,6 +10,7 @@ import { useSearchParams } from "react-router-dom";
 import { Logo } from "../components/Brand";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { clearToken } from "../lib/tokenStore";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
 
@@ -92,7 +93,7 @@ export default function AcceptInvitationPage() {
         body: JSON.stringify({ token, password }),
       });
       // Sesión inmediata: la persona ya está dentro, como en /register.
-      localStorage.removeItem("tf_token");
+      clearToken();
       setUser(data.user);
       setPhase("done");
     } catch (e2) {

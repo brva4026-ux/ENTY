@@ -133,6 +133,34 @@ def create_app() -> FastAPI:
         # La puerta usa cámara (escáner) y geolocalización (check-in); nada
         # más necesita permisos potentes desde el origen de la API.
         h.setdefault("Permissions-Policy", "camera=(self), geolocation=(self)")
+        # HSTS/CSP de la API. En Vercel estas cabeceras ya las inyecta
+        # vercel.json (regla `/(.*)`, aplica también a /api/*), así que aquí
+        # solo se agregan cuando NO corremos en Vercel: un host propio
+        # (Docker/Render) o local. Evita duplicar la cabecera CSP en Vercel
+        # (dos CSP = la del borde más la de la función).
+        on_vercel = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"))
+        if not on_vercel:
+            if settings.is_production:
+                # HSTS: fija el navegador a HTTPS por un año. Solo en
+                # producción: en local forzaría HTTPS a http://localhost.
+                h.setdefault(
+                    "Strict-Transport-Security",
+                    "max-age=31536000; includeSubDomains",
+                )
+            # CSP estricta para respuestas no-HTML (JSON, imágenes): `default-src
+            # 'none'` cierra cualquier XSS por contenido reflejado. Las páginas
+            # HTML propias (boleta, tarjeta social) quedan fuera: la tarjeta
+            # lleva un `<script type="application/ld+json">` que una
+            # `script-src 'none'` bloquearía; ya no ejecutan JavaScript, escapan
+            # toda interpolación y llevan `X-Frame-Options: DENY`.
+            content_type = h.get("content-type", "")
+            if "text/html" not in content_type:
+                h.setdefault(
+                    "Content-Security-Policy",
+                    "default-src 'none'; img-src 'self' data:; "
+                    "style-src 'unsafe-inline'; base-uri 'none'; "
+                    "form-action 'none'; frame-ancestors 'none'",
+                )
         return response
 
     # Medición de latencia por request: "el usuario siente lento" solo se puede

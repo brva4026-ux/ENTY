@@ -39,6 +39,25 @@ class MediaUpload(BaseModel):
     data_url: str = Field(max_length=1_200_000)
 
 
+# Firma real (magic bytes) por mime. El mime del data-URL lo elige el cliente:
+# `data:image/png;base64,<cualquier cosa>` pasaría el filtro de regex sin que
+# los bytes sean una imagen. La firma del archivo es lo que un navegador
+# realmente decodifica, así que se exige que coincida con lo declarado.
+_IMAGE_SIGNATURES: dict[str, tuple[bytes, ...]] = {
+    "image/jpeg": (b"\xff\xd8\xff",),
+    "image/png": (b"\x89PNG\r\n\x1a\n",),
+    # WebP: "RIFF" + tamaño (4 bytes) + "WEBP".
+    "image/webp": (b"RIFF",),
+}
+
+
+def _sniff_matches(mime: str, raw: bytes) -> bool:
+    """True si los bytes empiezan con la firma del mime declarado."""
+    if mime == "image/webp":
+        return len(raw) >= 12 and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP"
+    return any(raw.startswith(sig) for sig in _IMAGE_SIGNATURES[mime])
+
+
 def _decode_data_url(data_url: str) -> tuple[str, bytes]:
     """Valida el data-URL de una imagen y devuelve (mime, bytes).
 
@@ -67,6 +86,15 @@ def _decode_data_url(data_url: str) -> tuple[str, bytes]:
         raise HTTPException(
             413,
             "La imagen supera los 600 KB después de decodificar.",
+        )
+    if not _sniff_matches(mime, raw):
+        # El mime declarado no coincide con los bytes: no es una imagen del
+        # tipo que dice ser (un .png con contenido arbitrario, un archivo
+        # renombrado). No se guarda ni se sirve como imagen.
+        raise HTTPException(
+            422,
+            "El archivo no es una imagen válida: su contenido no coincide con "
+            "el formato declarado.",
         )
     return mime, raw
 

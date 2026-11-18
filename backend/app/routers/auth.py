@@ -23,6 +23,7 @@ from starlette.concurrency import run_in_threadpool
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.mailer import Mailer
+from app.core.observability import log_security_event
 from app.core.security import create_access_token, hash_password, verify_password
 from app.core.session import (
     COOKIE_NAME,
@@ -210,6 +211,7 @@ async def login(
     ident = (body.identifier or body.email or "").strip()
     email_norm = ident.lower()
     if await _login_locked(db, email_norm, ip):
+        log_security_event("login_locked", ident=email_norm, ip=ip)
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             "Demasiados intentos fallidos. Espera unos minutos e intenta de nuevo.",
@@ -232,9 +234,14 @@ async def login(
         # igualar timing del bcrypt antes de rechazar
         verify_password(body.password, _DUMMY_HASH)
         await _register_failure(db, email_norm, ip)
+        log_security_event("login_failed", ident=email_norm, ip=ip, reason="no_user")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales invalidas")
     if not verify_password(body.password, user["password_hash"]):
         await _register_failure(db, email_norm, ip)
+        log_security_event(
+            "login_failed", ident=email_norm, ip=ip, user_id=user["id"],
+            reason="bad_password",
+        )
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales invalidas")
     if not user["is_active"]:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario inactivo")

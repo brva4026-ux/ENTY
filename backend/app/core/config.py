@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from urllib.parse import urlparse
 
@@ -8,6 +9,23 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # default de CORS_ORIGINS los incluye para el dev server de Vite; en prod se
 # descartan solos (ver cors_origins_list).
 _DEV_HOSTNAMES = {"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"}
+
+
+def _vercel_production() -> bool:
+    """True si corremos en el entorno de producción de Vercel.
+
+    Vercel inyecta `VERCEL_ENV=production|preview|development` en cada función
+    serverless. `VERCEL=1` es el respaldo cuando `VERCEL_ENV` no está (Vercel
+    antiguo). Depender de que alguien escriba `ENVIRONMENT=production` a mano
+    en el dashboard es un modo de fallo silencioso: si se olvida, la app
+    arranca con la postura de desarrollo (cookies sin `Secure`, CORS de
+    localhost, /docs y /openapi.json públicos) sin que nada avise. El entorno
+    real se detecta solo.
+    """
+    vercel_env = os.environ.get("VERCEL_ENV", "").strip().lower()
+    if vercel_env:
+        return vercel_env == "production"
+    return os.environ.get("VERCEL", "").strip() == "1"
 
 
 def _is_dev_origin(origin: str) -> bool:
@@ -33,10 +51,12 @@ class Settings(BaseSettings):
         """En producción un JWT secret default = cualquiera puede forjar tokens.
 
         Local/tests tienen el default vacío para no frenar el desarrollo; en
-        ENVIRONMENT=production la app **se niega a arrancar** sin un secreto
-        real (≥32 chars) vía variable de entorno.
+        producción (ENVIRONMENT=production o el entorno prod de Vercel) la app
+        **se niega a arrancar** sin un secreto real (≥32 chars) vía variable de
+        entorno.
         """
-        if self.environment == "production" and len(self.jwt_secret) < 32:
+        production = self.environment.strip().lower() == "production" or _vercel_production()
+        if production and len(self.jwt_secret) < 32:
             raise ValueError(
                 "JWT_SECRET es obligatorio en producción (mínimo 32 caracteres). "
                 "Defínelo como variable de entorno antes de desplegar."
@@ -96,7 +116,14 @@ class Settings(BaseSettings):
 
     @property
     def is_production(self) -> bool:
-        return self.environment.strip().lower() == "production"
+        """Producción real: `ENVIRONMENT=production` O el entorno prod de Vercel.
+
+        Se combinan las dos señales (cualquiera activa la postura endurecida):
+        `ENVIRONMENT` explícito para hosts que no son Vercel (Render/Docker) y
+        la detección automática de Vercel para que un `ENVIRONMENT` olvidado en
+        el dashboard no deje la app con la postura de desarrollo.
+        """
+        return self.environment.strip().lower() == "production" or _vercel_production()
 
     @property
     def cors_origins_list(self) -> list[str]:

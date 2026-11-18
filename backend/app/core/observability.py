@@ -19,6 +19,21 @@ logger = logging.getLogger("ticketflow.observability")
 _DSN_CACHE: bool | None = None
 
 
+def _in_production() -> bool:
+    """Misma detección que `Settings.is_production`, sin construir Settings.
+
+    Sentry se inicializa antes que nada (incluso antes del import de app.main),
+    así que no puede depender de `get_settings()`. Reusa el helper de config
+    para no tener dos definiciones de "producción" que se desincronicen.
+    """
+    from app.core.config import _vercel_production
+
+    return (
+        os.environ.get("ENVIRONMENT", "").strip().lower() == "production"
+        or _vercel_production()
+    )
+
+
 def _dsn() -> str | None:
     dsn = os.environ.get("SENTRY_DSN", "").strip()
     return dsn or None
@@ -45,7 +60,7 @@ def init_sentry() -> bool:
     dsn = _dsn()
     if not dsn:
         _DSN_CACHE = False
-        if os.environ.get("ENVIRONMENT", "").strip().lower() == "production":
+        if _in_production():
             logger.warning(
                 "SENTRY_DSN no configurada en produccion: los errores 500 NO se "
                 "reportan a ningun lado (error tracking desactivado). Define "
@@ -107,3 +122,20 @@ def capture_message(message: str, *, level: str = "error") -> None:
         sentry_sdk.capture_message(message, level=level)
     except Exception:  # noqa: BLE001
         pass
+
+
+def log_security_event(kind: str, **fields) -> None:
+    """Registra un evento de seguridad en un formato único y buscable.
+
+    Cubre la actividad que no es un error de la app pero que hay que poder
+    revisar: credenciales fallidas, bloqueos por fuerza bruta y peticiones de
+    origen cruzado rechazadas (posible CSRF). Escribe SIEMPRE en el log del
+    proceso (visible en los logs de Vercel) y, con Sentry activo, como mensaje
+    de nivel warning para que un patrón (misma IP, muchos intentos) se vea sin
+    leer logs a mano. Los valores van en la misma línea `clave=valor` para que
+    un grep por `kind=login_failed` o `ip=` los agrupe.
+    """
+    parts = " ".join(f"{k}={v}" for k, v in fields.items() if v not in (None, ""))
+    message = f"security_event kind={kind} {parts}".strip()
+    logger.warning(message)
+    capture_message(message, level="warning")
