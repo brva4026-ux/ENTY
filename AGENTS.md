@@ -1763,3 +1763,32 @@ respuestas son JSON y las dos páginas HTML propias no ejecutan JavaScript.
   `/negocio/i` que ya no existe — el campo es "Correo o usuario") y el spec de
   `onboarding.spec.js` (el tutorial tapa el botón "Continuar"). Comparar contra
   `master` antes de culpar a un cambio propio.
+
+## i18n (es/en): infraestructura y como seguir
+
+La UI nace en **español**. El idioma es una eleccion explicita que se guarda en
+`localStorage.enty_locale`; **NO se autodetecta `navigator.language`**: casi
+todos los usuarios tienen el navegador en ingles y la UI del producto es
+español, asi que autodetectarlo cambiaria la app a un idioma que nadie pidio (y
+tumbaria los E2E, que buscan el texto en español).
+
+Piezas:
+
+- `src/lib/i18nCore.js` — nucleo puro (sin React): `lookup`, `translate`,
+  `flattenKeys`. Si una clave FALTA, `translate` devuelve la propia clave
+  (`login.title`) en vez de romper el render. Testeable con `node --test`.
+- `src/i18n/es.js` y `src/i18n/en.js` — catalogos anidados por namespace.
+  `es.js` es la fuente de las claves; `en.js` debe tener EXACTAMENTE las mismas.
+- `src/i18n/index.jsx` — `I18nProvider` + `useI18n()` (`t`, `locale`,
+  `setLocale`). El provider va en `main.jsx`, dentro de `UIProvider`.
+- `src/i18n/i18nParity.test.mjs` — falla si es y en no tienen las mismas claves
+  o si alguna hoja queda vacia. Corre en `npm run test:unit`.
+
+Patron para migrar una pantalla: importar `useI18n`, `const { t } = useI18n()`,
+y sustituir cada literal por `t("namespace.clave")`. El texto español del
+catalogo debe coincidir palabra por palabra con lo que ya se veia (mismo E2E).
+Interpolacion: `t("x", { name })` con `{name}` en la cadena.
+
+Migrado hoy: **LoginPage** (namespace `login`), con selector Español/English en
+el pie. El resto de las pantallas siguen con literales y se migran pantalla a
+pantalla con este mismo patron.
