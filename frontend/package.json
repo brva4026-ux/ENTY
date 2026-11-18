@@ -14,7 +14,7 @@
     "lint:js": "eslint \"src/**/*.{js,jsx}\" --max-warnings 14",
     "lint:design": "node scripts/design-gate.mjs",
     "test:design": "node --test scripts/design-linter.test.mjs",
-    "test:unit": "node --test \"src/**/*.test.mjs\""
+    "test:unit": "files=$(find src -name '*.test.mjs'); test -n \"$files\" && node --test $files"
   },
   "dependencies": {
     "@sentry/react": "^10.75.0",
