@@ -1296,6 +1296,24 @@ Para que eso deje de ser invisible:
 drift real dropeando una columna). `test_deploy_migrations.py` sigue cubriendo
 que `deploy.sh` liste todas las migraciones.
 
+**Una migración con auto-test puede bloquear a TODAS las demás (2026-11).** La
+046 traía un bloque `DO $$ ... $$` que validaba la poda con **conteos
+absolutos** (`IF v_n <> 1`): correcto en base limpia, pero en producción ya hay
+filas viejas reales que la poda también borra, así que el conteo daba otro
+número y el bloque lanzaba `TEST_FAIL`, abortando la transacción. Como
+`deploy.sh` corre con `set -e`, ese fallo **detenía la lista entera**: la 047,
+048, 049, 050 y 051 nunca se aplicaron y `/health` quedó en `behind` sin que el
+error fuera obvio (el log mostraba `TEST_FAIL`, no un problema de esquema).
+
+Regla: un auto-test dentro de una migración **no puede afirmar conteos
+globales**. Asertá sobre las **filas propias del test** (marcalas con un uuid
+único) o medí el **delta** antes/después. Vale igual en base limpia y con datos
+reales. La 046 ya está reescrita así.
+
+Si `schema: behind` persiste tras correr `deploy.sh`, mirá el log de la
+migración que falló **primero** (con `set -e` las siguientes ni corren) antes
+de sospechar del esquema.
+
 **Observabilidad:** `init_sentry` avisa con un WARNING si `ENVIRONMENT=production`
 y no hay `SENTRY_DSN` (modo no-op silencioso = un 500 no le llega a nadie).
 Configurá `SENTRY_DSN` en las env vars de Vercel.
