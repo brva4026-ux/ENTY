@@ -10,10 +10,13 @@
  *   const { onKeyDown, tabIndexFor } = useTabKeys({ ids, activeId, onSelect });
  *   <button role="tab" tabIndex={tabIndexFor(id)} onKeyDown={onKeyDown}>
  */
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 export function useTabKeys({ ids, activeId, onSelect, idOf }) {
-  const idFor = idOf ?? ((id) => id);
+  // `idOf ?? ((id) => id)` creaba una función nueva en cada render, lo que
+  // invalidaba el `useCallback` de abajo sin necesidad. Memorizada, la
+  // identidad de `idFor` es estable mientras `idOf` no cambie.
+  const idFor = useMemo(() => idOf ?? ((id) => id), [idOf]);
 
   const onKeyDown = useCallback(
     (e) => {

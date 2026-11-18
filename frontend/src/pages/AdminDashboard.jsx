@@ -547,11 +547,11 @@ export default function AdminDashboard() {
 
   // Usuarios de la venue: para asignar cupos con nombres reales
   const reloadUsers = useCallback(() => {
-    if (!venueId) return Promise.resolve();
+    if (!realVenueId) return Promise.resolve();
     return apiFetch(`/venues/${realVenueId}/users?include_inactive=true`)
       .then(setUsers)
       .catch(() => setUsers([]));
-  }, [venueId]);
+  }, [realVenueId]);
   useEffect(() => {
     reloadUsers();
   }, [reloadUsers]);

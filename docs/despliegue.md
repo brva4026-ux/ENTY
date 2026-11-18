@@ -58,7 +58,9 @@ lo que el código usa (`backend/app/core/schema_guard.py`).
 ```
 
 Si ves `"schema": "behind"`, corré `scripts/deploy.sh` (o el SQL de las
-migraciones pendientes en el SQL Editor de Supabase).
+migraciones pendientes en el SQL Editor de Supabase). Desde 2026-11 esto ya no
+debería pasar en `master`: `.github/workflows/migrate.yml` aplica las
+migraciones y verifica `/health` en cada push que pasa CI (ver más abajo).
 
 ---
 
@@ -219,6 +221,63 @@ psql "..." -f scripts/seed_prod.sql
 (Con el pooler `:6543` NO uses psql para migrar: usa la conexión directa
 `:5432` o el endpoint SQL, porque PgBouncer en modo transaction no soporta
 bien sesiones largas de psql.)
+
+## Alternativa: token de Vercel + psycopg (sin `sbp_`)
+
+El `SUPABASE_ACCESS_TOKEN` (`sbp_`) caduca y a veces no está a mano. La
+`DATABASE_URL` de producción **sí vive en Vercel**, así que se puede migrar con
+el token de Vercel y `psycopg`, sin depender de Supabase:
+
+```bash
+# 1) Leer la DATABASE_URL de produccion desde la API de Vercel (con decrypt).
+#    Necesitas un token de Vercel (vcp_...) con acceso al proyecto.
+export VERCEL_TOKEN="vcp_..."
+curl -s "https://api.vercel.com/v1/projects/<proyecto>/env/<ENV_ID>?teamId=<team>&decrypt=true" \
+  -H "Authorization: Bearer $VERCEL_TOKEN" | python3 -c "import sys,json;print(json.load(sys.stdin)['value'])"
+
+# 2) Aplicar cada migracion en SU PROPIA transaccion (no encadenar en una
+#    sola: si una falla, las siguientes no deben abortar en cascada).
+python - <<'PY'
+import os, pathlib, psycopg
+url = os.environ["DATABASE_URL"]
+for f in sorted(pathlib.Path("db/migrations").glob("*.sql")):
+    sql = "\n".join(l for l in f.read_text(encoding="utf-8").splitlines()
+                    if not l.lstrip().startswith("\\"))
+    conn = psycopg.connect(url, connect_timeout=15)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+        conn.commit(); print("OK  ", f.name)
+    except Exception as e:
+        conn.rollback(); print("FAIL", f.name, type(e).__name__, e)
+    finally:
+        conn.close()
+PY
+```
+
+Para listar los `ENV_ID` de Vercel:
+`GET https://api.vercel.com/v9/projects/<proyecto>/env?teamId=<team>`.
+
+> OJO con las env vars de tipo **`sensitive`** (p. ej. `JWT_SECRET`): la API no
+> devuelve su valor aunque pidas `decrypt=true` (llega vacío). `DATABASE_URL` es
+> de tipo `encrypted`, así que sí se puede leer con `decrypt=true`.
+
+## Migración automática en el deploy
+
+`.github/workflows/migrate.yml` corre **solo si CI pasa en `master`**
+(`workflow_run`): aplica las migraciones pendientes y luego exige que
+`/api/health` reporte `schema: ok`. Cierra la brecha de "el código se despliega
+y las migraciones no".
+
+Requiere dos cosas configuradas una sola vez en el repo de GitHub:
+
+| Tipo | Nombre | Valor |
+|---|---|---|
+| Secret | `SUPABASE_DB_URL` | connection string de producción (`postgresql://postgres.<ref>:<pass>@aws-0-us-east-1.pooler.supabase.com:6543/postgres`) |
+| Variable | `PRODUCTION_HEALTH_URL` | (opcional) URL de `/api/health`; por defecto el dominio de Vercel |
+
+Sin el secret, el workflow falla en rojo a propósito (mejor un fallo visible que
+una migración silenciosamente omitida).
 
 ## Reconstruir la base local de desarrollo
 

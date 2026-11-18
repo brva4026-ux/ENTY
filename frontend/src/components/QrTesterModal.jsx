@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
 import { fetchPublicTicket } from "../lib/api";
 import { eventDate } from "../lib/format";
 import Icon from "./Icon";
@@ -47,6 +46,7 @@ export default function QrTesterModal({ onClose }) {
     setCamError("");
     setResult(null);
     try {
+      const { Html5Qrcode } = await import("html5-qrcode");
       const qr = new Html5Qrcode("qr-tester-region");
       html5Ref.current = qr;
       await qr.start(

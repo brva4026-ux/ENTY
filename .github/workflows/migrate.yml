@@ -1,0 +1,122 @@
+name: Migrar produccion
+
+# Por que existe este workflow
+# ----------------------------
+# Vercel auto-despliega el repo en cada push a master, pero las migraciones de
+# Supabase corrian SOLO a mano (scripts/deploy.sh). Nada obligaba a que el
+# codigo y el esquema llegaran juntos: la app podia quedar desplegada usando
+# columnas/funciones que la base todavia no tenia (500 en las rutas nuevas) y
+# `/health` reportaba `schema: behind` sin que nadie se enterara.
+#
+# Este workflow cierra esa brecha: cuando CI pasa en master, aplica las
+# migraciones pendientes y luego exige que `/health` diga `schema: ok`. Si algo
+# falla, el job se pone rojo y queda registrado.
+#
+# Se dispara con `workflow_run` (no con `push`) para no migrar sobre codigo que
+# no paso los tests. Las migraciones son idempotentes (safe re-run), asi que
+# correrlas de mas no rompe nada.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [master]
+
+concurrency:
+  # Una migracion a la vez: dos corridas solapadas sobre el mismo esquema son
+  # una fuente de locks y de resultados confusos.
+  group: migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar psycopg
+        run: pip install --no-cache-dir "psycopg[binary]"
+
+      - name: Aplicar migraciones pendientes
+        # Se aplica cada archivo en SU PROPIA transaccion: un fallo en una
+        # migracion no arrastra a las siguientes (el bug de la 046 abortaba la
+        # transaccion y, con set -e, la lista entera). Si una falla, el job se
+        # detiene aqui con el archivo culpable en el log.
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          python - <<'PY'
+          import os, pathlib, sys, psycopg
+
+          url = os.environ.get("DATABASE_URL", "").strip()
+          if not url:
+              print("::error::Falta el secret SUPABASE_DB_URL "
+                    "(connection string de produccion de Supabase).")
+              sys.exit(1)
+
+          root = pathlib.Path("db/migrations")
+          files = sorted(root.glob("*.sql"))
+          if not files:
+              print("::error::No hay migraciones en db/migrations/")
+              sys.exit(1)
+
+          failed = []
+          for f in files:
+              sql = "\n".join(
+                  line for line in f.read_text(encoding="utf-8").splitlines()
+                  if not line.lstrip().startswith("\\")
+              )
+              conn = psycopg.connect(url, connect_timeout=15)
+              try:
+                  with conn.cursor() as cur:
+                      cur.execute(sql)
+                  conn.commit()
+                  print(f"OK   {f.name}")
+              except Exception as e:
+                  conn.rollback()
+                  print(f"::error::FALLO {f.name}: {type(e).__name__}: {e}")
+                  failed.append(f.name)
+              finally:
+                  conn.close()
+
+          if failed:
+              print("::error::Migraciones fallidas: " + ", ".join(failed))
+              sys.exit(1)
+          print("todas las migraciones aplicadas")
+          PY
+
+      - name: "Verificar /health (schema: ok)"
+        # La migracion que "no falla" pero deja el esquema a medias no existe:
+        # si /health no dice `schema: ok`, algo quedo sin aplicar. El chequeo
+        # del guard tiene cache de 60 s, asi que se reintenta un rato.
+        env:
+          HEALTH_URL: ${{ vars.PRODUCTION_HEALTH_URL }}
+        run: |
+          python - <<'PY'
+          import json, os, sys, time, urllib.request
+
+          url = os.environ.get("HEALTH_URL", "").strip() \
+              or "https://ticketflow-chi-ten.vercel.app/api/health"
+          deadline = time.time() + 180
+          last = None
+          while time.time() < deadline:
+              try:
+                  with urllib.request.urlopen(url, timeout=10) as r:
+                      last = json.load(r)
+                  if last.get("schema") == "ok" and last.get("status") == "ok":
+                      print("health ok:", last)
+                      sys.exit(0)
+              except Exception as e:
+                  last = {"error": str(e)}
+              time.sleep(10)
+          print("::error::/health no reporto schema=ok tras la migracion: "
+                f"{last}")
+          sys.exit(1)
+          PY

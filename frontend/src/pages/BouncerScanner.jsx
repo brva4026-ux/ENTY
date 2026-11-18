@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Html5Qrcode } from "html5-qrcode";
 import { apiFetch } from "../lib/api";
 import { activeVenueId } from "../lib/venue";
 import { playForCode, playOffline } from "../lib/doorSounds";
@@ -299,11 +298,16 @@ export default function BouncerScanner() {
   );
 
   // Cuenta atrás del cooldown de reintento (solo mientras hay uno pendiente).
+  // La dependencia es el booleano "está en cooldown", no el contador: si
+  // dependiera de `retryIn`, el interval se recrearía cada segundo (funciona,
+  // pero tira y levanta un timer por nada). Extraído a variable para que el
+  // linter pueda verificarlo estáticamente.
+  const cooling = retryIn > 0;
   useEffect(() => {
-    if (retryIn <= 0) return;
+    if (!cooling) return;
     const id = setInterval(() => setRetryIn((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
-  }, [retryIn > 0]);
+  }, [cooling]);
 
   async function startScanner() {
     setError("");
@@ -318,6 +322,13 @@ export default function BouncerScanner() {
     requestWakeLock();
     autoReacquireWakeLock();
     try {
+      // Import dinámico: html5-qrcode pesa ~230KB y solo se usa al abrir la
+      // cámara. Con el import estático, entrar al escáner bajaba la librería
+      // completa antes de poder mostrar nada; con éste, el chunk "scanner" se
+      // pide en el gesto de activar (cuando el usuario ya decidió escanear).
+      // El service worker precachea el chunk, así que en puerta con red mala
+      // sigue disponible offline.
+      const { Html5Qrcode } = await import("html5-qrcode");
       const qr = new Html5Qrcode("qr-reader-region");
       html5Ref.current = qr;
       await qr.start(
