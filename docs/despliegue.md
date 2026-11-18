@@ -129,9 +129,15 @@ node run-sql.js ../db/migrations/004_ticket_reissue.sql
 
 ## Paso 3 — Datos demo (`scripts/seed_prod.sql`)
 
+> **⚠️ Seguridad — este paso crea cuentas con contraseña conocida.** El script
+> es público (este repo lo es) y su hash bcrypt de `demo1234` está a la vista:
+> cualquiera que lea el repositorio puede entrar como `admin@bar.test`. En un
+> deploy real **es obligatorio rotar las contraseñas justo después** (Paso 3b).
+> Si el sitio no es una demo desechable, considera no correr este paso.
+
 Equivalente a `POST /seed` pero **seguro para producción**: usa hashes bcrypt
 reales (no abre el endpoint de seed) y es **idempotente** — se puede re-ejecutar
-sin duplicar datos.
+sin duplicar datos (`ON CONFLICT DO NOTHING`: no pisa contraseñas ya rotadas).
 
 Crea:
 
@@ -148,9 +154,27 @@ Crea:
 node run-sql.js seed_prod.sql
 ```
 
-> ⚠️ Para una venue **real**, no reuses estos usuarios: crea los usuarios con
-> contraseñas nuevas y cámbiales los hashes (bcrypt cost 12), o créalos desde
-> la UI una vez exista onboarding.
+## Paso 3b — Rotar las contraseñas demo (obligatorio si hay datos reales)
+
+Las contraseñas `demo1234` son públicas. Rotarlas en cuanto se siembre. Hay dos
+caminos:
+
+**Vía API (recomendado, también mata las sesiones existentes):** entrando como
+`admin@bar.test` con la contraseña demo, cada `POST
+/api/venues/{venue_id}/users/{user_id}/reset-password` cambia la contraseña y
+sube `token_version` (las sesiones del usuario reseteado quedan invalidadas).
+Ojo: el reset **del propio admin** invalida tu token, así que re-logueate con la
+contraseña nueva para seguir con el resto.
+
+**Vía SQL directo** (con `run-sql.js`, reemplaza los hashes por los nuevos):
+```sql
+UPDATE users SET password_hash = '<bcrypt cost 12>' WHERE email = 'admin@bar.test';
+```
+O, más simple: para una venue real, no reuses estos usuarios — créalos desde la
+UI con contraseñas propias.
+
+> Si el sitio no es una demo desechable, **no corras el Paso 3** en absoluto:
+> el seed existe para una vitrina de demostración, no para operación real.
 
 ## Verificación post-reconstrucción
 

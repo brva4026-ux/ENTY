@@ -603,6 +603,12 @@ verde sin correr nada.
 
 ## Datos demo
 
+> **⚠️ Credenciales públicas.** Estas cuentas y su contraseña (`demo1234`) están
+> en un repositorio público: cualquiera puede leerlas y entrar como admin. En
+> cualquier deploy con datos reales **hay que rotarlas** (ver
+> `docs/despliegue.md`, Paso 3b). El deploy demo de Vercel las tenía activas
+> hasta nov-2026; ya están rotadas ahí.
+
 Venue `Bar Esquina` (slug `bar-esquina`), evento `Noche Electrónica`.
 Usuarios con contraseña `demo1234`:
 

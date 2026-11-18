@@ -1,5 +1,11 @@
 -- Seed de producción (Supabase): venue demo + 4 usuarios + evento publicado
 -- con tipos y cupos. Idempotente: se puede re-ejecutar sin duplicar datos.
+--
+-- ⚠️ SEGURIDAD: crea cuentas con contraseña conocida ('demo1234') y este repo
+-- es PÚBLICO, así que cualquiera puede entrar como admin@bar.test. En un deploy
+-- con datos reales hay que ROTAR las contraseñas tras sembrar (ver
+-- docs/despliegue.md, Paso 3b). Si el sitio no es una demo desechable, no
+-- corras este archivo.
 
 INSERT INTO venues (name, slug)
 VALUES ('Bar Esquina', 'bar-esquina')
