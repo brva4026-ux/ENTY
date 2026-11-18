@@ -483,6 +483,23 @@ actuales; el único que se vio de nuevo es un login del admin que a veces no
 alcanza a montar la tarjeta de bienvenida bajo 2 workers
 (`login-welcome.spec.js:172`), y pasa aislado.
 
+### node --test: el glob solo lo expande Node 21+ (CI usa Node 20)
+
+`npm run test:unit` es un gate de CI (job `frontend`, paso "Tests unitarios").
+La forma natural, `node --test "src/**/*.test.mjs"`, **no funciona en Node 20**:
+hasta Node 21 `node --test` no expande globs y muere con `Could not find
+'.../src/**/*.test.mjs'`. En una máquina con Node ≥21 (p. ej. v24) el mismo
+comando pasa, así que el fallo solo aparece en CI — el peor sitio para
+descubrirlo. Por eso el script descubre los archivos con `find` y los pasa
+explícitos, que es portable en 20 y 24:
+
+```json
+"test:unit": "files=$(find src -name '*.test.mjs'); test -n \"$files\" && node --test $files"
+```
+
+El `test -n` es a propósito: sin tests, el script **falla** en vez de pasar en
+verde sin correr nada.
+
 ## Convenciones
 
 - **Idioma**: identificadores y comentarios en español, sin tildes en el código.
