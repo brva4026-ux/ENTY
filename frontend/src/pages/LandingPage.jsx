@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchPublicEvents } from "../lib/api";
 import { money } from "../lib/format";
 import { track } from "../lib/analytics";
@@ -8,7 +8,12 @@ import { Logo } from "../components/Brand";
 import TransitionLink from "../components/TransitionLink";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { prefersReducedMotion } from "../lib/motion";
+import { richMotion } from "../lib/perf";
 import useScrollReveal from "../lib/useScrollReveal";
+import useSectionSpy from "../lib/useSectionSpy";
+import useParallax from "../lib/useParallax";
+import useInViewOnce from "../lib/useInViewOnce";
+import { useCountUp } from "../lib/useCountUp";
 
 /**
  * Presentación pública de Enty (la raíz "/").
@@ -100,13 +105,37 @@ const FEATURES = [
   },
 ];
 
-/** Línea de confianza: solo cosas que se pueden comprobar en la app. */
+/** Frases de confianza: solo cosas que se pueden comprobar en la app. */
 const TRUST = [
   "Se entiende sin manual",
   "Todo se actualiza en vivo",
   "Funciona sin señal en la puerta",
   "La información queda ordenada",
 ];
+
+/** Secciones que el índice de la portada puede marcar como activas. */
+const SECTION_IDS = ["funciones", "eventos"];
+
+/** Índice: solo las secciones con encabezado propio. */
+const NAV_ITEMS = [
+  { id: "funciones", label: "Funciones" },
+  { id: "eventos", label: "Eventos abiertos" },
+];
+
+/** Cifra de la línea de confianza: cuenta al asomar, una sola vez. */
+function TrustStat({ value, label, seen }) {
+  const n = useCountUp(seen ? value : 0, { duration: 800 });
+  return (
+    <>
+      <span className="lp-trust-check" aria-hidden="true">
+        <CheckIcon />
+      </span>
+      <span className="lp-trust-text">
+        <b className="lp-trust-num">{Math.round(n)}</b> {label}
+      </span>
+    </>
+  );
+}
 
 /** Un mismo trazo para todos los iconos: 24px, 1.6, esquinas redondeadas. */
 function FeatureIcon({ name }) {
@@ -196,6 +225,15 @@ export default function LandingPage() {
 
   // Revela por scroll: cada bloque entra cuando asoma, no todos al cargar.
   const { rootRef, enabled: reveal } = useScrollReveal(data);
+  // Con red lenta o ahorro de datos, la capa rica no se monta (misma puerta
+  // que el revelado). El contenido se ve igual: solo se apaga el adorno.
+  const rich = useMemo(() => richMotion(), []);
+  useParallax({ ref: rootRef, factor: 0.15, max: 90, enabled: rich });
+  const { active, progress, scrolled } = useSectionSpy(SECTION_IDS);
+
+  // Cifras de la linea de confianza: cuentan al asomar, una sola vez.
+  const trustRef = useRef(null);
+  const trustSeen = useInViewOnce(trustRef, { enabled: rich });
 
   useEffect(() => {
     let alive = true;
@@ -237,13 +275,139 @@ export default function LandingPage() {
       behavior: prefersReducedMotion() ? "auto" : "smooth",
       block: "start",
     });
+    // El clic es una navegación real: la barra de direcciones debe reflejarla
+    // (compartir "…/#eventos" tiene que funcionar). `replaceState` no dispara
+    // el salto nativo, así que no pelea con el `scrollIntoView` de arriba.
+    if (window.history?.replaceState) {
+      window.history.replaceState(null, "", `#${id}`);
+    }
   }
+
+  /**
+   * Ancla en carga fría (`/#eventos` compartido por WhatsApp).
+   *
+   * El navegador resuelve el `#hash` antes de que React monte la sección, así
+   * que no encuentra el destino y se queda arriba.
+   *
+   * Y aunque el destino exista, la altura de la página sigue cambiando después
+   * del salto: la cartelera llega async y el aviso de cookies empuja el
+   * documento hacia abajo. Por eso no basta con saltar una vez; hay que
+   * re-ajustar mientras la página se asienta. Se vigila la altura del
+   * documento y solo se vuelve a alinear cuando cambia, porque no se sabe
+   * cuándo llega la cartelera: con temporizadores fijos, en una red lenta la
+   * respuesta entra después del último y el ancla queda corta.
+   *
+   * Se vigila `scrollHeight` y no con `ResizeObserver`: la caja de `<html>` y
+   * de `<body>` mide el viewport (el contenido desborda sin cambiar su
+   * altura), así que el observer nunca dispara.
+   *
+   * Tres guardas para no secuestrar la página:
+   *  - Un `wheel`, `touchmove` o `keydown` (el usuario ya va por su cuenta)
+   *    corta la vigilancia en el acto.
+   *  - La ventana se cierra sola a los 6 s: pasado ese punto la página ya no
+   *    cambia de altura.
+   *  - El efecto corre una sola vez (`[]`). Si dependiera de `data`, cada
+   *    llegada de la cartelera lo re-ejecutaría y devolvería a la sección a
+   *    quien ya se había ido a leer otra parte.
+   */
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+    if (!id || !SECTION_IDS.includes(id)) return;
+    if (!document.getElementById(id)) return;
+
+    let active = true;
+    let raf = 0;
+    let timer = 0;
+    let lastHeight = -1;
+    let frame = 0;
+    const INTENT = ["wheel", "touchmove", "keydown"];
+
+    // `scrollIntoView` deja el destino a `scroll-padding-top` del borde; se
+    // mide en vez de clavar 72 px porque el valor cambia con la tipografía.
+    const offset = () => {
+      const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
+      return Number.isFinite(pad) ? pad : 0;
+    };
+
+    const stop = () => {
+      active = false;
+      clearTimeout(timer);
+      if (raf) cancelAnimationFrame(raf);
+      for (const ev of INTENT) window.removeEventListener(ev, stop);
+    };
+
+    const align = () => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      // Ya alineado (dentro de 4 px): no hay nada que corregir.
+      if (Math.abs(target.getBoundingClientRect().top - offset()) < 4) return;
+      // Instantáneo, como el salto nativo de un `#hash`: un desplazamiento
+      // suave aquí se vería como un tirón en cada corrección.
+      target.scrollIntoView({ block: "start" });
+    };
+
+    // Cada 6 frames (~10/s) basta para acompañar un asentamiento y no fuerza
+    // layout en cada frame.
+    const watch = () => {
+      raf = 0;
+      if (!active) return;
+      frame += 1;
+      if (frame % 6 === 0) {
+        const height = document.documentElement.scrollHeight;
+        if (height !== lastHeight) {
+          lastHeight = height;
+          align();
+        }
+      }
+      raf = requestAnimationFrame(watch);
+    };
+
+    for (const ev of INTENT) {
+      window.addEventListener(ev, stop, { passive: true, once: true });
+    }
+    align();
+    lastHeight = document.documentElement.scrollHeight;
+    raf = requestAnimationFrame(watch);
+    timer = setTimeout(stop, 6000);
+
+    return stop;
+  }, []);
 
   return (
     <div ref={rootRef} className={reveal ? "lp lp-anim" : "lp"}>
       <a href="#lp-contenido" className="lp-skip">
         Saltar al contenido
       </a>
+
+      {/* Progreso de lectura: 2px de violeta en el borde superior. Es un
+          indicador, no un adorno: en una página que se recorre entera dice
+          cuánto falta sin robar altura. `aria-hidden` porque duplica lo que
+          ya anuncian los encabezados. */}
+      <div
+        className={scrolled ? "lp-progress is-on" : "lp-progress"}
+        aria-hidden="true"
+        style={{ "--p": progress }}
+      />
+
+      {/* Índice de secciones: aparece al salir del hero y marca sola la
+          sección que se está leyendo. En móvil va pegado arriba y desplaza
+          horizontalmente si no cabe (nunca rompe el ancho). */}
+      <nav
+        className={scrolled ? "lp-index is-on" : "lp-index"}
+        aria-label="Secciones de la portada"
+      >
+        {NAV_ITEMS.map((item) => (
+          <a
+            key={item.id}
+            href={`#${item.id}`}
+            className={active === item.id ? "lp-index-link is-active" : "lp-index-link"}
+            aria-current={active === item.id ? "true" : undefined}
+            onClick={(e) => scrollToSection(e, item.id)}
+          >
+            {item.label}
+          </a>
+        ))}
+      </nav>
 
       <div className="lp-wrap">
         {/* --- Marca: logotipo centrado + qué es Enty ------------------- */}
@@ -306,7 +470,7 @@ export default function LandingPage() {
                   key={f.name}
                   className="lp-card"
                   style={{ "--i": i }}
-                  data-reveal
+                  data-reveal="card"
                 >
                   <span className="lp-card-icon" aria-hidden="true">
                     <FeatureIcon name={f.icon} />
@@ -438,7 +602,7 @@ export default function LandingPage() {
           </section>
 
           {/* --- Línea de confianza ------------------------------------- */}
-          <ul className="lp-trust" aria-label="Por qué funciona">
+          <ul className="lp-trust" aria-label="Por qué funciona" ref={trustRef}>
             {TRUST.map((t, i) => (
               <li
                 key={t}
@@ -449,9 +613,25 @@ export default function LandingPage() {
                 <span className="lp-trust-check" aria-hidden="true">
                   <CheckIcon />
                 </span>
-                {t}
+                <span className="lp-trust-text">{t}</span>
               </li>
             ))}
+            {/* Cuenta lo que se ve justo arriba (la lista se corta a 4): una
+                cifra que no cuadre con las tarjetas se lee como mentira.
+                Con una sola noche no hay nada que contar, así que se omite. */}
+            {openEvents.length > 1 && (
+              <li
+                className="lp-trust-item lp-trust-item-stat"
+                style={{ "--i": TRUST.length }}
+                data-reveal
+              >
+                <TrustStat
+                  value={openEvents.length}
+                  label="noches con venta abierta ahora"
+                  seen={trustSeen}
+                />
+              </li>
+            )}
           </ul>
         </main>
 

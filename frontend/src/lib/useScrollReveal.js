@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { prefersReducedMotion } from "./motion";
+import { richMotion } from "./perf";
 
 /**
  * Revela al entrar en pantalla.
@@ -20,8 +20,9 @@ import { prefersReducedMotion } from "./motion";
  * minimo.
  *
  * Dos guardas para no dejar contenido invisible:
- *  - Movimiento reducido (SO o preferencia de la app) -> `enabled` es false, no
- *    se pone la clase que esconde y todo queda visible desde el primer frame.
+ *  - Movimiento reducido (SO o preferencia de la app) o red lenta/ahorro de
+ *    datos -> `enabled` es false, no se pone la clase que esconde y todo queda
+ *    visible desde el primer frame.
  *  - El estado oculto vive SOLO bajo `.lp-anim`; si el efecto no llegara a
  *    correr, el contenido no depende de el para verse.
  *
@@ -31,7 +32,7 @@ import { prefersReducedMotion } from "./motion";
 export default function useScrollReveal(key) {
   const rootRef = useRef(null);
   const [enabled] = useState(
-    () => !prefersReducedMotion() && typeof window !== "undefined",
+    () => richMotion() && typeof window !== "undefined",
   );
 
   useEffect(() => {

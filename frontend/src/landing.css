@@ -37,13 +37,17 @@
 }
 
 /* Atmósfera: un lavado muy tenue desde arriba, del mismo violeta de la
-   marca. Da profundidad sin convertirse en decoración. */
+   marca. Da profundidad sin convertirse en decoración.
+   Se desplaza con el scroll a 0.15x (`--parallax-y`, ver lib/useParallax.js):
+   el lavado se queda un poco atrás y el texto gana delante. Sin JS la
+   variable vale 0 y la capa queda quieta, así que no hay estado raro. */
 .lp::before {
   content: "";
   position: absolute;
   inset: 0 0 auto;
   height: 34rem;
   pointer-events: none;
+  translate: 0 var(--parallax-y, 0px);
   background: radial-gradient(
     58rem 26rem at 50% -12rem,
     color-mix(in srgb, var(--e-violet-400) 14%, transparent),
@@ -53,6 +57,84 @@
 
 .lp > * {
   position: relative;
+}
+
+/* Progreso de lectura: 2px en el borde superior. Aparece cuando la página ya
+   se movió (en el hero no informa nada) y crece con `--p` (0..1). */
+.lp-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 45;
+  height: 2px;
+  pointer-events: none;
+  background: var(--e-violet-500);
+  transform: scaleX(var(--p, 0));
+  transform-origin: 0 50%;
+  opacity: 0;
+  transition: opacity var(--e-dur-base) var(--e-ease-standard);
+}
+.lp-progress.is-on {
+  opacity: 1;
+}
+
+/* Índice de secciones: pastilla blanca con los dos destinos reales. Aparece
+   al salir del hero, se pega arriba y marca la sección que se lee. */
+.lp-index {
+  position: fixed;
+  top: var(--e-space-3);
+  left: 50%;
+  z-index: 44;
+  display: flex;
+  gap: var(--e-space-1);
+  max-width: calc(100vw - var(--e-space-6));
+  padding: var(--e-space-1);
+  border-radius: var(--e-radius-pill);
+  border: 1px solid var(--lp-line);
+  background: var(--e-white);
+  box-shadow: var(--e-elev-overlay);
+  overflow-x: auto;
+  scrollbar-width: none;
+  translate: -50% -140%;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    translate var(--e-dur-slow) var(--e-ease-expo),
+    opacity var(--e-dur-base) var(--e-ease-standard),
+    visibility 0s linear var(--e-dur-slow);
+}
+.lp-index.is-on {
+  translate: -50% 0;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.lp-index-link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 var(--e-space-3);
+  border-radius: var(--e-radius-pill);
+  font-size: var(--e-text-2xs);
+  font-weight: 600;
+  color: var(--lp-ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color var(--e-dur-fast) var(--e-ease-standard),
+    background var(--e-dur-fast) var(--e-ease-standard);
+}
+.lp-index-link:hover {
+  color: var(--e-neutral-950);
+  background: var(--e-neutral-60);
+}
+.lp-index-link.is-active {
+  color: var(--e-violet-700);
+  background: color-mix(in srgb, var(--e-violet-500) 10%, transparent);
+}
+.lp-index-link:focus-visible {
+  outline: 2px solid var(--e-violet-500);
+  outline-offset: 2px;
 }
 
 .lp-wrap {
@@ -516,6 +598,21 @@
   color: var(--lp-ink-mute);
 }
 
+.lp-trust-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+/* La cifra: el dato manda. Se pone en tinta firme y un punto mas grande para
+   que el ojo lo encuentre antes que la frase que lo explica. */
+.lp-trust-num {
+  font-size: var(--e-text-sm);
+  font-weight: 700;
+  color: var(--e-neutral-950);
+  font-variant-numeric: tabular-nums;
+}
+
 /* El check es el único verde de la página: señala, no decora. */
 .lp-trust-check {
   display: inline-grid;
@@ -587,15 +684,29 @@
 .lp-anim [data-reveal] {
   opacity: 0;
 }
-.lp-anim [data-reveal].is-in {
-  animation: lp-reveal var(--e-dur-slow) var(--e-ease-expo) both;
-  animation-delay: calc(var(--i, 0) * 45ms);
-}
 /* Bajo el revelado, la tarjeta no corre ADEMÁS su entrada de carga (lp-rise):
    solo la animación de scroll, que es la que el ojo alcanza a ver. La regla
    `.is-in` tiene más especificidad y vuelve a encender la animación. */
 .lp-anim .lp-card {
   animation: none;
+}
+
+/* El gesto depende del tipo de bloque: una tarjeta es una superficie y entra
+   creciendo un pelo (0.98 -> 1); el texto entra solo desplazándose, sin
+   escalar, porque escalar texto se lee como un zoom y no como una entrada. */
+.lp-anim [data-reveal].is-in {
+  animation: lp-reveal var(--e-dur-slow) var(--e-ease-expo) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.lp-anim [data-reveal="card"].is-in {
+  animation-name: lp-reveal-card;
+}
+
+/* El sello de la fila: la fila ya entró, así que el sello "cae" sobre ella un
+   instante después. Es la firma del boleto y merece su propio tiempo, pero
+   corto: un pop que se nota demasiado se vuelve un tic. */
+.lp-anim .lp-event.is-in .lp-event-stamp {
+  animation: lp-stamp 260ms var(--e-ease-spring) 120ms both;
 }
 
 @keyframes lp-reveal {
@@ -609,6 +720,34 @@
   }
 }
 
+/* La tarjeta, además de subir, se asienta: 0.98 -> 1 en el mismo tiempo. Un
+   `scale` mayor se lee como zoom de foto, no como entrada de superficie. */
+@keyframes lp-reveal-card {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+    scale: 0.98;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+/* El sello de fecha da un paso al entrar: crece y vuelve, sin rebotar de más
+   (spring contenido). Es el único elemento que "cae" en la fila. */
+@keyframes lp-stamp {
+  0% {
+    scale: 0.88;
+  }
+  60% {
+    scale: 1.04;
+  }
+  100% {
+    scale: 1;
+  }
+}
 @keyframes lp-rise {
   from {
     opacity: 0;
@@ -685,10 +824,12 @@
   .lp-cta,
   .lp-card,
   .lp-anim [data-reveal],
-  .lp-anim [data-reveal].is-in {
+  .lp-anim [data-reveal].is-in,
+  .lp-anim .lp-event.is-in .lp-event-stamp {
     animation: none;
     opacity: 1;
     translate: none;
+    scale: none;
   }
   .lp-event-skeleton {
     animation: none;
@@ -697,7 +838,9 @@
   .lp-event,
   .lp-btn,
   .lp-card-icon,
-  .lp-event-stamp {
+  .lp-event-stamp,
+  .lp-index,
+  .lp-progress {
     transition: none;
   }
   .lp-card:hover,
@@ -709,6 +852,16 @@
   .lp-event:hover .lp-event-stamp {
     transform: none;
   }
+  /* El índice se queda quieto donde está: sin el deslizamiento de entrada,
+     aparece y desaparece sin viajar. */
+  .lp-index {
+    translate: -50% 0;
+  }
+  /* El parallax no se monta en JS, pero si el ajuste cambia con la página
+     montada la variable ya escrita se ignora aquí. */
+  .lp::before {
+    translate: none;
+  }
 }
 
 html[data-motion="reduce"] .lp-brand,
@@ -717,10 +870,12 @@ html[data-motion="reduce"] .lp-lede,
 html[data-motion="reduce"] .lp-cta,
 html[data-motion="reduce"] .lp-card,
 html[data-motion="reduce"] .lp-anim [data-reveal],
-html[data-motion="reduce"] .lp-anim [data-reveal].is-in {
+html[data-motion="reduce"] .lp-anim [data-reveal].is-in,
+html[data-motion="reduce"] .lp-anim .lp-event.is-in .lp-event-stamp {
   animation: none;
   opacity: 1;
   translate: none;
+  scale: none;
 }
 html[data-motion="reduce"] .lp-event-skeleton {
   animation: none;
@@ -733,4 +888,10 @@ html[data-motion="reduce"] .lp-btn-secondary:hover,
 html[data-motion="reduce"] .lp-btn-wa:hover,
 html[data-motion="reduce"] .lp-event:hover .lp-event-stamp {
   transform: none;
+}
+html[data-motion="reduce"] .lp-index {
+  translate: -50% 0;
+}
+html[data-motion="reduce"] .lp::before {
+  translate: none;
 }
