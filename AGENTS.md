@@ -1520,6 +1520,20 @@ respuestas son JSON y las dos páginas HTML propias no ejecutan JavaScript.
   `CATEGORY_CHIPS` en `HomePage.jsx`). Una columna real es follow-up.
 - **Sin checkout publico todavia:** el CTA "Comprar boleto" del detalle apunta a
   `/boletas` (el fan recupera lo ya emitido por contacto).
+- **Revelado por scroll en la portada (`/`)**: `landing.css` esconde bajo
+  `.lp-anim [data-reveal]` y `lib/useScrollReveal.js` pone `is-in` cuando el
+  bloque asoma. Tres reglas: (1) el estado oculto vive SOLO bajo `.lp-anim`, que
+  el hook agrega cuando el movimiento esta permitido, asi que sin JS o con
+  movimiento reducido todo se ve desde el primer frame; (2) el hook mide con
+  `getBoundingClientRect` en un `requestAnimationFrame` por scroll, **no** con
+  `IntersectionObserver` — el observer solo avisa cuando la interseccion CAMBIA,
+  y un bloque que salta de "debajo" a "encima" del viewport de una sola vez (un
+  ancla, un scroll muy rapido) nunca intersecta y se quedaria invisible; (3) el
+  revelado usa `animation` (no `transition`) porque las tarjetas ya usan
+  `transition` para su hover, y anima `opacity` + `translate` (propiedad
+  independiente) para no pisar el `transform` del hover. El `tf_motion=reduce`
+  de la regresion visual desarma el revelado, por eso las capturas de portada no
+  cambian al tocarlo.
 
 ## Admin: salud de puerta (duplicados / rechazos)
 

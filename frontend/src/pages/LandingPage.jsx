@@ -7,6 +7,8 @@ import { waLink } from "../lib/whatsapp";
 import { Logo } from "../components/Brand";
 import TransitionLink from "../components/TransitionLink";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { prefersReducedMotion } from "../lib/motion";
+import useScrollReveal from "../lib/useScrollReveal";
 
 /**
  * Presentación pública de Enty (la raíz "/").
@@ -192,6 +194,9 @@ export default function LandingPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
+  // Revela por scroll: cada bloque entra cuando asoma, no todos al cargar.
+  const { rootRef, enabled: reveal } = useScrollReveal(data);
+
   useEffect(() => {
     let alive = true;
     fetchPublicEvents({ limit: 60 })
@@ -221,10 +226,21 @@ export default function LandingPage() {
   const openEvents = events.slice(0, 4);
 
   /** "Explorar ENTY" baja a las funcionalidades: el explorar es real, no un
-   *  botón decorativo. Se hace con el ancla nativa para que funcione incluso
-   *  antes de que React hidrate la página. */
+   *  botón decorativo. Conserva el ancla nativa (funciona incluso antes de que
+   *  React hidrate y con JS apagado); cuando hay JS se suaviza el salto, salvo
+   *  si el movimiento está reducido, donde el salto directo es lo correcto. */
+  function scrollToSection(e, id) {
+    const el = document.getElementById(id);
+    if (!el) return; // sin destino: que actúe el ancla nativa
+    e.preventDefault();
+    el.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+  }
+
   return (
-    <div className="lp">
+    <div ref={rootRef} className={reveal ? "lp lp-anim" : "lp"}>
       <a href="#lp-contenido" className="lp-skip">
         Saltar al contenido
       </a>
@@ -260,7 +276,11 @@ export default function LandingPage() {
               <TransitionLink to="/login" className="lp-btn lp-btn-secondary">
                 Iniciar sesión
               </TransitionLink>
-              <a href="#funciones" className="lp-btn lp-btn-ghost">
+              <a
+                href="#funciones"
+                className="lp-btn lp-btn-ghost"
+                onClick={(e) => scrollToSection(e, "funciones")}
+              >
                 Explorar ENTY
               </a>
             </div>
@@ -272,10 +292,10 @@ export default function LandingPage() {
             className="lp-features"
             aria-labelledby="lp-features-title"
           >
-            <h2 id="lp-features-title" className="lp-h2">
+            <h2 id="lp-features-title" className="lp-h2" data-reveal>
               Todo lo que necesitas para la noche
             </h2>
-            <p className="lp-sub">
+            <p className="lp-sub" data-reveal>
               Seis herramientas que ya funcionan juntas: la venta, la puerta y la
               cuenta del cierre.
             </p>
@@ -286,6 +306,7 @@ export default function LandingPage() {
                   key={f.name}
                   className="lp-card"
                   style={{ "--i": i }}
+                  data-reveal
                 >
                   <span className="lp-card-icon" aria-hidden="true">
                     <FeatureIcon name={f.icon} />
@@ -303,7 +324,7 @@ export default function LandingPage() {
             className="lp-events-block"
             aria-labelledby="lp-events-title"
           >
-            <div className="lp-events-head">
+            <div className="lp-events-head" data-reveal>
               <div>
                 <h2 id="lp-events-title" className="lp-h2">
                   Eventos abiertos
@@ -339,7 +360,7 @@ export default function LandingPage() {
 
             {openEvents.length > 0 && (
               <ul className="lp-list">
-                {openEvents.map((e) => {
+                {openEvents.map((e, i) => {
                   const stamp = stampLabel(e.starts_at, e.timezone);
                   const wa = e.contact_phone
                     ? waLink(
@@ -352,7 +373,12 @@ export default function LandingPage() {
                       )
                     : null;
                   return (
-                    <li key={e.id} className="lp-event">
+                    <li
+                      key={e.id}
+                      className="lp-event"
+                      style={{ "--i": i }}
+                      data-reveal
+                    >
                       <div className="lp-event-stamp" aria-hidden="true">
                         <b>{stamp.day}</b>
                         <i>{stamp.month}</i>
@@ -413,8 +439,13 @@ export default function LandingPage() {
 
           {/* --- Línea de confianza ------------------------------------- */}
           <ul className="lp-trust" aria-label="Por qué funciona">
-            {TRUST.map((t) => (
-              <li key={t} className="lp-trust-item">
+            {TRUST.map((t, i) => (
+              <li
+                key={t}
+                className="lp-trust-item"
+                style={{ "--i": i }}
+                data-reveal
+              >
                 <span className="lp-trust-check" aria-hidden="true">
                   <CheckIcon />
                 </span>

@@ -230,6 +230,14 @@
   background: var(--e-emerald-700);
 }
 
+/* Los CTA sólidos se levantan al pasar el cursor: el mismo gesto de la casa
+   (`--e-lift`), para que la página responda antes del clic. */
+.lp-btn-primary:hover,
+.lp-btn-secondary:hover,
+.lp-btn-wa:hover {
+  transform: translateY(var(--e-lift));
+}
+
 /* --------------------------------------------------------------------------
  *  4. FUNCIONALIDADES
  * ------------------------------------------------------------------------- */
@@ -413,6 +421,14 @@
   border-radius: var(--e-radius-sm);
   border: 1px solid var(--lp-line);
   background: var(--e-neutral-100);
+  transition:
+    transform var(--e-dur-base) var(--e-ease-spring),
+    border-color var(--e-dur-base) var(--e-ease-standard);
+}
+/* La fila entera se levanta; el sello (la firma del boleto) da un paso más. */
+.lp-event:hover .lp-event-stamp {
+  transform: scale(1.05);
+  border-color: color-mix(in srgb, var(--e-violet-400) 45%, transparent);
 }
 .lp-event-stamp b {
   font-size: var(--e-text-lg);
@@ -559,6 +575,40 @@
 /* --------------------------------------------------------------------------
  *  8. MOVIMIENTO
  * ------------------------------------------------------------------------- */
+
+/* Revelado por scroll. El estado oculto vive SOLO bajo `.lp-anim`, que el
+   hook pone cuando el movimiento está permitido; sin JS o con movimiento
+   reducido no existe y todo se ve desde el primer frame.
+   Se anima con `animation` (no con `transition`): las tarjetas y los eventos
+   ya usan `transition` para su hover, y compartir el canal obligaría a que el
+   hover heredara el retardo del escalonado. La animación toca `opacity` y
+   `translate` (propiedad independiente), así convive con el `transform` del
+   hover sin pisarlo. */
+.lp-anim [data-reveal] {
+  opacity: 0;
+}
+.lp-anim [data-reveal].is-in {
+  animation: lp-reveal var(--e-dur-slow) var(--e-ease-expo) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+/* Bajo el revelado, la tarjeta no corre ADEMÁS su entrada de carga (lp-rise):
+   solo la animación de scroll, que es la que el ojo alcanza a ver. La regla
+   `.is-in` tiene más especificidad y vuelve a encender la animación. */
+.lp-anim .lp-card {
+  animation: none;
+}
+
+@keyframes lp-reveal {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
 @keyframes lp-rise {
   from {
     opacity: 0;
@@ -620,14 +670,25 @@
   }
 }
 
-/* Accesibilidad: con movimiento reducido nada entra ni se desplaza. */
+/* Accesibilidad: con movimiento reducido nada entra ni se desplaza.
+   Se cubren las dos puertas: el SO (`prefers-reduced-motion`) y la
+   preferencia de la app (`html[data-motion="reduce"]`, ver lib/motion.js). El
+   reset global de index.css solo anula la DURACIÓN; con `both` + retardo el
+   bloque aún parpadearía invisible esos 45-300ms, así que aquí se quita la
+   animación entera. El revelado ni siquiera se arma en JS con movimiento
+   reducido (`useScrollReveal`), pero se apaga también por CSS por si el
+   ajuste se cambia con la página ya montada. */
 @media (prefers-reduced-motion: reduce) {
   .lp-brand,
   .lp-title,
   .lp-lede,
   .lp-cta,
-  .lp-card {
+  .lp-card,
+  .lp-anim [data-reveal],
+  .lp-anim [data-reveal].is-in {
     animation: none;
+    opacity: 1;
+    translate: none;
   }
   .lp-event-skeleton {
     animation: none;
@@ -635,12 +696,41 @@
   .lp-card,
   .lp-event,
   .lp-btn,
-  .lp-card-icon {
+  .lp-card-icon,
+  .lp-event-stamp {
     transition: none;
   }
   .lp-card:hover,
   .lp-event:hover,
-  .lp-card:hover .lp-card-icon {
+  .lp-card:hover .lp-card-icon,
+  .lp-btn-primary:hover,
+  .lp-btn-secondary:hover,
+  .lp-btn-wa:hover,
+  .lp-event:hover .lp-event-stamp {
     transform: none;
   }
+}
+
+html[data-motion="reduce"] .lp-brand,
+html[data-motion="reduce"] .lp-title,
+html[data-motion="reduce"] .lp-lede,
+html[data-motion="reduce"] .lp-cta,
+html[data-motion="reduce"] .lp-card,
+html[data-motion="reduce"] .lp-anim [data-reveal],
+html[data-motion="reduce"] .lp-anim [data-reveal].is-in {
+  animation: none;
+  opacity: 1;
+  translate: none;
+}
+html[data-motion="reduce"] .lp-event-skeleton {
+  animation: none;
+}
+html[data-motion="reduce"] .lp-card:hover,
+html[data-motion="reduce"] .lp-event:hover,
+html[data-motion="reduce"] .lp-card:hover .lp-card-icon,
+html[data-motion="reduce"] .lp-btn-primary:hover,
+html[data-motion="reduce"] .lp-btn-secondary:hover,
+html[data-motion="reduce"] .lp-btn-wa:hover,
+html[data-motion="reduce"] .lp-event:hover .lp-event-stamp {
+  transform: none;
 }
