@@ -233,6 +233,22 @@ function auditInPage() {
 }
 
 async function audit(page) {
+  // Espera a que la app monte (el hook de revelado registra su listener de
+  // scroll en un efecto de React; si se baja antes, no hay quien escuche).
+  await page.waitForTimeout(700);
+  // Baja por la página y vuelve arriba antes de medir: los revelados por
+  // scroll (portada `/`) dejan el contenido bajo el pliegue en `opacity: 0`
+  // hasta que entra en pantalla. Sin este recorrido, ese contenido se mediría
+  // como texto invisible aunque en pantalla aparezca al bajar. Una vez
+  // revelado, el bloque se queda visible (`is-in` no se revierte).
+  await page.evaluate(async () => {
+    const step = Math.max(240, window.innerHeight * 0.8);
+    for (let y = 0; y <= document.documentElement.scrollHeight; y += step) {
+      window.scrollTo(0, y);
+      await new Promise((r) => requestAnimationFrame(() => r()));
+    }
+    window.scrollTo(0, 0);
+  });
   await page.waitForTimeout(700);
   // La cascada de entrada anima opacidad: medir a mitad de frame compondría la
   // tinta contra una opacidad que en reposo no existe (falso positivo). Se

@@ -1533,7 +1533,11 @@ respuestas son JSON y las dos páginas HTML propias no ejecutan JavaScript.
   `transition` para su hover, y anima `opacity` + `translate` (propiedad
   independiente) para no pisar el `transform` del hover. El `tf_motion=reduce`
   de la regresion visual desarma el revelado, por eso las capturas de portada no
-  cambian al tocarlo.
+  cambian al tocarlo. El audit de contraste de `e2e/a11y.spec.js` **recorre la
+  pagina** (scroll de arriba a abajo y vuelta) antes de medir: sin eso, el
+  contenido bajo el pliegue se mediria como texto invisible (opacidad 0) y
+  saltaria un falso positivo; el recorrido dispara los revelados y mide lo que
+  el usuario ve.
 
 ## Admin: salud de puerta (duplicados / rechazos)
 
