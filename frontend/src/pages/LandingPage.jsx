@@ -123,7 +123,7 @@ const NAV_ITEMS = [
 ];
 
 /** Cifra de la línea de confianza: cuenta al asomar, una sola vez. */
-function TrustStat({ value, label, seen }) {
+function TrustStat({ value, label, seen, plus }) {
   const n = useCountUp(seen ? value : 0, { duration: 800 });
   return (
     <>
@@ -131,7 +131,11 @@ function TrustStat({ value, label, seen }) {
         <CheckIcon />
       </span>
       <span className="lp-trust-text">
-        <b className="lp-trust-num">{Math.round(n)}</b> {label}
+        <b className="lp-trust-num">
+          {Math.round(n)}
+          {plus ? "+" : ""}
+        </b>{" "}
+        {label}
       </span>
     </>
   );
@@ -616,17 +620,21 @@ export default function LandingPage() {
                 <span className="lp-trust-text">{t}</span>
               </li>
             ))}
-            {/* Cuenta lo que se ve justo arriba (la lista se corta a 4): una
-                cifra que no cuadre con las tarjetas se lee como mentira.
-                Con una sola noche no hay nada que contar, así que se omite. */}
-            {openEvents.length > 1 && (
+            {/* Cuenta la cartelera entera, no las tarjetas de arriba (la
+                vista previa se corta a 4 y el bloque ya enlaza a "Ver la
+                cartelera completa"). `count` viene recortado al límite
+                pedido, así que con `has_more` se añade "+": una cifra exacta
+                que no es el total se lee como mentira. Con una sola noche no
+                hay nada que contar, así que se omite. */}
+            {data?.count > 1 && (
               <li
                 className="lp-trust-item lp-trust-item-stat"
                 style={{ "--i": TRUST.length }}
                 data-reveal
               >
                 <TrustStat
-                  value={openEvents.length}
+                  value={data.count}
+                  plus={data.has_more}
                   label="noches con venta abierta ahora"
                   seen={trustSeen}
                 />
