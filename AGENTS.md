@@ -600,6 +600,22 @@ verde sin correr nada.
   ```
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
+- **Ancla de la portada (`/#eventos`) en carga fría**: el navegador resuelve el
+  `#hash` antes de que React monte la sección, así que el salto hay que hacerlo
+  a mano, y la página sigue cambiando de alto después (la cartelera llega async
+  y el aviso de cookies empuja el documento). Por eso `LandingPage.jsx` vigila
+  `documentElement.scrollHeight` en un rAF y solo re-alinea cuando cambia.
+  **No sirve `ResizeObserver` sobre `<html>` ni sobre `<body>`**: su caja mide
+  el viewport (el contenido desborda sin cambiar su altura), así que el observer
+  nunca dispara y el ancla queda corta. Y el efecto debe depender de `[]`, no de
+  `data`: con `[data]`, cada llegada de la cartelera lo re-ejecuta y devuelve a
+  la sección a quien ya se había ido a leer otra parte.
+- **La línea de confianza de la portada cuenta `data.count`, no las tarjetas**:
+  la lista es una vista previa recortada a 4 (`openEvents`) y el bloque ya
+  enlaza a "Ver la cartelera completa", así que la cifra honesta es el total.
+  Ojo: `count` del API es `len(events)` ya recortado al `limit` pedido, así que
+  con `has_more` la UI añade "+" — un número exacto que no es el total se lee
+  como mentira.
 
 ## Datos demo
 
