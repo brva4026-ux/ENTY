@@ -25,7 +25,7 @@ export default function WaitingRoomOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/80 px-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="wr-title"
@@ -71,8 +71,8 @@ export default function WaitingRoomOverlay({
         )}
 
         {joining && (
-          <div className="mt-5 h-1 w-full overflow-hidden rounded-full bg-zinc-800">
-            <div className="h-full w-1/3 animate-pulse rounded-full bg-brand-500" />
+          <div className="mt-5 grid place-items-center">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent text-brand-400" />
           </div>
         )}
 

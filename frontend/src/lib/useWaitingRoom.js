@@ -49,7 +49,7 @@ function newSessionToken() {
   }
   const bytes = new Uint8Array(32);
   globalThis.crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes, (b) => (b + 256).toString(16).slice(1)).join("");
 }
 
 export function useWaitingRoom(eventId, enabled) {

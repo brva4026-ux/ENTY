@@ -9,8 +9,6 @@ Lo que se prueba, en orden de importancia:
 """
 import uuid
 
-import pytest
-
 
 def _tag() -> str:
     return uuid.uuid4().hex[:8]
