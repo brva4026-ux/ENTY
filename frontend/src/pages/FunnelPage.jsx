@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { activeVenueId } from "../lib/venue";
 import { fetchVenueFunnel } from "../lib/api";
-import { money } from "../lib/format";
+import { money, plural } from "../lib/format";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
@@ -100,13 +100,14 @@ export default function FunnelPage() {
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-sm font-medium text-zinc-200">{s.label}</span>
                   <span className="text-sm tabular-nums text-zinc-400">
-                    <b className="text-base text-zinc-100">{s.count}</b> {s.unit}
+                    <b className="text-base text-zinc-100">{s.count}</b>{" "}
+                    {plural(s.count, s.unit_one || s.unit, s.unit)}
                   </span>
                 </div>
                 <div
                   className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800"
                   role="img"
-                  aria-label={`${s.label}: ${s.count} ${s.unit} (${pct}% del primer paso)`}
+                  aria-label={`${s.label}: ${s.count} ${plural(s.count, s.unit_one || s.unit, s.unit)} (${pct}% del primer paso)`}
                 >
                   <div
                     className="h-full rounded-full bg-violet-500"
@@ -141,8 +142,9 @@ export default function FunnelPage() {
             <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-4 sm:col-span-2">
               <p className="text-sm text-zinc-400">
                 <b className="tabular-nums text-zinc-100">{data.home_sessions}</b>{" "}
-                sesiones vieron la vitrina en este periodo. Es el catálogo de
-                todos los negocios, así que no se puede atribuir a este.
+                {plural(data.home_sessions, "sesión", "sesiones")} vieron la
+                vitrina en este periodo. Es el catálogo de todos los negocios,
+                así que no se puede atribuir a este.
               </p>
             </div>
           )}

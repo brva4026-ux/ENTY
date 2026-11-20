@@ -16,6 +16,7 @@ import { STATUS_META, sortEventsForStrip } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
 import { ticketWaMessage, waLink } from "../lib/whatsapp";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { plural } from "../lib/format";
 
 export default function PromoterDashboard() {
   useDocumentTitle("Panel del promotor");
@@ -1108,7 +1109,7 @@ function MyPayouts({ venueId, payouts, onReload }) {
                     {p.period_start} → {p.period_end}
                   </p>
                   <p className="tnum text-xs text-zinc-500">
-                    {p.tickets_count} boletas · {fmt(p.revenue_cents)} ·{" "}
+                    {p.tickets_count} {plural(p.tickets_count, "boleta", "boletas")} · {fmt(p.revenue_cents)} ·{" "}
                     {p.commission_pct}%
                   </p>
                   {p.disputed_reason && (

@@ -129,6 +129,14 @@ def test_funnel_counts_sessions_and_money_per_venue(api, api_client, db):
     # La vitrina global se informa aparte, como contexto.
     assert body["home_sessions"] >= 1, body
 
+    # Cada paso trae su unidad en plural y su forma singular: la UI escribe
+    # "1 sesión", no "1 sesiones". Sin `unit_one` tendria que adivinar como
+    # singularizar ("transacciones" -> "transaccione").
+    for step in body["steps"]:
+        assert step["unit"], step
+        assert step["unit_one"], step
+        assert step["unit"] != step["unit_one"], step
+
     # Un admin de otra venue no puede leer este embudo.
     denied = api.get(f"/venues/{venue}/funnel", "outsider")
     assert denied.status_code == 403, denied.text

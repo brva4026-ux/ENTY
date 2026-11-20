@@ -9,6 +9,7 @@ import { apiFetch } from "../lib/api";
 import { pad2 } from "../lib/datetime";
 import { useUI } from "../lib/ui";
 import EmptyState from "./EmptyState";
+import { plural } from "../lib/format";
 
 const fmtCOP = (cents) =>
   `$${Math.round((cents || 0) / 100).toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
@@ -129,7 +130,7 @@ export default function PayoutsManager({ venueId, users }) {
       load();
       setPreview(null);
       ui.success(
-        `Liquidación creada: ${created.tickets_count} boletas · comisión ${fmtCOP(created.commission_cents)}`,
+        `Liquidación creada: ${created.tickets_count} ${plural(created.tickets_count, "boleta", "boletas")} · comisión ${fmtCOP(created.commission_cents)}`,
       );
     } catch (e2) {
       setErr(e2.message);
@@ -281,7 +282,8 @@ export default function PayoutsManager({ venueId, users }) {
                       <StatusPill status={p.status} />
                     </div>
                     <p className="tnum mt-0.5 text-xs text-zinc-500">
-                      {p.period_start} → {p.period_end} · {p.tickets_count} boletas ·{" "}
+                      {p.period_start} → {p.period_end} · {p.tickets_count}{" "}
+                      {plural(p.tickets_count, "boleta", "boletas")} ·{" "}
                       {fmtCOP(p.revenue_cents)} vendidos · {p.commission_pct}%
                     </p>
                     {p.disputed_reason && (

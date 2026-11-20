@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { getToken } from "../lib/tokenStore";
-import { money, labelMonth } from "../lib/format";
+import { money, labelMonth, plural } from "../lib/format";
 import CountUpNumber from "./CountUpNumber";
 import { STATUS_META } from "./EventWorkbench";
 import EmptyState from "./EmptyState";
@@ -240,7 +240,8 @@ function SalesCurve({ curve }) {
     <div className="card p-5">
       <p className="display text-base">Ritmo de venta</p>
       <p className="mb-3 mt-1 text-xs text-zinc-500">
-        Con cuánta anticipación se vendieron las {total} boletas del mes.
+        Con cuánta anticipación se vendieron las {total}{" "}
+        {plural(total, "boleta", "boletas")} del mes.
       </p>
       <ul
         className="space-y-2.5"

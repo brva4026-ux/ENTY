@@ -12,6 +12,16 @@ export function money(cents) {
 }
 
 /**
+ * "1 sesión" / "3 sesiones": el plural en español depende del número, y las
+ * unidades llegan del API ya en plural ("sesiones", "transacciones"). Restar
+ * la "s" final es suficiente para estos casos y evita que la UI escriba
+ * "1 sesiones".
+ */
+export function plural(n, singular, pluralForm = `${singular}s`) {
+  return Number(n) === 1 ? singular : pluralForm;
+}
+
+/**
  * Mes "YYYY-MM" del navegador. Es solo el valor de arranque: el mes en curso
  * de verdad lo manda el API (`month` del overview), porque el negocio opera
  * en otra zona horaria y cerca de medianoche el navegador puede ir un día

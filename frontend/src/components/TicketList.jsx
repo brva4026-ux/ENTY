@@ -6,6 +6,7 @@ import {
   publicTicketPageUrl,
   refundTicket,
 } from "../lib/api";
+import { plural } from "../lib/format";
 import { useUI } from "../lib/ui";
 import ContactEditsHistory from "./ContactEditsHistory";
 import EmptyState from "./EmptyState";
@@ -370,7 +371,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
       </div>
 
       <p className="tnum mb-2 text-xs text-zinc-500">
-        {loading ? "Cargando…" : `${total} boletas`}
+        {loading ? "Cargando…" : `${total} ${plural(total, "boleta", "boletas")}`}
         {!loading && total > 0 && ` · página ${page + 1} de ${totalPages}`}
       </p>
       <ul className="space-y-2">

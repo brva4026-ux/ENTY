@@ -143,7 +143,8 @@ async def venue_funnel(
     evento, asi que cada paso es subconjunto del anterior. Los pagos cuentan
     TRANSACCIONES aprobadas en ticket_payments, que es la unica fuente de
     verdad del dinero; por eso el ultimo paso no cierra exacto y la respuesta
-    lo declara (`units`).
+    lo declara (`unit` en plural y `unit_one` para cuando la cuenta es 1: la
+    UI no tiene que adivinar como singularizar "transacciones").
 
     La vitrina NO es un paso: `view_home` se emite en el catalogo global, sin
     `event_id`, asi que no se puede atribuir a una venue. Como paso quedaba
@@ -225,14 +226,22 @@ async def venue_funnel(
                 "label": "Abrieron un evento",
                 "count": saw_event,
                 "unit": "sesiones",
+                "unit_one": "sesión",
             },
             {
                 "key": "checkout_start",
                 "label": "Iniciaron la compra",
                 "count": sessions["started"] or 0,
                 "unit": "sesiones",
+                "unit_one": "sesión",
             },
-            {"key": "paid", "label": "Pagaron", "count": paid, "unit": "transacciones"},
+            {
+                "key": "paid",
+                "label": "Pagaron",
+                "count": paid,
+                "unit": "transacciones",
+                "unit_one": "transacción",
+            },
         ],
         "home_sessions": home["home_sessions"] or 0,
         "revenue_cents": int(money["revenue_cents"] or 0),
