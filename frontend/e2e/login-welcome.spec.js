@@ -178,14 +178,25 @@ test.describe("bienvenida tras el login", () => {
       test.skip(true, "App no disponible");
     }
 
+    // Con movimiento reducido la pausa del login baja a 320 ms, asi que la
+    // capa vive menos que un ciclo de sondeo externo: esperarla con
+    // toBeVisible() despues del click es una carrera que se pierde en una
+    // maquina lenta (el elemento aparece y se va antes de que el locator
+    // llegue a mirar). Se observa desde la pagina y se arranca ANTES del
+    // click; el sondeo es por rAF, asi que no puede saltarse la ventana.
+    const animName = page.waitForFunction(
+      () => {
+        const el = document.querySelector(".welcome-card");
+        return el ? getComputedStyle(el).animationName : false;
+      },
+      null,
+      { timeout: 15_000, polling: "raf" },
+    );
+
     await submitLogin(page, "admin@bar.test");
-    await expect(card(page)).toBeVisible({ timeout: 15_000 });
 
     // Sin animacion de entrada: la tarjeta esta en su estado final de una.
-    const anim = await card(page).evaluate(
-      (el) => getComputedStyle(el).animationName,
-    );
-    expect(anim).toBe("none");
+    expect(await (await animName).jsonValue()).toBe("none");
 
     await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
     await context.close();

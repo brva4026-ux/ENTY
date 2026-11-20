@@ -1216,7 +1216,7 @@ export default function BouncerScanner() {
                     haptics.tick();
                   }}
                   aria-pressed={scanMode === m.id}
-                  className={`min-h-[40px] rounded-lg text-sm font-medium transition ${
+                  className={`min-h-[44px] rounded-lg text-sm font-medium transition ${
                     scanMode === m.id
                       ? "bg-zinc-100 text-zinc-900"
                       : "text-zinc-400 hover:text-zinc-200"
