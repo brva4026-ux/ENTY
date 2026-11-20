@@ -969,6 +969,32 @@ class PublicCheckoutRequest(BaseModel):
     # evento; un código inválido NO tumba la compra: se ignora (mejor vender
     # sin descuento que perder la venta por un typo).
     coupon_code: str | None = Field(default=None, max_length=40)
+    # Pase de la sala de espera (mig 055/056). Solo lo exige el servidor si el
+    # evento tiene la sala activa; si está apagada se ignora por completo, así
+    # que su ausencia no cambia el checkout de ningún evento existente.
+    waiting_pass: str | None = Field(default=None, max_length=200)
+
+
+class WaitingRoomJoinRequest(BaseModel):
+    """Entrar a la fila: el navegador trae su token de sesión (o uno nuevo)."""
+
+    session_token: str = Field(min_length=16, max_length=200)
+
+
+class WaitingRoomJoinOut(BaseModel):
+    """Estado en la sala. `pass_token` solo viene cuando ya puede comprar."""
+
+    status: str
+    pass_token: str | None = None
+    queue_position: int = 0
+    expires_at: datetime | None = None
+    session_token: str
+
+
+class WaitingRoomStatusOut(BaseModel):
+    status: str
+    queue_position: int | None = None
+    expires_at: datetime | None = None
 
 
 class PublicCheckoutOut(BaseModel):

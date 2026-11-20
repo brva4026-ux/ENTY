@@ -21,6 +21,7 @@ from starlette.concurrency import run_in_threadpool
 from app.core.categories import EVENT_CATEGORIES
 from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.db_errors import translate_db_error
 from app.core.fan_access import create_fan_access_token, verify_fan_access_token
 from app.core.mailer import Mailer
 from app.core.phone import digits_only, phone_tail_sql
@@ -289,6 +290,7 @@ async def public_event_detail(
             SELECT e.id, e.name, e.description, e.flyer_url, e.location,
                    e.starts_at, e.event_timezone, e.capacity, e.status,
                    e.category, e.min_age, e.dress_code, e.doors_open_at,
+                   e.waiting_room_enabled,
                    v.name AS venue_name,
                    v.contact_name AS venue_contact_name,
                    v.contact_phone AS venue_contact_phone,
@@ -369,6 +371,10 @@ async def public_event_detail(
         "sold_pct": _sold_pct(row["active"], row["capacity"]),
         "sold_out": sold_out,
         "status": row["status"],
+        # Sala de espera (mig 055): la UI solo pregunta por la fila si está
+        # activa. Es un booleano: la tanda y los minutos son configuración
+        # interna y no se exponen.
+        "waiting_room": bool(row["waiting_room_enabled"]),
         # Ficha del evento (mig 043): lo que el invitado pregunta en la puerta.
         "min_age": row["min_age"],
         "dress_code": row["dress_code"],
@@ -537,6 +543,27 @@ async def public_checkout(
     webhook confirme el pago: el dinero entra primero, el QR despues.
     """
     s = get_settings()
+
+    # La sala de espera se evalúa ANTES que cualquier otra cosa, incluido el
+    # chequeo de Wompi: si el fan todavía no tiene turno, no debe llegar ni a
+    # la puerta del pago. Además deja el rechazo observable en entornos sin
+    # pasarela configurada (si no, todo responde 503 y la sala es invisible).
+    async with db.cursor() as cur:
+        try:
+            await cur.execute(
+                "SELECT require_waiting_pass(%s, %s)", (event_id, body.waiting_pass)
+            )
+            await cur.fetchone()
+        except psycopg.Error as error:
+            raise translate_db_error(error, overrides={
+                "waiting_pass_required": (
+                    429, "Estás en la sala de espera: aún no es tu turno."
+                ),
+                "waiting_pass_invalid": (
+                    429, "Tu turno en la sala venció. Vuelve a la fila."
+                ),
+            }) or error from error
+
     if not s.wompi_enabled:
         raise HTTPException(503, "Pagos online no configurados en este entorno")
 

@@ -70,6 +70,8 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "052_presence_and_capacity.sql",
     ROOT / "db" / "migrations" / "053_redeem_capacity_and_presence.sql",
     ROOT / "db" / "migrations" / "054_exit_and_occupancy.sql",
+    ROOT / "db" / "migrations" / "055_waiting_room.sql",
+    ROOT / "db" / "migrations" / "056_waiting_room_functions.sql",
 ]
 
 
@@ -118,7 +120,11 @@ def db():
                 -- Presencia en el recinto (mig 052): cuelga de tickets y
                 -- events, y una corrida previa la deja creada. Sin listarla,
                 -- el CREATE TABLE de schema.sql choca con DuplicateTable.
-                ticket_presence CASCADE;
+                ticket_presence,
+                -- Sala de espera (mig 055): cuelga de events. Mismo motivo:
+                -- sin listarla, una corrida previa deja filas que falsean la
+                -- posición en la fila de los eventos nuevos.
+                event_waiting_room CASCADE;
         -- event_staff / event_access_tokens (mig 025) referencian users y events:
         -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
         -- el orden de borrado no dependa de las FK.
@@ -516,6 +522,12 @@ class Api:
                 except psycopg.ProgrammingError:
                     return None
                 return list(row.values())[0] if row else None
+
+    def digest(self, raw: str) -> str:
+        """Hash como lo guarda la DB (para consultar filas por token)."""
+        import hashlib
+
+        return hashlib.sha256(raw.encode()).hexdigest()
 
     def event_status(self, venue_id: int, event_id: int) -> str:
         """Status actual del evento leido directo de DB (fuera de la API)."""

@@ -85,6 +85,27 @@ export function startPublicCheckout(eventId, payload) {
 }
 
 /**
+ * Sala de espera virtual (mig 055/056). El navegador es la identidad: guarda
+ * el `session_token` que devuelve el join y lo manda en cada consulta.
+ */
+export function joinWaitingRoom(eventId, sessionToken) {
+  return apiFetch(
+    `/public/events/${encodeURIComponent(eventId)}/waiting-room/join`,
+    {
+      method: "POST",
+      body: JSON.stringify({ session_token: sessionToken }),
+    },
+  );
+}
+
+export function fetchWaitingRoomStatus(eventId, sessionToken) {
+  return apiFetch(
+    `/public/events/${encodeURIComponent(eventId)}/waiting-room/status` +
+      `?session_token=${encodeURIComponent(sessionToken)}`,
+  );
+}
+
+/**
  * Estado de un checkout propio. La `reference` (128 bits) es la capability:
  * el fan la recibe al comprar y la conserva para el polling tras volver de
  * Wompi. No devuelve el token del QR (eso se reclama en /boletas).

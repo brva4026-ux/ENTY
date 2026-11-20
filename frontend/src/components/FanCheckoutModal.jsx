@@ -25,7 +25,14 @@ function paidTypes(types) {
   );
 }
 
-export default function FanCheckoutModal({ event, reference, onClose, onPaid }) {
+export default function FanCheckoutModal({
+  event,
+  reference,
+  onClose,
+  onPaid,
+  waitingPass = null,
+  onWaitingPassRejected = null,
+}) {
   const { dialogRef, titleId } = useDialogA11y({ onClose });
 
   const types = paidTypes(event?.ticket_types);
@@ -191,6 +198,9 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
         // Solo se manda el cupón si la cotización lo validó: un código a
         // medias no debe viajar al cobro.
         coupon_code: quote?.valid ? coupon.trim() : null,
+        // Pase de la sala de espera (mig 055/056). Sin él, el servidor
+        // rechaza el cobro con 429 cuando el evento tiene la sala activa.
+        waiting_pass: waitingPass || null,
       });
       // Recuerda el contacto: es con el que reclamará su QR en /boletas.
       const contact = (email.trim() || phone.trim()).toLowerCase();
@@ -207,6 +217,13 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
       // Sale de la app hacia el checkout de Wompi.
       window.location.assign(res.payment_url);
     } catch (err) {
+      // 429 = la sala de espera no le dio turno (o el pase venció). No es un
+      // error de compra: el fan vuelve a la fila y recibe un pase nuevo.
+      if (err.status === 429 && onWaitingPassRejected) {
+        setBusy(false);
+        onWaitingPassRejected(err);
+        return;
+      }
       setError(err.message || "No pudimos iniciar la compra");
       setBusy(false);
     }

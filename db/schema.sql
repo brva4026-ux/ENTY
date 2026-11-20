@@ -218,6 +218,39 @@ $$;
 -- Name: auto_close_expired_events(); Type: FUNCTION; Schema: public; Owner: -
 --
 
+--
+-- Name: waiting_room_status; Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.waiting_room_status(p_event_id bigint, p_session_hash text) RETURNS TABLE(status text, queue_position integer, expires_at timestamp with time zone)
+    LANGUAGE plpgsql STABLE
+    AS $$
+DECLARE
+    v_row event_waiting_room%ROWTYPE;
+    v_ahead integer;
+BEGIN
+    SELECT * INTO v_row FROM event_waiting_room
+     WHERE event_id = p_event_id AND session_hash = p_session_hash;
+
+    IF NOT FOUND THEN
+        RETURN QUERY SELECT 'waiting'::text, NULL::integer, NULL::timestamptz;
+        RETURN;
+    END IF;
+
+    IF v_row.status = 'waiting' THEN
+        SELECT count(*) INTO v_ahead FROM event_waiting_room wr
+         WHERE wr.event_id = p_event_id AND wr.status = 'waiting'
+           AND wr.created_at < v_row.created_at;
+        RETURN QUERY SELECT 'waiting'::text, v_ahead::integer, NULL::timestamptz;
+    ELSIF v_row.status = 'admitted' AND v_row.pass_expires_at > now() THEN
+        RETURN QUERY SELECT 'admitted'::text, 0, v_row.pass_expires_at;
+    ELSE
+        RETURN QUERY SELECT 'expired'::text, NULL::integer, NULL::timestamptz;
+    END IF;
+END;
+$$;
+
+
 CREATE FUNCTION public.auto_close_expired_events() RETURNS integer
     LANGUAGE plpgsql
     AS $$
@@ -382,6 +415,23 @@ $$;
 --
 -- Name: correct_ticket_contact(bigint, text, text, bigint, text); Type: FUNCTION; Schema: public; Owner: -
 --
+
+--
+-- Name: consume_waiting_pass; Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.consume_waiting_pass(p_event_id bigint, p_pass text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE event_waiting_room
+       SET status = 'used', used_at = now(), updated_at = now()
+     WHERE event_id = p_event_id
+       AND pass_hash = encode(digest(p_pass, 'sha256'), 'hex')
+       AND status = 'admitted';
+END;
+$$;
+
 
 CREATE FUNCTION public.correct_ticket_contact(p_ticket_id bigint, p_new_name text, p_new_phone text, p_by_user_id bigint, p_reason text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
@@ -744,6 +794,113 @@ $$;
 --
 -- Name: join_waitlist(bigint, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
+
+--
+-- Name: join_waiting_room; Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.join_waiting_room(p_event_id bigint, p_session_hash text) RETURNS TABLE(status text, pass text, queue_position integer, expires_at timestamp with time zone)
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_event    events%ROWTYPE;
+    v_row      event_waiting_room%ROWTYPE;
+    v_exists   boolean;
+    v_active   integer;
+    v_ahead    integer;
+    v_new_pass text;
+    v_expires  timestamptz;
+BEGIN
+    IF p_session_hash IS NULL OR length(p_session_hash) < 16 THEN
+        RAISE EXCEPTION 'invalid_session';
+    END IF;
+
+    SELECT * INTO v_event FROM events WHERE id = p_event_id;
+    IF NOT FOUND THEN RAISE EXCEPTION 'event_not_found'; END IF;
+
+    -- Sala apagada: el fan pasa directo. Devolver 'admitted' sin pase deja
+    -- el flujo de compra intacto (require_waiting_pass no se llama).
+    IF NOT v_event.waiting_room_enabled THEN
+        RETURN QUERY SELECT 'admitted'::text, NULL::text, 0, NULL::timestamptz;
+        RETURN;
+    END IF;
+
+    -- Sección crítica POR EVENTO: el caudal se calcula y se aplica sin que
+    -- otra petición del mismo evento se cuele en el medio.
+    PERFORM pg_advisory_xact_lock(hashtextextended('waiting_room:' || p_event_id::text, 0));
+
+    SELECT * INTO v_row FROM event_waiting_room wr
+     WHERE wr.event_id = p_event_id AND wr.session_hash = p_session_hash
+     FOR UPDATE;
+    -- Se guarda aparte: cualquier SELECT posterior pisa FOUND.
+    v_exists := FOUND;
+
+    -- Ya compró: no vuelve a la fila.
+    IF v_exists AND v_row.status = 'used' THEN
+        RETURN QUERY SELECT 'used'::text, NULL::text, 0, NULL::timestamptz;
+        RETURN;
+    END IF;
+
+    -- Pase vigente: se le devuelve el estado, sin repartir otro.
+    IF v_exists AND v_row.status = 'admitted' AND v_row.pass_expires_at > now() THEN
+        RETURN QUERY SELECT 'admitted'::text, NULL::text, 0, v_row.pass_expires_at;
+        RETURN;
+    END IF;
+
+    -- Pase vencido sin comprar: se marca y se reencola conservando su lugar.
+    IF v_exists AND v_row.status = 'admitted' THEN
+        UPDATE event_waiting_room SET status = 'expired', updated_at = now()
+         WHERE id = v_row.id;
+    END IF;
+
+    -- Cuántos pases vigentes hay ahora mismo en este evento.
+    SELECT count(*) INTO v_active FROM event_waiting_room wr
+     WHERE wr.event_id = p_event_id AND wr.status = 'admitted'
+       AND wr.pass_expires_at > now();
+
+    -- Hay lugar en la tanda: se admite ya.
+    IF v_active < v_event.waiting_room_batch THEN
+        v_new_pass := encode(gen_random_bytes(24), 'hex');
+        v_expires  := now() + (v_event.waiting_room_pass_minutes * INTERVAL '1 minute');
+        IF v_exists THEN
+            UPDATE event_waiting_room
+               SET status = 'admitted',
+                   pass_hash = encode(digest(v_new_pass, 'sha256'), 'hex'),
+                   admitted_at = now(),
+                   pass_expires_at = v_expires,
+                   updated_at = now()
+             WHERE id = v_row.id;
+        ELSE
+            INSERT INTO event_waiting_room
+                (event_id, session_hash, status, pass_hash, admitted_at, pass_expires_at)
+            VALUES
+                (p_event_id, p_session_hash, 'admitted',
+                 encode(digest(v_new_pass, 'sha256'), 'hex'), now(), v_expires);
+        END IF;
+        RETURN QUERY SELECT 'admitted'::text, v_new_pass, 0, v_expires;
+        RETURN;
+    END IF;
+
+    -- Tanda llena: a la fila. El pase anterior ya no sirve.
+    IF NOT v_exists THEN
+        INSERT INTO event_waiting_room (event_id, session_hash, status)
+        VALUES (p_event_id, p_session_hash, 'waiting')
+        RETURNING * INTO v_row;
+    ELSIF v_row.status <> 'waiting' THEN
+        UPDATE event_waiting_room
+           SET status = 'waiting', pass_hash = NULL, pass_expires_at = NULL,
+               updated_at = now()
+         WHERE id = v_row.id;
+    END IF;
+
+    SELECT count(*) INTO v_ahead FROM event_waiting_room wr
+     WHERE wr.event_id = p_event_id AND wr.status = 'waiting'
+       AND wr.created_at < v_row.created_at;
+
+    RETURN QUERY SELECT 'waiting'::text, NULL::text, v_ahead::integer, NULL::timestamptz;
+END;
+$$;
+
 
 CREATE FUNCTION public.join_waitlist(p_event_id bigint, p_name text, p_phone text, p_raw_token text) RETURNS integer
     LANGUAGE plpgsql
@@ -2450,6 +2607,39 @@ ALTER TABLE public.event_waitlist ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
 
 
 --
+-- Name: event_waiting_room; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_waiting_room (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    session_hash text NOT NULL,
+    pass_hash text,
+    status text DEFAULT 'waiting'::text NOT NULL,
+    admitted_at timestamp with time zone,
+    pass_expires_at timestamp with time zone,
+    used_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT event_waiting_room_status_check CHECK ((status = ANY (ARRAY['waiting'::text, 'admitted'::text, 'used'::text, 'expired'::text])))
+);
+
+
+--
+-- Name: event_waiting_room_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.event_waiting_room ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.event_waiting_room_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2475,11 +2665,16 @@ CREATE TABLE public.events (
     doors_open_at timestamp with time zone,
     reminded_at timestamp with time zone,
     allow_reentry boolean DEFAULT false NOT NULL,
+    waiting_room_enabled boolean DEFAULT false NOT NULL,
+    waiting_room_batch integer DEFAULT 50 NOT NULL,
+    waiting_room_pass_minutes integer DEFAULT 10 NOT NULL,
     CONSTRAINT events_capacity_check CHECK ((capacity > 0)),
     CONSTRAINT events_category_check CHECK (((category IS NULL) OR (category = ANY (ARRAY['Música'::text, 'Deportes'::text, 'Teatro'::text, 'Fiesta'::text, 'Cultural'::text, 'Académico'::text, 'Comedia'::text, 'Otro'::text])))),
     CONSTRAINT events_min_age_check CHECK (((min_age IS NULL) OR ((min_age >= 0) AND (min_age <= 99)))),
     CONSTRAINT events_qr_unlock_minutes_check CHECK ((qr_unlock_minutes >= 0)),
     CONSTRAINT events_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'live'::text, 'ended'::text, 'cancelled'::text]))),
+    CONSTRAINT events_waiting_room_batch_check CHECK ((waiting_room_batch > 0)),
+    CONSTRAINT events_waiting_room_pass_check CHECK ((waiting_room_pass_minutes > 0)),
     CONSTRAINT events_waitlist_offer_minutes_check CHECK ((waitlist_offer_minutes >= 1))
 );
 
@@ -4172,6 +4367,44 @@ ALTER TABLE ONLY public.event_waitlist
 
 
 --
+-- Name: event_waiting_room event_waiting_room_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waiting_room
+    ADD CONSTRAINT event_waiting_room_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event_waiting_room event_waiting_room_session_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waiting_room
+    ADD CONSTRAINT event_waiting_room_session_unique UNIQUE (event_id, session_hash);
+
+
+--
+-- Name: event_waiting_room event_waiting_room_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_waiting_room
+    ADD CONSTRAINT event_waiting_room_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ix_event_waiting_room_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_event_waiting_room_active ON public.event_waiting_room USING btree (event_id, pass_expires_at) WHERE (status = 'admitted'::text);
+
+
+--
+-- Name: ix_event_waiting_room_queue; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_event_waiting_room_queue ON public.event_waiting_room USING btree (event_id, created_at) WHERE (status = 'waiting'::text);
+
+
+--
 -- Name: event_waitlist event_waitlist_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4616,6 +4849,40 @@ ALTER TABLE ONLY public.venue_user_roles
 --
 
 COMMIT;
+
+
+--
+-- Name: require_waiting_pass; Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.require_waiting_pass(p_event_id bigint, p_pass text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_enabled boolean;
+    v_ok      boolean;
+BEGIN
+    SELECT waiting_room_enabled INTO v_enabled FROM events WHERE id = p_event_id;
+    IF NOT FOUND THEN RAISE EXCEPTION 'event_not_found'; END IF;
+    IF NOT v_enabled THEN RETURN; END IF;  -- sala apagada: no exige nada
+
+    IF p_pass IS NULL OR length(p_pass) < 8 THEN
+        RAISE EXCEPTION 'waiting_pass_required';
+    END IF;
+
+    SELECT EXISTS (
+        SELECT 1 FROM event_waiting_room
+         WHERE event_id = p_event_id
+           AND pass_hash = encode(digest(p_pass, 'sha256'), 'hex')
+           AND status = 'admitted'
+           AND pass_expires_at > now()
+    ) INTO v_ok;
+
+    IF NOT v_ok THEN
+        RAISE EXCEPTION 'waiting_pass_invalid';
+    END IF;
+END;
+$$;
 
 
 CREATE FUNCTION public.reserve_ticket_payment(p_event_id bigint, p_type_id bigint, p_reference text, p_amount bigint, p_name text, p_phone text, p_email text, p_user_id bigint, p_coupon_id bigint, p_discount bigint, p_expires timestamptz, p_birth_date date DEFAULT NULL::date) RETURNS bigint

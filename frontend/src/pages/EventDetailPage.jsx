@@ -3,6 +3,8 @@ import { useTabKeys } from "../lib/useTabKeys";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPublicEventDetail } from "../lib/api";
 import FanCheckoutModal from "../components/FanCheckoutModal";
+import WaitingRoomOverlay from "../components/WaitingRoomOverlay";
+import { useWaitingRoom } from "../lib/useWaitingRoom";
 import { money } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import { track } from "../lib/analytics";
@@ -139,6 +141,11 @@ export default function EventDetailPage() {
   const [copied, setCopied] = useState(false);
   const [coords, setCoords] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // Sala de espera (mig 055/056). Solo se activa si el evento la tiene
+  // encendida; con la sala apagada el hook no hace ni una peticion y el
+  // checkout funciona igual que siempre.
+  const [queueOpen, setQueueOpen] = useState(false);
+  const waitingRoom = useWaitingRoom(data?.id, Boolean(data?.waiting_room) && queueOpen);
   useDocumentTitle(data?.name);
 
   // Referencia del checkout al volver de Wompi (redirect_url del cobro).
@@ -218,6 +225,15 @@ export default function EventDetailPage() {
   }, [data]);
 
   // Geocodificacion best-effort del lugar (Nominatim, sin API key). Solo se
+  // Sala de espera: en cuanto llega el pase, la fila se cierra y se abre el
+  // checkout con ese pase. Es la unica transicion que el fan percibe como
+  // "ya me toca": sin ella se quedaria mirando la fila para siempre.
+  useEffect(() => {
+    if (waitingRoom.state !== "admitted" || !queueOpen) return;
+    setQueueOpen(false);
+    setCheckoutOpen(true);
+  }, [waitingRoom.state, queueOpen]);
+
   // dispara al abrir la pestana Ubicacion; si falla, el mapa no aparece y
   // queda la direccion en texto — nunca bloquea la pantalla.
   useEffect(() => {
@@ -511,6 +527,13 @@ export default function EventDetailPage() {
                   onClick={() => {
                     // Embudo, paso 3: intención real de compra (abre el pago).
                     track("checkout_start", { eventId: Number(data.id) });
+                    if (data.waiting_room) {
+                      // Con sala activa el fan NO va directo al pago: primero
+                      // hace fila. El checkout se abre solo cuando recibe el
+                      // pase (efecto de abajo).
+                      setQueueOpen(true);
+                      return;
+                    }
                     setCheckoutOpen(true);
                   }}
                 >
@@ -637,10 +660,26 @@ export default function EventDetailPage() {
         </p>
       )}
 
+      {queueOpen && data && waitingRoom.state !== "admitted" && (
+        <WaitingRoomOverlay
+          state={waitingRoom.state}
+          position={waitingRoom.position}
+          eventName={data.name}
+          onRetry={waitingRoom.retry}
+          onLeave={() => setQueueOpen(false)}
+        />
+      )}
+
       {(checkoutOpen || payRef) && data && (
         <FanCheckoutModal
           event={data}
           reference={payRef}
+          waitingPass={waitingRoom.passToken}
+          onWaitingPassRejected={() => {
+            // El pase vencio o no le tocaba: vuelve a la fila a por otro.
+            setCheckoutOpen(false);
+            setQueueOpen(true);
+          }}
           onClose={closeCheckout}
           onPaid={() => {
             closeCheckout();

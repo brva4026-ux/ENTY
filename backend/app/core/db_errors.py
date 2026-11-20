@@ -112,6 +112,16 @@ DB_ERRORS: dict[str, tuple[int, str]] = {
         "El lugar ya no esta disponible: se ofrecio al siguiente",
     ),
     "waitlist_entry_not_found": (404, "No estas en la lista de este evento"),
+    # Sala de espera (mig 055/056)
+    "waiting_pass_required": (
+        429,
+        "Estas en la sala de espera: aun no es tu turno para comprar",
+    ),
+    "waiting_pass_invalid": (
+        429,
+        "Tu turno en la sala vencio: vuelve a la fila",
+    ),
+    "invalid_session": (400, "Sesion de sala invalida"),
     # Ciclo de vida (lifecycle.py)
     "invalid_transition": (
         409,

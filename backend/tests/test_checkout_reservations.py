@@ -92,3 +92,43 @@ def test_concurrent_reservations_cannot_take_same_slot(api, wompi_on):
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(reserve, range(2)))
     assert sorted(results) == ["reserved", "ticket_type_sold_out"]
+
+
+def test_ten_concurrent_buyers_one_last_seat(api, wompi_on):
+    """Prueba de aceptacion: ultima silla, 10 compradores a la vez.
+
+    Un solo cupo y diez compradores simultaneos, cada uno en su propia
+    conexion. Debe reservar EXACTAMENTE uno y los otros nueve recibir
+    `ticket_type_sold_out`. Si esto falla, el sistema vende de mas y el
+    problema aparece en la puerta, no en el checkout.
+    """
+    _, event, kind = _scenario(api, quantity=1)
+
+    def reserve(_):
+        with psycopg.connect(api.dsn, autocommit=True) as conn:
+            try:
+                conn.execute(
+                    "SELECT reserve_ticket_payment("
+                    "%s,%s,%s,%s,%s,%s,NULL,NULL,NULL,0,"
+                    "now()+interval '15 minutes')",
+                    (
+                        event, kind["id"], uuid.uuid4().hex, 5000000,
+                        "Fan", "573001112233",
+                    ),
+                )
+                return "reserved"
+            except psycopg.errors.RaiseException as error:
+                return error.diag.message_primary
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        results = list(pool.map(reserve, range(10)))
+
+    assert results.count("reserved") == 1, results
+    assert results.count("ticket_type_sold_out") == 9, results
+
+    # Y la DB confirma: una sola reserva viva, ni una mas.
+    vivo = api.run_sql(
+        f"SELECT count(*) FROM ticket_payments "
+        f"WHERE event_id = {event} AND status = 'pending'"
+    )
+    assert vivo == 1, vivo
