@@ -67,6 +67,9 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "049_events_venue_index.sql",
     ROOT / "db" / "migrations" / "050_index_hygiene.sql",
     ROOT / "db" / "migrations" / "051_edad_minima.sql",
+    ROOT / "db" / "migrations" / "052_presence_and_capacity.sql",
+    ROOT / "db" / "migrations" / "053_redeem_capacity_and_presence.sql",
+    ROOT / "db" / "migrations" / "054_exit_and_occupancy.sql",
 ]
 
 
@@ -111,7 +114,11 @@ def db():
                 rate_limit_hits,
                 -- Eventos ricos (mig 043): lineup, cupones y reembolsos.
                 -- ticket_payments referencia coupons; CASCADE resuelve el orden.
-                event_lineup, coupons, ticket_refunds CASCADE;
+                event_lineup, coupons, ticket_refunds,
+                -- Presencia en el recinto (mig 052): cuelga de tickets y
+                -- events, y una corrida previa la deja creada. Sin listarla,
+                -- el CREATE TABLE de schema.sql choca con DuplicateTable.
+                ticket_presence CASCADE;
         -- event_staff / event_access_tokens (mig 025) referencian users y events:
         -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
         -- el orden de borrado no dependa de las FK.

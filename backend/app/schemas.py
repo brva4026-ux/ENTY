@@ -1886,6 +1886,39 @@ class ScannerStats(BaseModel):
     rejected: int = 0
 
 
+class OccupancyOut(BaseModel):
+    """Ocupación REAL del recinto en este momento (mig 052-054).
+
+    El tablero necesita estas cifras SEPARADAS. Un solo "ingresaron 300" no
+    sirve para decidir si se puede dejar entrar a alguien: 300 puede ser
+    "hay 300 personas adentro" o "entraron 300 en toda la noche y ya salieron
+    100". `inside` es la única que manda para el aforo.
+    """
+    event_id: int
+    capacity: int
+    issued: int = 0
+    unique_admitted: int = 0
+    inside: int = 0
+    exits: int = 0
+    reentries: int = 0
+    rejected: int = 0
+    allow_reentry: bool = False
+    free_seats: int = 0
+
+
+class ExitIn(BaseModel):
+    """Egreso: la persona sale del recinto (habilita reingreso y libera lugar)."""
+    raw_token: str = Field(min_length=8)
+    door_id: str | None = Field(default=None, max_length=64)
+
+
+class ExitOut(BaseModel):
+    code: str = ""  # EXITED | ALREADY_OUTSIDE | NOT_FOUND | INVALID_EVENT
+    ticket_id: int | None = None
+    customer_name: str | None = None
+    exited: bool = False
+
+
 class MyEventOut(BaseModel):
     """Una noche donde este promotor trabaja, con SUS números."""
     model_config = ConfigDict(from_attributes=True)

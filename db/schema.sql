@@ -623,8 +623,43 @@ $$;
 
 
 --
--- Name: events_check_capacity(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: event_occupancy; Type: FUNCTION; Schema: public; Owner: -
 --
+
+CREATE FUNCTION public.event_occupancy(p_event_id bigint)
+RETURNS TABLE (
+    capacity        integer,
+    issued          bigint,
+    unique_admitted bigint,
+    inside          bigint,
+    exits           bigint,
+    reentries       bigint,
+    rejected        bigint
+)
+    LANGUAGE sql
+    STABLE
+    AS $$
+    SELECT
+        e.capacity::integer,
+        (SELECT count(*) FROM tickets t
+          WHERE t.event_id = e.id AND t.status NOT IN ('voided', 'refunded'))::bigint,
+        (SELECT count(*) FROM ticket_presence tp
+          WHERE tp.event_id = e.id AND tp.admissions > 0)::bigint,
+        (SELECT count(*) FROM ticket_presence tp
+          WHERE tp.event_id = e.id AND tp.state = 'inside')::bigint,
+        (SELECT count(*) FROM redemptions r
+          WHERE r.event_id = e.id AND r.outcome = 'exit')::bigint,
+        (SELECT COALESCE(sum(GREATEST(tp.admissions - 1, 0)), 0) FROM ticket_presence tp
+          WHERE tp.event_id = e.id)::bigint,
+        (SELECT count(*) FROM redemptions r
+          WHERE r.event_id = e.id
+            AND r.outcome NOT IN ('granted', 'granted_forced', 'exit'))::bigint
+    FROM events e
+    WHERE e.id = p_event_id;
+$$;
+
+
+-- Name: events_check_capacity(); Type: FUNCTION; Schema: public; Owner: -
 
 CREATE FUNCTION public.events_check_capacity() RETURNS trigger
     LANGUAGE plpgsql
@@ -1406,7 +1441,14 @@ $$;
 -- Name: redeem_ticket(bigint, text, bigint, bigint, timestamp with time zone, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.redeem_ticket(p_event_id bigint, p_raw_token text, p_scanned_by_user_id bigint, p_expected_ticket_type_id bigint DEFAULT NULL::bigint, p_scanned_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_door_id text DEFAULT NULL::text) RETURNS text
+CREATE FUNCTION public.redeem_ticket(
+    p_event_id bigint,
+    p_raw_token text,
+    p_scanned_by_user_id bigint,
+    p_expected_ticket_type_id bigint DEFAULT NULL::bigint,
+    p_scanned_at timestamp with time zone DEFAULT NULL::timestamp with time zone,
+    p_door_id text DEFAULT NULL::text
+) RETURNS text
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -1416,8 +1458,14 @@ DECLARE
     v_event_starts_at timestamptz;
     v_event_unlock integer;
     v_event_min_age integer;
+    v_event_capacity bigint;
+    v_allow_reentry boolean;
     v_scanned_at timestamptz;
     v_door_id    text;
+    v_presence   ticket_presence%ROWTYPE;
+    v_inside     bigint;
+    v_zone_cap   integer;
+    v_zone_inside bigint;
 BEGIN
     IF p_raw_token IS NULL OR length(p_raw_token) < 8 THEN
         RAISE EXCEPTION 'invalid_token_format';
@@ -1458,9 +1506,15 @@ BEGIN
         RETURN 'INVALID_EVENT';
     END IF;
 
-    SELECT status, starts_at, qr_unlock_minutes, min_age
-      INTO v_event_status, v_event_starts_at, v_event_unlock, v_event_min_age
-      FROM events WHERE id = p_event_id;
+    -- El lock del evento se toma aquí, ANTES de leer capacity/allow_reentry,
+    -- y se sostiene hasta el COMMIT. Dos puertas escaneando a la vez hacen
+    -- fila en esta línea: la segunda ve la presencia ya actualizada por la
+    -- primera. Sin este lock, ambas leerían el mismo conteo y las dos
+    -- admitirían el último lugar.
+    SELECT status, starts_at, qr_unlock_minutes, min_age, capacity, allow_reentry
+      INTO v_event_status, v_event_starts_at, v_event_unlock, v_event_min_age,
+           v_event_capacity, v_allow_reentry
+      FROM events WHERE id = p_event_id FOR UPDATE;
     IF v_event_status <> 'live' AND v_event_status <> 'published' THEN
         INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
         VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'event_not_live', v_scanned_at, v_door_id);
@@ -1484,10 +1538,7 @@ BEGIN
         RETURN 'WRONG_TYPE';
     END IF;
 
-    -- Edad mínima (mig 051): defensa en la puerta. La validación de verdad
-    -- ocurre al emitir (ahi se conoce la fecha de nacimiento), pero una boleta
-    -- emitida antes de activar la restriccion, o con la fecha cambiada despues,
-    -- no debe entrar: el bouncer ve el mismo "UNDER_AGE" que ve el que compra.
+    -- Edad mínima (mig 051): defensa en la puerta.
     IF v_event_min_age IS NOT NULL AND v_event_min_age > 0
        AND v_ticket.customer_birth_date IS NOT NULL THEN
         IF date_part('year', age(v_event_starts_at::date, v_ticket.customer_birth_date)) < v_event_min_age THEN
@@ -1503,22 +1554,90 @@ BEGIN
         RETURN 'NOT_VALID';
     END IF;
 
-    IF v_ticket.status = 'redeemed' THEN
-        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
-        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at, v_door_id);
-        RETURN 'ALREADY_REDEEMED';
-    END IF;
-
-    -- Compare-and-swap: exactamente UNA de las filas concurrentes sera afectada.
-    UPDATE tickets
-       SET status = 'redeemed', redeemed_at = v_scanned_at, redeemed_by_user_id = p_scanned_by_user_id
-     WHERE id = v_ticket.id AND status = 'issued';
-
+    -- Presencia actual de esta boleta (puede no existir: nunca entró).
+    SELECT * INTO v_presence FROM ticket_presence WHERE ticket_id = v_ticket.id;
     IF NOT FOUND THEN
+        v_presence.state := 'outside';
+        v_presence.admissions := 0;
+    END IF;
+
+    -- Ya está adentro: segundo escaneo del mismo QR (dos puertas a la vez, o
+    -- el operador repitiendo). No se admite dos veces y NO se consume nada.
+    IF v_presence.state = 'inside' THEN
         INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
         VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at, v_door_id);
         RETURN 'ALREADY_REDEEMED';
     END IF;
+
+    -- Boleta ya usada y la persona está FUERA: esto es un reingreso.
+    IF v_ticket.status = 'redeemed' THEN
+        IF NOT COALESCE(v_allow_reentry, false) THEN
+            INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+            VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at, v_door_id);
+            RETURN 'ALREADY_REDEEMED';
+        END IF;
+    END IF;
+
+    -- ------------------------------------------------------------------
+    -- Aforo. Se cuenta la presencia REAL (los que están adentro ahora),
+    -- no los ingresos acumulados. El evento ya está bloqueado, así que
+    -- esta cuenta no puede cambiar hasta el COMMIT.
+    -- ------------------------------------------------------------------
+    SELECT count(*) INTO v_inside
+      FROM ticket_presence
+     WHERE event_id = p_event_id AND state = 'inside';
+
+    IF v_inside >= v_event_capacity THEN
+        -- No se consume la boleta: cuando alguien salga, este mismo QR
+        -- podrá entrar. Se registra el rechazo para el tablero.
+        INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+        VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'capacity_reached', v_scanned_at, v_door_id);
+        RETURN 'CAPACITY_REACHED';
+    END IF;
+
+    -- Tope propio de la zona, si el organizador configuró uno.
+    SELECT access_capacity INTO v_zone_cap
+      FROM ticket_types WHERE id = v_ticket.ticket_type_id;
+    IF v_zone_cap IS NOT NULL THEN
+        SELECT count(*) INTO v_zone_inside
+          FROM ticket_presence tp
+          JOIN tickets t ON t.id = tp.ticket_id
+         WHERE tp.event_id = p_event_id
+           AND tp.state = 'inside'
+           AND t.ticket_type_id = v_ticket.ticket_type_id;
+        IF v_zone_inside >= v_zone_cap THEN
+            INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+            VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'zone_capacity_reached', v_scanned_at, v_door_id);
+            RETURN 'ZONE_CAPACITY_REACHED';
+        END IF;
+    END IF;
+
+    -- Primer ingreso: el CAS de siempre, que garantiza un solo canje entre
+    -- escaneos concurrentes. Reingreso: la boleta ya está en 'redeemed' y el
+    -- CAS no aplica (no hay nada que cambiar en el derecho).
+    IF v_ticket.status = 'issued' THEN
+        UPDATE tickets
+           SET status = 'redeemed', redeemed_at = v_scanned_at, redeemed_by_user_id = p_scanned_by_user_id
+         WHERE id = v_ticket.id AND status = 'issued';
+
+        IF NOT FOUND THEN
+            INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+            VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'already_redeemed', v_scanned_at, v_door_id);
+            RETURN 'ALREADY_REDEEMED';
+        END IF;
+    END IF;
+
+    -- Presencia: dentro, con el conteo de admisiones incrementado.
+    INSERT INTO ticket_presence AS tp
+        (ticket_id, event_id, state, admissions, last_in_at, last_in_door, updated_at)
+    VALUES
+        (v_ticket.id, p_event_id, 'inside', 1, v_scanned_at, v_door_id, now())
+    ON CONFLICT (ticket_id) DO UPDATE
+        SET state = 'inside',
+            admissions = tp.admissions + 1,
+            last_in_at = EXCLUDED.last_in_at,
+            last_in_door = EXCLUDED.last_in_door,
+            updated_at = now();
 
     INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
     VALUES (v_ticket.id, p_event_id, p_scanned_by_user_id, 'granted', v_scanned_at, v_door_id);
@@ -1585,6 +1704,78 @@ END;
 $$;
 
 
+
+
+--
+-- Name: register_exit; Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.register_exit(
+    p_event_id bigint,
+    p_raw_token text,
+    p_by_user_id bigint DEFAULT NULL::bigint,
+    p_exited_at timestamp with time zone DEFAULT NULL::timestamp with time zone,
+    p_door_id text DEFAULT NULL::text
+) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_ticket   tickets%ROWTYPE;
+    v_hash     text;
+    v_when     timestamptz;
+    v_door     text;
+    v_presence ticket_presence%ROWTYPE;
+BEGIN
+    IF p_raw_token IS NULL OR length(p_raw_token) < 8 THEN
+        RAISE EXCEPTION 'invalid_token_format';
+    END IF;
+
+    v_when := COALESCE(p_exited_at, now());
+    IF v_when > now() + INTERVAL '5 minutes'
+       OR v_when < now() - INTERVAL '7 days' THEN
+        v_when := now();
+    END IF;
+    v_door := NULLIF(btrim(p_door_id), '');
+
+    IF NOT EXISTS (SELECT 1 FROM events WHERE id = p_event_id) THEN
+        RAISE EXCEPTION 'event_not_found';
+    END IF;
+
+    -- Mismo orden de locks que redeem_ticket: evento primero.
+    PERFORM 1 FROM events WHERE id = p_event_id FOR UPDATE;
+
+    v_hash := encode(digest(p_raw_token, 'sha256'), 'hex');
+    SELECT * INTO v_ticket FROM tickets WHERE token_hash = v_hash;
+    IF NOT FOUND THEN
+        RETURN 'NOT_FOUND';
+    END IF;
+    IF v_ticket.event_id <> p_event_id THEN
+        RETURN 'INVALID_EVENT';
+    END IF;
+
+    SELECT * INTO v_presence FROM ticket_presence WHERE ticket_id = v_ticket.id;
+    IF NOT FOUND OR v_presence.state <> 'inside' THEN
+        -- Ya estaba afuera (o nunca entró): no se descuenta nada. Es la
+        -- respuesta correcta para un operador que repite el escaneo.
+        RETURN 'ALREADY_OUTSIDE';
+    END IF;
+
+    UPDATE ticket_presence
+       SET state = 'outside',
+           last_out_at = v_when,
+           last_out_door = v_door,
+           updated_at = now()
+     WHERE ticket_id = v_ticket.id AND state = 'inside';
+
+    -- Traza: la salida es un evento de auditoría igual que el ingreso. Se
+    -- guarda en `redemptions` con su propio outcome para que el CSV y el
+    -- tablero la vean sin una tabla nueva que aprender.
+    INSERT INTO redemptions (ticket_id, event_id, scanned_by_user_id, outcome, scanned_at, door_id)
+    VALUES (v_ticket.id, p_event_id, p_by_user_id, 'exit', v_when, v_door);
+
+    RETURN 'EXITED';
+END;
+$$;
 --
 -- Name: register_login_failure(text, text); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -2283,6 +2474,7 @@ CREATE TABLE public.events (
     dress_code text,
     doors_open_at timestamp with time zone,
     reminded_at timestamp with time zone,
+    allow_reentry boolean DEFAULT false NOT NULL,
     CONSTRAINT events_capacity_check CHECK ((capacity > 0)),
     CONSTRAINT events_category_check CHECK (((category IS NULL) OR (category = ANY (ARRAY['Música'::text, 'Deportes'::text, 'Teatro'::text, 'Fiesta'::text, 'Cultural'::text, 'Académico'::text, 'Comedia'::text, 'Otro'::text])))),
     CONSTRAINT events_min_age_check CHECK (((min_age IS NULL) OR ((min_age >= 0) AND (min_age <= 99)))),
@@ -2884,8 +3076,10 @@ CREATE TABLE public.ticket_types (
     is_courtesy boolean DEFAULT false NOT NULL,
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    access_capacity integer,
     CONSTRAINT ticket_types_price_cents_check CHECK ((price_cents >= 0)),
-    CONSTRAINT ticket_types_quantity_check CHECK ((quantity > 0))
+    CONSTRAINT ticket_types_quantity_check CHECK ((quantity > 0)),
+    CONSTRAINT ticket_types_access_capacity_check CHECK (((access_capacity IS NULL) OR (access_capacity > 0)))
 );
 
 
@@ -2901,6 +3095,32 @@ ALTER TABLE public.ticket_types ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY
     NO MAXVALUE
     CACHE 1
 );
+
+
+--
+-- Name: ticket_presence; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ticket_presence (
+    ticket_id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    state text DEFAULT 'outside'::text NOT NULL,
+    admissions integer DEFAULT 0 NOT NULL,
+    last_in_at timestamp with time zone,
+    last_in_door text,
+    last_out_at timestamp with time zone,
+    last_out_door text,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ticket_presence_state_check CHECK ((state = ANY (ARRAY['inside'::text, 'outside'::text]))),
+    CONSTRAINT ticket_presence_admissions_check CHECK ((admissions >= 0))
+);
+
+
+--
+-- Name: ix_ticket_presence_inside; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_ticket_presence_inside ON public.ticket_presence USING btree (event_id) WHERE (state = 'inside'::text);
 
 
 --
@@ -3389,6 +3609,14 @@ ALTER TABLE ONLY public.ticket_types
 
 ALTER TABLE ONLY public.ticket_types
     ADD CONSTRAINT ticket_types_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ticket_presence ticket_presence_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_presence
+    ADD CONSTRAINT ticket_presence_pkey PRIMARY KEY (ticket_id);
 
 
 --
@@ -4285,6 +4513,22 @@ ALTER TABLE ONLY public.ticket_returns
 
 ALTER TABLE ONLY public.ticket_types
     ADD CONSTRAINT ticket_types_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ticket_presence ticket_presence_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_presence
+    ADD CONSTRAINT ticket_presence_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ticket_presence ticket_presence_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_presence
+    ADD CONSTRAINT ticket_presence_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
 
 
 --

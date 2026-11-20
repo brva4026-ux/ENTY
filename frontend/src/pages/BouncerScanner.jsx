@@ -208,6 +208,13 @@ export default function BouncerScanner() {
   const [doorId, setDoorId] = useState(
     () => localStorage.getItem("tf_door_id") ?? "",
   );
+  // Modo del escáner (fase 1 V2): la misma pistola sirve para la puerta de
+  // ENTRADA y para la de SALIDA. Sin egreso, `inside` solo crece y el aforo
+  // termina bloqueando el recinto. Se guarda por teléfono como la puerta.
+  const [scanMode, setScanMode] = useState(
+    () => localStorage.getItem("tf_scan_mode") || "in",
+  );
+
   // Log de los últimos escaneos de ESTE dispositivo (el más nuevo primero).
   // Para "yo sí entré": el portero muestra la hora y el resultado sin depender
   // del admin. Nunca sale del teléfono — no es reporte, es respaldo en puerta.
@@ -532,6 +539,7 @@ export default function BouncerScanner() {
   }
 
   async function onScanSuccess(decodedText) {
+    if (scanMode === "out") return exitToken(decodedText);
     await redeemToken(decodedText);
   }
 
@@ -544,7 +552,76 @@ export default function BouncerScanner() {
     }
     setError("");
     setManualCode("");
+    if (scanMode === "out") return exitToken(token, { manual: true });
     await redeemToken(token, { manual: true });
+  }
+
+  /* Egreso (fase 1 V2): la persona SALE del recinto. Libera su lugar y, en
+     los eventos que lo permiten, habilita el reingreso. Es la operación que
+     hace posible que el aforo no se llene para siempre. */
+  async function exitToken(rawToken, { manual = false } = {}) {
+    if (!selectedEvent) {
+      setError("Selecciona un evento primero");
+      return;
+    }
+    if (!manual && rawToken === lastScannedRef.current) return;
+    lastScannedRef.current = rawToken;
+
+    // Sin red no se inventa una salida: el servidor es quien descuenta.
+    if (!navigator.onLine) {
+      setResult({
+        code: "OFFLINE",
+        customer_name: null,
+        detail: "Sin red: la salida necesita conexión",
+      });
+      return;
+    }
+
+    setValidating(true);
+    try {
+      const data = await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/exit`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            raw_token: rawToken,
+            ...(doorId.trim() ? { door_id: doorId.trim() } : {}),
+          }),
+        },
+      );
+      const exited = data.code === "EXITED";
+      setResult({
+        code: data.code,
+        customer_name: data.customer_name ?? null,
+        redeemed: exited,
+        detail:
+          data.code === "ALREADY_OUTSIDE"
+            ? "Ya había salido"
+            : data.code === "EXITED"
+              ? "Salida registrada"
+              : "Esa boleta no es de este evento",
+      });
+      refreshStats();
+      setScanLog((prev) =>
+        [
+          {
+            at: new Date().toISOString(),
+            code: data.code,
+            name: data.customer_name ?? null,
+            detail: "salida",
+          },
+          ...prev,
+        ].slice(0, 20),
+      );
+      if (exited) haptics.door.granted();
+      else haptics.door.attention();
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(resetScan, RESULT_RESET_MS);
+    } catch (e) {
+      setError(e?.message || "No se pudo registrar la salida");
+    } finally {
+      setValidating(false);
+    }
   }
 
   function resetScan() {
@@ -615,6 +692,11 @@ export default function BouncerScanner() {
   // la cabecera ya dice cuántos entraron en total; esto dice cuántos fueron
   // por esta puerta. Se refresca después de cada escaneo, no una vez.
   const [myScans, setMyScans] = useState(null);
+  // Ocupación REAL (mig 052-054): cuánta gente hay ADENTRO ahora. `pulse`
+  // cuenta ingresos acumulados de la noche, que no sirve para decidir si
+  // cabe alguien más: 300 ingresos pueden ser 300 personas o 100 que ya
+  // se fueron. `inside` es la única cifra que manda para el aforo.
+  const [occupancy, setOccupancy] = useState(null);
 
   const refreshPending = useCallback(async () => {
     try {
@@ -632,6 +714,7 @@ export default function BouncerScanner() {
     if (!selectedEvent) {
       setEventPulse(null);
       setMyScans(null);
+      setOccupancy(null);
       return;
     }
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/pulse`)
@@ -639,6 +722,9 @@ export default function BouncerScanner() {
       .catch(() => {});
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/scanner-stats`)
       .then(setMyScans)
+      .catch(() => {});
+    apiFetch(`/venues/${venueId}/events/${selectedEvent}/occupancy`)
+      .then(setOccupancy)
       .catch(() => {});
   }, [selectedEvent, venueId]);
 
@@ -650,6 +736,7 @@ export default function BouncerScanner() {
       setSnapInfo(null);
       setEventPulse(null);
       setMyScans(null);
+      setOccupancy(null);
       return;
     }
     getSnapshot(selectedEvent)
@@ -794,17 +881,26 @@ export default function BouncerScanner() {
               quién entra y cuántos quedan, sin tocar el selector ni el bajo. */}
           {fijo && eventPulse && (
             <div className="mt-2 flex flex-wrap items-center gap-2 text-2xs">
+              {/* ADENTRO, no "ingresaron". El aforo se decide con la gente
+                  que está dentro AHORA: quien entró y salió ya liberó su
+                  lugar. Mostrar capacity - redeemed como "quedan" era el
+                  error que este cambio corrige. */}
               <span className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 <span className="text-zinc-200 font-semibold text-2xs">
-                  {eventPulse.redeemed}
+                  {occupancy ? occupancy.inside : eventPulse.redeemed}
                 </span>
-                <span className="text-zinc-500">ingresaron</span>
+                <span className="text-zinc-500">adentro</span>
               </span>
               <span className="tnum text-zinc-600">
-                {Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
+                {occupancy
+                  ? occupancy.free_seats
+                  : Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
               </span>
-              <span className="text-zinc-500">quedan de {eventPulse.capacity}</span>
+              <span className="text-zinc-500">libres de {eventPulse.capacity}</span>
+              {occupancy && occupancy.exits > 0 && (
+                <span className="text-zinc-500">· {occupancy.exits} salieron</span>
+              )}
               {eventPulse.issued > 0 && (
                 <span className="text-zinc-500">· {eventPulse.issued - eventPulse.redeemed} pendientes</span>
               )}
@@ -822,13 +918,17 @@ export default function BouncerScanner() {
             <div className="mt-2 flex items-center gap-2 text-2xs text-zinc-500">
               <span className="flex items-center gap-1.5">
                 <Icon name="ticket" className="h-3 w-3 text-zinc-600" />
-                <span className="text-zinc-200">{eventPulse.redeemed}</span>
-                <span className="text-zinc-500">ingresaron ·</span>
+                <span className="text-zinc-200">
+                  {occupancy ? occupancy.inside : eventPulse.redeemed}
+                </span>
+                <span className="text-zinc-500">adentro ·</span>
               </span>
               <span className="tnum text-zinc-600">
-                {Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
+                {occupancy
+                  ? occupancy.free_seats
+                  : Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
               </span>
-              <span className="text-zinc-500">quedan de {eventPulse.capacity}</span>
+              <span className="text-zinc-500">libres de {eventPulse.capacity}</span>
               {/* Mismo contador que en el modo con link: sin él, el bouncer
                   que entra por el menú no ve cuánto movió su escáner. */}
               {myScans && myScans.granted > 0 && (
@@ -1093,6 +1193,45 @@ export default function BouncerScanner() {
               </div>
             </div>
           )}
+
+          {/* Modo entrada/salida (fase 1 V2). El aforo se libera con
+              egresos: si el escáner solo sabe sumar, el recinto se llena y
+              nadie más entra aunque la gente se haya ido. */}
+          <div className="mt-3 w-full max-w-sm">
+            <div
+              role="group"
+              aria-label="Modo del escáner"
+              className="grid grid-cols-2 gap-1 rounded-xl border border-zinc-800 bg-zinc-900/40 p-1"
+            >
+              {[
+                { id: "in", label: "Entrada" },
+                { id: "out", label: "Salida" },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    setScanMode(m.id);
+                    localStorage.setItem("tf_scan_mode", m.id);
+                    resetScan();
+                    haptics.tick();
+                  }}
+                  aria-pressed={scanMode === m.id}
+                  className={`min-h-[40px] rounded-lg text-sm font-medium transition ${
+                    scanMode === m.id
+                      ? "bg-zinc-100 text-zinc-900"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-2xs text-zinc-600">
+              {scanMode === "out"
+                ? "Cada escaneo descuenta a una persona del recinto."
+                : "Cada escaneo suma un ingreso al recinto."}
+            </p>
+          </div>
 
           {/* Puerta de origen (mig 042): identifica ESTE teléfono dentro del
               evento. Con varios accesos, permite después medir cuántos entraron

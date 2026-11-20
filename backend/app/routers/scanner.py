@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
-from app.schemas import ScannerStats
+from app.schemas import ExitIn, ExitOut, OccupancyOut, ScannerStats
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["puerta"])
 
@@ -67,3 +67,91 @@ async def event_scanner_stats(
         row = await cur.fetchone()
 
     return ScannerStats(event_id=event_id, **row)
+
+
+@router.get("/events/{event_id}/occupancy", response_model=OccupancyOut)
+async def event_occupancy(
+    venue_id: int,
+    event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Cuánta gente hay ADENTRO ahora mismo, y cuánto lugar queda.
+
+    Es la cifra que manda para el aforo, y la que el tablero refresca. Se
+    separa de `/pulse` (que cuenta ingresos acumulados) porque significan
+    cosas distintas: `pulse` responde "cómo va la noche", esto responde
+    "puedo dejar entrar a alguien más".
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT id, allow_reentry FROM events WHERE id=%s AND venue_id=%s",
+            (event_id, venue_id),
+        )
+        ev = await cur.fetchone()
+        if not ev:
+            raise HTTPException(404, "Evento no encontrado")
+
+        await cur.execute("SELECT * FROM event_occupancy(%s)", (event_id,))
+        row = await cur.fetchone()
+
+    return OccupancyOut(
+        event_id=event_id,
+        allow_reentry=ev["allow_reentry"],
+        free_seats=max(row["capacity"] - row["inside"], 0),
+        **row,
+    )
+
+
+@router.post("/events/{event_id}/exit", response_model=ExitOut)
+async def register_exit(
+    venue_id: int,
+    event_id: int,
+    body: ExitIn,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Registra que una persona SALE del recinto.
+
+    Sin egreso no hay aforo que valga: si nadie puede salir, `inside` solo
+    crece y el tope bloquea el recinto para siempre. También es lo que
+    habilita el reingreso en los eventos que lo permiten.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT id FROM events WHERE id=%s AND venue_id=%s",
+            (event_id, venue_id),
+        )
+        if not await cur.fetchone():
+            raise HTTPException(404, "Evento no encontrado")
+
+        try:
+            await cur.execute(
+                "SELECT register_exit(%s, %s, %s, NULL, %s)",
+                (event_id, body.raw_token, user["id"], body.door_id),
+            )
+            row = await cur.fetchone()
+            code = row["register_exit"] if isinstance(row, dict) else row[0]
+            await db.commit()
+        except psycopg.errors.Error:
+            await db.rollback()
+            raise HTTPException(400, "No se pudo registrar la salida")
+
+    out = ExitOut(code=code, exited=(code == "EXITED"))
+    if code in ("EXITED", "ALREADY_OUTSIDE"):
+        # El nombre es lo que el operador reconoce en la puerta.
+        async with db.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT id, customer_name FROM tickets
+                 WHERE token_hash = encode(digest(%s, 'sha256'), 'hex')
+                """,
+                (body.raw_token,),
+            )
+            t = await cur.fetchone()
+        if t:
+            out.ticket_id = t["id"]
+            out.customer_name = t["customer_name"]
+    return out
