@@ -119,6 +119,16 @@ def test_funnel_counts_sessions_and_money_per_venue(api, api_client, db):
     assert body["revenue_cents"] >= 4500000
     assert steps["paid"] >= 1
 
+    # Invariante del embudo: cada paso es subconjunto del anterior. Antes el
+    # paso de vitrina contaba sesiones que ADEMAS tocaron un evento de la
+    # venue, asi que quedaba por debajo del siguiente y el embudo crecia hacia
+    # abajo (2 -> 13 -> 8). La vitrina ya no es un paso.
+    assert "view_home" not in steps, steps
+    assert steps["checkout_start"] <= steps["view_event"], steps
+
+    # La vitrina global se informa aparte, como contexto.
+    assert body["home_sessions"] >= 1, body
+
     # Un admin de otra venue no puede leer este embudo.
     denied = api.get(f"/venues/{venue}/funnel", "outsider")
     assert denied.status_code == 403, denied.text

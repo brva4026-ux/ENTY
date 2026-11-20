@@ -137,12 +137,19 @@ async def venue_funnel(
     db=Depends(get_db),
     days: int = Query(7, ge=1, le=90),
 ):
-    """Embudo vitrina -> evento -> checkout -> pago, para una venue.
+    """Embudo evento -> checkout -> pago, para una venue.
 
-    El paso de vitrina cuenta SESIONES (no visitas): alguien que recarga diez
-    veces no infla el numeros. Los pagos cuentan TRANSACCIONES aprobadas en
-    ticket_payments, que es la unica fuente de verdad del dinero; por eso el
-    embudo no cierra exacto y la respuesta lo declara (`units`).
+    Los pasos son SESIONES anidadas: quien inicia el checkout ya abrio el
+    evento, asi que cada paso es subconjunto del anterior. Los pagos cuentan
+    TRANSACCIONES aprobadas en ticket_payments, que es la unica fuente de
+    verdad del dinero; por eso el ultimo paso no cierra exacto y la respuesta
+    lo declara (`units`).
+
+    La vitrina NO es un paso: `view_home` se emite en el catalogo global, sin
+    `event_id`, asi que no se puede atribuir a una venue. Como paso quedaba
+    como subconjunto del siguiente (sesiones que ademas abrieron un evento de
+    esta venue) y el embudo crecia hacia abajo. Se devuelve aparte, como
+    `home_sessions`, para leerlo como contexto y no como etapa.
     """
     ensure_roles(user, venue_id, "admin", "super_admin")
     since = datetime.now(timezone.utc) - timedelta(days=days)
@@ -159,7 +166,6 @@ async def venue_funnel(
             ),
             sessions AS (
                 SELECT t.session_id,
-                       bool_or(a.name = 'view_home') AS saw_home,
                        bool_or(a.name = 'view_event') AS saw_event,
                        bool_or(a.name = 'checkout_start') AS started
                 FROM touched t
@@ -167,8 +173,7 @@ async def venue_funnel(
                   ON a.session_id = t.session_id AND a.created_at >= %(since)s
                 GROUP BY t.session_id
             )
-            SELECT count(*) FILTER (WHERE saw_home)::int  AS saw_home,
-                   count(*) FILTER (WHERE saw_event)::int AS saw_event,
+            SELECT count(*) FILTER (WHERE saw_event)::int AS saw_event,
                    count(*) FILTER (WHERE started)::int   AS started
             FROM sessions
             """,
@@ -182,6 +187,18 @@ async def venue_funnel(
             ) from e
         sessions = await cur.fetchone()
 
+        # Vitrina global: se mide igual (sesiones, no visitas) pero fuera del
+        # embudo, porque no se puede atribuir a una venue.
+        await cur.execute(
+            """
+            SELECT count(DISTINCT session_id)::int AS home_sessions
+            FROM analytics_events
+            WHERE name = 'view_home' AND created_at >= %s
+            """,
+            (since,),
+        )
+        home = await cur.fetchone()
+
         await cur.execute(
             """
             SELECT count(*)::int AS paid,
@@ -193,19 +210,20 @@ async def venue_funnel(
         )
         money = await cur.fetchone()
 
-    home = sessions["saw_home"] or 0
+    saw_event = sessions["saw_event"] or 0
     paid = money["paid"] or 0
-    conversion = round(paid / home * 100, 1) if home else 0.0
+    # Sobre las sesiones que abrieron un evento de esta venue: es la base del
+    # embudo y la unica que el organizador puede accionar.
+    conversion = round(paid / saw_event * 100, 1) if saw_event else 0.0
 
     return {
         "days": days,
         "since": since.isoformat(),
         "steps": [
-            {"key": "view_home", "label": "Vieron la vitrina", "count": home, "unit": "sesiones"},
             {
                 "key": "view_event",
                 "label": "Abrieron un evento",
-                "count": sessions["saw_event"] or 0,
+                "count": saw_event,
                 "unit": "sesiones",
             },
             {
@@ -216,6 +234,7 @@ async def venue_funnel(
             },
             {"key": "paid", "label": "Pagaron", "count": paid, "unit": "transacciones"},
         ],
+        "home_sessions": home["home_sessions"] or 0,
         "revenue_cents": int(money["revenue_cents"] or 0),
         "conversion_pct": conversion,
     }

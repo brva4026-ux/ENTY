@@ -6,11 +6,14 @@ import { money } from "../lib/format";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
- * Métricas del embudo: vitrina → evento → checkout → pago.
+ * Métricas del embudo: evento → checkout → pago.
  *
- * Solo admin de la venue. El backend cuenta SESIONES (no visitas) para los tres
+ * Solo admin de la venue. El backend cuenta SESIONES (no visitas) para los dos
  * primeros pasos y TRANSACCIONES aprobadas para el último: por eso cada paso
  * declara su unidad en vez de fingir que el embudo cierra exacto.
+ *
+ * La vitrina no es un paso: es global, no se puede atribuir a una venue. Se
+ * muestra aparte, como contexto.
  */
 
 const RANGES = [
@@ -50,7 +53,7 @@ export default function FunnelPage() {
         <div>
           <h1 className="text-xl font-semibold">Métricas</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Embudo de conversión: de ver la vitrina a pagar. Las sesiones se
+            Embudo de conversión: de abrir un evento a pagar. Las sesiones se
             cuentan una vez, sin cookies.
           </p>
         </div>
@@ -86,7 +89,7 @@ export default function FunnelPage() {
       ) : empty ? (
         <p className="mt-8 rounded-xl border border-zinc-700/60 px-4 py-6 text-sm text-zinc-400">
           Todavía no hay visitas registradas en este periodo. Los datos aparecen
-          cuando alguien abre la vitrina desde el link público.
+          cuando alguien abre uno de tus eventos desde el link público.
         </p>
       ) : (
         <ol className="mt-6 space-y-3">
@@ -123,7 +126,7 @@ export default function FunnelPage() {
             <p className="mt-1 text-2xl font-semibold tabular-nums text-zinc-100">
               {data.conversion_pct}%
             </p>
-            <p className="mt-1 text-xs text-zinc-500">pagos sobre sesiones que vieron la vitrina</p>
+            <p className="mt-1 text-xs text-zinc-500">pagos sobre sesiones que abrieron un evento</p>
           </div>
           <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-4">
             <p className="text-xs uppercase tracking-wider text-zinc-500">Recaudado</p>
@@ -134,6 +137,15 @@ export default function FunnelPage() {
               pagos aprobados (fuente: caja, no eventos del navegador)
             </p>
           </div>
+          {data.home_sessions > 0 && (
+            <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-4 sm:col-span-2">
+              <p className="text-sm text-zinc-400">
+                <b className="tabular-nums text-zinc-100">{data.home_sessions}</b>{" "}
+                sesiones vieron la vitrina en este periodo. Es el catálogo de
+                todos los negocios, así que no se puede atribuir a este.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
