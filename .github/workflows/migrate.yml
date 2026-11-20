@@ -49,6 +49,12 @@ jobs:
         # migracion no arrastra a las siguientes (el bug de la 046 abortaba la
         # transaccion y, con set -e, la lista entera). Si una falla, el job se
         # detiene aqui con el archivo culpable en el log.
+        #
+        # Sin el secret no se puede migrar, pero tampoco hay que fingir que el
+        # esquema esta mal: el paso siguiente mide el esquema real por /health.
+        # Se avisa (::warning) y se salta el paso; el gate de verdad es el
+        # health check, que si falla pone el job en rojo. Un job rojo por un
+        # secret que falta entrena a la gente a ignorar el rojo.
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -57,9 +63,10 @@ jobs:
 
           url = os.environ.get("DATABASE_URL", "").strip()
           if not url:
-              print("::error::Falta el secret SUPABASE_DB_URL "
-                    "(connection string de produccion de Supabase).")
-              sys.exit(1)
+              print("::warning::Falta el secret SUPABASE_DB_URL: no se aplican "
+                    "migraciones. El esquema se verifica por /health en el paso "
+                    "siguiente. Configura el secret para cerrar la brecha.")
+              sys.exit(0)
 
           root = pathlib.Path("db/migrations")
           files = sorted(root.glob("*.sql"))
@@ -116,7 +123,7 @@ jobs:
               except Exception as e:
                   last = {"error": str(e)}
               time.sleep(10)
-          print("::error::/health no reporto schema=ok tras la migracion: "
-                f"{last}")
+          print("::error::/health no reporto schema=ok: el esquema de produccion "
+                f"esta atrasado respecto de db/migrations. Ultimo: {last}")
           sys.exit(1)
           PY

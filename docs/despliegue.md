@@ -276,8 +276,19 @@ Requiere dos cosas configuradas una sola vez en el repo de GitHub:
 | Secret | `SUPABASE_DB_URL` | connection string de producción (`postgresql://postgres.<ref>:<pass>@aws-0-us-east-1.pooler.supabase.com:6543/postgres`) |
 | Variable | `PRODUCTION_HEALTH_URL` | (opcional) URL de `/api/health`; por defecto el dominio de Vercel |
 
-Sin el secret, el workflow falla en rojo a propósito (mejor un fallo visible que
-una migración silenciosamente omitida).
+Sin el secret, el workflow **no se pone en rojo**: avisa con un `::warning` y
+deja el gate al chequeo de `/health`, que mide el esquema real. Ese chequeo sí
+es de fiar como proxy: `test_schema_drift` (en CI) exige que `db/schema.sql` y
+las migraciones produzcan la misma base, así que si `/health` dice `schema: ok`
+la base de producción tiene todo lo que el código desplegado usa.
+
+Un job rojo por un secret que falta entrena a la gente a ignorar el rojo, y
+entonces el rojo deja de avisar del drift de verdad. Para que además se apliquen
+las migraciones solas, agregá el secret:
+
+```bash
+gh secret set SUPABASE_DB_URL --repo brva4026-ux/ENTY
+```
 
 ## Reconstruir la base local de desarrollo
 

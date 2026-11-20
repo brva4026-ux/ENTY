@@ -598,6 +598,14 @@ verde sin correr nada.
     PGPASSWORD=devpassword psql -h 127.0.0.1 -U postgres -d ticketflow -q -f "$f"; done
   curl -s -X POST http://127.0.0.1:8001/seed   # re-siembra (2 eventos)
   ```
+- **El job `Migrar produccion` en rojo por un secret ausente**: el mensaje es
+  `Falta el secret SUPABASE_DB_URL`. No es un fallo del diff ni del esquema:
+  `workflow_run` corre después de cada CI verde en `master`, y sin el secret no
+  puede migrar. Desde 2026-11 ese caso solo emite un `::warning`; el gate real
+  es el paso de `/health`, que exige `schema: ok` (y `test_schema_drift`
+  garantiza que `schema.sql` y las migraciones coinciden, así que el proxy es
+  de fiar). Si el job se pone rojo de verdad, mirá el paso de health: ahí sí hay
+  drift. Para cerrar la brecha del todo: `gh secret set SUPABASE_DB_URL`.
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
 - **Ancla de la portada (`/#eventos`) en carga fría**: el navegador resuelve el
