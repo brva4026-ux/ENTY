@@ -6,6 +6,7 @@ import {
   quotePublicCoupon,
 } from "../lib/api";
 import { money } from "../lib/format";
+import { waLink } from "../lib/whatsapp";
 
 /**
  * Checkout público del fan: elige localidad, deja su contacto y va a pagar a
@@ -212,6 +213,14 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
   }
 
   const approved = status?.approved;
+
+  // Salida cuando el cobro en linea no esta disponible o falla: el organizador
+  // puede vender igual por WhatsApp. Se usa el mismo mensaje que el CTA de la
+  // ficha del evento, para que el fan no escriba dos veces lo mismo.
+  const contactWa = waLink(
+    event?.contact_phone,
+    `Hola, quiero comprar una boleta para ${event?.name ?? "el evento"}.`,
+  );
 
   return (
     <div
@@ -485,6 +494,21 @@ export default function FanCheckoutModal({ event, reference, onClose, onPaid }) 
               >
                 {error}
               </p>
+            )}
+
+            {/* Si el cobro en linea falla, "intenta de nuevo" es un callejon:
+                el organizador puede vender igual por WhatsApp. Solo se ofrece
+                cuando el fallo es del pago (errorField null), no de un campo
+                del formulario, y solo si publico un telefono usable. */}
+            {error && !errorField && contactWa && (
+              <a
+                className="btn-ghost w-full"
+                href={contactWa}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Encargar por WhatsApp
+              </a>
             )}
 
             <button

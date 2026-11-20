@@ -138,3 +138,37 @@ test("sin pago en linea, el CTA es el WhatsApp del organizador", async ({
   await expect(wa).toBeVisible();
   await expect(wa).toHaveAttribute("href", /wa\.me\/573001234567/);
 });
+
+test("si el cobro en linea falla, el fan puede encargar por WhatsApp", async ({
+  page,
+  request,
+}) => {
+  // `payments_enabled` esta encendido (hay Wompi configurado) pero el cobro
+  // revienta: pasarela caida, 502 del backend, red del fan. Antes el modal solo
+  // decia "Intenta de nuevo" y no habia salida, aunque el organizador si vende
+  // por WhatsApp. Se stubea el 502 para fijar ese estado.
+  const eventId = await pricedEventId(request);
+
+  await page.route("**/api/public/events/*/checkout", (route) =>
+    route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({ detail: "No pudimos iniciar el pago." }),
+    }),
+  );
+
+  await page.goto(`/evento/${eventId}`);
+  await page.getByRole("button", { name: /Comprar boleto/ }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  await page.getByLabel(/Tu nombre/).fill("Fan De Prueba");
+  await page.getByLabel(/Teléfono/).fill("3001234567");
+  await page.getByRole("button", { name: /Pagar/ }).click();
+
+  // El aviso de error aparece Y el WhatsApp del organizador como salida.
+  await expect(page.locator("#checkout-error")).toBeVisible({ timeout: 10_000 });
+  const wa = page.getByRole("link", { name: /Encargar por WhatsApp/ });
+  await expect(wa).toBeVisible();
+  await expect(wa).toHaveAttribute("href", /wa\.me\/\d{10,}/);
+  await expect(wa).toHaveAttribute("href", /text=/);
+});
