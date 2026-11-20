@@ -71,3 +71,49 @@ test("un evento inexistente muestra el estado no disponible", async ({ page }) =
   await expect(page.getByText("Este evento ya no está disponible.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Volver al inicio" })).toBeVisible();
 });
+
+test.describe("Mis boletas: el aviso no promete un correo que no sale", () => {
+  // El titulo era fijo ("Revisa tu correo") aunque Resend no estuviera
+  // configurado: la pantalla prometia un envio que nunca ocurre, justo encima
+  // del texto que decia que se lo pidiera al organizador.
+  test("sin correo configurado, no manda a revisar el correo", async ({ page }) => {
+    await page.route("**/api/public/my-tickets", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          detail: "Si ese contacto tiene boletas, te enviamos un enlace.",
+          email_configured: false,
+        }),
+      }),
+    );
+    await page.goto("/boletas");
+    await page.getByLabel(/Correo o teléfono/i).fill("fan@bar.test");
+    await page.getByRole("button", { name: /Enviar enlace/i }).click();
+
+    const aviso = page.getByRole("status");
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toContainText(/no envía correos/i);
+    await expect(aviso).not.toContainText(/revisa tu correo/i);
+  });
+
+  test("con correo configurado, si invita a revisarlo", async ({ page }) => {
+    await page.route("**/api/public/my-tickets", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          detail: "Si ese contacto tiene boletas, te enviamos un enlace.",
+          email_configured: true,
+        }),
+      }),
+    );
+    await page.goto("/boletas");
+    await page.getByLabel(/Correo o teléfono/i).fill("fan@bar.test");
+    await page.getByRole("button", { name: /Enviar enlace/i }).click();
+
+    const aviso = page.getByRole("status");
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toContainText(/revisa tu correo/i);
+  });
+});

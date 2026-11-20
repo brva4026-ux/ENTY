@@ -47,6 +47,10 @@ export default function MyTicketsPage() {
   // como invalido: "No pudimos abrir tus boletas" no es culpa del valor escrito.
   const [contactInvalid, setContactInvalid] = useState(false);
   const [notice, setNotice] = useState("");
+  // El titulo del aviso depende de si el correo salio de verdad: cuando no hay
+  // correo configurado el fan nunca recibira nada, asi que "Revisa tu correo"
+  // seria una promesa falsa sobre el mensaje que va justo debajo.
+  const [noticeTitle, setNoticeTitle] = useState("Revisa tu correo");
   const [busy, setBusy] = useState(false);
   // Credencial vigente: el enlace firmado del correo o el token de una boleta.
   const [credential, setCredential] = useState(null);
@@ -110,11 +114,19 @@ export default function MyTicketsPage() {
       } catch {
         /* modo privado */
       }
-      setNotice(
-        res.email_configured
-          ? "Te enviamos un enlace a tu correo. Ábrelo desde este dispositivo."
-          : "Pídele el enlace al organizador del evento: te lo reenvía al instante.",
-      );
+      // El servidor redacta el aviso (mismo texto exista o no la cuenta, para
+      // no permitir enumerar). Pero ese texto promete un envio por correo: sin
+      // Resend no sale nada, asi que ahi se dice la verdad. Aclarar que este
+      // despliegue no envia correos no revela si el contacto tiene boletas.
+      if (res.email_configured) {
+        setNotice(res.detail || "Te enviamos un enlace a tu correo.");
+        setNoticeTitle("Revisa tu correo");
+      } else {
+        setNotice(
+          "Este despliegue no envía correos. Pídeselo al organizador del evento: te lo reenvía al instante.",
+        );
+        setNoticeTitle("Pídele el enlace al organizador");
+      }
     } catch (e) {
       setError(e.message || "No pudimos enviar el enlace");
     } finally {
@@ -229,7 +241,7 @@ export default function MyTicketsPage() {
           </div>
         ) : notice && !data ? (
           <div className="home-empty" role="status">
-            <p>Revisa tu correo</p>
+            <p>{noticeTitle}</p>
             <span>{notice}</span>
           </div>
         ) : data && tickets.length === 0 ? (
