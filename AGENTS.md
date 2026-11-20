@@ -73,6 +73,14 @@ el default `postgres:devpassword@127.0.0.1:5432/ticketflow`); sin DB se
 saltan silenciosamente (un "verde" local puede ser solo la parte sin DB —
 en CI el service container de Postgres los corre todos).
 
+No corras `pytest` con `backend/.env.local` exportado (`. ./.env.local`).
+Ese archivo define claves Wompi reales de desarrollo, y el test
+`test_checkout_503_without_wompi_configured` verifica justo el caso contrario:
+sin claves el checkout responde 503. Con el entorno cargado falla por
+contaminación, no por código. Corré `pytest` en un shell limpio, o quitá las
+variables: `env -u WOMPI_PUBLIC_KEY -u WOMPI_PRIVATE_KEY -u
+WOMPI_INTEGRITY_SECRET -u WOMPI_EVENTS_SECRET .venv/bin/python -m pytest ...`.
+
 `tests/test_schema_drift.py` es el guardián del esquema: si agregás una
 migración con objetos nuevos, consolidala también en `db/schema.sql`
 (aplicá schema+migraciones sobre una base limpia, `pg_dump --schema-only`
