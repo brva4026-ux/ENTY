@@ -290,7 +290,12 @@ async def public_event_detail(
             SELECT e.id, e.name, e.description, e.flyer_url, e.location,
                    e.starts_at, e.event_timezone, e.capacity, e.status,
                    e.category, e.min_age, e.dress_code, e.doors_open_at,
-                   e.waiting_room_enabled,
+                   -- Por to_jsonb: si la migracion 055 no esta aplicada la
+                   -- columna no existe y un SELECT directo tumba la ficha
+                   -- entera con 500. Faltante -> false, no error.
+                   coalesce(
+                     (to_jsonb(e) ->> 'waiting_room_enabled')::boolean, false
+                   ) AS waiting_room_enabled,
                    v.name AS venue_name,
                    v.contact_name AS venue_contact_name,
                    v.contact_phone AS venue_contact_phone,

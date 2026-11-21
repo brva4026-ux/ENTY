@@ -261,3 +261,39 @@ def test_two_events_have_independent_queues(api):
     assert _join(api, ev1, _session()).json()["status"] == "admitted"
     # ev1 ya está lleno, pero ev2 tiene su propia tanda libre.
     assert _join(api, ev2, _session()).json()["status"] == "admitted"
+
+
+def test_public_event_survives_missing_waiting_room_column(api):
+    """Produccion puede ir por detras del codigo: la ficha NO debe romperse.
+
+    El deploy de codigo (Render/Vercel) y la migracion de esquema
+    (migrate.yml) son caminos distintos, asi que existe una ventana real en la
+    que el codigo nuevo corre contra una base sin la 055. Un SELECT directo de
+    `waiting_room_enabled` tumbaba la ficha publica entera con 500, es decir:
+    la ventana de despliegue se veia como caida del sitio.
+
+    La ficha debe seguir sirviendo y decir "sala apagada", que es la verdad
+    (no hay sala configurable si la columna no existe).
+    """
+    venue, event_id, _ = _room_event(api, enabled=True)
+
+    # Se renombra en vez de borrar: la suite comparte esquema y un DROP
+    # dejaria a los demas tests de la sala sin su columna.
+    api.run_sql(
+        "ALTER TABLE events RENAME COLUMN waiting_room_enabled "
+        "TO waiting_room_enabled_hidden"
+    )
+    try:
+        res = api.client.get(f"/public/events/{event_id}")
+        assert res.status_code == 200, res.text
+        assert res.json()["waiting_room"] is False, res.json().get("waiting_room")
+    finally:
+        api.run_sql(
+            "ALTER TABLE events RENAME COLUMN waiting_room_enabled_hidden "
+            "TO waiting_room_enabled"
+        )
+
+    # Con la columna de vuelta, el valor REAL se respeta (no queda en false).
+    res = api.client.get(f"/public/events/{event_id}")
+    assert res.status_code == 200, res.text
+    assert res.json()["waiting_room"] is True, res.json().get("waiting_room")

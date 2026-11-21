@@ -86,7 +86,14 @@ async def event_occupancy(
     ensure_roles(user, venue_id, "super_admin", "admin", "promotor", "bouncer")
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, allow_reentry FROM events WHERE id=%s AND venue_id=%s",
+            # to_jsonb: la columna nace en la 052. Si produccion va por detras
+            # del codigo, leerla directo da 500 y deja al bouncer sin pantalla
+            # en plena puerta. Faltante -> false, no error.
+            """SELECT id,
+                      coalesce(
+                        (to_jsonb(events) ->> 'allow_reentry')::boolean, false
+                      ) AS allow_reentry
+                 FROM events WHERE id=%s AND venue_id=%s""",
             (event_id, venue_id),
         )
         ev = await cur.fetchone()
