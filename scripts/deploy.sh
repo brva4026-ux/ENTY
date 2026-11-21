@@ -100,7 +100,7 @@ npx --yes vercel --prod --yes
 
 echo
 echo "==> Listo. Verifica:"
-echo "    curl -s https://ticketflow-brva4026-ux.vercel.app/api/health"
-echo "    curl -s -X POST https://ticketflow-brva4026-ux.vercel.app/api/auth/login \\"
+echo "    curl -s https://ticketflow-brva4026-uxs-projects.vercel.app/api/health"
+echo "    curl -s -X POST https://ticketflow-brva4026-uxs-projects.vercel.app/api/auth/login \\"
 echo "      -H 'Content-Type: application/json' \\"
 echo "      -d '{\"email\":\"admin@bar.test\",\"password\":\"demo1234\"}'"

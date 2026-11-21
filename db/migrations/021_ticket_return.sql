@@ -75,12 +75,21 @@ CREATE INDEX IF NOT EXISTS idx_ticket_returns_event
 -- 1b) El kind 'ticket_returned' entra al catalogo cerrado de notificaciones
 --     (mig 012 puso un CHECK de kinds validos: sin esto, la devolucion muere
 --     al notificar y revienta TODA la transaccion).
+--
+--     El deploy re-ejecuta las migraciones: la lista incluye los kinds que
+--     agregaron las migraciones posteriores. Si se re-declarara solo el
+--     catalogo de 021, el DROP+ADD borraria esos kinds y fallaria contra las
+--     notificaciones ya guardadas.
 -- ---------------------------------------------------------------------------
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_kind_check;
 ALTER TABLE notifications ADD CONSTRAINT notifications_kind_check
     CHECK (kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text,
                              'payout_disputed'::text, 'invitation_accepted'::text,
-                             'ticket_reissued'::text, 'ticket_returned'::text]));
+                             'ticket_reissued'::text, 'ticket_returned'::text,
+                             'waitlist_offered'::text, 'payment_approved'::text,
+                             'event_autoclosed'::text, 'door_anomaly'::text,
+                             'capacity_alert'::text, 'event_reminder'::text,
+                             'ticket_refunded'::text]));
 
 -- ---------------------------------------------------------------------------
 -- 2) return_ticket: anula la boleta (mata el QR y libera cupo/aforo),
