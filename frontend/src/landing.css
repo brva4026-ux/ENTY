@@ -413,6 +413,139 @@
 }
 
 /* --------------------------------------------------------------------------
+ *  4b. DEMOSTRACIÓN EN VIDEO
+ * ------------------------------------------------------------------------- */
+.lp-demo {
+  margin-top: var(--e-space-10);
+  text-align: center;
+}
+
+/* El alto se reserva con `aspect-ratio` (9:16) antes de que exista el
+   archivo: cargar el video no empuja la descripción, el CTA ni las tarjetas.
+   En escritorio se limita el ancho; en móvil ocupa la columna. */
+.lp-demo-player {
+  position: relative;
+  width: min(100%, 22rem);
+  margin: 0 auto;
+  aspect-ratio: 9 / 16;
+  border-radius: var(--e-radius-lg);
+  border: 1px solid var(--lp-line);
+  overflow: hidden;
+  background: var(--e-ink-1);
+}
+
+.lp-demo-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--e-ink-1);
+}
+
+/* Portada propia: deja claro que se toca para reproducir. Es un <button>
+   real, así que llega por teclado y se anuncia. */
+.lp-demo-cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-space-2);
+  width: 100%;
+  padding: var(--e-space-6);
+  border: 0;
+  background: color-mix(in srgb, var(--e-ink-1) 42%, transparent);
+  color: var(--e-white);
+  text-align: center;
+  cursor: pointer;
+}
+.lp-demo-cover:focus-visible {
+  outline: 3px solid var(--e-violet-400);
+  outline-offset: -4px;
+}
+
+.lp-demo-play {
+  display: grid;
+  place-items: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: var(--e-radius-pill);
+  background: var(--e-violet-500);
+  color: var(--e-white);
+  border: 1px solid color-mix(in srgb, var(--e-white) 18%, transparent);
+  transition: transform var(--e-dur-base) var(--e-ease-spring);
+}
+.lp-demo-cover:hover .lp-demo-play {
+  transform: scale(1.06);
+}
+
+.lp-demo-cover-title {
+  font-size: var(--e-text-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.lp-demo-cover-sub {
+  font-size: var(--e-text-2xs);
+  color: color-mix(in srgb, var(--e-white) 78%, transparent);
+}
+
+.lp-demo-desc {
+  max-width: 34rem;
+  margin: var(--e-space-4) auto 0;
+  font-size: var(--e-text-2xs);
+  line-height: 1.6;
+  color: var(--lp-ink-soft);
+  text-wrap: pretty;
+}
+
+.lp-demo-cta {
+  margin-top: var(--e-space-4);
+}
+
+/* Sin video: el bloque no conserva la proporción 9:16 (sería un marco
+   vacío enorme); pasa a ser una tarjeta de texto con la misma información. */
+.lp-demo-player--fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-space-2);
+  aspect-ratio: auto;
+  min-height: 12rem;
+  padding: var(--e-space-6);
+  background: var(--e-white);
+  color: var(--lp-ink-soft);
+  border-style: dashed;
+  box-shadow: none;
+}
+.lp-demo-fallback-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--e-neutral-950);
+}
+.lp-demo-fallback-body {
+  margin: 0;
+  font-size: var(--e-text-2xs);
+  line-height: 1.6;
+}
+.lp-demo-fallback-body a {
+  color: var(--e-violet-600);
+}
+
+/* Encabezado de la segunda mitad de la sección (las seis funciones). */
+.lp-h3 {
+  margin: var(--e-space-16) 0 0;
+  font-size: clamp(1.15rem, 2.6vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--e-neutral-950);
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
  *  5. CARTELERA
  * ------------------------------------------------------------------------- */
 .lp-events-block {
@@ -840,7 +973,8 @@
   .lp-card-icon,
   .lp-event-stamp,
   .lp-index,
-  .lp-progress {
+  .lp-progress,
+  .lp-demo-play {
     transition: none;
   }
   .lp-card:hover,
@@ -849,6 +983,7 @@
   .lp-btn-primary:hover,
   .lp-btn-secondary:hover,
   .lp-btn-wa:hover,
+  .lp-demo-cover:hover .lp-demo-play,
   .lp-event:hover .lp-event-stamp {
     transform: none;
   }
@@ -886,6 +1021,7 @@ html[data-motion="reduce"] .lp-card:hover .lp-card-icon,
 html[data-motion="reduce"] .lp-btn-primary:hover,
 html[data-motion="reduce"] .lp-btn-secondary:hover,
 html[data-motion="reduce"] .lp-btn-wa:hover,
+html[data-motion="reduce"] .lp-demo-cover:hover .lp-demo-play,
 html[data-motion="reduce"] .lp-event:hover .lp-event-stamp {
   transform: none;
 }

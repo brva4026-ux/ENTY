@@ -222,6 +222,123 @@ function CheckIcon() {
   );
 }
 
+function PlayIcon() {
+  return (
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10-6.5a1 1 0 0 0 0-1.72l-10-6.5A1 1 0 0 0 8 5.5Z" />
+    </svg>
+  );
+}
+
+/** Rutas del video de demostración. Vive en `public/media` (mismo mecanismo
+ *  que el fondo sintetizado del login) para que Vercel lo sirva estático con
+ *  su MIME y soporte de `Range`. */
+const DEMO_VIDEO = {
+  mp4: "/media/enty-demo.mp4",
+  webm: "/media/enty-demo.webm",
+  poster: "/media/enty-demo-poster.jpg",
+  captions: "/media/enty-demo.vtt",
+  seconds: 25,
+};
+
+/**
+ * Reproductor de la demostración: portada propia y reproducción a pedido.
+ *
+ * `preload="none"` + portada JPEG evita descargar el video al abrir la
+ * portada. El botón de portada es un control real (teclado y lector de
+ * pantalla); al reproducir se retira y quedan los controles nativos, que
+ * permiten pausar, buscar y activar subtítulos. Si el archivo falla, el
+ * componente cae a un texto con enlace de descarga: la sección conserva su
+ * descripción, su CTA y las seis funciones.
+ */
+function DemoVideo() {
+  const ref = useRef(null);
+  const [started, setStarted] = useState(false);
+  const [ended, setEnded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  function play() {
+    const el = ref.current;
+    if (!el) return;
+    if (ended) el.currentTime = 0;
+    setEnded(false);
+    setStarted(true);
+    const p = el.play?.();
+    if (p && typeof p.catch === "function") {
+      // Un navegador puede negarse (política de reproducción): se devuelve
+      // la portada en vez de dejar un marco negro sin explicación.
+      p.catch(() => setStarted(false));
+    }
+  }
+
+  if (failed) {
+    return (
+      <div className="lp-demo-player lp-demo-player--fallback" role="status">
+        <p className="lp-demo-fallback-title">El video no está disponible ahora.</p>
+        <p className="lp-demo-fallback-body">
+          El recorrido sigue explicado aquí abajo. También puedes{" "}
+          <a href={DEMO_VIDEO.mp4} download>
+            descargar la demostración
+          </a>
+          .
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="lp-demo-player">
+      <video
+        ref={ref}
+        className="lp-demo-video"
+        poster={DEMO_VIDEO.poster}
+        controls={started}
+        playsInline
+        preload="none"
+        aria-describedby="lp-demo-desc"
+        onEnded={() => setEnded(true)}
+        onError={() => setFailed(true)}
+      >
+        <source src={DEMO_VIDEO.webm} type="video/webm" />
+        <source src={DEMO_VIDEO.mp4} type="video/mp4" />
+        <track
+          kind="captions"
+          src={DEMO_VIDEO.captions}
+          srcLang="es"
+          label="Español"
+        />
+      </video>
+
+      {(!started || ended) && (
+        <button
+          type="button"
+          className="lp-demo-cover"
+          onClick={play}
+          aria-label={
+            ended
+              ? `Volver a reproducir la demostración de ${DEMO_VIDEO.seconds} segundos`
+              : `Reproducir la demostración de ${DEMO_VIDEO.seconds} segundos`
+          }
+        >
+          <span className="lp-demo-play">
+            <PlayIcon />
+          </span>
+          <span className="lp-demo-cover-title">
+            {ended ? "Volver a ver" : "Ver demostración"} · {DEMO_VIDEO.seconds} s
+          </span>
+          <span className="lp-demo-cover-sub">Toca para reproducir</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function LandingPage() {
   useDocumentTitle("Boletería, aforo y control de acceso");
   const [data, setData] = useState(null);
@@ -454,15 +571,38 @@ export default function LandingPage() {
             </div>
           </section>
 
-          {/* --- Funcionalidades reales --------------------------------- */}
+          {/* --- Demostración + funcionalidades reales ------------------ */}
           <section
             id="funciones"
             className="lp-features"
-            aria-labelledby="lp-features-title"
+            aria-labelledby="lp-demo-title"
           >
-            <h2 id="lp-features-title" className="lp-h2" data-reveal>
-              Todo lo que necesitas para la noche
+            <h2 id="lp-demo-title" className="lp-h2" data-reveal>
+              Mira cómo funciona Enty
             </h2>
+            <p className="lp-sub" data-reveal>
+              Emite una boleta, valida el QR y consulta el aforo en un solo
+              recorrido.
+            </p>
+
+            <div className="lp-demo" data-reveal>
+              <DemoVideo />
+              <p id="lp-demo-desc" className="lp-demo-desc">
+                Recorrido de 25 segundos, sin audio: un promotor emite una
+                boleta desde su cupo, la puerta valida el QR y el panel del
+                negocio muestra el ingreso sumado al aforo.
+              </p>
+              <TransitionLink
+                to="/register"
+                className="lp-btn lp-btn-primary lp-demo-cta"
+              >
+                Crear mi primer evento
+              </TransitionLink>
+            </div>
+
+            <h3 className="lp-h3" data-reveal>
+              Todo lo que necesitas para la noche
+            </h3>
             <p className="lp-sub" data-reveal>
               Seis herramientas que ya funcionan juntas: la venta, la puerta y la
               cuenta del cierre.
