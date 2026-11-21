@@ -614,6 +614,16 @@ verde sin correr nada.
   garantiza que `schema.sql` y las migraciones coinciden, así que el proxy es
   de fiar). Si el job se pone rojo de verdad, mirá el paso de health: ahí sí hay
   drift. Para cerrar la brecha del todo: `gh secret set SUPABASE_DB_URL`.
+- **El código siempre puede llegar antes que su migración**: Render y Vercel
+  despliegan con el push a `master`; `migrate.yml` corre después y además
+  depende de un secret. Esa ventana es estructural, no un accidente. Por eso
+  un `SELECT` directo de una columna nueva no es aceptable en rutas públicas:
+  convierte la ventana de despliegue en un 500 para el usuario. Se lee por
+  `(to_jsonb(t) ->> 'columna')::boolean` con `coalesce(..., false)`, el mismo
+  patrón que ya usa `auth.py` (`password_changed_at`, `avatar_url`). El cast y
+  el coalesce van en SQL a propósito: `->>` devuelve texto y `bool('false')` es
+  `True` en Python, así que convertir en Python es un bug silencioso.
+  `test_public_event_survives_missing_waiting_room_column` fija el contrato.
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
 - **Ancla de la portada (`/#eventos`) en carga fría**: el navegador resuelve el
