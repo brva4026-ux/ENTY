@@ -1763,6 +1763,16 @@ respuestas son JSON y las dos páginas HTML propias no ejecutan JavaScript.
   responder `Range` con 206: sin eso Safari/iOS no reproduce y no hay seek.
   Vercel sirve el estático con MIME y ranges correctos por su cuenta; el
   cuidado es para el self-hosting con `node server.mjs`.
+- **La demo de la portada es una grabación REAL de la UI, no un mock.**
+  `frontend/public/media/enty-demo.*` (mp4 + webm + poster + vtt, ~1.25 MB)
+  muestra el recorrido de "Noche Enty": el promotor emite una boleta, la
+  puerta la valida y el admin ve el aforo pasar de 24 a 25. Se grabó con
+  Playwright contra el seed demo en escenas de 540×960 y se compuso a
+  720×1280 con ffmpeg (rótulos en Sora, QR y código de respaldo difuminados).
+  No lleva audio: los rótulos y el VTT cuentan la historia. El reproductor
+  `DemoVideo` de `LandingPage.jsx` usa `preload="none"` + poster y muestra
+  los controles nativos al arrancar; si el archivo falla, cae a una tarjeta
+  con enlace de descarga.
 - **Divulgación progresiva (Ley de Hick): la acción principal sola, lo demás
   en el menú "…".** El componente `frontend/src/components/ActionMenu.jsx`
   (menú overflow, cierra con Escape y clic fuera, devuelve el foco) es el
