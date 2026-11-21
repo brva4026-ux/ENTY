@@ -624,6 +624,20 @@ verde sin correr nada.
   el coalesce van en SQL a propósito: `->>` devuelve texto y `bool('false')` es
   `True` en Python, así que convertir en Python es un bug silencioso.
   `test_public_event_survives_missing_waiting_room_column` fija el contrato.
+- **`consume_waiting_pass` nunca se llama (hueco abierto)**: la migración 056
+  dice que el pase se gasta "cuando la compra sale bien", pero ni
+  `approve_ticket_payment` ni el webhook ni el router lo invocan: en todo el
+  repo solo aparece en los tests. Efecto real: un pase vale hasta que vence
+  (`waiting_room_pass_minutes`), así que el mismo pase puede abrir varios
+  checkouts en ese lapso. No permite saltarse la fila (el portero sí valida),
+  pero el turno no es de un solo uso como promete el diseño. Para cerrarlo hay
+  que propagar el pase hasta el cobro y consumirlo al aprobar el pago.
+- **El portero de la sala vive en HTTP, no en SQL**: `require_waiting_pass` se
+  llama solo desde `public.py` (checkout del fan). El camino de admin
+  (`payments.py`) no lo llama a propósito: es staff vendiendo en taquilla y
+  `ensure_roles` ya lo protege. Cualquier prueba del portero tiene que ir por
+  HTTP: llamar `reserve_ticket_payment` por SQL se lo salta y da un falso
+  "no hay portero".
 - **Tokens de QR**: en la DB solo se guarda el SHA-256 del token crudo. El
   token crudo es lo único que sirve para redimir.
 - **Ancla de la portada (`/#eventos`) en carga fría**: el navegador resuelve el
