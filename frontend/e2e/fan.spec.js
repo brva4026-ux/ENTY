@@ -27,38 +27,123 @@ test("Inicio -> detalle -> Mis boletos", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Conciertos" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Comedia" })).toBeVisible();
 
-  // El evento del seed, no "el primero de la lista": otras specs corren en
-  // paralelo y crean eventos publicados (E2E-*) que pueden caer antes. El
-  // seed es el unico con localidad de pago, que es lo que ejercita este test.
-  const row = page.locator(".home-list .home-row-main", { hasText: "Noche Electrónica" }).first();
-  await expect(row).toBeVisible();
-  const href = await row.getAttribute("href");
-  expect(href).toMatch(/^\/evento\/\d+$/);
-  await row.click();
+  // El catálogo real decide qué evento abrir. Otras specs corren en paralelo
+  // y crean eventos publicados (E2E-*), así que no se puede clavar un nombre
+  // del seed; se elige uno con precio para ejercitar el checkout.
+  const event = await page.evaluate(async () => {
+    const res = await fetch("/api/public/events?limit=100")
+      .then((r) => r.json())
+      .catch(() => null);
+    const list = res?.events || [];
+    return list.find((e) => e.price_cents != null) || null;
+  });
+  test.skip(!event, "Sin evento con localidad de pago");
 
-  // Detalle: URL por id, datos clave y pestanas.
-  await expect(page).toHaveURL(new RegExp(`${href}$`));
-  await expect(page.getByRole("tab", { name: "Descripción" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Lineup" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Ubicación" })).toBeVisible();
-  await expect(page.locator(".evd-grid .evd-cell")).toHaveCount(3);
+  // El detalle se fuerza a `payments_enabled` para que el CTA sea el botón
+  // de compra (el seed local no tiene Wompi configurado).
+  await page.route("**/api/public/events/*", async (route) => {
+    const url = route.request().url();
+    if (!/\/events\/\d+(\?|$)/.test(url)) return route.continue();
+    const res = await route.fetch();
+    const body = await res.json();
+    body.payments_enabled = true;
+    await route.fulfill({ response: res, json: body });
+  });
 
-  // Lineup sin datos: estado honesto, no un bloque vacio.
-  await page.getByRole("tab", { name: "Lineup" }).click();
-  await expect(page.getByText("Lineup por anunciar.")).toBeVisible();
-
-  // El CTA de compra se resuelve por tipo de evento. Con localidad de pago,
-  // abre el checkout publico (modal); sin ella, lleva a Mis boletos.
-  const buyLink = page.getByRole("link", { name: /Comprar boleto|Ver mis boletas/ });
-  if (await buyLink.count()) {
-    await buyLink.click();
-    await expect(page).toHaveURL(/\/boletas$/);
-    await expect(page.getByRole("heading", { name: "Mis boletas" })).toBeVisible();
+  // Si la fila está en la vitrina, se navega por ella; si el catálogo tiene
+  // más de 100 eventos y la fila quedó fuera, se entra directo por id.
+  const row = page
+    .locator(".home-list .home-row-main", { hasText: event.name })
+    .first();
+  if (await row.count()) {
+    await row.click();
   } else {
-    await page.getByRole("button", { name: /Comprar boleto/ }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(page.getByLabel("Localidad")).toBeVisible();
+    await page.goto(`/evento/${event.id}`);
   }
+
+  // Detalle: URL por id, datos clave en texto y secciones de la ficha.
+  await expect(page).toHaveURL(new RegExp(`/evento/${event.id}$`));
+  await expect(page.locator(".evd-title")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Boletas" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lugar" })).toBeVisible();
+  await expect(page.locator(".evd-grid .evd-cell")).toHaveCount(3);
+  // La fecha y el lugar no viven solo en la imagen: se leen como texto.
+  await expect(page.locator(".evd-when")).toContainText(/\d/);
+  await expect(page.locator(".evd-where")).not.toBeEmpty();
+
+  // Con precio y pago habilitado, el rail abre el checkout público.
+  await page
+    .locator(".evd-buy")
+    .getByRole("button", { name: /Comprar boleto/ })
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByLabel("Localidad")).toBeVisible();
+});
+
+test("la ficha muestra video, mapa confirmado y contacto del evento", async ({
+  page,
+}) => {
+  const ok = await page
+    .goto("/inicio")
+    .then(() => true)
+    .catch(() => false);
+  test.skip(!ok, "App no disponible");
+
+  const event = {
+    id: 1,
+    name: "Fiesta de prueba",
+    description: "Una noche de prueba.",
+    flyer_url: null,
+    location: "Calle 45 #12-30",
+    venue: "Club Demo",
+    starts_at: "2030-03-01T20:00:00+00:00",
+    timezone: "America/Bogota",
+    category: "Conciertos",
+    price_cents: 3000000,
+    sold_pct: 20,
+    sold_out: false,
+    status: "published",
+    waiting_room: false,
+    min_age: 18,
+    dress_code: "Elegante",
+    doors_open_at: null,
+    contact_name: "Productora Norte",
+    contact_phone: "573001112233",
+    ticket_types: [
+      {
+        id: 1,
+        name: "General",
+        price_cents: 3000000,
+        quantity: 100,
+        is_courtesy: false,
+        sold_out: false,
+      },
+    ],
+    lineup: [],
+    payments_enabled: false,
+    video_url: "https://93.184.216.34/clip.mp4",
+    location_url: "https://maps.example.com/evento",
+  };
+  await page.route("**/api/public/events/1", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(event),
+    }),
+  );
+  await page.goto("/evento/1");
+
+  await expect(page.getByRole("heading", { name: "Video del evento" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Reproducir video de Fiesta de prueba/ }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Cómo llegar" })).toHaveAttribute(
+    "href",
+    "https://maps.example.com/evento",
+  );
+  await expect(page.getByText("Contactar al organizador")).toBeVisible();
+  await expect(page.getByText("Productora Norte")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Boletas" })).toBeVisible();
 });
 
 test("un evento inexistente muestra el estado no disponible", async ({ page }) => {

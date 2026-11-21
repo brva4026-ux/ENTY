@@ -1848,6 +1848,23 @@ respuestas son JSON y las dos páginas HTML propias no ejecutan JavaScript.
   `onboarding.spec.js` (el tutorial tapa el botón "Continuar"). Comparar contra
   `master` antes de culpar a un cambio propio.
 
+## Identidad pública del evento (mig 057)
+
+`events` ganó `video_url`, `location_url`, `contact_name` y `contact_phone`.
+Las cuatro son NULLables y **no** se consolidan en `venues`: la ficha pública
+usa el contacto del evento cuando existe y cae al del local cuando no (los
+eventos viejos no cambian). `location_url` es el mapa que el organizador
+confirma; la ficha no geocodifica ni inventa uno aproximado. `video_url` se
+reproduce dentro de la ficha con `<video>` (empieza silenciado, `preload`
+diferido hasta el play) y si falla se muestra un mensaje, no un player roto.
+La portada usa el afiche con `object-fit: contain` y un fondo desenfocado; el
+nombre, la fecha/hora y el lugar siempre se repiten como texto real. En móvil
+hay una barra fija de compra (`evd-buybar`) que aparece cuando el CTA del rail
+ya pasó por arriba: así no tapa el precio ni duplica el botón que el fan
+todavía tiene a la vista. Está excluida de la animación de entrada de `.evd`
+para no saltar, y las tres celdas de datos se apilan bajo 560 px para que
+"Ubicación" no se parta letra por letra.
+
 ## i18n (es/en): infraestructura y como seguir
 
 La UI nace en **español**. El idioma es una eleccion explicita que se guarda en

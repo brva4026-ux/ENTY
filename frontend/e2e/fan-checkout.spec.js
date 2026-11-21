@@ -37,8 +37,12 @@ test.beforeEach(async ({ request }) => {
  * publico no expone `sold_out` (solo el detalle), por eso el proxy es
  * `sold_pct`. */
 async function pricedEventId(request) {
+  // El catalogo global ya supera las 100 filas; se acota a la venue del seed
+  // para que "Noche Electronica" no quede fuera de la ventana.
   const events = await (
-    await request.get(`${BASE}/api/public/events?limit=100`)
+    await request.get(
+      `${BASE}/api/public/events?limit=100&city=Bar%20Esquina`,
+    )
   ).json();
   const list = events.events || events;
   const priced = list.filter((e) => (e.price_cents || 0) > 0);
@@ -50,8 +54,22 @@ async function pricedEventId(request) {
   return ev.id;
 }
 
+/** En local no hay claves de Wompi: el detalle llega con `payments_enabled`
+ *  apagado aunque el flujo de compra sea el que se quiere probar. */
+async function forceOnlinePayments(page) {
+  await page.route("**/api/public/events/*", async (route) => {
+    const url = route.request().url();
+    if (!/\/events\/\d+(\?|$)/.test(url)) return route.continue();
+    const res = await route.fetch();
+    const body = await res.json();
+    body.payments_enabled = true;
+    await route.fulfill({ response: res, json: body });
+  });
+}
+
 test("el fan compra una boleta sin cuenta", async ({ page, request }) => {
   const eventId = await pricedEventId(request);
+  await forceOnlinePayments(page);
 
   // Stub del POST de checkout: devuelve una URL de pago falsa en vez de ir a
   // Wompi (no hay claves en CI). El resto de la app queda intacto.
@@ -148,6 +166,7 @@ test("si el cobro en linea falla, el fan puede encargar por WhatsApp", async ({
   // decia "Intenta de nuevo" y no habia salida, aunque el organizador si vende
   // por WhatsApp. Se stubea el 502 para fijar ese estado.
   const eventId = await pricedEventId(request);
+  await forceOnlinePayments(page);
 
   await page.route("**/api/public/events/*/checkout", (route) =>
     route.fulfill({

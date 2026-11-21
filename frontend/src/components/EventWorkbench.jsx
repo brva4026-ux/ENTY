@@ -219,6 +219,35 @@ export default function EventWorkbench({
                 {ev.description}
               </p>
             )}
+            {(ev.video_url || ev.location_url || ev.contact_phone) && (
+              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+                {ev.video_url && (
+                  <a
+                    href={ev.video_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
+                  >
+                    Ver video
+                  </a>
+                )}
+                {ev.location_url && (
+                  <a
+                    href={ev.location_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
+                  >
+                    Ver mapa
+                  </a>
+                )}
+                {ev.contact_phone && (
+                  <span>
+                    Contacto: {ev.contact_name || ev.contact_phone}
+                  </span>
+                )}
+              </p>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button

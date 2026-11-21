@@ -29,8 +29,12 @@ test.beforeEach(async ({ request }) => {
 
 /** Id del evento del seed (estable y controlado por el test). */
 async function seedEventId(request) {
+  // El catalogo publico global ya supera las 100 filas y "Noche Electronica"
+  // queda fuera de la ventana; se acota a la venue del seed.
   const events = await (
-    await request.get(`${BASE}/api/public/events?limit=100`)
+    await request.get(
+      `${BASE}/api/public/events?limit=100&city=Bar%20Esquina`,
+    )
   ).json();
   const list = events.events || events;
   const ev = list.find((e) => e.name === "Noche Electrónica") || list[0];
@@ -65,9 +69,11 @@ test("el admin arma el lineup y lo ve en la ficha pública", async ({
   await page.getByRole("button", { name: "Agregar al lineup" }).click();
   await expect(page.getByText(act)).toBeVisible({ timeout: 10_000 });
 
-  // La ficha pública lo muestra en la pestaña Lineup.
+  // La ficha pública lo muestra en "Artistas y programación".
   await page.goto(`/evento/${eventId}`);
-  await page.getByRole("tab", { name: "Lineup" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Artistas y programación" }),
+  ).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText(act)).toBeVisible({ timeout: 10_000 });
 
   // Limpieza: se quita el acto para no ensuciar el seed.
@@ -115,6 +121,19 @@ test("el fan aplica un cupón y ve el precio con descuento", async ({
     const res = await route.fetch();
     const body = await res.json();
     body.payments_enabled = true;
+    // Precio de lista fijo: el seed puede cambiar y este test mide el
+    // descuento del cupón, no el precio del evento elegido.
+    body.price_cents = 30000;
+    body.ticket_types = [
+      {
+        id: 1,
+        name: "General",
+        price_cents: 30000,
+        quantity: 100,
+        is_courtesy: false,
+        sold_out: false,
+      },
+    ];
     await route.fulfill({ response: res, json: body });
   });
   // Cotización del cupón: válida con 20% de descuento.
@@ -148,7 +167,10 @@ test("el fan aplica un cupón y ve el precio con descuento", async ({
   );
 
   await page.goto(`/evento/${eventId}`);
-  await page.getByRole("button", { name: /Comprar boleto/ }).click();
+  await page
+    .locator(".evd-buy")
+    .getByRole("button", { name: /Comprar boleto/ })
+    .click();
   await expect(page.getByRole("dialog")).toBeVisible();
 
   // Antes del cupón: precio de lista (el seed vende General a $300).
@@ -156,7 +178,9 @@ test("el fan aplica un cupón y ve el precio con descuento", async ({
     "300",
   );
 
-  await page.getByLabel("Código de descuento").fill("TEMPRANO20");
+  await page
+    .locator('input[aria-label="Código de descuento"]')
+    .fill("TEMPRANO20");
   await page.getByRole("button", { name: "Aplicar" }).click();
 
   // Con el cupón: el aviso y el botón reflejan el precio neto (−$60).

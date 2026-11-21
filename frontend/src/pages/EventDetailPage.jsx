@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { useTabKeys } from "../lib/useTabKeys";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPublicEventDetail } from "../lib/api";
+import ContactSupport from "../components/ContactSupport";
 import FanCheckoutModal from "../components/FanCheckoutModal";
 import WaitingRoomOverlay from "../components/WaitingRoomOverlay";
 import { useWaitingRoom } from "../lib/useWaitingRoom";
@@ -15,17 +15,15 @@ import { Skeleton } from "../components/Skeleton";
 import { waLink } from "../lib/whatsapp";
 
 /**
- * Detalle del evento — la pantalla de decision de compra (mockup "2").
+ * Ficha pública del evento — la pantalla que abre alguien desde un enlace
+ * compartido, sin cuenta y casi siempre en el celular.
  *
- * Publica y sin login, hermana de Inicio: se llega al tocar un evento del
- * catalogo (`/evento/:id`). Hero de imagen que se funde con el negro, grid de
- * datos (fecha / ubicacion / precio), CTA y tres pestanas.
- *
- * Tabs: "Descripcion" sale de `events.description`. "Ubicacion" usa un mapa
- * de OpenStreetMap incrustado en modo oscuro (filtro CSS, sin API key ni
- * coordenadas: busca por el texto del lugar). "Lineup" no tiene datos todavia
- * (el modelo no tiene artistas): muestra un estado "por anunciar" honesto en
- * vez de inventar cabezas de cartel.
+ * La portada manda: el afiche se muestra completo (object-fit: contain, con
+ * un fondo desenfocado) y el nombre, la fecha/hora y el lugar se repiten como
+ * texto real debajo, aunque la imagen no cargue. Después vienen las boletas,
+ * el video opcional, la descripción/lineup/condiciones, el lugar con "Cómo
+ * llegar" SOLO si el organizador confirmó un enlace de mapa, el contacto
+ * público y la acción de compartir.
  *
  * Compra: el CTA abre el checkout público (sin cuenta). El fan elige
  * localidad, deja su contacto y paga en Wompi; al volver, `?pago=<reference>`
@@ -101,6 +99,19 @@ function Icon({ name, className = "" }) {
         <circle cx="12" cy="10" r="2.6" />
       </svg>
     );
+  if (name === "whatsapp")
+    return (
+      <svg {...common}>
+        <path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3 20.5l1.4-4.8A8.5 8.5 0 1 1 20.5 11.6z" />
+        <path d="M8.7 8.2c.2-.5.4-.5.7-.5h.5c.2 0 .4 0 .5.4l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.1.1-.2.3 0 .6.3.5.7 1 1.2 1.4.5.4 1 .7 1.5.9.2.1.4.1.6-.1l.6-.7c.2-.2.4-.2.6-.1l1.6.8c.2.1.4.2.4.4v.5c0 .3-.2.8-.5 1-.3.3-.8.5-1.3.5-.5 0-1.2-.2-2.1-.6-1-.5-2-1.2-2.8-2.1-.8-.9-1.4-1.8-1.7-2.5-.3-.7-.4-1.3-.3-1.8z" />
+      </svg>
+    );
+  if (name === "play")
+    return (
+      <svg {...common}>
+        <path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none" />
+      </svg>
+    );
   // tag
   return (
     <svg {...common}>
@@ -129,18 +140,22 @@ export default function EventDetailPage() {
   // 404 no se reintenta (el evento no existe); un 500 o un corte de red sí.
   const [missing, setMissing] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [tab, setTab] = useState("descripcion");
-  const evdTabs = useTabKeys({
-    ids: ["descripcion", "lineup", "ubicacion"],
-    activeId: tab,
-    onSelect: setTab,
-    idOf: (k) => `evd-tab-${k}`,
-  });
   const [fav, setFav] = useState(false);
   const [favPop, setFavPop] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [coords, setCoords] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // Video opcional (mig 057): no se descarga hasta que el fan toca play, y
+  // empieza silenciado para no sorprender. Si falla, la ficha sigue.
+  const [videoStarted, setVideoStarted] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  // Afiche que ya falló: se cae al fondo neutro, nunca a un <img> roto.
+  const [badFlyer, setBadFlyer] = useState("");
+  const videoRef = useRef(null);
+  // La barra fija aparece cuando el CTA del rail ya pasó por arriba: antes
+  // taparía el precio y duplicaría el botón que el fan todavía tiene a la vista.
+  const buyCtaRef = useRef(null);
+  const [railCtaPassed, setRailCtaPassed] = useState(false);
   // Sala de espera (mig 055/056). Solo se activa si el evento la tiene
   // encendida; con la sala apagada el hook no hace ni una peticion y el
   // checkout funciona igual que siempre.
@@ -151,11 +166,10 @@ export default function EventDetailPage() {
   // Referencia del checkout al volver de Wompi (redirect_url del cobro).
   const payRef = searchParams.get("pago");
 
-  /** Acciones del cartel (volver, favorito, compartir). Se renderizan dos
-   *  veces — sobre el hero en móvil y sobre el cartel en escritorio — pero solo
-   *  una es visible según el breakpoint (la otra queda display:none). Es una
-   *  función de render, no un componente anidado: así no se remonta en cada
-   *  render ni pierde el foco. */
+  /** Acciones del cartel (volver, favorito, compartir). Se dibujan sobre la
+   *  portada, que es la misma pieza en móvil y escritorio. Es una función de
+   *  render, no un componente anidado: así no se remonta en cada render ni
+   *  pierde el foco. */
   function posterActions() {
     return (
       <>
@@ -224,7 +238,6 @@ export default function EventDetailPage() {
     if (data) track("view_event", { eventId: Number(data.id) });
   }, [data]);
 
-  // Geocodificacion best-effort del lugar (Nominatim, sin API key). Solo se
   // Sala de espera: en cuanto llega el pase, la fila se cierra y se abre el
   // checkout con ese pase. Es la unica transicion que el fan percibe como
   // "ya me toca": sin ella se quedaria mirando la fila para siempre.
@@ -234,30 +247,23 @@ export default function EventDetailPage() {
     setCheckoutOpen(true);
   }, [waitingRoom.state, queueOpen]);
 
-  // dispara al abrir la pestana Ubicacion; si falla, el mapa no aparece y
-  // queda la direccion en texto — nunca bloquea la pantalla.
+  // Cambiar de evento (o reintentar) resetea el video y el afiche fallido: el
+  // estado de la ficha anterior no debe filtrarse a la siguiente.
   useEffect(() => {
-    if (tab !== "ubicacion" || coords || !data) return;
-    const q = [data.venue, data.location].filter(Boolean).join(", ");
-    if (!q) return;
-    let alive = true;
-    fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`,
-    )
-      .then((r) => (r.ok ? r.json() : []))
-      .then((arr) => {
-        if (!alive || !arr?.[0]) return;
-        const lat = Number(arr[0].lat);
-        const lon = Number(arr[0].lon);
-        if (Number.isFinite(lat) && Number.isFinite(lon)) setCoords({ lat, lon });
-      })
-      .catch(() => {
-        /* sin mapa: la direccion en texto sigue */
-      });
-    return () => {
-      alive = false;
-    };
-  }, [tab, coords, data]);
+    setVideoStarted(false);
+    setVideoPlaying(false);
+    setVideoFailed(false);
+    setBadFlyer("");
+    setCopied(false);
+  }, [id]);
+
+  // El checkout y la sala de espera tapan la ficha: pausar el video evita
+  // que siga sonando detrás del modal.
+  useEffect(() => {
+    if ((checkoutOpen || queueOpen) && videoRef.current) {
+      videoRef.current.pause();
+    }
+  }, [checkoutOpen, queueOpen]);
 
   const when = useMemo(
     () => (data ? longDate(data.starts_at, data.timezone) : { date: "—", time: "" }),
@@ -280,8 +286,16 @@ export default function EventDetailPage() {
   }
 
   async function share() {
-    const url = window.location.href;
-    const payload = { title: data?.name, text: data?.name, url };
+    if (!data) return;
+    // URL canónica, NO window.location.href: al volver de Wompi la barra
+    // lleva ?pago=<reference>, y compartir eso abriría el estado de un cobro
+    // ajeno. El enlace público es siempre /evento/<id>.
+    const url = `${window.location.origin}/evento/${data.id}`;
+    const payload = {
+      title: data.name,
+      text: [data.name, data.where].filter(Boolean).join(" · "),
+      url,
+    };
     try {
       if (navigator.share) {
         await navigator.share(payload);
@@ -294,14 +308,6 @@ export default function EventDetailPage() {
       /* el usuario canceló o el navegador no soporta: sin ruido */
     }
   }
-
-  // Mapa: OSM incrustado (sin API key). El pin lo dibuja Enty encima del
-  // centro (el embed no acepta marcador por URL); se tiñe oscuro con CSS.
-  const mapSrc = coords
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(
-        `${coords.lon - 0.004},${coords.lat - 0.003},${coords.lon + 0.004},${coords.lat + 0.003}`,
-      )}&layer=mapnik&marker=${encodeURIComponent(`${coords.lat},${coords.lon}`)}`
-    : "";
 
   // Cierra el checkout. Si venimos de Wompi con ?pago=, limpia ese parametro
   // de la URL (replace: sin dejar historial) para no reabrir el modal al
@@ -326,32 +332,142 @@ export default function EventDetailPage() {
         )
       : null;
 
-  return (
-    <div className="evd">
-      {/* Hero a sangre: solo en móvil/tablet. En escritorio el cartel pasa a
-          la columna izquierda (ver .evd-poster). */}
-      <div className="evd-hero">
-        {data?.flyer_url ? (
-          <img
-            src={data.flyer_url}
-            alt=""
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-          />
-        ) : (
-          <div className="evd-hero-fallback" aria-hidden="true" />
-        )}
-        <div className="evd-hero-actions">
-          {posterActions()}
-        </div>
-      </div>
+  // Contacto general (preguntas, no compra). Solo si hay un número usable:
+  // waLink devuelve null para teléfonos incompletos y no se inventa un chat.
+  const organizerWa =
+    data && data.contact_phone
+      ? waLink(
+          data.contact_phone,
+          `Hola${data.contact_name ? ` ${data.contact_name}` : ""}, tengo una pregunta sobre ${data.name}.`,
+        )
+      : null;
 
+  const ticketRows = useMemo(() => {
+    if (!data) return [];
+    if (data.ticket_types?.length) return data.ticket_types;
+    return [
+      {
+        id: "general",
+        name: "Entrada general",
+        price_cents: data.price_cents,
+        is_courtesy: data.price_cents == null,
+        sold_out: false,
+      },
+    ];
+  }, [data]);
+
+  const showFlyer = Boolean(data?.flyer_url && data.flyer_url !== badFlyer);
+  const hasAbout = Boolean(
+    data?.description ||
+      data?.lineup?.length ||
+      data?.min_age != null ||
+      data?.dress_code ||
+      data?.doors_open_at,
+  );
+  const hasLocation = Boolean(data?.venue || data?.location);
+  const hasBuyBar = Boolean(
+    data &&
+      !checkoutOpen &&
+      !queueOpen &&
+      !videoPlaying &&
+      (data.sold_out ||
+        (data.price_cents != null && (data.payments_enabled || contactWa))),
+  );
+  const showBuyBar = hasBuyBar && railCtaPassed;
+
+  useEffect(() => {
+    const el = buyCtaRef.current;
+    if (!el) return;
+    let frame = 0;
+    const check = () => {
+      frame = 0;
+      setRailCtaPassed(el.getBoundingClientRect().bottom < 0);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(check);
+    };
+    check();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [data?.id, hasBuyBar]);
+
+  /** CTA de boletas, una sola definición para el rail y la barra fija. */
+  function ticketCta(wide = false) {
+    if (!data) return null;
+    const cls = `evd-cta${wide ? " evd-cta--wide" : ""}`;
+    const arrow = (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M5 12h13M13 6l6 6-6 6" />
+      </svg>
+    );
+    if (data.sold_out) {
+      return (
+        <TransitionLink to={`/waitlist?event=${data.id}`} className={cls}>
+          Entrar a la lista de espera
+          {arrow}
+        </TransitionLink>
+      );
+    }
+    if (data.price_cents == null) {
+      return (
+        <TransitionLink to="/boletas" className={cls}>
+          Ver mis boletas
+          {arrow}
+        </TransitionLink>
+      );
+    }
+    if (data.payments_enabled) {
+      return (
+        <button
+          type="button"
+          className={cls}
+          onClick={() => {
+            // Embudo, paso 3: intención real de compra (abre el pago).
+            track("checkout_start", { eventId: Number(data.id) });
+            if (data.waiting_room) {
+              // Con sala activa el fan NO va directo al pago: primero hace
+              // fila. El checkout se abre solo cuando recibe el pase.
+              setQueueOpen(true);
+              return;
+            }
+            setCheckoutOpen(true);
+          }}
+        >
+          Comprar boleto
+          {arrow}
+        </button>
+      );
+    }
+    if (contactWa) {
+      return (
+        <a
+          className={cls}
+          href={contactWa}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() =>
+            track("checkout_contact_whatsapp", { eventId: Number(data.id) })
+          }
+        >
+          Encargar por WhatsApp
+          {arrow}
+        </a>
+      );
+    }
+    return null;
+  }
+
+  return (
+    <div className={`evd${hasBuyBar ? " evd--buybar" : ""}`}>
       {error ? (
         <div className="evd-empty">
           <p>{error}</p>
-          {/* Un corte de red se arregla reintentando; un evento borrado, no.
-              Antes el único botón era "Volver al inicio" en los dos casos. */}
+          {/* Un corte de red se arregla reintentando; un evento borrado, no. */}
           {missing ? (
             <TransitionLink to="/inicio" className="evd-cta">
               Volver al inicio
@@ -367,15 +483,14 @@ export default function EventDetailPage() {
           )}
         </div>
       ) : !data ? (
-        /* Esqueleto con el alto real de la ficha: antes era un "Cargando…"
-           corto y, al llegar los datos, el cartel y el rail de compra
-           empujaban toda la página (salto de layout en móvil). */
+        /* Esqueleto con el alto real de la ficha: evita el salto de layout
+           cuando llegan los datos. */
         <div className="evd-body" aria-busy="true">
           <p className="sr-only" role="status">
             Cargando el evento…
           </p>
           <div className="evd-poster">
-            <div className="evd-poster-frame" />
+            <div className="evd-poster-frame is-skeleton" />
           </div>
           <div className="evd-info">
             <Skeleton className="h-3 w-24" />
@@ -395,30 +510,66 @@ export default function EventDetailPage() {
         </div>
       ) : (
         <div className="evd-body">
-          {/* Columna izquierda (escritorio): el cartel del evento, pegajoso. */}
+          {/* Portada: afiche completo, con un fondo desenfocado que rellena
+              los bordes. El texto de la ficha no depende de la imagen. */}
           <div className="evd-poster">
-            <div className="evd-poster-frame">
-              {data.flyer_url ? (
-                <img
-                  src={data.flyer_url}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                />
+            <div className={`evd-poster-frame${showFlyer ? "" : " is-fallback"}`}>
+              {showFlyer ? (
+                <>
+                  <img
+                    className="evd-poster-bg"
+                    src={data.flyer_url}
+                    alt=""
+                    aria-hidden="true"
+                    decoding="async"
+                    onError={() => setBadFlyer(data.flyer_url)}
+                  />
+                  <img
+                    className="evd-poster-img"
+                    src={data.flyer_url}
+                    alt={`Afiche de ${data.name}`}
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="async"
+                    onError={() => setBadFlyer(data.flyer_url)}
+                  />
+                </>
               ) : (
-                <div className="evd-hero-fallback" aria-hidden="true" />
+                <div className="evd-poster-fallback" aria-hidden="true">
+                  <span className="evd-poster-mark">ENTY</span>
+                </div>
               )}
-              <div className="evd-hero-actions">
-                {posterActions()}
-              </div>
+              <div className="evd-hero-actions">{posterActions()}</div>
             </div>
+            {showFlyer && (
+              <a
+                className="evd-poster-link"
+                href={data.flyer_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Ver afiche completo
+              </a>
+            )}
           </div>
 
-          {/* Columna derecha: identidad, datos, compra y pestañas. */}
           <div className="evd-info">
-            <p className="evd-eyebrow">{data.category}</p>
+            <p className="evd-eyebrow">{data.category || "Evento"}</p>
             <h1 className="evd-title">{data.name}</h1>
-            <p className="evd-sub">{data.where}</p>
+            <p className="evd-when">
+              <Icon name="calendar" className="h-4 w-4" />
+              <span>
+                {when.date}
+                {when.time ? ` · ${when.time}` : ""}
+              </span>
+            </p>
+            <p className="evd-where">
+              <Icon name="pin" className="h-4 w-4" />
+              <span>
+                {[data.venue, data.location].filter(Boolean).join(" · ") ||
+                  "Lugar por confirmar"}
+              </span>
+            </p>
 
             <div className="evd-grid">
               <div className="evd-cell">
@@ -430,7 +581,9 @@ export default function EventDetailPage() {
               <div className="evd-cell">
                 <Icon name="pin" className="evd-cell-icon" />
                 <span className="evd-cell-k">Ubicación</span>
-                <span className="evd-cell-v">{data.venue || data.location || "—"}</span>
+                <span className="evd-cell-v">
+                  {data.venue || data.location || "—"}
+                </span>
                 {data.location && data.venue && (
                   <span className="evd-cell-sub">{data.location}</span>
                 )}
@@ -441,215 +594,275 @@ export default function EventDetailPage() {
                 <span className="evd-cell-v">
                   {data.price_cents == null ? "Gratis" : money(data.price_cents)}
                 </span>
-                {/* "desde" solo cuando hay precio: en cortesía el valor ya
-                    es "Gratis" y el subtítulo sobraba. */}
                 {data.price_cents != null && (
                   <span className="evd-cell-sub">desde</span>
                 )}
               </div>
             </div>
 
-            {/* Ficha del evento (mig 043): lo que el invitado pregunta en la
-                puerta. Solo se muestran los datos que el organizador cargó. */}
-            {(data.min_age != null ||
-              data.dress_code ||
-              data.doors_open_at) && (
-              <ul className="evd-facts">
-                {data.min_age != null && (
-                  <li className="evd-fact">
-                    <span className="evd-fact-k">Edad mínima</span>
-                    <span className="evd-fact-v">{data.min_age}+</span>
-                  </li>
-                )}
-                {data.dress_code && (
-                  <li className="evd-fact">
-                    <span className="evd-fact-k">Dress code</span>
-                    <span className="evd-fact-v">{data.dress_code}</span>
-                  </li>
-                )}
-                {data.doors_open_at && (
-                  <li className="evd-fact">
-                    <span className="evd-fact-k">Puertas</span>
-                    <span className="evd-fact-v">
-                      {new Date(data.doors_open_at).toLocaleTimeString("es-CO", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+            <section className="evd-section" aria-labelledby="evd-tickets-title">
+              <h2 id="evd-tickets-title" className="evd-section-title">
+                Boletas
+              </h2>
+              <ul className="evd-ticket-list">
+                {ticketRows.map((t) => (
+                  <li key={t.id} className="evd-ticket-row">
+                    <span className="evd-ticket-name">{t.name}</span>
+                    {t.sold_out && (
+                      <span className="evd-ticket-badge">Agotada</span>
+                    )}
+                    <span className="evd-ticket-price">
+                      {t.is_courtesy || t.price_cents == null
+                        ? "Gratis"
+                        : money(t.price_cents)}
                     </span>
                   </li>
-                )}
+                ))}
               </ul>
+
+              <div className="evd-buy enty-notch">
+                <div className="evd-buy-row">
+                  <span className="evd-buy-label">
+                    {data.price_cents == null ? "Entrada" : "Entrada desde"}
+                  </span>
+                  <span className="evd-buy-price tnum">
+                    {data.price_cents == null
+                      ? "Gratis"
+                      : money(data.price_cents)}
+                  </span>
+                </div>
+                <p className="evd-buy-note">
+                  {data.sold_out
+                    ? "Agotado. Entra a la lista de espera: si alguien devuelve su boleta, te avisamos."
+                    : data.price_cents == null
+                      ? "Cortesía: el acceso se valida con QR en la puerta."
+                      : data.payments_enabled
+                        ? "Compra en línea y recibe tu QR para la puerta."
+                        : contactWa
+                          ? "Escríbele al organizador y te agenda la boleta."
+                          : "La compra en línea no está disponible para este evento."}
+                </p>
+                <div ref={buyCtaRef} className="evd-buy-cta">
+                  {ticketCta(true)}
+                </div>
+              </div>
+            </section>
+
+            {data.video_url && (
+              <section className="evd-section" aria-labelledby="evd-video-title">
+                <h2 id="evd-video-title" className="evd-section-title">
+                  Video del evento
+                </h2>
+                {videoFailed ? (
+                  <p className="evd-muted">
+                    El video no está disponible. La información y las boletas
+                    siguen aquí.
+                  </p>
+                ) : !videoStarted ? (
+                  <button
+                    type="button"
+                    className="evd-video-cover"
+                    onClick={() => setVideoStarted(true)}
+                    aria-label={`Reproducir video de ${data.name}`}
+                  >
+                    {showFlyer ? (
+                      <img src={data.flyer_url} alt="" decoding="async" />
+                    ) : (
+                      <span className="evd-video-fallback" aria-hidden="true" />
+                    )}
+                    <span className="evd-video-play" aria-hidden="true">
+                      <Icon name="play" className="h-8 w-8" />
+                    </span>
+                    <span className="evd-video-caption">Ver video</span>
+                  </button>
+                ) : (
+                  <>
+                    <video
+                      ref={videoRef}
+                      className="evd-video-player"
+                      src={data.video_url}
+                      poster={showFlyer ? data.flyer_url : undefined}
+                      controls
+                      autoPlay
+                      muted
+                      playsInline
+                      preload="metadata"
+                      aria-label={`Video de ${data.name}`}
+                      onPlay={() => setVideoPlaying(true)}
+                      onPause={() => setVideoPlaying(false)}
+                      onEnded={() => setVideoPlaying(false)}
+                      onError={() => {
+                        setVideoFailed(true);
+                        setVideoPlaying(false);
+                      }}
+                    >
+                      Tu navegador no puede reproducir este video.
+                    </video>
+                    <p className="evd-video-note">
+                      Se reproduce sin sonido. Los datos clave están escritos
+                      arriba y abajo del video.
+                    </p>
+                  </>
+                )}
+              </section>
             )}
 
-            {/* Rail de compra: el canto troquelado del boleto. El precio se
-                repite aquí en grande — la decisión no obliga a scrollear. */}
-            <div className="evd-buy enty-notch">
-              <div className="evd-buy-row">
-                <span className="evd-buy-label">
-                  {data.price_cents == null ? "Entrada" : "Entrada desde"}
-                </span>
-                <span className="evd-buy-price tnum">
-                  {data.price_cents == null ? "Gratis" : money(data.price_cents)}
-                </span>
-              </div>
-              <p className="evd-buy-note">
-                {data.sold_out
-                  ? "Agotado. Entra a la lista de espera: si alguien devuelve su boleta, te avisamos."
-                  : data.price_cents == null
-                    ? "Cortesía: el acceso se valida con QR en la puerta."
-                    : data.payments_enabled
-                      ? "Compra en línea y recibe tu QR para la puerta."
-                      : contactWa
-                        ? "Escríbele al organizador y te agenda la boleta."
-                        : "La compra en línea no está disponible para este evento."}
-              </p>
-              {data.sold_out ? (
-                <TransitionLink
-                  to={`/waitlist?event=${data.id}`}
-                  className="evd-cta evd-cta--wide"
-                >
-                  Entrar a la lista de espera
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h13M13 6l6 6-6 6" />
-                  </svg>
-                </TransitionLink>
-              ) : data.price_cents == null ? (
-                <TransitionLink to="/boletas" className="evd-cta evd-cta--wide">
-                  Ver mis boletas
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h13M13 6l6 6-6 6" />
-                  </svg>
-                </TransitionLink>
-              ) : data.payments_enabled ? (
-                <button
-                  type="button"
-                  className="evd-cta evd-cta--wide"
-                  onClick={() => {
-                    // Embudo, paso 3: intención real de compra (abre el pago).
-                    track("checkout_start", { eventId: Number(data.id) });
-                    if (data.waiting_room) {
-                      // Con sala activa el fan NO va directo al pago: primero
-                      // hace fila. El checkout se abre solo cuando recibe el
-                      // pase (efecto de abajo).
-                      setQueueOpen(true);
-                      return;
-                    }
-                    setCheckoutOpen(true);
-                  }}
-                >
-                  Comprar boleto
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h13M13 6l6 6-6 6" />
-                  </svg>
-                </button>
-              ) : contactWa ? (
-                // Pago en línea no configurado: en vez de un botón que lleva a
-                // un 503, se ofrece el WhatsApp del organizador (con el
-                // mensaje ya redactado). Sin contacto publicado, la nota de
-                // arriba ya explica el estado: no se inventa un CTA que no
-                // lleva a ninguna parte.
-                <a
-                  className="evd-cta evd-cta--wide"
-                  href={contactWa}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() =>
-                    track("checkout_contact_whatsapp", {
-                      eventId: Number(data.id),
-                    })
-                  }
-                >
-                  Encargar por WhatsApp
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h13M13 6l6 6-6 6" />
-                  </svg>
-                </a>
-              ) : null}
-            </div>
-
-            <div role="tablist" aria-label="Detalles" className="evd-tabs">
-              {[
-                ["descripcion", "Descripción"],
-                ["lineup", "Lineup"],
-                ["ubicacion", "Ubicación"],
-              ].map(([k, label]) => (
-                <button
-                  key={k}
-                  id={`evd-tab-${k}`}
-                  role="tab"
-                  aria-selected={tab === k}
-                  aria-controls="evd-panel"
-                  tabIndex={tab === k ? 0 : -1}
-                  onKeyDown={evdTabs.onKeyDown}
-                  className={tab === k ? "is-on" : ""}
-                  onClick={() => setTab(k)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div
-              className="evd-tabbody"
-              role="tabpanel"
-              id="evd-panel"
-              aria-labelledby={`evd-tab-${tab}`}
-              tabIndex={0}
-            >
-              {tab === "descripcion" &&
-                (data.description ? (
+            {hasAbout && (
+              <section className="evd-section" aria-labelledby="evd-about-title">
+                <h2 id="evd-about-title" className="evd-section-title">
+                  Sobre el evento
+                </h2>
+                {data.description && (
                   <p className="evd-prose">{data.description}</p>
-                ) : (
-                  <p className="evd-muted">El organizador todavía no publicó la descripción.</p>
-                ))}
+                )}
 
-              {tab === "lineup" &&
-                (data.lineup?.length ? (
-                  <ul className="evd-lineup">
-                    {data.lineup.map((a) => (
-                      <li key={a.name}>
-                        <span className="evd-lineup-avatar" aria-hidden="true">
-                          {a.name.charAt(0)}
-                        </span>
-                        <span className="evd-lineup-info">
-                          <strong>{a.name}</strong>
-                          {a.role && <em>{a.role}</em>}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="evd-muted">Lineup por anunciar.</p>
-                ))}
+                {data.lineup?.length > 0 && (
+                  <div className="evd-subsection">
+                    <h3 className="evd-subtitle">Artistas y programación</h3>
+                    <ul className="evd-lineup">
+                      {data.lineup.map((a) => (
+                        <li key={a.name}>
+                          <span className="evd-lineup-avatar" aria-hidden="true">
+                            {a.name.charAt(0)}
+                          </span>
+                          <span className="evd-lineup-info">
+                            <strong>{a.name}</strong>
+                            {a.role && <em>{a.role}</em>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-              {tab === "ubicacion" && (
-                <div className="evd-map-wrap">
-                  {mapSrc ? (
-                    <div className="evd-map-frame">
-                      <iframe
-                        className="evd-map"
-                        title={`Mapa de ${data.venue || data.name}`}
-                        src={mapSrc}
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
-                      <span className="evd-map-pin" aria-hidden="true">
-                        <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M12 22s7.5-6.6 7.5-11.7A7.5 7.5 0 1 0 4.5 10.3C4.5 15.4 12 22 12 22z" fill="#7C3AED" stroke="#fff" strokeWidth="1.4" />
-                          <circle cx="12" cy="10" r="2.7" fill="#fff" />
-                        </svg>
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="evd-map-skeleton" aria-hidden="true" />
-                  )}
+                {(data.min_age != null ||
+                  data.dress_code ||
+                  data.doors_open_at) && (
+                  <div className="evd-subsection">
+                    <h3 className="evd-subtitle">Condiciones de ingreso</h3>
+                    <ul className="evd-facts">
+                      {data.min_age != null && (
+                        <li className="evd-fact">
+                          <span className="evd-fact-k">Edad mínima</span>
+                          <span className="evd-fact-v">
+                            {data.min_age === 0
+                              ? "Todas las edades"
+                              : `${data.min_age}+`}
+                          </span>
+                        </li>
+                      )}
+                      {data.dress_code && (
+                        <li className="evd-fact">
+                          <span className="evd-fact-k">Dress code</span>
+                          <span className="evd-fact-v">{data.dress_code}</span>
+                        </li>
+                      )}
+                      {data.doors_open_at && (
+                        <li className="evd-fact">
+                          <span className="evd-fact-k">Puertas</span>
+                          <span className="evd-fact-v">
+                            {new Date(data.doors_open_at).toLocaleTimeString(
+                              "es-CO",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                timeZone: data.timezone || undefined,
+                              },
+                            )}
+                          </span>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {hasLocation && (
+              <section className="evd-section" aria-labelledby="evd-place-title">
+                <h2 id="evd-place-title" className="evd-section-title">
+                  Lugar
+                </h2>
+                <p className="evd-place-name">
+                  {data.venue || data.location || "Lugar por confirmar"}
+                </p>
+                {data.venue && data.location && (
                   <p className="evd-address">
                     <Icon name="pin" className="h-4 w-4" />
-                    {[data.venue, data.location].filter(Boolean).join(" · ") || "Ubicación por confirmar"}
+                    {data.location}
                   </p>
-                </div>
+                )}
+                {data.location_url ? (
+                  <a
+                    className="evd-cta evd-cta--ghost evd-map-link"
+                    href={data.location_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Cómo llegar
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M5 12h13M13 6l6 6-6 6" />
+                    </svg>
+                  </a>
+                ) : (
+                  <p className="evd-muted">
+                    El organizador aún no confirmó un enlace de mapa. Esta es la
+                    dirección publicada.
+                  </p>
+                )}
+              </section>
+            )}
+
+            <section className="evd-section" aria-labelledby="evd-contact-title">
+              <h2 id="evd-contact-title" className="evd-section-title">
+                Contacto
+              </h2>
+              {organizerWa ? (
+                <a
+                  className="evd-contact-card"
+                  href={organizerWa}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Icon name="whatsapp" className="evd-contact-icon" />
+                  <span className="evd-contact-text">
+                    <strong>Contactar al organizador</strong>
+                    <span>
+                      Escríbele a{" "}
+                      {data.contact_name || data.venue || "el organizador"}
+                    </span>
+                  </span>
+                </a>
+              ) : (
+                <p className="evd-muted">
+                  El organizador no publicó un WhatsApp para este evento.
+                </p>
               )}
-            </div>
+              <ContactSupport
+                className="evd-support"
+                prompt="¿Problemas con tu boleta?"
+                label="Ayuda con mi boleta"
+                message={`Hola, necesito ayuda con mi boleta para ${data.name}.`}
+              />
+            </section>
+
+            <section className="evd-section evd-share" aria-labelledby="evd-share-title">
+              <h2 id="evd-share-title" className="evd-section-title">
+                Compartir
+              </h2>
+              <p className="evd-muted">
+                Manda esta ficha por WhatsApp o copia el enlace. Quien la abra
+                no necesita crear una cuenta.
+              </p>
+              <button
+                type="button"
+                className="evd-cta evd-cta--ghost evd-share-btn"
+                onClick={share}
+              >
+                <Icon name="share" className="h-4 w-4" />
+                Compartir evento
+              </button>
+            </section>
           </div>
         </div>
       )}
@@ -658,6 +871,22 @@ export default function EventDetailPage() {
         <p className="evd-copied" role="status">
           Enlace copiado
         </p>
+      )}
+
+      {showBuyBar && (
+        <div className="evd-buybar" role="region" aria-label="Compra de boletas">
+          <div className="evd-buybar-price">
+            <span className="tnum">
+              {data.sold_out
+                ? "Agotado"
+                : data.price_cents == null
+                  ? "Gratis"
+                  : money(data.price_cents)}
+            </span>
+            <small>{data.sold_out ? "Lista de espera" : "desde"}</small>
+          </div>
+          {ticketCta()}
+        </div>
       )}
 
       {queueOpen && data && waitingRoom.state !== "admitted" && (

@@ -166,11 +166,36 @@ class EventCreate(BaseModel):
     # rechazaría la ruta relativa y la guardia SSRF no aplica a ella (no hay
     # fetch de red posible: el <img> pinta del propio origen).
     flyer_url: str | None = Field(default=None, max_length=2000)
+    # Identidad pública (mig 057). El video no se sube a `media` (esa tabla es
+    # de imágenes y el cuerpo de la función de Vercel es chico): se publica en
+    # un hosting y se pega el enlace. `location_url` es el mapa que el
+    # organizador CONFIRMA; sin él la ficha no inventa uno.
+    video_url: str | None = Field(default=None, max_length=2000)
+    location_url: str | None = Field(default=None, max_length=2000)
+    contact_name: str | None = Field(default=None, max_length=120)
+    contact_phone: str | None = Field(default=None, max_length=40)
 
     @field_validator("flyer_url")
     @classmethod
     def _flyer_public(cls, v):
         return validate_flyer_url(v) if v else v
+
+    @field_validator("video_url")
+    @classmethod
+    def _video_public(cls, v):
+        return validate_public_http_url(v, label="video") if v else v
+
+    @field_validator("location_url")
+    @classmethod
+    def _location_public(cls, v):
+        return validate_public_http_url(v, label="enlace") if v else v
+
+    @field_validator("contact_name", "contact_phone")
+    @classmethod
+    def _contact_clean(cls, v):
+        if v is None:
+            return None
+        return v.strip() or None
 
     @field_validator("name")
     @classmethod
@@ -231,11 +256,34 @@ class EventUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
     flyer_url: str | None = Field(default=None, max_length=2000)
+    # Identidad pública (mig 057). Un string vacío limpia el campo: la ficha
+    # vuelve a mostrar solo lo que esté confirmado.
+    video_url: str | None = Field(default=None, max_length=2000)
+    location_url: str | None = Field(default=None, max_length=2000)
+    contact_name: str | None = Field(default=None, max_length=120)
+    contact_phone: str | None = Field(default=None, max_length=40)
 
     @field_validator("flyer_url")
     @classmethod
     def _flyer_public(cls, v):
         return validate_flyer_url(v) if v else v
+
+    @field_validator("video_url")
+    @classmethod
+    def _video_public(cls, v):
+        return validate_public_http_url(v, label="video") if v else v
+
+    @field_validator("location_url")
+    @classmethod
+    def _location_public(cls, v):
+        return validate_public_http_url(v, label="enlace") if v else v
+
+    @field_validator("contact_name", "contact_phone")
+    @classmethod
+    def _contact_clean(cls, v):
+        if v is None:
+            return None
+        return v.strip() or None
 
     location: str | None = Field(default=None, max_length=200)
     starts_at: datetime | None = None
@@ -308,6 +356,12 @@ class EventOut(BaseModel):
     name: str
     description: str | None = None
     flyer_url: str | None = None
+    # Identidad pública (mig 057): clip opcional, mapa confirmado y contacto
+    # del evento (NULL = cae al contacto del local en la ficha pública).
+    video_url: str | None = None
+    location_url: str | None = None
+    contact_name: str | None = None
+    contact_phone: str | None = None
     # Lugar del evento (mig 014): el formulario lo edita y la boleta del
     # invitado lo muestra.
     location: str | None = None

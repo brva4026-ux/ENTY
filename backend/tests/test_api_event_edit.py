@@ -266,3 +266,45 @@ def test_db_trigger_blocks_invalid_transition(dbcur):
 
 def _unused_token():  # pragma: no cover
     return secrets.token_urlsafe(24)
+
+
+def test_patch_event_public_identity_fields(api):
+    """Mig 057: video, mapa y contacto se editan y se limpian con ""."""
+    venue = api.world["venue_a"]
+    ev = api.create_event("admin", venue, capacity=100)
+
+    res = api.patch(
+        api.event_url(venue, ev["id"]),
+        "admin",
+        {
+            "video_url": "https://93.184.216.34/clip.mp4",
+            "location_url": "https://93.184.216.34/mapa",
+            "contact_name": "Equipo del evento",
+            "contact_phone": "573001234567",
+        },
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["video_url"] == "https://93.184.216.34/clip.mp4"
+    assert body["location_url"] == "https://93.184.216.34/mapa"
+    assert body["contact_name"] == "Equipo del evento"
+    assert body["contact_phone"] == "573001234567"
+
+    # "" limpia: la ficha vuelve a caer al contacto del local y deja de
+    # ofrecer video/mapa. No se guarda un string vacío.
+    res = api.patch(
+        api.event_url(venue, ev["id"]),
+        "admin",
+        {
+            "video_url": "",
+            "location_url": "",
+            "contact_name": "",
+            "contact_phone": "",
+        },
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["video_url"] is None
+    assert body["location_url"] is None
+    assert body["contact_name"] is None
+    assert body["contact_phone"] is None

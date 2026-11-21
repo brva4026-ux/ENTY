@@ -70,7 +70,8 @@ def _event_ctx(venue_id: int, user: dict):
 EVENT_COLUMNS = (
     "id, venue_id, name, description, flyer_url, location, starts_at, ends_at, "
     "event_timezone, capacity, qr_unlock_minutes, status, category, min_age, "
-    "dress_code, doors_open_at"
+    "dress_code, doors_open_at, video_url, location_url, contact_name, "
+    "contact_phone"
 )
 
 
@@ -346,9 +347,11 @@ async def create_event(
             INSERT INTO events (venue_id, name, description, flyer_url,
                                 location, starts_at, ends_at, event_timezone,
                                 capacity, qr_unlock_minutes, status,
-                                category, min_age, dress_code, doors_open_at)
+                                category, min_age, dress_code, doors_open_at,
+                                video_url, location_url, contact_name,
+                                contact_phone)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft',
-                    %s, %s, %s, %s)
+                    %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING {EVENT_COLUMNS}
             """,
             (
@@ -367,6 +370,10 @@ async def create_event(
                 body.min_age,
                 (body.dress_code or "").strip() or None,
                 body.doors_open_at,
+                body.video_url,
+                body.location_url,
+                body.contact_name,
+                body.contact_phone,
             ),
         )
         created = await cur.fetchone()
@@ -418,13 +425,14 @@ async def duplicate_event(
                                     event_timezone, capacity,
                                     qr_unlock_minutes, waitlist_offer_minutes,
                                     category, min_age, dress_code,
-                                    status)
+                                    video_url, location_url, contact_name,
+                                    contact_phone, status)
                 VALUES (%s, %s, %s, %s, %s,
                         (SELECT starts_at FROM events WHERE id = %s)
                           + (%s * interval '1 day'),
                         NULL, %s, %s, %s,
                         (SELECT waitlist_offer_minutes FROM events WHERE id = %s),
-                        %s, %s, %s, 'draft')
+                        %s, %s, %s, %s, %s, %s, %s, 'draft')
                 RETURNING id
             ), new_types AS (
                 INSERT INTO ticket_types (event_id, name, price_cents,
@@ -470,6 +478,10 @@ async def duplicate_event(
                 src["category"],
                 src["min_age"],
                 src["dress_code"],
+                src["video_url"],
+                src["location_url"],
+                src["contact_name"],
+                src["contact_phone"],
                 event_id,
                 event_id,
                 event_id,
@@ -556,6 +568,28 @@ async def update_event(
             await cur.execute(
                 "UPDATE events SET doors_open_at=%s WHERE id=%s",
                 (body.doors_open_at, event_id),
+            )
+        # Mig 057: identidad pública por evento. "" limpia -> NULL (la ficha
+        # vuelve al contacto del local o deja de ofrecer mapa/video).
+        if "video_url" in sent:
+            await cur.execute(
+                "UPDATE events SET video_url=%s WHERE id=%s",
+                ((body.video_url or "").strip() or None, event_id),
+            )
+        if "location_url" in sent:
+            await cur.execute(
+                "UPDATE events SET location_url=%s WHERE id=%s",
+                ((body.location_url or "").strip() or None, event_id),
+            )
+        if "contact_name" in sent:
+            await cur.execute(
+                "UPDATE events SET contact_name=%s WHERE id=%s",
+                ((body.contact_name or "").strip() or None, event_id),
+            )
+        if "contact_phone" in sent:
+            await cur.execute(
+                "UPDATE events SET contact_phone=%s WHERE id=%s",
+                ((body.contact_phone or "").strip() or None, event_id),
             )
 
         try:

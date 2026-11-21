@@ -743,6 +743,12 @@ export default function AdminDashboard() {
       doors_open_at: ev.doors_open_at
         ? toLocalInput(new Date(ev.doors_open_at))
         : "",
+      // Identidad pública (mig 057): video opcional, mapa confirmado y
+      // contacto propio del evento (si falta, la ficha usa el del local).
+      video_url: ev.video_url ?? "",
+      location_url: ev.location_url ?? "",
+      contact_name: ev.contact_name ?? "",
+      contact_phone: ev.contact_phone ?? "",
     });
   }
 
@@ -793,6 +799,12 @@ export default function AdminDashboard() {
             doors_open_at: editingEvent.doors_open_at
               ? new Date(editingEvent.doors_open_at).toISOString()
               : null,
+            // Identidad pública (mig 057). "" limpia: el video/mapa
+            // desaparecen de la ficha y el contacto cae al del local.
+            video_url: editingEvent.video_url.trim() || null,
+            location_url: editingEvent.location_url.trim() || null,
+            contact_name: editingEvent.contact_name.trim() || null,
+            contact_phone: editingEvent.contact_phone.trim() || null,
           }),
         },
       );
@@ -1871,6 +1883,52 @@ export default function AdminDashboard() {
 
                   <label>
                     <span className="mb-1 block text-xs font-medium text-zinc-400">
+                      Video (URL)
+                    </span>
+                    <input
+                      type="url"
+                      value={editingEvent.video_url}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          video_url: e.target.value,
+                        })
+                      }
+                      className="field"
+                      placeholder="https://…/video.mp4"
+                      maxLength={2000}
+                    />
+                    <span className="mt-1 block text-xs text-zinc-500">
+                      Opcional. Se muestra en la ficha pública y empieza sin
+                      sonido.
+                    </span>
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-xs font-medium text-zinc-400">
+                      Enlace de mapa (URL)
+                    </span>
+                    <input
+                      type="url"
+                      value={editingEvent.location_url}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          location_url: e.target.value,
+                        })
+                      }
+                      className="field"
+                      placeholder="https://maps.google.com/…"
+                      maxLength={2000}
+                    />
+                    <span className="mt-1 block text-xs text-zinc-500">
+                      Solo se muestra "Cómo llegar" si pegas un enlace
+                      confirmado.
+                    </span>
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-xs font-medium text-zinc-400">
                       Lugar
                     </span>
                     <input
@@ -1984,6 +2042,46 @@ export default function AdminDashboard() {
                       }
                       className="field"
                     />
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-xs font-medium text-zinc-400">
+                      Contacto del evento (nombre)
+                    </span>
+                    <input
+                      value={editingEvent.contact_name}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          contact_name: e.target.value,
+                        })
+                      }
+                      className="field"
+                      placeholder="Productora Norte"
+                      maxLength={120}
+                    />
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-xs font-medium text-zinc-400">
+                      WhatsApp del evento
+                    </span>
+                    <input
+                      type="tel"
+                      value={editingEvent.contact_phone}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          contact_phone: e.target.value,
+                        })
+                      }
+                      className="field"
+                      placeholder="573001112233"
+                      maxLength={40}
+                    />
+                    <span className="mt-1 block text-xs text-zinc-500">
+                      Si lo dejas vacío, la ficha usa el contacto del local.
+                    </span>
                   </label>
                 </div>
 

@@ -235,3 +235,93 @@ def test_payments_enabled_false_without_wompi(api, api_client, monkeypatch):
     assert listed["payments_enabled"] is False
     detail = api_client.get(f"/public/events/{event['id']}").json()
     assert detail["payments_enabled"] is False
+
+
+# --- Identidad pública por evento (mig 057) -------------------------------
+#
+# La ficha necesita video opcional, mapa confirmado y un contacto que pueda
+# identificar a quién se le escribe. El contacto del evento cae al del local
+# cuando no se define: los eventos publicados antes de la migración no cambian.
+
+
+def test_detail_returns_video_map_and_event_contact(api, api_client):
+    venue = api.world["venue_a"]
+    tag = _tag()
+    name = f"Identidad Publica {tag}"
+    event = api.create_event(
+        "admin",
+        venue,
+        name=name,
+        capacity=100,
+        video_url="https://93.184.216.34/clip.mp4",
+        location_url="https://93.184.216.34/mapa",
+        contact_name="Productora Norte",
+        contact_phone="573001112233",
+    )
+    api.publish("admin", venue, event["id"])
+
+    body = api_client.get(f"/public/events/{event['id']}").json()
+    assert body["video_url"] == "https://93.184.216.34/clip.mp4"
+    assert body["location_url"] == "https://93.184.216.34/mapa"
+    assert body["contact_name"] == "Productora Norte"
+    assert body["contact_phone"] == "573001112233"
+
+
+def test_event_contact_overrides_and_falls_back_to_venue(api, api_client):
+    venue = api.world["venue_a"]
+    tag = _tag()
+    api.run_sql(
+        f"UPDATE venues SET contact_name = 'Local Demo', "
+        f"contact_phone = '573009998877' WHERE id = {venue}"
+    )
+    event = _future_show(api, venue, f"Contacto {tag}", price_cents=1000000)
+
+    # Sin contacto propio: la ficha usa el del local.
+    body = api_client.get(f"/public/events/{event['id']}").json()
+    assert body["contact_name"] == "Local Demo"
+    assert body["contact_phone"] == "573009998877"
+
+    # Con contacto propio: el evento gana, el local queda como fallback.
+    res = api.patch(
+        api.event_url(venue, event["id"]),
+        "admin",
+        {"contact_name": "Equipo del evento", "contact_phone": "573001234567"},
+    )
+    assert res.status_code == 200, res.text
+    body = api_client.get(f"/public/events/{event['id']}").json()
+    assert body["contact_name"] == "Equipo del evento"
+    assert body["contact_phone"] == "573001234567"
+
+    # Limpiar con "" vuelve al contacto del local.
+    res = api.patch(
+        api.event_url(venue, event["id"]),
+        "admin",
+        {"contact_name": "", "contact_phone": ""},
+    )
+    assert res.status_code == 200, res.text
+    body = api_client.get(f"/public/events/{event['id']}").json()
+    assert body["contact_name"] == "Local Demo"
+    assert body["contact_phone"] == "573009998877"
+
+
+def test_invalid_video_and_map_urls_are_rejected(api):
+    venue = api.world["venue_a"]
+    base = {
+        "name": "URL invalida",
+        "starts_at": "2027-03-01T20:00:00+00:00",
+        "capacity": 10,
+    }
+
+    res = api.post(
+        f"/venues/{venue}/events",
+        "admin",
+        {**base, "video_url": "javascript:alert(1)"},
+    )
+    assert res.status_code == 422
+
+    res = api.post(
+        f"/venues/{venue}/events",
+        "admin",
+        {**base, "location_url": "file:///etc/passwd"},
+    )
+    assert res.status_code == 422

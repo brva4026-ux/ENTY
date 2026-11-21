@@ -197,8 +197,14 @@ async def public_events(
                    e.starts_at, e.event_timezone, e.capacity, e.status,
                    e.category,
                    v.name AS venue_name,
-                   v.contact_name AS venue_contact_name,
-                   v.contact_phone AS venue_contact_phone,
+                   -- Contacto por evento (mig 057): si el evento no define
+                   -- uno propio, cae al contacto del local (mig 036).
+                   coalesce(
+                     to_jsonb(e) ->> 'contact_name', v.contact_name
+                   ) AS venue_contact_name,
+                   coalesce(
+                     to_jsonb(e) ->> 'contact_phone', v.contact_phone
+                   ) AS venue_contact_phone,
                    (SELECT min(tt.price_cents) FROM ticket_types tt
                      WHERE tt.event_id = e.id AND tt.is_active
                        AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price,
@@ -296,9 +302,18 @@ async def public_event_detail(
                    coalesce(
                      (to_jsonb(e) ->> 'waiting_room_enabled')::boolean, false
                    ) AS waiting_room_enabled,
+                   -- Identidad pública (mig 057). Por to_jsonb por la misma
+                   -- razón que waiting_room: si la migración aún no corrió, la
+                   -- ficha sigue funcionando con los campos viejos.
+                   to_jsonb(e) ->> 'video_url' AS video_url,
+                   to_jsonb(e) ->> 'location_url' AS location_url,
                    v.name AS venue_name,
-                   v.contact_name AS venue_contact_name,
-                   v.contact_phone AS venue_contact_phone,
+                   coalesce(
+                     to_jsonb(e) ->> 'contact_name', v.contact_name
+                   ) AS venue_contact_name,
+                   coalesce(
+                     to_jsonb(e) ->> 'contact_phone', v.contact_phone
+                   ) AS venue_contact_phone,
                    (SELECT count(*) FROM tickets t
                      WHERE t.event_id = e.id
                        AND t.status IN ('issued', 'redeemed'))::int AS active
@@ -366,6 +381,10 @@ async def public_event_detail(
         "name": row["name"],
         "description": row["description"],
         "flyer_url": row["flyer_url"],
+        # Identidad pública (mig 057): clip opcional y mapa confirmado.
+        # NULL = la ficha no muestra el bloque (no inventa un video ni un mapa).
+        "video_url": row["video_url"],
+        "location_url": row["location_url"],
         "location": row["location"],
         "venue": row["venue_name"],
         "where": where,
@@ -386,8 +405,9 @@ async def public_event_detail(
         "doors_open_at": (
             row["doors_open_at"].isoformat() if row["doors_open_at"] else None
         ),
-        # Contacto del organizador (mig 036): la pantalla de compra puede
-        # ofrecer "encarga tu boleta" por WhatsApp al equipo del negocio.
+        # Contacto del organizador (mig 036/057): el del evento si lo definió;
+        # si no, el del local. La pantalla de compra puede ofrecer "encarga tu
+        # boleta" por WhatsApp al equipo del negocio.
         "contact_name": row["venue_contact_name"],
         "contact_phone": row["venue_contact_phone"],
         "ticket_types": [

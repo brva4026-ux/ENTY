@@ -129,21 +129,23 @@ test("detalle de evento: la cabecera (rubro+título+resumen) es un bloque", asyn
     };
     return {
       eyebrowTitle: gap(".evd-eyebrow", ".evd-title"),
-      titleSub: gap(".evd-title", ".evd-sub"),
-      subGrid: gap(".evd-sub", ".evd-grid"),
+      titleWhen: gap(".evd-title", ".evd-when"),
+      whenWhere: gap(".evd-when", ".evd-where"),
+      subGrid: gap(".evd-where", ".evd-grid"),
     };
   });
   await ctx.close();
 
   expect(r.eyebrowTitle, "la cabecera del detalle debe existir").not.toBeNull();
   expect(r.subGrid, "el cuerpo del detalle debe existir").not.toBeNull();
-  // Rubro → título → resumen van juntos; el cuerpo es otra sección.
+  // Rubro → título → fecha → lugar van juntos; el cuerpo es otra sección.
   expect(r.eyebrowTitle, "rubro y título son el mismo bloque").toBeLessThanOrEqual(12);
-  expect(r.titleSub, "título y resumen son el mismo bloque").toBeLessThanOrEqual(12);
+  expect(r.titleWhen, "título y fecha son el mismo bloque").toBeLessThanOrEqual(12);
+  expect(r.whenWhere, "fecha y lugar son el mismo bloque").toBeLessThanOrEqual(12);
   expect(
     r.subGrid,
     `el cuerpo debe abrir sección (${r.subGrid}px), no leerse como parte de la cabecera`
-  ).toBeGreaterThan(r.titleSub);
+  ).toBeGreaterThan(r.titleWhen);
 });
 
 test("login: la etiqueta pertenece a su campo", async ({ browser }) => {

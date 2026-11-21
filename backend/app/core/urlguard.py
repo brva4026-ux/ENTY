@@ -48,21 +48,22 @@ def validate_flyer_url(url: str) -> str:
     return validate_public_http_url(u)
 
 
-def validate_public_http_url(url: str) -> str:
+def validate_public_http_url(url: str, *, label: str = "imagen") -> str:
     """Devuelve la URL si es http(s) con host que resuelve SOLO a IPs públicas.
 
+    `label` solo cambia el mensaje ("video", "enlace"): la guardia es la misma.
     Lanza ValueError con mensaje entendible: los schemas de pydantic lo
     convierten en 422 y el admin ve por qué se rechazó su URL.
     """
     if not url or not url.strip():
-        raise ValueError("La URL de la imagen no puede estar vacía.")
+        raise ValueError(f"La URL de {label} no puede estar vacía.")
     u = url.strip()
     parsed = urlparse(u)
     if parsed.scheme not in ("http", "https"):
-        raise ValueError("La URL de la imagen debe empezar por http:// o https://.")
+        raise ValueError(f"La URL de {label} debe empezar por http:// o https://.")
     host = parsed.hostname
     if not host:
-        raise ValueError("La URL de la imagen no tiene un host válido.")
+        raise ValueError(f"La URL de {label} no tiene un host válido.")
 
     # ¿El host ya es una IP literal? (http://10.0.0.5/flyer.jpg)
     try:
@@ -80,12 +81,12 @@ def validate_public_http_url(url: str) -> str:
     try:
         infos = socket.getaddrinfo(host, None)
     except OSError as e:
-        raise ValueError("No se pudo resolver el host de la imagen.") from e
+        raise ValueError(f"No se pudo resolver el host de {label}.") from e
 
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
         if not _is_public_ip(ip):
             raise ValueError(
-                "La URL de la imagen apunta a una dirección interna, no permitida."
+                f"La URL de {label} apunta a una dirección interna, no permitida."
             )
     return u

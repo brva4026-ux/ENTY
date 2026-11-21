@@ -538,9 +538,124 @@
   }
 }
 
+/* Móvil: una columna. La portada es una tarjeta (no un hero recortado), el
+   texto va debajo y el rail de compra no tapa el contenido. */
+.evd-body {
+  display: block;
+  margin-top: 0;
+  padding: 1rem var(--e-gap-card) 0;
+}
+.evd-poster {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.evd-poster-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--enty-radius);
+  overflow: hidden;
+  border: 1px solid var(--enty-glass-line);
+  max-height: 70vh;
+  background: var(--e-ink-3);
+}
+.evd-poster-frame.is-skeleton {
+  aspect-ratio: 4 / 3;
+  max-height: none;
+}
+/* Fondo desenfocado: rellena los bordes cuando el afiche es vertical u
+   horizontal. La imagen nítida se ve completa (contain), nunca recortada. */
+.evd-poster-bg {
+  position: absolute;
+  inset: -2rem;
+  width: calc(100% + 4rem);
+  height: calc(100% + 4rem);
+  object-fit: cover;
+  filter: blur(26px) brightness(0.45) saturate(0.8);
+  transform: scale(1.08);
+  pointer-events: none;
+}
+.evd-poster-img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  object-fit: contain;
+  margin: 0 auto;
+}
+.evd-poster-fallback {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 16rem;
+  display: grid;
+  place-items: center;
+  background: var(--e-ink-2);
+}
+.evd-poster-mark {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.22);
+}
+.evd-poster-link {
+  align-self: flex-start;
+  font-size: var(--e-text-xs);
+  font-weight: 600;
+  color: var(--e-brand-glow);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.evd-when,
+.evd-where {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.55rem 0 0;
+  font-size: var(--e-text-sm);
+  color: var(--e-text-secondary);
+}
+.evd-when svg,
+.evd-where svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.12rem;
+  color: var(--e-brand-glow);
+}
+
+@media (max-width: 559px) {
+  /* Tres celdas en 358px de ancho parten "UBICACIÓN" y el nombre del local.
+     En el celular se leen como filas: icono + clave/valor, una debajo de otra. */
+  .evd-grid {
+    grid-template-columns: 1fr;
+  }
+  .evd-cell {
+    display: grid;
+    grid-template-columns: 1.1rem minmax(0, 1fr);
+    column-gap: 0.55rem;
+    row-gap: 0.1rem;
+    align-items: center;
+  }
+  .evd-cell-icon {
+    grid-row: 1 / span 2;
+    margin-bottom: 0;
+  }
+  /* La hora es una tercera línea de la celda; sin esto cae en la columna
+     implícita de 1.1rem y se parte letra por letra. */
+  .evd-cell-sub {
+    grid-column: 2;
+  }
+}
+
 @media (min-width: 900px) {
-  /* Dos columnas: el cartel del evento a la izquierda (pegajoso), la
-     información y la compra a la derecha. La decisión no se scrollea. */
+  /* Dos columnas: la portada a la izquierda (pegajosa), la información a la
+     derecha. La decisión de compra no se scrollea. */
   .evd-body {
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
@@ -552,44 +667,17 @@
   .evd-poster {
     position: sticky;
     top: 1.5rem;
-    display: flex;
-    flex-direction: column;
     gap: 1.25rem;
+  }
+  .evd-poster-frame,
+  .evd-poster-img {
+    max-height: 78vh;
   }
   .evd-info {
     padding-top: 0.5rem;
   }
   .evd-title {
     font-size: var(--e-text-display);
-  }
-}
-
-/* En móvil el cartel es el hero; en escritorio, una pieza de la columna. */
-.evd-poster {
-  min-width: 0;
-}
-.evd-poster-frame {
-  position: relative;
-  border-radius: var(--enty-radius);
-  overflow: hidden;
-  border: 1px solid var(--enty-glass-line);
-  aspect-ratio: 4 / 3;
-  background: linear-gradient(160deg, var(--e-ink-4), var(--e-ink-1));
-}
-.evd-poster-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-@media (max-width: 899px) {
-  .evd-poster-frame {
-    display: none; /* en móvil manda el hero a sangre */
-  }
-}
-@media (min-width: 900px) {
-  .evd-hero {
-    display: none; /* el hero a sangre solo vive en móvil/tablet */
   }
 }
 
@@ -633,6 +721,238 @@
 }
 .evd-cell {
   border-radius: 0.9rem;
+}
+
+/* --- Ficha pública: secciones, video, lugar y contacto ------------------- */
+.evd-section {
+  margin-top: var(--e-gap-section);
+}
+.evd-section-title {
+  margin: 0 0 var(--e-gap-card);
+  font-size: var(--e-text-lg);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--e-text-primary);
+}
+.evd-subsection {
+  margin-top: var(--e-gap-card);
+}
+.evd-subtitle {
+  margin: 0 0 0.6rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--e-text-secondary);
+}
+.evd-ticket-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.evd-ticket-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+.evd-ticket-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--e-text-sm);
+  font-weight: 600;
+}
+.evd-ticket-price {
+  font-size: var(--e-text-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.evd-ticket-badge {
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--e-text-secondary);
+}
+.evd-video-cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 1px solid var(--enty-glass-line);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--e-ink-1);
+  color: var(--e-white);
+}
+.evd-video-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.72;
+}
+.evd-video-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--e-ink-2);
+}
+.evd-video-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.evd-video-play svg {
+  width: 3.4rem;
+  height: 3.4rem;
+  padding: 0.75rem;
+  border-radius: 999px;
+  background: rgba(11, 11, 15, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+.evd-video-caption {
+  position: absolute;
+  left: 0.8rem;
+  bottom: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(11, 11, 15, 0.7);
+}
+.evd-video-player {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 1rem;
+  background: var(--e-ink-1);
+}
+.evd-video-note {
+  margin: 0.5rem 0 0;
+  font-size: var(--e-text-2xs);
+  color: var(--e-text-secondary);
+}
+.evd-place-name {
+  margin: 0;
+  font-size: var(--e-text-base);
+  font-weight: 700;
+}
+.evd-map-link {
+  margin-top: var(--e-gap-field);
+  width: auto;
+}
+.evd-cta--ghost {
+  background: transparent;
+  color: var(--e-text-primary);
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.evd-cta--ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  filter: none;
+}
+.evd-contact-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--e-text-primary);
+}
+.evd-contact-icon {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: rgb(37 211 102);
+}
+.evd-contact-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.evd-contact-text strong {
+  font-size: var(--e-text-sm);
+}
+.evd-contact-text span {
+  font-size: var(--e-text-xs);
+  color: var(--e-text-secondary);
+}
+.evd-support {
+  margin-top: var(--e-gap-field);
+}
+.evd-share-btn {
+  margin-top: var(--e-gap-field);
+  width: auto;
+}
+
+/* Barra fija de compra en móvil: el CTA siempre a un pulgar de distancia. */
+.evd-buybar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem var(--e-gap-card)
+    calc(0.75rem + env(safe-area-inset-bottom));
+  background: rgba(11, 11, 15, 0.94);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.evd-buybar-price {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.evd-buybar-price span {
+  font-size: var(--e-text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.evd-buybar-price small {
+  margin-top: 0.15rem;
+  font-size: var(--e-text-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--e-text-secondary);
+}
+.evd-buybar .evd-cta {
+  height: 2.9rem;
+  padding: 0 1rem;
+}
+.evd-copied {
+  z-index: 60;
+}
+@media (min-width: 900px) {
+  .evd-buybar {
+    display: none;
+  }
+}
+@media (max-width: 899px) {
+  .evd--buybar {
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 360px) {
+  .evd-buybar .evd-cta {
+    padding: 0 0.8rem;
+    font-size: var(--e-text-sm);
+  }
 }
 
 /* --------------------------------------------------------------------------

@@ -109,6 +109,17 @@ test("un evento con lugar sigue ofreciendo comprar boleto", async ({
 }) => {
   const eventId = await makeEvent(request, { capacity: 50, emit: 0 });
 
+  // Sin claves de Wompi el detalle llega con la compra apagada; el gate que
+  // este test fija es "hay lugar -> Comprar boleto", no la pasarela.
+  await page.route("**/api/public/events/*", async (route) => {
+    const url = route.request().url();
+    if (!/\/events\/\d+(\?|$)/.test(url)) return route.continue();
+    const res = await route.fetch();
+    const body = await res.json();
+    body.payments_enabled = true;
+    await route.fulfill({ response: res, json: body });
+  });
+
   await page.goto(`/evento/${eventId}`);
   await expect(page.getByRole("button", { name: "Comprar boleto" })).toBeVisible({
     timeout: 15_000,

@@ -2625,7 +2625,7 @@ html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
    enlace copiado, el modal de compra del detalle). */
 .home > :not(.home-nav, .sr-only, .home-main),
 .home-main > *,
-.evd > :not(.dialog-backdrop, .evd-copied),
+.evd > :not(.dialog-backdrop, .evd-copied, .evd-buybar),
 .door-shell > * {
   animation: screen-rise 0.42s var(--e-ease-expo) both;
 }
@@ -2704,7 +2704,7 @@ html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
 @media (prefers-reduced-motion: reduce) {
   .home > :not(.home-nav, .sr-only, .home-main),
   .home-main > *,
-  .evd > :not(.dialog-backdrop, .evd-copied),
+  .evd > :not(.dialog-backdrop, .evd-copied, .evd-buybar),
   .door-shell > * {
     animation: none;
   }
@@ -2715,7 +2715,7 @@ html:not([data-theme="light"]) .app-shell *::-webkit-scrollbar-thumb:hover {
    animación entera. */
 html[data-motion="reduce"] .home > :not(.home-nav, .sr-only, .home-main),
 html[data-motion="reduce"] .home-main > *,
-html[data-motion="reduce"] .evd > :not(.dialog-backdrop, .evd-copied),
+html[data-motion="reduce"] .evd > :not(.dialog-backdrop, .evd-copied, .evd-buybar),
 html[data-motion="reduce"] .door-shell > * {
   animation: none;
 }
