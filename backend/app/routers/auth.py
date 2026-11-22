@@ -56,6 +56,9 @@ from app.schemas import (
     ChangePasswordRequest,
     CloseOtherSessionsRequest,
     DeleteAccountRequest,
+    EmailChangeConfirmRequest,
+    EmailChangeRequestOut,
+    ExportDataRequest,
     ForgotPasswordRequest,
     LoginRequest,
     MessageOut,
@@ -64,6 +67,9 @@ from app.schemas import (
     PreferencesOut,
     RegisterRequest,
     ResetPasswordRequest,
+    RevokeSessionRequest,
+    SecurityEventOut,
+    SessionOut,
     SetActiveVenueRequest,
     TokenResponse,
     UpdatePreferenceRequest,
@@ -103,6 +109,110 @@ def _client_ip(request: Request) -> str:
         or (fwd.split(",")[0].strip() if fwd else "")
         or "unknown"
     )
+
+
+def _request_token(request: Request) -> str | None:
+    """Token crudo de la petición: Bearer o cookie HttpOnly."""
+    auth = request.headers.get("authorization", "")
+    if auth.lower().startswith("bearer "):
+        return auth.split(" ", 1)[1].strip()
+    return request.cookies.get(COOKIE_NAME)
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _device_label(user_agent: str | None) -> str:
+    """Etiqueta legible y honesta: navegador + sistema, sin inventar modelo."""
+    ua = (user_agent or "").strip()
+    if not ua:
+        return "Dispositivo desconocido"
+    low = ua.lower()
+    browser = next(
+        (
+            name
+            for needle, name in (
+                ("edg/", "Edge"),
+                ("opr/", "Opera"),
+                ("chrome/", "Chrome"),
+                ("firefox/", "Firefox"),
+                ("safari/", "Safari"),
+            )
+            if needle in low
+        ),
+        "Navegador",
+    )
+    system = next(
+        (
+            name
+            for needle, name in (
+                ("iphone", "iPhone"),
+                ("ipad", "iPad"),
+                ("android", "Android"),
+                ("windows", "Windows"),
+                ("mac os", "macOS"),
+                ("linux", "Linux"),
+            )
+            if needle in low
+        ),
+        "",
+    )
+    return f"{browser} · {system}" if system else browser
+
+
+async def _register_session(
+    db: psycopg.AsyncConnection,
+    token: str,
+    user_id: int,
+    request: Request,
+    ip: str | None = None,
+) -> None:
+    """Anota la sesión individual sin bloquear el login si la migración falta.
+
+    El token crudo nunca se guarda: solo su SHA-256. Si la tabla aún no
+    existe, el login sigue funcionando (las sesiones son una mejora del
+    perfil, no la autenticación).
+    """
+    try:
+        async with db.cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO user_sessions (token_hash, user_id, user_agent, ip)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (token_hash)
+                DO UPDATE SET last_seen_at = now(),
+                              user_agent = EXCLUDED.user_agent
+                """,
+                (
+                    _token_hash(token),
+                    user_id,
+                    (request.headers.get("user-agent") or "")[:250],
+                    ip or _client_ip(request),
+                ),
+            )
+    except psycopg.Error:
+        await db.rollback()
+
+
+async def _log_security(
+    db: psycopg.AsyncConnection,
+    user_id: int,
+    kind: str,
+    *,
+    detail: str | None = None,
+    ip: str | None = None,
+) -> None:
+    """Actividad de seguridad real. Best-effort: no rompe la acción principal."""
+    try:
+        async with db.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO security_events (user_id, kind, detail, ip) "
+                "VALUES (%s, %s, %s, %s)",
+                (user_id, kind, detail, ip),
+            )
+    except psycopg.Error:
+        await db.rollback()
 
 
 async def _login_locked(db: psycopg.AsyncConnection, email: str, ip: str) -> bool:
@@ -151,7 +261,11 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
                    (to_jsonb(u) ->> 'password_changed_at') AS password_changed_at,
                    (to_jsonb(u) ->> 'avatar_url') AS avatar_url,
                    (to_jsonb(u) ->> 'active_venue_id') AS active_venue_id,
-                   (to_jsonb(u) ->> 'welcome_seen_at') AS welcome_seen_at
+                   (to_jsonb(u) ->> 'welcome_seen_at') AS welcome_seen_at,
+                   (to_jsonb(u) ->> 'contact_email') AS contact_email,
+                   coalesce(
+                     (to_jsonb(u) ->> 'share_contact_with_team')::boolean, false
+                   ) AS share_contact_with_team
               FROM users u
              WHERE u.id = %s
             """,
@@ -163,9 +277,20 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
             """
             SELECT v.id AS venue_id, v.name, v.slug, v.logo_url, v.primary_color,
                    v.commission_pct, v.contact_name, v.contact_phone,
+                   (to_jsonb(v) ->> 'contact_email') AS contact_email,
                    coalesce(
                      (to_jsonb(v) ->> 'is_placeholder')::boolean, false
                    ) AS is_placeholder,
+                   coalesce(
+                     (to_jsonb(v) ->> 'contact_team_visible')::boolean, true
+                   ) AS contact_team_visible,
+                   coalesce(
+                     (to_jsonb(v) ->> 'public_contact_enabled')::boolean, false
+                   ) AS public_contact_enabled,
+                   coalesce(
+                     (to_jsonb(v) -> 'public_contact_channels'),
+                     '[]'::jsonb
+                   ) AS public_contact_channels,
                    vr.role
             FROM venue_user_roles vr
             JOIN venues v ON v.id = vr.venue_id
@@ -185,6 +310,10 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
                 logo_url=row["logo_url"], primary_color=row["primary_color"],
                 commission_pct=float(row["commission_pct"] or 0),
                 contact_name=row["contact_name"], contact_phone=row["contact_phone"],
+                contact_email=row["contact_email"],
+                contact_team_visible=bool(row["contact_team_visible"]),
+                public_contact_enabled=bool(row["public_contact_enabled"]),
+                public_contact_channels=list(row["public_contact_channels"] or []),
                 is_placeholder=bool(row["is_placeholder"]),
             )
         roles_by_venue[str(venue_id)] = [
@@ -198,6 +327,8 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         full_name=user["full_name"],
         username=user.get("username"),
         phone=user.get("phone"),
+        contact_email=user.get("contact_email"),
+        share_contact_with_team=bool(user.get("share_contact_with_team")),
         venues=list(venues.values()),
         roles=roles_by_venue,
         created_at=user["created_at"],
@@ -283,6 +414,7 @@ async def login(
         roles[str(r["venue_id"])].append(r["role"])
 
     token = create_access_token(user["id"], venue_ids, roles, user["token_version"])
+    await _register_session(db, token, user["id"], request, ip)
     summary = await _build_user_summary(db, user["id"])
     return session_response(token, summary, remember=body.remember)
 
@@ -647,6 +779,7 @@ async def register(
 
     roles = {str(created["venue_id"]): ["admin"]}
     token = create_access_token(created["user_id"], [created["venue_id"]], roles, 1)
+    await _register_session(db, token, created["user_id"], request, ip)
     summary = await _build_user_summary(db, created["user_id"])
     return session_response(token, summary, status_code=201)
 
@@ -839,6 +972,12 @@ async def update_profile(
     if body.phone is not None:
         columnas.append("phone=%s")
         valores.append(body.phone or None)  # "" -> NULL
+    if body.contact_email is not None:
+        columnas.append("contact_email=%s")
+        valores.append(body.contact_email or None)
+    if body.share_contact_with_team is not None:
+        columnas.append("share_contact_with_team=%s")
+        valores.append(body.share_contact_with_team)
     valores.append(user["id"])
 
     async with db.cursor() as cur:
@@ -987,15 +1126,18 @@ async def update_venue_settings(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Nombre y logo del negocio (solo admin de la venue).
+    """Nombre, logo, marca y contacto del negocio (solo admin de la venue).
 
     PATCH parcial: solo aplica los campos enviados. logo_url="" limpia el
-    logo (queda NULL). El logo se referencía por URL (http/s); no hay
-    almacenamiento de archivos propio todavía."""
+    logo (queda NULL). `logo_data_url` guarda un archivo en `media` y gana
+    sobre logo_url; la imagen anterior se borra en la misma transacción."""
     ensure_roles(user, venue_id, "super_admin", "admin")
     async with db.cursor() as cur:
-        await cur.execute("SELECT id FROM venues WHERE id=%s", (venue_id,))
-        if not await cur.fetchone():
+        await cur.execute(
+            "SELECT id, logo_url FROM venues WHERE id=%s", (venue_id,)
+        )
+        prev = await cur.fetchone()
+        if not prev:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Venue no encontrada")
 
         if body.name is not None:
@@ -1005,10 +1147,26 @@ async def update_venue_settings(
                 "UPDATE venues SET name=%s, is_placeholder=false WHERE id=%s",
                 (body.name.strip(), venue_id),
             )
-        if body.logo_url is not None:
+
+        logo_nuevo = body.logo_url
+        if body.logo_data_url:
+            media = await store_image(
+                db,
+                data_url=body.logo_data_url,
+                venue_id=venue_id,
+                user_id=user["id"],
+            )
+            logo_nuevo = f"/media/{media['id']}"
+            prev_id = _media_id_from_url(prev["logo_url"])
+            if prev_id is not None:
+                await cur.execute(
+                    "DELETE FROM media WHERE id=%s AND venue_id=%s",
+                    (prev_id, venue_id),
+                )
+        if logo_nuevo is not None:
             await cur.execute(
                 "UPDATE venues SET logo_url=%s WHERE id=%s",
-                (body.logo_url.strip() or None, venue_id),
+                (logo_nuevo.strip() or None, venue_id),
             )
         if body.commission_pct is not None:
             await cur.execute(
@@ -1032,14 +1190,45 @@ async def update_venue_settings(
                 "UPDATE venues SET contact_phone=%s WHERE id=%s",
                 (body.contact_phone.strip() or None, venue_id),
             )
+        if body.contact_email is not None:
+            await cur.execute(
+                "UPDATE venues SET contact_email=%s WHERE id=%s",
+                (body.contact_email or None, venue_id),
+            )
+        if body.contact_team_visible is not None:
+            await cur.execute(
+                "UPDATE venues SET contact_team_visible=%s WHERE id=%s",
+                (body.contact_team_visible, venue_id),
+            )
+        if body.public_contact_enabled is not None:
+            await cur.execute(
+                "UPDATE venues SET public_contact_enabled=%s WHERE id=%s",
+                (body.public_contact_enabled, venue_id),
+            )
+        if body.public_contact_channels is not None:
+            await cur.execute(
+                "UPDATE venues SET public_contact_channels=%s WHERE id=%s",
+                (body.public_contact_channels, venue_id),
+            )
         await db.commit()
 
         await cur.execute(
             """SELECT id, name, slug, logo_url, primary_color, commission_pct,
                       contact_name, contact_phone,
+                      (to_jsonb(venues) ->> 'contact_email') AS contact_email,
                       coalesce(
                         (to_jsonb(venues) ->> 'is_placeholder')::boolean, false
-                      ) AS is_placeholder
+                      ) AS is_placeholder,
+                      coalesce(
+                        (to_jsonb(venues) ->> 'contact_team_visible')::boolean, true
+                      ) AS contact_team_visible,
+                      coalesce(
+                        (to_jsonb(venues) ->> 'public_contact_enabled')::boolean, false
+                      ) AS public_contact_enabled,
+                      coalesce(
+                        to_jsonb(venues) -> 'public_contact_channels',
+                        '[]'::jsonb
+                      ) AS public_contact_channels
                FROM venues WHERE id=%s""",
             (venue_id,),
         )
@@ -1053,6 +1242,10 @@ async def update_venue_settings(
         commission_pct=float(row["commission_pct"] or 0),
         contact_name=row["contact_name"],
         contact_phone=row["contact_phone"],
+        contact_email=row["contact_email"],
+        contact_team_visible=bool(row["contact_team_visible"]),
+        public_contact_enabled=bool(row["public_contact_enabled"]),
+        public_contact_channels=list(row["public_contact_channels"] or []),
         is_placeholder=bool(row["is_placeholder"]),
     )
 
@@ -1063,6 +1256,7 @@ async def update_venue_settings(
 @router.post("/change-password", response_model=MessageOut)
 async def change_password(
     body: ChangePasswordRequest,
+    request: Request,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
@@ -1095,36 +1289,47 @@ async def change_password(
             "WHERE id=%s",
             (hash_password(body.new_password), user["id"]),
         )
+        try:
+            await cur.execute("DELETE FROM user_sessions WHERE user_id=%s", (user["id"],))
+        except psycopg.errors.UndefinedTable:
+            pass
         await db.commit()
     await _marcar_cambio_password(db, user["id"])
+    await _log_security(
+        db,
+        user["id"],
+        "password_changed",
+        detail="Contraseña actualizada; las demás sesiones se cerraron.",
+        ip=_client_ip(request),
+    )
     return MessageOut(detail="Contraseña actualizada.")
 
 
-@router.post("/change-email", response_model=UserSummary)
+@router.post("/change-email", response_model=EmailChangeRequestOut)
 async def change_email(
     body: ChangeEmailRequest,
+    request: Request,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Cambia el correo de la cuenta autenticada.
+    """Solicita el cambio de correo, sin aplicarlo todavía.
 
-    Pide la contraseña vigente por el mismo motivo que el cambio de clave: el
-    correo es la llave de recuperación, así que un token robado no debe bastar
-    para desviar la cuenta (pedir un reset y quedarse con ella).
-
-    No toca `token_version`: el JWT no lleva el correo, así que la sesión
-    abierta sigue siendo válida y no hay nada que refrescar.
+    Pide la contraseña vigente (el correo es la llave de recuperación) y envía
+    un enlace de un solo uso al buzón NUEVO. Hasta que ese enlace se canjea, la
+    cuenta conserva su correo actual, su id, roles, eventos y asignaciones.
+    También se avisa al correo anterior para que una sesión robada no pueda
+    desviar la cuenta en silencio.
     """
-    nuevo = body.new_email.strip()
-    actual = (user.get("email") or "").strip()
-    if nuevo.lower() == actual.lower():
+    nuevo = body.new_email.strip().lower()
+    actual = (user.get("email") or "").strip().lower()
+    if nuevo == actual:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, "Ese ya es el correo de tu cuenta."
         )
 
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT password_hash FROM users WHERE id=%s", (user["id"],)
+            "SELECT password_hash, full_name FROM users WHERE id=%s", (user["id"],)
         )
         row = await cur.fetchone()
         if not row or not verify_password(
@@ -1135,9 +1340,6 @@ async def change_email(
                 "La contraseña actual no es correcta.",
             )
 
-        # Case-insensitive, como el login y el registro: la restricción de la
-        # base es sobre `email` literal, así que por sí sola no evita que dos
-        # cuentas queden con el mismo correo escrito distinto.
         await cur.execute(
             "SELECT 1 FROM users WHERE lower(email)=lower(%s) AND id<>%s",
             (nuevo, user["id"]),
@@ -1147,37 +1349,271 @@ async def change_email(
                 status.HTTP_409_CONFLICT, "Ese correo ya tiene una cuenta."
             )
 
+    raw_token = token_hex(32)
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    async with db.cursor() as cur:
+        # Un pedido nuevo invalida los anteriores del usuario.
+        await cur.execute(
+            "UPDATE email_change_tokens SET used_at=now() "
+            "WHERE user_id=%s AND used_at IS NULL",
+            (user["id"],),
+        )
+        await cur.execute(
+            """INSERT INTO email_change_tokens
+               (user_id, new_email, token_hash, expires_at)
+               VALUES (%s, %s, %s, now() + interval '24 hours')""",
+            (user["id"], nuevo, token_hash),
+        )
+        await db.commit()
+
+    settings = get_settings()
+    mailer = Mailer(
+        api_key=settings.resend_api_key,
+        from_email=settings.email_from_address,
+        from_name="Enty",
+        app_url=settings.app_public_url,
+    )
+    sent = False
+    if mailer.enabled:
+        sent = await run_in_threadpool(
+            mailer.send_email_change_verification,
+            to=nuevo,
+            full_name=row["full_name"] or "",
+            token=raw_token,
+        )
+        # Aviso al buzón anterior: si no fuiste tú, todavía hay tiempo de
+        # reaccionar. El enlace de confirmación NO viaja a este correo.
+        await run_in_threadpool(
+            mailer.send_email_change_notice,
+            to=user["email"],
+            new_email=nuevo,
+        )
+    await _log_security(
+        db,
+        user["id"],
+        "email_change_requested",
+        detail=f"Verificación solicitada para {nuevo}.",
+        ip=_client_ip(request),
+    )
+
+    if not sent:
+        return EmailChangeRequestOut(
+            detail=(
+                "El envío de correos no está activo, así que no pudimos "
+                "verificar el correo nuevo. Tu cuenta sigue con el correo actual."
+            ),
+            verification_sent=False,
+            pending_email=nuevo,
+        )
+    return EmailChangeRequestOut(
+        detail=(
+            "Te enviamos un enlace de verificación al correo nuevo. Tu cuenta "
+            "seguirá con el correo actual hasta que lo confirmes. También "
+            "avisamos al correo anterior."
+        ),
+        verification_sent=True,
+        pending_email=nuevo,
+    )
+
+
+@router.post("/change-email/confirm", response_model=UserSummary)
+async def confirm_email_change(
+    body: EmailChangeConfirmRequest,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Canjea el enlace de un solo uso y activa el correo nuevo.
+
+    No exige sesión: la prueba de posesión del buzón nuevo es el token. La
+    cuenta conserva su id y sus accesos; solo cambia el identificador de
+    entrada y recuperación.
+    """
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+    async with db.transaction(), db.cursor() as cur:
+        await cur.execute(
+            """SELECT t.id, t.user_id, t.new_email, t.expires_at, t.used_at,
+                      u.email AS old_email, u.full_name
+               FROM email_change_tokens t
+               JOIN users u ON u.id = t.user_id
+               WHERE t.token_hash = %s
+               ORDER BY t.created_at DESC
+               LIMIT 1""",
+            (token_hash,),
+        )
+        row = await cur.fetchone()
+        if (
+            not row
+            or row["used_at"] is not None
+            or row["expires_at"] < datetime.now(timezone.utc)
+        ):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "El enlace no es válido o ya expiró. Pide uno nuevo.",
+            )
+        await cur.execute(
+            """SELECT 1 FROM users
+               WHERE lower(email)=lower(%s) AND id<>%s""",
+            (row["new_email"], row["user_id"]),
+        )
+        if await cur.fetchone():
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Ese correo ya tiene una cuenta."
+            )
+        await cur.execute(
+            "UPDATE email_change_tokens SET used_at=now() WHERE id=%s AND used_at IS NULL",
+            (row["id"],),
+        )
+        if not cur.rowcount:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "El enlace no es válido o ya expiró. Pide uno nuevo.",
+            )
         try:
             await cur.execute(
-                "UPDATE users SET email=%s WHERE id=%s", (nuevo, user["id"])
+                "UPDATE users SET email=%s WHERE id=%s",
+                (row["new_email"], row["user_id"]),
             )
         except psycopg.errors.UniqueViolation as e:
-            # Carrera con un registro o cambio simultáneo: la restricción de la
-            # base tiene la última palabra y se traduce al mismo 409.
-            await db.rollback()
             raise HTTPException(
                 status.HTTP_409_CONFLICT, "Ese correo ya tiene una cuenta."
             ) from e
-        await db.commit()
+        # Otras solicitudes pendientes quedan invalidadas.
+        await cur.execute(
+            "UPDATE email_change_tokens SET used_at=now() "
+            "WHERE user_id=%s AND used_at IS NULL",
+            (row["user_id"],),
+        )
+    await _log_security(
+        db,
+        row["user_id"],
+        "email_changed",
+        detail=f"Correo actualizado a {row['new_email']}.",
+    )
+    settings = get_settings()
+    mailer = Mailer(
+        api_key=settings.resend_api_key,
+        from_email=settings.email_from_address,
+        from_name="Enty",
+        app_url=settings.app_public_url,
+    )
+    if mailer.enabled:
+        await run_in_threadpool(
+            mailer.send_email_change_notice,
+            to=row["old_email"],
+            new_email=row["new_email"],
+            confirmed=True,
+        )
+    return await _build_user_summary(db, row["user_id"])
 
-    return await _build_user_summary(db, user["id"])
+
+@router.get("/sessions", response_model=list[SessionOut])
+async def list_sessions(
+    request: Request,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Sesiones activas del usuario, con la actual marcada.
+
+    No se inventa ubicación: solo se muestra el navegador/sistema que el
+    user-agent declara y la última actividad real registrada.
+    """
+    current_hash = _token_hash(_request_token(request) or "")
+    async with db.cursor() as cur:
+        try:
+            await cur.execute(
+                """SELECT id, token_hash, user_agent, created_at, last_seen_at
+                   FROM user_sessions
+                   WHERE user_id=%s AND revoked_at IS NULL
+                   ORDER BY last_seen_at DESC, id DESC""",
+                (user["id"],),
+            )
+            rows = await cur.fetchall()
+        except psycopg.errors.UndefinedTable:
+            await db.rollback()
+            rows = []
+    return [
+        SessionOut(
+            id=r["id"],
+            device=_device_label(r["user_agent"]),
+            created_at=r["created_at"],
+            last_seen_at=r["last_seen_at"],
+            current=r["token_hash"] == current_hash,
+        )
+        for r in rows
+    ]
+
+
+@router.delete("/sessions/current", status_code=status.HTTP_204_NO_CONTENT)
+async def close_current_session(
+    request: Request,
+    response: Response,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Cierra SOLO esta sesión. La cookie se borra y el token queda revocado."""
+    token = _request_token(request)
+    if token:
+        try:
+            async with db.cursor() as cur:
+                await cur.execute(
+                    "UPDATE user_sessions SET revoked_at=now() "
+                    "WHERE user_id=%s AND token_hash=%s AND revoked_at IS NULL",
+                    (user["id"], _token_hash(token)),
+                )
+        except psycopg.errors.UndefinedTable:
+            await db.rollback()
+    response.delete_cookie(COOKIE_NAME, path="/", httponly=True, samesite="lax")
+    return None
+
+
+@router.delete("/sessions/{session_id}", response_model=MessageOut)
+async def revoke_session(
+    session_id: int,
+    body: RevokeSessionRequest,
+    request: Request,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Revoca una sesión concreta, con reautenticación por contraseña."""
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT password_hash FROM users WHERE id=%s", (user["id"],)
+        )
+        row = await cur.fetchone()
+        if not row or not verify_password(body.password, row["password_hash"]):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "La contraseña no es correcta."
+            )
+        await cur.execute(
+            """UPDATE user_sessions SET revoked_at=now()
+               WHERE id=%s AND user_id=%s AND revoked_at IS NULL""",
+            (session_id, user["id"]),
+        )
+        if not cur.rowcount:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Sesión no encontrada")
+        await db.commit()
+    await _log_security(
+        db,
+        user["id"],
+        "session_revoked",
+        detail=f"Sesión {session_id} cerrada.",
+        ip=_client_ip(request),
+    )
+    return MessageOut(detail="Sesión cerrada. Ese dispositivo perdió el acceso.")
 
 
 @router.post("/close-other-sessions", response_model=TokenResponse)
 async def close_other_sessions(
     body: CloseOtherSessionsRequest,
+    request: Request,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     """Cierra las demás sesiones del usuario y deja viva la actual.
 
     Bump de `token_version` (mig 019): todo JWT emitido antes queda muerto.
-    El problema es que el token de ESTA sesión también lo está, así que se
-    emite uno nuevo y se devuelve en la respuesta: el cliente lo guarda y
-    sigue trabajando, mientras el resto de dispositivos cae al login.
-
-    Exige la contraseña: sin ella, un token robado serviría para expulsar al
-    dueño de su propia cuenta en lugar de para defenderse.
+    El token de ESTA sesión también, así que se emite uno nuevo y se devuelve.
+    Además se marcan revocadas las filas de `user_sessions`: el listado del
+    perfil refleja la verdad inmediatamente, sin esperar a que expiren.
     """
     async with db.cursor() as cur:
         await cur.execute(
@@ -1194,18 +1630,54 @@ async def close_other_sessions(
             (user["id"],),
         )
         new_version = (await cur.fetchone())["token_version"]
+        try:
+            await cur.execute(
+                "UPDATE user_sessions SET revoked_at=now() "
+                "WHERE user_id=%s AND revoked_at IS NULL",
+                (user["id"],),
+            )
+        except psycopg.errors.UndefinedTable:
+            pass
         await db.commit()
 
     token = create_access_token(
         user["id"], user["venue_ids"], user["roles"], new_version
     )
+    await _register_session(db, token, user["id"], request)
     summary = await _build_user_summary(db, user["id"])
+    await _log_security(
+        db,
+        user["id"],
+        "sessions_revoked",
+        detail="Se cerraron las demás sesiones.",
+        ip=_client_ip(request),
+    )
     return session_response(token, summary)
 
 
-# ---------------------------------------------------------------------------
-# Borrado definitivo de la propia cuenta
-# ---------------------------------------------------------------------------
+@router.get("/security/activity", response_model=list[SecurityEventOut])
+async def security_activity(
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Historial breve y real de cambios sensibles de la cuenta."""
+    async with db.cursor() as cur:
+        try:
+            await cur.execute(
+                """SELECT id, kind, detail, created_at
+                   FROM security_events
+                   WHERE user_id=%s
+                   ORDER BY created_at DESC, id DESC
+                   LIMIT 20""",
+                (user["id"],),
+            )
+            rows = await cur.fetchall()
+        except psycopg.errors.UndefinedTable:
+            await db.rollback()
+            rows = []
+    return [SecurityEventOut(**r) for r in rows]
+
+
 @router.delete("/account", response_model=MessageOut)
 async def delete_own_account(
     body: DeleteAccountRequest,
@@ -1277,8 +1749,10 @@ async def delete_own_account(
 # ---------------------------------------------------------------------------
 # Exportación de los propios datos (portabilidad)
 # ---------------------------------------------------------------------------
-@router.get("/export")
+@router.post("/export")
 async def export_own_data(
+    body: ExportDataRequest,
+    request: Request,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
@@ -1292,6 +1766,15 @@ async def export_own_data(
     """
     uid = user["id"]
     async with db.cursor() as cur:
+        await cur.execute("SELECT password_hash FROM users WHERE id=%s", (uid,))
+        auth_row = await cur.fetchone()
+        if not auth_row or not verify_password(
+            body.password, auth_row["password_hash"]
+        ):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "La contraseña no es correcta. No descargamos tus datos.",
+            )
         await cur.execute(
             "SELECT id, email, phone, full_name, is_active, created_at, "
             "updated_at, last_login_at FROM users WHERE id=%s",
@@ -1321,6 +1804,13 @@ async def export_own_data(
         )
         acceptances = await cur.fetchall()
 
+    await _log_security(
+        db,
+        uid,
+        "data_exported",
+        detail="Descarga de datos personales.",
+        ip=_client_ip(request),
+    )
     return {
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "format_version": 1,

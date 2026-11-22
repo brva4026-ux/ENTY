@@ -97,6 +97,27 @@ function changedLabel(iso) {
   return days < 30 ? sinceLabel(iso) : `el ${longDate(iso)}`;
 }
 
+const SECURITY_LABELS = {
+  password_changed: "Contraseña actualizada",
+  sessions_revoked: "Sesiones cerradas",
+  session_revoked: "Sesión cerrada",
+  email_change_requested: "Verificación de correo solicitada",
+  email_changed: "Correo actualizado",
+  data_exported: "Datos descargados",
+};
+
+function sessionStamp(iso) {
+  if (!iso) return "sin registro";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "sin registro";
+  return d.toLocaleString("es-CO", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /** Cabecera de panel: un `h2` por panel, colgando del `h1` del hero. */
 function PanelHead({ title, hint }) {
   return (
@@ -144,18 +165,24 @@ export default function ProfilePage() {
   // Telefono de contacto: la columna existia en la DB pero el perfil no la
   // mostraba. Opcional, y se guarda tal como se escribe.
   const [phone, setPhone] = useState(user?.phone || "");
+  // Contacto personal y permiso de compartirlo con el equipo (mig 059).
+  const [contactEmail, setContactEmail] = useState(user?.contact_email || "");
+  const [shareContact, setShareContact] = useState(
+    Boolean(user?.share_contact_with_team),
+  );
   const [nameMsg, setNameMsg] = useState(null);
   const [nameBusy, setNameBusy] = useState(false);
 
-  // Edición del negocio: se edita el negocio ACTIVO si lo administra y, si
-  // no, el primero que administre. Antes era siempre el primero de la lista,
-  // así que el enlace del header (/perfil?tab=negocio) podía abrir un negocio
-  // distinto del que la persona estaba viendo.
+  // La organización activa es el contexto de TODA la página. Solo se edita
+  // si la persona la administra: nunca se cae en silencio a otro negocio,
+  // porque entonces el formulario hablaría de una organización que no es la
+  // que el hero muestra.
   const isAdminOf = (v) => (user?.roles?.[String(v.id)] || []).includes("admin");
-  const adminVenue =
-    (user?.venues || []).find((v) => v.id === currentVenueId && isAdminOf(v)) ??
-    (user?.venues || []).find(isAdminOf) ??
+  const activeVenue =
+    (user?.venues || []).find((v) => v.id === currentVenueId) ??
+    (user?.venues || [])[0] ??
     null;
+  const adminVenue = activeVenue && isAdminOf(activeVenue) ? activeVenue : null;
   const venuePlaceholder = Boolean(adminVenue?.is_placeholder);
   const [venueName, setVenueName] = useState(adminVenue?.name || "");
   const [venueLogo, setVenueLogo] = useState(adminVenue?.logo_url || "");
@@ -172,7 +199,22 @@ export default function ProfilePage() {
   const [venueContactPhone, setVenueContactPhone] = useState(
     adminVenue?.contact_phone || "",
   );
+  const [venueContactEmail, setVenueContactEmail] = useState(
+    adminVenue?.contact_email || "",
+  );
+  // Publicar no es guardar: son dos permisos distintos (mig 059).
+  const [publicContactEnabled, setPublicContactEnabled] = useState(
+    Boolean(adminVenue?.public_contact_enabled),
+  );
+  const [publicChannels, setPublicChannels] = useState(
+    adminVenue?.public_contact_channels || [],
+  );
+  const [contactTeamVisible, setContactTeamVisible] = useState(
+    adminVenue?.contact_team_visible !== false,
+  );
   const [logoError, setLogoError] = useState("");
+  const [logoBusy, setLogoBusy] = useState(false);
+  const venueLogoInputRef = useRef(null);
   const [venueMsg, setVenueMsg] = useState(null);
   const [venueBusy, setVenueBusy] = useState(false);
 
@@ -202,9 +244,24 @@ export default function ProfilePage() {
   const [emailPass, setEmailPass] = useState("");
   const [emailBusy, setEmailBusy] = useState(false);
   const [emailMsg, setEmailMsg] = useState(null);
+  const [pendingEmail, setPendingEmail] = useState("");
 
-  // Descarga de los propios datos
+  // Descarga de los propios datos (reautenticada)
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportPass, setExportPass] = useState("");
   const [exportBusy, setExportBusy] = useState(false);
+
+  // Sesiones y actividad de seguridad (mig 059)
+  const [sessions, setSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsMsg, setSessionsMsg] = useState(null);
+  const [sessionTarget, setSessionTarget] = useState(null);
+  const [sessionPass, setSessionPass] = useState("");
+  const [sessionBusy, setSessionBusy] = useState(false);
+  const [securityEvents, setSecurityEvents] = useState([]);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [venueSwitchBusy, setVenueSwitchBusy] = useState(false);
+  const emailTokenHandled = useRef(false);
 
   // Borrado de cuenta
   const [delOpen, setDelOpen] = useState(false);
@@ -221,7 +278,9 @@ export default function ProfilePage() {
   const nameDirty =
     name.trim() !== (user?.full_name || "") ||
     normalizeUsername(username) !== (user?.username || "") ||
-    phone.trim() !== (user?.phone || "");
+    phone.trim() !== (user?.phone || "") ||
+    contactEmail.trim() !== (user?.contact_email || "") ||
+    shareContact !== Boolean(user?.share_contact_with_team);
   const venueDirty =
     !!adminVenue &&
     (venueName.trim() !== adminVenue.name ||
@@ -229,7 +288,12 @@ export default function ProfilePage() {
       venueCommission !== String(adminVenue.commission_pct ?? 0) ||
       venueColor !== (adminVenue.primary_color || "") ||
       venueContactName !== (adminVenue.contact_name || "") ||
-      venueContactPhone !== (adminVenue.contact_phone || ""));
+      venueContactPhone !== (adminVenue.contact_phone || "") ||
+      venueContactEmail !== (adminVenue.contact_email || "") ||
+      publicContactEnabled !== Boolean(adminVenue.public_contact_enabled) ||
+      [...publicChannels].sort().join(",") !==
+        [...(adminVenue.public_contact_channels || [])].sort().join(",") ||
+      contactTeamVisible !== (adminVenue.contact_team_visible !== false));
   const brandColor = venueColor || BRAND_DEFAULT;
 
   // El formulario del negocio se recarga al cambiar de negocio activo. Se
@@ -245,6 +309,10 @@ export default function ProfilePage() {
     );
     setVenueContactName(adminVenue?.contact_name || "");
     setVenueContactPhone(adminVenue?.contact_phone || "");
+    setVenueContactEmail(adminVenue?.contact_email || "");
+    setPublicContactEnabled(Boolean(adminVenue?.public_contact_enabled));
+    setPublicChannels(adminVenue?.public_contact_channels || []);
+    setContactTeamVisible(adminVenue?.contact_team_visible !== false);
     setLogoError("");
     setVenueMsg(null);
   }, [venueFormId]);
@@ -256,7 +324,7 @@ export default function ProfilePage() {
       { id: "cuenta", label: "Cuenta", icon: "users", dirty: nameDirty },
       { id: "seguridad", label: "Seguridad", icon: "shield" },
       ...(adminVenue
-        ? [{ id: "negocio", label: "Negocio", icon: "money", dirty: venueDirty }]
+        ? [{ id: "negocio", label: "Organización", icon: "money", dirty: venueDirty }]
         : []),
       { id: "preferencias", label: "Preferencias", icon: "sparkle" },
     ],
@@ -302,15 +370,75 @@ export default function ProfilePage() {
     setSearchParams(next, { replace: true });
   }, [tabIsCanonical, canonicalTab, searchParams, setSearchParams]);
 
+  // Enlace de verificación del correo nuevo: se canjea UNA vez al abrir la
+  // página. El correo solo cambia si el servidor acepta el token; la URL se
+  // limpia para que recargar no intente canjearlo otra vez.
+  useEffect(() => {
+    const token = searchParams.get("email_token");
+    if (!token || emailTokenHandled.current) return;
+    emailTokenHandled.current = true;
+    (async () => {
+      try {
+        const updated = await apiFetch("/auth/change-email/confirm", {
+          method: "POST",
+          body: JSON.stringify({ token }),
+        });
+        setUser(updated);
+        setPendingEmail("");
+        setEmailMsg({
+          ok: true,
+          text: "Correo verificado y actualizado. Ya puedes entrar con él.",
+        });
+        ui.success("Tu correo quedó verificado.");
+      } catch (err) {
+        setEmailMsg({ ok: false, text: err.message });
+        ui.error(err.message);
+      } finally {
+        const next = new URLSearchParams(searchParams);
+        next.delete("email_token");
+        setSearchParams(next, { replace: true });
+      }
+    })();
+  }, [searchParams, setSearchParams, setUser, ui]);
+
+  // Sesiones y actividad: se leen del servidor al abrir Seguridad, no de un
+  // estado local que podría estar desactualizado.
+  useEffect(() => {
+    if (activeTab !== "seguridad") return;
+    let alive = true;
+    setSessionsLoading(true);
+    setSecurityLoading(true);
+    Promise.all([
+      apiFetch("/auth/sessions"),
+      apiFetch("/auth/security/activity"),
+    ])
+      .then(([sessionRows, events]) => {
+        if (!alive) return;
+        setSessions(sessionRows);
+        setSecurityEvents(events);
+      })
+      .catch((err) => {
+        if (alive) setSessionsMsg({ ok: false, text: err.message });
+      })
+      .finally(() => {
+        if (!alive) return;
+        setSessionsLoading(false);
+        setSecurityLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [activeTab]);
+
   // Al cambiar de pestaña el panel se trae a la vista: si estabas al final de
   // un panel largo, la nueva pestaña empezaba a media altura y con su título
-  // bajo la barra pegajosa. En el primer render no se toca el scroll.
-  const firstTabRender = useRef(true);
+  // bajo la barra pegajosa. Se compara contra la pestaña anterior (y no un
+  // "primer render") porque StrictMode ejecuta el efecto dos veces y el
+  // segundo pase arrastraba la página al panel nada más cargar.
+  const previousTab = useRef(activeTab);
   useEffect(() => {
-    if (firstTabRender.current) {
-      firstTabRender.current = false;
-      return;
-    }
+    if (previousTab.current === activeTab) return;
+    previousTab.current = activeTab;
     document.getElementById(`pf-panel-${activeTab}`)?.scrollIntoView({
       behavior: prefersReducedMotion() ? "auto" : "smooth",
       block: "start",
@@ -352,6 +480,14 @@ export default function ProfilePage() {
   // identidad visual sale de ROLE_VISUALS para no divergir del equipo.
   const role = topRole(user) ?? "bouncer";
   const visual = ROLE_VISUALS[role] ?? ROLE_VISUALS.bouncer;
+  const activeVenueRole = activeVenue
+    ? topRole({
+        roles: {
+          [String(activeVenue.id)]: user.roles?.[String(activeVenue.id)] || [],
+        },
+      })
+    : null;
+  const activeVenueVisual = ROLE_VISUALS[activeVenueRole] ?? visual;
 
   const memberSince = longDate(user.created_at);
   const lastSeen = sinceLabel(user.last_login_at);
@@ -419,6 +555,12 @@ export default function ProfilePage() {
       setPassMsg({ ok: true, text: res.detail });
       setCurPass("");
       setNewPass("");
+      // El cambio invalida el token de esta sesión (token_version). Mantener
+      // la pantalla "logueada" con una credencial muerta sería mentir: se
+      // cierra la sesión y se pide entrar con la clave nueva.
+      ui.success("Contraseña actualizada. Entra de nuevo con la clave nueva.");
+      await logout();
+      nav("/login", { replace: true, state: { passwordChanged: true } });
     } catch (err) {
       setPassMsg({ ok: false, text: err.message });
     } finally {
@@ -429,7 +571,12 @@ export default function ProfilePage() {
   async function checkUsername() {
     const candidate = normalizeUsername(username);
     if (!candidate) {
-      setUsernameMsg({ ok: false, text: "Elige un nombre de usuario." });
+      // Cuentas legadas sin username pueden seguir entrando por correo.
+      setUsernameMsg(
+        user?.username
+          ? { ok: false, text: "Elige un nombre de usuario." }
+          : null,
+      );
       return;
     }
     if (candidate === (user?.username || "")) {
@@ -475,7 +622,14 @@ export default function ProfilePage() {
       return;
     }
     const candidate = normalizeUsername(username);
-    if (!candidate || !isValidUsername(candidate)) {
+    if (!candidate && user?.username) {
+      setUsernameMsg({
+        ok: false,
+        text: "Elige un nombre de usuario: tu cuenta ya entra con uno.",
+      });
+      return;
+    }
+    if (candidate && !isValidUsername(candidate)) {
       setUsernameMsg({
         ok: false,
         text: "Entre 3 y 32 caracteres: letras, números, punto, guion o guion bajo.",
@@ -492,12 +646,18 @@ export default function ProfilePage() {
         // mensaje real en vez de un texto generico.
         body: JSON.stringify({
           full_name: name,
-          username: candidate,
+          ...(candidate ? { username: candidate } : {}),
           phone: phone.trim(),
+          contact_email: contactEmail.trim(),
+          share_contact_with_team: shareContact,
         }),
       });
       setUser(updated);
+      setName(updated.full_name || "");
       setUsername(updated.username || "");
+      setPhone(updated.phone || "");
+      setContactEmail(updated.contact_email || "");
+      setShareContact(Boolean(updated.share_contact_with_team));
       setUsernameMsg(null);
       setNameMsg({ ok: true, text: "Datos actualizados." });
     } catch (err) {
@@ -553,23 +713,48 @@ export default function ProfilePage() {
     }
   }
 
+  /** Logo del negocio: misma reducción local que el avatar. Se envía en el
+   *  PATCH del formulario para que un solo guardado no deje estados a medias. */
+  async function onVenueLogoFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setLogoBusy(true);
+    setLogoError("");
+    try {
+      const dataUrl = await fileToDataUrl(file, { maxSide: 512 });
+      setVenueLogo(dataUrl);
+      setVenueMsg(null);
+    } catch (err) {
+      setLogoError(err.message || "No pudimos preparar la imagen.");
+    } finally {
+      setLogoBusy(false);
+    }
+  }
+
   async function submitEmail(e) {
     e.preventDefault();
     setEmailMsg(null);
     setEmailBusy(true);
     try {
-      const updated = await apiFetch("/auth/change-email", {
+      const res = await apiFetch("/auth/change-email", {
         method: "POST",
         body: JSON.stringify({
           new_email: newEmail.trim(),
           current_password: emailPass,
         }),
       });
-      setUser(updated);
-      setEmailOpen(false);
-      setNewEmail("");
-      setEmailPass("");
-      setEmailMsg({ ok: true, text: "Correo actualizado." });
+      if (res.verification_sent) {
+        setEmailOpen(false);
+        setNewEmail("");
+        setEmailPass("");
+        setPendingEmail(res.pending_email);
+        setEmailMsg({ ok: true, text: res.detail });
+        haptics.success();
+        ui.success("Revisa el correo nuevo para confirmar el cambio.");
+      } else {
+        setEmailMsg({ ok: false, text: res.detail });
+      }
     } catch (err) {
       setEmailMsg({ ok: false, text: err.message });
     } finally {
@@ -580,43 +765,101 @@ export default function ProfilePage() {
   async function submitVenue(e) {
     e.preventDefault();
     setLogoError("");
+    if (publicContactEnabled && publicChannels.length === 0) {
+      setVenueMsg({
+        ok: false,
+        text: "Para publicar el contacto elige al menos un canal.",
+      });
+      return;
+    }
+    if (publicContactEnabled && publicChannels.includes("whatsapp") && !venueContactPhone.trim()) {
+      setVenueMsg({
+        ok: false,
+        text: "Elegiste WhatsApp pero no hay un teléfono guardado.",
+      });
+      return;
+    }
+    if (publicContactEnabled && publicChannels.includes("email") && !venueContactEmail.trim()) {
+      setVenueMsg({
+        ok: false,
+        text: "Elegiste correo pero no hay un correo de contacto guardado.",
+      });
+      return;
+    }
     setVenueBusy(true);
     try {
+      const logoIsData = venueLogo.startsWith("data:");
       const updated = await apiFetch(`/auth/venues/${adminVenue.id}`, {
         method: "PATCH",
         body: JSON.stringify({
           name: venueName,
-          logo_url: venueLogo,
+          ...(logoIsData ? { logo_data_url: venueLogo } : { logo_url: venueLogo }),
           commission_pct: Number(venueCommission) || 0,
           primary_color: venueColor,
           contact_name: venueContactName,
           contact_phone: venueContactPhone,
+          contact_email: venueContactEmail,
+          public_contact_enabled: publicContactEnabled,
+          public_contact_channels: publicChannels,
+          contact_team_visible: contactTeamVisible,
         }),
       });
-      // Refrescar la venue dentro del user del contexto global
+      // La respuesta del servidor es la fuente de verdad: se copia entera.
       setUser({
         ...user,
         venues: user.venues.map((v) =>
-          v.id === updated.id
-            ? {
-                ...v,
-                name: updated.name,
-                logo_url: updated.logo_url,
-                commission_pct: updated.commission_pct,
-                primary_color: updated.primary_color,
-                contact_name: updated.contact_name,
-                contact_phone: updated.contact_phone,
-                is_placeholder: updated.is_placeholder,
-              }
-            : v,
+          v.id === updated.id ? { ...v, ...updated } : v,
         ),
       });
+      setVenueName(updated.name || "");
+      setVenueLogo(updated.logo_url || "");
+      setVenueColor(updated.primary_color || "");
+      setVenueCommission(
+        updated.commission_pct != null ? String(updated.commission_pct) : "0",
+      );
+      setVenueContactName(updated.contact_name || "");
+      setVenueContactPhone(updated.contact_phone || "");
+      setVenueContactEmail(updated.contact_email || "");
+      setPublicContactEnabled(Boolean(updated.public_contact_enabled));
+      setPublicChannels(updated.public_contact_channels || []);
+      setContactTeamVisible(updated.contact_team_visible !== false);
       setVenueMsg({ ok: true, text: "Datos del negocio actualizados." });
+      haptics.success();
     } catch (err) {
       setVenueMsg({ ok: false, text: err.message });
     } finally {
       setVenueBusy(false);
     }
+  }
+
+  async function switchVenue(venue) {
+    if (venueSwitchBusy || venue.id === currentVenueId) return;
+    setVenueSwitchBusy(true);
+    try {
+      // Sin optimismo: el contexto cambia cuando el servidor confirma que
+      // guardó la preferencia. Si falla, la organización visible no miente.
+      const updated = await apiFetch("/auth/me/active-venue", {
+        method: "PUT",
+        body: JSON.stringify({ venue_id: venue.id }),
+      });
+      setActiveVenueId(venue.id);
+      setCurrentVenueId(venue.id);
+      setUser(updated);
+      ui.success(`Trabajando en ${venue.name}.`);
+    } catch (err) {
+      ui.error(err.message || "No pudimos cambiar de organización.");
+    } finally {
+      setVenueSwitchBusy(false);
+    }
+  }
+
+  function toggleChannel(channel) {
+    setPublicChannels((prev) =>
+      prev.includes(channel)
+        ? prev.filter((c) => c !== channel)
+        : [...prev, channel],
+    );
+    setVenueMsg(null);
   }
 
   async function submitCloseSessions(e) {
@@ -637,6 +880,12 @@ export default function ProfilePage() {
         ok: true,
         text: "Listo: las demás sesiones quedaron cerradas. Esta sigue abierta.",
       });
+      const [sessionRows, events] = await Promise.all([
+        apiFetch("/auth/sessions"),
+        apiFetch("/auth/security/activity"),
+      ]);
+      setSessions(sessionRows);
+      setSecurityEvents(events);
       haptics.success();
     } catch (err) {
       setSessMsg({ ok: false, text: err.message });
@@ -645,13 +894,44 @@ export default function ProfilePage() {
     }
   }
 
+  async function submitRevokeSession(e) {
+    e.preventDefault();
+    if (!sessionTarget) return;
+    setSessionBusy(true);
+    setSessionsMsg(null);
+    try {
+      const res = await apiFetch(`/auth/sessions/${sessionTarget.id}`, {
+        method: "DELETE",
+        body: JSON.stringify({ password: sessionPass }),
+      });
+      setSessionsMsg({ ok: true, text: res.detail });
+      setSessionTarget(null);
+      setSessionPass("");
+      const [sessionRows, events] = await Promise.all([
+        apiFetch("/auth/sessions"),
+        apiFetch("/auth/security/activity"),
+      ]);
+      setSessions(sessionRows);
+      setSecurityEvents(events);
+    } catch (err) {
+      setSessionsMsg({ ok: false, text: err.message });
+    } finally {
+      setSessionBusy(false);
+    }
+  }
+
   /** Descarga de los propios datos como JSON.
    *  Se usa fetch + blob (no un <a href>): el token viaja en el header, nunca
    *  en la URL, y así no queda en el historial ni en los logs del servidor. */
-  async function downloadData() {
+  async function downloadData(e) {
+    e.preventDefault();
     setExportBusy(true);
     try {
-      const data = await apiFetch("/auth/export");
+      // Reautenticación: el JSON contiene datos personales y de los negocios.
+      const data = await apiFetch("/auth/export", {
+        method: "POST",
+        body: JSON.stringify({ password: exportPass }),
+      });
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: "application/json",
       });
@@ -660,6 +940,8 @@ export default function ProfilePage() {
       a.download = "mis-datos-enty.json";
       a.click();
       URL.revokeObjectURL(a.href);
+      setExportOpen(false);
+      setExportPass("");
       haptics.success();
       ui.success("Descargamos tus datos.");
     } catch (err) {
@@ -763,18 +1045,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Resumen de cambios sin guardar (M-1): los puntos ámbar de cada
-          pestaña dicen DÓNDE hay cambios, pero no cuántos. Una frase a nivel
-          de barra responde "¿me falta guardar algo?" sin recorrer pestañas. */}
-      {dirtyTabs.length > 0 && (
-        <p className="pf-dirty-summary" role="status">
-          {dirtyTabs.length === 1
-            ? "Tienes cambios sin guardar en "
-            : `Tienes cambios sin guardar en ${dirtyTabs.length} secciones: `}
-          {dirtyTabs.map((t) => t.label).join(", ")}
-        </p>
-      )}
-
       {/* Pestañas: una cosa a la vez en lugar de un scroll con todo a la vista. */}
       <div
         ref={tabbarRef}
@@ -807,6 +1077,82 @@ export default function ProfilePage() {
           );
         })}
       </div>
+
+      {/* Contexto de trabajo: qué organización está activa AHORA. No es un
+          detalle del formulario: decide qué eventos, equipo y reportes ve el
+          admin. El cambio solo se pinta cuando el servidor lo confirma. */}
+      {activeVenue && (
+        <section className="pf-context" aria-labelledby="pf-context-title">
+          <div className="pf-context-main">
+            <span className={`pf-context-logo ${activeVenueVisual.tabAccent}`}>
+              {activeVenue.logo_url ? (
+                <img src={activeVenue.logo_url} alt="" decoding="async" />
+              ) : (
+                (activeVenue.name || "?").trim().charAt(0).toUpperCase()
+              )}
+            </span>
+            <div className="pf-context-copy">
+              <p className="pf-context-label" id="pf-context-title">
+                Organización activa
+              </p>
+              <p className="pf-context-name">{activeVenue.name}</p>
+              <p className="pf-context-meta">
+                {activeVenueRole ? roleLabel(activeVenueRole) : "Sin rol"}
+                {activeVenue.is_placeholder
+                  ? " · identidad interna, aún no pública"
+                  : ""}
+                {venueCount > 1
+                  ? ` · ${venueCount} organizaciones en tu cuenta`
+                  : ""}
+              </p>
+            </div>
+            <span className={`pf-context-badge ${activeVenueVisual.tabAccent}`}>
+              Activa
+            </span>
+          </div>
+
+          {venueCount > 1 && (
+            <div className="pf-context-switch" role="group" aria-label="Cambiar organización activa">
+              <p className="pf-hint">
+                Cambia el contexto de todos los paneles. Se guarda en tu cuenta,
+                no en este navegador.
+              </p>
+              <div className="pf-context-options">
+                {user.venues.map((v) => {
+                  const on = v.id === activeVenue.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      aria-pressed={on}
+                      disabled={venueSwitchBusy}
+                      onClick={() => switchVenue(v)}
+                      className={`pf-context-option ${on ? "is-on" : ""}`}
+                    >
+                      <span className="pf-context-option-name">{v.name}</span>
+                      <span className="pf-context-option-role">
+                        {(user.roles?.[String(v.id)] || []).map(roleLabel).join(", ")}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Resumen de cambios sin guardar (M-1): los puntos ámbar de cada
+          pestaña dicen DÓNDE hay cambios, pero no cuántos. Una frase a nivel
+          de barra responde "¿me falta guardar algo?" sin recorrer pestañas. */}
+      {dirtyTabs.length > 0 && (
+        <p className="pf-dirty-summary" role="status">
+          {dirtyTabs.length === 1
+            ? "Tienes cambios sin guardar en "
+            : `Tienes cambios sin guardar en ${dirtyTabs.length} secciones: `}
+          {dirtyTabs.map((t) => t.label).join(", ")}
+        </p>
+      )}
 
       {/* ---------------- Cuenta ---------------- */}
       {activeTab === "cuenta" && (
@@ -844,7 +1190,11 @@ export default function ProfilePage() {
             <Field
               id="username"
               label="Nombre de usuario"
-              hint="Así entras sin escribir el correo. Puedes cambiarlo cuando quieras; el anterior deja de funcionar."
+              hint={
+                user?.username
+                  ? "Así entras sin escribir el correo. Puedes cambiarlo cuando quieras; el anterior deja de funcionar."
+                  : "Aún no tienes uno. Elige un nombre para entrar sin escribir el correo; si lo dejas vacío, seguirás entrando con tu correo."
+              }
             >
               <input
                 id="username"
@@ -863,7 +1213,6 @@ export default function ProfilePage() {
                 placeholder="@tu.usuario"
                 aria-invalid={usernameMsg && !usernameMsg.ok ? "true" : undefined}
                 aria-describedby="username-hint username-status"
-                required
               />
             </Field>
             <p id="username-hint" className="sr-only">
@@ -908,6 +1257,54 @@ export default function ProfilePage() {
                 placeholder="+57 300 123 4567"
               />
             </Field>
+
+            <Field
+              id="contact-email"
+              label="Correo de contacto (opcional)"
+              hint="No es el correo con el que entras. Es el que puedes compartir con tu equipo."
+            >
+              <input
+                id="contact-email"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => {
+                  setContactEmail(e.target.value);
+                  setNameMsg(null);
+                }}
+                className="field"
+                maxLength={200}
+                inputMode="email"
+                autoComplete="email"
+                placeholder="equipo@tubar.com"
+              />
+            </Field>
+
+            <label className="pf-check-row" htmlFor="share-contact">
+              <input
+                id="share-contact"
+                type="checkbox"
+                checked={shareContact}
+                onChange={(e) => {
+                  setShareContact(e.target.checked);
+                  setNameMsg(null);
+                }}
+                className="pf-check"
+              />
+              <span>
+                <span className="pf-label">Compartir mi contacto con mi equipo</span>
+                <span className="pf-hint">
+                  Solo el equipo de tus organizaciones verá el teléfono y el
+                  correo de contacto. Nunca se publican en la página del evento.
+                </span>
+              </span>
+            </label>
+
+            <p className="pf-saved-state">
+              <Icon name="check" className="h-4 w-4" aria-hidden="true" />
+              {user.share_contact_with_team
+                ? "Ahora mismo tu equipo puede ver tu teléfono y correo de contacto."
+                : "Ahora mismo tu contacto personal no se comparte con el equipo."}
+            </p>
 
             {nameMsg && (
               <div
@@ -992,11 +1389,18 @@ export default function ProfilePage() {
             </div>
             {/* Cerrado muestra el correo y el porqué de la contraseña; el
                 formulario no ocupa espacio hasta que hace falta. */}
+            {pendingEmail && (
+              <p className="pf-alert pf-alert-warn">
+                Cambio pendiente a <strong>{pendingEmail}</strong>. Tu cuenta
+                sigue con {user.email} hasta que confirmes desde el buzón nuevo.
+              </p>
+            )}
             {!emailOpen ? (
               <>
                 <p className="pf-hint">
-                  Con este correo entras y recuperas tu cuenta. Si lo cambias,
-                  la recuperación y los avisos pasan al nuevo.
+                  Con este correo entras y recuperas tu cuenta. El cambio se
+                  activa solo después de verificar el buzón nuevo; mientras
+                  tanto, tu correo actual sigue funcionando.
                 </p>
                 <div className="pf-form-actions">
                   <button
@@ -1050,7 +1454,7 @@ export default function ProfilePage() {
 
                 <div className="pf-form-actions">
                   <button type="submit" disabled={emailBusy} className="btn-primary">
-                    {emailBusy ? "Guardando…" : "Guardar correo"}
+                    {emailBusy ? "Enviando…" : "Enviar verificación"}
                   </button>
                   <button
                     type="button"
@@ -1075,59 +1479,6 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
-
-          {/* Negocio activo (solo si pertenece a varios): qué panel abre y
-              sobre qué venue trabaja cada pantalla. */}
-          {venueCount > 1 && (
-            <div className="pf-sub">
-              <h3 className="pf-sub-title">Negocio activo</h3>
-              <p className="pf-hint pf-hint-block">
-                Trabajas con varios negocios: elige con cuál abren los paneles.
-              </p>
-              <div className="pf-venue-grid">
-                {user.venues.map((v) => {
-                  const active = v.id === currentVenueId;
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => {
-                        // Ley de Tesler (T7): el negocio activo es de la
-                        // persona, no del navegador. Se guarda en el servidor
-                        // (mig 040) para que abra igual en el celular; el cache
-                        // local evita el parpadeo del primer paint. Optimista:
-                        // la UI cambia ya, y si el guardado falla se revierte.
-                        const prev = currentVenueId;
-                        setActiveVenueId(v.id);
-                        setCurrentVenueId(v.id);
-                        haptics.tick();
-                        apiFetch("/auth/me/active-venue", {
-                          method: "PUT",
-                          body: JSON.stringify({ venue_id: v.id }),
-                        })
-                          .then((updated) => setUser(updated))
-                          .catch(() => {
-                            setCurrentVenueId(prev);
-                            setActiveVenueId(prev);
-                            ui.error("No pudimos guardar tu negocio activo.");
-                          });
-                      }}
-                      className={`pf-venue ${active ? "is-on" : ""}`}
-                    >
-                      <span className="pf-venue-body">
-                        <span className="pf-venue-name">{v.name}</span>
-                        <span className="pf-venue-roles">
-                          {(user.roles?.[String(v.id)] || []).map(roleLabel).join(", ")}
-                        </span>
-                      </span>
-                      {active && <span className="pf-venue-badge">Activa</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <div className="pf-sub">
             <h3 className="pf-sub-title">Documentos legales</h3>
@@ -1292,6 +1643,117 @@ export default function ProfilePage() {
                 {sessMsg.text}
               </div>
             )}
+
+            <div className="pf-session-list" aria-busy={sessionsLoading}>
+              {sessionsLoading && <p className="pf-hint">Leyendo sesiones…</p>}
+              {!sessionsLoading && sessions.length === 0 && (
+                <p className="pf-hint">
+                  El servidor no reporta sesiones individuales todavía. Usa
+                  “Cerrar las demás” para revocar las credenciales anteriores.
+                </p>
+              )}
+              {sessions.map((s) => (
+                <div key={s.id} className={`pf-session ${s.current ? "is-current" : ""}`}>
+                  <div className="pf-session-main">
+                    <p className="pf-session-device">
+                      {s.device}
+                      {s.current && <span className="pf-session-tag">Esta sesión</span>}
+                    </p>
+                    <p className="pf-session-meta">
+                      Inició {sessionStamp(s.created_at)} · Última actividad{" "}
+                      {sessionStamp(s.last_seen_at)}
+                    </p>
+                  </div>
+                  {!s.current && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSessionsMsg(null);
+                        setSessionPass("");
+                        setSessionTarget(s);
+                      }}
+                      className="btn-ghost pf-action pf-action-danger"
+                    >
+                      Cerrar
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {sessionsMsg && (
+              <div
+                role="status"
+                className={`pf-alert ${sessionsMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
+              >
+                {sessionsMsg.text}
+              </div>
+            )}
+
+            {sessionTarget && (
+              <form onSubmit={submitRevokeSession} className="pf-session-confirm">
+                <p className="pf-hint">
+                  Para cerrar <strong>{sessionTarget.device}</strong> confirma tu
+                  contraseña. El servidor marcará esa sesión como revocada.
+                </p>
+                <div className="pf-inline-form">
+                  <input
+                    type="password"
+                    value={sessionPass}
+                    onChange={(e) => setSessionPass(e.target.value)}
+                    className="field"
+                    autoComplete="current-password"
+                    placeholder="Tu contraseña"
+                    required
+                  />
+                  <button type="submit" disabled={sessionBusy} className="btn-primary">
+                    {sessionBusy ? "Cerrando…" : "Cerrar sesión"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSessionTarget(null);
+                      setSessionPass("");
+                    }}
+                    className="btn-ghost"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Actividad de seguridad</h3>
+            <p className="pf-hint pf-hint-block">
+              Solo cambios reales registrados por el servidor. No inventamos
+              ubicaciones ni dispositivos que no sepamos.
+            </p>
+            {securityLoading && <p className="pf-hint">Leyendo actividad…</p>}
+            {!securityLoading && securityEvents.length === 0 && (
+              <p className="pf-hint">Todavía no hay cambios registrados.</p>
+            )}
+            {!securityLoading && securityEvents.length > 0 && (
+              <ul className="pf-security-list">
+                {securityEvents.map((ev) => (
+                  <li key={ev.id} className="pf-security-item">
+                    <Icon name="shield" className="h-4 w-4" aria-hidden="true" />
+                    <span className="pf-security-copy">
+                      <span className="pf-security-kind">
+                        {SECURITY_LABELS[ev.kind] || ev.kind}
+                      </span>
+                      {ev.detail && (
+                        <span className="pf-security-detail">{ev.detail}</span>
+                      )}
+                    </span>
+                    <time className="pf-security-time" dateTime={ev.created_at}>
+                      {sessionStamp(ev.created_at)}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="pf-sub">
@@ -1301,15 +1763,41 @@ export default function ProfilePage() {
               tus negocios y los documentos que aceptaste. Tus contraseñas y
               los datos de tus clientes no se incluyen.
             </p>
-            <button
-              type="button"
-              onClick={downloadData}
-              disabled={exportBusy}
-              className="btn-ghost pf-action"
-            >
-              <Icon name="download" className="h-4 w-4" aria-hidden="true" />
-              {exportBusy ? "Preparando…" : "Descargar mis datos (JSON)"}
-            </button>
+            {!exportOpen ? (
+              <button
+                type="button"
+                onClick={() => setExportOpen(true)}
+                className="btn-ghost pf-action"
+              >
+                <Icon name="download" className="h-4 w-4" aria-hidden="true" />
+                Descargar mis datos (JSON)
+              </button>
+            ) : (
+              <form onSubmit={downloadData} className="pf-inline-form">
+                <input
+                  type="password"
+                  value={exportPass}
+                  onChange={(e) => setExportPass(e.target.value)}
+                  className="field"
+                  autoComplete="current-password"
+                  placeholder="Tu contraseña"
+                  required
+                />
+                <button type="submit" disabled={exportBusy} className="btn-primary">
+                  {exportBusy ? "Preparando…" : "Descargar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExportOpen(false);
+                    setExportPass("");
+                  }}
+                  className="btn-ghost"
+                >
+                  Cancelar
+                </button>
+              </form>
+            )}
           </div>
         </section>
       )}
@@ -1324,11 +1812,11 @@ export default function ProfilePage() {
           className="card pf-panel"
         >
           <PanelHead
-            title="Tu negocio"
+            title="Tu organización"
             hint={
               venuePlaceholder
                 ? "Aún no tienes identidad pública. El nombre interno no se muestra en tus fichas."
-                : "El nombre y el logo representan tu negocio ante tu equipo y tus clientes."
+                : "Estás editando la organización activa. El nombre y el logo la representan ante tu equipo y tus clientes."
             }
           />
           {venuePlaceholder && (
@@ -1360,7 +1848,8 @@ export default function ProfilePage() {
               />
             </Field>
 
-            <Field id="venue-logo" label="Logo (URL de imagen)">
+            <div className="pf-field">
+              <span className="pf-label">Logo de la organización</span>
               <div className="pf-logo-row">
                 {venueLogo && !logoError ? (
                   <img
@@ -1375,23 +1864,59 @@ export default function ProfilePage() {
                     {(venueName || "?")[0].toUpperCase()}
                   </span>
                 )}
-                <input
-                  id="venue-logo"
-                  type="url"
-                  value={venueLogo}
-                  onChange={(e) => {
-                    setVenueLogo(e.target.value);
-                    setLogoError("");
-                  }}
-                  className="field"
-                  placeholder="https://…/logo.png"
-                  maxLength={500}
-                />
+                <div className="pf-logo-actions">
+                  <button
+                    type="button"
+                    onClick={() => venueLogoInputRef.current?.click()}
+                    disabled={logoBusy || venueBusy}
+                    className="btn-ghost pf-action"
+                  >
+                    <Icon name="camera" className="h-4 w-4" aria-hidden="true" />
+                    {logoBusy ? "Preparando…" : venueLogo ? "Cambiar logo" : "Subir logo"}
+                  </button>
+                  {venueLogo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVenueLogo("");
+                        setLogoError("");
+                      }}
+                      className="btn-ghost pf-action"
+                    >
+                      Quitar
+                    </button>
+                  )}
+                </div>
               </div>
-              {logoError && (
-                <span className="pf-hint pf-hint-warn">{logoError} — revisa la URL.</span>
+              <input
+                ref={venueLogoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={onVenueLogoFile}
+              />
+              <label className="pf-label pf-label-secondary" htmlFor="venue-logo-url">
+                O pega una URL
+              </label>
+              <input
+                id="venue-logo-url"
+                type="url"
+                value={venueLogo.startsWith("data:") ? "" : venueLogo}
+                onChange={(e) => {
+                  setVenueLogo(e.target.value);
+                  setLogoError("");
+                }}
+                className="field"
+                placeholder="https://…/logo.png"
+                maxLength={500}
+              />
+              {venueLogo.startsWith("data:") && (
+                <span className="pf-hint">Imagen lista; se guardará al guardar la organización.</span>
               )}
-            </Field>
+              {logoError && (
+                <span className="pf-hint pf-hint-warn">{logoError} — revisa la imagen o la URL.</span>
+              )}
+            </div>
 
             {/* Color de marca: tiñe la portada del panel (banner, tile y viga
                 del KPI). Vacío = violeta de Enty. El <input type="color"> no
@@ -1466,11 +1991,15 @@ export default function ProfilePage() {
             {/* Contacto del organizador (mig 036): es lo que la pagina publica
                 muestra en "encargar por WhatsApp". Quien organiza esa noche
                 responde por el telefono; sin el, el evento solo vende en linea. */}
-            <h3 className="pf-sub-title">Contacto público</h3>
+            <h3 className="pf-sub-title">Contacto</h3>
+            <p className="pf-hint pf-hint-block">
+              Guardar un dato no lo publica. Elige explícitamente qué ve el
+              público en tus fichas y qué ve tu equipo en el panel.
+            </p>
             <Field
               id="venue-contact-name"
               label="Nombre del encargado"
-              hint="Aparece en la pagina publica: a quien le escriben para encargar boleta."
+              hint="Aparece junto al contacto cuando decides publicarlo."
             >
               <input
                 id="venue-contact-name"
@@ -1485,7 +2014,7 @@ export default function ProfilePage() {
             <Field
               id="venue-contact-phone"
               label="WhatsApp del encargado"
-              hint="Con código de país (ej. +57 300 123 4567). Déjalo vacío para no publicar contacto."
+              hint="Con código de país (ej. +57 300 123 4567). Se guarda aunque no se publique."
             >
               <input
                 id="venue-contact-phone"
@@ -1497,6 +2026,117 @@ export default function ProfilePage() {
                 placeholder="+57 300 123 4567"
               />
             </Field>
+
+            <Field
+              id="venue-contact-email"
+              label="Correo del encargado"
+              hint="Solo se publica si activas el canal Correo."
+            >
+              <input
+                id="venue-contact-email"
+                type="email"
+                value={venueContactEmail}
+                onChange={(e) => setVenueContactEmail(e.target.value)}
+                className="field"
+                maxLength={200}
+                inputMode="email"
+                placeholder="reservas@tubar.com"
+              />
+            </Field>
+
+            <label className="pf-check-row" htmlFor="venue-contact-team">
+              <input
+                id="venue-contact-team"
+                type="checkbox"
+                checked={contactTeamVisible}
+                onChange={(e) => setContactTeamVisible(e.target.checked)}
+                className="pf-check"
+              />
+              <span>
+                <span className="pf-label">Mostrar este contacto a mi equipo</span>
+                <span className="pf-hint">
+                  Visible para las personas con acceso a esta organización.
+                </span>
+              </span>
+            </label>
+
+            <label className="pf-check-row" htmlFor="venue-public-contact">
+              <input
+                id="venue-public-contact"
+                type="checkbox"
+                checked={publicContactEnabled}
+                onChange={(e) => {
+                  setPublicContactEnabled(e.target.checked);
+                  if (e.target.checked && publicChannels.length === 0) {
+                    const available = [
+                      venueContactPhone.trim() && "whatsapp",
+                      venueContactEmail.trim() && "email",
+                    ].filter(Boolean);
+                    setPublicChannels(available.slice(0, 1));
+                  }
+                  setVenueMsg(null);
+                }}
+                className="pf-check"
+              />
+              <span>
+                <span className="pf-label">Publicar contacto en la página del evento</span>
+                <span className="pf-hint">
+                  Sin esta autorización, el contacto guardado no aparece en
+                  ninguna ficha pública.
+                </span>
+              </span>
+            </label>
+
+            <div className="pf-channel-box" aria-disabled={!publicContactEnabled}>
+              <p className="pf-label">Canales publicados</p>
+              <label className="pf-check-row" htmlFor="channel-whatsapp">
+                <input
+                  id="channel-whatsapp"
+                  type="checkbox"
+                  checked={publicChannels.includes("whatsapp")}
+                  disabled={!publicContactEnabled}
+                  onChange={() => toggleChannel("whatsapp")}
+                  className="pf-check"
+                />
+                <span>
+                  <span className="pf-label">WhatsApp</span>
+                  <span className="pf-hint">
+                    {venueContactPhone.trim()
+                      ? `Se publicará ${venueContactPhone.trim()}.`
+                      : "Falta el teléfono: no se puede publicar este canal."}
+                  </span>
+                </span>
+              </label>
+              <label className="pf-check-row" htmlFor="channel-email">
+                <input
+                  id="channel-email"
+                  type="checkbox"
+                  checked={publicChannels.includes("email")}
+                  disabled={!publicContactEnabled}
+                  onChange={() => toggleChannel("email")}
+                  className="pf-check"
+                />
+                <span>
+                  <span className="pf-label">Correo</span>
+                  <span className="pf-hint">
+                    {venueContactEmail.trim()
+                      ? `Se publicará ${venueContactEmail.trim()}.`
+                      : "Falta el correo de contacto: no se puede publicar este canal."}
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            {/* Estado REAL guardado en el servidor, no el borrador local. */}
+            <p className="pf-saved-state">
+              <Icon name="check" className="h-4 w-4" aria-hidden="true" />
+              {adminVenue.public_contact_enabled
+                ? `Publicado ahora: ${
+                    (adminVenue.public_contact_channels || []).join(", ") ||
+                    "sin canales (no se muestra)"
+                  }.`
+                : "Ahora mismo tu contacto no se publica."}
+            </p>
 
             {/* Comisión del promotor: base de las liquidaciones (se congela
                 por liquidación al cerrar el periodo). */}
@@ -1567,11 +2207,13 @@ export default function ProfilePage() {
           </div>
 
           <div className="pf-sub">
-            <h3 className="pf-sub-title">Avisos</h3>
+            <h3 className="pf-sub-title">Avisos de puerta</h3>
             <p className="pf-hint pf-hint-block">
-              Elige si quieres que te avisemos cuando abran puertas en tu negocio.
+              Comprobamos tres cosas antes de decir que está activo: permiso del
+              navegador, suscripción de este dispositivo y registro confirmado
+              por el servidor. La campana interna funciona aunque el push falle.
             </p>
-            <PushToggle venueId={currentVenueId} />
+            <PushToggle venueId={activeVenue?.id ?? currentVenueId} />
           </div>
         </section>
       )}

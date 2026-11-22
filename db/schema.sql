@@ -2833,7 +2833,7 @@ CREATE TABLE public.notifications (
     link text,
     read_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text, 'event_autoclosed'::text, 'door_anomaly'::text, 'capacity_alert'::text, 'event_reminder'::text, 'ticket_refunded'::text])))
+    CONSTRAINT notifications_kind_check CHECK ((kind = ANY (ARRAY['payout_created'::text, 'payout_reviewed'::text, 'payout_disputed'::text, 'invitation_accepted'::text, 'ticket_reissued'::text, 'ticket_returned'::text, 'waitlist_offered'::text, 'payment_approved'::text, 'event_autoclosed'::text, 'door_anomaly'::text, 'capacity_alert'::text, 'event_reminder'::text, 'ticket_refunded'::text, 'door_open'::text])))
 );
 
 
@@ -2989,7 +2989,8 @@ CREATE TABLE public.push_subscriptions (
     p256dh text NOT NULL,
     auth text NOT NULL,
     user_agent text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -3401,6 +3402,8 @@ CREATE TABLE public.users (
     avatar_url text,
     active_venue_id bigint,
     welcome_seen_at timestamp with time zone,
+    contact_email text,
+    share_contact_with_team boolean DEFAULT false NOT NULL,
     CONSTRAINT users_username_format CHECK (((username IS NULL) OR ((username = lower(username)) AND (username ~ '^[a-z0-9._-]{3,32}$'::text))))
 );
 
@@ -3450,7 +3453,12 @@ CREATE TABLE public.venues (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     contact_name text,
     contact_phone text,
-    is_placeholder boolean DEFAULT false NOT NULL
+    is_placeholder boolean DEFAULT false NOT NULL,
+    public_contact_enabled boolean DEFAULT false NOT NULL,
+    public_contact_channels text[] DEFAULT '{}'::text[] NOT NULL,
+    contact_team_visible boolean DEFAULT true NOT NULL,
+    contact_email text,
+    CONSTRAINT venues_public_contact_channels_check CHECK ((public_contact_channels <@ ARRAY['whatsapp'::text, 'email'::text]))
 );
 
 
@@ -3460,6 +3468,93 @@ CREATE TABLE public.venues (
 
 ALTER TABLE public.venues ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.venues_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: email_change_tokens; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.email_change_tokens (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    new_email text NOT NULL,
+    token_hash text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    used_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: email_change_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.email_change_tokens ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.email_change_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: security_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.security_events (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    kind text NOT NULL,
+    detail text,
+    ip text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: security_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.security_events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.security_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: user_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_sessions (
+    id bigint NOT NULL,
+    token_hash text NOT NULL,
+    user_id bigint NOT NULL,
+    user_agent text,
+    ip text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    revoked_at timestamp with time zone
+);
+
+
+--
+-- Name: user_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.user_sessions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.user_sessions_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -3498,6 +3593,46 @@ ALTER TABLE ONLY public.coupons
 
 ALTER TABLE ONLY public.door_sync_receipts
     ADD CONSTRAINT door_sync_receipts_pkey PRIMARY KEY (event_id, scan_id);
+
+
+--
+-- Name: email_change_tokens email_change_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_change_tokens
+    ADD CONSTRAINT email_change_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: email_change_tokens email_change_tokens_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_change_tokens
+    ADD CONSTRAINT email_change_tokens_token_hash_key UNIQUE (token_hash);
+
+
+--
+-- Name: security_events security_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.security_events
+    ADD CONSTRAINT security_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_sessions user_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_sessions
+    ADD CONSTRAINT user_sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_sessions user_sessions_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_sessions
+    ADD CONSTRAINT user_sessions_token_hash_key UNIQUE (token_hash);
 
 
 --
@@ -3882,6 +4017,27 @@ ALTER TABLE ONLY public.venues
 
 ALTER TABLE ONLY public.venues
     ADD CONSTRAINT venues_slug_key UNIQUE (slug);
+
+
+--
+-- Name: idx_email_change_tokens_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_change_tokens_user ON public.email_change_tokens USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: idx_security_events_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_security_events_user ON public.security_events USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: idx_user_sessions_user_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_sessions_user_active ON public.user_sessions USING btree (user_id, last_seen_at DESC) WHERE (revoked_at IS NULL);
 
 
 --
@@ -4306,6 +4462,30 @@ ALTER TABLE ONLY public.audit_log
 
 ALTER TABLE ONLY public.coupons
     ADD CONSTRAINT coupons_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: email_change_tokens email_change_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_change_tokens
+    ADD CONSTRAINT email_change_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: security_events security_events_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.security_events
+    ADD CONSTRAINT security_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_sessions user_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_sessions
+    ADD CONSTRAINT user_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

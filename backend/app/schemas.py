@@ -66,6 +66,10 @@ class UserSummary(BaseModel):
     # base (`users.phone`) pero nunca se exponia: el perfil solo mostraba el
     # correo. None = sin telefono, que es un estado valido.
     phone: str | None = None
+    # Contacto personal alternativo (mig 059). No es el correo de acceso: es
+    # el que la persona decide compartir con su equipo.
+    contact_email: str | None = None
+    share_contact_with_team: bool = False
     venues: list["VenueSummary"] = []
     roles: dict[str, list[str]] = {}  # {"<venue_id>": ["admin", ...]}
     # Contexto de cuenta para el perfil: desde cuándo es parte y cuándo entró
@@ -101,6 +105,12 @@ class VenueSummary(BaseModel):
     # ofrece para "encarga tu boleta". NULL mientras el negocio no lo publique.
     contact_name: str | None = None
     contact_phone: str | None = None
+    contact_email: str | None = None
+    # Permisos de contacto (mig 059). Compartir con el equipo y publicar en
+    # fichas son decisiones separadas: una no implica la otra.
+    contact_team_visible: bool = True
+    public_contact_enabled: bool = False
+    public_contact_channels: list[str] = []
     # "Mi organización" es un nombre interno mientras la persona no configure
     # su identidad publica (mig 058). No se publica en fichas ni boletas.
     is_placeholder: bool = False
@@ -686,6 +696,46 @@ class ChangeEmailRequest(BaseModel):
     )
 
 
+class EmailChangeRequestOut(BaseModel):
+    """Respuesta al pedir un cambio de correo.
+
+    El correo NO cambia hasta que se canjea el enlace enviado al nuevo
+    buzón. `verification_sent=false` significa que el proveedor de email no
+    está configurado: no se puede completar el cambio.
+    """
+    detail: str
+    verification_sent: bool
+    pending_email: str
+
+
+class EmailChangeConfirmRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+
+
+class ExportDataRequest(BaseModel):
+    """Descarga de datos con reautenticación."""
+    password: str = Field(max_length=128)
+
+
+class SessionOut(BaseModel):
+    id: int
+    device: str
+    created_at: datetime
+    last_seen_at: datetime
+    current: bool
+
+
+class SecurityEventOut(BaseModel):
+    id: int
+    kind: str
+    detail: str | None = None
+    created_at: datetime
+
+
+class RevokeSessionRequest(BaseModel):
+    password: str = Field(max_length=128)
+
+
 class ChangePasswordRequest(BaseModel):
     """Cambio de contraseña propia: exige la vigente."""
     current_password: str = Field(max_length=128)
@@ -715,6 +765,20 @@ class UpdateProfileRequest(BaseModel):
     # Misma convencion que `username`: None deja el valor actual, "" lo limpia.
     # Opcional: la cuenta funciona sin telefono.
     phone: str | None = Field(default=None, max_length=30)
+    contact_email: str | None = Field(default=None, max_length=200)
+    share_contact_with_team: bool | None = None
+
+    @field_validator("contact_email")
+    @classmethod
+    def _contact_email_shape(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        email = v.strip().lower()
+        if not email:
+            return ""
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]{2,}", email):
+            raise ValueError("Escribe un correo de contacto válido.")
+        return email
 
     @field_validator("phone")
     @classmethod
@@ -763,6 +827,46 @@ class UpdateVenueRequest(BaseModel):
     # publico desaparece: un negocio no esta obligado a publicar telefono.
     contact_name: str | None = Field(default=None, max_length=80)
     contact_phone: str | None = Field(default=None, max_length=40)
+    contact_email: str | None = Field(default=None, max_length=200)
+    contact_team_visible: bool | None = None
+    public_contact_enabled: bool | None = None
+    public_contact_channels: list[str] | None = None
+    # Imagen del logo ya reducida por el navegador. Si viene, gana sobre
+    # logo_url: el archivo se guarda en media y la URL se calcula en el server.
+    logo_data_url: str | None = Field(default=None, max_length=1_200_000)
+
+    @field_validator("public_contact_channels")
+    @classmethod
+    def _channels_allowed(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        allowed = {"whatsapp", "email"}
+        clean = sorted({str(c).strip().lower() for c in v if str(c).strip()})
+        bad = [c for c in clean if c not in allowed]
+        if bad:
+            raise ValueError("Canales de contacto no admitidos: " + ", ".join(bad))
+        return clean
+
+    @field_validator("contact_email")
+    @classmethod
+    def _venue_contact_email_shape(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        email = v.strip().lower()
+        if not email:
+            return ""
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]{2,}", email):
+            raise ValueError("contact_email debe ser un correo válido")
+        return email
+
+    @model_validator(mode="after")
+    def _public_contact_requires_channel(self):
+        if self.public_contact_enabled and self.public_contact_channels is not None:
+            if not self.public_contact_channels:
+                raise ValueError(
+                    "Elige al menos un canal para publicar el contacto."
+                )
+        return self
 
     @model_validator(mode="after")
     def _contact_phone_shape(self):
@@ -871,6 +975,33 @@ class PushSubscribeRequest(BaseModel):
 
 class PushUnsubscribeRequest(BaseModel):
     endpoint: str = Field(min_length=20, max_length=1000)
+
+
+class PushStatusOut(BaseModel):
+    """Estado real del push para ESTE dispositivo.
+
+    La preferencia local no acredita recepción: `registered` solo es true si
+    el endpoint exacto está guardado para la cuenta y la venue.
+    """
+    server_enabled: bool
+    supported: bool
+    permission: str
+    subscribed: bool
+    registered: bool
+    endpoint: str | None = None
+    registered_at: datetime | None = None
+    device: str | None = None
+
+
+class PushTestRequest(BaseModel):
+    venue_id: int
+    endpoint: str = Field(min_length=20, max_length=1000, pattern=r"^https://")
+
+
+class PushTestOut(BaseModel):
+    sent: bool
+    status_code: int | None = None
+    detail: str
 
 
 class TicketLookupRequest(BaseModel):
@@ -1367,6 +1498,10 @@ class TeamMemberOut(BaseModel):
     email: str
     full_name: str
     roles: list[str] = []
+    # Contacto personal visible para el equipo solo si la persona lo autorizó
+    # (mig 059). None no significa "no tiene": significa "no lo comparte".
+    contact_phone: str | None = None
+    contact_email: str | None = None
     is_active: bool = True
     last_login_at: datetime | None = None
     member_since: datetime | None = None

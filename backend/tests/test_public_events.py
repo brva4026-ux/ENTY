@@ -272,7 +272,9 @@ def test_event_contact_overrides_and_falls_back_to_venue(api, api_client):
     tag = _tag()
     api.run_sql(
         f"UPDATE venues SET contact_name = 'Local Demo', "
-        f"contact_phone = '573009998877' WHERE id = {venue}"
+        f"contact_phone = '573009998877', public_contact_enabled = true, "
+        f"public_contact_channels = ARRAY['whatsapp']::text[] "
+        f"WHERE id = {venue}"
     )
     event = _future_show(api, venue, f"Contacto {tag}", price_cents=1000000)
 

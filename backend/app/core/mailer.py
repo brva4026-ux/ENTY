@@ -93,6 +93,65 @@ class Mailer:
             html=html,
         )
 
+    def send_email_change_verification(
+        self, *, to: str, full_name: str, token: str
+    ) -> bool:
+        """Enlace de un solo uso al buzón NUEVO. No cambia nada hasta el canje."""
+        link = f"{self.app_url}/perfil?email_token={token}"
+        name = (full_name or "").strip().split(" ")[0] or "hola"
+        html = f"""\
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px">
+  <h2 style="margin:0 0 8px;font-size:20px">Confirma tu correo nuevo</h2>
+  <p style="margin:0 0 16px;color:#555;font-size:14px">
+    Hola {name}, pediste cambiar el correo de tu cuenta de Enty a este buzón.
+    Confírmalo aquí:
+  </p>
+  <p style="margin:0 0 24px">
+    <a href="{link}"
+       style="background:#7c3aed;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px;display:inline-block">
+      Confirmar correo nuevo
+    </a>
+  </p>
+  <p style="margin:0 0 8px;color:#777;font-size:13px">
+    El enlace vence en 24 horas y solo se puede usar una vez. Tu cuenta sigue
+    usando el correo anterior hasta que lo confirmes.
+  </p>
+  <p style="margin:0;color:#999;font-size:12px">
+    Si no fuiste tú, ignora este correo: nada cambia.
+  </p>
+</div>"""
+        return self._send(to=to, subject="Confirma tu correo nuevo · Enty", html=html)
+
+    def send_email_change_notice(
+        self, *, to: str, new_email: str, confirmed: bool = False
+    ) -> bool:
+        """Aviso al correo anterior (y al nuevo tras confirmar)."""
+        if confirmed:
+            title = "Tu correo de Enty cambió"
+            copy = (
+                "El correo de tu cuenta ahora es "
+                f"<strong>{new_email}</strong>. Si no fuiste tú, cambia tu "
+                "contraseña y cierra las demás sesiones de inmediato."
+            )
+            subject = "Tu correo de Enty cambió"
+        else:
+            title = "Solicitud de cambio de correo"
+            copy = (
+                "Pedimos cambiar el correo de tu cuenta de Enty a "
+                f"<strong>{new_email}</strong>. Aún no se aplicó: el cambio "
+                "solo se activa cuando alguien confirma desde ese buzón."
+            )
+            subject = "Solicitud de cambio de correo · Enty"
+        html = f"""\
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px">
+  <h2 style="margin:0 0 8px;font-size:20px">{title}</h2>
+  <p style="margin:0 0 16px;color:#555;font-size:14px">{copy}</p>
+  <p style="margin:0;color:#999;font-size:12px">
+    Si no reconoces esta actividad, revisa Seguridad en tu perfil de Enty.
+  </p>
+</div>"""
+        return self._send(to=to, subject=subject, html=html)
+
     def send_fan_access(
         self, *, to: str, tickets: list[dict], link: str
     ) -> bool:

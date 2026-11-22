@@ -35,6 +35,7 @@ const KIND_TILE = {
   event_autoclosed: { icon: "clock", tile: "bg-amber-500/15 text-amber-400" },
   event_reminder: { icon: "calendar", tile: "bg-brand-500/15 text-brand-300" },
   door_anomaly: { icon: "shield", tile: "bg-rose-500/15 text-rose-400" },
+  door_open: { icon: "door", tile: "bg-emerald-500/15 text-emerald-400" },
   capacity_alert: { icon: "alert", tile: "bg-amber-500/15 text-amber-400" },
   payment_approved: { icon: "money", tile: "bg-emerald-500/15 text-emerald-400" },
   waitlist_offered: { icon: "clock", tile: "bg-brand-500/15 text-brand-300" },
@@ -50,6 +51,7 @@ const KIND_LABEL = {
   event_autoclosed: "Evento",
   event_reminder: "Recordatorio",
   door_anomaly: "Puerta",
+  door_open: "Puerta abierta",
   capacity_alert: "Aforo",
   payment_approved: "Cobro",
   waitlist_offered: "Lista de espera",
@@ -65,6 +67,7 @@ function adminTarget(n) {
   const link = n?.link;
   const tabByKind = {
     door_anomaly: "accesos",
+    door_open: "resumen",
     capacity_alert: "accesos",
     event_autoclosed: "resumen",
     event_reminder: "resumen",

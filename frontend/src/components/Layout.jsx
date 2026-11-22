@@ -181,11 +181,11 @@ export default function Layout({ children }) {
                 <span className="hidden lg:inline">{activeIdentity.label}</span>
               </span>
             )}
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium leading-tight text-zinc-200">
+            <div className="hidden min-w-0 max-w-[9rem] text-right sm:block lg:max-w-[12rem]">
+              <p className="truncate text-sm font-medium leading-tight text-zinc-200">
                 {user?.full_name}
               </p>
-              <p className="text-2xs leading-tight text-zinc-500">
+              <p className="truncate text-2xs leading-tight text-zinc-500">
                 {roleLabel}
                 {venueNames && ` · ${venueNames}`}
               </p>
