@@ -7,6 +7,7 @@ import { ROLE_LABELS, ROLE_VISUALS, topRole } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
 import { fileToDataUrl } from "../lib/imageUpload";
+import { isValidUsername, normalizeUsername } from "../lib/username";
 import { clearToken } from "../lib/tokenStore";
 import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
@@ -133,9 +134,12 @@ export default function ProfilePage() {
 
   // Edición de datos propios
   const [name, setName] = useState(user?.full_name || "");
-  // Nombre de usuario para entrar (mig 035). "" es valido: libera el usuario y
-  // la cuenta vuelve a entrar solo con correo.
+  // Nombre de usuario para entrar (mig 035/058). Toda cuenta conserva uno.
   const [username, setUsername] = useState(user?.username || "");
+  const [usernameMsg, setUsernameMsg] = useState(null); // {ok, text}
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const usernameRef = useRef(username);
+  usernameRef.current = username;
   // Telefono de contacto: la columna existia en la DB pero el perfil no la
   // mostraba. Opcional, y se guarda tal como se escribe.
   const [phone, setPhone] = useState(user?.phone || "");
@@ -151,6 +155,7 @@ export default function ProfilePage() {
     (user?.venues || []).find((v) => v.id === currentVenueId && isAdminOf(v)) ??
     (user?.venues || []).find(isAdminOf) ??
     null;
+  const venuePlaceholder = Boolean(adminVenue?.is_placeholder);
   const [venueName, setVenueName] = useState(adminVenue?.name || "");
   const [venueLogo, setVenueLogo] = useState(adminVenue?.logo_url || "");
   // Color de marca: viaja como #RRGGBB. "" = sin color propio (violeta de Enty).
@@ -214,7 +219,7 @@ export default function ProfilePage() {
   // usuario no sabía si era un fallo o que no había nada que guardar.
   const nameDirty =
     name.trim() !== (user?.full_name || "") ||
-    username.trim().toLowerCase() !== (user?.username || "") ||
+    normalizeUsername(username) !== (user?.username || "") ||
     phone.trim() !== (user?.phone || "");
   const venueDirty =
     !!adminVenue &&
@@ -269,6 +274,18 @@ export default function ProfilePage() {
   const activeTab = tabs.some((t) => t.id === requestedTab)
     ? requestedTab
     : tabs[0].id;
+
+  // La bienvenida enlaza a /perfil?tab=cuenta#username. El foco es la señal
+  // de que "Cambiar usuario" llevó exactamente al campo que prometió.
+  useEffect(() => {
+    if (window.location.hash !== "#username") return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById("username");
+      el?.focus();
+      el?.scrollIntoView({ block: "center" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, []);
 
   // URL canónica: minúsculas, sin `tab` para Cuenta y solo pestañas que
   // existen para este usuario. Antes `?tab=negocio` sin ser admin caía a
@@ -408,6 +425,44 @@ export default function ProfilePage() {
     }
   }
 
+  async function checkUsername() {
+    const candidate = normalizeUsername(username);
+    if (!candidate) {
+      setUsernameMsg({ ok: false, text: "Elige un nombre de usuario." });
+      return;
+    }
+    if (candidate === (user?.username || "")) {
+      setUsernameMsg(null);
+      return;
+    }
+    if (!isValidUsername(candidate)) {
+      setUsernameMsg({
+        ok: false,
+        text: "Entre 3 y 32 caracteres: letras, números, punto, guion o guion bajo.",
+      });
+      return;
+    }
+    setUsernameChecking(true);
+    try {
+      const r = await apiFetch(
+        `/auth/username-available?username=${encodeURIComponent(candidate)}`
+      );
+      if (normalizeUsername(usernameRef.current) !== candidate) return;
+      setUsernameMsg(
+        r.available
+          ? { ok: true, text: `@${r.username} está disponible.` }
+          : { ok: false, text: `@${r.username} ya está en uso. Elige otro.` }
+      );
+    } catch {
+      // La disponibilidad es una ayuda; el PATCH sigue siendo la autoridad.
+      if (normalizeUsername(usernameRef.current) === candidate) {
+        setUsernameMsg(null);
+      }
+    } finally {
+      setUsernameChecking(false);
+    }
+  }
+
   async function submitName(e) {
     e.preventDefault();
     setNameMsg(null);
@@ -418,6 +473,15 @@ export default function ProfilePage() {
       });
       return;
     }
+    const candidate = normalizeUsername(username);
+    if (!candidate || !isValidUsername(candidate)) {
+      setUsernameMsg({
+        ok: false,
+        text: "Entre 3 y 32 caracteres: letras, números, punto, guion o guion bajo.",
+      });
+      return;
+    }
+    if (usernameMsg && !usernameMsg.ok) return;
     setNameBusy(true);
     try {
       const updated = await apiFetch("/auth/profile", {
@@ -427,14 +491,22 @@ export default function ProfilePage() {
         // mensaje real en vez de un texto generico.
         body: JSON.stringify({
           full_name: name,
-          username: username.trim(),
+          username: candidate,
           phone: phone.trim(),
         }),
       });
       setUser(updated);
+      setUsername(updated.username || "");
+      setUsernameMsg(null);
       setNameMsg({ ok: true, text: "Datos actualizados." });
     } catch (err) {
-      setNameMsg({ ok: false, text: err.message });
+      // 409 = el usuario se ocupó entre la comprobación y el guardado. El
+      // usuario anterior queda intacto; el aviso va junto al campo.
+      if (err?.status === 409) {
+        setUsernameMsg({ ok: false, text: err.message });
+      } else {
+        setNameMsg({ ok: false, text: err.message });
+      }
     } finally {
       setNameBusy(false);
     }
@@ -533,6 +605,7 @@ export default function ProfilePage() {
                 primary_color: updated.primary_color,
                 contact_name: updated.contact_name,
                 contact_phone: updated.contact_phone,
+                is_placeholder: updated.is_placeholder,
               }
             : v,
         ),
@@ -769,24 +842,50 @@ export default function ProfilePage() {
 
             <Field
               id="username"
-              label="Usuario"
-              hint="Con esto entras sin escribir el correo. Minúsculas, números, punto, guion o guion bajo (3 a 32). Déjalo vacío para entrar solo con tu correo."
+              label="Nombre de usuario"
+              hint="Así entras sin escribir el correo. Puedes cambiarlo cuando quieras; el anterior deja de funcionar."
             >
               <input
                 id="username"
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
+                  setUsernameMsg(null);
                   setNameMsg(null);
                 }}
+                onBlur={checkUsername}
                 className="field"
                 maxLength={32}
                 autoComplete="username"
                 autoCapitalize="none"
                 spellCheck={false}
-                placeholder="tu.usuario"
+                placeholder="@tu.usuario"
+                aria-invalid={usernameMsg && !usernameMsg.ok ? "true" : undefined}
+                aria-describedby="username-hint username-status"
+                required
               />
             </Field>
+            <p id="username-hint" className="sr-only">
+              Entre 3 y 32 caracteres: letras, números, punto, guion o guion bajo.
+            </p>
+            {/* Una sola línea siempre presente: si el aviso apareciera solo al
+                salir del campo, el botón de guardar se movería justo cuando el
+                clic lo busca y el submit se perdería. */}
+            <p
+              id="username-status"
+              className={`pf-hint ${
+                usernameMsg && !usernameChecking
+                  ? usernameMsg.ok
+                    ? "pf-hint-ok"
+                    : "pf-hint-warn"
+                  : ""
+              }`}
+              role={usernameMsg && !usernameChecking && !usernameMsg.ok ? "alert" : "status"}
+            >
+              {usernameChecking
+                ? "Comprobando disponibilidad…"
+                : usernameMsg?.text || "\u00A0"}
+            </p>
 
             <Field
               id="phone"
@@ -1216,14 +1315,29 @@ export default function ProfilePage() {
         >
           <PanelHead
             title="Tu negocio"
-            hint="El nombre y el logo representan tu negocio ante tu equipo y tus clientes."
+            hint={
+              venuePlaceholder
+                ? "Aún no tienes identidad pública. El nombre interno no se muestra en tus fichas."
+                : "El nombre y el logo representan tu negocio ante tu equipo y tus clientes."
+            }
           />
+          {venuePlaceholder && (
+            <p className="pf-hint pf-hint-warn">
+              Tu espacio aparece como “Mi organización” porque aún no tiene
+              nombre. Escribe el nombre de tu negocio para mostrarlo en tus
+              eventos públicos.
+            </p>
+          )}
           <form onSubmit={submitVenue} className="pf-form">
             {/* Seis campos en columna se leían como un muro. Los títulos no
                 envuelven nada: agrupan con la viga del sistema y dejan el
                 ritmo del grid intacto. */}
             <h3 className="pf-sub-title">Identidad</h3>
-            <Field id="venue-name" label="Nombre del negocio">
+            <Field
+              id="venue-name"
+              label="Nombre del negocio"
+              hint="Este nombre se muestra en tus fichas públicas y en las boletas. Puedes cambiarlo cuando quieras."
+            >
               <input
                 id="venue-name"
                 value={venueName}
@@ -1231,6 +1345,7 @@ export default function ProfilePage() {
                 className="field"
                 maxLength={120}
                 minLength={2}
+                placeholder="Bar La Esquina"
                 required
               />
             </Field>

@@ -38,7 +38,7 @@ async function stubForgot(page, detail) {
 /** Rellena el correo y pulsa el enlace "¿Olvidaste tu contraseña?". */
 async function requestReset(page) {
   await page.goto("/login");
-  await page.getByPlaceholder(/usuario o tu@/i).fill("fan@example.test");
+  await page.getByPlaceholder(/correo o @usuario/i).fill("fan@example.test");
   await page.getByRole("button", { name: /Olvidaste tu contraseña/i }).click();
 }
 

@@ -39,6 +39,56 @@ def test_register_creates_venue_and_admin(api):
     assert login.status_code == 200
 
 
+def test_register_generates_username_from_venue_name(api):
+    """La cuenta nace con un usuario propio (no el correo) y sirve para entrar."""
+    payload = {
+        "venue_name": "Casa Azul Registro",
+        "full_name": "Dueña Azul",
+        "email": "duena-azul@example.test",
+        "password": "ClaveAzul1234",
+        "accepted_terms": True,
+    }
+    res = api.client.post("/auth/register", json=payload)
+    assert res.status_code == 201, res.text
+    username = res.json()["user"]["username"]
+    assert username == "casa.azul.registro"
+    assert username != payload["email"].split("@")[0]
+
+    login = api.client.post(
+        "/auth/login",
+        json={"identifier": username, "password": payload["password"]},
+    )
+    assert login.status_code == 200, login.text
+
+
+def test_register_without_venue_uses_placeholder_workspace(api):
+    """Sin negocio el espacio es interno y el usuario sale del nombre personal."""
+    payload = {
+        "full_name": "Persona Sin Negocio",
+        "email": "persona-sin-negocio@example.test",
+        "password": "ClavePersona1234",
+        "accepted_terms": True,
+    }
+    res = api.client.post("/auth/register", json=payload)
+    assert res.status_code == 201, res.text
+    body = res.json()
+    venue = body["user"]["venues"][0]
+    assert venue["name"] == "Mi organización"
+    assert venue["is_placeholder"] is True
+    assert body["user"]["username"] == "persona.sin.negocio"
+
+    # Configurar el nombre del negocio lo saca del estado interno.
+    venue_id = venue["id"]
+    updated = api.client.patch(
+        f"/auth/venues/{venue_id}",
+        headers={"Authorization": f"Bearer {body['access_token']}"},
+        json={"name": "Negocio Real"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["name"] == "Negocio Real"
+    assert updated.json()["is_placeholder"] is False
+
+
 def test_register_duplicate_email_conflict(api):
     payload = {
         "venue_name": "Teatro Dup",

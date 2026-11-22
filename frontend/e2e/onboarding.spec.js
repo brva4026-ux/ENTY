@@ -55,7 +55,7 @@ async function registrarNegocioNuevo(page) {
   await page.locator('input[type="email"]').fill(`e2e-onb-${sello}@test.local`);
   await page.locator('input[autocomplete="new-password"]').fill("Demo1234");
   await page.locator('input[type="checkbox"]').check();
-  await page.getByRole("button", { name: "Crear mi panel" }).click();
+  await page.getByRole("button", { name: "Crear mi cuenta" }).click();
   await page.waitForURL(/\/admin/, { timeout: 20_000 });
 }
 

@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
+from app.core.public_venue import public_venue_name_sql
 from app.core.rate_limit import enforce_rate_limit
 from app.core.security import digest_token
 from app.schemas import (
@@ -54,7 +55,7 @@ async def _check_rate(
 # Un solo SELECT para las dos vistas: la boleta se identifica por el hash del
 # token, que es lo unico que guarda la DB. Trae también la ventana de
 # activación del QR (mig 013): el QR se dibuja solo dentro de la ventana.
-_TICKET_SQL = """
+_TICKET_SQL = f"""
     SELECT t.id                AS ticket_id,
            t.customer_name     AS customer_name,
            t.status::text      AS status,
@@ -67,7 +68,7 @@ _TICKET_SQL = """
                    'DD/MM/YYYY HH24:MI') AS starts_at,
            EXISTS (SELECT 1 FROM ticket_returns tr
                     WHERE tr.ticket_id = t.id) AS was_returned,
-           v.name              AS venue_name
+           {public_venue_name_sql()} AS venue_name
       FROM tickets t
       JOIN events e ON e.id = t.event_id
       JOIN venues v ON v.id = e.venue_id

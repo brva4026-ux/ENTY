@@ -13,6 +13,7 @@ from pydantic import (
 from app.core.categories import validate_event_category
 from app.core.password_policy import PasswordStr, check_password_strength
 from app.core.urlguard import validate_flyer_url, validate_public_http_url
+from app.core.usernames import is_valid_username, normalize_username
 
 # Regex de email pragmática: acepta tlds de prueba (.test, .local) y hosts reales.
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
@@ -57,8 +58,9 @@ class UserSummary(BaseModel):
     id: int
     email: str
     full_name: str
-    # Nombre de usuario para entrar (mig 035). None en cuentas que aun no
-    # eligieron uno: el login por correo sigue funcionando igual.
+    # Nombre de usuario para entrar (mig 035). Las cuentas nuevas siempre
+    # reciben uno; None solo queda en cuentas legadas que aun no pasaron por la
+    # migracion 058. El login por correo sigue funcionando igual.
     username: str | None = None
     # Telefono de contacto de la persona. La columna existe desde el esquema
     # base (`users.phone`) pero nunca se exponia: el perfil solo mostraba el
@@ -82,6 +84,9 @@ class UserSummary(BaseModel):
     # bar en la laptop lo ve elegido en el celular. None = sin elegir, y el
     # frontend cae al primer negocio disponible (mismo default de siempre).
     active_venue_id: int | None = None
+    # Primera entrada al panel (mig 058). Null en una cuenta nueva: el panel le
+    # muestra el usuario generado y las dos salidas. Se marca al elegir una.
+    welcome_seen_at: datetime | None = None
 
 
 class VenueSummary(BaseModel):
@@ -96,6 +101,9 @@ class VenueSummary(BaseModel):
     # ofrece para "encarga tu boleta". NULL mientras el negocio no lo publique.
     contact_name: str | None = None
     contact_phone: str | None = None
+    # "Mi organización" es un nombre interno mientras la persona no configure
+    # su identidad publica (mig 058). No se publica en fichas ni boletas.
+    is_placeholder: bool = False
 
 
 # --------------------------------------------------------------------------
@@ -607,8 +615,14 @@ class ResetPassword(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    """Self-service: crea la venue del negocio + la cuenta de su administrador."""
-    venue_name: str = Field(min_length=2, max_length=120)
+    """Self-service: crea la cuenta y su espacio de trabajo.
+
+    ``venue_name`` es opcional: quien organiza un solo evento no tiene que
+    inventarse un negocio. En ese caso el servidor crea un espacio interno
+    ("Mi organización") y lo marca como no publicado hasta que la persona
+    configure su identidad.
+    """
+    venue_name: str | None = Field(default=None, max_length=120)
     full_name: str = Field(min_length=2, max_length=120)
     email: str = Field(min_length=5, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
     password: PasswordStr
@@ -618,6 +632,26 @@ class RegisterRequest(BaseModel):
     # cual; si no coincide con la vigente, el registro responde 409.
     accepted_terms: bool = False
     terms_version: str | None = Field(default=None, max_length=80)
+
+    @field_validator("venue_name")
+    @classmethod
+    def _blank_venue_is_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        if len(v) < 2:
+            raise ValueError("El nombre del negocio debe tener al menos 2 caracteres.")
+        return v
+
+    @field_validator("full_name")
+    @classmethod
+    def _full_name_trimmed(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Escribe tu nombre completo.")
+        return v
 
     @field_validator("password")
     @classmethod
@@ -674,8 +708,9 @@ class AvatarUpload(BaseModel):
 class UpdateProfileRequest(BaseModel):
     """Datos propios editables por el usuario (nombre visible en la app)."""
     full_name: str = Field(min_length=2, max_length=120)
-    # El usuario se puede reclamar o cambiar desde el perfil. "" lo libera
-    # (vuelve a entrar solo con correo); None lo deja como esta.
+    # El usuario se puede cambiar desde el perfil. None lo deja como esta; ""
+    # se rechaza porque toda cuenta debe conservar un identificador de acceso
+    # (si el cambio falla, se conserva el anterior).
     username: str | None = Field(default=None, max_length=32)
     # Misma convencion que `username`: None deja el valor actual, "" lo limpia.
     # Opcional: la cuenta funciona sin telefono.
@@ -699,12 +734,13 @@ class UpdateProfileRequest(BaseModel):
     @field_validator("username")
     @classmethod
     def _username_format(cls, v: str | None) -> str | None:
-        """Mismo formato que el CHECK de la DB (mig 035), validado aqui para
-        dar un mensaje claro en vez de un error de constraint."""
-        if v is None or v == "":
-            return v
-        candidate = v.strip().lower()
-        if not re.fullmatch(r"[a-z0-9._-]{3,32}", candidate):
+        """Misma normalizacion y formato que el login y la DB (mig 035/058)."""
+        if v is None:
+            return None
+        candidate = normalize_username(v)
+        if not candidate:
+            raise ValueError("Elige un nombre de usuario.")
+        if not is_valid_username(candidate):
             raise ValueError(
                 "El usuario debe tener entre 3 y 32 caracteres: "
                 "letras, numeros, punto, guion o guion bajo."

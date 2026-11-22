@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { prefersReducedMotion } from "../lib/motion";
 
@@ -55,7 +56,7 @@ export function WelcomeOverlay({ user, done }) {
   // (92) deja lugar al salto final, que lo pone el exito real.
   useEffect(() => {
     if (prefersReducedMotion()) {
-      setProgress(done ? 100 : 60);
+      setProgress(doneRef.current ? 100 : 60);
       return undefined;
     }
     let current = 0;
@@ -131,6 +132,12 @@ export function WelcomeOverlay({ user, done }) {
           Hola, <strong>{name}</strong>.
         </p>
         {user?.email && <p className="welcome-email">{user.email}</p>}
+        <p className="welcome-account">
+          {user?.username && <span>@{user.username} · </span>}
+          <Link to="/perfil?tab=cuenta#username" className="welcome-account-link">
+            Cambiar usuario
+          </Link>
+        </p>
 
         <p className="welcome-status">Ingresando...</p>
 

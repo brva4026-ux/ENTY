@@ -434,7 +434,9 @@ export default function WaitlistPage() {
 
           {state && !newTicket && (
             <div className="mt-4 space-y-1 rounded-xl bg-zinc-900/60 p-3 ring-1 ring-zinc-800">
-              <p className="text-xs font-bold text-ink">{state.venue_name}</p>
+              {state.venue_name && (
+                <p className="text-xs font-bold text-ink">{state.venue_name}</p>
+              )}
               <p className="flex items-center gap-1.5 text-xs text-zinc-400">
                 <Icon name="clock" className="h-3.5 w-3.5" />
                 {state.starts_at}

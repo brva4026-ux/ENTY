@@ -17,7 +17,7 @@ from secrets import token_hex
 from typing import Annotated
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
@@ -30,6 +30,12 @@ from app.core.session import (
     check_session_origin,
     session_response,
     set_session_cookie,
+)
+from app.core.usernames import (
+    is_valid_username,
+    normalize_username,
+    username_base,
+    username_candidates,
 )
 from app.deps import ensure_roles, get_current_user
 
@@ -144,7 +150,8 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
                    u.created_at, u.last_login_at,
                    (to_jsonb(u) ->> 'password_changed_at') AS password_changed_at,
                    (to_jsonb(u) ->> 'avatar_url') AS avatar_url,
-                   (to_jsonb(u) ->> 'active_venue_id') AS active_venue_id
+                   (to_jsonb(u) ->> 'active_venue_id') AS active_venue_id,
+                   (to_jsonb(u) ->> 'welcome_seen_at') AS welcome_seen_at
               FROM users u
              WHERE u.id = %s
             """,
@@ -155,7 +162,11 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         await cur.execute(
             """
             SELECT v.id AS venue_id, v.name, v.slug, v.logo_url, v.primary_color,
-                   v.commission_pct, v.contact_name, v.contact_phone, vr.role
+                   v.commission_pct, v.contact_name, v.contact_phone,
+                   coalesce(
+                     (to_jsonb(v) ->> 'is_placeholder')::boolean, false
+                   ) AS is_placeholder,
+                   vr.role
             FROM venue_user_roles vr
             JOIN venues v ON v.id = vr.venue_id
             WHERE vr.user_id = %s
@@ -174,6 +185,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
                 logo_url=row["logo_url"], primary_color=row["primary_color"],
                 commission_pct=float(row["commission_pct"] or 0),
                 contact_name=row["contact_name"], contact_phone=row["contact_phone"],
+                is_placeholder=bool(row["is_placeholder"]),
             )
         roles_by_venue[str(venue_id)] = [
             *roles_by_venue.get(str(venue_id), []),
@@ -193,6 +205,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         password_changed_at=user.get("password_changed_at"),
         avatar_url=user.get("avatar_url"),
         active_venue_id=user.get("active_venue_id"),
+        welcome_seen_at=user.get("welcome_seen_at"),
     )
 
 
@@ -205,13 +218,18 @@ async def login(
     check_session_origin(request)
     ip = _client_ip(request)
     # El identificador puede ser un correo o un nombre de usuario (mig 035).
-    # Se usa tal cual como clave del lockout, en minusculas: el par
-    # (identificador, IP) es lo que cuenta, y asi "Admin" y "admin" no abren
-    # dos cubos distintos de intentos.
-    ident = (body.identifier or body.email or "").strip()
-    email_norm = ident.lower()
-    if await _login_locked(db, email_norm, ip):
-        log_security_event("login_locked", ident=email_norm, ip=ip)
+    # El @ inicial del usuario es decorativo ("@ana" == "ana"); las tildes y
+    # mayusculas se normalizan igual que al crear la cuenta. La clave del
+    # lockout usa la misma forma normalizada, para que "Admin", "@admin" y
+    # "ADMIN" no abran cubos distintos de intentos.
+    raw_ident = (body.identifier or body.email or "").strip()
+    ident = raw_ident[1:] if raw_ident.startswith("@") else raw_ident
+    username_ident = normalize_username(raw_ident)
+    email_ident = ident.lower()
+    is_email = "@" in ident
+    lock_key = email_ident if is_email else username_ident
+    if await _login_locked(db, lock_key, ip):
+        log_security_event("login_locked", ident=lock_key, ip=ip)
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             "Demasiados intentos fallidos. Espera unos minutos e intenta de nuevo.",
@@ -224,29 +242,29 @@ async def login(
             # (que por formato no puede tener arroba) ni al reves.
             "SELECT id, email, full_name, password_hash, is_active, last_login_at, token_version "
             "FROM users "
-            "WHERE lower(email) = lower(%s) "
-            "   OR (position('@' in %s) = 0 AND lower(username) = lower(%s))",
-            (ident, ident, ident),
+            "WHERE lower(email) = %s "
+            "   OR (position('@' in %s) = 0 AND username = %s)",
+            (email_ident, ident, username_ident),
         )
         user = await cur.fetchone()
 
     if not user:
         # igualar timing del bcrypt antes de rechazar
         verify_password(body.password, _DUMMY_HASH)
-        await _register_failure(db, email_norm, ip)
-        log_security_event("login_failed", ident=email_norm, ip=ip, reason="no_user")
+        await _register_failure(db, lock_key, ip)
+        log_security_event("login_failed", ident=lock_key, ip=ip, reason="no_user")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales invalidas")
     if not verify_password(body.password, user["password_hash"]):
-        await _register_failure(db, email_norm, ip)
+        await _register_failure(db, lock_key, ip)
         log_security_event(
-            "login_failed", ident=email_norm, ip=ip, user_id=user["id"],
+            "login_failed", ident=lock_key, ip=ip, user_id=user["id"],
             reason="bad_password",
         )
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales invalidas")
     if not user["is_active"]:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario inactivo")
 
-    await _clear_failures(db, email_norm, ip)  # éxito limpia solo este par
+    await _clear_failures(db, lock_key, ip)  # éxito limpia solo este par
 
     # Último acceso exitoso (mig 009): alimenta la actividad del módulo Equipo.
     await db.execute(
@@ -281,6 +299,53 @@ async def me(
     if authorization.lower().startswith("bearer "):
         set_session_cookie(response, authorization.split(" ", 1)[1].strip())
     response.headers["Cache-Control"] = "no-store"
+    return await _build_user_summary(db, user["id"])
+
+
+@router.get("/username-available")
+async def username_available(
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    username: str = Query(min_length=1, max_length=64),
+):
+    """Disponibilidad para el editor de perfil (autenticado).
+
+    No es un buscador público de cuentas: solo confirma si el nombre que la
+    persona está eligiendo puede usarse. Devuelve también la forma normalizada
+    para que la UI muestre exactamente lo que se guardaría.
+    """
+    candidate = normalize_username(username)
+    if not is_valid_username(candidate):
+        return {
+            "username": candidate,
+            "available": False,
+            "detail": (
+                "El usuario debe tener entre 3 y 32 caracteres: "
+                "letras, numeros, punto, guion o guion bajo."
+            ),
+        }
+    async with db.cursor() as cur:
+        available = await _username_free(cur, candidate, user["id"])
+    return {"username": candidate, "available": available}
+
+
+@router.post("/welcome-seen", response_model=UserSummary)
+async def mark_welcome_seen(
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Marca que la persona ya vio la bienvenida de la primera entrada.
+
+    Best-effort respecto de la migración: si la columna aún no existe, no se
+    rompe el panel; el frontend oculta la tarjeta en la sesión actual.
+    """
+    try:
+        await db.execute(
+            "UPDATE users SET welcome_seen_at = now() WHERE id=%s", (user["id"],)
+        )
+        await db.commit()
+    except psycopg.errors.UndefinedColumn:
+        await db.rollback()
     return await _build_user_summary(db, user["id"])
 
 
@@ -394,7 +459,7 @@ async def set_active_venue(
 
 
 # ---------------------------------------------------------------------------
-# Registro self-service: el dueño crea su negocio y su cuenta de admin
+# Registro self-service: la persona crea su cuenta y su espacio de trabajo
 # ---------------------------------------------------------------------------
 def _slugify(name: str) -> str:
     import re
@@ -405,13 +470,58 @@ def _slugify(name: str) -> str:
     return s or "venue"
 
 
+async def _unique_venue_slug(cur: psycopg.AsyncCursor, base_slug: str) -> str:
+    slug = base_slug
+    for _ in range(5):
+        await cur.execute("SELECT id FROM venues WHERE slug=%s", (slug,))
+        if not await cur.fetchone():
+            return slug
+        slug = f"{base_slug}-{token_hex(2)}"
+    return f"{base_slug}-{token_hex(4)}"
+
+
+async def _username_free(
+    cur: psycopg.AsyncCursor, candidate: str, exclude_user_id: int | None = None
+) -> bool:
+    await cur.execute(
+        "SELECT 1 FROM users WHERE lower(username)=lower(%s) "
+        "AND (%s::bigint IS NULL OR id<>%s)",
+        (candidate, exclude_user_id, exclude_user_id),
+    )
+    return await cur.fetchone() is None
+
+
+async def _next_username(
+    cur: psycopg.AsyncCursor,
+    base: str,
+    exclude_user_id: int | None = None,
+) -> str:
+    """Primera variante libre para flujos que crean/reutilizan una cuenta."""
+    for candidate in username_candidates(base):
+        if await _username_free(cur, candidate, exclude_user_id):
+            return candidate
+    raise HTTPException(
+        status.HTTP_409_CONFLICT,
+        "No pudimos asignar un nombre de usuario. Intenta con otro nombre.",
+    )
+
+
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     body: RegisterRequest,
     request: Request,
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
-    """Crea una venue nueva con su administrador y devuelve la sesión.
+    """Crea una cuenta, su espacio de trabajo y su primer administrador.
+
+    El nombre de negocio es opcional. Si no viene, el espacio se crea con el
+    nombre interno "Mi organización" y queda marcado como no publicado; la
+    persona puede configurarlo después sin que cambie su usuario.
+
+    El usuario se genera en el servidor a partir del nombre del negocio o del
+    nombre de la persona. Nunca del correo. La colisión se resuelve con
+    variantes acotadas y, si dos altas compiten, la transacción completa se
+    reintenta para no dejar una cuenta a medias.
 
     Rate-limited con el lockout en DB (mig 016, cubo por IP con email
     sentinel): es un endpoint público que crea filas, sin límite sería un
@@ -425,85 +535,119 @@ async def register(
         )
     await _register_failure(db, "__register__", ip)  # el éxito lo deja así
 
-    # Todo-o-nada: la conexión es autocommit (core/db.py), así que sin este
-    # bloque un fallo a mitad (p. ej. al registrar la aceptación legal) dejaba
-    # la venue huérfana. `db.transaction()` abre una transacción real; por eso
-    # NO hay `db.commit()` dentro (sería un commit explícito prohibido).
-    async with db.transaction(), db.cursor() as cur:
-        await cur.execute(
-            "SELECT id FROM users WHERE lower(email)=lower(%s)", (body.email,)
+    venue_name = body.venue_name
+    workspace_name = venue_name or "Mi organización"
+    is_placeholder = venue_name is None
+    username_source = venue_name or body.full_name
+    base = username_base(username_source)
+
+    created: dict | None = None
+    for candidate in username_candidates(base):
+        async with db.cursor() as cur:
+            if not await _username_free(cur, candidate):
+                continue
+
+        # Todo-o-nada: la conexión es autocommit (core/db.py), así que sin este
+        # bloque un fallo a mitad (p. ej. al registrar la aceptación legal)
+        # dejaba la venue huérfana. `db.transaction()` abre una transacción
+        # real; por eso NO hay `db.commit()` dentro (sería un commit explícito
+        # prohibido).
+        try:
+            async with db.transaction(), db.cursor() as cur:
+                await cur.execute(
+                    "SELECT id FROM users WHERE lower(email)=lower(%s)", (body.email,)
+                )
+                if await cur.fetchone():
+                    await _register_failure(db, "__register__", ip)
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        "Ese email ya tiene una cuenta. Inicia sesión o usa otro.",
+                    )
+
+                # Documentos que exigen aceptación HOY. Se leen de la DB y no
+                # del request: el cliente no elige qué versión aceptó.
+                legal_docs = await current_documents(cur)
+                fingerprint = terms_fingerprint(legal_docs)
+                if body.terms_version and body.terms_version != fingerprint:
+                    # Los términos cambiaron mientras se llenaba el formulario:
+                    # es mejor pedir que recargue que guardar la aceptación de
+                    # un texto que nunca vio.
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        "Los Términos y Condiciones se actualizaron. Recarga la página "
+                        "y vuelve a aceptarlos.",
+                    )
+                if not body.accepted_terms:
+                    # Sin aceptación explícita no se crea la cuenta: publicar los
+                    # términos sin poder probar quién los aceptó es lo mismo que
+                    # no tenerlos.
+                    raise HTTPException(
+                        status.HTTP_422_UNPROCESSABLE_CONTENT,
+                        "Debes aceptar los Términos y la Política de Datos para crear la cuenta.",
+                    )
+
+                slug = await _unique_venue_slug(cur, _slugify(workspace_name))
+                await cur.execute(
+                    """INSERT INTO venues (name, slug, is_placeholder)
+                       VALUES (%s, %s, %s) RETURNING id""",
+                    (workspace_name, slug, is_placeholder),
+                )
+                venue_id = (await cur.fetchone())["id"]
+
+                await cur.execute(
+                    """INSERT INTO users (email, password_hash, full_name, username)
+                       VALUES (%s, %s, %s, %s) RETURNING id""",
+                    (body.email, hash_password(body.password), body.full_name, candidate),
+                )
+                user_id = (await cur.fetchone())["id"]
+
+                await cur.execute(
+                    "INSERT INTO venue_user_roles (venue_id, user_id, role) "
+                    "VALUES (%s, %s, 'admin')",
+                    (venue_id, user_id),
+                )
+
+                # Prueba del consentimiento: quién, cuándo, qué versión, desde
+                # qué IP.
+                await record_acceptances(
+                    cur,
+                    docs=legal_docs,
+                    user_id=user_id,
+                    venue_id=venue_id,
+                    email=body.email,
+                    phone=None,
+                    ip=ip,
+                    user_agent=(request.headers.get("user-agent") or "")[:400] or None,
+                )
+                created = {
+                    "venue_id": venue_id,
+                    "user_id": user_id,
+                    "username": candidate,
+                }
+                # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
+            break
+        except psycopg.errors.UniqueViolation as e:
+            constraint = getattr(getattr(e, "diag", None), "constraint_name", "") or ""
+            if constraint == "users_username_lower_key":
+                continue
+            if constraint == "users_email_key":
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    "Ese email ya tiene una cuenta. Inicia sesión o usa otro.",
+                ) from e
+            if constraint == "venues_slug_key":
+                continue
+            raise
+
+    if created is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "No pudimos asignar un nombre de usuario. Intenta con otro nombre.",
         )
-        if await cur.fetchone():
-            await _register_failure(db, "__register__", ip)
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "Ese email ya tiene una cuenta. Inicia sesión o usa otro.",
-            )
 
-        # Documentos que exigen aceptación HOY. Se leen de la DB y no del
-        # request: el cliente no elige qué versión aceptó.
-        legal_docs = await current_documents(cur)
-        fingerprint = terms_fingerprint(legal_docs)
-        if body.terms_version and body.terms_version != fingerprint:
-            # Los términos cambiaron mientras se llenaba el formulario: es
-            # mejor pedir que recargue que guardar la aceptación de un texto
-            # que nunca vio.
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "Los Términos y Condiciones se actualizaron. Recarga la página "
-                "y vuelve a aceptarlos.",
-            )
-        if not body.accepted_terms:
-            # Sin aceptación explícita no se crea la cuenta: publicar los
-            # términos sin poder probar quién los aceptó es lo mismo que no
-            # tenerlos.
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_CONTENT,
-                "Debes aceptar los Términos y la Política de Datos para crear la cuenta.",
-            )
-
-        # Venue con slug único (colisión -> sufijo corto aleatorio)
-        base_slug = _slugify(body.venue_name)
-        slug = base_slug
-        for _ in range(5):
-            await cur.execute("SELECT id FROM venues WHERE slug=%s", (slug,))
-            if not await cur.fetchone():
-                break
-            slug = f"{base_slug}-{token_hex(2)}"
-        await cur.execute(
-            """INSERT INTO venues (name, slug) VALUES (%s, %s) RETURNING id""",
-            (body.venue_name.strip(), slug),
-        )
-        venue_id = (await cur.fetchone())["id"]
-
-        await cur.execute(
-            """INSERT INTO users (email, password_hash, full_name)
-               VALUES (%s, %s, %s) RETURNING id""",
-            (body.email, hash_password(body.password), body.full_name.strip()),
-        )
-        user_id = (await cur.fetchone())["id"]
-
-        await cur.execute(
-            "INSERT INTO venue_user_roles (venue_id, user_id, role) VALUES (%s, %s, 'admin')",
-            (venue_id, user_id),
-        )
-
-        # Prueba del consentimiento: quién, cuándo, qué versión, desde qué IP.
-        await record_acceptances(
-            cur,
-            docs=legal_docs,
-            user_id=user_id,
-            venue_id=venue_id,
-            email=body.email,
-            phone=None,
-            ip=ip,
-            user_agent=(request.headers.get("user-agent") or "")[:400] or None,
-        )
-        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
-
-    roles = {str(venue_id): ["admin"]}
-    token = create_access_token(user_id, [venue_id], roles, 1)
-    summary = await _build_user_summary(db, user_id)
+    roles = {str(created["venue_id"]): ["admin"]}
+    token = create_access_token(created["user_id"], [created["venue_id"]], roles, 1)
+    summary = await _build_user_summary(db, created["user_id"])
     return session_response(token, summary, status_code=201)
 
 
@@ -678,10 +822,10 @@ async def update_profile(
 ):
     """Actualiza el nombre visible y, si se piden, el usuario y el telefono.
 
-    `username`/`phone` en None dejan el valor actual; `""` lo limpian (el
-    usuario vacio devuelve la cuenta al login con correo). Un usuario ya tomado
-    por otra cuenta responde 409 en vez de un 500 por violacion de constraint:
-    el mensaje importa.
+    `username`/`phone` en None dejan el valor actual. El usuario no se puede
+    vaciar: toda cuenta conserva un identificador de acceso. Un usuario ya
+    tomado por otra cuenta responde 409 en vez de un 500 por violacion de
+    constraint, y el valor anterior queda intacto.
     """
     # SET dinamico en vez de una rama por combinacion: con tres campos
     # opcionales, las ramas se multiplicaban y un PATCH que solo cambiaba el
@@ -691,7 +835,7 @@ async def update_profile(
     valores: list = [body.full_name.strip()]
     if body.username is not None:
         columnas.append("username=%s")
-        valores.append(body.username or None)  # "" -> NULL
+        valores.append(body.username)
     if body.phone is not None:
         columnas.append("phone=%s")
         valores.append(body.phone or None)  # "" -> NULL
@@ -855,8 +999,10 @@ async def update_venue_settings(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Venue no encontrada")
 
         if body.name is not None:
+            # Configurar el nombre es configurar la identidad publica: el
+            # espacio deja de ser el marcador interno "Mi organización".
             await cur.execute(
-                "UPDATE venues SET name=%s WHERE id=%s",
+                "UPDATE venues SET name=%s, is_placeholder=false WHERE id=%s",
                 (body.name.strip(), venue_id),
             )
         if body.logo_url is not None:
@@ -890,7 +1036,10 @@ async def update_venue_settings(
 
         await cur.execute(
             """SELECT id, name, slug, logo_url, primary_color, commission_pct,
-                      contact_name, contact_phone
+                      contact_name, contact_phone,
+                      coalesce(
+                        (to_jsonb(venues) ->> 'is_placeholder')::boolean, false
+                      ) AS is_placeholder
                FROM venues WHERE id=%s""",
             (venue_id,),
         )
@@ -904,6 +1053,7 @@ async def update_venue_settings(
         commission_pct=float(row["commission_pct"] or 0),
         contact_name=row["contact_name"],
         contact_phone=row["contact_phone"],
+        is_placeholder=bool(row["is_placeholder"]),
     )
 
 

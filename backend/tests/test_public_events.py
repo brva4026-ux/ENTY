@@ -304,6 +304,40 @@ def test_event_contact_overrides_and_falls_back_to_venue(api, api_client):
     assert body["contact_phone"] == "573009998877"
 
 
+def test_placeholder_workspace_is_not_published(api, api_client):
+    """El marcador interno "Mi organización" no aparece en superficies públicas."""
+    venue = api.world["venue_a"]
+    tag = _tag()
+    city = f"CiudadPlaceholder{tag}"
+    original_name = api.run_sql(f"SELECT name FROM venues WHERE id = {venue}")
+    original_placeholder = api.run_sql(
+        f"SELECT coalesce(is_placeholder, false) FROM venues WHERE id = {venue}"
+    )
+    try:
+        api.run_sql(
+            f"UPDATE venues SET name = 'Mi organización', is_placeholder = true "
+            f"WHERE id = {venue}"
+        )
+        event = _future_show(
+            api, venue, f"Sin identidad {tag}", price_cents=1000000, location=city
+        )
+
+        listing = _by_name(
+            api_client.get("/public/events", params={"city": city}).json(),
+            f"Sin identidad {tag}",
+        )
+        assert listing["venue"] == ""
+
+        detail = api_client.get(f"/public/events/{event['id']}").json()
+        assert detail["venue"] == ""
+    finally:
+        api.run_sql(
+            f"UPDATE venues SET name = '{original_name}', "
+            f"is_placeholder = {str(original_placeholder).lower()} "
+            f"WHERE id = {venue}"
+        )
+
+
 def test_invalid_video_and_map_urls_are_rejected(api):
     venue = api.world["venue_a"]
     base = {

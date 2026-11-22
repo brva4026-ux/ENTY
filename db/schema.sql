@@ -3400,6 +3400,7 @@ CREATE TABLE public.users (
     password_changed_at timestamp with time zone,
     avatar_url text,
     active_venue_id bigint,
+    welcome_seen_at timestamp with time zone,
     CONSTRAINT users_username_format CHECK (((username IS NULL) OR ((username = lower(username)) AND (username ~ '^[a-z0-9._-]{3,32}$'::text))))
 );
 
@@ -3448,7 +3449,8 @@ CREATE TABLE public.venues (
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     contact_name text,
-    contact_phone text
+    contact_phone text,
+    is_placeholder boolean DEFAULT false NOT NULL
 );
 
 

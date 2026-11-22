@@ -235,6 +235,47 @@ def test_profile_normalizes_username_to_lowercase(api, db):
     assert res.json()["username"] == uname
 
 
+def test_login_accepts_at_prefix(api, db):
+    """El @ es decorativo: "@usuario" entra igual que "usuario"."""
+    _cleanup(db)
+    quien = api.world["bouncer"]
+    uname = username_of(api, "bouncer")
+    _set_username(db, quien["id"], uname)
+
+    res = _login(api, {"identifier": f"@{uname.upper()}", "password": api.world["password"]})
+    assert res.status_code == 200, res.text
+    assert res.json()["user"]["email"] == quien["email"]
+
+
+def test_username_available_endpoint(api, db):
+    """El editor de perfil comprueba disponibilidad sin revelar cuentas."""
+    _cleanup(db)
+    quien = api.world["promoter2"]
+    uname = username_of(api, "promoter2")
+    _set_username(db, quien["id"], uname)
+
+    # El propio usuario está disponible para sí mismo (no bloquea guardar).
+    own = api.get(f"/auth/username-available?username={uname}", "promoter2")
+    assert own.status_code == 200, own.text
+    assert own.json() == {"username": uname, "available": True}
+
+    # El de otra cuenta no.
+    taken = api.get(f"/auth/username-available?username={uname}", "admin")
+    assert taken.status_code == 200, taken.text
+    assert taken.json()["available"] is False
+
+    # Formato inválido: no disponible y explica el formato.
+    bad = api.get("/auth/username-available?username=con%20espacio", "admin")
+    assert bad.status_code == 200, bad.text
+    assert bad.json()["available"] is False
+    assert "3 y 32" in bad.json()["detail"]
+
+
+def test_username_available_requires_session(api):
+    res = api.client.get("/auth/username-available?username=ana")
+    assert res.status_code == 401, res.text
+
+
 def test_profile_duplicate_username_is_409(api, db):
     """Un usuario ya tomado responde 409, no un 500 por constraint."""
     _cleanup(db)
@@ -281,8 +322,8 @@ def test_profile_rejects_bad_username_format(api, db):
     assert res.status_code == 422, res.text
 
 
-def test_profile_empty_username_releases_it(api, db):
-    """`""` libera el usuario; la cuenta vuelve a entrar solo con correo."""
+def test_profile_empty_username_is_rejected(api, db):
+    """`""` no puede borrar el usuario: toda cuenta conserva su acceso."""
     _cleanup(db)
     quien = api.world["bouncer"]
     uname = username_of(api, "bouncer")
@@ -293,11 +334,11 @@ def test_profile_empty_username_releases_it(api, db):
         "bouncer",
         {"full_name": "Bouncer Puerta", "username": ""},
     )
-    assert res.status_code == 200, res.text
-    assert res.json()["username"] is None
+    assert res.status_code == 422, res.text
+    assert "usuario" in res.text.lower()
 
-    # Y ese usuario ya quedo libre para otra cuenta.
-    assert _login(api, {"identifier": uname, "password": api.world["password"]}).status_code == 401
+    # El usuario anterior sigue vigente y la cuenta entra con el.
+    assert _login(api, {"identifier": uname, "password": api.world["password"]}).status_code == 200
 
 
 def test_profile_omitting_username_keeps_it(api, db):

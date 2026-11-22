@@ -32,10 +32,17 @@ from starlette.concurrency import run_in_threadpool
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.mailer import Mailer
+from app.core.public_venue import public_venue_name_sql
 from app.core.security import create_access_token, hash_password
 from app.core.session import check_session_origin, session_response
+from app.core.usernames import username_base
 from app.deps import ensure_roles, get_current_user
-from app.routers.auth import _client_ip, _login_locked, _register_failure
+from app.routers.auth import (
+    _client_ip,
+    _login_locked,
+    _next_username,
+    _register_failure,
+)
 from app.schemas import (
     AcceptInvitationRequest,
     InvitationPreview,
@@ -110,7 +117,11 @@ async def create_invitation(
              _hash_token(raw_token), expires, user["id"]),
         )
         row = await cur.fetchone()
-        await cur.execute("SELECT name FROM venues WHERE id = %s", (venue_id,))
+        await cur.execute(
+            f"""SELECT coalesce(nullif({public_venue_name_sql()}, ''), 'El equipo') AS name
+                  FROM venues v WHERE v.id = %s""",
+            (venue_id,),
+        )
         venue_name = (await cur.fetchone())["name"]
         await db.commit()
 
@@ -215,7 +226,8 @@ async def invitation_preview(
     async with db.cursor() as cur:
         await cur.execute(
             f"""
-            SELECT i.role, i.full_name, i.expires_at, v.name AS venue_name
+            SELECT i.role, i.full_name, i.expires_at,
+                   coalesce(nullif({public_venue_name_sql()}, ''), 'El equipo') AS venue_name
             FROM staff_invitations i
             JOIN venues v ON v.id = i.venue_id
             WHERE i.token_hash = %s AND {_expired_cond()}
@@ -280,7 +292,8 @@ async def accept_invitation(
 
         # El enlace pertenece a un email concreto: no se canjea con otro.
         await cur.execute(
-            "SELECT id, is_active FROM users WHERE lower(email) = lower(%s)",
+            "SELECT id, is_active, full_name, username FROM users "
+            "WHERE lower(email) = lower(%s)",
             (inv["email"],),
         )
         existing = await cur.fetchone()
@@ -294,13 +307,31 @@ async def accept_invitation(
                    last_login_at = now() WHERE id = %s""",
                 (hash_password(body.password), user_id),
             )
+            # Cuenta legada sin usuario: la invitación es una buena ocasión
+            # para darle el identificador que le faltaba, sin pisar el que ya
+            # tenga.
+            if not existing["username"]:
+                candidate = await _next_username(
+                    cur, username_base(existing["full_name"]), user_id
+                )
+                await cur.execute(
+                    "UPDATE users SET username=%s WHERE id=%s",
+                    (candidate, user_id),
+                )
         else:
+            candidate = await _next_username(cur, username_base(inv["full_name"]))
             await cur.execute(
                 """
-                INSERT INTO users (email, password_hash, full_name, last_login_at)
-                VALUES (%s, %s, %s, now()) RETURNING id
+                INSERT INTO users
+                    (email, password_hash, full_name, username, last_login_at)
+                VALUES (%s, %s, %s, %s, now()) RETURNING id
                 """,
-                (inv["email"], hash_password(body.password), inv["full_name"]),
+                (
+                    inv["email"],
+                    hash_password(body.password),
+                    inv["full_name"],
+                    candidate,
+                ),
             )
             user_id = (await cur.fetchone())["id"]
 

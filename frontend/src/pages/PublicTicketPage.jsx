@@ -337,8 +337,12 @@ export default function PublicTicketPage() {
                     {year ? <p className="tkt-yr">{year}</p> : null}
                     <p className="tkt-big">{dateStr}</p>
                     {doorTime && <p className="tkt-hrs">Puerta {doorTime}</p>}
-                    <p className="tkt-place">{venueMain || "—"}</p>
-                    <p className="tkt-city">{venueCity}</p>
+                    {venue && (
+                      <>
+                        <p className="tkt-place">{venueMain}</p>
+                        <p className="tkt-city">{venueCity}</p>
+                      </>
+                    )}
                   </div>
 
                   <div className="tkt-qr-zone">

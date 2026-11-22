@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
+from app.core.public_venue import public_venue_name_sql
 from app.core.rate_limit import enforce_rate_limit
 from app.core.security import digest_token
 from app.schemas import (
@@ -153,10 +154,10 @@ async def waitlist_status(
     async with db.cursor() as cur:
         await _expire_stale(cur)
         await cur.execute(
-            """
+            f"""
             SELECT w.status::text AS status, w.offered_at, w.created_at, w.id AS wid,
                    e.name AS event_name, e.event_timezone, e.waitlist_offer_minutes,
-                   v.name AS venue_name,
+                   {public_venue_name_sql()} AS venue_name,
                    to_char(e.starts_at AT TIME ZONE e.event_timezone,
                            'DD/MM/YYYY HH24:MI') AS starts_at
               FROM event_waitlist w

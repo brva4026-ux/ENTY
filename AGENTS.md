@@ -1893,3 +1893,27 @@ Interpolacion: `t("x", { name })` con `{name}` en la cadena.
 Migrado hoy: **LoginPage** (namespace `login`), con selector Español/English en
 el pie. El resto de las pantallas siguen con literales y se migran pantalla a
 pantalla con este mismo patron.
+
+## Usuario universal y espacio de trabajo (mig 058)
+
+Toda cuenta tiene un `username` propio; no se deriva del correo. Al registrar,
+el backend lo genera con `core/usernames.py` a partir del **nombre del negocio**
+o, si se deja vacío, del **nombre completo** (`casa.azul`, `ana.gomez`), con
+variantes `-2`, `-3` si está ocupado. El `@` inicial es decorativo al entrar:
+`@ana`, `ana` y `ANA` son el mismo identificador. El login acepta correo o
+usuario; el lockout normaliza ambos para que no abran cubos distintos.
+
+El nombre de negocio es opcional en el registro. Sin él, la venue nace con
+`is_placeholder = true` y el nombre interno "Mi organización": el panel lo
+muestra, pero las superficies públicas no. `core/public_venue.py` centraliza
+esa regla (`public_venue_name_sql`) y devuelve cadena vacía para el marcador;
+el frontend oculta el bloque cuando el nombre viene vacío. Al guardar un nombre
+real en `/perfil?tab=negocio`, el backend limpia `is_placeholder` y el espacio
+pasa a tener identidad pública.
+
+`users.welcome_seen_at` queda disponible para una bienvenida de una sola vez,
+pero el overlay actual se muestra en cada login (los E2E lo esperan así) y no
+lo marca. El editor de perfil comprueba disponibilidad con
+`GET /auth/username-available` (autenticado) y guarda con `PATCH /auth/profile`;
+el campo de estado se renderiza siempre con una línea reservada para que el
+aviso de "Comprobando…" no mueva el botón de guardar y pierda el clic.

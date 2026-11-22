@@ -25,6 +25,7 @@ from app.core.db_errors import translate_db_error
 from app.core.fan_access import create_fan_access_token, verify_fan_access_token
 from app.core.mailer import Mailer
 from app.core.phone import digits_only, phone_tail_sql
+from app.core.public_venue import public_venue_name_sql
 from app.core.rate_limit import enforce_rate_limit
 from app.core.refs import payment_reference
 from app.schemas import (
@@ -183,7 +184,10 @@ async def public_events(
         conds = ["e.status IN ('published', 'live')", "e.starts_at >= now()"]
         params: list = []
         if city and city.strip():
-            conds.append("(coalesce(e.location, '') || ' ' || v.name) ILIKE %s")
+            conds.append(
+                f"(coalesce(e.location, '') || ' ' || "
+                f"{public_venue_name_sql()}) ILIKE %s"
+            )
             params.append(f"%{city.strip()}%")
         # La categoria NO se filtra en SQL: un evento sin categoria elegida
         # (mig 043) igual cuenta si la heuristica lo clasifica ahi. Se traen
@@ -196,7 +200,7 @@ async def public_events(
             SELECT e.id, e.name, e.description, e.flyer_url, e.location,
                    e.starts_at, e.event_timezone, e.capacity, e.status,
                    e.category,
-                   v.name AS venue_name,
+                   {public_venue_name_sql()} AS venue_name,
                    -- Contacto por evento (mig 057): si el evento no define
                    -- uno propio, cae al contacto del local (mig 036).
                    coalesce(
@@ -292,7 +296,7 @@ async def public_event_detail(
     """
     async with db.cursor() as cur:
         await cur.execute(
-            """
+            f"""
             SELECT e.id, e.name, e.description, e.flyer_url, e.location,
                    e.starts_at, e.event_timezone, e.capacity, e.status,
                    e.category, e.min_age, e.dress_code, e.doors_open_at,
@@ -307,7 +311,7 @@ async def public_event_detail(
                    -- ficha sigue funcionando con los campos viejos.
                    to_jsonb(e) ->> 'video_url' AS video_url,
                    to_jsonb(e) ->> 'location_url' AS location_url,
-                   v.name AS venue_name,
+                   {public_venue_name_sql()} AS venue_name,
                    coalesce(
                      to_jsonb(e) ->> 'contact_name', v.contact_name
                    ) AS venue_contact_name,
@@ -745,7 +749,7 @@ _FAN_TICKETS_SQL = f"""
            e.starts_at     AS starts_at,
            e.event_timezone AS event_timezone,
            e.qr_unlock_minutes AS qr_unlock_minutes,
-           v.name          AS venue_name
+           {public_venue_name_sql()} AS venue_name
       FROM tickets t
       JOIN events e ON e.id = t.event_id
       JOIN venues v ON v.id = e.venue_id
@@ -972,10 +976,10 @@ async def public_ticket_image(
 ):
     async with db.cursor() as cur:
         await cur.execute(
-            """
+            f"""
             SELECT t.id AS ticket_number, t.customer_name, t.status,
                    e.name AS event_name, e.location, e.starts_at, e.event_timezone,
-                   e.qr_unlock_minutes, v.name AS venue_name
+                   e.qr_unlock_minutes, {public_venue_name_sql()} AS venue_name
             FROM tickets t
             JOIN events e ON e.id = t.event_id
             JOIN venues v ON v.id = e.venue_id
@@ -1049,7 +1053,7 @@ def _share_event_html(
     name: str,
     starts_at: datetime,
     tz_name: str | None,
-    venue: str,
+    venue: str | None,
     location: str | None,
     flyer_url: str | None,
     min_price: int | None,
@@ -1067,7 +1071,9 @@ def _share_event_html(
         "name": name,
         "startDate": starts_at.isoformat(),
         "eventStatus": "https://schema.org/EventScheduled",
-        "location": {"@type": "Place", "name": venue},
+        # Un espacio sin identidad pública no aporta nombre; el lugar genérico
+        # mantiene el JSON-LD válido sin revelar "Mi organización".
+        "location": {"@type": "Place", "name": venue or location or "Lugar por confirmar"},
         "image": [image],
         "url": url,
     }
@@ -1135,9 +1141,9 @@ async def public_event_share_page(
     """
     async with db.cursor() as cur:
         await cur.execute(
-            """
+            f"""
             SELECT e.name, e.flyer_url, e.location, e.starts_at, e.event_timezone,
-                   v.name AS venue_name,
+                   {public_venue_name_sql()} AS venue_name,
                    (SELECT min(tt.price_cents) FROM ticket_types tt
                      WHERE tt.event_id = e.id AND tt.is_active
                        AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price
@@ -1187,10 +1193,10 @@ async def public_ticket_page(
     """
     async with db.cursor() as cur:
         await cur.execute(
-            """
+            f"""
             SELECT t.id AS ticket_number, t.customer_name, t.status,
                    e.name AS event_name, e.location, e.starts_at, e.event_timezone,
-                   e.qr_unlock_minutes, v.name AS venue_name
+                   e.qr_unlock_minutes, {public_venue_name_sql()} AS venue_name
             FROM tickets t
             JOIN events e ON e.id = t.event_id
             JOIN venues v ON v.id = e.venue_id

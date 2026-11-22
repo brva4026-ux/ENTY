@@ -14,7 +14,9 @@ from app.core.db_errors import translate_db_error
 from app.core.observability import capture_exception
 from app.core.phone import digits_only, phone_tail_sql
 from app.core.pusher import notify_venue
+from app.core.usernames import username_base
 from app.deps import ensure_roles, get_current_user
+from app.routers.auth import _next_username
 
 # fetch_event vive en events.py para que listar, crear y transicionar devuelvan
 # el mismo shape de evento (ver EVENT_COLUMNS).
@@ -1019,7 +1021,9 @@ async def create_venue_user(
             raise HTTPException(404, "Venue no encontrada")
 
         await cur.execute(
-            "SELECT id FROM users WHERE lower(email)=lower(%s)", (body.email,)
+            "SELECT id, full_name, username FROM users "
+            "WHERE lower(email)=lower(%s)",
+            (body.email,),
         )
         row = await cur.fetchone()
         if row:
@@ -1031,14 +1035,28 @@ async def create_venue_user(
                 "UPDATE users SET is_active=true WHERE id=%s AND NOT is_active",
                 (target_id,),
             )
+            if not row["username"]:
+                candidate = await _next_username(
+                    cur, username_base(row["full_name"]), target_id
+                )
+                await cur.execute(
+                    "UPDATE users SET username=%s WHERE id=%s",
+                    (candidate, target_id),
+                )
         else:
+            candidate = await _next_username(cur, username_base(body.full_name))
             await cur.execute(
                 """
-                INSERT INTO users (email, password_hash, full_name)
-                VALUES (%s, %s, %s)
+                INSERT INTO users (email, password_hash, full_name, username)
+                VALUES (%s, %s, %s, %s)
                 RETURNING id
                 """,
-                (body.email, hash_password(body.password), body.full_name),
+                (
+                    body.email,
+                    hash_password(body.password),
+                    body.full_name,
+                    candidate,
+                ),
             )
             target_id = (await cur.fetchone())["id"]
 

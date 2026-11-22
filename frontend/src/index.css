@@ -6285,6 +6285,12 @@ html[data-theme="light"] .pf-label {
 .pf-hint-warn {
   color: var(--e-amber-400);
 }
+.pf-hint-ok {
+  color: var(--e-emerald-400);
+}
+html[data-theme="light"] .pf-hint-ok {
+  color: var(--e-emerald-700);
+}
 /* El ámbar 400 sobre papel se queda en ~1.9:1: en claro el aviso baja de
    escala (700) para cumplir AA sin perder el significado de alerta. */
 html[data-theme="light"] .pf-hint-warn {
@@ -7469,6 +7475,24 @@ html[data-theme="light"] .legal-doc code {
   max-width: 100%;
   overflow-wrap: anywhere;
   text-align: center;
+}
+
+.welcome-account {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--e-text-muted);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.welcome-account-link {
+  color: var(--e-violet-250);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--e-violet-250) 40%, transparent);
+  text-underline-offset: 2px;
+}
+.welcome-account-link:hover {
+  color: var(--e-violet-200);
 }
 
 .welcome-status {

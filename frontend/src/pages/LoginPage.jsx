@@ -119,7 +119,7 @@ export default function LoginPage() {
   // bienvenida puede seguir mostrando la espera. Con `busy` basta para
   // evitar que el mismo submit se lanze dos veces: React guarda la ultima
   // promesa y el botón se queda en estado real, no hace dos click a la vez.
-  const [emailError, setEmailError] = useState("");
+
   const [passwordError, setPasswordError] = useState("");
   // Tick fuerza el re-render cuando el MISMO mensaje de error se repite
   // (dos "contraseña incorrectas" seguidas no cambian el string y React no
@@ -250,18 +250,7 @@ export default function LoginPage() {
                 type="text"
                 name="username"
                 value={ident}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setIdent(value);
-                  // Validación en vivo: solo marca cuando hay contenido.
-                  // Un nombre de usuario sin @ es válido (mig 035), así que
-                  // el aviso es suave y nunca bloquea el envío.
-                  if (!value.includes("@") && value.trim().length > 0) {
-                    setEmailError(t("login.emailHint"));
-                  } else {
-                    setEmailError("");
-                  }
-                }}
+                onChange={(e) => setIdent(e.target.value)}
                 placeholder={t("login.placeholderIdent")}
                 className="field auth-field-has-icon"
                 inputMode="email"
@@ -269,15 +258,9 @@ export default function LoginPage() {
                 autoCapitalize="none"
                 spellCheck={false}
                 required
-                aria-invalid={error || emailError ? "true" : undefined}
-                aria-describedby={emailError ? "email-hint" : undefined}
+                aria-invalid={error ? "true" : undefined}
               />
             </div>
-            {emailError && (
-              <p id="email-hint" className="auth-hint auth-hint--soft">
-                {emailError}
-              </p>
-            )}
 
             <label htmlFor="login-password" className="auth-label auth-label--gap">
               {t("login.labelPassword")}
