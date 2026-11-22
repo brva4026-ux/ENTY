@@ -12,6 +12,7 @@ import useDocumentTitle from "../lib/useDocumentTitle";
 import useBackOrFallback from "../lib/useBackOrFallback";
 import TransitionLink from "../components/TransitionLink";
 import { Skeleton } from "../components/Skeleton";
+import { EntySymbol } from "../components/Brand";
 import { waLink } from "../lib/whatsapp";
 
 /**
@@ -165,6 +166,7 @@ export default function EventDetailPage() {
 
   // Referencia del checkout al volver de Wompi (redirect_url del cobro).
   const payRef = searchParams.get("pago");
+  const preview = searchParams.get("preview") === "1";
 
   /** Acciones del cartel (volver, favorito, compartir). Se dibujan sobre la
    *  portada, que es la misma pieza en móvil y escritorio. Es una función de
@@ -214,7 +216,7 @@ export default function EventDetailPage() {
     setData(null);
     setError("");
     setMissing(false);
-    fetchPublicEventDetail(id)
+    fetchPublicEventDetail(id, { preview })
       .then((d) => {
         if (alive) setData(d);
       })
@@ -226,7 +228,7 @@ export default function EventDetailPage() {
     return () => {
       alive = false;
     };
-  }, [id, attempt]);
+  }, [id, attempt, preview]);
 
   useEffect(() => {
     if (data) setFav(readFavs().has(Number(data.id)));
@@ -367,6 +369,7 @@ export default function EventDetailPage() {
   const hasLocation = Boolean(data?.venue || data?.location);
   const hasBuyBar = Boolean(
     data &&
+      !preview &&
       !checkoutOpen &&
       !queueOpen &&
       !videoPlaying &&
@@ -399,6 +402,13 @@ export default function EventDetailPage() {
   /** CTA de boletas, una sola definición para el rail y la barra fija. */
   function ticketCta(wide = false) {
     if (!data) return null;
+    if (preview) {
+      return (
+        <span className="evd-preview-cta">
+          Vista previa · la venta se habilita al publicar
+        </span>
+      );
+    }
     const cls = `evd-cta${wide ? " evd-cta--wide" : ""}`;
     const arrow = (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -464,6 +474,16 @@ export default function EventDetailPage() {
 
   return (
     <div className={`evd${hasBuyBar ? " evd--buybar" : ""}`}>
+      {preview && (
+        <div className="evd-preview-banner" role="status">
+          <strong>Vista previa</strong>
+          <span>
+            Así verá el público esta ficha. Los cambios sin guardar no
+            aparecen y la venta está cerrada.
+          </span>
+          <a href={`/admin?event=${id}&tab=resumen`}>Volver al backstage</a>
+        </div>
+      )}
       {error ? (
         <div className="evd-empty">
           <p>{error}</p>
@@ -536,7 +556,10 @@ export default function EventDetailPage() {
                 </>
               ) : (
                 <div className="evd-poster-fallback" aria-hidden="true">
-                  <span className="evd-poster-mark">ENTY</span>
+                  <span className="evd-poster-brand">
+                    <EntySymbol size={52} />
+                    <span className="evd-poster-mark">Enty</span>
+                  </span>
                 </div>
               )}
               <div className="evd-hero-actions">{posterActions()}</div>
@@ -721,13 +744,39 @@ export default function EventDetailPage() {
                     <h3 className="evd-subtitle">Artistas y programación</h3>
                     <ul className="evd-lineup">
                       {data.lineup.map((a) => (
-                        <li key={a.name}>
-                          <span className="evd-lineup-avatar" aria-hidden="true">
-                            {a.name.charAt(0)}
-                          </span>
+                        <li key={a.id ?? a.name}>
+                          {a.image_url ? (
+                            <img
+                              className="evd-lineup-avatar evd-lineup-photo"
+                              src={a.image_url}
+                              alt=""
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span className="evd-lineup-avatar" aria-hidden="true">
+                              {a.name.charAt(0)}
+                            </span>
+                          )}
                           <span className="evd-lineup-info">
                             <strong>{a.name}</strong>
                             {a.role && <em>{a.role}</em>}
+                            {a.starts_at && (
+                              <span className="evd-lineup-time">
+                                {new Date(a.starts_at).toLocaleTimeString(
+                                  "es-CO",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    timeZone: data.timezone || undefined,
+                                  },
+                                )}
+                              </span>
+                            )}
+                            {a.description && (
+                              <span className="evd-lineup-desc">
+                                {a.description}
+                              </span>
+                            )}
                           </span>
                         </li>
                       ))}

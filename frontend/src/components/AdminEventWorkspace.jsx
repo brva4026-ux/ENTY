@@ -13,6 +13,21 @@ import Icon from "./Icon";
 import { money } from "../lib/format";
 import { isStaleLive } from "../lib/eventTime";
 
+function SectionContext({ ev, next }) {
+  return (
+    <div className="bs-section-context">
+      <p>
+        <strong>{ev.name}</strong>
+        <span aria-hidden="true">·</span>
+        {eventFullDate(ev)}
+        <span aria-hidden="true">·</span>
+        {ev.location || "Lugar por confirmar"}
+      </p>
+      <p className="bs-section-next">{next}</p>
+    </div>
+  );
+}
+
 function StatusLine({ ev }) {
   if (ev.status === "draft") return "Borrador (no visible al público)";
   if (ev.status === "published") return "A la venta";
@@ -61,6 +76,10 @@ export default function AdminEventWorkspace({
     ];
     return (
       <div className="admin-workspace-panel">
+        <SectionContext
+          ev={ev}
+          next="Revisa la ficha, completa los pendientes y compártela cuando esté lista."
+        />
         <div className="admin-panel-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -69,11 +88,11 @@ export default function AdminEventWorkspace({
             </div>
             <a
               className="admin-inline-link"
-              href={`/evento/${ev.id}`}
+              href={`/evento/${ev.id}?preview=1`}
               target="_blank"
               rel="noreferrer"
             >
-              Abrir ficha pública
+              Abrir vista previa
             </a>
           </div>
           <div className="admin-preview-card mt-3">
@@ -186,6 +205,10 @@ export default function AdminEventWorkspace({
   if (section === "ventas") {
     return (
       <div className="admin-workspace-panel">
+        <SectionContext
+          ev={ev}
+          next="Define localidades, cupones y audita cada boleta emitida."
+        />
         <div className="admin-panel-card">
           <h2>Boletas y precios</h2>
           <p>
@@ -205,6 +228,7 @@ export default function AdminEventWorkspace({
           key={`coupons-${eventId}`}
           venueId={venueId}
           eventId={eventId}
+          types={types}
         />
         <div className="admin-panel-card">
           <h2>Boletas vendidas</h2>
@@ -215,6 +239,7 @@ export default function AdminEventWorkspace({
             <TicketList
               venueId={venueId}
               eventId={eventId}
+              types={types}
               onChanged={onChanged}
               onError={onError}
             />
@@ -234,6 +259,10 @@ export default function AdminEventWorkspace({
   if (section === "equipo") {
     return (
       <div className="admin-workspace-panel">
+        <SectionContext
+          ev={ev}
+          next="Asigna puerta y venta, emite enlaces y reparte cupos entre promotores."
+        />
         <div className="admin-panel-card">
           <h2>Personal de esta noche</h2>
           <p>
@@ -266,6 +295,10 @@ export default function AdminEventWorkspace({
   if (section === "accesos") {
     return (
       <div className="admin-workspace-panel">
+        <SectionContext
+          ev={ev}
+          next="Abre puertas cuando el equipo esté listo, prueba un QR y cierra la noche."
+        />
         <div className="admin-panel-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

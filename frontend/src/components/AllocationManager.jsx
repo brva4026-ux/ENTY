@@ -200,6 +200,9 @@ export default function AllocationManager({
         <div>
           <p className="eyebrow">Distribución</p>
           <h3 className="display mt-0.5 text-base">Cupos de promotor</h3>
+          <p className="mt-1 text-2xs text-zinc-500">
+            Una fila por promotor y tipo. El total del evento se muestra aparte.
+          </p>
         </div>
         {/* El cuello de botella real: sin promotores creados no hay cupo que
           asignar. El enlace evita el ida-y-vuelta a Invitaciones. */}
@@ -287,12 +290,19 @@ export default function AllocationManager({
                   </button>
                 </div>
               ) : (
-                <QuotaMeter
-                  used={a.issued ?? 0}
-                  total={a.capacity}
-                  label="Usados"
-                  compact
-                />
+                <>
+                  <div className="bs-allocation-stats">
+                    <span>Asignadas <strong className="tnum">{a.capacity}</strong></span>
+                    <span>Emitidas <strong className="tnum">{a.issued ?? 0}</strong></span>
+                    <span>Disponibles <strong className="tnum">{Math.max(0, (a.capacity ?? 0) - (a.issued ?? 0))}</strong></span>
+                  </div>
+                  <QuotaMeter
+                    used={a.issued ?? 0}
+                    total={a.capacity}
+                    label="Usados"
+                    compact
+                  />
+                </>
               )}
             </li>
           );

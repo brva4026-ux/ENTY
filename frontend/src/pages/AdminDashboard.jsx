@@ -25,6 +25,7 @@ import Icon from "../components/Icon";
 import EventCreateModal from "../components/EventCreateModal";
 import AdminEventCard from "../components/AdminEventCard";
 import AdminEventWorkspace from "../components/AdminEventWorkspace";
+import { useAdminChrome } from "../components/AdminShell";
 import QrTesterModal from "../components/QrTesterModal";
 import VenueHeader from "../components/VenueHeader";
 import useDocumentTitle from "../lib/useDocumentTitle";
@@ -115,6 +116,7 @@ export default function AdminDashboard() {
   useDocumentTitle("Panel del negocio");
   const { user } = useAuth();
   const ui = useUI();
+  const { setBreadcrumb } = useAdminChrome();
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
   // sin elección, la primera disponible (comportamiento de siempre).
   const venueId = activeVenueId(user);
@@ -539,7 +541,11 @@ export default function AdminDashboard() {
       es el seleccionado); `fromStrip` solo cambia la clave de `busyAction` y si,
       al abortar el pre-vuelo, hay que navegar al evento (desde el backstage ya
       se está dentro). Antes eran dos funciones con textos y reglas distintas. */
-  async function transitionEvent(ev, action, { fromStrip = false } = {}) {
+  async function transitionEvent(
+    ev,
+    action,
+    { fromStrip = false, confirmed = false } = {},
+  ) {
     if (!ev) return;
     const busyKey = fromStrip ? `${action}-${ev.id}` : action;
 
@@ -592,22 +598,24 @@ export default function AdminDashboard() {
     }
     if (action === "end") {
       const ok = await ui.confirm("¿Finalizar el evento?", {
-        message: "La puerta dejará de aceptar escaneos.",
-        confirmLabel: "Finalizar",
+        message:
+          "La puerta deja de aceptar validaciones en línea. Podés reabrirla después si la noche se estira.",
+        confirmLabel: "Finalizar evento",
       });
       if (!ok) return;
     }
-    if (action === "publish") {
+    if (action === "publish" && !confirmed) {
       const ok = await ui.confirm("¿Publicar el evento?", {
         message:
-          "El evento pasa a la venta: los promotores pueden emitir boletas.",
-        confirmLabel: "Publicar",
+          "La ficha pública se habilita y los promotores con cupo pueden emitir boletas.",
+        confirmLabel: "Publicar evento",
       });
       if (!ok) return;
     }
     if (action === "live") {
       const ok = await ui.confirm("¿Abrir puertas?", {
-        message: "La puerta empieza a aceptar escaneos.",
+        message:
+          "Habilita el escaneo en la puerta para esta noche. El equipo asignado recibe el aviso.",
         confirmLabel: "Abrir puertas",
       });
       if (!ok) return;
@@ -626,16 +634,18 @@ export default function AdminDashboard() {
       // la franja ya quedó al día con el evento que devolvió el POST.
       if (!fromStrip) await refreshEventData();
       ui.success(DONE_MESSAGE[action]);
+      return updated;
     } catch (err) {
       setError(err.message);
+      return null;
     } finally {
       setBusyAction("");
     }
   }
 
   /** Acción del backstage: el evento abierto, con la etiqueta de NEXT_ACTIONS. */
-  function runAction(action) {
-    return transitionEvent(selectedEventData, action);
+  function runAction(action, opts = {}) {
+    return transitionEvent(selectedEventData, action, opts);
   }
 
   /** Acción de la tarjeta de la franja: la tarjeta es panel de control, así que
@@ -788,6 +798,11 @@ export default function AdminDashboard() {
   const actions = selectedEventData
     ? (NEXT_ACTIONS[selectedEventData.status] ?? [])
     : [];
+
+  useEffect(() => {
+    setBreadcrumb(selectedEventData?.name ?? "");
+    return () => setBreadcrumb("");
+  }, [selectedEventData?.name, setBreadcrumb]);
   const editable =
     selectedEventData &&
     ["draft", "published"].includes(selectedEventData.status);
@@ -1661,6 +1676,7 @@ export default function AdminDashboard() {
               cajaRange={cajaRange}
               setCajaRange={setCajaRange}
               cajaBusy={cajaBusy}
+              lastUpdated={lastUpdated}
             />
             </div>
           </>

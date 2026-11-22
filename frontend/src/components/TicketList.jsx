@@ -40,7 +40,7 @@ const PAYMENT_METHOD_LABEL = {
   cortesia: "Cortesía",
 };
 
-export default function TicketList({ venueId, eventId, onChanged, onError }) {
+export default function TicketList({ venueId, eventId, types = [], onChanged, onError }) {
   const ui = useUI();
   const [voidingId, setVoidingId] = useState(null);
   const [reason, setReason] = useState("Error de digitación");
@@ -63,6 +63,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
   const [qInput, setQInput] = useState("");
+  const [typeId, setTypeId] = useState("");
   const [page, setPage] = useState(0); // 0-indexed
   const [loading, setLoading] = useState(true);
 
@@ -72,6 +73,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
     try {
       const data = await listTicketsPaged(venueId, eventId, {
         status: status || undefined,
+        type_id: typeId || undefined,
         q: q || undefined,
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
@@ -84,7 +86,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
     } finally {
       setLoading(false);
     }
-  }, [venueId, eventId, status, q, page]);
+  }, [venueId, eventId, status, typeId, q, page]);
 
   useEffect(() => {
     load();
@@ -93,7 +95,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
   // Cambiar filtro/reset de evento vuelve a la página 1.
   useEffect(() => {
     setPage(0);
-  }, [eventId, status]);
+  }, [eventId, status, typeId]);
 
   // El buscador busca al enviar (Enter), no en cada tecla: menos queries.
   function submitSearch(e) {
@@ -309,7 +311,7 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
             Recaudo
           </button>
           <button
-            onClick={() => downloadTicketsCsv(venueId, eventId, { status, q })}
+            onClick={() => downloadTicketsCsv(venueId, eventId, { status, type_id: typeId, q })}
             disabled={loading}
             className="btn-ghost text-xs font-bold"
             data-tip="Exporta el listado filtrado completo"
@@ -344,6 +346,19 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
             </button>
           ))}
         </div>
+        {types.length > 0 && (
+          <select
+            aria-label="Filtrar por tipo de boleta"
+            value={typeId}
+            onChange={(e) => setTypeId(e.target.value)}
+            className="field !py-1.5 max-w-44 text-xs"
+          >
+            <option value="">Todos los tipos</option>
+            {types.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        )}
         <form
           onSubmit={submitSearch}
           className="flex min-w-52 flex-1 items-center gap-1.5"
@@ -393,18 +408,45 @@ export default function TicketList({ venueId, eventId, onChanged, onError }) {
                       {t.customer_name}
                     </p>
                     <p className="mt-0.5 text-xs text-zinc-500">
-                      {t.type_name ?? "—"}
+                      {t.type_name ?? "Tipo no registrado"}
                       {t.customer_phone ? ` · ${t.customer_phone}` : ""}
-                      {t.from_allocation
-                        ? " · cupo promotor"
-                        : " · venta directa"}
-                      {t.sold_by_name ? ` · por ${t.sold_by_name}` : ""}
-                      {t.price_cents_snapshot > 0
-                        ? ` · $${(t.price_cents_snapshot / 100).toLocaleString("es-CO")}`
-                        : " · cortesía"}
-                      {t.price_cents_snapshot > 0 && (
-                        ` · ${PAYMENT_METHOD_LABEL[t.payment_method] ?? "sin especificar"}`
-                      )}
+                    </p>
+                    <p className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-2xs text-zinc-500">
+                      <span>
+                        Emitida{" "}
+                        {t.issued_at
+                          ? new Date(t.issued_at).toLocaleDateString("es-CO", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "sin fecha"}
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        {t.redeemed_at
+                          ? `Ingreso ${new Date(t.redeemed_at).toLocaleString("es-CO", {
+                              day: "2-digit",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}${t.redeemed_by_name ? ` · ${t.redeemed_by_name}` : ""}`
+                          : "Ingreso no registrado"}
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        {t.price_cents_snapshot > 0
+                          ? `${PAYMENT_METHOD_LABEL[t.payment_method] ?? "Pago no registrado"} · $${(t.price_cents_snapshot / 100).toLocaleString("es-CO")}`
+                          : "Cortesía"}
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        {t.sold_by_name
+                          ? `Emitida por ${t.sold_by_name}`
+                          : t.from_allocation
+                            ? "Canal: cupo promotor"
+                            : "Canal no registrado"}
+                      </span>
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">

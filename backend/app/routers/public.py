@@ -28,6 +28,7 @@ from app.core.phone import digits_only, phone_tail_sql
 from app.core.public_venue import public_venue_name_sql
 from app.core.rate_limit import enforce_rate_limit
 from app.core.refs import payment_reference
+from app.deps import ensure_roles, get_optional_current_user
 from app.schemas import (
     FanCredentialRequest,
     FanLookupRequest,
@@ -315,6 +316,8 @@ async def public_event_detail(
     event_id: int,
     request: Annotated[None, Depends(_rate_limit)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    preview: bool = Query(False),
+    user: Annotated[dict | None, Depends(get_optional_current_user)] = None,
 ):
     """Detalle publico de un evento (pantalla "comprar boleto").
 
@@ -324,7 +327,28 @@ async def public_event_detail(
     (`published`/`live`) y futuro —: un borrador, un evento pasado o un id
     inexistente responden 404 por igual, para no filtrar la existencia de
     eventos no publicos ni ofrecer compra de algo que ya ocurrio.
+
+    `?preview=1` es la excepción: exige sesión con rol admin en la venue y
+    devuelve la ficha actual aunque sea borrador, para revisarla antes de
+    publicar. La venta sigue cerrada en vista previa (el front no muestra CTA).
     """
+    if preview:
+        if user is None:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "No autenticado")
+        async with db.cursor() as cur:
+            await cur.execute(
+                "SELECT venue_id FROM events WHERE id = %s", (event_id,)
+            )
+            ev_owner = await cur.fetchone()
+        if not ev_owner:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Evento no encontrado")
+        ensure_roles(user, int(ev_owner["venue_id"]), "super_admin", "admin")
+
+    visibility = (
+        "e.id = %s"
+        if preview
+        else "e.id = %s AND e.status IN ('published', 'live') AND e.starts_at >= now()"
+    )
     async with db.cursor() as cur:
         await cur.execute(
             f"""
@@ -359,8 +383,7 @@ async def public_event_detail(
                        AND t.status IN ('issued', 'redeemed'))::int AS active
             FROM events e
             JOIN venues v ON v.id = e.venue_id
-            WHERE e.id = %s AND e.status IN ('published', 'live')
-              AND e.starts_at >= now()
+            WHERE {visibility}
             """,
             (event_id,),
         )
@@ -392,7 +415,8 @@ async def public_event_detail(
         # Lineup (mig 043): ahora sí hay artistas. Orden de cartel.
         await cur.execute(
             """
-            SELECT id, name, role, sort_order FROM event_lineup
+            SELECT id, name, role, sort_order, image_url, starts_at, description
+              FROM event_lineup
              WHERE event_id = %s ORDER BY sort_order, id
             """,
             (event_id,),
@@ -468,8 +492,15 @@ async def public_event_detail(
             for t in types
         ],
         "lineup": [
-            {"id": row["id"], "name": row["name"], "role": row["role"],
-             "sort_order": row["sort_order"]}
+            {
+                "id": row["id"], "name": row["name"], "role": row["role"],
+                "sort_order": row["sort_order"],
+                "image_url": row["image_url"],
+                "starts_at": (
+                    row["starts_at"].isoformat() if row["starts_at"] else None
+                ),
+                "description": row["description"],
+            }
             for row in lineup_rows
         ],
         # Si el pago en línea está configurado: sin esto la pantalla ofrece
@@ -520,7 +551,11 @@ def _coupon_discount(kind: str, value: int, price_cents: int) -> int:
 
 
 async def _resolve_coupon(
-    cur, event_id: int, code: str | None, price_cents: int
+    cur,
+    event_id: int,
+    code: str | None,
+    price_cents: int,
+    ticket_type_id: int | None = None,
 ) -> tuple[dict | None, int]:
     """Busca y valida el cupón para una compra. Devuelve (cupón, descuento).
 
@@ -534,6 +569,7 @@ async def _resolve_coupon(
     await cur.execute(
         """
         SELECT id, code, kind, value, max_uses, used_count, expires_at, is_active,
+               ticket_type_ids,
                (SELECT count(*) FROM ticket_payments p WHERE p.coupon_id=coupons.id
                 AND p.status='pending' AND p.reservation_expires_at > now()) AS reserved
           FROM coupons
@@ -547,6 +583,11 @@ async def _resolve_coupon(
     if coupon["expires_at"] is not None and coupon["expires_at"] <= datetime.now(timezone.utc):
         return None, 0
     if coupon["max_uses"] is not None and (coupon["used_count"] + coupon["reserved"]) >= coupon["max_uses"]:
+        return None, 0
+    eligible = coupon["ticket_type_ids"]
+    if eligible and ticket_type_id is not None and int(ticket_type_id) not in {
+        int(x) for x in eligible
+    }:
         return None, 0
     discount = _coupon_discount(coupon["kind"], coupon["value"], price_cents)
     return coupon, discount
@@ -580,7 +621,9 @@ async def public_coupon_quote(
         if not row or row["price_cents"] <= 0:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Localidad no disponible")
         price = int(row["price_cents"])
-        coupon, discount = await _resolve_coupon(cur, event_id, code, price)
+        coupon, discount = await _resolve_coupon(
+            cur, event_id, code, price, ticket_type_id
+        )
     return {
         "code": coupon["code"] if coupon else (code or "").strip().upper(),
         "discount_in_cents": discount,
@@ -670,7 +713,7 @@ async def public_checkout(
         # el monto que se cobra es el NETO. Un cupón inválido no aplica.
         list_price = int(row["price_cents"])
         coupon, discount = await _resolve_coupon(
-            cur, event_id, body.coupon_code, list_price
+            cur, event_id, body.coupon_code, list_price, body.ticket_type_id
         )
         charge_cents = list_price - discount
         # Un cupón que cubre TODO el precio deja el cobro en 0: Wompi no cobra

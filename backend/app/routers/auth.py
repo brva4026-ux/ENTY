@@ -56,6 +56,8 @@ from app.schemas import (
     ChangePasswordRequest,
     CloseOtherSessionsRequest,
     DeleteAccountRequest,
+    DeletionBlocker,
+    DeletionCheckOut,
     EmailChangeConfirmRequest,
     EmailChangeRequestOut,
     ExportDataRequest,
@@ -265,7 +267,14 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
                    (to_jsonb(u) ->> 'contact_email') AS contact_email,
                    coalesce(
                      (to_jsonb(u) ->> 'share_contact_with_team')::boolean, false
-                   ) AS share_contact_with_team
+                   ) AS share_contact_with_team,
+                   (SELECT t.new_email
+                      FROM email_change_tokens t
+                     WHERE t.user_id = u.id
+                       AND t.used_at IS NULL
+                       AND t.expires_at > now()
+                     ORDER BY t.created_at DESC
+                     LIMIT 1) AS pending_email
               FROM users u
              WHERE u.id = %s
             """,
@@ -336,6 +345,7 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
         password_changed_at=user.get("password_changed_at"),
         avatar_url=user.get("avatar_url"),
         active_venue_id=user.get("active_venue_id"),
+        pending_email=user.get("pending_email"),
         welcome_seen_at=user.get("welcome_seen_at"),
     )
 
@@ -1678,6 +1688,82 @@ async def security_activity(
     return [SecurityEventOut(**r) for r in rows]
 
 
+async def _deletion_blockers(
+    db: psycopg.AsyncConnection, user: dict
+) -> list[DeletionBlocker]:
+    """Negocios que impiden borrar la cuenta sin transferir la administración.
+
+    La regla es deliberadamente conservadora: si eres el único admin y el
+    negocio tiene equipo o eventos, borrar la cuenta dejaría datos de terceros
+    sin dueño. Un negocio vacío sí se puede llevar con la cuenta.
+    """
+    venue_ids = [
+        int(vid)
+        for vid, roles in (user.get("roles") or {}).items()
+        if "admin" in roles
+    ]
+    if not venue_ids:
+        return []
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT v.id, v.name,
+                   (SELECT count(*)::int FROM venue_user_roles r
+                     WHERE r.venue_id = v.id) AS members,
+                   (SELECT count(*)::int FROM venue_user_roles r
+                     WHERE r.venue_id = v.id AND r.role = 'admin') AS admins,
+                   (SELECT count(*)::int FROM events e
+                     WHERE e.venue_id = v.id) AS events
+              FROM venues v
+             WHERE v.id = ANY(%s)
+            """,
+            (venue_ids,),
+        )
+        rows = await cur.fetchall()
+    blockers: list[DeletionBlocker] = []
+    for row in rows:
+        if row["admins"] != 1:
+            continue
+        if row["members"] > 1:
+            blockers.append(
+                DeletionBlocker(
+                    venue_id=row["id"],
+                    venue_name=row["name"],
+                    reason="unique_admin_team",
+                    detail=(
+                        f"Eres el único administrador de {row['name']} y hay "
+                        "personas en el equipo. Asigna otro admin antes de "
+                        "borrar tu cuenta."
+                    ),
+                )
+            )
+        elif row["events"] > 0:
+            blockers.append(
+                DeletionBlocker(
+                    venue_id=row["id"],
+                    venue_name=row["name"],
+                    reason="unique_admin_events",
+                    detail=(
+                        f"Eres el único administrador de {row['name']} y el "
+                        "negocio tiene eventos. Asigna otro admin antes de "
+                        "borrar tu cuenta para no perder el acceso a esos "
+                        "eventos y sus boletas."
+                    ),
+                )
+            )
+    return blockers
+
+
+@router.get("/account/deletion-check", response_model=DeletionCheckOut)
+async def check_account_deletion(
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Adelanta el estado que la UI puede mostrar sin adivinar."""
+    blockers = await _deletion_blockers(db, user)
+    return DeletionCheckOut(can_delete=not blockers, blockers=blockers)
+
+
 @router.delete("/account", response_model=MessageOut)
 async def delete_own_account(
     body: DeleteAccountRequest,
@@ -1708,28 +1794,9 @@ async def delete_own_account(
         )
         venue_ids = [r["venue_id"] for r in await cur.fetchall()]
 
-        for vid in venue_ids:
-            # La guarda es para el ADMIN que se va y deja el negocio acéfalo.
-            # A un promotor no le aplica: su salida no deja a nadie a cargo.
-            if "admin" not in user["roles"].get(vid, []):
-                continue
-            await cur.execute(
-                """SELECT count(*)::int AS n FROM venue_user_roles
-                   WHERE venue_id=%s AND role='admin'""",
-                (vid,),
-            )
-            admins = (await cur.fetchone())["n"]
-            await cur.execute(
-                "SELECT count(*)::int AS n FROM venue_user_roles WHERE venue_id=%s",
-                (vid,),
-            )
-            members = (await cur.fetchone())["n"]
-            if admins == 1 and members > 1:
-                raise HTTPException(
-                    status.HTTP_409_CONFLICT,
-                    "Eres el único administrador con miembros activos en tu "
-                    "negocio: asígnale otro admin antes de borrar tu cuenta.",
-                )
+        blockers = await _deletion_blockers(db, user)
+        if blockers:
+            raise HTTPException(status.HTTP_409_CONFLICT, blockers[0].detail)
 
         await cur.execute(
             """SELECT venue_id FROM venue_user_roles
@@ -1776,8 +1843,17 @@ async def export_own_data(
                 "La contraseña no es correcta. No descargamos tus datos.",
             )
         await cur.execute(
-            "SELECT id, email, phone, full_name, is_active, created_at, "
-            "updated_at, last_login_at FROM users WHERE id=%s",
+            """SELECT id, email, phone, full_name, is_active, created_at,
+                      updated_at, last_login_at,
+                      (to_jsonb(users) ->> 'username') AS username,
+                      (to_jsonb(users) ->> 'contact_email') AS contact_email,
+                      coalesce(
+                        (to_jsonb(users) ->> 'share_contact_with_team')::boolean,
+                        false
+                      ) AS share_contact_with_team,
+                      (to_jsonb(users) ->> 'avatar_url') AS avatar_url,
+                      (to_jsonb(users) ->> 'active_venue_id') AS active_venue_id
+                 FROM users WHERE id=%s""",
             (uid,),
         )
         profile = await cur.fetchone()
@@ -1819,6 +1895,13 @@ async def export_own_data(
             "email": profile["email"],
             "phone": profile["phone"],
             "full_name": profile["full_name"],
+            "username": profile.get("username"),
+            "contact_email": profile.get("contact_email"),
+            "share_contact_with_team": bool(
+                profile.get("share_contact_with_team")
+            ),
+            "avatar_url": profile.get("avatar_url"),
+            "active_venue_id": profile.get("active_venue_id"),
             "is_active": profile["is_active"],
             "created_at": profile["created_at"].isoformat()
             if profile["created_at"]

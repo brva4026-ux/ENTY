@@ -12,7 +12,7 @@ import EmptyState from "./EmptyState";
 import Icon from "./Icon";
 import TransitionLink from "./TransitionLink";
 import EventCover, { eventFullDate } from "./EventCover";
-import { formatEventTime, isStaleLive, eventZone } from "../lib/eventTime";
+import { formatEventDate, formatEventTime, isStaleLive, eventZone } from "../lib/eventTime";
 
 /* Etiqueta y color por estado — compartidos con la franja de eventos. */
 export const STATUS_META = {
@@ -21,7 +21,7 @@ export const STATUS_META = {
     cls: "bg-zinc-800 text-zinc-300 ring-zinc-600/50",
   },
   published: {
-    label: "A la venta",
+    label: "Publicado",
     cls: "bg-brand-500/15 text-brand-300 ring-brand-500/40",
   },
   live: {
@@ -66,11 +66,21 @@ const TABS = [
   { id: "accesos", label: "Accesos", icon: "door" },
 ];
 
+function endDateLabel(ev, tz) {
+  if (!ev.ends_at) return "Sin hora de cierre";
+  return formatEventDate(ev.ends_at, tz, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function EventWorkbench({
   ev,
   tab,
   onTab,
-  actions,
+  actions = [],
   onAction,
   busyAction,
   isLive,
@@ -92,116 +102,123 @@ export default function EventWorkbench({
   const status = STATUS_META[ev.status] ?? STATUS_META.draft;
   const staleLive = isStaleLive(ev);
   const tz = eventZone(ev);
+  const primaryActions = actions.filter((a) => !a.danger);
+  const cancelAction = actions.find((a) => a.action === "cancel");
+  const menuItems = [
+    ...(onDuplicate
+      ? [{ key: "duplicate", label: "Duplicar evento", icon: "copy", onClick: onDuplicate }]
+      : []),
+    ...(cancelAction
+      ? [{
+          key: "cancel",
+          label: "Cancelar evento",
+          icon: "close",
+          danger: true,
+          disabled: busyAction === "cancel",
+          onClick: () => onAction("cancel"),
+        }]
+      : []),
+    ...(canDelete && ev.status !== "live"
+      ? [{
+          key: "delete",
+          label: "Eliminar evento",
+          icon: "trash",
+          danger: true,
+          onClick: onDelete,
+        }]
+      : []),
+  ];
 
   return (
-    <div className="space-y-4">
-      <section className="admin-workspace-head" data-tour="backstage">
-        <EventCover ev={ev} className="admin-workspace-cover" />
-        <div className="min-w-0">
-          <div className="admin-workspace-titlebar flex flex-wrap items-start justify-between gap-3">
-            <div className="admin-workspace-ident min-w-0">
-              <p className="eyebrow">Backstage del evento</p>
-              <h1 className="admin-workspace-title">{ev.name}</h1>
-              <p className="admin-workspace-meta">
-                <span>{eventFullDate(ev)}</span>
-                <span>{formatEventTime(ev.starts_at, tz)}</span>
-                <span>{ev.location || "Lugar por confirmar"}</span>
-                <span className="admin-state" data-status={ev.status}>
+    <div className="bs-shell">
+      <section className="bs-head" data-tour="backstage">
+        <div className="bs-poster">
+          <EventCover ev={ev} showTime={false} />
+        </div>
+
+        <div className="bs-ident">
+          <div className="bs-title-row">
+            <div className="bs-title-block">
+              <p className="bs-kicker">Backstage del evento</p>
+              <h1 className="bs-title">{ev.name}</h1>
+              <div className="bs-status-row">
+                <span className="bs-status" data-status={ev.status}>
+                  <span className="bs-status-dot" aria-hidden="true" />
                   {status.label}
                 </span>
                 {staleLive && (
-                  <span className="admin-warning">Evento pasado · puerta abierta</span>
+                  <span className="bs-warning">
+                    <Icon name="alert" className="h-3.5 w-3.5" aria-hidden="true" />
+                    Evento pasado · puerta abierta
+                  </span>
                 )}
-              </p>
+              </div>
             </div>
-            <div className="admin-workspace-actions">
-              <button
-                type="button"
-                onClick={onExit}
-                className="btn-mini"
-                data-variant="brand"
-              >
-                <Icon name="back" className="h-3.5 w-3.5" />
+
+            <div className="bs-head-actions">
+              <button type="button" onClick={onExit} className="bs-back">
+                <Icon name="back" className="h-4 w-4" aria-hidden="true" />
                 Volver a Eventos
               </button>
-              {editable && (
-                <button type="button" onClick={onEdit} className="btn-mini">
-                  Editar evento
-                </button>
-              )}
-              {canDelete && ev.status !== "live" && (
-                <ActionMenu
-                  label={`Opciones de ${ev.name}`}
-                  items={[
-                    ...(onDuplicate
-                      ? [
-                          {
-                            key: "duplicate",
-                            label: "Duplicar evento",
-                            icon: "copy",
-                            onClick: onDuplicate,
-                          },
-                        ]
-                      : []),
-                    {
-                      key: "delete",
-                      label: "Eliminar evento",
-                      icon: "trash",
-                      danger: true,
-                      onClick: onDelete,
-                    },
-                  ]}
-                />
+              {menuItems.length > 0 && (
+                <ActionMenu label={`Opciones de ${ev.name}`} items={menuItems} />
               )}
             </div>
           </div>
 
-          {ev.description && (
-            <p className="admin-workspace-desc mt-2 line-clamp-2 whitespace-pre-line text-pretty text-sm text-zinc-400">
-              {ev.description}
-            </p>
-          )}
-
-          {actions.length > 0 && (
-            <div className="admin-workspace-next mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-800/80 pt-3">
-              <span className="mr-1 text-2xs font-bold uppercase tracking-wide text-zinc-500">
-                Siguiente paso
-              </span>
-              {actions
-                .filter((a) => !a.danger)
-                .map(({ action, label }) => (
-                  <button
-                    key={action}
-                    onClick={() => onAction(action, label)}
-                    disabled={busyAction === action}
-                    className="btn-primary !py-1.5 text-xs"
-                  >
-                    {busyAction === action ? "Procesando…" : label}
-                  </button>
-                ))}
-              {actions.some((a) => a.danger) && (
-                <ActionMenu
-                  label={`Más acciones de ${ev.name}`}
-                  items={actions
-                    .filter((a) => a.danger)
-                    .map(({ action, label }) => ({
-                      key: action,
-                      label,
-                      icon: "close",
-                      danger: true,
-                      disabled: busyAction === action,
-                      onClick: () => onAction(action, label),
-                    }))}
-                />
-              )}
-              {isLive && <LiveIndicator live lastUpdated={lastUpdated} />}
+          <dl className="bs-facts">
+            <div>
+              <dt>Inicio</dt>
+              <dd>
+                <strong>{eventFullDate(ev)}</strong>
+                <span>{formatEventTime(ev.starts_at, tz)}</span>
+              </dd>
             </div>
-          )}
+            <div>
+              <dt>Fin</dt>
+              <dd>
+                <strong>{endDateLabel(ev, tz)}</strong>
+                <span>
+                  {ev.ends_at ? formatEventTime(ev.ends_at, tz) : "Por confirmar"}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Lugar</dt>
+              <dd>
+                <strong>{ev.location || "Lugar por confirmar"}</strong>
+                <span>{ev.venue_name || ev.category || "Evento"}</span>
+              </dd>
+            </div>
+          </dl>
+
+          <div className="bs-actions">
+            {primaryActions.map(({ action, label }) => (
+              <button
+                key={action}
+                type="button"
+                onClick={() => onAction(action)}
+                disabled={busyAction === action}
+                className="btn-primary bs-primary"
+              >
+                {busyAction === action ? "Procesando…" : label}
+              </button>
+            ))}
+            {editable && (
+              <button type="button" onClick={onEdit} className="bs-secondary">
+                <Icon name="edit" className="h-4 w-4" aria-hidden="true" />
+                Editar evento
+              </button>
+            )}
+            {lastUpdated && (
+              <LiveIndicator live={Boolean(isLive)} lastUpdated={lastUpdated} />
+            )}
+          </div>
         </div>
       </section>
 
       <nav
-        className="admin-workspace-tabs"
+        className="bs-tabs"
         role="tablist"
         aria-label="Secciones del evento"
         data-tour="tabs-evento"
@@ -216,9 +233,10 @@ export default function EventWorkbench({
             tabIndex={wbTabs.tabIndexFor(t.id)}
             onKeyDown={wbTabs.onKeyDown}
             onClick={() => onTab(t.id)}
-            className="admin-workspace-tab"
+            className="bs-tab"
           >
-            {t.label}
+            <Icon name={t.icon} className="h-4 w-4" aria-hidden="true" />
+            <span>{t.label}</span>
           </button>
         ))}
       </nav>

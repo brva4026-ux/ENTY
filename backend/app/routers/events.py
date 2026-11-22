@@ -93,7 +93,8 @@ async def fetch_lineup(cur, event_id: int) -> list[dict]:
     """El lineup del evento, en orden de cartel (mig 043)."""
     await cur.execute(
         """
-        SELECT id, name, role, sort_order FROM event_lineup
+        SELECT id, name, role, sort_order, image_url, starts_at, description
+          FROM event_lineup
          WHERE event_id=%s ORDER BY sort_order, id
         """,
         (event_id,),
@@ -447,8 +448,10 @@ async def duplicate_event(
                 -- El cartel también se repite: la recurrencia semanal casi
                 -- siempre trae al mismo DJ. `doors_open_at` NO se copia: es
                 -- relativo a la fecha nueva y quedaría en el pasado.
-                INSERT INTO event_lineup (event_id, name, role, sort_order)
-                SELECT new_ev.id, el.name, el.role, el.sort_order
+                INSERT INTO event_lineup (event_id, name, role, sort_order,
+                                          image_url, description)
+                SELECT new_ev.id, el.name, el.role, el.sort_order,
+                       el.image_url, el.description
                 FROM event_lineup el, new_ev
                 WHERE el.event_id = %s
                 RETURNING 1
@@ -999,7 +1002,9 @@ async def delete_allocation(
 # --------------------------------------------------------------------------
 # Lineup (mig 043): los artistas de la noche
 # --------------------------------------------------------------------------
-_LINEUP_COLUMNS = "id, name, role, sort_order"
+_LINEUP_COLUMNS = (
+    "id, name, role, sort_order, image_url, starts_at, description"
+)
 
 
 async def _ensure_event(cur, venue_id: int, event_id: int) -> None:
@@ -1039,14 +1044,18 @@ async def add_lineup_item(
         await _ensure_event(cur, venue_id, event_id)
         await cur.execute(
             f"""
-            INSERT INTO event_lineup (event_id, name, role, sort_order)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO event_lineup (event_id, name, role, sort_order,
+                                      image_url, starts_at, description)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING {_LINEUP_COLUMNS}
             """,
             (
                 event_id, body.name,
                 (body.role or "").strip() or None,
                 body.sort_order,
+                (body.image_url or "").strip() or None,
+                body.starts_at,
+                (body.description or "").strip() or None,
             ),
         )
         created = await cur.fetchone()
@@ -1073,7 +1082,8 @@ async def update_lineup_item(
         await cur.execute(
             f"""
             UPDATE event_lineup
-               SET name=%s, role=%s, sort_order=%s
+               SET name=%s, role=%s, sort_order=%s, image_url=%s,
+                   starts_at=%s, description=%s
              WHERE id=%s AND event_id=%s
             RETURNING {_LINEUP_COLUMNS}
             """,
@@ -1081,6 +1091,9 @@ async def update_lineup_item(
                 body.name,
                 (body.role or "").strip() or None,
                 body.sort_order,
+                (body.image_url or "").strip() or None,
+                body.starts_at,
+                (body.description or "").strip() or None,
                 item_id, event_id,
             ),
         )
@@ -1118,8 +1131,33 @@ async def delete_lineup_item(
 # Cupones (mig 043): descuentos por código, solo venta online
 # --------------------------------------------------------------------------
 _COUPON_COLUMNS = (
-    "id, event_id, code, kind, value, max_uses, used_count, expires_at, is_active"
+    "id, event_id, code, kind, value, max_uses, used_count, expires_at, is_active, "
+    "ticket_type_ids"
 )
+
+
+async def _clean_coupon_types(cur, event_id: int, ids: list[int] | None):
+    """Normaliza las localidades elegidas y verifica que sean del evento.
+
+    `None` o lista vacía = todas. Un id de otro evento no puede colarse: el
+    cupón se aplicaría a una localidad que no existe en esta noche.
+    """
+    if not ids:
+        return None
+    unique = sorted({int(x) for x in ids})
+    await cur.execute(
+        "SELECT id FROM ticket_types WHERE event_id=%s AND id = ANY(%s)",
+        (event_id, unique),
+    )
+    found = {int(r["id"]) for r in await cur.fetchall()}
+    missing = [x for x in unique if x not in found]
+    if missing:
+        raise HTTPException(
+            400,
+            "Una localidad elegida no pertenece a este evento: "
+            + ", ".join(str(x) for x in missing),
+        )
+    return unique
 
 
 @router.get("/events/{event_id}/coupons", response_model=list[CouponOut])
@@ -1153,17 +1191,19 @@ async def create_coupon(
     ensure_roles(user, venue_id, "super_admin", "admin")
     async with db.cursor() as cur:
         await _ensure_event(cur, venue_id, event_id)
+        type_ids = await _clean_coupon_types(cur, event_id, body.ticket_type_ids)
         try:
             await cur.execute(
                 f"""
                 INSERT INTO coupons (event_id, code, kind, value, max_uses,
-                                     expires_at, is_active, created_by)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                     expires_at, is_active, created_by,
+                                     ticket_type_ids)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING {_COUPON_COLUMNS}
                 """,
                 (
                     event_id, body.code, body.kind, body.value, body.max_uses,
-                    body.expires_at, body.is_active, user["id"],
+                    body.expires_at, body.is_active, user["id"], type_ids,
                 ),
             )
         except psycopg.errors.UniqueViolation as e:
@@ -1206,11 +1246,15 @@ async def update_coupon(
         if not current:
             raise HTTPException(404, "Cupón no encontrado")
         changes = body.model_dump(exclude_unset=True)
-        # `expires_at` y `max_uses` se pueden limpiar enviando null explícito;
-        # el resto solo se aplica si viene con valor.
+        if "ticket_type_ids" in changes:
+            changes["ticket_type_ids"] = await _clean_coupon_types(
+                cur, event_id, changes["ticket_type_ids"]
+            )
+        # `expires_at`, `max_uses` y `ticket_type_ids` se pueden limpiar
+        # enviando null explícito; el resto solo se aplica si viene con valor.
         merged = {**current}
         for k, v in changes.items():
-            if v is not None or k in ("expires_at", "max_uses"):
+            if v is not None or k in ("expires_at", "max_uses", "ticket_type_ids"):
                 merged[k] = v
         # Un tope por debajo de lo ya usado deja el cupón en un estado imposible
         # (used_count > max_uses): el arqueo no sabría si sobró o faltó. Se
@@ -1228,13 +1272,15 @@ async def update_coupon(
             await cur.execute(
                 f"""
                 UPDATE coupons
-                   SET kind=%s, value=%s, max_uses=%s, expires_at=%s, is_active=%s
+                   SET kind=%s, value=%s, max_uses=%s, expires_at=%s,
+                       is_active=%s, ticket_type_ids=%s
                  WHERE id=%s AND event_id=%s
                 RETURNING {_COUPON_COLUMNS}
                 """,
                 (
                     merged["kind"], merged["value"], merged["max_uses"],
-                    merged["expires_at"], merged["is_active"], coupon_id, event_id,
+                    merged["expires_at"], merged["is_active"],
+                    merged.get("ticket_type_ids"), coupon_id, event_id,
                 ),
             )
         except psycopg.errors.CheckViolation as e:

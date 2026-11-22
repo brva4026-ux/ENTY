@@ -225,11 +225,11 @@ test.describe("ciclo del usuario en el perfil", () => {
 
     const uname = `e2e${Date.now().toString().slice(-8)}`;
     await input.fill(uname);
-    await page.getByRole("button", { name: /Guardar datos/ }).click();
+    await page.getByRole("button", { name: /Guardar cambios/ }).click();
 
     // Se guarda en minusculas y el valor queda visible en el campo.
     await expect(input).toHaveValue(uname);
-    await expect(page.getByText(/Datos actualizados/i)).toBeVisible();
+    await expect(page.getByText(/Guardado confirmado por el servidor/i)).toBeVisible();
 
     // Y ahora la cuenta entra escribiendo SOLO el usuario.
     // Hay dos botones "Cerrar sesión" (cabecera y perfil): se usa el primero.

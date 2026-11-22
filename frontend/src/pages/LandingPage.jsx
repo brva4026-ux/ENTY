@@ -384,7 +384,7 @@ export default function LandingPage() {
 
   const openEvents = events.slice(0, 4);
 
-  /** "Explorar ENTY" baja a las funcionalidades: el explorar es real, no un
+  /** "Explorar Enty" baja a las funcionalidades: el explorar es real, no un
    *  botón decorativo. Conserva el ancla nativa (funciona incluso antes de que
    *  React hidrate y con JS apagado); cuando hay JS se suaviza el salto, salvo
    *  si el movimiento está reducido, donde el salto directo es lo correcto. */
@@ -566,7 +566,7 @@ export default function LandingPage() {
                 className="lp-btn lp-btn-ghost"
                 onClick={(e) => scrollToSection(e, "funciones")}
               >
-                Explorar ENTY
+                Explorar Enty
               </a>
             </div>
           </section>
@@ -792,7 +792,7 @@ export default function LandingPage() {
             <a href={`mailto:${SITE.supportEmail}`}>Contacto</a>
           </nav>
           <p className="lp-foot-copy">
-            © {new Date().getFullYear()} ENTY. Todos los derechos reservados.
+            © {new Date().getFullYear()} Enty. Todos los derechos reservados.
           </p>
         </footer>
       </div>

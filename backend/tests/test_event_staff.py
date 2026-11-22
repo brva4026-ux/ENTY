@@ -275,3 +275,31 @@ def test_access_requires_authentication(api_client, world):
     api_client.cookies.clear()
     assert api_client.get("/escaner/acceso?token=cualquiera").status_code == 401
     assert api_client.post("/escaner/acceso?token=cualquiera").status_code == 401
+
+
+def test_revoke_link_keeps_person_on_the_roster(api):
+    """Revocar corta el acceso, pero no saca a la persona de la noche."""
+    venue, event_id = _night(api, "Noche revocada")
+    _assign(api, venue, event_id, who="bouncer")
+    uid = api.world["bouncer"]["id"]
+    link = api.post(f"/venues/{venue}/events/{event_id}/staff/{uid}/link", "admin")
+    assert link.status_code == 201, link.text
+
+    rows = api.get(f"/venues/{venue}/events/{event_id}/staff", "admin").json()
+    assert rows[0]["has_link"] is True
+    assert rows[0]["link_expires_at"] is not None
+
+    rev = api.delete(
+        f"/venues/{venue}/events/{event_id}/staff/{uid}/link", "admin"
+    )
+    assert rev.status_code == 200, rev.text
+
+    rows = api.get(f"/venues/{venue}/events/{event_id}/staff", "admin").json()
+    assert len(rows) == 1, "revocar sacó a la persona del roster"
+    assert rows[0]["has_link"] is False
+    assert rows[0]["link_revoked_at"] is not None
+
+    again = api.delete(
+        f"/venues/{venue}/events/{event_id}/staff/{uid}/link", "admin"
+    )
+    assert again.status_code == 404, again.text

@@ -35,7 +35,11 @@ test("Inicio -> detalle -> Mis boletos", async ({ page }) => {
       .then((r) => r.json())
       .catch(() => null);
     const list = res?.events || [];
-    return list.find((e) => e.price_cents != null) || null;
+    return (
+      list.find(
+        (e) => (e.price_cents || 0) > 0 && (e.sold_pct ?? 0) < 100,
+      ) || null
+    );
   });
   test.skip(!event, "Sin evento con localidad de pago");
 

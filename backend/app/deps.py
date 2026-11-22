@@ -127,6 +127,25 @@ async def get_current_user(
     }
 
 
+async def get_optional_current_user(
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)] = None,
+) -> dict | None:
+    """Como `get_current_user`, pero sin sesión devuelve None.
+
+    Solo para superficies que siguen siendo públicas (la ficha del evento):
+    el modo vista previa exige sesión, pero un fan sin cuenta debe seguir
+    entrando a la ficha normal.
+    """
+    try:
+        return await get_current_user(request, authorization, db)
+    except HTTPException as e:
+        if e.status_code == status.HTTP_401_UNAUTHORIZED:
+            return None
+        raise
+
+
 def ensure_roles(user: dict, venue_id: int, *allowed: str) -> None:
     """Lanza 403 si el usuario no tiene ninguno de los roles `allowed` en la venue."""
     roles = user["roles"].get(venue_id, [])

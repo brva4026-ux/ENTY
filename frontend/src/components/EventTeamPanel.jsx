@@ -104,6 +104,23 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
     }
   }
 
+  async function revocarLink(uid, nombre) {
+    setOcupado(true);
+    try {
+      await apiFetch(
+        `/venues/${venueId}/events/${event.id}/staff/${uid}/link`,
+        { method: "DELETE" },
+      );
+      setLinkReciente((l) => (l && l.user_id === uid ? null : l));
+      await cargar();
+      ui.success(`Enlace de ${nombre} revocado`);
+    } catch (e) {
+      ui.error(e.message);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
   async function generarLink(uid) {
     setEmitiendo(uid);
     try {
@@ -285,10 +302,12 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
             filas={puerta}
             usados={usados}
             onLink={generarLink}
+            onRevoke={revocarLink}
             onQuitar={quitar}
             emitiendo={emitiendo}
             ocupado={ocupado}
             linkReciente={linkReciente}
+            event={event}
           />
           <Roster
             titulo="Venta"
@@ -297,10 +316,12 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
             filas={venta}
             usados={usados}
             onLink={generarLink}
+            onRevoke={revocarLink}
             onQuitar={quitar}
             emitiendo={emitiendo}
             ocupado={ocupado}
             linkReciente={linkReciente}
+            event={event}
           />
         </>
       )}
@@ -315,10 +336,12 @@ function Roster({
   filas,
   usados,
   onLink,
+  onRevoke,
   onQuitar,
   emitiendo,
   ocupado,
   linkReciente,
+  event,
 }) {
   return (
     <div className="card p-4">
@@ -329,7 +352,10 @@ function Roster({
           {filas.length}
         </span>
       </div>
-      <p className="mt-0.5 text-xs text-zinc-500">{desc}</p>
+      <p className="mt-0.5 text-xs text-zinc-500">
+        {desc}
+        {event?.name ? ` · ${event.name}` : ""}
+      </p>
       <ul className="mt-3 space-y-2">
         {filas.map((p) => (
           <li
@@ -341,19 +367,34 @@ function Roster({
                 {p.full_name}
               </p>
               <p className="truncate text-2xs text-zinc-500">
-                {usados.has(p.user_id) ? (
+                {usados.has(p.user_id) || p.link_used_at ? (
                   <span className="text-emerald-400">
-                    Escáner activo: ya entró con su link
+                    Enlace canjeado · escáner activo
                   </span>
                 ) : p.has_link ? (
                   <span className="text-emerald-400">
-                    Link vigente —{" "}
+                    Vigente hasta{" "}
+                    {p.link_expires_at
+                      ? new Date(p.link_expires_at).toLocaleString("es-CO", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "—"}
                     {linkReciente?.user_id === p.user_id
-                      ? "lo tienes en pantalla"
-                      : "reenvíaselo si no lo abrió"}
+                      ? " · lo tenés en pantalla"
+                      : ""}
+                  </span>
+                ) : p.link_revoked_at ? (
+                  <span className="text-amber-400">Enlace revocado</span>
+                ) : p.link_expires_at ? (
+                  <span className="text-amber-400">
+                    Enlace vencido el{" "}
+                    {new Date(p.link_expires_at).toLocaleDateString("es-CO")}
                   </span>
                 ) : (
-                  "Sin link: no puede entrar a la puerta"
+                  "Sin enlace: no puede entrar a la puerta"
                 )}
               </p>
             </div>
@@ -377,6 +418,17 @@ function Roster({
               )}
               {usados.has(p.user_id) ? "Rotar" : p.has_link ? "Reenviar" : "Link"}
             </button>
+            {p.has_link && (
+              <button
+                onClick={() => onRevoke(p.user_id, p.full_name)}
+                disabled={ocupado}
+                className="btn-mini shrink-0"
+                data-variant="danger"
+                aria-label={`Revocar el enlace de ${p.full_name}`}
+              >
+                Revocar
+              </button>
+            )}
             <button
               onClick={() => onQuitar(p.user_id, p.full_name)}
               disabled={ocupado}

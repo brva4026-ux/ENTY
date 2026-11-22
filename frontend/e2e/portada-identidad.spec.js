@@ -93,8 +93,8 @@ test("el color de marca del negocio se puede elegir y tiñe la portada", async (
   const color = page.locator("#venue-color");
   await expect(color).toBeVisible();
   await color.fill("#0f9d58");
-  await page.getByRole("button", { name: "Guardar negocio" }).click();
-  await expect(page.getByText("Datos del negocio actualizados.")).toBeVisible();
+  await page.getByRole("button", { name: "Guardar organización" }).click();
+  await expect(page.getByText("Organización guardada y confirmada por el servidor")).toBeVisible();
 
   // De vuelta en el panel, la portada lleva SU color (no el violeta de Enty).
   await page.goto("/admin");
@@ -117,8 +117,8 @@ test("el color de marca del negocio se puede elegir y tiñe la portada", async (
   // Restaurar el estado del seed: otros specs asumen el violeta de Enty.
   await page.goto("/perfil?tab=negocio");
   await page.getByRole("button", { name: "Quitar" }).click();
-  await page.getByRole("button", { name: "Guardar negocio" }).click();
-  await expect(page.getByText("Datos del negocio actualizados.")).toBeVisible();
+  await page.getByRole("button", { name: "Guardar organización" }).click();
+  await expect(page.getByText("Organización guardada y confirmada por el servidor")).toBeVisible();
   expect(antes).toBeDefined();
 });
 

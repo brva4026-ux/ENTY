@@ -166,8 +166,12 @@ export default function TypeManager({ venueId, eventId, types, onChange, capacit
 
   return (
     <div className="card p-5">
-      <p className="eyebrow">Producto</p>
-      <h3 className="display mb-3 mt-0.5 text-base">Tipos de boleta</h3>
+      <p className="eyebrow">Boletas</p>
+      <h3 className="display mb-1 mt-0.5 text-base">Tipos de boleta</h3>
+      <p className="mb-3 text-xs text-zinc-500">
+        Cada tipo es una localidad del evento: define el precio, el cupo y si
+        es cortesía. No es un producto separado del evento.
+      </p>
       <ul className="mb-4 space-y-2">
         {(types || []).map((t) => (
           <li
@@ -293,7 +297,9 @@ export default function TypeManager({ venueId, eventId, types, onChange, capacit
       </ul>
       {/* Atajos: un toque llena el formulario — luego se ajusta el precio. */}
       <div className="mb-3">
-        <p className="mb-1.5 text-xs font-medium text-zinc-400">Crear rápido:</p>
+        <p className="mb-1.5 text-xs font-medium text-zinc-400">
+          Plantillas editables:
+        </p>
         <div className="flex flex-wrap gap-1.5">
           {PRESETS.map((p) => (
           <button

@@ -63,6 +63,9 @@ async function forceOnlinePayments(page) {
     const res = await route.fetch();
     const body = await res.json();
     body.payments_enabled = true;
+    // El fallback por WhatsApp es del organizador: el fixture debe traerlo.
+    body.contact_name = "Bar Demo";
+    body.contact_phone = "573001234567";
     await route.fulfill({ response: res, json: body });
   });
 }

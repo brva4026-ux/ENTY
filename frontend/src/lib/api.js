@@ -68,8 +68,9 @@ export function fetchVenueFunnel(venueId, days = 7) {
  * Detalle publico de un evento (pantalla de compra). Mismo caracter que el
  * catalogo: sin sesion. Un evento no publicado o inexistente responde 404.
  */
-export function fetchPublicEventDetail(eventId) {
-  return apiFetch(`/public/events/${encodeURIComponent(eventId)}`);
+export function fetchPublicEventDetail(eventId, { preview = false } = {}) {
+  const qs = preview ? "?preview=1" : "";
+  return apiFetch(`/public/events/${encodeURIComponent(eventId)}${qs}`);
 }
 
 /**

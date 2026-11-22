@@ -24,106 +24,47 @@ export function Spark({ size = 12, color = "var(--e-green-500)", className = "" 
   );
 }
 
-export function Logo({ size = "md", animated = true }) {
-  const hero = size === "hero";
-  const box = hero
-    ? "h-16 w-16"
-    : size === "xl"
-      ? "h-14 w-14"
-      : size === "lg"
-        ? "h-12 w-12"
-        : "h-8 w-8";
-  const text =
-    size === "xl"
-      ? "text-4xl"
-      : size === "lg"
-        ? "text-3xl"
-        : "text-base";
-  const radius =
-    size === "md"
-      ? "rounded-[0.6rem]"
-      : hero
-        ? "rounded-[1.15rem]"
-        : "rounded-[0.95rem]";
+/** Símbolo Enty: boleto sólido inclinado, con muescas semicirculares.
+ *
+ * Es la pieza única de la marca. No lleva letras, perforaciones ni degradados:
+ * la forma tiene que leerse a 16 px (favicon) y a 240 px (portada). El trazo
+ * sigue la especificación de 48×48 y se rota −25° alrededor del centro.
+ */
+export function EntySymbol({ size = 32, className = "", title }) {
   return (
-    <span className="inline-flex items-center gap-3">
-      {/* ISOTIPO UNICO. La misma marca que public/icon.svg y que el favicon
-          del index.html: icono cuadrado muy redondeado, negro mate con filo
-          violeta brillante, la "E" blanca y la estrella de cuatro puntas en
-          el lateral derecho. Los colores van planos a proposito — un <defs>
-          con id se duplicaria en cada render del Logo y el segundo svg del
-          DOM quedaria sin gradiente. */}
-      <span
-        className={`${box} relative ${animated ? "logo-pop" : ""} grid place-items-center`}
-      >
-        <span
-          className={`brand-tile relative grid h-full w-full place-items-center overflow-hidden ${radius}`}
-        >
-          <svg
-            viewBox="0 0 512 512"
-            className="relative h-full w-full"
-            aria-hidden="true"
-          >
-            {/* Filo violeta brillante del tile. */}
-            <rect
-              x="9"
-              y="9"
-              width="494"
-              height="494"
-              rx="118"
-              fill="none"
-              stroke="var(--e-violet-400)"
-              strokeWidth="16"
-              strokeOpacity="0.85"
-            />
-            {/* La "E": asta + tres brazos redondeados. */}
-            <g
-              stroke="var(--e-white)"
-              strokeWidth="60"
-              strokeLinecap="round"
-              fill="none"
-            >
-              <path d="M186 156 H318" />
-              <path d="M186 256 H292" />
-              <path d="M186 356 H318" />
-              <path d="M186 156 V356" />
-            </g>
-            {/* La estrella de cuatro puntas, integrada al lateral derecho. */}
-            <path
-              fill="var(--e-violet-400)"
-              d="M356 196 l13 34 34 13 -34 13 -13 34 -13 -34 -34 -13 34 -13 z"
-            />
-          </svg>
-        </span>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      className={`enty-symbol-svg ${className}`}
+      {...(title
+        ? { role: "img", "aria-label": title }
+        : { "aria-hidden": "true" })}
+    >
+      <path
+        fill="currentColor"
+        d="M7 12H41A3 3 0 0 1 44 15V20A4 4 0 0 0 44 28V33A3 3 0 0 1 41 36H7A3 3 0 0 1 4 33V28A4 4 0 0 0 4 20V15A3 3 0 0 1 7 12Z"
+        transform="rotate(-25 24 24)"
+      />
+    </svg>
+  );
+}
+
+/** Marca completa: símbolo + «Enty». El color del texto lo hereda del
+ *  contenedor (tinta en claro, claro en oscuro); el símbolo conserva el
+ *  violeta de Enty. En espacios compactos se puede ocultar el wordmark. */
+export function Logo({ size = "md", animated = true, compact = false }) {
+  const px =
+    size === "hero" ? 64 : size === "xl" ? 52 : size === "lg" ? 44 : 32;
+  return (
+    <span
+      className={`enty-logo ${animated ? "logo-pop" : ""}`}
+      aria-label="Enty"
+    >
+      <span className="enty-logo-mark">
+        <EntySymbol size={px} />
       </span>
-      {hero ? (
-        /* Wordmark hero: tipografia redondeada y futurista (la voz amable de
-           la marca) — "Ent" en tinta blanca y la "y" en el violeta de acento,
-           con la estrella de cuatro puntas sobre la "t". */
-        <span className="brand-chip animate-fade">
-          <span className="brand-wordmark brand-wordmark-hero">
-            <span className="brand-shine">En</span>
-            <span className="brand-star">
-              t
-              <svg
-                viewBox="0 0 24 24"
-                className="brand-star-mark"
-                aria-hidden="true"
-              >
-                <path
-                  fill="var(--e-violet-400)"
-                  d="M12 1 l2.6 6.8 6.8 2.6 -6.8 2.6 -2.6 6.8 -2.6 -6.8 -6.8 -2.6 6.8 -2.6 z"
-                />
-              </svg>
-            </span>
-            <span className="brand-shine">y</span>
-          </span>
-        </span>
-      ) : (
-        <span className={`${text} brand-wordmark brand-shine leading-none`}>
-          Enty
-        </span>
-      )}
+      {!compact && <span className="enty-logo-word">Enty</span>}
     </span>
   );
 }

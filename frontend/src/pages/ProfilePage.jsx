@@ -34,7 +34,7 @@ const BRAND_DEFAULT = "#7c3aed";
 
 /** Avatar con anillo del color del rol: un admin se distingue de un portero
  *  de un vistazo, sin leer la etiqueta. Decorativo: el nombre va al lado. */
-function PremiumAvatar({ user, className: extraClass }) {
+function PremiumAvatar({ user, src, className: extraClass }) {
   const visual = ROLE_VISUALS[topRole(user)] ?? ROLE_VISUALS.bouncer;
   const initials = (user.full_name || "?")
     .split(" ")
@@ -42,15 +42,16 @@ function PremiumAvatar({ user, className: extraClass }) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+  const photo = src === undefined ? user.avatar_url : src;
 
   return (
     <span className={`pf-avatar ${visual.avatar} ${extraClass}`} aria-hidden="true">
       <span className={`pf-avatar-ring ${visual.tabAccent}`} />
-      {user.avatar_url ? (
+      {photo ? (
         // La foto sustituye a las iniciales; el anillo del rol se mantiene, así
         // que un admin sigue distinguiéndose a un vistazo.
         <img
-          src={user.avatar_url}
+          src={photo}
           alt=""
           decoding="async"
           className="pf-avatar-img"
@@ -232,10 +233,21 @@ export default function ProfilePage() {
   const [sessMsg, setSessMsg] = useState(null);
   const [sessBusy, setSessBusy] = useState(false);
 
-  // Foto de perfil (mig 038)
+  // Foto de perfil (mig 038): se elige y previsualiza; viaja al servidor al
+  // guardar, no en el instante en que se elige el archivo.
+  const [avatarAction, setAvatarAction] = useState(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState(null);
   const avatarInputRef = useRef(null);
+  const avatarPreview =
+    avatarAction?.type === "upload"
+      ? avatarAction.dataUrl
+      : avatarAction?.type === "remove"
+        ? null
+        : undefined;
+  const hasAvatar = Boolean(
+    avatarPreview !== undefined ? avatarPreview : user?.avatar_url,
+  );
 
   // Cambio de correo: es la llave de recuperación de la cuenta, así que el
   // formulario solo se abre a propósito y pide la contraseña vigente.
@@ -244,12 +256,22 @@ export default function ProfilePage() {
   const [emailPass, setEmailPass] = useState("");
   const [emailBusy, setEmailBusy] = useState(false);
   const [emailMsg, setEmailMsg] = useState(null);
-  const [pendingEmail, setPendingEmail] = useState("");
+  // El servidor devuelve el cambio pendiente aunque la página se recargue.
+  const [pendingEmail, setPendingEmail] = useState(user?.pending_email || "");
 
   // Descarga de los propios datos (reautenticada)
   const [exportOpen, setExportOpen] = useState(false);
   const [exportPass, setExportPass] = useState("");
   const [exportBusy, setExportBusy] = useState(false);
+
+  // Estado de borrado confirmado por el servidor: la UI no promete que se
+  // puede borrar hasta que el backend dice que no hay bloqueos.
+  const [deletionCheck, setDeletionCheck] = useState(null);
+  const [deletionCheckLoading, setDeletionCheckLoading] = useState(false);
+  const [deletionCheckError, setDeletionCheckError] = useState("");
+
+  // Cambio de sección u organización con ediciones pendientes.
+  const [pendingAction, setPendingAction] = useState(null);
 
   // Sesiones y actividad de seguridad (mig 059)
   const [sessions, setSessions] = useState([]);
@@ -280,7 +302,8 @@ export default function ProfilePage() {
     normalizeUsername(username) !== (user?.username || "") ||
     phone.trim() !== (user?.phone || "") ||
     contactEmail.trim() !== (user?.contact_email || "") ||
-    shareContact !== Boolean(user?.share_contact_with_team);
+    shareContact !== Boolean(user?.share_contact_with_team) ||
+    avatarAction !== null;
   const venueDirty =
     !!adminVenue &&
     (venueName.trim() !== adminVenue.name ||
@@ -321,12 +344,13 @@ export default function ProfilePage() {
   // resto era una tarjeta que nunca se pintaba y dejaba un hueco.
   const tabs = useMemo(
     () => [
-      { id: "cuenta", label: "Cuenta", icon: "users", dirty: nameDirty },
+      { id: "cuenta", label: "Mi perfil", icon: "users", dirty: nameDirty },
       { id: "seguridad", label: "Seguridad", icon: "shield" },
       ...(adminVenue
         ? [{ id: "negocio", label: "Organización", icon: "money", dirty: venueDirty }]
         : []),
       { id: "preferencias", label: "Preferencias", icon: "sparkle" },
+      { id: "privacidad", label: "Privacidad y datos", icon: "lock" },
     ],
     [adminVenue, nameDirty, venueDirty],
   );
@@ -430,6 +454,44 @@ export default function ProfilePage() {
     };
   }, [activeTab]);
 
+  // Elegibilidad de borrado: se consulta al abrir Privacidad, no se deduce
+  // del rol en el navegador.
+  useEffect(() => {
+    if (activeTab !== "privacidad") return;
+    let alive = true;
+    setDeletionCheckLoading(true);
+    setDeletionCheckError("");
+    apiFetch("/auth/account/deletion-check")
+      .then((res) => {
+        if (alive) setDeletionCheck(res);
+      })
+      .catch((err) => {
+        if (alive) {
+          setDeletionCheck(null);
+          setDeletionCheckError(err.message);
+        }
+      })
+      .finally(() => {
+        if (alive) setDeletionCheckLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [activeTab]);
+
+  async function retryDeletionCheck() {
+    setDeletionCheckLoading(true);
+    setDeletionCheckError("");
+    try {
+      setDeletionCheck(await apiFetch("/auth/account/deletion-check"));
+    } catch (err) {
+      setDeletionCheck(null);
+      setDeletionCheckError(err.message);
+    } finally {
+      setDeletionCheckLoading(false);
+    }
+  }
+
   // Al cambiar de pestaña el panel se trae a la vista: si estabas al final de
   // un panel largo, la nueva pestaña empezaba a media altura y con su título
   // bajo la barra pegajosa. Se compara contra la pestaña anterior (y no un
@@ -474,6 +536,40 @@ export default function ProfilePage() {
     return () => ro.disconnect();
   }, [activeTab, tabs]);
 
+  // El aviso de cambios pendientes vale para toda la página, incluso antes
+  // de que el usuario esté cargado.
+  const guardDirty = nameDirty || venueDirty;
+
+  // Cerrar o recargar la pestaña con ediciones pendientes también avisa.
+  useEffect(() => {
+    if (!guardDirty) return;
+    const onBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [guardDirty]);
+
+  // Salir del perfil por un enlace interno (topbar, menú) con ediciones
+  // pendientes: se intercepta antes de que el router navegue.
+  useEffect(() => {
+    if (!guardDirty) return;
+    const onClick = (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey) return;
+      const anchor = e.target.closest?.("a[href]");
+      if (!anchor || anchor.target || anchor.hasAttribute("download")) return;
+      const url = new URL(anchor.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingAction({ type: "link", href: url.pathname + url.search });
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [guardDirty]);
+
   if (!user) return null;
 
   // Rol de cabecera = el más alto (mismo criterio que el topbar), y su
@@ -502,7 +598,7 @@ export default function ProfilePage() {
       (user.roles?.[String(v.id)] || []).includes("admin"),
     ).length || 0;
 
-  function selectTab(id) {
+  function applyTab(id) {
     haptics.tick();
     // La pestaña vive en la URL: se puede enlazar ("/perfil?tab=seguridad").
     // `replace` y no push: moverse entre pestañas no es navegar. Con push,
@@ -516,6 +612,66 @@ export default function ProfilePage() {
     if (id === "cuenta") next.delete("tab");
     else next.set("tab", id);
     setSearchParams(next, { replace: true });
+  }
+
+  function selectTab(id) {
+    if (id === activeTab) return;
+    if (guardDirty) {
+      setPendingAction({ type: "tab", id });
+      return;
+    }
+    applyTab(id);
+  }
+
+  function resetProfileDraft() {
+    setName(user?.full_name || "");
+    setUsername(user?.username || "");
+    setPhone(user?.phone || "");
+    setContactEmail(user?.contact_email || "");
+    setShareContact(Boolean(user?.share_contact_with_team));
+    setAvatarAction(null);
+    setAvatarMsg(null);
+    setUsernameMsg(null);
+    setNameMsg(null);
+  }
+
+  function resetVenueDraft() {
+    if (!adminVenue) return;
+    setVenueName(adminVenue.name || "");
+    setVenueLogo(adminVenue.logo_url || "");
+    setVenueColor(adminVenue.primary_color || "");
+    setVenueCommission(
+      adminVenue.commission_pct != null ? String(adminVenue.commission_pct) : "0",
+    );
+    setVenueContactName(adminVenue.contact_name || "");
+    setVenueContactPhone(adminVenue.contact_phone || "");
+    setVenueContactEmail(adminVenue.contact_email || "");
+    setPublicContactEnabled(Boolean(adminVenue.public_contact_enabled));
+    setPublicChannels(adminVenue.public_contact_channels || []);
+    setContactTeamVisible(adminVenue.contact_team_visible !== false);
+    setLogoError("");
+    setVenueMsg(null);
+  }
+
+  function discardAndContinue() {
+    const action = pendingAction;
+    setPendingAction(null);
+    resetProfileDraft();
+    resetVenueDraft();
+    if (action?.type === "tab") applyTab(action.id);
+    if (action?.type === "venue") performVenueSwitch(action.venue);
+    if (action?.type === "link") nav(action.href);
+  }
+
+  async function saveAndContinue() {
+    const action = pendingAction;
+    const saved =
+      activeTab === "negocio" ? await saveVenue() : await saveProfile();
+    if (!saved) return;
+    setPendingAction(null);
+    if (action?.type === "tab") applyTab(action.id);
+    if (action?.type === "venue") performVenueSwitch(action.venue);
+    if (action?.type === "link") nav(action.href);
   }
 
   // Navegación por teclado del patrón ARIA tabs (flechas + Home/End).
@@ -611,15 +767,14 @@ export default function ProfilePage() {
     }
   }
 
-  async function submitName(e) {
-    e.preventDefault();
+  async function saveProfile() {
     setNameMsg(null);
     if (name.trim().length < 2) {
       setNameMsg({
         ok: false,
         text: "El nombre debe tener al menos 2 caracteres.",
       });
-      return;
+      return false;
     }
     const candidate = normalizeUsername(username);
     if (!candidate && user?.username) {
@@ -627,16 +782,17 @@ export default function ProfilePage() {
         ok: false,
         text: "Elige un nombre de usuario: tu cuenta ya entra con uno.",
       });
-      return;
+      return false;
     }
     if (candidate && !isValidUsername(candidate)) {
       setUsernameMsg({
         ok: false,
         text: "Entre 3 y 32 caracteres: letras, números, punto, guion o guion bajo.",
       });
-      return;
+      return false;
     }
-    if (usernameMsg && !usernameMsg.ok) return;
+    if (usernameMsg && !usernameMsg.ok) return false;
+    const avatar = avatarAction;
     setNameBusy(true);
     try {
       const updated = await apiFetch("/auth/profile", {
@@ -652,14 +808,47 @@ export default function ProfilePage() {
           share_contact_with_team: shareContact,
         }),
       });
-      setUser(updated);
-      setName(updated.full_name || "");
-      setUsername(updated.username || "");
-      setPhone(updated.phone || "");
-      setContactEmail(updated.contact_email || "");
-      setShareContact(Boolean(updated.share_contact_with_team));
+      let finalUser = updated;
+      if (avatar) {
+        setAvatarBusy(true);
+        try {
+          finalUser = await apiFetch("/auth/avatar", {
+            method: avatar.type === "remove" ? "DELETE" : "POST",
+            ...(avatar.type === "upload"
+              ? { body: JSON.stringify({ data_url: avatar.dataUrl }) }
+              : {}),
+          });
+          setAvatarAction(null);
+          setAvatarMsg({ ok: true, text: "Foto actualizada." });
+        } catch (err) {
+          // El perfil ya quedó guardado; no se oculta el fallo de la foto.
+          setUser(updated);
+          setNameMsg({
+            ok: false,
+            text: `Tus datos se guardaron, pero la foto no: ${err.message}`,
+          });
+          return false;
+        } finally {
+          setAvatarBusy(false);
+        }
+      }
+      setUser(finalUser);
+      setName(finalUser.full_name || "");
+      setUsername(finalUser.username || "");
+      setPhone(finalUser.phone || "");
+      setContactEmail(finalUser.contact_email || "");
+      setShareContact(Boolean(finalUser.share_contact_with_team));
       setUsernameMsg(null);
-      setNameMsg({ ok: true, text: "Datos actualizados." });
+      const stamp = new Date().toLocaleTimeString("es-CO", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      setNameMsg({
+        ok: true,
+        text: `Guardado confirmado por el servidor a las ${stamp}.`,
+      });
+      haptics.success();
+      return true;
     } catch (err) {
       // 409 = el usuario se ocupó entre la comprobación y el guardado. El
       // usuario anterior queda intacto; el aviso va junto al campo.
@@ -668,14 +857,18 @@ export default function ProfilePage() {
       } else {
         setNameMsg({ ok: false, text: err.message });
       }
+      return false;
     } finally {
       setNameBusy(false);
     }
   }
 
-  /** Sube la foto: se reduce en el navegador (512px) y viaja como data-URL.
-   *  El backend devuelve el resumen completo, así que el hero se repinta sin
-   *  un segundo GET. */
+  function submitName(e) {
+    e.preventDefault();
+    saveProfile();
+  }
+
+  /** Elige y previsualiza la foto; el servidor la recibe al guardar. */
   async function onAvatarFile(e) {
     const file = e.target.files?.[0];
     // Se limpia el input para poder volver a elegir el mismo archivo (si no,
@@ -686,12 +879,8 @@ export default function ProfilePage() {
     setAvatarMsg(null);
     try {
       const dataUrl = await fileToDataUrl(file, { maxSide: 512 });
-      const updated = await apiFetch("/auth/avatar", {
-        method: "POST",
-        body: JSON.stringify({ data_url: dataUrl }),
-      });
-      setUser(updated);
-      setAvatarMsg({ ok: true, text: "Foto actualizada." });
+      setAvatarAction({ type: "upload", dataUrl });
+      setAvatarMsg({ ok: true, text: "Vista previa lista. Guarda para subirla." });
     } catch (err) {
       setAvatarMsg({ ok: false, text: err.message });
     } finally {
@@ -699,18 +888,9 @@ export default function ProfilePage() {
     }
   }
 
-  async function removeAvatar() {
-    setAvatarBusy(true);
-    setAvatarMsg(null);
-    try {
-      const updated = await apiFetch("/auth/avatar", { method: "DELETE" });
-      setUser(updated);
-      setAvatarMsg({ ok: true, text: "Foto quitada." });
-    } catch (err) {
-      setAvatarMsg({ ok: false, text: err.message });
-    } finally {
-      setAvatarBusy(false);
-    }
+  function removeAvatar() {
+    setAvatarAction({ type: "remove" });
+    setAvatarMsg({ ok: true, text: "La foto se quitará al guardar." });
   }
 
   /** Logo del negocio: misma reducción local que el avatar. Se envía en el
@@ -762,29 +942,28 @@ export default function ProfilePage() {
     }
   }
 
-  async function submitVenue(e) {
-    e.preventDefault();
+  async function saveVenue() {
     setLogoError("");
     if (publicContactEnabled && publicChannels.length === 0) {
       setVenueMsg({
         ok: false,
         text: "Para publicar el contacto elige al menos un canal.",
       });
-      return;
+      return false;
     }
     if (publicContactEnabled && publicChannels.includes("whatsapp") && !venueContactPhone.trim()) {
       setVenueMsg({
         ok: false,
         text: "Elegiste WhatsApp pero no hay un teléfono guardado.",
       });
-      return;
+      return false;
     }
     if (publicContactEnabled && publicChannels.includes("email") && !venueContactEmail.trim()) {
       setVenueMsg({
         ok: false,
         text: "Elegiste correo pero no hay un correo de contacto guardado.",
       });
-      return;
+      return false;
     }
     setVenueBusy(true);
     try {
@@ -823,16 +1002,30 @@ export default function ProfilePage() {
       setPublicContactEnabled(Boolean(updated.public_contact_enabled));
       setPublicChannels(updated.public_contact_channels || []);
       setContactTeamVisible(updated.contact_team_visible !== false);
-      setVenueMsg({ ok: true, text: "Datos del negocio actualizados." });
+      const stamp = new Date().toLocaleTimeString("es-CO", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      setVenueMsg({
+        ok: true,
+        text: `Organización guardada y confirmada por el servidor a las ${stamp}.`,
+      });
       haptics.success();
+      return true;
     } catch (err) {
       setVenueMsg({ ok: false, text: err.message });
+      return false;
     } finally {
       setVenueBusy(false);
     }
   }
 
-  async function switchVenue(venue) {
+  function submitVenue(e) {
+    e.preventDefault();
+    saveVenue();
+  }
+
+  async function performVenueSwitch(venue) {
     if (venueSwitchBusy || venue.id === currentVenueId) return;
     setVenueSwitchBusy(true);
     try {
@@ -851,6 +1044,15 @@ export default function ProfilePage() {
     } finally {
       setVenueSwitchBusy(false);
     }
+  }
+
+  function switchVenue(venue) {
+    if (venue.id === currentVenueId) return;
+    if (guardDirty) {
+      setPendingAction({ type: "venue", venue });
+      return;
+    }
+    performVenueSwitch(venue);
   }
 
   function toggleChannel(channel) {
@@ -970,58 +1172,30 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="pf-page mx-auto max-w-6xl">
       {/* Hero de identidad: la ficha de la persona, no un formulario. Fijo
           arriba: quién eres no cambia al moverte entre pestañas. */}
       <div className="pf-hero">
         <div className="pf-hero-main">
-          <PremiumAvatar user={user} />
+          <PremiumAvatar user={user} src={avatarPreview} />
 
           <div className="pf-hero-id">
             <p className="eyebrow">Tu perfil</p>
             <h1 className="pf-name">{user.full_name}</h1>
-            <p className="pf-email">{user.email}</p>
+            <p className="pf-handle">
+              {user.username ? `@${user.username}` : "Sin nombre de usuario"}
+            </p>
 
-            {/* Roles por negocio: cada negocio con el chip de su rol. */}
-            {venueCount > 0 && (
-              <div className="pf-chips">
-                {user.venues.map((v) => {
-                  const vRoles = user.roles?.[String(v.id)] || [];
-                  const vRole = topRole({ roles: { [String(v.id)]: vRoles } });
-                  const vVisual = ROLE_VISUALS[vRole] ?? visual;
-                  return (
-                    <span key={v.id} className={`pf-role-chip ${vVisual.tabAccent}`}>
-                      {v.name}
-                      {vRole && <span className="pf-chip-role">· {roleLabel(vRole)}</span>}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Contexto de cuenta: desde cuándo y último ingreso. */}
-            {(memberSince || lastSeen || passwordChanged) && (
-              <div className="pf-meta">
-                {memberSince && (
-                  <span className="pf-meta-item">
-                    <Icon name="calendar" className="h-3.5 w-3.5" />
-                    Miembro desde {memberSince}
-                  </span>
-                )}
-                {lastSeen && (
-                  <span className="pf-meta-item">
-                    <Icon name="clock" className="h-3.5 w-3.5" />
-                    Último ingreso {lastSeen}
-                  </span>
-                )}
-                {passwordChanged && (
-                  <span className="pf-meta-item">
-                    <Icon name="shield" className="h-3.5 w-3.5" />
-                    Contraseña actualizada {passwordChanged}
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="pf-hero-badges">
+              <span className={`pf-role-chip ${visual.tabAccent}`}>
+                {roleLabel(role)}
+              </span>
+              <span className="pf-hero-org">
+                {activeVenue
+                  ? `Organización activa: ${activeVenue.name}`
+                  : "Sin organización activa"}
+              </span>
+            </div>
           </div>
 
           {/* Acciones de la sesión: el perfil es donde se cierra sesión. */}
@@ -1045,13 +1219,17 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Pestañas: una cosa a la vez en lugar de un scroll con todo a la vista. */}
-      <div
-        ref={tabbarRef}
-        className="tabbar no-scrollbar pf-tabs"
-        role="tablist"
-        aria-label="Secciones del perfil"
-      >
+      <div className="pf-shell">
+      {/* Navegación lateral en escritorio e índice vertical en móvil. */}
+      <div className="pf-side">
+        <p className="pf-side-title">Secciones de tu cuenta</p>
+        <div
+          ref={tabbarRef}
+          className="tabbar no-scrollbar pf-tabs"
+          role="tablist"
+          aria-label="Secciones del perfil"
+          aria-orientation="vertical"
+        >
         {tabs.map((t) => {
           const active = t.id === activeTab;
           return (
@@ -1077,7 +1255,9 @@ export default function ProfilePage() {
           );
         })}
       </div>
+      </div>
 
+      <div className="pf-main">
       {/* Contexto de trabajo: qué organización está activa AHORA. No es un
           detalle del formulario: decide qué eventos, equipo y reportes ve el
           admin. El cambio solo se pinta cuando el servidor lo confirma. */}
@@ -1152,6 +1332,18 @@ export default function ProfilePage() {
             : `Tienes cambios sin guardar en ${dirtyTabs.length} secciones: `}
           {dirtyTabs.map((t) => t.label).join(", ")}
         </p>
+      )}
+
+      {/* En móvil, volver al inicio del perfil sin depender del gesto atrás. */}
+      {activeTab !== "cuenta" && (
+        <button
+          type="button"
+          onClick={() => selectTab("cuenta")}
+          className="pf-back"
+        >
+          <Icon name="back" className="h-4 w-4" aria-hidden="true" />
+          Volver a Mi perfil
+        </button>
       )}
 
       {/* ---------------- Cuenta ---------------- */}
@@ -1311,50 +1503,46 @@ export default function ProfilePage() {
                 role={nameMsg.ok ? "status" : "alert"}
                 className={`pf-alert ${nameMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
               >
-                {nameMsg.text}
+                <span>{nameMsg.text}</span>
+                {!nameMsg.ok && !nameBusy && (
+                  <button
+                    type="button"
+                    onClick={saveProfile}
+                    className="btn-ghost pf-action"
+                  >
+                    Reintentar
+                  </button>
+                )}
               </div>
             )}
-
-            <div className="pf-form-actions">
-              <button
-                type="submit"
-                disabled={nameBusy || !nameDirty}
-                className="btn-primary"
-              >
-                {nameBusy ? "Guardando…" : "Guardar datos"}
-              </button>
-              {nameDirty && !nameBusy && (
-                <span className="pf-dirty-chip">Cambios sin guardar</span>
-              )}
-            </div>
           </form>
 
           <div className="pf-sub">
             <h3 className="pf-sub-title">Foto de perfil</h3>
             <p className="pf-hint pf-hint-block">
-              Se recorta en círculo y se reduce antes de subirla. Sin foto, tu
-              avatar son tus iniciales con el color de tu rol.
+              Se recorta en círculo y se reduce antes de subirla. La vista
+              previa es local; la foto se guarda cuando pulsas Guardar.
             </p>
             <div className="pf-photo-row">
-              <PremiumAvatar user={user} />
+              <PremiumAvatar user={user} src={avatarPreview} />
               <button
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
-                disabled={avatarBusy}
+                disabled={avatarBusy || nameBusy}
                 className="btn-ghost pf-action"
               >
                 <Icon name="camera" className="h-4 w-4" aria-hidden="true" />
                 {avatarBusy
-                  ? "Subiendo…"
-                  : user.avatar_url
+                  ? "Preparando…"
+                  : hasAvatar
                     ? "Cambiar foto"
-                    : "Subir foto"}
+                    : "Elegir foto"}
               </button>
-              {user.avatar_url && (
+              {hasAvatar && (
                 <button
                   type="button"
                   onClick={removeAvatar}
-                  disabled={avatarBusy}
+                  disabled={avatarBusy || nameBusy}
                   className="btn-ghost pf-action"
                 >
                   <Icon name="trash" className="h-4 w-4" aria-hidden="true" />
@@ -1381,14 +1569,80 @@ export default function ProfilePage() {
             )}
           </div>
 
+          <div className="pf-form-actions pf-form-actions-sticky">
+            <button
+              type="button"
+              onClick={saveProfile}
+              disabled={nameBusy || !nameDirty}
+              className="btn-primary"
+            >
+              {nameBusy ? "Guardando…" : "Guardar cambios"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                resetProfileDraft();
+                setAvatarMsg(null);
+              }}
+              disabled={nameBusy || !nameDirty}
+              className="btn-ghost pf-action"
+            >
+              Cancelar
+            </button>
+            {nameDirty && !nameBusy && (
+              <span className="pf-dirty-chip">Cambios sin guardar</span>
+            )}
+          </div>
+
           <div className="pf-sub">
-            <h3 className="pf-sub-title">Correo</h3>
+            <h3 className="pf-sub-title">Detalles de la cuenta</h3>
+            <dl className="pf-details">
+              <div className="pf-detail-row">
+                <dt>Miembro desde</dt>
+                <dd>{memberSince || "Sin registro"}</dd>
+              </div>
+              <div className="pf-detail-row">
+                <dt>Nombre de usuario</dt>
+                <dd>{username ? `@${username.replace(/^@/, "")}` : "Sin definir"}</dd>
+              </div>
+            </dl>
+            <p className="pf-hint pf-hint-block">
+              El correo de acceso, la contraseña y las sesiones se gestionan en
+              Seguridad.
+            </p>
+          </div>
+
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Documentos legales</h3>
+            <p className="pf-hint pf-hint-block">
+              Los documentos vigentes de Enty. Las aceptaciones obligatorias
+              quedan registradas en tu cuenta.
+            </p>
+            <LegalLinks />
+          </div>
+        </section>
+      )}
+
+      {/* ---------------- Seguridad ---------------- */}
+      {activeTab === "seguridad" && (
+        <section
+          id="pf-panel-seguridad"
+          role="tabpanel"
+          aria-labelledby="pf-tab-seguridad"
+          tabIndex={0}
+          className="card pf-panel"
+        >
+          <PanelHead
+            title="Seguridad de la cuenta"
+            hint="El correo, la contraseña y las sesiones son las llaves de tu cuenta. Cada cambio queda registrado."
+          />
+
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Correo de acceso</h3>
             <div className="pf-readonly">
               <Icon name="link" className="h-4 w-4" aria-hidden="true" />
               <span className="pf-readonly-value">{user.email}</span>
             </div>
-            {/* Cerrado muestra el correo y el porqué de la contraseña; el
-                formulario no ocupa espacio hasta que hace falta. */}
             {pendingEmail && (
               <p className="pf-alert pf-alert-warn">
                 Cambio pendiente a <strong>{pendingEmail}</strong>. Tu cuenta
@@ -1400,7 +1654,8 @@ export default function ProfilePage() {
                 <p className="pf-hint">
                   Con este correo entras y recuperas tu cuenta. El cambio se
                   activa solo después de verificar el buzón nuevo; mientras
-                  tanto, tu correo actual sigue funcionando.
+                  tanto, tu correo actual sigue funcionando y la cuenta conserva
+                  su identificador, roles, eventos y asignaciones.
                 </p>
                 <div className="pf-form-actions">
                   <button
@@ -1420,7 +1675,7 @@ export default function ProfilePage() {
                 <Field
                   id="new-email"
                   label="Nuevo correo"
-                  hint="Lo usaremos para entrar y para recuperar la cuenta."
+                  hint="Lo usaremos para entrar y para recuperar la cuenta. Enviaremos un enlace de un solo uso al buzón nuevo y avisaremos al anterior."
                 >
                   <input
                     id="new-email"
@@ -1481,29 +1736,25 @@ export default function ProfilePage() {
           </div>
 
           <div className="pf-sub">
-            <h3 className="pf-sub-title">Documentos legales</h3>
-            <p className="pf-hint pf-hint-block">
-              Los documentos vigentes de Enty. Las aceptaciones obligatorias
-              quedan registradas en tu cuenta.
-            </p>
-            <LegalLinks />
+            <h3 className="pf-sub-title">Accesos</h3>
+            <dl className="pf-details">
+              <div className="pf-detail-row">
+                <dt>Último ingreso</dt>
+                <dd>{lastSeen || "Sin registro"}</dd>
+              </div>
+              <div className="pf-detail-row">
+                <dt>Contraseña actualizada</dt>
+                <dd>{passwordChanged || "Sin registro"}</dd>
+              </div>
+            </dl>
           </div>
-        </section>
-      )}
 
-      {/* ---------------- Seguridad ---------------- */}
-      {activeTab === "seguridad" && (
-        <section
-          id="pf-panel-seguridad"
-          role="tabpanel"
-          aria-labelledby="pf-tab-seguridad"
-          tabIndex={0}
-          className="card pf-panel"
-        >
-          <PanelHead
-            title="Cambiar contraseña"
-            hint="Se te pedirá la contraseña actual para confirmar que eres tú. Al cambiarla se cierran las demás sesiones abiertas."
-          />
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Cambiar contraseña</h3>
+            <p className="pf-hint pf-hint-block">
+              Se te pedirá la contraseña actual. Al cambiarla se cierran las
+              demás sesiones abiertas.
+            </p>
           <form onSubmit={submitPassword} className="pf-form">
             <Field
               id="cur-pass"
@@ -1572,6 +1823,7 @@ export default function ProfilePage() {
               </button>
             </div>
           </form>
+          </div>
 
           <div className="pf-sub">
             <h3 className="pf-sub-title">Sesiones abiertas</h3>
@@ -1756,49 +2008,6 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="pf-sub">
-            <h3 className="pf-sub-title">Descargar mi información</h3>
-            <p className="pf-hint pf-hint-block">
-              Descarga una copia de lo que Enty sabe de tu cuenta: tus datos,
-              tus negocios y los documentos que aceptaste. Tus contraseñas y
-              los datos de tus clientes no se incluyen.
-            </p>
-            {!exportOpen ? (
-              <button
-                type="button"
-                onClick={() => setExportOpen(true)}
-                className="btn-ghost pf-action"
-              >
-                <Icon name="download" className="h-4 w-4" aria-hidden="true" />
-                Descargar mis datos (JSON)
-              </button>
-            ) : (
-              <form onSubmit={downloadData} className="pf-inline-form">
-                <input
-                  type="password"
-                  value={exportPass}
-                  onChange={(e) => setExportPass(e.target.value)}
-                  className="field"
-                  autoComplete="current-password"
-                  placeholder="Tu contraseña"
-                  required
-                />
-                <button type="submit" disabled={exportBusy} className="btn-primary">
-                  {exportBusy ? "Preparando…" : "Descargar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setExportOpen(false);
-                    setExportPass("");
-                  }}
-                  className="btn-ghost"
-                >
-                  Cancelar
-                </button>
-              </form>
-            )}
-          </div>
         </section>
       )}
 
@@ -1812,13 +2021,30 @@ export default function ProfilePage() {
           className="card pf-panel"
         >
           <PanelHead
-            title="Tu organización"
+            title="Organización"
             hint={
               venuePlaceholder
                 ? "Aún no tienes identidad pública. El nombre interno no se muestra en tus fichas."
                 : "Estás editando la organización activa. El nombre y el logo la representan ante tu equipo y tus clientes."
             }
           />
+          <div className="pf-editing" role="status">
+            <span className={`pf-editing-logo ${activeVenueVisual.tabAccent}`}>
+              {adminVenue.logo_url ? (
+                <img src={adminVenue.logo_url} alt="" decoding="async" />
+              ) : (
+                (adminVenue.name || "?").trim().charAt(0).toUpperCase()
+              )}
+            </span>
+            <span className="pf-editing-copy">
+              <span className="pf-editing-label">Editando esta organización</span>
+              <strong>{adminVenue.name}</strong>
+              <span className="pf-editing-role">
+                {activeVenueRole ? roleLabel(activeVenueRole) : "Sin rol"} · solo
+                se guardan cambios sobre esta organización
+              </span>
+            </span>
+          </div>
           {venuePlaceholder && (
             <p className="pf-hint pf-hint-warn">
               Tu espacio aparece como “Mi organización” porque aún no tiene
@@ -1977,14 +2203,33 @@ export default function ProfilePage() {
                   />
                 ))}
               </div>
-              <div className="pf-brand-preview" aria-hidden="true">
-                <span
-                  className="pf-brand-preview-banner"
-                  style={{ background: brandColor }}
-                />
-                <span className="pf-brand-preview-copy">
-                  Así se verá el banner de tu portada
-                </span>
+              <div className="pf-brand-previews">
+                <div
+                  className="pf-brand-preview pf-brand-preview-light"
+                  aria-label="Vista previa del color en modo claro"
+                >
+                  <span
+                    className="pf-brand-preview-banner"
+                    style={{ background: brandColor }}
+                  />
+                  <span className="pf-brand-preview-copy">
+                    <strong>Modo claro</strong>
+                    Así se verá el banner de tu portada
+                  </span>
+                </div>
+                <div
+                  className="pf-brand-preview pf-brand-preview-dark"
+                  aria-label="Vista previa del color en modo oscuro"
+                >
+                  <span
+                    className="pf-brand-preview-banner"
+                    style={{ background: brandColor }}
+                  />
+                  <span className="pf-brand-preview-copy">
+                    <strong>Modo oscuro</strong>
+                    Así se verá el banner de tu portada
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -2138,6 +2383,37 @@ export default function ProfilePage() {
                 : "Ahora mismo tu contacto no se publica."}
             </p>
 
+            <div className="pf-public-preview">
+              <p className="pf-label">Así lo verá el público</p>
+              <div className="pf-public-card">
+                <strong>{venueContactName.trim() || venueName.trim() || "Tu organización"}</strong>
+                {publicContactEnabled &&
+                (publicChannels.includes("whatsapp") ||
+                  publicChannels.includes("email")) ? (
+                  <ul className="pf-public-channels">
+                    {publicChannels.includes("whatsapp") && venueContactPhone.trim() && (
+                      <li>
+                        <Icon name="whatsapp" className="h-4 w-4" aria-hidden="true" />
+                        {venueContactPhone.trim()}
+                      </li>
+                    )}
+                    {publicChannels.includes("email") && venueContactEmail.trim() && (
+                      <li>
+                        <Icon name="link" className="h-4 w-4" aria-hidden="true" />
+                        {venueContactEmail.trim()}
+                      </li>
+                    )}
+                  </ul>
+                ) : (
+                  <p className="pf-hint">Sin contacto publicado en la ficha.</p>
+                )}
+              </div>
+              <p className="pf-hint">
+                Esta vista usa lo que tienes en el formulario. La ficha pública
+                solo cambia cuando guardas y el servidor lo confirma.
+              </p>
+            </div>
+
             {/* Comisión del promotor: base de las liquidaciones (se congela
                 por liquidación al cerrar el periodo). */}
             <h3 className="pf-sub-title">Liquidación</h3>
@@ -2163,17 +2439,34 @@ export default function ProfilePage() {
                 role={venueMsg.ok ? "status" : "alert"}
                 className={`pf-alert ${venueMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
               >
-                {venueMsg.text}
+                <span>{venueMsg.text}</span>
+                {!venueMsg.ok && !venueBusy && (
+                  <button
+                    type="button"
+                    onClick={saveVenue}
+                    className="btn-ghost pf-action"
+                  >
+                    Reintentar
+                  </button>
+                )}
               </div>
             )}
 
-            <div className="pf-form-actions">
+            <div className="pf-form-actions pf-form-actions-sticky">
               <button
                 type="submit"
                 disabled={venueBusy || !venueDirty}
                 className="btn-primary"
               >
-                {venueBusy ? "Guardando…" : "Guardar negocio"}
+                {venueBusy ? "Guardando…" : "Guardar organización"}
+              </button>
+              <button
+                type="button"
+                onClick={resetVenueDraft}
+                disabled={venueBusy || !venueDirty}
+                className="btn-ghost pf-action"
+              >
+                Cancelar
               </button>
               {venueDirty && !venueBusy && (
                 <span className="pf-dirty-chip">Cambios sin guardar</span>
@@ -2218,113 +2511,321 @@ export default function ProfilePage() {
         </section>
       )}
 
-      {/* Zona de peligro: lo destructivo no vive "a la vista" junto a lo demás.
-          Se separa con el troquel de la casa y arranca colapsado. */}
-      <div className="pf-danger-wrap">
-        <div className="enty-perf" aria-hidden="true" />
-        <section className="card pf-danger" aria-labelledby="pf-danger-title">
-          <h2 id="pf-danger-title" className="pf-danger-title">
-            Zona de peligro
-          </h2>
-          <p className="pf-danger-copy">
-            Eliminar tu cuenta es permanente. Si eres el único administrador con
-            equipo a cargo, deberás asignar otro admin antes. Si eres el único
-            miembro, tu negocio entero se elimina con ella.
-          </p>
-          {/* Qué se pierde, en cifras: una advertencia genérica se lee y se
-              olvida; "administras 2 de 3" obliga a mirar. */}
-          {venueCount > 0 && (
-            <p className="pf-danger-copy pf-danger-facts">
-              {venueCount === 1
-                ? "Tu cuenta figura en 1 negocio."
-                : `Tu cuenta figura en ${venueCount} negocios${
-                    adminCount > 0 ? ` y administras ${adminCount} de ellos` : ""
-                  }.`}{" "}
-              Al eliminarla pierdes el acceso a{" "}
-              {venueCount === 1 ? "él" : "todos"}, sin vuelta atrás.
-            </p>
-          )}
+      {/* ---------------- Privacidad y datos ---------------- */}
+      {activeTab === "privacidad" && (
+        <section
+          id="pf-panel-privacidad"
+          role="tabpanel"
+          aria-labelledby="pf-tab-privacidad"
+          tabIndex={0}
+          className="card pf-panel"
+        >
+          <PanelHead
+            title="Privacidad y datos"
+            hint="Qué compartes, qué puedes descargar y qué pasa si eliminas tu cuenta. Nada se publica sin una autorización explícita."
+          />
 
-          {!delOpen ? (
-            <button
-              type="button"
-              onClick={() => setDelOpen(true)}
-              className="btn-ghost pf-action pf-action-danger"
-            >
-              <Icon name="trash" className="h-4 w-4" aria-hidden="true" />
-              Eliminar mi cuenta…
-            </button>
-          ) : (
-            <form onSubmit={submitDelete} className="pf-delete-form">
-              <p className="pf-delete-warn">
-                Escribe tu contraseña y tu correo para confirmar. Esta acción no
-                tiene deshacer.
-              </p>
-              <label className="pf-field" htmlFor="del-pass">
-                <span className="pf-label">Tu contraseña</span>
-                <input
-                  id="del-pass"
-                  type="password"
-                  value={delPass}
-                  onChange={(e) => setDelPass(e.target.value)}
-                  className="field"
-                  placeholder="Tu contraseña"
-                  autoComplete="current-password"
-                  required
-                />
-              </label>
-              <label className="pf-field" htmlFor="del-confirm">
-                <span className="pf-label">
-                  Escribe tu correo para confirmar
-                </span>
-                <input
-                  id="del-confirm"
-                  type="text"
-                  value={delConfirm}
-                  onChange={(e) => setDelConfirm(e.target.value)}
-                  className="field"
-                  placeholder={user.email}
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  required
-                />
-              </label>
-              {delErr && (
-                <div role="alert" className="pf-alert pf-alert-bad">
-                  {delErr}
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Visibilidad del contacto</h3>
+            <dl className="pf-details">
+              <div className="pf-detail-row">
+                <dt>Contacto personal</dt>
+                <dd>
+                  {user.share_contact_with_team
+                    ? "Compartido con tu equipo"
+                    : "Privado"}
+                </dd>
+              </div>
+              {adminVenue && (
+                <div className="pf-detail-row">
+                  <dt>Fichas públicas de {adminVenue.name}</dt>
+                  <dd>
+                    {adminVenue.public_contact_enabled &&
+                    (adminVenue.public_contact_channels || []).length > 0
+                      ? `Visible: ${(adminVenue.public_contact_channels || [])
+                          .map((c) => (c === "whatsapp" ? "WhatsApp" : "Correo"))
+                          .join(" y ")}`
+                      : "Sin contacto publicado"}
+                  </dd>
                 </div>
               )}
-              <div className="pf-form-actions">
+            </dl>
+            <p className="pf-hint pf-hint-block">
+              El teléfono y el correo nuevos son privados hasta que autorices
+              compartirlos o publicarlos. Los datos que ya estaban publicados
+              siguen visibles con el mismo alcance hasta que cambies esa
+              autorización.
+            </p>
+            <div className="pf-form-actions">
+              <button
+                type="button"
+                onClick={() => selectTab("cuenta")}
+                className="btn-ghost pf-action"
+              >
+                Gestionar contacto personal
+              </button>
+              {adminVenue && (
+                <button
+                  type="button"
+                  onClick={() => selectTab("negocio")}
+                  className="btn-ghost pf-action"
+                >
+                  Gestionar contacto público
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Descargar mis datos</h3>
+            <p className="pf-hint pf-hint-block">
+              Incluye tus datos de cuenta, tus membresías, los documentos que
+              aceptaste y tus preferencias. No incluye contraseñas, tokens ni
+              los datos de tus clientes. Pedimos tu contraseña otra vez porque
+              el archivo contiene información personal.
+            </p>
+            {!exportOpen ? (
+              <button
+                type="button"
+                onClick={() => setExportOpen(true)}
+                className="btn-ghost pf-action"
+              >
+                <Icon name="download" className="h-4 w-4" aria-hidden="true" />
+                Descargar mis datos (JSON)
+              </button>
+            ) : (
+              <form onSubmit={downloadData} className="pf-inline-form">
+                <input
+                  type="password"
+                  value={exportPass}
+                  onChange={(e) => setExportPass(e.target.value)}
+                  className="field"
+                  autoComplete="current-password"
+                  placeholder="Tu contraseña"
+                  required
+                />
+                <button type="submit" disabled={exportBusy} className="btn-primary">
+                  {exportBusy ? "Preparando…" : "Descargar"}
+                </button>
                 <button
                   type="button"
                   onClick={() => {
-                    setDelOpen(false);
-                    setDelErr("");
-                    setDelPass("");
-                    setDelConfirm("");
+                    setExportOpen(false);
+                    setExportPass("");
                   }}
                   className="btn-ghost"
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={
-                    delBusy ||
-                    !delPass ||
-                    delConfirm.trim().toLowerCase() !==
-                      user.email.trim().toLowerCase()
-                  }
-                  className="pf-delete-btn"
-                >
-                  {delBusy ? "Eliminando…" : "Eliminar definitivamente"}
-                </button>
-              </div>
-            </form>
-          )}
+              </form>
+            )}
+          </div>
+
+          <div className="pf-danger-wrap">
+            <div className="enty-perf" aria-hidden="true" />
+            <div className="card pf-danger" aria-labelledby="pf-danger-title">
+              <h2 id="pf-danger-title" className="pf-danger-title">
+                Eliminar mi cuenta
+              </h2>
+              <p className="pf-danger-copy">
+                Es permanente. Si eres el único administrador de una
+                organización con equipo o eventos, primero debes asignar otro
+                admin. Si no administras datos de terceros, tu cuenta y sus
+                organizaciones vacías se eliminan con ella.
+              </p>
+              {venueCount > 0 && (
+                <p className="pf-danger-copy pf-danger-facts">
+                  {venueCount === 1
+                    ? "Tu cuenta figura en 1 organización."
+                    : `Tu cuenta figura en ${venueCount} organizaciones${
+                        adminCount > 0 ? ` y administras ${adminCount} de ellas` : ""
+                      }.`}{" "}
+                  Al eliminarla pierdes el acceso a{" "}
+                  {venueCount === 1 ? "ella" : "todas"}, sin vuelta atrás.
+                </p>
+              )}
+
+              {deletionCheckLoading && (
+                <p className="pf-hint" role="status">
+                  Comprobando si hay organizaciones que bloqueen el borrado…
+                </p>
+              )}
+              {deletionCheckError && (
+                <div role="alert" className="pf-alert pf-alert-bad">
+                  <span>
+                    No pudimos comprobar si puedes eliminar la cuenta:{" "}
+                    {deletionCheckError}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={retryDeletionCheck}
+                    className="btn-ghost pf-action"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              )}
+              {deletionCheck && !deletionCheck.can_delete && (
+                <div className="pf-deletion-blockers">
+                  <p className="pf-delete-warn">
+                    El servidor encontró bloqueos. Transfiere la administración
+                    antes de eliminar:
+                  </p>
+                  <ul>
+                    {deletionCheck.blockers.map((b) => (
+                      <li key={b.venue_id}>
+                        <strong>{b.venue_name}</strong>
+                        <span>{b.detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => nav("/admin/organizacion?tab=equipo")}
+                    className="btn-ghost pf-action"
+                  >
+                    Ir al equipo de la organización
+                  </button>
+                </div>
+              )}
+
+              {deletionCheck?.can_delete &&
+                (!delOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setDelOpen(true)}
+                    className="btn-ghost pf-action pf-action-danger"
+                  >
+                    <Icon name="trash" className="h-4 w-4" aria-hidden="true" />
+                    Eliminar mi cuenta…
+                  </button>
+                ) : (
+                  <form onSubmit={submitDelete} className="pf-delete-form">
+                    <p className="pf-delete-warn">
+                      Escribe tu contraseña y tu correo para confirmar. Esta
+                      acción no tiene deshacer.
+                    </p>
+                    <label className="pf-field" htmlFor="del-pass">
+                      <span className="pf-label">Tu contraseña</span>
+                      <input
+                        id="del-pass"
+                        type="password"
+                        value={delPass}
+                        onChange={(e) => setDelPass(e.target.value)}
+                        className="field"
+                        placeholder="Tu contraseña"
+                        autoComplete="current-password"
+                        required
+                      />
+                    </label>
+                    <label className="pf-field" htmlFor="del-confirm">
+                      <span className="pf-label">
+                        Escribe tu correo para confirmar
+                      </span>
+                      <input
+                        id="del-confirm"
+                        type="text"
+                        value={delConfirm}
+                        onChange={(e) => setDelConfirm(e.target.value)}
+                        className="field"
+                        placeholder={user.email}
+                        autoComplete="off"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        required
+                      />
+                    </label>
+                    {delErr && (
+                      <div role="alert" className="pf-alert pf-alert-bad">
+                        {delErr}
+                      </div>
+                    )}
+                    <div className="pf-form-actions">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDelOpen(false);
+                          setDelErr("");
+                          setDelPass("");
+                          setDelConfirm("");
+                        }}
+                        className="btn-ghost"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={
+                          delBusy ||
+                          !delPass ||
+                          delConfirm.trim().toLowerCase() !==
+                            user.email.trim().toLowerCase()
+                        }
+                        className="pf-delete-btn"
+                      >
+                        {delBusy ? "Eliminando…" : "Eliminar definitivamente"}
+                      </button>
+                    </div>
+                  </form>
+                ))}
+            </div>
+          </div>
         </section>
+      )}
       </div>
+      </div>
+
+      {pendingAction && (
+        <div
+          className="pf-guard"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setPendingAction(null);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pf-guard-title"
+            aria-describedby="pf-guard-copy"
+            className="pf-guard-card"
+          >
+            <h2 id="pf-guard-title" className="pf-guard-title">
+              Tienes cambios sin guardar
+            </h2>
+            <p id="pf-guard-copy" className="pf-guard-copy">
+              Si sales ahora, los cambios de esta sección se pierden. Puedes
+              guardarlos, descartarlos o seguir editando.
+            </p>
+            <div className="pf-guard-actions">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setPendingAction(null)}
+                className="btn-ghost pf-action"
+              >
+                Seguir editando
+              </button>
+              <button
+                type="button"
+                onClick={discardAndContinue}
+                className="btn-ghost pf-action pf-action-danger"
+              >
+                Descartar y salir
+              </button>
+              {(activeTab === "cuenta" || activeTab === "negocio") && (
+                <button
+                  type="button"
+                  onClick={saveAndContinue}
+                  disabled={nameBusy || venueBusy}
+                  className="btn-primary"
+                >
+                  Guardar y continuar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
