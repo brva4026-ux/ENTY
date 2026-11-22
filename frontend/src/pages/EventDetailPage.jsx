@@ -14,6 +14,7 @@ import TransitionLink from "../components/TransitionLink";
 import { Skeleton } from "../components/Skeleton";
 import { EntySymbol } from "../components/Brand";
 import { waLink } from "../lib/whatsapp";
+import { placeLabel } from "../lib/placeLabel";
 
 /**
  * Ficha pública del evento — la pantalla que abre alguien desde un enlace
@@ -326,11 +327,17 @@ export default function EventDetailPage() {
   // Contacto del organizador para "encargar la boleta" cuando el pago en linea
   // no esta configurado. null si no publico un telefono usable: sin el, el CTA
   // no lleva a ningun chat seguro, asi que se dice la verdad en vez de mostrarlo.
+  // Tambien cubre entradas de cortesia: el organizador sigue siendo el canal
+  // real para conseguir la boleta cuando no hay cobro en linea.
   const contactWa =
-    data && data.price_cents != null && !data.sold_out && !data.payments_enabled
+    data &&
+    !data.sold_out &&
+    (!data.payments_enabled || data.price_cents == null)
       ? waLink(
           data.contact_phone,
-          `Hola, quiero comprar una boleta para ${data.name}.`,
+          data.price_cents == null
+            ? `Hola, quiero consultar por la entrada a ${data.name}.`
+            : `Hola, quiero comprar una boleta para ${data.name}.`,
         )
       : null;
 
@@ -367,6 +374,15 @@ export default function EventDetailPage() {
       data?.doors_open_at,
   );
   const hasLocation = Boolean(data?.venue || data?.location);
+  // Identidad que viaja sobre el video: si el clip es vertical y se ve sin
+  // audio, el nombre, la fecha, el lugar y el cartel siguen en pantalla.
+  const videoTags = data?.lineup?.length
+    ? data.lineup
+        .slice(0, 4)
+        .map((a) => a.name)
+        .filter(Boolean)
+        .join(" · ")
+    : data?.category || "";
   const hasBuyBar = Boolean(
     data &&
       !preview &&
@@ -374,7 +390,8 @@ export default function EventDetailPage() {
       !queueOpen &&
       !videoPlaying &&
       (data.sold_out ||
-        (data.price_cents != null && (data.payments_enabled || contactWa))),
+        ((data.price_cents != null || contactWa) &&
+          (data.payments_enabled || contactWa))),
   );
   const showBuyBar = hasBuyBar && railCtaPassed;
 
@@ -424,11 +441,28 @@ export default function EventDetailPage() {
       );
     }
     if (data.price_cents == null) {
+      if (contactWa) {
+        return (
+          <a
+            className={cls}
+            href={contactWa}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() =>
+              track("checkout_contact_whatsapp", { eventId: Number(data.id) })
+            }
+          >
+            Encargar por WhatsApp
+            {arrow}
+          </a>
+        );
+      }
+      // Sin precio no hay compra pública que ofrecer. Un enlace a "Mis
+      // boletas" confundía al visitante sin cuenta: se muestra el estado real.
       return (
-        <TransitionLink to="/boletas" className={cls}>
-          Ver mis boletas
-          {arrow}
-        </TransitionLink>
+        <span className={`${cls} evd-cta--disabled`} aria-disabled="true">
+          Entrada gratuita
+        </span>
       );
     }
     if (data.payments_enabled) {
@@ -589,7 +623,7 @@ export default function EventDetailPage() {
             <p className="evd-where">
               <Icon name="pin" className="h-4 w-4" />
               <span>
-                {[data.venue, data.location].filter(Boolean).join(" · ") ||
+                {placeLabel(data.venue, data.location) ||
                   "Lugar por confirmar"}
               </span>
             </p>
@@ -658,7 +692,9 @@ export default function EventDetailPage() {
                   {data.sold_out
                     ? "Agotado. Entra a la lista de espera: si alguien devuelve su boleta, te avisamos."
                     : data.price_cents == null
-                      ? "Cortesía: el acceso se valida con QR en la puerta."
+                      ? contactWa
+                        ? "Cortesía: escríbele al organizador para coordinar tu entrada."
+                        : "Cortesía: el acceso se valida con QR en la puerta."
                       : data.payments_enabled
                         ? "Compra en línea y recibe tu QR para la puerta."
                         : contactWa
@@ -696,31 +732,52 @@ export default function EventDetailPage() {
                     <span className="evd-video-play" aria-hidden="true">
                       <Icon name="play" className="h-8 w-8" />
                     </span>
-                    <span className="evd-video-caption">Ver video</span>
+                    <span className="evd-video-caption">
+                      Ver video del evento
+                    </span>
                   </button>
                 ) : (
                   <>
-                    <video
-                      ref={videoRef}
-                      className="evd-video-player"
-                      src={data.video_url}
-                      poster={showFlyer ? data.flyer_url : undefined}
-                      controls
-                      autoPlay
-                      muted
-                      playsInline
-                      preload="metadata"
-                      aria-label={`Video de ${data.name}`}
-                      onPlay={() => setVideoPlaying(true)}
-                      onPause={() => setVideoPlaying(false)}
-                      onEnded={() => setVideoPlaying(false)}
-                      onError={() => {
-                        setVideoFailed(true);
-                        setVideoPlaying(false);
-                      }}
-                    >
-                      Tu navegador no puede reproducir este video.
-                    </video>
+                    <div className="evd-video-frame">
+                      <video
+                        ref={videoRef}
+                        className="evd-video-player"
+                        src={data.video_url}
+                        poster={showFlyer ? data.flyer_url : undefined}
+                        controls
+                        autoPlay
+                        muted
+                        playsInline
+                        preload="metadata"
+                        aria-label={`Video de ${data.name}`}
+                        onPlay={() => setVideoPlaying(true)}
+                        onPause={() => setVideoPlaying(false)}
+                        onEnded={() => setVideoPlaying(false)}
+                        onError={() => {
+                          setVideoFailed(true);
+                          setVideoPlaying(false);
+                        }}
+                      >
+                        Tu navegador no puede reproducir este video.
+                      </video>
+                      {/* El clip puede ser vertical y verse sin audio: estos
+                          datos también viven como texto en la ficha, pero aquí
+                          acompañan la reproducción. */}
+                      <div className="evd-video-meta" aria-hidden="true">
+                        <strong>{data.name}</strong>
+                        <span>
+                          {when.date}
+                          {when.time ? ` · ${when.time}` : ""}
+                        </span>
+                        <span>
+                          {placeLabel(data.venue, data.location) ||
+                            "Lugar por confirmar"}
+                        </span>
+                        {videoTags && (
+                          <span className="evd-video-tags">{videoTags}</span>
+                        )}
+                      </div>
+                    </div>
                     <p className="evd-video-note">
                       Se reproduce sin sonido. Los datos clave están escritos
                       arriba y abajo del video.

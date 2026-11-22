@@ -31,6 +31,8 @@ import VenueHeader from "../components/VenueHeader";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { EVENT_CATEGORIES } from "../lib/eventCategories";
 import { money } from "../lib/format";
+import { fileToDataUrl } from "../lib/imageUpload";
+import EventPublicPreview from "../components/EventPublicPreview";
 
 /** Pestañas del backstage de un evento. Cuatro secciones que agrupan el
  *  trabajo real: montar, vender, asignar y operar la puerta. */
@@ -151,6 +153,9 @@ export default function AdminDashboard() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [editError, setEditError] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [uploadingFlyer, setUploadingFlyer] = useState(false);
+  const [previewEvent, setPreviewEvent] = useState(null);
+  const flyerInputRef = useRef(null);
   // La pestaña activa es la de la URL (la mig 012 ya generaba ?tab=...);
   // whitelist para no renderizar una pestaña inventada por el usuario. Solo
   // pestañas de EVENTO: las del negocio viven en /admin/negocio.
@@ -729,6 +734,54 @@ export default function AdminDashboard() {
     });
   }
 
+  /** Sube el afiche desde el editor con el mismo endpoint de medios que usa
+   *  el alta. El navegador reduce la imagen; el backend valida mime y tamaño. */
+  async function uploadEditFlyer(file) {
+    if (!file || !editingEvent) return;
+    setEditError("");
+    setUploadingFlyer(true);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      const res = await apiFetch(`/venues/${venueId}/media`, {
+        method: "POST",
+        body: JSON.stringify({ data_url: dataUrl }),
+      });
+      setEditingEvent((ev) => (ev ? { ...ev, flyer_url: res.url } : ev));
+      setBadFlyers((m) => ({ ...m, [res.url]: false }));
+      ui.success("Afiche listo");
+    } catch (err) {
+      setEditError(err.message);
+    } finally {
+      setUploadingFlyer(false);
+    }
+  }
+
+  /** Vista previa con los valores del formulario, sin esperar a guardar. */
+  function openEventPreview() {
+    if (!editingEvent || !selectedEventData) return;
+    const tz = eventZone(selectedEventData);
+    setPreviewEvent({
+      ...selectedEventData,
+      name: editingEvent.name.trim() || selectedEventData.name,
+      description: editingEvent.description.trim() || null,
+      flyer_url: editingEvent.flyer_url.trim() || null,
+      video_url: editingEvent.video_url.trim() || null,
+      location: editingEvent.location.trim() || null,
+      location_url: editingEvent.location_url.trim() || null,
+      contact_name: editingEvent.contact_name.trim() || null,
+      contact_phone: editingEvent.contact_phone.trim() || null,
+      category: editingEvent.category || selectedEventData.category,
+      starts_at:
+        fromZonedInput(editingEvent.starts_at, tz) ||
+        selectedEventData.starts_at,
+      doors_open_at:
+        fromZonedInput(editingEvent.doors_open_at, tz) || null,
+      min_age:
+        editingEvent.min_age === "" ? null : Number(editingEvent.min_age),
+      dress_code: editingEvent.dress_code.trim() || null,
+    });
+  }
+
   async function saveEventEdit(e) {
     e.preventDefault();
     setEditError("");
@@ -1283,10 +1336,6 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {qrTesterOpen && (
-              <QrTesterModal onClose={() => setQrTesterOpen(false)} />
-            )}
-
             {createOpen && (
               <EventCreateModal
                 venueId={venueId}
@@ -1299,6 +1348,19 @@ export default function AdminDashboard() {
             )}
           </>
         )}
+
+        {qrTesterOpen && (
+          <QrTesterModal onClose={() => setQrTesterOpen(false)} />
+        )}
+
+        {previewEvent && (
+          <EventPublicPreview
+            event={previewEvent}
+            ticketTypes={types}
+            onClose={() => setPreviewEvent(null)}
+          />
+        )}
+
         {/* Enlace viejo o evento borrado: pantalla honesta, no un limbo */}
         {selectedEvent && !selectedEventData && (
           <EventNotFound onBack={() => setSearchParams({})} />
@@ -1329,13 +1391,23 @@ export default function AdminDashboard() {
               <form onSubmit={saveEventEdit} className="card p-5">
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                   <h3 className="display text-base">Editar evento</h3>
-                  <button
-                    type="button"
-                    onClick={() => setEditingEvent(null)}
-                    className="text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
-                  >
-                    Cerrar
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={openEventPreview}
+                      className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
+                    >
+                      <Icon name="eye" className="h-3.5 w-3.5" />
+                      Vista previa móvil
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingEvent(null)}
+                      className="text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
                 </div>
                 <p className="mb-4 text-xs text-zinc-500">
                   El aforo no puede bajar de las boletas ya emitidas ni la
@@ -1434,23 +1506,86 @@ export default function AdminDashboard() {
                     />
                   </label>
 
-                  <label>
+                  <div>
                     <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Flyer (URL)
+                      Afiche del evento
                     </span>
-                    <input
-                      type="url"
-                      value={editingEvent.flyer_url}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          flyer_url: e.target.value,
-                        })
-                      }
-                      className="field"
-                      placeholder="https://…/flyer.jpg"
-                    />
-                  </label>
+                    <div className="flex items-start gap-3">
+                      {editingEvent.flyer_url &&
+                      !badFlyers[editingEvent.flyer_url] ? (
+                        <img
+                          src={editingEvent.flyer_url}
+                          alt="Afiche actual"
+                          onError={() =>
+                            setBadFlyers((m) => ({
+                              ...m,
+                              [editingEvent.flyer_url]: true,
+                            }))
+                          }
+                          decoding="async"
+                          className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
+                        />
+                      ) : (
+                        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
+                          <Icon name="camera" className="h-5 w-5" />
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <input
+                          type="url"
+                          value={editingEvent.flyer_url}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              flyer_url: e.target.value,
+                            })
+                          }
+                          className="field"
+                          placeholder="https://…/flyer.jpg"
+                          aria-label="Enlace del afiche"
+                        />
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => flyerInputRef.current?.click()}
+                            disabled={uploadingFlyer}
+                            className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
+                          >
+                            {uploadingFlyer ? "Subiendo…" : "Subir afiche"}
+                          </button>
+                          <input
+                            ref={flyerInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = "";
+                              uploadEditFlyer(file);
+                            }}
+                          />
+                          {editingEvent.flyer_url && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingEvent({
+                                  ...editingEvent,
+                                  flyer_url: "",
+                                })
+                              }
+                              className="text-2xs font-semibold text-zinc-500 transition hover:text-red-400"
+                            >
+                              Quitar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="mt-1 block text-xs text-zinc-500">
+                      Es la portada pública. Se muestra completa, sin recortar
+                      el texto de los bordes. También puedes pegar un enlace.
+                    </span>
+                  </div>
 
                   <label>
                     <span className="mb-1 block text-xs font-medium text-zinc-400">
@@ -1470,8 +1605,9 @@ export default function AdminDashboard() {
                       maxLength={2000}
                     />
                     <span className="mt-1 block text-xs text-zinc-500">
-                      Opcional. Se muestra en la ficha pública y empieza sin
-                      sonido.
+                      Opcional. Enlace público MP4 o WebM; se reproduce dentro
+                      de la ficha y empieza sin sonido. Enty no aloja videos:
+                      usa un enlace de tu hosting.
                     </span>
                   </label>
 

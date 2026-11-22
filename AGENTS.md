@@ -1947,3 +1947,19 @@ las tarjetas.
 La marca vive en `components/Brand.jsx`: `EntySymbol` es el boleto inclinado y
 `Logo` el lockup símbolo + «Enty». Cualquier superficie nueva debe usar esas
 piezas; el favicon (`public/icon.svg`) replica el mismo trazo.
+
+## Ficha pública y vista previa móvil
+
+La ficha que abre un fan sin cuenta es `pages/EventDetailPage.jsx`; fuerza el
+tema oscuro con `forceDarkOnce`. Su espejo para el organizador es
+`components/EventPublicPreview.jsx`: reproduce identidad, boletas, video,
+lugar y contacto dentro de un marco de teléfono. El marco redefine los tokens
+`--e-*` y `--enty-glass*` en `.evd-preview-screen` para que se vea oscuro aunque
+el admin esté en tema claro. Se abre desde «Editar evento» y desde el paso 3 de
+`EventCreateModal`.
+
+Los modales de `AdminDashboard` (`QrTesterModal`, `EventPublicPreview`) se
+renderizan fuera del bloque `{!selectedEventData && (...)}`; dentro de ese
+bloque no aparecen cuando hay un evento abierto. En `EventCreateModal`, el
+preview pausa el diálogo padre (`useDialogA11y({ open: !previewOpen })` y
+`inert`) para que Escape y el foco pertenezcan a un solo modal.

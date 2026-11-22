@@ -7,6 +7,14 @@ import { useDialogA11y } from "../lib/useDialogA11y";
 import { EVENT_CATEGORIES } from "../lib/eventCategories";
 import { fileToDataUrl } from "../lib/imageUpload";
 import { toLocalInput } from "../lib/datetime";
+import EventPublicPreview from "./EventPublicPreview";
+
+/** datetime-local -> ISO UTC; null si el campo está vacío o inválido. */
+function isoFromLocal(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
 
 /** Siguiente dia de semana (0=dom) a cierta hora: "proximo viernes 8pm". */
 function nextWeekday(weekday, hour) {
@@ -97,7 +105,14 @@ function Hint({ id, children, tone = "zinc" }) {
  * cambiaron: esto es puramente la experiencia de llenarlo.
  */
 export default function EventCreateModal({ venueId, onClose, onCreated }) {
-  const { dialogRef, titleId } = useDialogA11y({ onClose });
+  const [previewOpen, setPreviewOpen] = useState(false);
+  // Mientras la ficha móvil está abierta, este diálogo cede el foco, Escape
+  // y el bloqueo de scroll al preview: dos modales activos a la vez pelearían
+  // por el mismo documento.
+  const { dialogRef, titleId } = useDialogA11y({
+    open: !previewOpen,
+    onClose,
+  });
   const ui = useUI();
   // El input de archivo vive oculto: quien lo abre es el botón, que sí entra
   // en el orden de tabulación (un `label` con un input display:none no).
@@ -303,6 +318,8 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-hidden={previewOpen || undefined}
+        inert={previewOpen}
         className="dialog-panel my-auto max-w-2xl"
       >
         <span className="dialog-grab" aria-hidden="true" />
@@ -862,6 +879,14 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                     )}
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen(true)}
+                  className="btn-ghost mt-3 !px-3 !py-1.5 text-2xs font-bold"
+                >
+                  <Icon name="eye" className="h-3.5 w-3.5" />
+                  Ver ficha pública en móvil
+                </button>
               </div>
             </div>
           )}
@@ -920,6 +945,30 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           </div>
         </form>
       </div>
+
+      {previewOpen && (
+        <EventPublicPreview
+          event={{
+            id: 0,
+            name: form.name.trim() || "Evento sin nombre",
+            description: form.description.trim() || null,
+            flyer_url: form.flyer_url || null,
+            video_url: null,
+            location: form.location || null,
+            starts_at: isoFromLocal(form.starts_at),
+            event_timezone:
+              Intl.DateTimeFormat().resolvedOptions().timeZone ||
+              "America/Bogota",
+            category: form.category || null,
+            price_cents: null,
+            status: "draft",
+            contact_phone: null,
+            ticket_types: [],
+            lineup: [],
+          }}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
     </div>
   );
 }
