@@ -435,9 +435,10 @@ export default function TicketList({ venueId, eventId, types = [], onChanged, on
                       </span>
                       <span aria-hidden="true">·</span>
                       <span>
+                        Pago:{" "}
                         {t.price_cents_snapshot > 0
-                          ? `${PAYMENT_METHOD_LABEL[t.payment_method] ?? "Pago no registrado"} · $${(t.price_cents_snapshot / 100).toLocaleString("es-CO")}`
-                          : "Cortesía"}
+                          ? `${PAYMENT_METHOD_LABEL[t.payment_method] ?? "no registrado"} · $${(t.price_cents_snapshot / 100).toLocaleString("es-CO")}`
+                          : "cortesía ($0)"}
                       </span>
                       <span aria-hidden="true">·</span>
                       <span>

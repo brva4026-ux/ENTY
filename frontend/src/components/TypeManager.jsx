@@ -32,7 +32,7 @@ const PRESETS = [
   },
 ];
 
-export default function TypeManager({ venueId, eventId, types, onChange, capacity }) {
+export default function TypeManager({ venueId, eventId, types, report, onChange, capacity }) {
   const ui = useUI();
   const [name, setName] = useState("General");
   // El usuario piensa en PESOS ("30.000"), la DB guarda centavos: convertir
@@ -58,6 +58,9 @@ export default function TypeManager({ venueId, eventId, types, onChange, capacit
   const [saving, setSaving] = useState(false);
 
   const typeUrl = (t) => `/venues/${venueId}/events/${eventId}/types/${t.id}`;
+  const byType = new Map((report?.by_type || []).map((t) => [t.ticket_type_id, t]));
+  const priceFor = (value, courtesy) =>
+    courtesy ? 0 : Math.round(Number(value) * 100);
 
   function replaceType(updated) {
     onChange((types || []).map((x) => (x.id === updated.id ? updated : x)));
@@ -71,7 +74,7 @@ export default function TypeManager({ venueId, eventId, types, onChange, capacit
         method: "POST",
         body: JSON.stringify({
           name,
-          price_cents: Math.round(Number(price) * 100),
+          price_cents: priceFor(price, isCourtesy),
           quantity: Number(qty),
           is_courtesy: isCourtesy,
         }),
@@ -107,7 +110,7 @@ export default function TypeManager({ venueId, eventId, types, onChange, capacit
         method: "PATCH",
         body: JSON.stringify({
           name: draft.name.trim(),
-          price_cents: Math.round(Number(draft.price) * 100),
+          price_cents: priceFor(draft.price, draft.isCourtesy),
           quantity: Number(draft.qty),
           is_courtesy: draft.isCourtesy,
         }),
@@ -171,6 +174,10 @@ export default function TypeManager({ venueId, eventId, types, onChange, capacit
       <p className="mb-3 text-xs text-zinc-500">
         Cada tipo es una localidad del evento: define el precio, el cupo y si
         es cortesía. No es un producto separado del evento.
+      </p>
+      <p className="mb-3 rounded-lg bg-zinc-940 px-3 py-2 text-2xs text-zinc-500">
+        Una cortesía siempre vale $0 y necesita un cupo definido. Los cupos
+        disponibles se calculan con las boletas emitidas de cada localidad.
       </p>
       <ul className="mb-4 space-y-2">
         {(types || []).map((t) => (
@@ -254,7 +261,9 @@ export default function TypeManager({ venueId, eventId, types, onChange, capacit
                     {t.price_cents > 0
                       ? `$${(t.price_cents / 100).toLocaleString("es-CO")}`
                       : "gratis"}{" "}
-                    · cantidad {t.quantity}
+                    · {byType.has(t.id)
+                      ? `${Math.max(0, t.quantity - (byType.get(t.id).issued ?? 0))} disponibles de ${t.quantity}`
+                      : `cupo ${t.quantity}`}
                   </span>
                   <button
                     onClick={() => startEdit(t)}

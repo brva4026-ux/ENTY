@@ -1667,6 +1667,7 @@ class EventReport(BaseModel):
     redeemed: int
     pending: int
     voided: int
+    refunded: int = 0
     occupancy_pct: float
     # Recaudo vivo: suma de price_cents_snapshot de las boletas activas.
     # (Anular/reembolsar lo baja; emitir lo sube. NO es "lo vendido histórico".)
@@ -1724,6 +1725,7 @@ class ReportSummary(BaseModel):
     redeemed: int
     pending: int
     voided: int
+    refunded: int = 0
     occupancy_pct: float
     revenue_cents: int
     avg_ticket_cents: int

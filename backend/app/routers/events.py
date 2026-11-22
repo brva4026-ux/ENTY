@@ -663,7 +663,13 @@ async def create_type(
             ON CONFLICT (event_id, name) DO NOTHING
             RETURNING id, event_id, name, price_cents, quantity, is_courtesy, is_active
             """,
-            (event_id, body.name, body.price_cents, body.quantity, body.is_courtesy),
+            (
+                event_id,
+                body.name,
+                0 if body.is_courtesy else body.price_cents,
+                body.quantity,
+                body.is_courtesy,
+            ),
         )
         created = await cur.fetchone()
         if not created:
@@ -716,6 +722,28 @@ async def create_allocation(
         )
         if not await cur.fetchone():
             raise HTTPException(404, "Tipo de boleta no pertenece a este evento")
+        await cur.execute(
+            """
+            SELECT a.capacity,
+                   COALESCE((
+                       SELECT count(*) FROM tickets t
+                        WHERE t.allocation_id = a.id
+                          AND t.status NOT IN ('voided', 'refunded')
+                   ), 0)::int AS issued
+              FROM promoter_allocations a
+             WHERE a.event_id=%s AND a.ticket_type_id=%s AND a.promoter_id=%s
+            """,
+            (event_id, body.ticket_type_id, body.promoter_id),
+        )
+        existing = await cur.fetchone()
+        if existing and body.capacity < existing["issued"]:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"No puedes bajar el cupo a {body.capacity}: ya hay "
+                f"{existing['issued']} boletas emitidas contra este cupo. "
+                "Las boletas ya emitidas se conservan.",
+            )
+
         await cur.execute(
             """
             INSERT INTO promoter_allocations AS a (event_id, ticket_type_id, promoter_id, capacity)
@@ -791,6 +819,36 @@ async def create_allocations_bulk(
 
         await cur.execute(
             """
+            SELECT a.promoter_id,
+                   COALESCE((
+                       SELECT count(*) FROM tickets t
+                        WHERE t.allocation_id = a.id
+                          AND t.status NOT IN ('voided', 'refunded')
+                   ), 0)::int AS issued
+              FROM promoter_allocations a
+             WHERE a.event_id=%s AND a.ticket_type_id=%s
+               AND a.promoter_id = ANY(%s)
+            """,
+            (event_id, body.ticket_type_id, promoters),
+        )
+        used = {r["promoter_id"]: r["issued"] for r in await cur.fetchall()}
+        below = [
+            (pid, cap, used[pid])
+            for pid, cap in zip(promoters, capacities)
+            if pid in used and cap < used[pid]
+        ]
+        if below:
+            detail = ", ".join(
+                f"promotor #{pid}: {issued} emitidas" for pid, _, issued in below
+            )
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "El reparto deja cupos por debajo de las boletas ya emitidas "
+                f"({detail}). Las boletas ya emitidas se conservan.",
+            )
+
+        await cur.execute(
+            """
             INSERT INTO promoter_allocations AS a
                    (event_id, ticket_type_id, promoter_id, capacity)
             SELECT %s, %s, pid, cap
@@ -843,6 +901,8 @@ async def update_type(
             k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None
         }
         merged = {**current, **changes}
+        if merged["is_courtesy"]:
+            merged["price_cents"] = 0
 
         try:
             await cur.execute(

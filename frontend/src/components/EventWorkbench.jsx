@@ -5,6 +5,7 @@
  * Accesos. Las pestañas viejas (Lineup, Boletas, Cupones, Cupos, Noche,
  * Entradas) se normalizan en AdminDashboard para no romper enlaces.
  */
+import { useEffect, useRef, useState } from "react";
 import { useTabKeys } from "../lib/useTabKeys";
 import { LiveIndicator } from "./Brand";
 import ActionMenu from "./ActionMenu";
@@ -92,19 +93,57 @@ export default function EventWorkbench({
   canDelete = false,
   onExit,
 }) {
+  const tabsRef = useRef(null);
+  const [now, setNow] = useState(Date.now());
   const wbTabs = useTabKeys({
     ids: TABS.map((t) => t.id),
     activeId: tab,
     onSelect: onTab,
     idOf: (id) => `evx-tab-${id}`,
   });
+
+  useEffect(() => {
+    const active = tabsRef.current?.querySelector('[aria-selected="true"]');
+    active?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [tab]);
+
+  useEffect(() => {
+    if (!ev || (ev.status !== "draft" && ev.status !== "published")) {
+      return undefined;
+    }
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, [ev]);
+
   if (!ev) return null;
   const status = STATUS_META[ev.status] ?? STATUS_META.draft;
   const staleLive = isStaleLive(ev);
   const tz = eventZone(ev);
-  const primaryActions = actions.filter((a) => !a.danger);
+  const startMs = new Date(ev.starts_at).getTime();
+  const diff = startMs - now;
+  let countdown = null;
+  if (ev.status === "live") {
+    countdown = `En puerta desde ${formatEventTime(ev.starts_at, tz)}`;
+  } else if (ev.status === "ended") {
+    countdown = "La noche ya cerró";
+  } else if (ev.status === "cancelled") {
+    countdown = "Evento cancelado";
+  } else if (diff <= 0) {
+    countdown = "La hora de inicio ya pasó";
+  } else if (diff < 60 * 60 * 1000) {
+    countdown = `Comienza en ${Math.max(1, Math.ceil(diff / 60_000))} min`;
+  } else if (diff < 24 * 60 * 60 * 1000) {
+    countdown = `Comienza en ${Math.ceil(diff / 3_600_000)} h`;
+  } else if (diff < 48 * 60 * 60 * 1000) {
+    countdown = "Comienza mañana";
+  }
+  const primaryActions = actions.filter((a) => !a.danger && !a.secondary);
+  const secondaryActions = actions.filter((a) => !a.danger && a.secondary);
   const cancelAction = actions.find((a) => a.action === "cancel");
   const menuItems = [
+    ...(editable
+      ? [{ key: "edit", label: "Editar evento", icon: "edit", onClick: onEdit }]
+      : []),
     ...(onDuplicate
       ? [{ key: "duplicate", label: "Duplicar evento", icon: "copy", onClick: onDuplicate }]
       : []),
@@ -150,6 +189,12 @@ export default function EventWorkbench({
                   <span className="bs-warning">
                     <Icon name="alert" className="h-3.5 w-3.5" aria-hidden="true" />
                     Evento pasado · puerta abierta
+                  </span>
+                )}
+                {countdown && (
+                  <span className="bs-countdown">
+                    <Icon name="clock" className="h-3.5 w-3.5" aria-hidden="true" />
+                    {countdown}
                   </span>
                 )}
               </div>
@@ -204,6 +249,17 @@ export default function EventWorkbench({
                 {busyAction === action ? "Procesando…" : label}
               </button>
             ))}
+            {secondaryActions.map(({ action, label }) => (
+              <button
+                key={action}
+                type="button"
+                onClick={() => onAction(action)}
+                disabled={busyAction === action}
+                className="bs-secondary"
+              >
+                {busyAction === action ? "Procesando…" : label}
+              </button>
+            ))}
             {editable && (
               <button type="button" onClick={onEdit} className="bs-secondary">
                 <Icon name="edit" className="h-4 w-4" aria-hidden="true" />
@@ -218,6 +274,7 @@ export default function EventWorkbench({
       </section>
 
       <nav
+        ref={tabsRef}
         className="bs-tabs"
         role="tablist"
         aria-label="Secciones del evento"
@@ -240,6 +297,9 @@ export default function EventWorkbench({
           </button>
         ))}
       </nav>
+      <p className="bs-tabs-hint" aria-hidden="true">
+        Desliza para ver las cuatro secciones →
+      </p>
     </div>
   );
 }

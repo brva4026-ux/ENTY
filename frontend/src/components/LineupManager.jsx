@@ -173,10 +173,20 @@ export default function LineupManager({ venueId, eventId }) {
     <div className="card p-5">
       <p className="eyebrow">Cartel</p>
       <h3 className="display mb-1 mt-0.5 text-base">Lineup</h3>
-      <p className="mb-4 text-xs text-zinc-500">
-        Los artistas de la noche, en orden. Aparecen en la ficha pública del
-        evento, en la pestaña Lineup.
-      </p>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-xs text-zinc-500">
+          Los artistas de la noche, en orden. Aparecen en la ficha pública del
+          evento, en la pestaña Lineup.
+        </p>
+        <a
+          className="admin-inline-link"
+          href={`/evento/${eventId}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Ver cartel en la ficha
+        </a>
+      </div>
 
       {items === null ? (
         <p className="text-sm text-zinc-500">Cargando lineup…</p>
@@ -185,6 +195,35 @@ export default function LineupManager({ venueId, eventId }) {
           Agrega el primer artista o DJ para armar el cartel.
         </EmptyState>
       ) : (
+        <>
+        <div className="bs-lineup-preview" aria-label="Vista previa del cartel">
+          {items.map((item, i) => (
+            <article className="bs-lineup-poster" key={item.id}>
+              <div className="bs-lineup-media">
+                {item.image_url ? (
+                  <img src={item.image_url} alt="" loading="lazy" />
+                ) : (
+                  <span aria-hidden="true">{item.name.slice(0, 1).toUpperCase()}</span>
+                )}
+              </div>
+              <span className="bs-lineup-order tnum">
+                {i + 1}
+              </span>
+              <div className="bs-lineup-caption">
+                <strong>{item.name}</strong>
+                <span>{item.role || "Artista"}</span>
+                {item.starts_at && (
+                  <span className="tnum">
+                    {new Date(item.starts_at).toLocaleTimeString("es-CO", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
         <ul className="mb-4 space-y-2">
           {items.map((item, i) => (
             <li key={item.id} className="list-row px-3 py-2 text-sm">
@@ -330,6 +369,7 @@ export default function LineupManager({ venueId, eventId }) {
             </li>
           ))}
         </ul>
+        </>
       )}
 
       <form onSubmit={add} className="grid grid-cols-1 gap-2 sm:grid-cols-2">

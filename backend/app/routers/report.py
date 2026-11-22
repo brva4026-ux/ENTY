@@ -128,6 +128,7 @@ def _totals(by_status: dict[str, int], capacity: int) -> dict:
         "redeemed": redeemed,
         "pending": live - redeemed,
         "voided": by_status.get("voided", 0),
+        "refunded": by_status.get("refunded", 0),
         "occupancy_pct": round(live / capacity * 100, 1) if capacity else 0.0,
     }
 
@@ -584,6 +585,7 @@ async def event_summary_csv(
     wtr.writerow(["Boletas pagas", paid])
     wtr.writerow(["Cortesias", money["courtesy"]])
     wtr.writerow(["Anuladas", by_status.get("voided", 0)])
+    wtr.writerow(["Reembolsadas", by_status.get("refunded", 0)])
     wtr.writerow(["Promedio por boleta paga (COP)", money_cop(round(revenue / paid)) if paid else 0])
     wtr.writerow([])
     wtr.writerow(["Puerta", "Entras", "Rechazadas", "Total escaneos"])

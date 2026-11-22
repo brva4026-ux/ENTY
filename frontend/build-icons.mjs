@@ -22,23 +22,15 @@ const outDir = join(pub, "icons");
 mkdirSync(outDir, { recursive: true });
 
 /**
- * Favicon de 32px: REDUCCION, no miniatura. A 16px reales el ojo (1.8px) y
- * el codigo de barras (1.5px) son ruido, asi que se caen. Quedan las tres
- * formas que la marca necesita: el campo navy, la boleta con su troquel y
- * la llama. Mismo path que public/icon.svg — 512/32 = 16.
+ * Favicon de 32px: el símbolo de boleto sólido, sin texto ni detalles que se
+ * pierdan a 16px. Usa el mismo path que public/icon.svg para que el favicon y
+ * la marca del header no vuelvan a separarse.
  */
 const FAVICON_MARKUP = [
-  "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>",
-  "<rect width='32' height='32' rx='7' fill='#16255c'/>",
-  "<g transform='scale(0.0625)'>",
-  // la llama
-  "<path fill='#f97316' d='M256 40c40 64 88 108 88 168a88 88 0 0 1-176 0c0-36 18-58 42-70-4 30 5 46 23 53-14-49-9-95 23-151Z'/>",
-  // la boleta
-  "<rect x='112' y='292' width='288' height='132' rx='20' fill='#f5e6c8'/>",
-  // troquel (a 16px son 1.7px: se ven como muescas, y esa es la firma)
-  "<circle cx='112' cy='353' r='27' fill='#16255c'/>",
-  "<circle cx='400' cy='353' r='27' fill='#16255c'/>",
-  "</g></svg>",
+  "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'>",
+  "<rect width='48' height='48' rx='11' fill='#FFFDF8'/>",
+  "<path fill='#690FD1' d='M7 12H41A3 3 0 0 1 44 15V20A4 4 0 0 0 44 28V33A3 3 0 0 1 41 36H7A3 3 0 0 1 4 33V28A4 4 0 0 0 4 20V15A3 3 0 0 1 7 12Z' transform='rotate(-25 24 24)'/>",
+  "</svg>",
 ].join("");
 
 /** Mismo SVG, en un data-URI que no necesita encodeURIComponent. */
@@ -50,7 +42,7 @@ function syncFavicon() {
   const file = join(root, "index.html");
   let html = readFileSync(file, "utf8");
   const tag = `<link rel="icon" href="${svgToDataUri(FAVICON_MARKUP)}" />`;
-  const re = /<link rel="icon" href="data:image\/svg\+xml,[^"]*" \/>/;
+  const re = /<link rel="icon" href="data:image\/svg\+xml[^"]*" \/>/;
   if (!re.test(html)) throw new Error("index.html: no se encontro el favicon data-URI");
   html = html.replace(re, tag);
   writeFileSync(file, html);

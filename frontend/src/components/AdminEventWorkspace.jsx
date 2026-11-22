@@ -1,40 +1,14 @@
-import ReportWidget from "./ReportWidget";
 import DoorPulse from "./DoorPulse";
-import { StatSkeletonRow } from "./Skeleton";
 import TypeManager from "./TypeManager";
-import LineupManager from "./LineupManager";
 import AllocationManager from "./AllocationManager";
 import CouponManager from "./CouponManager";
 import TicketList from "./TicketList";
 import EventTeamPanel from "./EventTeamPanel";
 import PaymentsPanel from "./PaymentsPanel";
-import EventCover, { eventFullDate } from "./EventCover";
+import EventSummary, { SectionContext } from "./EventSummary";
 import Icon from "./Icon";
-import { money } from "../lib/format";
+import { money, plural } from "../lib/format";
 import { isStaleLive } from "../lib/eventTime";
-
-function SectionContext({ ev, next }) {
-  return (
-    <div className="bs-section-context">
-      <p>
-        <strong>{ev.name}</strong>
-        <span aria-hidden="true">·</span>
-        {eventFullDate(ev)}
-        <span aria-hidden="true">·</span>
-        {ev.location || "Lugar por confirmar"}
-      </p>
-      <p className="bs-section-next">{next}</p>
-    </div>
-  );
-}
-
-function StatusLine({ ev }) {
-  if (ev.status === "draft") return "Borrador (no visible al público)";
-  if (ev.status === "published") return "A la venta";
-  if (ev.status === "live") return "En puerta";
-  if (ev.status === "ended") return "Finalizado";
-  return "Cancelado";
-}
 
 export default function AdminEventWorkspace({
   ev,
@@ -62,152 +36,48 @@ export default function AdminEventWorkspace({
   cajaRange,
   setCajaRange,
   cajaBusy,
+  lastUpdated,
 }) {
   if (!ev) return null;
 
   if (section === "resumen") {
-    const checks = [
-      [types.filter((t) => t.is_active !== false).length > 0, "Tipo de boleta activo"],
-      [(preflight?.bouncers ?? 0) > 0, "Personal de puerta asignado"],
-      [preflight?.door_ready === true, "Escáner activo (link de puerta abierto)"],
-      [allocations.length > 0, "Cupos de promotores definidos"],
-      [Boolean(ev.location), "Lugar confirmado"],
-      [Boolean(ev.description), "Descripción pública escrita"],
-    ];
     return (
-      <div className="admin-workspace-panel">
-        <SectionContext
-          ev={ev}
-          next="Revisa la ficha, completa los pendientes y compártela cuando esté lista."
-        />
-        <div className="admin-panel-card">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2>Ficha pública</h2>
-              <p>Así ve el comprador esta noche antes de pagar.</p>
-            </div>
-            <a
-              className="admin-inline-link"
-              href={`/evento/${ev.id}?preview=1`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Abrir vista previa
-            </a>
-          </div>
-          <div className="admin-preview-card mt-3">
-            <EventCover ev={ev} showTime={false} />
-            <div className="min-w-0">
-              <b>{ev.name}</b>
-              <span>{eventFullDate(ev)}</span>
-              <span>
-                {ev.location || "Lugar por confirmar"} ·{" "}
-                {ev.category || "Sin categoría"}
-              </span>
-              <span>
-                Aforo {ev.capacity} · <StatusLine ev={ev} />
-              </span>
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn-mini"
-              data-variant="brand"
-              onClick={() => onSection("ventas")}
-            >
-              Ver ventas
-            </button>
-            <button
-              type="button"
-              className="btn-mini"
-              onClick={() => onSection("equipo")}
-            >
-              Ver equipo
-            </button>
-            <button
-              type="button"
-              className="btn-mini"
-              onClick={() => onSection("accesos")}
-            >
-              Ver puerta
-            </button>
-            {editable && (
-              <button type="button" className="btn-mini" onClick={onEdit}>
-                Editar evento
-              </button>
-            )}
-          </div>
-        </div>
-
-        <LineupManager venueId={venueId} eventId={eventId} />
-
-        <div className="admin-panel-card">
-          <h2>Pendientes comprobables</h2>
-          <p>Lo que falta para que la noche esté realmente lista.</p>
-          <ul className="admin-check-list">
-            {checks.map(([ok, label]) => (
-              <li key={label} className={ok ? "is-ok" : "is-warn"}>
-                <span className="admin-check-icon" aria-hidden="true">
-                  {ok ? "✓" : "!"}
-                </span>
-                {label}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="grid gap-5 lg:grid-cols-2">
-          {report ? <ReportWidget report={report} /> : <StatSkeletonRow />}
-          <div className="admin-panel-card">
-            <p className="eyebrow">Pulso de la noche</p>
-            <h2 className="mt-0.5">Cómo va la puerta</h2>
-            <div className="mt-3 space-y-2 text-sm text-zinc-300">
-              <div className="flex items-center justify-between gap-2">
-                <span>Boletas emitidas</span>
-                <span className="tnum font-bold">{report?.issued ?? "…"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span>Ya ingresaron</span>
-                <span className="tnum font-bold text-emerald-300">
-                  {report?.redeemed ?? "…"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span>Pendientes de entrar</span>
-                <span className="tnum font-bold text-amber-300">
-                  {report
-                    ? Math.max(0, (report.issued ?? 0) - (report.redeemed ?? 0))
-                    : "…"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span>Aforo disponible</span>
-                <span className="tnum font-bold">
-                  {report
-                    ? Math.max(0, (ev.capacity ?? 0) - (report.issued ?? 0))
-                    : "…"}
-                </span>
-              </div>
-            </div>
-            {isLive && (
-              <p className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
-                <span className="dp-live-dot shrink-0" aria-hidden="true" />
-                Puertas abiertas: los escaneos actualizan estas cifras en vivo.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+      <EventSummary
+        ev={ev}
+        report={report}
+        types={types}
+        allocations={allocations}
+        preflight={preflight}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
+        busyAction={busyAction}
+        onAction={onAction}
+        onSection={onSection}
+        onEdit={onEdit}
+        editable={editable}
+        onCloseNight={onCloseNight}
+        venueId={venueId}
+        eventId={eventId}
+      />
     );
   }
 
   if (section === "ventas") {
+    const paidTickets = report?.by_payment_method
+      ?.filter((p) => p.payment_method && p.payment_method !== "cortesia")
+      .reduce((n, p) => n + (p.tickets ?? 0), 0);
+    const courtesyTickets = (report?.by_type || [])
+      .filter((t) => t.is_courtesy)
+      .reduce((n, t) => n + (t.issued ?? 0), 0);
+    const activeAllocations = (allocations || []).filter(
+      (a) => a.is_active !== false,
+    );
+
     return (
       <div className="admin-workspace-panel">
         <SectionContext
           ev={ev}
-          next="Define localidades, cupones y audita cada boleta emitida."
+          next="Vende en la ficha pública, reparte cupos a promotores y audita cada boleta."
         />
         <div className="admin-panel-card">
           <h2>Boletas y precios</h2>
@@ -216,11 +86,59 @@ export default function AdminEventWorkspace({
             total no puede superar el aforo del evento.
           </p>
         </div>
+        <div className="bs-state-grid bs-state-grid--metrics">
+          <div className="bs-metric">
+            <span>Recaudo vigente</span>
+            <strong className="tnum">{report ? money(report.revenue_cents) : "Sin dato"}</strong>
+            <small>Boletas activas e ingresadas.</small>
+          </div>
+          <div className="bs-metric">
+            <span>Boletas pagadas</span>
+            <strong className="tnum">{paidTickets ?? "Sin dato"}</strong>
+            <small>Venta pública o directa con medio de pago.</small>
+          </div>
+          <div className="bs-metric">
+            <span>Cortesías emitidas</span>
+            <strong className="tnum">{report ? courtesyTickets : "Sin dato"}</strong>
+            <small>Siempre a $0, con cupo propio.</small>
+          </div>
+          <div className="bs-metric">
+            <span>Anuladas</span>
+            <strong className="tnum" data-tone={report?.voided > 0 ? "warn" : undefined}>
+              {report ? report.voided : "Sin dato"}
+            </strong>
+            <small>
+              {report ? `${report.refunded ?? 0} reembolsadas` : "Sin dato de reembolsos."}
+            </small>
+          </div>
+        </div>
+        <div className="admin-panel-card">
+          <h2>Cómo se venden las boletas</h2>
+          <ul className="bs-channel-explain">
+            <li>
+              <strong>Venta pública</strong>
+              <span>La ficha del evento vende en línea; el pago se confirma solo.</span>
+            </li>
+            <li>
+              <strong>Emisión por promotores</strong>
+              <span>
+                {activeAllocations.length
+                  ? `${activeAllocations.length} ${plural(activeAllocations.length, "cupo activo", "cupos activos")} en Equipo.`
+                  : "Sin cupos activos: asigna cupos en Equipo."}
+              </span>
+            </li>
+            <li>
+              <strong>Venta directa</strong>
+              <span>El admin emite desde esta pantalla sin consumir cupo de nadie.</span>
+            </li>
+          </ul>
+        </div>
         <TypeManager
           key={eventId}
           venueId={venueId}
           eventId={eventId}
           types={types}
+          report={report}
           onChange={onChanged}
           capacity={ev.capacity}
         />
@@ -293,12 +211,100 @@ export default function AdminEventWorkspace({
   }
 
   if (section === "accesos") {
+    const paidTickets = report?.by_payment_method
+      ?.filter((p) => p.payment_method && p.payment_method !== "cortesia")
+      .reduce((n, p) => n + (p.tickets ?? 0), 0);
+    const incidents =
+      report == null
+        ? null
+        : (report.door_duplicates ?? 0) + (report.door_rejected ?? 0);
+    const nextByStatus = {
+      live: "Sigue los ingresos y las incidencias; finaliza cuando la noche termine.",
+      ended: "Descarga el cierre y revisa las incidencias antes de conciliar.",
+      cancelled: "La puerta no opera: revisa las boletas y los pagos en Ventas.",
+    };
+
     return (
       <div className="admin-workspace-panel">
         <SectionContext
           ev={ev}
-          next="Abre puertas cuando el equipo esté listo, prueba un QR y cierra la noche."
+          next={
+            nextByStatus[ev.status] ||
+            "Abre puertas cuando el equipo esté listo, prueba un QR y cierra la noche."
+          }
         />
+        <div className="admin-panel-card">
+          <h2>Pulso operativo</h2>
+          <p>
+            Una lectura de la noche sin inventar ceros: si el servidor no
+            reporta un dato, se muestra como ausente.
+          </p>
+          <div className="bs-state-grid bs-state-grid--metrics mt-3">
+            <div className="bs-metric">
+              <span>Boletas emitidas</span>
+              <strong className="tnum">{report ? report.issued : "Sin dato"}</strong>
+              <small>{report ? `${report.capacity} de aforo` : "Esperando reporte"}</small>
+            </div>
+            <div className="bs-metric">
+              <span>Pagos confirmados</span>
+              <strong className="tnum">{paidTickets ?? "Sin dato"}</strong>
+              <small>
+                {paidTickets == null
+                  ? "El reporte no trae medios de pago."
+                  : `${plural(paidTickets, "boleta pagada", "boletas pagadas")} en el reporte.`}
+              </small>
+            </div>
+            <div className="bs-metric">
+              <span>Personas que ingresaron</span>
+              <strong className="tnum" data-tone="ok">
+                {report ? report.redeemed : "Sin dato"}
+              </strong>
+              <small>{report ? `${report.pending} sin ingreso` : "Esperando escaneos"}</small>
+            </div>
+            <div className="bs-metric">
+              <span>Pendientes de sincronizar</span>
+              <strong className="tnum">Sin dato</strong>
+              <small>Se consultan en el escáner de la puerta, no en el servidor.</small>
+            </div>
+          </div>
+        </div>
+
+        <div id="accesos-incidencias" className="admin-panel-card">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2>Incidencias de puerta</h2>
+              <p>
+                Duplicados y rechazos que la puerta registró para esta noche.
+              </p>
+            </div>
+            <span className={`bs-status ${incidents > 0 ? "is-warn" : ""}`} data-status={incidents > 0 ? "cancelled" : "published"}>
+              <span className="bs-status-dot" aria-hidden="true" />
+              {incidents == null ? "Sin dato" : incidents === 0 ? "Sin incidencias" : `${incidents} ${plural(incidents, "incidencia", "incidencias")}`}
+            </span>
+          </div>
+          <div className="bs-incident-grid mt-3">
+            <div>
+              <span>Duplicados</span>
+              <strong className="tnum">{report ? report.door_duplicates ?? 0 : "Sin dato"}</strong>
+              <small>QR reescaneado o compartido.</small>
+            </div>
+            <div>
+              <span>Rechazos</span>
+              <strong className="tnum">{report ? report.door_rejected ?? 0 : "Sin dato"}</strong>
+              <small>Boletas que la puerta no dejó pasar.</small>
+            </div>
+          </div>
+          {report?.by_door?.length > 0 && (
+            <ul className="bs-door-list mt-3">
+              {report.by_door.map((d) => (
+                <li key={d.door_id ?? "sin-puerta"}>
+                  <strong>{d.door_id || "Sin puerta identificada"}</strong>
+                  <span>{d.granted} ingresos · {d.rejected} rechazos</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <div className="admin-panel-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -326,13 +332,13 @@ export default function AdminEventWorkspace({
             </p>
           )}
           <div className="admin-workspace-actions">
-            {actions.map(({ action, label, danger }) => (
+            {actions.map(({ action, label, danger, secondary }) => (
               <button
                 key={action}
                 type="button"
                 onClick={() => onAction(action)}
                 disabled={busyAction === action}
-                className={danger ? "btn-mini" : "btn-primary"}
+                className={danger ? "btn-mini" : secondary ? "bs-secondary" : "btn-primary"}
                 data-variant={danger ? "danger" : undefined}
               >
                 {busyAction === action ? "Procesando…" : label}

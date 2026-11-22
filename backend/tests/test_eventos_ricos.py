@@ -532,3 +532,28 @@ def test_draft_event_preview_requires_admin(api, api_client):
     )
     assert preview.status_code == 200, preview.text
     assert preview.json()["name"] == ev["name"]
+
+
+def test_courtesy_type_is_always_zero(api):
+    """Una cortesía no puede guardar precio: el servidor la fuerza a $0."""
+    venue = api.world["venue_a"]
+    ev = api.create_event("admin", venue, name=f"Cortesía {_tag()}")
+    created = api.add_type(
+        "admin",
+        venue,
+        ev["id"],
+        name="Invitado",
+        price_cents=50000,
+        quantity=20,
+        is_courtesy=True,
+    )
+    assert created["price_cents"] == 0
+    assert created["is_courtesy"] is True
+
+    updated = api.patch(
+        api.type_url(venue, ev["id"], created["id"]),
+        "admin",
+        {"price_cents": 30000},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["price_cents"] == 0

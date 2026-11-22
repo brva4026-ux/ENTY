@@ -284,6 +284,7 @@ def test_revoke_link_keeps_person_on_the_roster(api):
     uid = api.world["bouncer"]["id"]
     link = api.post(f"/venues/{venue}/events/{event_id}/staff/{uid}/link", "admin")
     assert link.status_code == 201, link.text
+    raw = _token(link.json()["access_url"])
 
     rows = api.get(f"/venues/{venue}/events/{event_id}/staff", "admin").json()
     assert rows[0]["has_link"] is True
@@ -298,6 +299,9 @@ def test_revoke_link_keeps_person_on_the_roster(api):
     assert len(rows) == 1, "revocar sacó a la persona del roster"
     assert rows[0]["has_link"] is False
     assert rows[0]["link_revoked_at"] is not None
+    assert (
+        api.post(f"/escaner/acceso?token={raw}", "bouncer").status_code == 410
+    ), "un enlace revocado no puede abrir la puerta"
 
     again = api.delete(
         f"/venues/{venue}/events/{event_id}/staff/{uid}/link", "admin"

@@ -36,6 +36,16 @@ export default function AllocationManager({
   const promoters = (users || []).filter((u) =>
     u.roles?.includes("promotor"),
   );
+  const totals = (allocations || []).reduce(
+    (acc, a) => {
+      if (a.is_active === false) return acc;
+      acc.capacity += a.capacity ?? 0;
+      acc.issued += a.issued ?? 0;
+      return acc;
+    },
+    { capacity: 0, issued: 0 },
+  );
+  const available = Math.max(0, totals.capacity - totals.issued);
 
   const allocationUrl = (a) =>
     `/venues/${venueId}/events/${eventId}/allocations/${a.id}`;
@@ -213,6 +223,16 @@ export default function AllocationManager({
           Invitar promotor →
         </TransitionLink>
       </div>
+      <div className="bs-allocation-total" aria-label="Total de cupos activos">
+        <span>Total del evento</span>
+        <strong className="tnum">{totals.capacity}</strong>
+        <span className="tnum">{totals.issued} emitidas</span>
+        <span className="tnum">{available} disponibles</span>
+      </div>
+      <p className="mb-3 text-2xs text-zinc-500">
+        No puedes bajar un cupo por debajo de las boletas ya emitidas: se
+        conservan y el servidor rechaza el cambio.
+      </p>
       <ul className="mb-4 space-y-2">
         {(allocations || []).map((a) => {
           const t = (types || []).find((x) => x.id === a.ticket_type_id);

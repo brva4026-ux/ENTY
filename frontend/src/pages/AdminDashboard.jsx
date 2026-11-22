@@ -30,6 +30,7 @@ import QrTesterModal from "../components/QrTesterModal";
 import VenueHeader from "../components/VenueHeader";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { EVENT_CATEGORIES } from "../lib/eventCategories";
+import { money } from "../lib/format";
 
 /** Pestañas del backstage de un evento. Cuatro secciones que agrupan el
  *  trabajo real: montar, vender, asignar y operar la puerta. */
@@ -73,14 +74,14 @@ function calendarDiffDays(a, b) {
 
 const NEXT_ACTIONS = {
   draft: [
-    { action: "publish", label: "Publicar evento" },
+    { action: "publish", label: "Revisar y publicar" },
     { action: "cancel", label: "Cancelar", danger: true },
   ],
   published: [
     { action: "live", label: "Abrir puertas" },
     { action: "cancel", label: "Cancelar evento", danger: true },
   ],
-  live: [{ action: "end", label: "Finalizar evento" }],
+  live: [{ action: "end", label: "Finalizar evento", secondary: true }],
   ended: [
     // Reabrir (mig 034): 'ended' dejó de ser terminal. La noche se puede
     // estirar más allá de la gracia de 6 h, o el cierre fue un error.
@@ -548,6 +549,15 @@ export default function AdminDashboard() {
   ) {
     if (!ev) return;
     const busyKey = fromStrip ? `${action}-${ev.id}` : action;
+    const zone = eventZone(ev);
+    const when = (value) =>
+      value
+        ? new Date(value).toLocaleString("es-CO", {
+            dateStyle: "full",
+            timeStyle: "short",
+            timeZone: zone,
+          })
+        : "Por confirmar";
 
     // PRE-VUELO: abrir puertas sin nadie en puerta era el fracaso silencioso
     // (el evento pasa a live y el escáner rechaza con 403). Se avisa ANTES del
@@ -590,7 +600,8 @@ export default function AdminDashboard() {
     if (action === "cancel") {
       const ok = await ui.confirm("¿Cancelar el evento?", {
         message:
-          "Las boletas emitidas dejarán de ser válidas en la puerta y no se podrá revertir.",
+          `${ev.name}\n${when(ev.starts_at)} · ${ev.location || "Lugar por confirmar"}\n\n` +
+          "La ficha deja de estar pública, se detiene la venta y las boletas emitidas dejan de ser válidas en la puerta. No se puede revertir.",
         danger: true,
         confirmLabel: "Sí, cancelar evento",
       });
@@ -599,22 +610,54 @@ export default function AdminDashboard() {
     if (action === "end") {
       const ok = await ui.confirm("¿Finalizar el evento?", {
         message:
+          `${ev.name}\n${when(ev.starts_at)} · ${ev.location || "Lugar por confirmar"}\n\n` +
           "La puerta deja de aceptar validaciones en línea. Podés reabrirla después si la noche se estira.",
         confirmLabel: "Finalizar evento",
       });
       if (!ok) return;
     }
     if (action === "publish" && !confirmed) {
-      const ok = await ui.confirm("¿Publicar el evento?", {
+      const activeTypes =
+        ev.id === selectedEvent
+          ? (types || []).filter((t) => t.is_active !== false)
+          : [];
+      const activeAllocations =
+        ev.id === selectedEvent
+          ? (allocations || []).filter((a) => a.is_active !== false)
+          : [];
+      const ticketLines = activeTypes.length
+        ? activeTypes
+            .map(
+              (t) =>
+                `• ${t.name}: ${
+                  t.is_courtesy ? "cortesía $0" : money(t.price_cents)
+                } · ${t.quantity} cupos`,
+            )
+            .join("\n")
+        : "• Sin localidades activas todavía.";
+      const promoterLine = activeAllocations.length
+        ? `${activeAllocations.length} cupo(s) de promotor activos: podrán emitir desde este momento.`
+        : "Sin cupos de promotor asignados: la venta directa queda en manos del admin.";
+      const ok = await ui.confirm("Revisar y publicar", {
         message:
-          "La ficha pública se habilita y los promotores con cupo pueden emitir boletas.",
+          `Evento: ${ev.name}\n` +
+          `Inicio: ${when(ev.starts_at)}\n` +
+          `Fin: ${when(ev.ends_at)}\n` +
+          `Lugar: ${ev.location || "Por confirmar"}\n\n` +
+          `Boletas configuradas:\n${ticketLines}\n\n` +
+          "Al publicar:\n" +
+          "• La ficha deja de ser un borrador y queda visible al público.\n" +
+          "• Se habilita la venta pública y el enlace de la ficha.\n" +
+          `• ${promoterLine}`,
         confirmLabel: "Publicar evento",
+        cancelLabel: "Volver al borrador",
       });
       if (!ok) return;
     }
     if (action === "live") {
       const ok = await ui.confirm("¿Abrir puertas?", {
         message:
+          `${ev.name}\n${when(ev.starts_at)} · ${ev.location || "Lugar por confirmar"}\n\n` +
           "Habilita el escaneo en la puerta para esta noche. El equipo asignado recibe el aviso.",
         confirmLabel: "Abrir puertas",
       });
@@ -636,7 +679,11 @@ export default function AdminDashboard() {
       ui.success(DONE_MESSAGE[action]);
       return updated;
     } catch (err) {
-      setError(err.message);
+      setError(
+        action === "publish"
+          ? `No se pudo publicar. El evento sigue en borrador; revisa el aviso y vuelve a intentar. ${err.message}`
+          : err.message,
+      );
       return null;
     } finally {
       setBusyAction("");
