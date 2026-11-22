@@ -3,7 +3,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import TransitionLink from "./TransitionLink";
 import { useAuth } from "../lib/auth";
 import { useUI } from "../lib/ui";
-import { navTabsFor, topRoleLabel } from "../lib/roles";
+import {
+  navTabsFor,
+  operationalRoles,
+  roleForPath,
+  roleIdentity,
+  topRoleLabel,
+} from "../lib/roles";
 import { haptics } from "../lib/haptics";
 import { initials } from "../lib/initials";
 import { Logo } from "./Brand";
@@ -92,9 +98,12 @@ export default function Layout({ children }) {
   const nav = useNavigate();
   const { pathname } = useLocation();
   const venueNames = (user?.venues || []).map((v) => v.name).join(", ");
-  // Fuente única de roles (lib/roles.js): el rol más alto define cómo se
-  // presenta la persona en el header.
-  const roleLabel = topRoleLabel(user);
+  // El rol activo lo decide la ruta que se está viendo, no el rol más alto:
+  // un admin que entra a Puerta debe ver el acento de Puerta.
+  const roles = operationalRoles(user);
+  const activeRole = roleForPath(pathname, user) ?? roles[0] ?? null;
+  const activeIdentity = activeRole ? roleIdentity(activeRole) : null;
+  const roleLabel = activeIdentity?.label || topRoleLabel(user);
 
   const tabs = navTabsFor(user).map((t) => ({
     ...t,
@@ -120,7 +129,10 @@ export default function Layout({ children }) {
       </a>
       {/* Header compacto: se reduce la marca y el nav se esconde en móvil
           (lo reemplaza la barra inferior, el patrón de apps nativas). */}
-      <header className="topbar sticky top-0 z-20">
+      <header
+        className="topbar sticky top-0 z-20"
+        data-role-accent={activeIdentity?.accent}
+      >
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-6">
             <TransitionLink
@@ -152,6 +164,15 @@ export default function Layout({ children }) {
           <div className="flex min-w-0 items-center gap-3 text-sm">
             <ThemeToggle />
             <NotificationBell />
+            {activeIdentity && (
+              <span
+                className="topbar-role hidden sm:inline-flex"
+                title={`Rol activo: ${activeIdentity.label}`}
+              >
+                <Icon name={activeIdentity.icon} className="h-4 w-4" />
+                <span className="hidden lg:inline">{activeIdentity.label}</span>
+              </span>
+            )}
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium leading-tight text-zinc-200">
                 {user?.full_name}
@@ -207,6 +228,37 @@ export default function Layout({ children }) {
         id="contenido"
         className="mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8"
       >
+        {activeIdentity && (
+          <div
+            className="role-mobile-chip md:hidden"
+            data-role-accent={activeIdentity.accent}
+          >
+            <Icon name={activeIdentity.icon} className="h-4 w-4" />
+            {activeIdentity.label}
+          </div>
+        )}
+
+        {roles.length > 1 && (
+          <nav className="role-switch-strip" aria-label="Cambiar rol">
+            {roles.map((r) => {
+              const identity = roleIdentity(r);
+              const active = r === activeRole;
+              return (
+                <TransitionLink
+                  key={r}
+                  to={identity.home}
+                  data-role-accent={identity.accent}
+                  aria-current={active ? "page" : undefined}
+                  className={`role-switch-item ${active ? "is-active" : ""}`}
+                >
+                  <Icon name={identity.icon} className="h-4 w-4" />
+                  {identity.label}
+                </TransitionLink>
+              );
+            })}
+          </nav>
+        )}
+
         <div key={pathname} className="reveal">
           {children}
         </div>

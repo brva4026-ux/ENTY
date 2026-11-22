@@ -70,6 +70,20 @@
   --e-green-neon: #39ff14; /* neón de "en vivo" */
   --e-info-500: #6f95f0; /* periwinkle: enlace/estado informativo */
   --e-rose-700: #a82f52;
+  /* Acentos de rol (no son estados): administración violeta, promotores
+     ámbar y puerta turquesa. `-strong` se usa en líneas y rellenos; el tono
+     principal es el texto seguro sobre la superficie del tema. */
+  --e-role-admin: #c4b5fd;
+  --e-role-admin-strong: #8b5cf6;
+  --e-role-promotor: #fcd34d;
+  --e-role-promotor-strong: #f5a524;
+  --e-role-bouncer: #5eead4;
+  --e-role-bouncer-strong: #2dd4bf;
+  /* Variantes para superficies de marca que son oscuras en ambos temas
+     (bienvenida, panel de video): no deben voltear con el tema. */
+  --e-role-admin-on-dark: #c4b5fd;
+  --e-role-promotor-on-dark: #fcd34d;
+  --e-role-bouncer-on-dark: #5eead4;
   --e-violet-250: #b7a3ff;
   --e-violet-350: #9f67ff;
   --e-violet-425: #a855f7;
@@ -360,6 +374,15 @@ html[data-theme="light"] {
   --e-elev-overlay: 0 24px 70px -26px rgba(24, 24, 27, 0.42);
 
   --e-focus-ring: var(--e-ink-800);
+
+  /* Acentos de rol sobre papel: el tono de texto baja a la escala profunda
+     para conservar contraste AA; el `-strong` sigue marcando líneas. */
+  --e-role-admin: #6d28d9;
+  --e-role-admin-strong: #7c3aed;
+  --e-role-promotor: #92400e;
+  --e-role-promotor-strong: #b45309;
+  --e-role-bouncer: #0f766e;
+  --e-role-bouncer-strong: #0d9488;
 }
 
 /* ---------------------------------------------------------------- UTILIDADES

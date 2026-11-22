@@ -35,12 +35,12 @@ export function AuthProvider({ children }) {
 
   useEffect(() => { restoreSession(); }, [restoreSession]);
 
-  async function login(email, password, { remember = true } = {}) {
+  async function login(identifier, password, { remember = true } = {}) {
     ++sessionAttempt.current;
     setLoading(false);
     const data = await apiFetch("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password, remember }),
+      body: JSON.stringify({ identifier, password, remember }),
     });
     clearToken();
     setSessionError(false);

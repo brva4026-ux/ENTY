@@ -25,6 +25,9 @@ import "./enty-fan.css";
 // (mismo negro mate, violeta y motivo del boleto) para vender el PRODUCTO,
 // no solo la cartelera. Va después de enty-fan.css para heredar sus tokens.
 import "./landing.css";
+// Entrada profesional (login, recuperación, bienvenida por rol) y acento del
+// rol activo en el encabezado. Va al final para ganar por orden de fuente.
+import "./login-experience.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";
@@ -108,7 +111,11 @@ function RequireRole({ role, children }) {
       <Navigate
         to="/login"
         replace
-        state={{ from: consumeLoggedOut() ? undefined : location.pathname }}
+        state={{
+          from: consumeLoggedOut()
+            ? undefined
+            : `${location.pathname}${location.search}`,
+        }}
       />
     );
   // La fuente de verdad de la navegación es lib/roles.js; el backend re-
@@ -127,7 +134,11 @@ function RequireAuth({ children }) {
       <Navigate
         to="/login"
         replace
-        state={{ from: consumeLoggedOut() ? undefined : location.pathname }}
+        state={{
+          from: consumeLoggedOut()
+            ? undefined
+            : `${location.pathname}${location.search}`,
+        }}
       />
     );
   return children;

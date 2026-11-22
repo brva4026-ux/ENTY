@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { haptics } from "../lib/haptics";
 import { Logo } from "../components/Brand";
 import { AuthBackdrop } from "../components/AuthBackdrop";
 import Icon from "../components/Icon";
+import ContactSupport from "../components/ContactSupport";
+import { roleHomeFor } from "../lib/roles";
 
 /**
  * /puerta?token=… — el link que el admin le manda a quien abre la puerta.
@@ -23,8 +25,10 @@ import Icon from "../components/Icon";
 export default function DoorLinkPage() {
   const [params] = useSearchParams();
   const nav = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user, logout } = useAuth();
   const token = params.get("token") || "";
+  const returnTo = `${location.pathname}${location.search}`;
 
   const [preview, setPreview] = useState(null); // null = mirando
   const [error, setError] = useState("");
@@ -79,10 +83,17 @@ export default function DoorLinkPage() {
               esta noche y volvé a abrirlo.
             </p>
             <button
-              onClick={() => nav("/login")}
+              onClick={() =>
+                nav("/login", {
+                  state: {
+                    from: returnTo,
+                    task: { kind: "door" },
+                  },
+                })
+              }
               className="btn-primary mt-5 w-full"
             >
-              Ir al inicio de sesión
+              Entra para continuar a Puerta
             </button>
           </div>
         </div>
@@ -104,6 +115,36 @@ export default function DoorLinkPage() {
                 Los links de puerta son de un solo uso y vencen. Pedile uno
                 nuevo al admin del bar.
               </p>
+              <div className="mt-4 grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => nav(roleHomeFor("bouncer"))}
+                  className="btn-primary w-full"
+                >
+                  Ir a mi panel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await logout();
+                    nav("/login", {
+                      state: {
+                        from: returnTo,
+                        task: { kind: "door" },
+                      },
+                    });
+                  }}
+                  className="btn-ghost w-full"
+                >
+                  Probar con otra cuenta
+                </button>
+                <ContactSupport
+                  prompt=""
+                  label="Pedir un link nuevo"
+                  message="Hola, necesito un link de puerta nuevo."
+                  className="justify-center"
+                />
+              </div>
             </>
           ) : !preview ? (
             <div className="mt-4 space-y-3">

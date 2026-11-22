@@ -27,26 +27,120 @@ export const ROLE_LABELS = {
  *  = acento de texto. El equipo (TeamManager) y el perfil consumen esto. */
 export const ROLE_VISUALS = {
   promotor: {
-    chip: "bg-brand-500/15 text-brand-300 ring-brand-500/30",
-    avatar: "bg-brand-500/20 text-brand-300 ring-brand-500/40",
-    tabAccent: "text-brand-300",
+    chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
+    avatar: "bg-amber-500/20 text-amber-300 ring-amber-500/40",
+    tabAccent: "text-amber-300",
   },
   bouncer: {
-    chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
-    avatar: "bg-emerald-500/20 text-emerald-300 ring-emerald-500/40",
-    tabAccent: "text-emerald-300",
+    chip: "bg-teal-500/15 text-teal-300 ring-teal-500/30",
+    avatar: "bg-teal-500/20 text-teal-300 ring-teal-500/40",
+    tabAccent: "text-teal-300",
   },
   admin: {
-    chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
-    avatar: "bg-amber-500/20 text-amber-300 ring-amber-500/40",
-    tabAccent: "text-amber-300",
+    chip: "bg-violet-500/15 text-violet-300 ring-violet-500/30",
+    avatar: "bg-violet-500/20 text-violet-300 ring-violet-500/40",
+    tabAccent: "text-violet-300",
   },
   super_admin: {
-    chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
-    avatar: "bg-amber-500/20 text-amber-300 ring-amber-500/40",
-    tabAccent: "text-amber-300",
+    chip: "bg-violet-500/15 text-violet-300 ring-violet-500/30",
+    avatar: "bg-violet-500/20 text-violet-300 ring-violet-500/40",
+    tabAccent: "text-violet-300",
   },
 };
+
+/** Identidad de producto por rol: nombre visible, icono, acento y mensaje.
+ *  Es la fuente que consumen el login, la bienvenida y el encabezado. */
+export const ROLE_IDENTITIES = {
+  admin: {
+    label: "Administración",
+    plural: "Administración",
+    icon: "chart",
+    accent: "admin",
+    welcome: "Bienvenido a Administración",
+    description: "Ventas, aforo y equipo en un solo panel.",
+    home: "/admin",
+    animation: "sales",
+  },
+  super_admin: {
+    label: "Administración general",
+    plural: "Administración",
+    icon: "shield",
+    accent: "admin",
+    welcome: "Bienvenido a Administración",
+    description: "Control general de la plataforma y sus negocios.",
+    home: "/admin",
+    animation: "sales",
+  },
+  promotor: {
+    label: "Promotor",
+    plural: "Promotores",
+    icon: "ticket",
+    accent: "promotor",
+    welcome: "Bienvenido a Promotores",
+    description: "Emite boletas y comparte tu cupo.",
+    home: "/promotor",
+    animation: "ticket",
+  },
+  bouncer: {
+    label: "Puerta",
+    plural: "Puerta",
+    icon: "qr",
+    accent: "bouncer",
+    welcome: "Bienvenido a Puerta",
+    description: "Escanea y valida el ingreso de esta noche.",
+    home: "/bouncer",
+    animation: "scan",
+  },
+};
+
+/** Roles operativos en el orden en que se presentan. super_admin se pliega
+ *  en administración para no ofrecer dos entradas al mismo panel. */
+export function operationalRoles(user) {
+  const set = roleSet(user);
+  const out = [];
+  if (set.has("admin") || set.has("super_admin")) {
+    out.push(set.has("admin") ? "admin" : "super_admin");
+  }
+  if (set.has("promotor")) out.push("promotor");
+  if (set.has("bouncer")) out.push("bouncer");
+  return out;
+}
+
+/** Identidad de un rol, con una salida segura para roles internos nuevos. */
+export function roleIdentity(role) {
+  return ROLE_IDENTITIES[role] ?? ROLE_IDENTITIES.bouncer;
+}
+
+/** Destino propio de un rol (sin mirar la URL de origen). */
+export function roleHomeFor(role) {
+  return roleIdentity(role).home;
+}
+
+/** ¿La ruta pertenece al ámbito de este rol? Se usa para decidir si el
+ *  `from` de un deep-link se puede respetar al entrar con ese rol. */
+export function pathAllowsRole(pathname, role) {
+  if (!pathname) return false;
+  if (pathname.startsWith("/admin")) {
+    return role === "admin" || role === "super_admin";
+  }
+  if (pathname.startsWith("/promotor")) return role === "promotor";
+  if (pathname.startsWith("/bouncer")) return role === "bouncer";
+  return true;
+}
+
+/** Rol que corresponde a una ruta autenticada (para el acento del header). */
+export function roleForPath(pathname, user) {
+  if (pathname?.startsWith("/admin") && hasRole(user, "admin")) {
+    return roleSet(user).has("admin") ? "admin" : "super_admin";
+  }
+  if (pathname?.startsWith("/promotor") && hasRole(user, "promotor")) {
+    return "promotor";
+  }
+  if (pathname?.startsWith("/bouncer") && hasRole(user, "bouncer")) {
+    return "bouncer";
+  }
+  return topRole(user);
+}
 
 /** Todos los roles presentes en el usuario (cualquier venue), como set. */
 export function roleSet(user) {

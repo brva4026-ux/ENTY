@@ -5301,6 +5301,8 @@ html[data-theme="light"] {
   --color-sky-200: var(--e-sky-800);
   --color-sky-300: var(--e-sky-700);
   --color-sky-400: var(--e-sky-600);
+  --color-teal-300: var(--e-role-bouncer);
+  --color-teal-400: var(--e-role-bouncer);
   --color-violet-300: var(--e-violet-600);
 
   /* --- texto de marca sobre claro: violeta profundo (legible en AA) --- */

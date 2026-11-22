@@ -6,7 +6,7 @@
  * como una boleta.
  */
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { Logo } from "../components/Brand";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -14,7 +14,7 @@ import { clearToken } from "../lib/tokenStore";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
 
-const ROLE_LABEL = { promotor: "Promotor", bouncer: "Portero", admin: "Administrador" };
+const ROLE_LABEL = { promotor: "Promotor", bouncer: "Puerta", admin: "Administración" };
 
 /* Destino y explicación del rol: el nuevo integrante nunca aterriza a ciegas.
  * La sesión ya quedó creada (el backend devuelve el access_token al canjear),
@@ -44,7 +44,9 @@ export default function AcceptInvitationPage() {
   const { setUser } = useAuth();
   useDocumentTitle("Invitación");
   const [params] = useSearchParams();
+  const location = useLocation();
   const token = params.get("token") || "";
+  const returnTo = `${location.pathname}${location.search}`;
 
   const [preview, setPreview] = useState(null);
   const [phase, setPhase] = useState("loading"); // loading | form | done
@@ -134,9 +136,13 @@ export default function AcceptInvitationPage() {
               <p className="text-xs text-zinc-600">
                 Pide a tu negocio un enlace nuevo. Los enlaces expiran, se usan una sola vez y se pueden revocar.
               </p>
-              <a href="/login" className="btn-ghost inline-block px-4 py-2 text-sm">
-                Ir a iniciar sesión
-              </a>
+              <TransitionLink
+                to="/login"
+                state={{ from: returnTo, task: { kind: "invitation" } }}
+                className="btn-ghost inline-block px-4 py-2 text-sm"
+              >
+                Entra para aceptar tu invitación
+              </TransitionLink>
             </div>
           )}
 
@@ -156,6 +162,20 @@ export default function AcceptInvitationPage() {
                   Vence: {new Date(preview.expires_at).toLocaleString("es-CO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
+
+              <p className="mt-3 text-xs text-zinc-500">
+                ¿Ya tienes cuenta?{" "}
+                <TransitionLink
+                  to="/login"
+                  state={{
+                    from: returnTo,
+                    task: { kind: "invitation", role: preview.role },
+                  }}
+                  className="font-semibold text-brand-300 underline underline-offset-2"
+                >
+                  Entra para aceptar tu invitación
+                </TransitionLink>
+              </p>
 
               <form onSubmit={submit} className="mt-5 space-y-3">
                 <div>
