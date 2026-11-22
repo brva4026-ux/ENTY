@@ -162,9 +162,9 @@ test("el tutorial funciona en un negocio sin eventos (portada vacia)", async ({
   await expect(tip).toContainText("Crea tu primer evento");
 
   // El backstage no existe todavia: esos dos pasos se saltan solos y el
-  // tutorial sigue con "Del negocio", sin quedar clavado senalando la nada.
+  // tutorial sigue con la barra superior, sin quedar clavado senalando la nada.
   await page.getByTestId("tour-next").click();
-  await expect(tip).toContainText("Del negocio, siempre a mano", {
+  await expect(tip).toContainText("Reportes y Organización", {
     timeout: 10_000,
   });
 });

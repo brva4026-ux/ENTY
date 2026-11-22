@@ -11,6 +11,7 @@ import { isValidUsername, normalizeUsername } from "../lib/username";
 import { clearToken } from "../lib/tokenStore";
 import { prefersReducedMotion } from "../lib/motion";
 import Icon from "../components/Icon";
+import { LegalLinks } from "../components/LegalLinks";
 import PasswordMeter from "../components/PasswordMeter";
 import ThemeChooser from "../components/ThemeChooser";
 import MotionChooser from "../components/MotionChooser";
@@ -1127,6 +1128,15 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+
+          <div className="pf-sub">
+            <h3 className="pf-sub-title">Documentos legales</h3>
+            <p className="pf-hint pf-hint-block">
+              Los documentos vigentes de Enty. Las aceptaciones obligatorias
+              quedan registradas en tu cuenta.
+            </p>
+            <LegalLinks />
+          </div>
         </section>
       )}
 

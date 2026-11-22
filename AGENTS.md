@@ -9,6 +9,16 @@ FastAPI + React (Vite) + PostgreSQL, con lógica transaccional en la DB.
 - `frontend/` — React + Vite + Tailwind. Páginas en `src/pages/`.
 - `docs/` — arquitectura, flujos, despliegue, backlog.
 
+## Administración (rediseño)
+
+Rutas del panel: `/admin` (Eventos), `/admin/reportes` y
+`/admin/organizacion`. El backstage de un evento es
+`/admin?event=<id>&tab=resumen|ventas|equipo|accesos`; las pestañas viejas
+(`lineup`, `boletas`, `cupones`, `cupos`, `noche`) se normalizan en
+`AdminDashboard` para no romper enlaces. El lineup se administra dentro de
+Resumen. El CSS del rediseño vive en `frontend/src/admin-redesign.css` y solo
+aplica bajo `.admin-shell`.
+
 ## Cómo correr en local
 
 ```bash
@@ -64,7 +74,7 @@ sin cuenta la ve; el staff logueado que abre `/` cae en su panel
 ## Tests
 
 ```bash
-cd backend && .venv/bin/python -m pytest tests/ -q     # ~563 tests
+cd backend && .venv/bin/python -m pytest tests/ -q     # ~682 tests
 cd frontend && npm run build                            # verificacion de build
 ```
 

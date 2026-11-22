@@ -4,18 +4,12 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
 import { haptics } from "../lib/haptics";
-import ReportWidget from "../components/ReportWidget";
-import DoorPulse from "../components/DoorPulse";
-import { STATUS_META as EV_CHIP } from "../components/EventWorkbench";
 import { PullToRefresh } from "../components/PullToRefresh";
 import { InstallPrompt } from "../components/InstallPrompt";
-import { SelectSkeleton, StatSkeletonRow } from "../components/Skeleton";
 import { useUI } from "../lib/ui";
 import { activeVenueId } from "../lib/venue";
 import { getToken } from "../lib/tokenStore";
-import { toLocalInput } from "../lib/datetime";
-import { money, currentYM } from "../lib/format";
-import EmptyState from "../components/EmptyState";
+import { fromZonedInput, toZonedInput, isPastEvent, eventZone } from "../lib/eventTime";
 import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
 import {
   cachedPreferences,
@@ -26,37 +20,34 @@ import {
   PREF_TUTORIAL,
 } from "../lib/onboarding";
 import OnboardingTour, { ONBOARDING_STEPS } from "../components/OnboardingTour";
-import EventWorkbench, {
-  EventNotFound,
-  sortEventsForStrip,
-} from "../components/EventWorkbench";
-import ActionMenu from "../components/ActionMenu";
+import EventWorkbench, { EventNotFound } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
-import { Star4 } from "../components/Doodles";
-import TypeManager from "../components/TypeManager";
-import AllocationManager from "../components/AllocationManager";
-import LineupManager from "../components/LineupManager";
-import CouponManager from "../components/CouponManager";
-import TicketList from "../components/TicketList";
-import EventTeamPanel from "../components/EventTeamPanel";
 import EventCreateModal from "../components/EventCreateModal";
+import AdminEventCard from "../components/AdminEventCard";
+import AdminEventWorkspace from "../components/AdminEventWorkspace";
 import QrTesterModal from "../components/QrTesterModal";
 import VenueHeader from "../components/VenueHeader";
 import useDocumentTitle from "../lib/useDocumentTitle";
-import TransitionLink from "../components/TransitionLink";
 import { EVENT_CATEGORIES } from "../lib/eventCategories";
 
-/** Pestañas del backstage de un evento. Las del negocio (Puerta, Equipo,
- *  Liquidaciones…) viven en /admin/negocio, no aquí. */
-const EVENT_TABS = [
-  "resumen",
-  "entradas",
-  "cupos",
-  "boletas",
-  "lineup",
-  "cupones",
-  "noche",
-];
+/** Pestañas del backstage de un evento. Cuatro secciones que agrupan el
+ *  trabajo real: montar, vender, asignar y operar la puerta. */
+const EVENT_TABS = ["resumen", "ventas", "equipo", "accesos"];
+
+/** Enlaces viejos del backstage -> sección nueva equivalente. */
+const LEGACY_EVENT_TABS = {
+  entradas: "ventas",
+  boletas: "ventas",
+  cupones: "ventas",
+  lineup: "resumen",
+  cupos: "equipo",
+  noche: "equipo",
+};
+
+function normalizeEventTab(tab) {
+  if (EVENT_TABS.includes(tab)) return tab;
+  return LEGACY_EVENT_TABS[tab] || "resumen";
+}
 
 /** Pestañas que eran del panel y ahora son sub-secciones del hub Negocio:
  *  sirven para redirigir enlaces viejos (/admin?tab=equipo). */
@@ -70,15 +61,6 @@ const VENUE_TABS = [
   "invitaciones",
 ];
 
-/** Minuto del día 0-1439 -> etiqueta "8 p.m." (para la píldora de apertura). */
-function minuteLabel(mins) {
-  const h24 = Math.floor(mins / 60);
-  const m = mins % 60;
-  const suf = h24 >= 12 ? "p.m." : "a.m.";
-  const h = h24 % 12 === 0 ? 12 : h24 % 12;
-  return m ? `${h}:${String(m).padStart(2, "0")} ${suf}` : `${h} ${suf}`;
-}
-
 /** Diferencia de dias de CALENDARIO (no de 24h): un evento de hoy a las
     11 p.m. dista 0.9 dias de la medianoche y un round() lo mandaria a
     "mañana". Comparar año/mes/dia evita ese classico. */
@@ -86,30 +68,6 @@ function calendarDiffDays(a, b) {
   const ua = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
   const ub = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
   return Math.round((ua - ub) / 86400000);
-}
-
-/** Píldora de apertura del evento: "Hoy 8 p.m." / "Vie 8 p.m." / pasado. */
-function openingPill(startsAt) {
-  if (!startsAt) return null;
-  const d = new Date(startsAt);
-  if (Number.isNaN(d.getTime())) return null;
-  const now = new Date();
-  const mins = d.getHours() * 60 + d.getMinutes();
-  const time = minuteLabel(mins);
-  const diffDays = calendarDiffDays(d, now);
-  if (diffDays === 0) return { main: `Hoy ${time}`, tone: "today" };
-  if (diffDays === 1) return { main: `Mañana ${time}`, tone: "soon" };
-  if (diffDays < 0)
-    return {
-      main: d.toLocaleDateString("es-CO", { day: "numeric", month: "short" }),
-      tone: "past",
-    };
-  return {
-    main: `${d.toLocaleDateString("es-CO", {
-      weekday: "short",
-    })} ${time}`,
-    tone: diffDays <= 3 ? "soon" : "far",
-  };
 }
 
 const NEXT_ACTIONS = {
@@ -138,25 +96,6 @@ const DONE_MESSAGE = {
   end: "Evento finalizado",
   reopen: "Evento reabierto: la puerta vuelve a escanear 🔓",
   cancel: "Evento cancelado",
-};
-
-/* Presentación de las acciones EN LA TARJETA: verbo corto + icono + color.
-   El backstage usa las etiquetas largas de NEXT_ACTIONS; aquí el ancho es
-   escaso y el verbo solo ("Publicar") ya dice todo. */
-const STRIP_ACTION = {
-  publish: { label: "Publicar", icon: "bolt", variant: "success" },
-  live: { label: "Abrir puertas", icon: "door", variant: "success" },
-  end: { label: "Finalizar", icon: "check", variant: "brand" },
-  reopen: { label: "Reabrir", icon: "door", variant: "success" },
-  cancel: { label: "Cancelar", icon: "close", variant: "danger" },
-};
-
-const ACTION_TIP = {
-  publish: "Publicar evento (pasa a la venta)",
-  live: "Abrir puertas (la puerta empieza a escanear)",
-  end: "Finalizar evento (la puerta deja de escanear)",
-  reopen: "Reabrir puertas (la puerta vuelve a escanear)",
-  cancel: "Cancelar evento (las boletas dejan de ser válidas)",
 };
 
 /* Chip de estado para la franja de eventos (compacto, en español) y orden
@@ -198,7 +137,6 @@ export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlEvent = searchParams.get("event");
   const urlTab = searchParams.get("tab") || "resumen";
-  const urlMonth = searchParams.get("mes"); // null = mes en curso
   const [error, setError] = useState("");
   // Modal de crear evento: cerrado por defecto — el admin trabaja en su
   // evento, no mira un formulario gigante todo el día.
@@ -213,7 +151,7 @@ export default function AdminDashboard() {
   // La pestaña activa es la de la URL (la mig 012 ya generaba ?tab=...);
   // whitelist para no renderizar una pestaña inventada por el usuario. Solo
   // pestañas de EVENTO: las del negocio viven en /admin/negocio.
-  const section = EVENT_TABS.includes(urlTab) ? urlTab : "resumen";
+  const section = normalizeEventTab(urlTab);
 
   // events === null significa "primera carga": se muestra skeleton en vez de
   // un vacío engañoso ("Aún no hay eventos") que no es verdad aún.
@@ -224,19 +162,10 @@ export default function AdminDashboard() {
   // tecla sería desperdicio (y más lento que filtrar 50 objetos).
   const [eventQuery, setEventQuery] = useState("");
   const [eventBucket, setEventBucket] = useState("todos");
-  // Densidad de la franja: tarjetas (default) o lista compacta. Con 20+
-  // eventos la grilla exige scroll infinito; la tabla responde de un vistazo.
-  // Persistida: la preferencia de densidad es del usuario, no de la sesión.
-  const [compactView, setCompactView] = useState(
-    () => localStorage.getItem("tf_ev_compact") === "1",
-  );
-  useEffect(() => {
-    localStorage.setItem("tf_ev_compact", compactView ? "1" : "0");
-  }, [compactView]);
-  // Id del evento duplicándose ahora (spinner in situ en SU tarjeta).
-  const [dupingId, setDupingId] = useState(null);
-  // Id del evento eliminándose ahora (spinner in situ en SU tarjeta/fila).
-  const [deletingId, setDeletingId] = useState(null);
+  // Filtros y historial: el listado prioriza lo que está pasando. Los
+  // estados y el pasado no ocupan la portada hasta que el admin los pide.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   // Flyers que ya fallaron al cargar ({url: true}): la tarjeta muestra sus
   // iniciales en lugar de un img roto. Estado unificado para toda la franja.
   const [badFlyers, setBadFlyers] = useState({});
@@ -254,21 +183,44 @@ export default function AdminDashboard() {
     ["ended", "Terminados"],
     ["cancelled", "Cancelados"],
   ];
-  const venueForTeam = realVenueId;
   // Igual que el buscador de la vitrina: el input responde en cada tecla y el
   // filtrado de la lista puede diferirse, para no bloquear el tecleo cuando la
   // venue tiene muchas noches.
   const deferredEventQuery = useDeferredValue(eventQuery);
   const q = deferredEventQuery.trim().toLowerCase();
-  // Pulso operativo de la cabecera: cuántas noches están EN PUERTA ahora. Es
-  // el único estado que exige atención en vivo, así que la cabecera lo dice
-  // sin que el admin tenga que tocar el filtro "En puerta" para descubrirlo.
-  const liveNow = (events ?? []).filter((ev) => ev.status === "live").length;
+  const activeFilterCount = eventBucket !== "todos" ? 1 : 0;
+  const matchesQuery = (ev) => !q || ev.name.toLowerCase().includes(q);
   const visibleEvents = (events ?? []).filter(
     (ev) =>
       (eventBucket === "todos" || ev.status === eventBucket) &&
-      (!q || ev.name.toLowerCase().includes(q)),
+      matchesQuery(ev),
   );
+
+  const byStartAsc = (a, b) =>
+    String(a.starts_at ?? "").localeCompare(String(b.starts_at ?? ""));
+  const byStartDesc = (a, b) => byStartAsc(b, a);
+  const base = (events ?? []).filter(matchesQuery);
+  const liveEvents = base
+    .filter((ev) => ev.status === "live")
+    .sort(byStartAsc);
+  const upcoming = base
+    .filter((ev) => ev.status === "published" && !isPastEvent(ev))
+    .sort(byStartAsc);
+  const drafts = base.filter((ev) => ev.status === "draft").sort(byStartAsc);
+  const history = base
+    .filter(
+      (ev) =>
+        ev.status === "ended" ||
+        ev.status === "cancelled" ||
+        (ev.status === "published" && isPastEvent(ev)),
+    )
+    .sort(byStartDesc);
+  const sortEventList = (list) => {
+    const rank = { live: 0, published: 1, draft: 2, ended: 3, cancelled: 4 };
+    return [...list].sort(
+      (a, b) => (rank[a.status] ?? 3) - (rank[b.status] ?? 3) || byStartAsc(a, b),
+    );
+  };
 
   // Onboarding del primer evento. El evento del onboarding es el BORRADOR más
   // cercano en el tiempo, no `events[0]`: la lista viene ordenada `starts_at
@@ -279,9 +231,9 @@ export default function AdminDashboard() {
   // Un borrador sin fecha no debería existir (el modal la exige), pero se
   // ordena igual para no depender de eso.
   const onboardingEvent = useMemo(() => {
-    const drafts = (events ?? []).filter((e) => e.status === "draft");
-    if (!drafts.length) return null;
-    return [...drafts].sort((a, b) =>
+    const draftEvents = (events ?? []).filter((e) => e.status === "draft");
+    if (!draftEvents.length) return null;
+    return [...draftEvents].sort((a, b) =>
       String(a.starts_at ?? "").localeCompare(String(b.starts_at ?? ""))
     )[0];
   }, [events]);
@@ -292,10 +244,6 @@ export default function AdminDashboard() {
   const onboardingRelevant =
     events !== null &&
     !events.some((e) => e.status !== "draft" && e.status !== "cancelled");
-  // Evento con la puerta abierta AHORA. Se deriva de la lista ya cargada (el
-  // endpoint de eventos trae `status`), así que saber si hay noche en curso no
-  // cuesta un request. Si hubiera más de uno (no debería), el primero.
-  const liveEvent = (events || []).find((e) => e.status === "live") || null;
   // Preferencia por usuario+venue, en el SERVIDOR (lib/onboarding, mig 032):
   // "accepted" la aceptó, "dismissed" la rechazó, "completed" la terminó,
   // "pending" todavía no decidió (se le ofrece). Se pinta primero el cache para
@@ -431,7 +379,10 @@ export default function AdminDashboard() {
       // (?event=5&tab=equipo): esas pestañas no existen en el backstage —
       // se normaliza al evento sin tab (aterriza en Resumen).
       if (urlTab && !EVENT_TABS.includes(urlTab)) {
-        setSearchParams({ event: String(wanted) });
+        const next = normalizeEventTab(urlTab);
+        const params = { event: String(wanted) };
+        if (next !== "resumen") params.tab = next;
+        setSearchParams(params, { replace: true });
       }
     } else if (urlEvent) {
       // El evento de la URL no está en el catálogo que tenemos. Puede ser un
@@ -452,19 +403,6 @@ export default function AdminDashboard() {
       // Sin ?event= en la URL: la lista es la pantalla (modo lista). Nadie
       // aterriza "en el primer evento" por accidente: entrar es una decisión.
       setSelectedEvent(null);
-    } else if (
-      events.length === 0 &&
-      !createOpen &&
-      // La guía manda mientras esté en pantalla: su CTA ("Crear evento") es el
-      // camino, y abrir el modal por encima tapaba la invitación — el admin no
-      // llegaba a decidir— o la propia guía si acababa de rechazarla.
-      !showOnboardingInvite &&
-      !showOnboardingChecklist &&
-      !showOnboardingResume
-    ) {
-      // Venue nueva sin eventos y sin guía: la única acción posible es crear
-      // el primero.
-      setCreateOpen(true);
     }
     // selectedEvent a propósito fuera de las deps: esta pantalla solo sigue a
     // la URL y al catálogo, no re-detecciona en cada clic del selector.
@@ -475,23 +413,9 @@ export default function AdminDashboard() {
   function flyToEvent(id, tab) {
     const params = new URLSearchParams();
     params.set("event", String(id));
-    if (tab && tab !== "resumen") params.set("tab", tab);
+    const next = normalizeEventTab(tab);
+    if (next !== "resumen") params.set("tab", next);
     setSearchParams(params); // push: back vuelve al evento/tab anterior
-  }
-
-  /**
-   * Mes del panel (portada + Reportes), en la URL para que un refresh o un
-   * enlace compartido caigan en el mismo mes. `null` = mes en curso (se
-   * omite el param, no se escribe "hoy": la URL queda limpia).
-   */
-  function setMonth(ym) {
-    const params = new URLSearchParams(searchParams);
-    // El mes en curso no se escribe: la URL queda limpia (?mes solo cuando
-    // se navega al pasado/futuro). Se compara contra el mes del navegador —
-    // el mismo valor de arranque que usa la cabecera para su flecha.
-    if (ym && ym !== currentYM()) params.set("mes", ym);
-    else params.delete("mes");
-    setSearchParams(params, { replace: true });
   }
 
   /** Duplica un evento (borrador con sus tipos y cupos).
@@ -502,7 +426,6 @@ export default function AdminDashboard() {
    *  admin lo corrige igual al editar, pero el default ya es "lo que suele
    *  hacer" y no un número ajeno a su negocio. */
   async function duplicateEvent(ev) {
-    setDupingId(ev.id);
     try {
       // Intervalo real: días entre este evento y el inmediatamente anterior.
       const prev = (events ?? [])
@@ -525,8 +448,6 @@ export default function AdminDashboard() {
       );
     } catch (err) {
       setError(err.message);
-    } finally {
-      setDupingId(null);
     }
   }
 
@@ -726,23 +647,22 @@ export default function AdminDashboard() {
 
   function startEditEvent() {
     const ev = selectedEventData;
+    const tz = eventZone(ev);
     setEditError("");
     setEditingEvent({
       name: ev.name ?? "",
       description: ev.description ?? "",
       flyer_url: ev.flyer_url ?? "",
       location: ev.location ?? "",
-      starts_at: toLocalInput(new Date(ev.starts_at)),
-      ends_at: ev.ends_at ? toLocalInput(new Date(ev.ends_at)) : "",
+      starts_at: toZonedInput(ev.starts_at, tz),
+      ends_at: toZonedInput(ev.ends_at, tz),
       capacity: String(ev.capacity),
       qr_unlock_minutes: String(ev.qr_unlock_minutes ?? 60),
       // Ficha (mig 043): categoría elegida + datos que pregunta la puerta.
       category: ev.category ?? "",
       min_age: ev.min_age != null ? String(ev.min_age) : "",
       dress_code: ev.dress_code ?? "",
-      doors_open_at: ev.doors_open_at
-        ? toLocalInput(new Date(ev.doors_open_at))
-        : "",
+      doors_open_at: toZonedInput(ev.doors_open_at, tz),
       // Identidad pública (mig 057): video opcional, mapa confirmado y
       // contacto propio del evento (si falta, la ficha usa el del local).
       video_url: ev.video_url ?? "",
@@ -756,13 +676,18 @@ export default function AdminDashboard() {
     e.preventDefault();
     setEditError("");
 
-    const startsAt = new Date(editingEvent.starts_at);
-    if (Number.isNaN(startsAt.getTime())) {
+    const tz = eventZone(selectedEventData);
+    const startsIso = fromZonedInput(editingEvent.starts_at, tz);
+    const startsAt = startsIso ? new Date(startsIso) : null;
+    if (!startsAt || Number.isNaN(startsAt.getTime())) {
       setEditError("Elige una fecha y hora de apertura valida.");
       return;
     }
-    const endsAt = editingEvent.ends_at ? new Date(editingEvent.ends_at) : null;
-    if (endsAt && Number.isNaN(endsAt.getTime())) {
+    const endsIso = editingEvent.ends_at
+      ? fromZonedInput(editingEvent.ends_at, tz)
+      : null;
+    const endsAt = endsIso ? new Date(endsIso) : null;
+    if (editingEvent.ends_at && !endsAt) {
       setEditError("La fecha de cierre no es valida.");
       return;
     }
@@ -770,6 +695,9 @@ export default function AdminDashboard() {
       setEditError("El cierre debe ser posterior a la apertura.");
       return;
     }
+    const doorsIso = editingEvent.doors_open_at
+      ? fromZonedInput(editingEvent.doors_open_at, tz)
+      : null;
     const capacity = Number(editingEvent.capacity);
     if (!Number.isInteger(capacity) || capacity < 1) {
       setEditError("El aforo debe ser un entero mayor que cero.");
@@ -786,8 +714,8 @@ export default function AdminDashboard() {
             name: editingEvent.name.trim(),
             capacity,
             qr_unlock_minutes: Number(editingEvent.qr_unlock_minutes),
-            starts_at: startsAt.toISOString(),
-            ends_at: endsAt ? endsAt.toISOString() : null,
+            starts_at: startsIso,
+            ends_at: endsIso,
             description: editingEvent.description.trim() || null,
             flyer_url: editingEvent.flyer_url.trim() || null,
             location: editingEvent.location.trim() || null,
@@ -796,9 +724,7 @@ export default function AdminDashboard() {
             category: editingEvent.category || "",
             min_age: editingEvent.min_age === "" ? null : Number(editingEvent.min_age),
             dress_code: editingEvent.dress_code.trim() || null,
-            doors_open_at: editingEvent.doors_open_at
-              ? new Date(editingEvent.doors_open_at).toISOString()
-              : null,
+            doors_open_at: doorsIso,
             // Identidad pública (mig 057). "" limpia: el video/mapa
             // desaparecen de la ficha y el contacto cae al del local.
             video_url: editingEvent.video_url.trim() || null,
@@ -834,7 +760,6 @@ export default function AdminDashboard() {
     });
     if (confirm === null) return;
     setError("");
-    setDeletingId(ev.id);
     try {
       await apiFetch(`/venues/${venueId}/events/${ev.id}`, {
         method: "DELETE",
@@ -850,8 +775,6 @@ export default function AdminDashboard() {
       ui.success("Evento eliminado");
     } catch (err) {
       setError(err.message);
-    } finally {
-      setDeletingId(null);
     }
   }
 
@@ -952,6 +875,20 @@ export default function AdminDashboard() {
     }
   }
 
+  const renderCard = (ev) => (
+    <AdminEventCard
+      key={ev.id}
+      ev={ev}
+      stat={ticketCounts[String(ev.id)] ?? ticketCounts[ev.id]}
+      actions={NEXT_ACTIONS[ev.status] ?? []}
+      onAction={quickTransition}
+      busyAction={busyAction}
+      onOpen={() => haptics.tick()}
+      onDelete={deleteEvent}
+      canDelete={canDeleteEvent(ev)}
+    />
+  );
+
   if (!venueId) {
     return (
       <div className="card p-6 text-center text-zinc-400">
@@ -961,15 +898,18 @@ export default function AdminDashboard() {
   }
 
   // Enlaces viejos: las secciones del negocio eran pestañas de esta pantalla
-  // (/admin?tab=equipo). Ahora viven en su propio destino. Sin evento abierto,
-  // se redirige a la sub-pestaña equivalente del hub para no romper enlaces.
+  // (/admin?tab=equipo). Ahora viven en Reportes u Organización. Sin evento
+  // abierto, se redirige a la sección equivalente para no romper enlaces.
   if (!urlEvent && VENUE_TABS.includes(urlTab)) {
-    return (
-      <Navigate
-        to={urlTab === "negocio" ? "/admin/negocio" : `/admin/negocio?tab=${urlTab}`}
-        replace
-      />
-    );
+    let target = "/admin/reportes";
+    if (urlTab === "equipo" || urlTab === "invitaciones") {
+      target = `/admin/organizacion?tab=${urlTab}`;
+    } else if (urlTab === "puerta" || urlTab === "promotores") {
+      target = "/admin/reportes?tab=resultados";
+    } else if (urlTab === "cobros" || urlTab === "liquidaciones") {
+      target = "/admin/reportes?tab=ventas";
+    }
+    return <Navigate to={target} replace />;
   }
 
   return (
@@ -985,38 +925,6 @@ export default function AdminDashboard() {
 
           Vive SOLO en modo lista: dentro del backstage de un evento la guía no
           tiene nada que hacer y tapaba la pantalla de trabajo. */}
-        {!selectedEventData && showOnboardingInvite && (
-          <OnboardingChecklist
-            mode="invite"
-            onAccept={startTour}
-            onDismiss={() => decideOnboarding("dismissed")}
-          />
-        )}
-        {!selectedEventData && showOnboardingChecklist && (
-          <OnboardingChecklist
-            mode="checklist"
-            hasEvent={events.length > 0}
-            hasTypes={types.length > 0}
-            hasAllocations={allocations.length > 0}
-            isPublished={events.some((e) => e.status !== "draft")}
-            onStart={() => setCreateOpen(true)}
-            onGo={onboardingGo}
-            onTour={startTour}
-            onDismiss={() => decideOnboarding("dismissed")}
-            onComplete={() => decideOnboarding("completed")}
-          />
-        )}
-        {!selectedEventData && showOnboardingResume && (
-          <OnboardingResume
-            onRestart={() => decideOnboarding("accepted")}
-            onTour={startTour}
-          />
-        )}{" "}
-        {error && (
-          <div className="rounded-xl border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
-            {error}
-          </div>
-        )}
         {/* =================================================================
             MODO LISTA: sin evento abierto. El mapa de la operación. Aquí es
             el único lugar donde existen "todos los eventos": se elige uno y
@@ -1024,707 +932,306 @@ export default function AdminDashboard() {
             ================================================================= */}
         {!selectedEventData && (
           <>
-            {/* PORTADA UNIFICADA: identidad + cifra del mes + eventos viven en
-              el MISMO card. Antes eran dos boxes apiladas que competían por
-              ser "la cabecera"; aquí hay una sola portada con una sola línea
-              de lectura: quién eres → cuánto va el mes → tus noches. */}
-            <VenueHeader
-              venueId={venueId}
-              user={user}
-              month={urlMonth}
-              onMonth={setMonth}
-              liveEvent={liveEvent}
-              liveCount={liveNow}
-            >
-              {/* PORTADA UNIFICADA: la franja de eventos vive DENTRO del card
-                de la venue — un solo contexto como Del negocio, secciones
-                separadas por hairline. Sin evento abierto no hay segundo
-                bloque que compita por ser "la cabecera". */}
-              {booting
-                ? null
-                : events.length > 0 && (
-                    <>
-                      {/* Cabecera de sección DENTRO de la portada: mismo
-                        idioma del dock Del negocio (eyebrow + display + la
-                        acción principal a la derecha, ENCIMA de la barra de
-                        búsqueda). */}
-                      <div className="evx-head doodle-host">
-                        {/* Doodle de fiesta junto al titular (capa POP) */}
-                        <Star4 className="-left-1 -top-1 h-3.5 w-3.5 text-[#00E6AB]" />
-                        <div className="min-w-0">
-                          <p className="eyebrow">Operación</p>
-                          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                            <h2 className="display text-xl sm:text-2xl">
-                              <span className="brush-mark">Eventos</span>
-                            </h2>
-                            <p className="text-xs text-zinc-500">
-                              {events.length} noche{events.length === 1 ? "" : "s"} en el calendario
-                              {liveNow > 0 && (
-                                <>
-                                  <span className="text-zinc-600"> · </span>
-                                  <span className="evx-livepill">
-                                    <span
-                                      className="evx-livepill-dot"
-                                      aria-hidden="true"
-                                    />
-                                    {liveNow} en puerta ahora
-                                  </span>
-                                </>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        {/* Nuevo evento: en móvil el verbo completo no entra sin
-                            partirse en dos líneas y empujar el contador de la
-                            franja; ahí queda el ícono solo (44x44, con
-                            aria-label), que es el gesto que ya se reconoce. */}
-                        <button
-                          onClick={() => setCreateOpen(true)}
-                          aria-label="Nuevo evento"
-                          data-tip="Nuevo evento"
-                          data-tour="nuevo-evento"
-                          className="btn-primary evx-newbtn shrink-0"
-                        >
-                          <Icon name="plus" className="h-4 w-4" />
-                          {/* El verbo aparece a 1024px, el mismo breakpoint
-                              en que la barra vuelve a ser de una fila: antes
-                              de eso el boton es solo el icono (CSS .evx-newbtn). */}
-                          <span className="hidden lg:inline">
-                            Nuevo evento
-                          </span>
-                        </button>
-                      </div>
-                      <div className="evx-toolbar">
-                        {/* El buscador en su PROPIA fila en móvil. Antes
-                            compartia fila con los filtros y terminaba con
-                            54px de caja (40 de padding para la lupa): el
-                            placeholder era invisible y la lupa se montaba
-                            sobre la primera pestaña. Medido a 320/390/414px. */}
-                        <div className="evx-search">
-                          <Icon
-                            name="search"
-                            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
-                          />
-                          <input
-                            value={eventQuery}
-                            onChange={(e) => setEventQuery(e.target.value)}
-                            placeholder="Buscar evento…"
-                            aria-label="Buscar evento por nombre"
-                            className="field !py-2 !pl-10 text-sm"
-                          />
-                        </div>
-                        {/* Densidad: tarjetas para pocas noches, tabla de una línea
-                    cuando la lista crece (20+ eventos no caben en grilla).
-                    Comparte la fila del buscador, no la de los filtros: ahí
-                    competía por el mismo ancho. */}
-                        <button
-                          onClick={() => {
-                            haptics.tick();
-                            setCompactView((v) => !v);
-                          }}
-                          aria-pressed={compactView}
-                          aria-label={
-                            compactView
-                              ? "Cambiar a vista de tarjetas"
-                              : "Cambiar a vista compacta"
-                          }
-                          data-tip={
-                            compactView
-                              ? "Ver como tarjetas"
-                              : "Ver como lista compacta"
-                          }
-                          className="btn-mini btn-icon shrink-0"
-                          data-variant="brand"
-                        >
-                          <Icon
-                            name={compactView ? "calendar" : "list"}
-                            className="h-3.5 w-3.5"
-                          />
-                        </button>
-                        {/* Filtros como tabs de texto (no píldoras con borde):
-                    el estado activo se dice con tinta, no con otra caja. En
-                    móvil van en fila propia con scroll-snap: son 6 estados y
-                    con el buscador al lado solo entraban 2 a la vista, sin
-                    ninguna pista de que la fila scrolleara. La pista se pinta
-                    con la mascara de desvanecido (solo en móvil, que es donde
-                    hay algo que scrollear de verdad). */}
-                        <div
-                          className="evx-filters"
-                          role="group"
-                          aria-label="Filtrar eventos por estado"
-                        >
-                          <div className="no-scrollbar evx-filters-row">
-                            {BUCKETS.map(([id, label]) => {
-                              const n =
-                                id === "todos"
-                                  ? events.length
-                                  : events.filter((ev) => ev.status === id)
-                                      .length;
-                              const active = eventBucket === id;
-                              return (
-                                <button
-                                  key={id}
-                                  aria-pressed={active}
-                                  onClick={() => setEventBucket(id)}
-                                  className={`evx-tab ${active ? "is-active" : ""}`}
-                                >
-                                  {label}
-                                  {/* El contador solo existe si hay algo que
-                                    contar: un span vacio dejaba el gap del
-                                    flex puesto igual y la pestana quedaba ~5px
-                                    mas ancha que las que no tienen numero. */}
-                                  {n > 0 && (
-                                    <span className="tnum evx-tab-count">
-                                      {n}
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    </>
+            <div className="admin-events">
+              <header className="admin-page-head">
+                <div>
+                  <p className="eyebrow">Operación</p>
+                  <h1>Eventos</h1>
+                  <p>
+                    Crea, publica y opera tus noches. Abre una para montar
+                    boletas, equipo y puerta.
+                  </p>
+                </div>
+              </header>
+              <VenueHeader venueId={venueId} user={user} compact />
+
+              {error && (
+                <div className="admin-error" role="alert">
+                  {error}
+                </div>
+              )}
+
+              {showOnboardingInvite && (
+                <OnboardingChecklist
+                  mode="invite"
+                  onAccept={startTour}
+                  onDismiss={() => decideOnboarding("dismissed")}
+                />
+              )}
+              {showOnboardingChecklist && (
+                <OnboardingChecklist
+                  mode="checklist"
+                  hasEvent={events.length > 0}
+                  hasTypes={types.length > 0}
+                  hasAllocations={allocations.length > 0}
+                  isPublished={events.some((e) => e.status !== "draft")}
+                  onStart={() => setCreateOpen(true)}
+                  onGo={onboardingGo}
+                  onTour={startTour}
+                  onDismiss={() => decideOnboarding("dismissed")}
+                  onComplete={() => decideOnboarding("completed")}
+                />
+              )}
+              {showOnboardingResume && (
+                <OnboardingResume
+                  onRestart={() => decideOnboarding("accepted")}
+                  onTour={startTour}
+                />
+              )}
+
+              <div className="admin-toolbar">
+                <div className="admin-search">
+                  <Icon name="search" aria-hidden="true" />
+                  <input
+                    value={eventQuery}
+                    onChange={(e) => setEventQuery(e.target.value)}
+                    placeholder="Buscar evento…"
+                    aria-label="Buscar evento por nombre"
+                  />
+                </div>
+                <button
+                  type="button"
+                  className={`admin-filter-btn ${activeFilterCount ? "has-filter" : ""}`}
+                  aria-expanded={filtersOpen}
+                  aria-controls="admin-filters"
+                  onClick={() => setFiltersOpen((v) => !v)}
+                >
+                  <Icon name="filter" className="h-3.5 w-3.5" />
+                  Filtros
+                  {activeFilterCount > 0 && (
+                    <span className="admin-filter-count">{activeFilterCount}</span>
                   )}
+                </button>
+                <button
+                  type="button"
+                  className="admin-create-btn"
+                  data-tour="nuevo-evento"
+                  onClick={() => {
+                    haptics.tick();
+                    setCreateOpen(true);
+                  }}
+                >
+                  <Icon name="plus" className="h-4 w-4" />
+                  Crear evento
+                </button>
+              </div>
+
+              {filtersOpen && (
+                <div
+                  id="admin-filters"
+                  className="admin-filter-panel"
+                  role="group"
+                  aria-label="Filtrar eventos por estado"
+                >
+                  {BUCKETS.map(([id, label]) => {
+                    const n =
+                      id === "todos"
+                        ? events.length
+                        : events.filter((ev) => ev.status === id).length;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-pressed={eventBucket === id}
+                        onClick={() => {
+                          setEventBucket(id);
+                          if (id === "ended" || id === "cancelled") setHistoryOpen(true);
+                        }}
+                        className="admin-filter-chip"
+                      >
+                        {label} <span className="tnum">{n}</span>
+                      </button>
+                    );
+                  })}
+                  {eventBucket !== "todos" && (
+                    <button
+                      type="button"
+                      className="admin-filter-clear"
+                      onClick={() => setEventBucket("todos")}
+                    >
+                      Limpiar filtro
+                    </button>
+                  )}
+                </div>
+              )}
+
               {booting ? (
-                <SelectSkeleton className="max-w-xs" />
-              ) : events.length > 0 ? (
-                  <section className="events-strip" data-tour="eventos">
-                    {visibleEvents.length === 0 ? (
-                      /* El vacío dice la verdad del motivo: sin búsqueda, un
-                         filtro de estado sin eventos NO es "no coincide una
-                         búsqueda". Antes el texto mentía y encima no había
-                         salida; aquí se ofrece volver a "Todos". */
-                      <p className="mt-4 text-pretty text-sm text-zinc-500">
+                <div className="admin-event-grid" aria-busy="true">
+                  {[0, 1].map((i) => (
+                    <div key={i} className="admin-event-card">
+                      <div className="skeleton h-full min-h-[160px]" />
+                      <div className="space-y-3 p-4">
+                        <div className="skeleton h-3 w-24" />
+                        <div className="skeleton h-5 w-3/4" />
+                        <div className="skeleton h-3 w-full" />
+                        <div className="skeleton h-8 w-2/3" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : events.length === 0 ? (
+                <section data-tour="eventos">
+                  <div className="admin-empty">
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--admin-accent-soft)] text-[var(--admin-accent-ink)]">
+                      <Icon name="ticket" className="h-5 w-5" />
+                    </span>
+                    <h2>Todavía no hay eventos</h2>
+                    <p>
+                      Crea tu primera noche. Nace en borrador para que montes
+                      boletas, equipo y puerta antes de publicarla.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCreateOpen(true)}
+                      className="admin-create-btn mt-2"
+                    >
+                      <Icon name="plus" className="h-4 w-4" />
+                      Crear mi primer evento
+                    </button>
+                  </div>
+                </section>
+              ) : q || eventBucket !== "todos" ? (
+                <section className="admin-section" data-tour="eventos">
+                  <div className="admin-section-head">
+                    <h2>
+                      {q ? `Resultados para “${eventQuery.trim()}”` : "Eventos filtrados"}
+                    </h2>
+                    <span className="admin-section-count">
+                      {visibleEvents.length}{" "}
+                      {visibleEvents.length === 1 ? "evento" : "eventos"}
+                    </span>
+                  </div>
+                  {visibleEvents.length === 0 ? (
+                    <div className="admin-empty">
+                      <h2>No hay eventos en este estado</h2>
+                      <p>
                         {q
                           ? "Ningún evento coincide con la búsqueda."
-                          : "No hay eventos en este estado."}{" "}
-                        {eventBucket !== "todos" && (
-                          <button
-                            onClick={() => setEventBucket("todos")}
-                            className="font-semibold text-violet-300 underline-offset-2 hover:underline"
-                          >
-                            Ver todos
-                          </button>
-                        )}
-                      </p>
-                    ) : compactView ? (
-                      /* VISTA COMPACTA: una línea por evento. Con 20+ noches la
-                    grilla de tarjetas exige scroll infinito; la tabla responde
-                    "cuál es la próxima y cómo va" de un vistazo. */
-                      <ul className="evx-list">
-                        {sortEventsForStrip(visibleEvents).map((ev) => {
-                          const stat =
-                            ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
-                          const pill = openingPill(ev.starts_at);
-                          const live = ev.status === "live";
-                          return (
-                            <li key={ev.id} className="evx-row">
-                              <TransitionLink
-                                to={`/admin?event=${ev.id}`}
-                                onClick={() => haptics.tick()}
-                                className="absolute inset-0"
-                                aria-label={`Abrir ${ev.name}`}
-                              />
-                              <span className="evx-dot-wrap">
-                                <span
-                                  className="evx-dot"
-                                  data-status={ev.status}
-                                  aria-hidden="true"
-                                />
-                              </span>
-                              <span className="evx-row-name truncate">
-                                {ev.name}
-                              </span>
-                              {pill && (
-                                <span className="evx-row-when">
-                                  {pill.main}
-                                </span>
-                              )}
-                              <span className="evx-row-nums tnum">
-                                {stat
-                                  ? `${money(stat.revenue_cents)} · ${stat.redeemed}/${stat.active}`
-                                  : "…"}
-                              </span>
-                              {/* Salud de puerta: solo si hay duplicados. La
-                                franja delata el QR reenviado sin abrir el
-                                evento; un "0" permanente sería ruido. */}
-                              {stat?.duplicates > 0 && (
-                                <span
-                                  className="evx-door-alert"
-                                  data-tip={`${stat.duplicates} boleta(s) reescaneada(s): posible QR reenviado`}
-                                >
-                                  <Icon
-                                    name="alert"
-                                    className="h-3 w-3"
-                                    aria-hidden="true"
-                                  />
-                                  <span className="tnum">{stat.duplicates}</span>
-                                </span>
-                              )}
-                              <span
-                                className={`evx-row-state ${live ? "is-live" : ""}`}
-                              >
-                                {(EV_CHIP[ev.status] ?? EV_CHIP.draft).label}
-                              </span>
-                              {/* Acciones de la fila: con 20+ noches la lista
-                                compacta es la vista de trabajo, no un resumen
-                                de solo lectura. Eliminar vive aquí para no
-                                tener que abrir el backstage de cada evento. */}
-                              {canDeleteEvent(ev) && (
-                                <span className="evx-row-actions">
-                                  <button
-                                    onClick={() => deleteEvent(ev)}
-                                    disabled={deletingId !== null}
-                                    aria-label={`Eliminar ${ev.name}`}
-                                    data-tip="Eliminar evento definitivamente"
-                                    className="btn-mini btn-icon"
-                                    data-variant="danger"
-                                  >
-                                    {deletingId === ev.id ? (
-                                      <svg
-                                        className="btn-spinner"
-                                        viewBox="0 0 24 24"
-                                        aria-hidden="true"
-                                      >
-                                        <circle cx="12" cy="12" r="9" />
-                                      </svg>
-                                    ) : (
-                                      <Icon
-                                        name="trash"
-                                        className="h-3.5 w-3.5"
-                                      />
-                                    )}
-                                  </button>
-                                </span>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <div className="evx-grid">
-                        {sortEventsForStrip(visibleEvents).map((ev) => {
-                          // Mini-reporte del evento (vendidas · dentro · recaudo) del
-                          // GET agregado. undefined = aún no llegó: la tarjeta degrada
-                          // a la versión sin cifras sin parpadear.
-                          const stat =
-                            ticketCounts[String(ev.id)] ?? ticketCounts[ev.id];
-                          const sold = stat?.active ?? null;
-                          const pct =
-                            sold !== null && ev.capacity > 0
-                              ? Math.min(
-                                  100,
-                                  Math.round((sold / ev.capacity) * 100),
-                                )
-                              : null;
-                          const pill = openingPill(ev.starts_at);
-                          const live = ev.status === "live";
-                          const ended = ["ended", "cancelled"].includes(
-                            ev.status,
-                          );
-                          const hasFlyer =
-                            ev.flyer_url && !badFlyers[ev.flyer_url];
-                          // Iniciales del evento (fallback sin flyer): primera
-                          // palabra completa + inicial de la segunda, max 2.
-                          const initials = (ev.name || "?")
-                            .split(/\s+/)
-                            .slice(0, 2)
-                            .map((w) => w[0])
-                            .join("")
-                            .toUpperCase();
-                          // Hoja de calendario (fallback sin flyer): para una
-                          // lista de NOCHES, el día identifica más que dos
-                          // letras. Si la fecha no es válida, quedan iniciales.
-                          const thumbDate = (() => {
-                            const d = new Date(ev.starts_at);
-                            if (Number.isNaN(d.getTime())) return null;
-                            return {
-                              day: String(d.getDate()),
-                              mon: d
-                                .toLocaleDateString("es-CO", { month: "short" })
-                                .replace(".", "")
-                                .toUpperCase(),
-                            };
-                          })();
-                          return (
-                            <div
-                              key={ev.id}
-                              className={`event-card evx-card ${live ? "is-live" : ""} ${
-                                ev.status === "published" ? "is-published" : ""
-                              } ${ended ? "is-ended" : ""}`}
-                            >
-                              {/* Link superpuesto: la TARJETA entera abre el
-                            backstage y deja libres las esquinas para acciones
-                            (duplicar) sin anidar botones dentro del <a>. */}
-                              <TransitionLink
-                                to={`/admin?event=${ev.id}`}
-                                onClick={() => haptics.tick()}
-                                className="absolute inset-0 rounded-xl"
-                                aria-label={`Abrir ${ev.name}`}
-                              />
-                              {/* Perno del talon: la linea punteada que
-                                  separa el cuerpo de la boleta del codigo. */}
-                              <span className="evx-perf" aria-hidden="true" />
-                              <div className="pointer-events-none p-4">
-                                {/* Fila 1: identidad. Flyer (o iniciales) + nombre
-                              y estado; la fecha en su propia línea es lo
-                              operativo: "cuándo es" pesa más que el aforo. */}
-                                <div className="evx-idrow">
-                                  {hasFlyer ? (
-                                    <img
-                                      src={ev.flyer_url}
-                                      alt=""
-                                      loading="lazy"
-                                      decoding="async"
-                                      onError={() =>
-                                        setBadFlyers((m) => ({
-                                          ...m,
-                                          [ev.flyer_url]: true,
-                                        }))
-                                      }
-                                      className="evx-thumb"
-                                    />
-                                  ) : thumbDate ? (
-                                    <span
-                                      className={`evx-thumb evx-thumb-fallback evx-datecal ${
-                                        ended ? "is-ended" : ""
-                                      }`}
-                                      aria-hidden="true"
-                                    >
-                                      <span className="evx-datecal-mon">
-                                        {thumbDate.mon}
-                                      </span>
-                                      <span className="evx-datecal-day tnum">
-                                        {thumbDate.day}
-                                      </span>
-                                    </span>
-                                  ) : (
-                                    <span
-                                      className={`evx-thumb evx-thumb-fallback ${
-                                        ended ? "is-ended" : ""
-                                      }`}
-                                      aria-hidden="true"
-                                    >
-                                      {initials}
-                                    </span>
-                                  )}
-                                  <div className="min-w-0 flex-1">
-                                    <p className="evx-name truncate">
-                                      {ev.name}
-                                    </p>
-                                    {pill && (
-                                      <p
-                                        className={`evx-when ec-when ec-when-${pill.tone} mt-1 inline-flex`}
-                                      >
-                                        <Icon
-                                          name="calendar"
-                                          className="h-3 w-3"
-                                        />
-                                        {pill.main}
-                                      </p>
-                                    )}
-                                    {/* Estado + señal de apertura en su propia
-                                      fila: el estado deja de pelear con los
-                                      botones por la esquina y "Abrir →" dice
-                                      SIEMPRE que la tarjeta se abre (sin
-                                      depender del cursor ni del hover). */}
-                                    <div className="evx-meta-row">
-                                      <span className="evx-state">
-                                        <span
-                                          className={`evx-dot ${live ? "is-live" : ""}`}
-                                          data-status={ev.status}
-                                          aria-hidden="true"
-                                        />
-                                        {
-                                          (EV_CHIP[ev.status] ?? EV_CHIP.draft)
-                                            .label
-                                        }
-                                      </span>
-                                      <span className="evx-open-label">
-                                        Abrir
-                                        <Icon
-                                          name="arrowRight"
-                                          className="h-3 w-3"
-                                          aria-hidden="true"
-                                        />
-                                      </span>
-                                    </div>
-                                    {/* Salud de puerta: solo si hay
-                                      duplicados. Un QR reenviado se delata
-                                      desde la franja, sin abrir el evento. */}
-                                    {stat?.duplicates > 0 && (
-                                      <p
-                                        className="evx-door-alert mt-2"
-                                        data-tip="Posible QR reenviado: la puerta rechazó la boleta repetida"
-                                      >
-                                        <Icon
-                                          name="alert"
-                                          className="h-3 w-3"
-                                          aria-hidden="true"
-                                        />
-                                        <span className="tnum">
-                                          {stat.duplicates}
-                                        </span>
-                                        {stat.duplicates === 1
-                                          ? "reescaneada"
-                                          : "reescaneadas"}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Fila 2: las TRES cifras que responden las tres
-                              preguntas de la noche, CADA UNA ROTULADA (antes
-                              "0/1 dentro" flotaba sin contexto y "$ 0" en
-                              verde prometia dinero que no hay). El recaudo
-                              manda en tamanio; vendidas y entraron en tinta
-                              media. */}
-                                {sold !== null ? (
-                                  <div className="evx-stats">
-                                    <div className="evx-stat">
-                                      <span className="evx-stat-label">
-                                        Recaudo
-                                      </span>
-                                      <span
-                                        className={`evx-stat-value tnum ${
-                                          stat.revenue_cents > 0
-                                            ? "has-money"
-                                            : ""
-                                        }`}
-                                      >
-                                        {money(stat.revenue_cents)}
-                                      </span>
-                                    </div>
-                                    <div className="evx-stat">
-                                      <span className="evx-stat-label">
-                                        Vendidas
-                                      </span>
-                                      <span className="evx-stat-value tnum">
-                                        {sold}
-                                        <span className="evx-stat-denom">
-                                          /{ev.capacity}
-                                        </span>
-                                      </span>
-                                    </div>
-                                    <div className="evx-stat">
-                                      <span className="evx-stat-label">
-                                        Entraron
-                                      </span>
-                                      <span
-                                        className={`evx-stat-value tnum ${
-                                          live && stat.redeemed > 0
-                                            ? "is-counting"
-                                            : ""
-                                        }`}
-                                      >
-                                        {/* En puerta el número late: el punto
-                                          esmeralda latiendo junto a la cifra
-                                          dice "está pasando ahora" sin animar
-                                          el número (menos ruido, más pulso). */}
-                                        {live && stat.redeemed > 0 && (
-                                          <span
-                                            className="evx-stat-dot"
-                                            aria-hidden="true"
-                                          />
-                                        )}
-                                        {stat.redeemed}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="evx-stats">
-                                    {[0, 1, 2].map((i) => (
-                                      <div key={i} className="evx-stat">
-                                        <span className="skeleton h-2.5 w-14" />
-                                        <span className="skeleton mt-1 block h-4 w-16" />
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {/* Fila 3: aforo como barra fina + % vendido.
-                              La barra es proporcion, no decoracion: color solo
-                              si hay alerta real (80% ambar, 100% rojo). */}
-                                {pct !== null && (
-                                  <div className="evx-meterrow">
-                                    <div
-                                      className="evx-meter"
-                                      aria-hidden="true"
-                                    >
-                                      <div
-                                        className={`evx-meter-fill ${
-                                          pct >= 100
-                                            ? "is-full"
-                                            : pct >= 80
-                                              ? "is-warn"
-                                              : ""
-                                        }`}
-                                        style={{ width: `${pct}%` }}
-                                      />
-                                    </div>
-                                    {/* La proporción NOMBRADA: un "1%" suelto
-                                      obliga a adivinar (¿1% de qué?). */}
-                                    <span
-                                      className="evx-pct tnum"
-                                      data-tip="Porcentaje vendido del aforo"
-                                    >
-                                      {pct}%
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                              {/* Acciones de la tarjeta: es panel de control,
-                            no solo enlace. Se derivan de NEXT_ACTIONS — la
-                            MISMA fuente que el backstage. La acción principal
-                            (Publicar/Abrir/Finalizar/Reabrir) va visible; las
-                            destructivas (Cancelar) y las secundarias
-                            (Duplicar/Eliminar) al menú "…". Ley de Hick: la
-                            tarjeta pasa de 3-5 botones a 1 + menú, y ninguna
-                            acción peligrosa queda en la primera fila. */}
-                              <div className="evx-actions pointer-events-auto">
-                                {(NEXT_ACTIONS[ev.status] ?? [])
-                                  .filter((a) => !a.danger)
-                                  .map(({ action }) => {
-                                    const meta =
-                                      STRIP_ACTION[action] ?? {
-                                        label: action,
-                                        icon: "bolt",
-                                      };
-                                    const busy =
-                                      busyAction === `${action}-${ev.id}`;
-                                    return (
-                                      <button
-                                        key={action}
-                                        onClick={() => quickTransition(ev, action)}
-                                        disabled={busyAction !== ""}
-                                        aria-label={`${meta.label} ${ev.name}`}
-                                        data-tip={ACTION_TIP[action]}
-                                        className="btn-mini"
-                                        data-variant={meta.variant}
-                                      >
-                                        {busy ? (
-                                          <svg
-                                            className="btn-spinner"
-                                            viewBox="0 0 24 24"
-                                            aria-hidden="true"
-                                          >
-                                            <circle cx="12" cy="12" r="9" />
-                                          </svg>
-                                        ) : (
-                                          <Icon
-                                            name={meta.icon}
-                                            className="h-3.5 w-3.5"
-                                          />
-                                        )}
-                                        {meta.label}
-                                      </button>
-                                    );
-                                  })}
-                                <ActionMenu
-                                  label={`Más acciones de ${ev.name}`}
-                                  busy={
-                                    busyAction !== "" ||
-                                    dupingId === ev.id ||
-                                    deletingId === ev.id
-                                  }
-                                  items={[
-                                    ...(NEXT_ACTIONS[ev.status] ?? [])
-                                      .filter((a) => a.danger)
-                                      .map(({ action, label }) => ({
-                                        key: action,
-                                        label,
-                                        icon: STRIP_ACTION[action]?.icon ?? "close",
-                                        danger: true,
-                                        onClick: () =>
-                                          quickTransition(ev, action),
-                                      })),
-                                    {
-                                      key: "duplicate",
-                                      label: "Duplicar evento",
-                                      icon: "copy",
-                                      onClick: () => duplicateEvent(ev),
-                                    },
-                                    ...(canDeleteEvent(ev)
-                                      ? [
-                                          {
-                                            key: "delete",
-                                            label: "Eliminar evento",
-                                            icon: "trash",
-                                            danger: true,
-                                            onClick: () => deleteEvent(ev),
-                                          },
-                                        ]
-                                      : []),
-                                  ]}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
-                ) : (
-                  /* Negocio recién creado: sin noches todavía. Este bloque es
-                     también el ancla del paso "eventos" del tutorial, que
-                     tiene que existir aunque no haya eventos. */
-                  <section data-tour="eventos" className="pt-1">
-                    <EmptyState
-                      icon="ticket"
-                      title="Todavía no hay eventos"
-                    >
-                      <p>
-                        Crea tu primera noche con el botón de abajo: nace en
-                        borrador y la montas antes de vender.
+                          : "Prueba con otro estado o vuelve a ver todos."}
                       </p>
                       <button
                         type="button"
-                        onClick={() => setCreateOpen(true)}
-                        data-tour="nuevo-evento"
-                        className="btn-primary mt-3 !px-3 !py-1.5 text-xs"
+                        className="admin-filter-clear"
+                        onClick={() => {
+                          setEventBucket("todos");
+                          setEventQuery("");
+                        }}
                       >
-                        Crear mi primer evento
+                        Ver todos
                       </button>
-                    </EmptyState>
-                  </section>
-                )}
-            </VenueHeader>
+                    </div>
+                  ) : (
+                    <div className="admin-event-grid">
+                      {sortEventList(visibleEvents).map(renderCard)}
+                    </div>
+                  )}
+                </section>
+              ) : (
+                <div className="space-y-6" data-tour="eventos">
+                  {liveEvents.length > 0 && (
+                    <section className="admin-section">
+                      <div className="admin-section-head">
+                        <h2>En puerta</h2>
+                        <span className="admin-live-badge">Ahora</span>
+                        <span className="admin-section-count">
+                          {liveEvents.length}{" "}
+                          {liveEvents.length === 1 ? "noche" : "noches"}
+                        </span>
+                      </div>
+                      <div className="admin-event-grid">
+                        {liveEvents.map(renderCard)}
+                      </div>
+                    </section>
+                  )}
 
-            {/* Acción primaria al alcance del pulgar (solo móvil, modo lista):
-              con una lista larga, "Nuevo evento" en el header queda aizar
-              tras hacer scroll. La FAB flotante lo mantiene a un toque,
-              encima de la barra de pestañas. */}
-            {!selectedEventData && section === "resumen" && !createOpen && (
-              <button
-                onClick={() => {
-                  haptics.tick();
-                  setCreateOpen(true);
-                }}
-                aria-label="Nuevo evento"
-                data-tip="Nuevo evento"
-                className="fixed right-4 z-20 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-900/40 transition active:scale-95 md:hidden"
-                style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
-              >
-                <Icon name="plus" className="h-6 w-6" />
-              </button>
-            )}
+                  {upcoming.length > 0 && (
+                    <section className="admin-section">
+                      <div className="admin-section-head">
+                        <h2>Próximos eventos</h2>
+                        <span className="admin-section-count">
+                          {upcoming.length}{" "}
+                          {upcoming.length === 1 ? "evento" : "eventos"}
+                        </span>
+                      </div>
+                      <div className="admin-event-grid">
+                        {upcoming.map(renderCard)}
+                      </div>
+                    </section>
+                  )}
 
-            {/* Probador de QR: leer sin canjear (solo lectura). */}
+                  {drafts.length > 0 && (
+                    <section className="admin-section">
+                      <div className="admin-section-head">
+                        <h2>Borradores</h2>
+                        <span className="admin-section-count">
+                          {drafts.length} por terminar
+                        </span>
+                      </div>
+                      <div className="admin-event-grid">
+                        {drafts.map(renderCard)}
+                      </div>
+                    </section>
+                  )}
+
+                  {liveEvents.length === 0 &&
+                    upcoming.length === 0 &&
+                    drafts.length === 0 && (
+                      <div className="admin-empty">
+                        <h2>No hay noches activas</h2>
+                        <p>
+                          Todo lo que existe ya pasó. Revisa el historial o crea
+                          la próxima fecha.
+                        </p>
+                      </div>
+                    )}
+
+                  {history.length > 0 && (
+                    <button
+                      type="button"
+                      className="admin-history-toggle"
+                      aria-expanded={historyOpen}
+                      onClick={() => setHistoryOpen((v) => !v)}
+                    >
+                      <span>
+                        Ver historial · {history.length}{" "}
+                        {history.length === 1 ? "evento" : "eventos"}
+                      </span>
+                      <Icon
+                        name="back"
+                        className={`h-4 w-4 transition ${historyOpen ? "rotate-90" : "-rotate-90"}`}
+                      />
+                    </button>
+                  )}
+
+                  {historyOpen && history.length > 0 && (
+                    <section className="admin-section">
+                      <div className="admin-section-head">
+                        <h2>Historial</h2>
+                        <span className="admin-section-count">
+                          {history.length}{" "}
+                          {history.length === 1 ? "evento" : "eventos"}
+                        </span>
+                      </div>
+                      <div className="admin-event-grid">
+                        {history.map(renderCard)}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              )}
+            </div>
+
             {qrTesterOpen && (
               <QrTesterModal onClose={() => setQrTesterOpen(false)} />
             )}
 
-            {/* Crear evento: modal (no un formulario de 10 campos en la página). */}
             {createOpen && (
               <EventCreateModal
                 venueId={venueId}
                 onClose={() => setCreateOpen(false)}
                 onCreated={(ev) => {
                   setCreateOpen(false);
-                  // El evento recién creado ABRE su backstage: nace aparte y
-                  // el admin aterriza directo en la pestaña de montaje.
-                  loadEvents().then(() => flyToEvent(ev.id, "entradas"));
+                  loadEvents().then(() => flyToEvent(ev.id, "ventas"));
                 }}
               />
             )}
@@ -1749,6 +1256,8 @@ export default function AdminDashboard() {
               onEdit={startEditEvent}
               editable={editable}
               onDelete={deleteSelectedEvent}
+              onDuplicate={() => duplicateEvent(selectedEventData)}
+              canDelete={canDeleteEvent(selectedEventData)}
               onExit={() => setSearchParams({})}
               preflight={preflight}
             />
@@ -2126,279 +1635,36 @@ export default function AdminDashboard() {
               aria-labelledby={`evx-tab-${section}`}
               tabIndex={0}
             >
-            {section === "resumen" && (
-              <div className="grid gap-5 lg:grid-cols-2">
-                {report ? (
-                  <ReportWidget report={report} />
-                ) : (
-                  <StatSkeletonRow />
-                )}
-                {/* Ritmo de la puerta a ANCHO COMPLETO: una serie temporal se
-                    lee mejor ancha, y es la señal operativa de la noche
-                    (¿fluye o se atascó?), no un detalle del reporte. */}
-                {report && (
-                  <div className="lg:col-span-2">
-                    <DoorPulse pulse={report.door_pulse} isLive={isLive} />
-                  </div>
-                )}
-                {closing && (
-                  <div className="card p-4 lg:col-span-2">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="eyebrow">Cierre de noche</p>
-                        <p className="mt-0.5 text-sm text-zinc-400">
-                          Caja + puerta + equipo en un CSV para el contador. El
-                          cierre trae toda la noche; la caja se puede acotar a
-                          un rango de fechas.
-                        </p>
-                      </div>
-                      <button
-                        onClick={closeNight}
-                        className="btn-primary shrink-0"
-                      >
-                        <Icon name="download" className="h-4 w-4" />
-                        Cerrar noche
-                      </button>
-                    </div>
-                    {/* Caja por periodo: el cierre trae TODO el evento; si el
-                        contador solo quiere unos dias, se acota aqui. Las
-                        fechas van en la zona del evento (lo resuelve el API). */}
-                    <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-zinc-800 pt-3">
-                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide text-zinc-500">
-                        Desde
-                        <input
-                          type="date"
-                          value={cajaRange.desde}
-                          onChange={(e) =>
-                            setCajaRange({ ...cajaRange, desde: e.target.value })
-                          }
-                          className="field"
-                          aria-label="Caja desde"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-2xs uppercase tracking-wide text-zinc-500">
-                        Hasta
-                        <input
-                          type="date"
-                          value={cajaRange.hasta}
-                          onChange={(e) =>
-                            setCajaRange({ ...cajaRange, hasta: e.target.value })
-                          }
-                          className="field"
-                          aria-label="Caja hasta"
-                        />
-                      </label>
-                      <button
-                        onClick={closeCaja}
-                        disabled={cajaBusy}
-                        className="btn-ghost shrink-0"
-                      >
-                        <Icon name="download" className="h-4 w-4" />
-                        {cajaBusy ? "Preparando…" : "Caja (CSV)"}
-                      </button>
-                    </div>
-                    {/* Las cifras EN PANTALLA antes de descargar: el CSV es
-                        para el contador; esto es para decidir si la noche ya
-                        está para cerrar o si quedó gente sin entrar. */}
-                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      {[
-                        ["Recaudo", money(report?.revenue_cents ?? 0)],
-                        ["Vendidas", report?.issued ?? 0],
-                        ["Entraron", report?.redeemed ?? 0],
-                        ["En puerta", preflight?.bouncers ?? 0],
-                      ].map(([label, value]) => (
-                        <div
-                          key={label}
-                          className="rounded-xl bg-zinc-940 px-3 py-2"
-                        >
-                          <p className="text-2xs uppercase tracking-wide text-zinc-500">
-                            {label}
-                          </p>
-                          <p className="tnum mt-0.5 text-lg font-bold text-zinc-100">
-                            {value}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Semáforo de "listo para vender": solo antes de abrir
-                        puertas, que es cuando todavía se puede corregir. */}
-                    {["draft", "published"].includes(
-                      selectedEventData?.status,
-                    ) && (
-                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                        {[
-                          [
-                            types.filter((t) => t.is_active !== false).length >
-                              0,
-                            "Tipos de boleta",
-                          ],
-                          [allocations.length > 0, "Cupos de promotor"],
-                          [(preflight?.bouncers ?? 0) > 0, "Portero asignado"],
-                          [preflight?.door_ready === true, "Escáner activo"],
-                        ].map(([ok, label]) => (
-                          <span
-                            key={label}
-                            className={ok ? "text-emerald-300" : "text-amber-300"}
-                          >
-                            {ok ? "✓" : "•"} {label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {/* Tips operativos: el qué-hacer-now del evento, sin duplicar
-                  el ciclo de vida (que vive siempre visible en el header). */}
-                <div className="card p-4">
-                  <p className="eyebrow">Puerta</p>
-                  <p className="display mb-3 mt-0.5 text-base">
-                    Cómo va la puerta
-                  </p>
-                  {/* Barra de ingreso: cuánto del aforo ya cruzó la puerta, de
-                      un vistazo. Verde = ya entraron; el resto es lo que falta. */}
-                  {(() => {
-                    const cap = selectedEventData?.capacity ?? 0;
-                    const inCount = report?.redeemed ?? 0;
-                    const pct = cap ? Math.min(100, (inCount / cap) * 100) : 0;
-                    return (
-                      <div className="meter mb-1.5">
-                        <div
-                          className="meter-fill bg-emerald-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    );
-                  })()}
-                  <ul className="space-y-2 text-sm text-zinc-300">
-                    <li className="flex items-center justify-between gap-2">
-                      <span>Boletas pendientes de entrar</span>
-                      <span className="tnum font-bold text-amber-300">
-                        {(report?.issued ?? 0) - (report?.redeemed ?? 0)}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between gap-2">
-                      <span>Ya ingresaron</span>
-                      <span className="tnum font-bold text-emerald-300">
-                        {report?.redeemed ?? 0}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between gap-2">
-                      <span>Aforo disponible</span>
-                      <span className="tnum font-bold text-zinc-100">
-                        {Math.max(
-                          0,
-                          (selectedEventData?.capacity ?? 0) -
-                            (report?.issued ?? 0),
-                        )}
-                      </span>
-                    </li>
-                  </ul>
-                  {isLive && (
-                    <p className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
-                      <span className="dp-live-dot shrink-0" aria-hidden="true" />
-                      Puertas abiertas: los escaneos actualizan estos números en
-                      vivo.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Pestañas separadas: cada pantalla una tarea, todo con control
-                total. "Entradas" monta el producto; "Cupos" delega la venta;
-                "Boletas" audita lo vendido y entrega los QR. */}
-            {section === "entradas" && (
-              <TypeManager
-                key={selectedEvent}
-                venueId={venueId}
-                eventId={selectedEvent}
-                types={types}
-                onChange={setTypes}
-                capacity={selectedEventData?.capacity}
-              />
-            )}
-
-            {section === "cupos" && (
-              <AllocationManager
-                venueId={venueId}
-                eventId={selectedEvent}
-                allocations={allocations}
-                types={types}
-                users={users}
-                onChange={setAllocations}
-              />
-            )}
-
-            {/* Cartel y descuentos (mig 043): armar la noche, no operarla.
-                Solo admin: el backend ya exige ese rol. */}
-            {section === "lineup" && (
-              <LineupManager
-                key={selectedEvent}
-                venueId={venueId}
-                eventId={selectedEvent}
-              />
-            )}
-
-            {section === "cupones" && (
-              <CouponManager
-                key={selectedEvent}
-                venueId={venueId}
-                eventId={selectedEvent}
-              />
-            )}
-
-            {(section === "boletas" ||
-              section === "entradas" ||
-              section === "cupos") && (
-              <TicketList
-                venueId={venueId}
-                eventId={selectedEvent}
-                onChanged={refreshEventData}
-                onError={setError}
-              />
-            )}
-
-            {/* "Equipo" DENTRO de la noche (mig 025): el roster de esta noche y
-                los links de puerta. Es lo unico de "Del negocio" que depende
-                del evento — el resto (Equipo del bar, Liquidaciones) sigue en
-                la portada porque no cambia con la noche abierta. */}
-            {section === "noche" && selectedEventData && (
-              <EventTeamPanel
-                venueId={venueForTeam}
-                event={selectedEventData}
-                preflight={preflight}
-              />
-            )}
+            <AdminEventWorkspace
+              ev={selectedEventData}
+              section={section}
+              report={report}
+              types={types}
+              allocations={allocations}
+              users={users}
+              preflight={preflight}
+              isLive={isLive}
+              actions={actions}
+              busyAction={busyAction}
+              onAction={runAction}
+              onSection={setSection}
+              onEdit={startEditEvent}
+              editable={editable}
+              venueId={venueId}
+              eventId={selectedEvent}
+              onChanged={refreshEventData}
+              onError={setError}
+              onQrTest={() => setQrTesterOpen(true)}
+              closing={closing}
+              onCloseNight={closeNight}
+              onCloseCaja={closeCaja}
+              cajaRange={cajaRange}
+              setCajaRange={setCajaRange}
+              cajaBusy={cajaBusy}
+            />
             </div>
           </>
         )}
-        {/* Las secciones que NO dependen de una noche (Reportes, Puerta,
-            Promotores, Cobros, Equipo, Liquidaciones, Invitaciones) ya no
-            viven aquí: mudaron a su propio destino /admin/negocio, con una
-            sub-pestaña por sección. Antes había que bajar por toda la lista
-            de eventos para encontrarlas, y el dock competía por ser la
-            cabecera con la propia portada (auditoría Ley de Hick: una
-            pantalla, un foco). Aquí queda solo el puente. */}
-        {!selectedEventData && (
-          <TransitionLink
-            to="/admin/negocio"
-            className="bizdock card bizdock-link"
-            data-tour="negocio"
-          >
-            <span className="bizdock-icon">
-              <Icon name="chart" className="h-5 w-5" />
-            </span>
-            <span className="bizdock-text">
-              <span className="bizdock-label">Del negocio</span>
-              <span className="bizdock-desc">
-                Reportes, puerta, equipo y pagos: lo que no depende de una
-                noche puntual.
-              </span>
-            </span>
-            <Icon name="back" className="h-4 w-4 rotate-180 shrink-0" />
-          </TransitionLink>
-        )}
-
         {/* Tutorial guiado: se monta al final para quedar por encima de todo
           el panel (no dentro de un card, que lo recortaría). */}
         {tourOpen && (

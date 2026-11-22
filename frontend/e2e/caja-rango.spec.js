@@ -52,7 +52,7 @@ test("el backstage cierra la caja por rango y baja el CSV", async ({
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await page.waitForURL(/\/admin/, { timeout: 15_000 });
 
-  await page.goto(`/admin?event=${eventId}`);
+  await page.goto(`/admin?event=${eventId}&tab=accesos`);
 
   // La tarjeta de cierre con su rango de caja.
   await expect(page.getByText("Cierre de noche")).toBeVisible({ timeout: 15_000 });

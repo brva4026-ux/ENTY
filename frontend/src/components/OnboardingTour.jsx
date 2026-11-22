@@ -67,19 +67,19 @@ export const ONBOARDING_STEPS = [
     anchor: "backstage",
     screen: "event",
     title: "Este es el backstage",
-    body: "Aquí montas la noche: nombre, fecha, aforo y el botón para publicarla cuando esté lista.",
+    body: "Aquí montas la noche: ficha pública, pendientes, cifras y el botón para publicarla cuando esté lista.",
   },
   {
     anchor: "tabs-evento",
     screen: "event",
     title: "Las pestañas del evento",
-    body: "En Entradas defines los tipos de boleta; en Cupos repartes cupos a tu equipo; en Boletas ves las vendidas; en Equipo asignas quién trabaja la noche.",
+    body: "Resumen reúne la ficha y los pendientes; Ventas monta boletas y cobros; Equipo asigna personal y cupos; Accesos abre y cierra la puerta.",
   },
   {
-    anchor: "negocio",
+    anchor: "portada",
     screen: "list",
-    title: "Del negocio, siempre a mano",
-    body: "Estas secciones no dependen del evento: reportes, puerta, equipo, liquidaciones y cobros viven en Negocio, en la barra de arriba.",
+    title: "Reportes y Organización",
+    body: "En la barra superior, Reportes reúne ventas, caja y conversión; Organización gestiona equipo, permisos y ajustes del negocio.",
   },
 ];
 

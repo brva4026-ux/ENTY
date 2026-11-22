@@ -103,11 +103,11 @@ export default function ReportWidget({ report }) {
               {breakdown.map((t) => (
                 <div
                   key={t.ticket_type_id}
-                  className={`grid grid-cols-[1fr_auto] items-center gap-2 px-3.5 py-2.5 sm:grid-cols-[1fr_auto_auto] ${
+                  className={`grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-1 px-3.5 py-2.5 sm:grid-cols-[1fr_auto_auto] ${
                     t.is_active === false ? "opacity-50" : ""
                   }`}
                 >
-                  <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-zinc-200">
+                  <span className="col-span-2 flex min-w-0 items-center gap-2 text-sm font-medium text-zinc-200 sm:col-span-1">
                     <span className="truncate">{t.name}</span>
                     {t.is_courtesy && (
                       <span className="badge bg-zinc-800/80 text-zinc-400">cortesía</span>
@@ -116,7 +116,7 @@ export default function ReportWidget({ report }) {
                       <span className="badge bg-amber-950/60 text-amber-400">archivado</span>
                     )}
                   </span>
-                  <span className="tnum hidden text-right text-xs text-zinc-500 sm:block">
+                  <span className="tnum text-left text-xs text-zinc-500 sm:text-right">
                     {t.issued}/{t.quantity} emitidas
                     <span className="mx-1 text-zinc-600">·</span>
                     {t.redeemed} en puerta

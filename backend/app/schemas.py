@@ -1586,6 +1586,14 @@ class VenueOverview(BaseModel):
     tickets_issued: int
     tickets_redeemed: int
     revenue_cents: int
+    # Caja del mes: `revenue_cents` es lo VENDIDO (boletas vivas de eventos
+    # del mes); `collected_cents` es lo efectivamente COBRADO por Wompi en el
+    # mes; `settled_cents` es lo pagado a promotores en el mes. Son tres
+    # momentos distintos del dinero y la UI no debe sumarlos como si fueran
+    # el mismo saldo.
+    collected_cents: int = 0
+    pending_collection_cents: int = 0
+    settled_cents: int = 0
     courtesy_tickets: int
     avg_ticket_cents: int
     # Tendencia: mismo agregado del mes anterior (la UI calcula el delta)
@@ -1903,6 +1911,7 @@ class NotificationOut(BaseModel):
     texto; `link` es la ruta interna a la que lleva el tap (opcional).
     """
     id: int
+    venue_id: int
     kind: str
     title: str
     body: str

@@ -122,6 +122,9 @@ function RevenueBars({ events, onOpen }) {
             <span className="w-full truncate text-2xs text-zinc-500 group-hover:text-zinc-300">
               {e.name}
             </span>
+            <span className="tnum text-2xs font-bold text-zinc-300">
+              {money(e.revenue_cents)}
+            </span>
             <span
               className={`hidden shrink-0 rounded-full px-1.5 text-2xs font-bold uppercase ring-1 sm:block ${meta.cls}`}
             >

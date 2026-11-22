@@ -414,7 +414,7 @@ function MemberRow({
     <li
       className={`rounded-xl border transition-colors ${isOpen ? "border-zinc-700 bg-zinc-900/70" : "border-zinc-800/60 bg-zinc-900/40"} ${m.is_active === false ? "opacity-60" : ""}`}
     >
-      <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="admin-team-row flex items-center gap-3 px-3 py-2.5">
         {/* Avatar con iniciales + anillo del rol (patrón unicall-blue) */}
         <button
           onClick={() => setOpenId(isOpen ? null : m.id)}
@@ -504,7 +504,7 @@ function MemberRow({
         )}
 
         {/* Acciones de icono, siempre visibles (patrón unicall-blue) */}
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="admin-team-actions flex shrink-0 items-center gap-0.5">
           {actions.map((a) => (
             <button
               key={a.key}

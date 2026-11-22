@@ -130,19 +130,21 @@ test("el estado vacío dice el motivo y la miniatura sin flyer es una fecha", as
   }
 
   // --- 2. Estado vacío honesto ------------------------------------------
-  // Un bucket sin contador = sin eventos. Se elige el primero que exista.
-  const emptyTab = await page.evaluate(() => {
-    const tabs = [...document.querySelectorAll(".evx-tab")];
-    const empty = tabs.find(
-      (t) =>
-        !t.querySelector(".evx-tab-count") &&
-        /Cancelad|Borrador|Terminad|En puerta|venta/.test(t.textContent),
-    );
+  // Los filtros viven detrás del botón "Filtros" en el rediseño. Se elige
+  // un bucket cuyo contador sea 0 (el seed cambia, la aserción no).
+  await page.getByRole("button", { name: /Filtros/ }).click();
+  const emptyChip = await page.evaluate(() => {
+    const chips = [...document.querySelectorAll(".admin-filter-chip")];
+    const empty = chips.find((c) => /\b0\b/.test(c.textContent));
     return empty ? empty.textContent.trim().replace(/\s+/g, " ") : null;
   });
-  test.skip(!emptyTab, "el seed no tiene ningún estado vacío");
+  test.skip(!emptyChip, "el seed no tiene ningún estado vacío");
 
-  await page.getByRole("button", { name: new RegExp(emptyTab) }).click();
+  await page
+    .locator(".admin-filter-chip")
+    .filter({ hasText: emptyChip.replace(/\s+\d+$/, "") })
+    .first()
+    .click();
   await expect(page.getByText("No hay eventos en este estado")).toBeVisible({
     timeout: 5_000,
   });

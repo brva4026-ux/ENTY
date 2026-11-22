@@ -4,6 +4,7 @@ import Icon from "./Icon";
 import DoorAlertBanner from "./DoorAlertBanner";
 import { useAuth } from "../lib/auth";
 import { hasRole } from "../lib/roles";
+import { activeVenueId } from "../lib/venue";
 import {
   fetchUnreadCount,
   listNotifications,
@@ -34,6 +35,9 @@ const KIND_TILE = {
   event_autoclosed: { icon: "clock", tile: "bg-amber-500/15 text-amber-400" },
   event_reminder: { icon: "calendar", tile: "bg-brand-500/15 text-brand-300" },
   door_anomaly: { icon: "shield", tile: "bg-rose-500/15 text-rose-400" },
+  capacity_alert: { icon: "alert", tile: "bg-amber-500/15 text-amber-400" },
+  payment_approved: { icon: "money", tile: "bg-emerald-500/15 text-emerald-400" },
+  waitlist_offered: { icon: "clock", tile: "bg-brand-500/15 text-brand-300" },
 };
 
 const KIND_LABEL = {
@@ -46,7 +50,57 @@ const KIND_LABEL = {
   event_autoclosed: "Evento",
   event_reminder: "Recordatorio",
   door_anomaly: "Puerta",
+  capacity_alert: "Aforo",
+  payment_approved: "Cobro",
+  waitlist_offered: "Lista de espera",
 };
+
+/** Destino de una notificación dentro del rediseño de Administración.
+ *
+ * Los triggers guardan links con pestañas viejas (o solo `?event=`). Aquí se
+ * traducen a las cuatro secciones del backstage o a Reportes/Organización.
+ * El link original se respeta si apunta fuera del área admin.
+ */
+function adminTarget(n) {
+  const link = n?.link;
+  const tabByKind = {
+    door_anomaly: "accesos",
+    capacity_alert: "accesos",
+    event_autoclosed: "resumen",
+    event_reminder: "resumen",
+    waitlist_offered: "resumen",
+    payment_approved: "ventas",
+    ticket_reissued: "ventas",
+    ticket_refunded: "ventas",
+  };
+  const tab = tabByKind[n?.kind];
+  if (!link || !link.startsWith("/admin")) {
+    if (tab && link?.startsWith("/admin")) return link;
+    if (n?.kind === "payout_created" || n?.kind === "payout_reviewed" || n?.kind === "payout_disputed")
+      return "/admin/reportes?tab=ventas";
+    if (n?.kind === "invitation_accepted")
+      return "/admin/organizacion?tab=equipo";
+    return link;
+  }
+
+  const [path, qs = ""] = link.split("?");
+  const params = new URLSearchParams(qs);
+  const eventId = params.get("event");
+  if (eventId) {
+    params.set("tab", tab || "resumen");
+    return `/admin?${params.toString()}`;
+  }
+  if (path === "/admin" || path === "/admin/negocio" || path === "/admin/metricas") {
+    if (n?.kind === "invitation_accepted")
+      return "/admin/organizacion?tab=equipo";
+    if (n?.kind?.startsWith("payout_"))
+      return "/admin/reportes?tab=ventas";
+    return tab
+      ? `/admin/reportes?tab=${tab === "ventas" ? "ventas" : tab === "accesos" ? "resultados" : "ventas"}`
+      : "/admin";
+  }
+  return link;
+}
 
 export default function NotificationBell() {
   const navigate = useNavigate();
@@ -61,13 +115,14 @@ export default function NotificationBell() {
   // por avisos viejos: solo los que llegan DESPUÉS de montar el panel.
   const seenDoorIds = useRef(null);
   const isAdmin = hasRole(user, "admin");
+  const venueId = activeVenueId(user);
   const rootRef = useRef(null);
 
   const refresh = useCallback(async () => {
     try {
       const [feed, count] = await Promise.all([
-        listNotifications(),
-        fetchUnreadCount(),
+        listNotifications(undefined, venueId),
+        fetchUnreadCount(venueId),
       ]);
       setItems(feed);
       setUnread(count.count);
@@ -93,7 +148,14 @@ export default function NotificationBell() {
     } catch {
       // Silencio: la campana nunca debe romper la app (401 redirige solo).
     }
-  }, []);
+  }, [venueId]);
+
+  // Al cambiar de organización, la campana vuelve a sembrar su set de avisos:
+  // un duplicado de la org anterior no debe saltar como banner en la nueva.
+  useEffect(() => {
+    seenDoorIds.current = null;
+    setDoorAlert(null);
+  }, [venueId]);
 
   // No alertar en pantallas de otros roles: la campana vive en el Layout, que
   // también sirve a promotor/bouncer. El aviso es operativo del negocio.
@@ -150,7 +212,8 @@ export default function NotificationBell() {
       markNotificationsRead([n.id]).catch(() => {});
     }
     setOpen(false);
-    if (n.link) navigate(n.link);
+    const target = adminTarget(n);
+    if (target) navigate(target);
   };
 
   return (

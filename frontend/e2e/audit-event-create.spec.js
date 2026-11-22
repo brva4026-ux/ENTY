@@ -20,7 +20,7 @@ test("el asistente de evento solo crea al pulsar Crear evento", async ({
   await page.locator("#login-password").fill("demo1234");
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await page.waitForURL(/\/admin/, { timeout: 15_000 });
-  await page.waitForSelector(".evx-card, .evx-row", { timeout: 10_000 });
+  await page.waitForSelector(".admin-event-card, .evx-card, .evx-row", { timeout: 10_000 });
 
   const posts = [];
   page.on("request", (r) => {
@@ -31,7 +31,8 @@ test("el asistente de evento solo crea al pulsar Crear evento", async ({
       posts.push(r.url());
   });
 
-  await page.getByRole("button", { name: "Nuevo evento" }).first().click();
+  await page.getByRole("button", { name: "Crear evento", exact: true }).first().click();
+  const dialog = page.getByRole("dialog");
   const name = "E2E-AUDIT-" + Date.now();
   await page.locator('input[placeholder="Noche Electrónica"]').fill(name);
 
@@ -47,7 +48,7 @@ test("el asistente de evento solo crea al pulsar Crear evento", async ({
 
   // Único POST: al pulsar Crear evento, con el aforo elegido.
   await page.locator('input[placeholder="100"]').fill("120");
-  await page.getByRole("button", { name: "Crear evento" }).click();
+  await dialog.getByRole("button", { name: "Crear evento" }).click();
   await page.waitForURL(/\/admin\?event=/, { timeout: 15_000 });
   await expect
     .poll(() => posts.length, { timeout: 10_000 })

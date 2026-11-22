@@ -37,10 +37,15 @@ export default function VenueHeader({
   liveEvent = null,
   liveCount = 0,
   children = null,
+  compact = false,
 }) {
+  // En modo compacto la organización es un banner secundario: el h1 de la
+  // página es "Eventos". Evita dos h1 en la misma pantalla.
+  const Heading = compact ? "p" : "h1";
   const [ov, setOv] = useState(null); // null = cargando (skeleton, no ceros)
 
   useEffect(() => {
+    if (compact) return;
     let alive = true;
     setOv(null);
     // Fire-and-forget: si falla, la cabecera muestra igualmente la identidad
@@ -52,7 +57,7 @@ export default function VenueHeader({
     return () => {
       alive = false;
     };
-  }, [venueId, month]);
+  }, [venueId, month, compact]);
 
   const venue = (user?.venues || []).find((v) => v.id === venueId);
 
@@ -133,7 +138,7 @@ export default function VenueHeader({
 
   return (
     <header
-      className="venue-header card"
+      className={`venue-header card ${compact ? "is-compact" : ""}`}
       style={tintStyle}
       data-brand={brand ? "1" : undefined}
       data-tour="portada"
@@ -178,10 +183,12 @@ export default function VenueHeader({
             del titular. El tamaño del nombre vive en .vh-nombre-titulo para
             que la escala sea una sola fuente de verdad. */}
           <div className="vh-nombre">
-            <p className="eyebrow">Panel de la venue</p>
-            <h1 className="display vh-nombre-titulo">
+            <p className="eyebrow">
+              {compact ? "Organización activa" : "Panel de la venue"}
+            </p>
+            <Heading className="display vh-nombre-titulo">
               {venue?.name ?? "Tu negocio"}
-            </h1>
+            </Heading>
             {/* El estado operativo manda sobre cualquier adorno: si la puerta
               está abierta, esto es lo primero que el dueño necesita saber.
               Con más de una noche abierta no se elige un nombre "ganador"
@@ -203,6 +210,7 @@ export default function VenueHeader({
         {/* KPI headline: la cuenta del mes. La cifra grande es el NETO (lo
             que le queda al negocio); el recaudado baja a la línea de
             contexto, junto a comisiones, promedio y boletas. */}
+        {!compact && (
         <div className="vh-kpi doodle-host">
           <Star5
             className="-right-1 top-4 h-3.5 w-3.5 rotate-12 text-[#FF2D98]"
@@ -250,6 +258,7 @@ export default function VenueHeader({
             </p>
           </div>
         </div>
+        )}
       </div>
 
       {/* El marcador del mes, en la voz del panel: cifras tabulares que se
@@ -257,7 +266,7 @@ export default function VenueHeader({
           Comisiones = Neto", que repetía el recaudado y el promedio justo
           debajo del KPI; aquí la resta vive en la nota del recaudado ("$N
           neto") y la comisión tiene su propia celda cuando existe. */}
-      {ov && (
+      {!compact && ov && (
         <dl className="pc-tally vh-tally">
           <div>
             <dt className="pc-t-label">Recaudado</dt>
@@ -309,6 +318,7 @@ export default function VenueHeader({
       {/* Navegación histórica: el mes del panel (y de Reportes) vive en la
           URL. Mismo idioma de flechas que Reportes; el botón "volver al mes
           actual" solo aparece cuando se salió de él. */}
+      {!compact && (
       <div className="vh-mesnav">
         <div className="vh-mesnav-ctrl">
           <button
@@ -345,12 +355,13 @@ export default function VenueHeader({
           </button>
         )}
       </div>
+      )}
 
       {/* Rankings del mes: datos que el overview YA devolvía y la portada
           tiraba a la basura (solo se veían dentro de Reportes). Con cero
           requests nuevos, la portada suma el "quién mueve la noche".
           La métrica es BOLETAS: en el MVP el promotor solo mueve cortesías. */}
-      {ov && ov.top_promoters.length > 0 && (
+      {!compact && ov && ov.top_promoters.length > 0 && (
         <div className="vh-rank">
           <div className="vh-rank-head">
             <p className="eyebrow">Quién mueve la noche</p>

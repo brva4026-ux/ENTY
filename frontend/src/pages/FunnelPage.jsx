@@ -22,8 +22,8 @@ const RANGES = [
   { days: 90, label: "90 días" },
 ];
 
-export default function FunnelPage() {
-  useDocumentTitle("Métricas");
+export default function FunnelPage({ embedded = false }) {
+  useDocumentTitle(embedded ? "Conversión de compra" : "Métricas");
   const { user } = useAuth();
   const venueId = activeVenueId(user);
   const [days, setDays] = useState(7);
@@ -48,10 +48,20 @@ export default function FunnelPage() {
   const empty = data && steps.every((s) => s.count === 0);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 text-zinc-100">
+    <div
+      className={
+        embedded
+          ? "space-y-4 text-zinc-100"
+          : "mx-auto w-full max-w-3xl px-4 py-6 text-zinc-100"
+      }
+    >
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Métricas</h1>
+          {embedded ? (
+            <h2 className="display text-base">Conversión de compra</h2>
+          ) : (
+            <h1 className="text-xl font-semibold">Métricas</h1>
+          )}
           <p className="mt-1 text-sm text-zinc-400">
             Embudo de conversión: de abrir un evento a pagar. Las sesiones se
             cuentan una vez, sin cookies.

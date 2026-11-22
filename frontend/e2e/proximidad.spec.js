@@ -160,11 +160,11 @@ test("login: la etiqueta pertenece a su campo", async ({ browser }) => {
   const r = await page.evaluate(() => {
     const lab = document.querySelector(".auth-label");
     const field = document.querySelector(".auth-field");
-    const form = document.querySelector(".auth-login-form");
+    const form = document.querySelector(".login-form");
     if (!lab || !field || !form) return null;
     return {
       labelField: Math.round(field.getBoundingClientRect().top - lab.getBoundingClientRect().bottom),
-      subForm: Math.round(form.getBoundingClientRect().top - (document.querySelector(".auth-login-sub")?.getBoundingClientRect().bottom ?? 0)),
+      subForm: Math.round(form.getBoundingClientRect().top - (document.querySelector(".login-sub")?.getBoundingClientRect().bottom ?? 0)),
     };
   });
   await ctx.close();

@@ -676,6 +676,32 @@ _TOP_EVENTS_SQL = """
     LIMIT 8
 """
 
+# Cobros online del mes: lo que Wompi aprobó, separado de lo que sigue
+# pendiente. Se ancla a `approved_at` (cuándo entró el dinero), no a la fecha
+# del evento: una venta de septiembre cobrada en octubre pertenece a octubre.
+# Un cobro pendiente todavía no tiene approved_at: cae a su created_at.
+_COLLECTED_SQL = """
+    SELECT coalesce(sum(p.amount_in_cents) FILTER (WHERE p.status = 'approved'), 0)::bigint
+               AS collected_cents,
+           coalesce(sum(p.amount_in_cents) FILTER (WHERE p.status = 'pending'), 0)::bigint
+               AS pending_collection_cents
+    FROM ticket_payments p
+    JOIN events e ON e.id = p.event_id
+    WHERE p.venue_id = %(venue)s
+      AND date_trunc('month', coalesce(p.approved_at, p.created_at) AT TIME ZONE %(tz)s)
+            = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
+"""
+
+# Liquidado: pagos efectivos a promotores en el mes (no comisiones generadas).
+_SETTLED_SQL = """
+    SELECT coalesce(sum(paid_cents), 0)::bigint AS settled_cents
+    FROM promoter_payouts
+    WHERE venue_id = %(venue)s
+      AND status = 'paid'
+      AND date_trunc('month', paid_at AT TIME ZONE %(tz)s)
+            = date_trunc('month', %(month_start)s::timestamptz AT TIME ZONE %(tz)s)
+"""
+
 # Comisiones del mes: liquidaciones de promotores generadas en el mes.
 # La comisión del promotor sale de su venta (boletas vivas), que en el MVP
 # solo puede ser cortesía — emit_ticket rechaza atar una boleta de pago a un
@@ -856,6 +882,10 @@ async def venue_overview(
         top_events = await cur.fetchall()
         await cur.execute(_COMMISSIONS_SQL, params)
         commissions = await cur.fetchone()
+        await cur.execute(_COLLECTED_SQL, params)
+        collected = await cur.fetchone()
+        await cur.execute(_SETTLED_SQL, params)
+        settled = await cur.fetchone()
         await cur.execute(_SALES_CURVE_SQL, params)
         curve_rows = await cur.fetchall()
         await cur.execute(_RETENTION_SQL, params)
@@ -882,6 +912,10 @@ async def venue_overview(
         tickets_issued=agg["tickets_issued"],
         tickets_redeemed=agg["tickets_redeemed"],
         revenue_cents=revenue,
+        collected_cents=(collected or {}).get("collected_cents", 0) or 0,
+        pending_collection_cents=(collected or {}).get("pending_collection_cents", 0)
+        or 0,
+        settled_cents=(settled or {}).get("settled_cents", 0) or 0,
         courtesy_tickets=agg["courtesy_tickets"],
         # Promedio por boleta PAGA: las cortesías no deben diluir el promedio.
         avg_ticket_cents=round(revenue / paid) if paid > 0 else 0,

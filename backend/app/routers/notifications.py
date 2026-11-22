@@ -30,6 +30,7 @@ async def list_notifications(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
     before: int | None = None,
     limit: int = 30,
+    venue_id: int | None = None,
 ):
     """Feed del usuario autenticado, más reciente primero.
 
@@ -41,24 +42,26 @@ async def list_notifications(
         if before is not None:
             await cur.execute(
                 """
-                SELECT id, kind, title, body, link, read_at, created_at
+                SELECT id, venue_id, kind, title, body, link, read_at, created_at
                 FROM notifications
                 WHERE user_id = %s AND id < %s
+                  AND (%s::bigint IS NULL OR venue_id = %s)
                 ORDER BY id DESC
                 LIMIT %s
                 """,
-                (user["id"], before, limit),
+                (user["id"], before, venue_id, venue_id, limit),
             )
         else:
             await cur.execute(
                 """
-                SELECT id, kind, title, body, link, read_at, created_at
+                SELECT id, venue_id, kind, title, body, link, read_at, created_at
                 FROM notifications
                 WHERE user_id = %s
+                  AND (%s::bigint IS NULL OR venue_id = %s)
                 ORDER BY id DESC
                 LIMIT %s
                 """,
-                (user["id"], limit),
+                (user["id"], venue_id, venue_id, limit),
             )
         return await cur.fetchall()
 
@@ -67,6 +70,7 @@ async def list_notifications(
 async def unread_count(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    venue_id: int | None = None,
 ) -> dict[str, int]:
     """Conteo de no leídas del usuario (para el badge de la campana).
 
@@ -75,8 +79,13 @@ async def unread_count(
     """
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT count(*)::int AS n FROM notifications WHERE user_id = %s AND read_at IS NULL",
-            (user["id"],),
+            """
+            SELECT count(*)::int AS n
+              FROM notifications
+             WHERE user_id = %s AND read_at IS NULL
+               AND (%s::bigint IS NULL OR venue_id = %s)
+            """,
+            (user["id"], venue_id, venue_id),
         )
         row = await cur.fetchone()
     return {"count": row["n"]}

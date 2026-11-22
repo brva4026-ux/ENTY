@@ -16,9 +16,10 @@ test('una caida temporal conserva la cookie y permite recuperar la sesion', asyn
   await page.unroute('**/api/auth/me');
   await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'No pudimos verificar tu sesión' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Cerrar sesión', exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Tu perfil' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('tf_token'))).toBeNull();
-  await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).first().click();
+  await page.goto('/perfil');
+  await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   expect((await page.context().cookies()).some(c => c.name === 'tf_session')).toBe(false);
 });

@@ -138,7 +138,7 @@ async function settle(page, selector) {
 const SURFACES = [
   { name: "portada", path: "/", anchor: ".lp", themes: ["light"] },
   { name: "vitrina", path: "/inicio", anchor: ".home", themes: ["light"] },
-  { name: "login", path: "/login", anchor: ".auth-shell", themes: ["dark", "light"] },
+  { name: "login", path: "/login", anchor: ".login-page", themes: ["dark", "light"] },
 ];
 
 const BREAKPOINTS = [

@@ -122,7 +122,7 @@ test("el color de marca del negocio se puede elegir y tiñe la portada", async (
   expect(antes).toBeDefined();
 });
 
-test("con la puerta abierta, la portada avisa 'En vivo'", async ({
+test("con la puerta abierta, la tarjeta del evento avisa 'En puerta'", async ({
   page,
   request,
 }) => {
@@ -187,18 +187,25 @@ test("con la puerta abierta, la portada avisa 'En vivo'", async ({
   });
 
   await loginAdmin(page);
-  const chip = page.locator(".vh-live");
-  await expect(chip).toBeVisible();
-  await expect(chip).toContainText("En vivo");
-  await expect(chip).toContainText(ev.name);
+  // La tarjeta del listado es la que avisa "En puerta" y marca is-live.
+  const card = page.locator(".evx-card").filter({ hasText: ev.name });
+  await expect(card).toBeVisible();
+  await expect(card.locator(".admin-state")).toHaveText("En puerta");
+  await expect(card).toHaveClass(/is-live/);
 
-  // El verde es "en vivo" en el sistema: el chip no se decora con otro color.
-  await expect(chip).toHaveCSS("color", "rgb(52, 211, 153)");
-
-  // Cerrar la puerta deja de avisar (el chip no es un adorno permanente).
+  // Cerrar la puerta cambia el estado de la tarjeta (no es un adorno permanente).
   await request.post(`${BASE}/api/venues/${venue}/events/${ev.id}/end`, {
     headers: auth,
   });
   await page.reload();
-  await expect(page.locator(".vh-live")).toHaveCount(0);
+  await expect(card).toHaveCount(0);
+  await page.getByRole("button", { name: /Ver historial/ }).click();
+  await expect(card.locator(".admin-state")).toHaveText("Finalizado");
+
+  // Limpieza: el evento de prueba no debe quedar en el seed de otros specs.
+  const cleanup = await request.fetch(
+    `${BASE}/api/venues/${venue}/events/${ev.id}`,
+    { method: "DELETE", headers: auth, data: { confirm: ev.name } },
+  );
+  expect(cleanup.ok()).toBeTruthy();
 });

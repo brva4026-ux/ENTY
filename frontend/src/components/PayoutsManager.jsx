@@ -180,7 +180,7 @@ export default function PayoutsManager({ venueId, users }) {
             </p>
           </div>
         </div>
-        <form onSubmit={generate} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
+        <form onSubmit={generate} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <select
             value={form.promoter_id}
             onChange={(e) => setForm({ ...form, promoter_id: e.target.value })}
@@ -212,7 +212,7 @@ export default function PayoutsManager({ venueId, users }) {
           <button
             type="submit"
             disabled={busy || promoters.length === 0 || preview?.blocked_reason != null}
-            className="btn-primary"
+            className="btn-primary sm:col-span-2"
           >
             {busy ? "Calculando…" : "Cerrar liquidación"}
           </button>

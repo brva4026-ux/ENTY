@@ -43,8 +43,10 @@ const EMPTY_FORM = {
   customer_email: "",
 };
 
-export default function PaymentsPanel({ venueId, events = [] }) {
-  const [eventId, setEventId] = useState("");
+export default function PaymentsPanel({ venueId, events = [], initialEventId = "" }) {
+  const [eventId, setEventId] = useState(() =>
+    initialEventId ? String(initialEventId) : "",
+  );
   const [types, setTypes] = useState([]);
   const [payments, setPayments] = useState(null); // null = primera carga
   const [form, setForm] = useState(EMPTY_FORM);
@@ -57,6 +59,10 @@ export default function PaymentsPanel({ venueId, events = [] }) {
 
   const activeTypes = types.filter((t) => t.is_active);
   const event = events.find((e) => String(e.id) === String(eventId));
+
+  useEffect(() => {
+    if (!eventId && events.length === 1) setEventId(String(events[0].id));
+  }, [eventId, events]);
 
   const loadPayments = useCallback(async () => {
     if (!eventId) return;

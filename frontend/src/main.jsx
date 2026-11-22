@@ -6,6 +6,7 @@ import {
   Route,
   Navigate,
   useLocation,
+  useSearchParams,
 } from "react-router-dom";
 // Tokens PRIMERO: la fuente única de color/forma/movimiento. Las hojas de
 // abajo consumen var(--e-*); ninguna inventa un hex de marca (stylelint lo
@@ -28,6 +29,10 @@ import "./landing.css";
 // Entrada profesional (login, recuperación, bienvenida por rol) y acento del
 // rol activo en el encabezado. Va al final para ganar por orden de fuente.
 import "./login-experience.css";
+// Rediseño de Administración (Eventos, Reportes, Organización): lienzo cálido,
+// navegación lateral y tarjetas de operación. Al final para ser la capa más
+// específica del área admin sin tocar las pantallas de promotor/puerta.
+import "./admin-redesign.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";
@@ -69,9 +74,9 @@ const lazyPage = (loader) => {
   );
 };
 const AdminDashboard = lazyPage(() => import("./pages/AdminDashboard"));
+const AdminReportsPage = lazyPage(() => import("./pages/AdminReportsPage"));
+const AdminOrganizationPage = lazyPage(() => import("./pages/AdminOrganizationPage"));
 const PromoterDashboard = lazyPage(() => import("./pages/PromoterDashboard"));
-const FunnelPage = lazyPage(() => import("./pages/FunnelPage"));
-const BusinessPage = lazyPage(() => import("./pages/BusinessPage"));
 const BouncerScanner = lazyPage(() => import("./pages/BouncerScanner"));
 const ProfilePage = lazyPage(() => import("./pages/ProfilePage"));
 const PublicTicketPage = lazyPage(() => import("./pages/PublicTicketPage"));
@@ -244,27 +249,33 @@ function App() {
                 }
               />
               <Route
-                path="/admin/metricas"
+                path="/admin/reportes"
                 element={
                   <RequireRole role="admin">
                     <Layout>
-                      <FunnelPage />
+                      <AdminReportsPage />
                     </Layout>
                   </RequireRole>
                 }
               />
-              {/* Reportes del negocio: página propia, hermana de Métricas. El
-                  mes viaja en ?mes=, igual que en la portada del panel. */}
               <Route
-                path="/admin/negocio"
+                path="/admin/organizacion"
                 element={
                   <RequireRole role="admin">
                     <Layout>
-                      <BusinessPage />
+                      <AdminOrganizationPage />
                     </Layout>
                   </RequireRole>
                 }
               />
+              {/* Enlaces viejos: Métricas ahora es una pestaña de Reportes. */}
+              <Route
+                path="/admin/metricas"
+                element={<Navigate to="/admin/reportes?tab=conversion" replace />}
+              />
+              {/* Negocio se reparte entre Reportes y Organización. La
+                  redirección conserva el mes y la sub-pestaña equivalente. */}
+              <Route path="/admin/negocio" element={<LegacyBusinessRedirect />} />
               <Route
                 path="/promotor"
                 element={
@@ -295,6 +306,29 @@ function App() {
       </UIProvider>
     </AuthProvider>
   );
+}
+
+/** Puente de enlaces viejos de "Negocio" a los destinos nuevos. */
+function LegacyBusinessRedirect() {
+  const [params] = useSearchParams();
+  const tab = params.get("tab");
+  const next = new URLSearchParams();
+  const mes = params.get("mes");
+  if (mes) next.set("mes", mes);
+
+  if (tab === "equipo" || tab === "invitaciones") {
+    next.set("tab", tab);
+    return <Navigate to={`/admin/organizacion?${next}`} replace />;
+  }
+  if (tab === "puerta" || tab === "promotores") {
+    next.set("tab", "resultados");
+    return <Navigate to={`/admin/reportes?${next}`} replace />;
+  }
+  if (tab === "cobros" || tab === "liquidaciones") {
+    next.set("tab", "ventas");
+    return <Navigate to={`/admin/reportes?${next}`} replace />;
+  }
+  return <Navigate to={`/admin/reportes${next.toString() ? `?${next}` : ""}`} replace />;
 }
 
 /**

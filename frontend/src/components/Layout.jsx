@@ -9,7 +9,9 @@ import {
   roleForPath,
   roleIdentity,
   topRoleLabel,
+  hasRole,
 } from "../lib/roles";
+import AdminShell from "./AdminShell";
 import { haptics } from "../lib/haptics";
 import { initials } from "../lib/initials";
 import { Logo } from "./Brand";
@@ -119,6 +121,12 @@ export default function Layout({ children }) {
   const [legalCleared, setLegalCleared] = useState(false);
   if (!legalCleared) {
     return <LegalGate onCleared={setLegalCleared} />;
+  }
+
+  // Administración tiene su propio shell (sidebar, encabezado y nav inferior
+  // de tres destinos). Promotor, puerta y perfil conservan la barra global.
+  if (pathname.startsWith("/admin") && hasRole(user, "admin")) {
+    return <AdminShell>{children}</AdminShell>;
   }
 
   return (
