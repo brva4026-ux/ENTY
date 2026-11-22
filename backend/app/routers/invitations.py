@@ -66,6 +66,99 @@ def _expired_cond() -> str:
     return "revoked_at IS NULL AND accepted_at IS NULL AND expires_at > now()"
 
 
+async def _accept_invitation_transaction(
+    db: psycopg.AsyncConnection, raw_token: str, password: str
+) -> tuple[dict, int]:
+    """Canje atómico de una invitación.
+
+    El token se consume, la cuenta se crea o reactiva y el rol se asigna en
+    una sola transacción. Si el username elegido choca con otra alta
+    simultánea, quien llama reintenta: el rollback devuelve el token a
+    ``accepted_at = NULL``, así que el reintento es seguro.
+    """
+    async with db.transaction(), db.cursor() as cur:
+        # Concurrencia segura: el UPDATE solo gana una vez por token. Sin
+        # SELECT previo: la condición WHERE es la fuente de verdad.
+        await cur.execute(
+            f"""
+            UPDATE staff_invitations
+            SET accepted_at = now()
+            WHERE token_hash = %s AND {_expired_cond()}
+            RETURNING id, venue_id, role, email, full_name
+            """,
+            (_hash_token(raw_token),),
+        )
+        inv = await cur.fetchone()
+        if not inv:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                "Este enlace no es válido: expiró, fue revocado o ya se usó.",
+            )
+
+        # El enlace pertenece a un email concreto: no se canjea con otro.
+        await cur.execute(
+            "SELECT id, is_active, full_name, username FROM users "
+            "WHERE lower(email) = lower(%s)",
+            (inv["email"],),
+        )
+        existing = await cur.fetchone()
+        if existing:
+            user_id = existing["id"]
+            # Recontratación: la persona demostró control del enlace que
+            # llegó a SU email -> fija la contraseña que acaba de elegir
+            # (equivale a un reset por enlace) y recupera el acceso.
+            await cur.execute(
+                """UPDATE users SET password_hash = %s, is_active = true,
+                   last_login_at = now() WHERE id = %s""",
+                (hash_password(password), user_id),
+            )
+            # Cuenta legada sin usuario: la invitación es una buena ocasión
+            # para darle el identificador que le faltaba, sin pisar el que ya
+            # tenga.
+            if not existing["username"]:
+                candidate = await _next_username(
+                    cur, username_base(existing["full_name"]), user_id
+                )
+                await cur.execute(
+                    "UPDATE users SET username=%s WHERE id=%s",
+                    (candidate, user_id),
+                )
+        else:
+            candidate = await _next_username(cur, username_base(inv["full_name"]))
+            await cur.execute(
+                """
+                INSERT INTO users
+                    (email, password_hash, full_name, username, last_login_at)
+                VALUES (%s, %s, %s, %s, now()) RETURNING id
+                """,
+                (
+                    inv["email"],
+                    hash_password(password),
+                    inv["full_name"],
+                    candidate,
+                ),
+            )
+            user_id = (await cur.fetchone())["id"]
+
+        await cur.execute(
+            """
+            INSERT INTO venue_user_roles (venue_id, user_id, role)
+            VALUES (%s, %s, %s)
+            ON CONFLICT DO NOTHING
+            """,
+            (inv["venue_id"], user_id, inv["role"]),
+        )
+        # Registrar QUIEN acepto (la columna quedaba NULL siempre): el trigger
+        # de notificaciones (mig 012) dispara sobre este UPDATE y el historial
+        # de invitaciones queda trazable por usuario, no solo por email.
+        await cur.execute(
+            "UPDATE staff_invitations SET accepted_user_id = %s WHERE id = %s",
+            (user_id, inv["id"]),
+        )
+        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
+    return inv, user_id
+
+
 # ---------------------------------------------------------------------------
 # Admin: crear invitación (devuelve el enlace UNA vez)
 # ---------------------------------------------------------------------------
@@ -266,91 +359,30 @@ async def accept_invitation(
         )
     await _register_failure(db, "__invite__", ip)
 
-    # Todo-o-nada: consumir el token, crear/reutilizar el usuario y darle el
-    # rol deben confirmarse juntos. La conexión es autocommit, así que sin el
-    # bloque un fallo dejaba el enlace consumido y sin usuario (o un usuario
-    # sin rol). Los contadores de lockout de arriba ya quedaron confirmados a
-    # propósito: un intento fallido debe contar aunque el resto revierta.
-    async with db.transaction(), db.cursor() as cur:
-        # Concurrencia segura: el UPDATE solo gana una vez por token. Sin
-        # SELECT previo: la condición WHERE es la fuente de verdad.
-        await cur.execute(
-            f"""
-            UPDATE staff_invitations
-            SET accepted_at = now()
-            WHERE token_hash = %s AND {_expired_cond()}
-            RETURNING id, venue_id, role, email, full_name
-            """,
-            (_hash_token(body.token),),
-        )
-        inv = await cur.fetchone()
-        if not inv:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND,
-                "Este enlace no es válido: expiró, fue revocado o ya se usó.",
+    # Todo-o-todo, con reintentos acotados: consumir el token, crear/reutilizar
+    # el usuario y darle el rol deben confirmarse juntos. Si dos altas
+    # simultáneas generan el mismo username, la que pierde el índice único
+    # revierte la transacción (incluido el token) y reintenta con la siguiente
+    # variante. El lockout de arriba ya quedó confirmado a propósito.
+    accepted = None
+    for _ in range(50):
+        try:
+            accepted = await _accept_invitation_transaction(
+                db, body.token, body.password
             )
+            break
+        except psycopg.errors.UniqueViolation as e:
+            constraint = getattr(getattr(e, "diag", None), "constraint_name", "") or ""
+            if constraint == "users_username_lower_key":
+                continue
+            raise
 
-        # El enlace pertenece a un email concreto: no se canjea con otro.
-        await cur.execute(
-            "SELECT id, is_active, full_name, username FROM users "
-            "WHERE lower(email) = lower(%s)",
-            (inv["email"],),
+    if accepted is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "No pudimos asignar un nombre de usuario. Intenta de nuevo.",
         )
-        existing = await cur.fetchone()
-        if existing:
-            user_id = existing["id"]
-            # Recontratación: la persona demostró control del enlace que
-            # llegó a SU email -> fija la contraseña que acaba de elegir
-            # (equivale a un reset por enlace) y recupera el acceso.
-            await cur.execute(
-                """UPDATE users SET password_hash = %s, is_active = true,
-                   last_login_at = now() WHERE id = %s""",
-                (hash_password(body.password), user_id),
-            )
-            # Cuenta legada sin usuario: la invitación es una buena ocasión
-            # para darle el identificador que le faltaba, sin pisar el que ya
-            # tenga.
-            if not existing["username"]:
-                candidate = await _next_username(
-                    cur, username_base(existing["full_name"]), user_id
-                )
-                await cur.execute(
-                    "UPDATE users SET username=%s WHERE id=%s",
-                    (candidate, user_id),
-                )
-        else:
-            candidate = await _next_username(cur, username_base(inv["full_name"]))
-            await cur.execute(
-                """
-                INSERT INTO users
-                    (email, password_hash, full_name, username, last_login_at)
-                VALUES (%s, %s, %s, %s, now()) RETURNING id
-                """,
-                (
-                    inv["email"],
-                    hash_password(body.password),
-                    inv["full_name"],
-                    candidate,
-                ),
-            )
-            user_id = (await cur.fetchone())["id"]
-
-        await cur.execute(
-            """
-            INSERT INTO venue_user_roles (venue_id, user_id, role)
-            VALUES (%s, %s, %s)
-            ON CONFLICT DO NOTHING
-            """,
-            (inv["venue_id"], user_id, inv["role"]),
-        )
-        # Registrar QUIEN acepto (la columna quedaba NULL siempre): el trigger
-        # de notificaciones (mig 012) dispara sobre este UPDATE y el historial
-        # de invitaciones queda trazable por usuario, no solo por email.
-        await cur.execute(
-            "UPDATE staff_invitations SET accepted_user_id = %s WHERE id = %s",
-            (user_id, inv["id"]),
-        )
-        # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
+    inv, user_id = accepted
 
     from app.routers.auth import _build_user_summary, _clear_failures
 

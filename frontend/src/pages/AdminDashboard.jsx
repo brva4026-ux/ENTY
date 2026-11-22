@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
@@ -11,6 +11,7 @@ import { activeVenueId } from "../lib/venue";
 import { getToken } from "../lib/tokenStore";
 import { fromZonedInput, toZonedInput, isPastEvent, eventZone } from "../lib/eventTime";
 import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
+import AccountReadyCard from "../components/AccountReadyCard";
 import {
   cachedPreferences,
   loadPreferences,
@@ -117,7 +118,8 @@ export function canDeleteEvent(ev) {
 
 export default function AdminDashboard() {
   useDocumentTitle("Panel del negocio");
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
+  const nav = useNavigate();
   const ui = useUI();
   const { setBreadcrumb } = useAdminChrome();
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
@@ -290,6 +292,34 @@ export default function AdminDashboard() {
   const showOnboardingResume =
     events !== null &&
     (onboardingPref === "dismissed" || onboardingPref === "completed");
+
+  // La bienvenida de alta se muestra una sola vez. Las cuentas existentes
+  // (mig 058) ya tienen `welcome_seen_at`; las nuevas nacen con NULL.
+  const showAccountReady = Boolean(user) && !user.welcome_seen_at;
+
+  /** Marca la bienvenida como vista y deja que la persona siga trabajando. */
+  function markAccountReadySeen() {
+    setUser((current) =>
+      current
+        ? { ...current, welcome_seen_at: new Date().toISOString() }
+        : current,
+    );
+    apiFetch("/auth/welcome-seen", { method: "POST" })
+      .then(setUser)
+      .catch(() => {
+        // El panel no se bloquea si falla el marcado; se reintenta al volver.
+      });
+  }
+
+  function changeUsernameFromWelcome() {
+    markAccountReadySeen();
+    nav("/perfil?tab=cuenta#username");
+  }
+
+  function createFirstEventFromWelcome() {
+    markAccountReadySeen();
+    setCreateOpen(true);
+  }
 
   /** Guarda la decisión en el servidor y refleja el resultado en el acto. */
   function decideOnboarding(pref) {
@@ -1064,6 +1094,15 @@ export default function AdminDashboard() {
                 <div className="admin-error" role="alert">
                   {error}
                 </div>
+              )}
+
+              {showAccountReady && (
+                <AccountReadyCard
+                  user={user}
+                  onChangeUsername={changeUsernameFromWelcome}
+                  onCreateEvent={createFirstEventFromWelcome}
+                  onDismiss={markAccountReadySeen}
+                />
               )}
 
               {showOnboardingInvite && (

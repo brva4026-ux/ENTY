@@ -19,6 +19,18 @@ const STRENGTH = [
 ];
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/;
+const FIELD_ORDER = ["full_name", "email", "password", "venue_name"];
+const FIELD_INPUT_IDS = {
+  full_name: "reg-full-name",
+  email: "reg-email",
+  password: "reg-password",
+  venue_name: "reg-venue-name",
+};
+
+function focusFirstError(errors) {
+  const first = FIELD_ORDER.find((key) => errors[key]);
+  if (first) document.getElementById(FIELD_INPUT_IDS[first])?.focus();
+}
 
 function fieldError(id, message) {
   return (
@@ -29,7 +41,7 @@ function fieldError(id, message) {
 }
 
 export default function RegisterPage() {
-  useDocumentTitle("Crear cuenta");
+  useDocumentTitle("Crear cuenta de organizador");
   const { register } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({
@@ -113,10 +125,7 @@ export default function RegisterPage() {
     const next = validate();
     if (Object.keys(next).length > 0) {
       setErrors(next);
-      const first = ["full_name", "email", "password", "venue_name"].find(
-        (k) => next[k]
-      );
-      if (first) document.getElementById(`reg-${first}`)?.focus();
+      focusFirstError(next);
       return;
     }
 
@@ -143,6 +152,15 @@ export default function RegisterPage() {
         // Los términos cambiaron entre que se abrió la página y el submit.
         setTermsStale(true);
         setErrors({ general: err?.message || "Los términos se actualizaron. Recarga la página." });
+      } else if (err?.status === 409 && raw.includes("usuario")) {
+        // El backend agotó las variantes del nombre generado. No es un
+        // problema del correo: se muestra como error general y se conserva
+        // todo lo escrito para que la persona pueda ajustar el negocio.
+        setErrors({
+          general:
+            err?.message ||
+            "No pudimos asignar un nombre de usuario. Prueba con otro nombre de negocio.",
+        });
       } else if (err?.status === 409 || raw.includes("ya tiene una cuenta")) {
         setErrors({ email: "Ese correo ya está registrado. Inicia sesión en su lugar." });
       } else if (raw.includes("demasiados") || err?.status === 429) {
@@ -155,6 +173,19 @@ export default function RegisterPage() {
             "No pudimos conectar con Enty. Revisa tu conexión y reintenta; tus datos siguen aquí.",
         });
         setRetryable(true);
+      } else if (err?.fields) {
+        const mapped = {};
+        for (const key of FIELD_ORDER) {
+          if (err.fields[key]) mapped[key] = err.fields[key];
+        }
+        if (Object.keys(mapped).length > 0) {
+          setErrors(mapped);
+          focusFirstError(mapped);
+        } else {
+          setErrors({
+            general: err?.message || "No pudimos crear tu cuenta. Inténtalo de nuevo.",
+          });
+        }
       } else {
         setErrors({
           general: err?.message || "No pudimos crear tu cuenta. Inténtalo de nuevo.",
@@ -291,7 +322,7 @@ export default function RegisterPage() {
               htmlFor="reg-venue-name"
               className="mb-1.5 block text-xs font-medium text-zinc-400"
             >
-              Nombre del negocio (opcional)
+              Nombre del negocio u organización
             </label>
             <input
               id="reg-venue-name"
@@ -309,7 +340,7 @@ export default function RegisterPage() {
               }
             />
             <p id="reg-venue-name-hint" className="mb-2 mt-1 text-xs leading-relaxed text-zinc-500">
-              Déjalo vacío si organizas por tu cuenta. Podrás agregarlo después.
+              Déjalo vacío si organizas por tu cuenta.
             </p>
             <p className="mb-4 text-xs leading-relaxed text-zinc-500">
               Tu usuario será{" "}
@@ -432,7 +463,7 @@ export default function RegisterPage() {
         <div className="auth-foot">
           <ContactSupport
             prompt="¿Necesitas ayuda?"
-            label="Escríbenos"
+            label="Necesito ayuda"
             message="Hola, necesito ayuda para crear mi cuenta en Enty."
           />
         </div>

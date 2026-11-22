@@ -391,8 +391,23 @@ export default function ProfilePage() {
     const next = new URLSearchParams(searchParams);
     if (canonicalTab === null) next.delete("tab");
     else next.set("tab", canonicalTab);
-    setSearchParams(next, { replace: true });
-  }, [tabIsCanonical, canonicalTab, searchParams, setSearchParams]);
+    const search = next.toString();
+    // El hash #username es una intención de foco, no estado de la pestaña:
+    // solo se conserva mientras la pestaña sea Cuenta. En otra pestaña sería
+    // un ancla muerta que sobrevive a los clics.
+    const hash =
+      activeTab === "cuenta" && window.location.hash === "#username"
+        ? "#username"
+        : "";
+    nav(
+      {
+        pathname: "/perfil",
+        search: search ? `?${search}` : "",
+        hash,
+      },
+      { replace: true },
+    );
+  }, [tabIsCanonical, canonicalTab, searchParams, nav, activeTab]);
 
   // Enlace de verificación del correo nuevo: se canjea UNA vez al abrir la
   // página. El correo solo cambia si el servidor acepta el token; la URL se

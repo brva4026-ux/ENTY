@@ -426,3 +426,192 @@ def test_delete_event_removes_its_payments(api):
         )
         == 0
     )
+
+
+# ---------------------------------------------------------------------------
+# Usuario generado, colisiones y primera entrada
+# ---------------------------------------------------------------------------
+def _register_payload(email: str, **extra) -> dict:
+    return {
+        "full_name": "Persona de Prueba",
+        "email": email,
+        "password": "ClaveSegura123",
+        "accepted_terms": True,
+        **extra,
+    }
+
+
+def test_register_normalizes_accents_in_generated_username(api):
+    """La base sale del nombre, sin tildes ni mayúsculas."""
+    import uuid
+
+    tag = uuid.uuid4().hex[:8]
+    payload = _register_payload(
+        f"acentos-{tag}@example.test", full_name=f"Jesús Núñez {tag}"
+    )
+    res = api.client.post("/auth/register", json=payload)
+    assert res.status_code == 201, res.text
+    assert res.json()["user"]["username"] == f"jesus.nunez.{tag}"
+
+
+def test_register_uses_neutral_username_when_name_has_no_valid_base(api):
+    """Un nombre sin letras ni números no produce un usuario vacío."""
+    import uuid
+
+    tag = uuid.uuid4().hex[:8]
+    payload = _register_payload(f"neutro-{tag}@example.test", full_name="!!")
+    res = api.client.post("/auth/register", json=payload)
+    assert res.status_code == 201, res.text
+    username = res.json()["user"]["username"]
+    assert username == "usuario" or username.startswith("usuario-")
+
+
+def test_register_resolves_sequential_username_collision(api):
+    """Dos altas con el mismo nombre de negocio no comparten usuario."""
+    import uuid
+
+    tag = uuid.uuid4().hex[:8]
+    name = f"Colisión {tag}"
+    first = api.client.post(
+        "/auth/register",
+        json=_register_payload(f"colision-a-{tag}@example.test", venue_name=name),
+    )
+    second = api.client.post(
+        "/auth/register",
+        json=_register_payload(f"colision-b-{tag}@example.test", venue_name=name),
+    )
+    assert first.status_code == 201, first.text
+    assert second.status_code == 201, second.text
+
+    u1 = first.json()["user"]["username"]
+    u2 = second.json()["user"]["username"]
+    assert u1 != u2
+    assert u2 == f"{u1}-2"
+
+    # Ambos usuarios entran con su propio nombre.
+    password = "ClaveSegura123"
+    assert (
+        api.client.post(
+            "/auth/login", json={"identifier": u1, "password": password}
+        ).status_code
+        == 200
+    )
+    assert (
+        api.client.post(
+            "/auth/login", json={"identifier": u2, "password": password}
+        ).status_code
+        == 200
+    )
+
+
+def test_register_resolves_simultaneous_username_collision(api):
+    """Dos altas a la vez con la misma base: una gana, la otra reintenta."""
+    import threading
+    import uuid
+    from concurrent.futures import ThreadPoolExecutor
+
+    from fastapi.testclient import TestClient
+
+    tag = uuid.uuid4().hex[:8]
+    name = f"Simultánea {tag}"
+    payloads = [
+        _register_payload(f"simultanea-a-{tag}@example.test", venue_name=name),
+        _register_payload(f"simultanea-b-{tag}@example.test", venue_name=name),
+    ]
+    barrier = threading.Barrier(2)
+    clients = [
+        api.client,
+        TestClient(api.client.app, base_url="http://testserver"),
+    ]
+    clients[1].headers.update({"x-real-ip": "testclient"})
+
+    def go(index: int):
+        barrier.wait()
+        return clients[index].post("/auth/register", json=payloads[index])
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        responses = list(pool.map(go, range(2)))
+
+    assert [r.status_code for r in responses] == [201, 201], [r.text for r in responses]
+    usernames = {r.json()["user"]["username"] for r in responses}
+    assert len(usernames) == 2, usernames
+
+    # La cuenta perdedora no quedó a medias: entra con su variante.
+    for res in responses:
+        username = res.json()["user"]["username"]
+        login = api.client.post(
+            "/auth/login",
+            json={"identifier": username, "password": "ClaveSegura123"},
+        )
+        assert login.status_code == 200, login.text
+
+
+def test_changing_username_invalidates_the_old_one(api):
+    """El usuario anterior deja de entrar; el nuevo y el correo sí."""
+    import uuid
+
+    tag = uuid.uuid4().hex[:8]
+    reg = api.client.post(
+        "/auth/register",
+        json=_register_payload(f"cambio-{tag}@example.test"),
+    )
+    assert reg.status_code == 201, reg.text
+    body = reg.json()
+    old = body["user"]["username"]
+    new = f"nuevo.{old}"
+    headers = {"Authorization": f"Bearer {body['access_token']}"}
+
+    res = api.client.patch(
+        "/auth/profile",
+        headers=headers,
+        json={"full_name": "Persona de Prueba", "username": new},
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["username"] == new
+
+    password = "ClaveSegura123"
+    assert (
+        api.client.post(
+            "/auth/login", json={"identifier": old, "password": password}
+        ).status_code
+        == 401
+    )
+    assert (
+        api.client.post(
+            "/auth/login", json={"identifier": new, "password": password}
+        ).status_code
+        == 200
+    )
+    assert (
+        api.client.post(
+            "/auth/login", json={"identifier": payload_email(body), "password": password}
+        ).status_code
+        == 200
+    )
+
+
+def payload_email(body: dict) -> str:
+    return body["user"]["email"]
+
+
+def test_welcome_seen_is_persisted_once(api):
+    """La bienvenida de primera entrada se marca en el servidor."""
+    import uuid
+
+    tag = uuid.uuid4().hex[:8]
+    reg = api.client.post(
+        "/auth/register",
+        json=_register_payload(f"bienvenida-{tag}@example.test"),
+    )
+    assert reg.status_code == 201, reg.text
+    body = reg.json()
+    assert body["user"]["welcome_seen_at"] is None
+
+    headers = {"Authorization": f"Bearer {body['access_token']}"}
+    marked = api.client.post("/auth/welcome-seen", headers=headers)
+    assert marked.status_code == 200, marked.text
+    assert marked.json()["welcome_seen_at"] is not None
+
+    me = api.client.get("/auth/me", headers=headers)
+    assert me.status_code == 200
+    assert me.json()["welcome_seen_at"] == marked.json()["welcome_seen_at"]

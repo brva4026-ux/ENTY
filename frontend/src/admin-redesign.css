@@ -969,6 +969,121 @@ html:not([data-theme="light"]) .admin-shell {
   line-height: 1.55;
 }
 
+/* Primera entrada: el usuario recién generado y las dos decisiones que
+   importan. No es un modal; la persona ya puede trabajar. */
+.admin-shell .account-ready {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--admin-accent-soft);
+  border-radius: 18px;
+  background: var(--admin-surface);
+}
+
+.account-ready-main {
+  display: flex;
+  flex: 1 1 340px;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.account-ready-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--admin-accent);
+  color: rgb(255 255 255);
+}
+
+.account-ready-copy {
+  min-width: 0;
+}
+
+.account-ready-step {
+  margin: 0;
+  color: var(--admin-accent-ink);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.account-ready h2 {
+  margin: 2px 0 4px;
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  letter-spacing: -0.035em;
+}
+
+.account-ready-handle {
+  margin: 0;
+  color: var(--admin-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.account-ready-handle strong {
+  color: var(--admin-accent-ink);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.account-ready-hint {
+  margin: 3px 0 0;
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.account-ready-actions {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.account-ready-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.account-ready-close {
+  flex: 0 0 auto;
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 6px;
+  color: var(--admin-muted);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.account-ready-close:hover {
+  background: var(--admin-surface-2);
+  color: var(--admin-ink);
+}
+
+@media (max-width: 640px) {
+  .admin-shell .account-ready {
+    padding: 16px;
+  }
+
+  .account-ready-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .account-ready-action {
+    flex: 1 1 auto;
+  }
+}
+
 .admin-money-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

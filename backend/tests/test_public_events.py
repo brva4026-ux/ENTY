@@ -332,6 +332,9 @@ def test_placeholder_workspace_is_not_published(api, api_client):
 
         detail = api_client.get(f"/public/events/{event['id']}").json()
         assert detail["venue"] == ""
+        # El username identifica a la persona y tampoco se publica.
+        assert "username" not in detail
+        assert "full_name" not in detail
     finally:
         api.run_sql(
             f"UPDATE venues SET name = '{original_name}', "
