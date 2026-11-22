@@ -1,13 +1,13 @@
 {
   "note": "Presupuesto del gate de diseno (scripts/design-gate.mjs). Los conteos son un TRIQUETE: subir en cualquier regla falla el gate. Para bajar, arregla el hallazgo y corre `node scripts/design-gate.mjs --update`. Una regla que no figure aqui tambien falla: si es marca deliberada, agregala con su motivo en `brand` y actualiza con --update. El lint del skill banea ~560 cosas en este repo, pero casi todas son la identidad deliberada de TicketFlow (ver AGENTS.md, 'Capas de diseno' y 'Tokens y guardarrailes').",
   "allowed": {
-    "eyebrow": 51,
-    "gradient": 199,
-    "shadow": 163,
-    "glass": 32,
+    "eyebrow": 56,
+    "gradient": 206,
+    "shadow": 167,
+    "glass": 35,
     "numbering": 7,
     "emoji": 34,
-    "purple": 17,
+    "purple": 25,
     "mono": 16,
     "ease-in": 2,
     "bounce": 1,

@@ -1,20 +1,25 @@
-import { homeForRole } from "../lib/roles";
-import { useAuth } from "../lib/auth";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
-import { LockIcon, MailIcon } from "../components/AuthBackdrop";
-import { AuthShell } from "../components/AuthShell";
-import ContactSupport from "../components/ContactSupport";
-import { WelcomeOverlay } from "../components/WelcomeOverlay";
-import { Logo } from "../components/Brand";
-import TransitionLink from "../components/TransitionLink";
-import useDocumentTitle from "../lib/useDocumentTitle";
-import { forgotPassword } from "../lib/api";
-import { withViewTransition } from "../lib/viewTransition";
-import { prefersReducedMotion } from "../lib/motion";
-import { useI18n } from "../i18n";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
-/** Etiqueta de cada idioma en su propia lengua (así se reconoce sin traducir). */
+import { LockIcon, MailIcon } from "../components/AuthBackdrop";
+import ContactSupport from "../components/ContactSupport";
+import Icon from "../components/Icon";
+import { LoginShell } from "../components/LoginShell";
+import TransitionLink from "../components/TransitionLink";
+import { WelcomeOverlay } from "../components/WelcomeOverlay";
+import { useI18n } from "../i18n";
+import { forgotPassword } from "../lib/api";
+import { useAuth } from "../lib/auth";
+import { prefersReducedMotion } from "../lib/motion";
+import {
+  operationalRoles,
+  pathAllowsRole,
+  roleForPath,
+  roleHomeFor,
+} from "../lib/roles";
+import useDocumentTitle from "../lib/useDocumentTitle";
+import { withViewTransition } from "../lib/viewTransition";
+
 const LANGUAGE_LABELS = { es: "Español", en: "English" };
 
 /** Selector de idioma del pie del login: dos botones, el activo marcado. */
@@ -57,12 +62,6 @@ function EyeIcon({ open }) {
   );
 }
 
-/**
- * Mensaje de error legible para un fallo de login.
- * El backend ya devuelve `detail` legible para 4xx; lo que falta es el mapa
- * de los casos que el usuario sí merece entender: credenciales mal, límite de
- * intentos y caída de red.
- */
 function loginErrorMessage(err, t) {
   const status = err?.status;
   if (status === 401) return t("login.errors.badCredentials");
@@ -71,84 +70,104 @@ function loginErrorMessage(err, t) {
   return err?.message || t("login.errors.generic");
 }
 
+function taskFromPath(path) {
+  if (!path) return null;
+  if (path.startsWith("/puerta")) return { kind: "door" };
+  if (path.startsWith("/invitacion")) return { kind: "invitation" };
+  return null;
+}
+
+function preferredRoleFor(user, roles, task, from) {
+  if (task?.kind === "door" && roles.includes("bouncer")) return "bouncer";
+  if (task?.kind === "invitation" && task.role && roles.includes(task.role)) {
+    return task.role;
+  }
+  const pathRole = roleForPath(from, user);
+  if (pathRole && roles.includes(pathRole)) return pathRole;
+  return roles[0];
+}
+
+function destinationFor(role, from, task) {
+  if (from && task) return from;
+  if (from && pathAllowsRole(from, role)) return from;
+  return roleHomeFor(role);
+}
+
 export default function LoginPage() {
   const { t } = useI18n();
   useDocumentTitle(t("login.documentTitle"));
   const { login } = useAuth();
   const nav = useNavigate();
   const location = useLocation();
-  const from = location.state?.from;
+  const from = location.state?.from || null;
+  const task = location.state?.task || taskFromPath(from);
+  const taskKey =
+    task?.kind === "door" || task?.kind === "invitation" ? task.kind : null;
 
-  // "Recordarme" decide la VIDA de la cookie de sesion (el backend la emite
-  // persistente o de sesion). Por defecto marcado, como el comportamiento
-  // historico; solo se desmarca si la persona lo pide (dispositivo compartido
-  // en la puerta).
+  const [view, setView] = useState("login");
   const [remember, setRemember] = useState(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("enty_remember_me") !== "0";
   });
 
-  // El correo se recuerda junto con "Recordarme": en un dispositivo compartido
-  // no recordar la sesion tampoco debe dejar el correo de la persona anterior.
   const storedIdent =
     typeof window !== "undefined" && remember
       ? localStorage.getItem("enty_last_email")
       : null;
   const [ident, setIdent] = useState(storedIdent || "");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [ok, setOk] = useState(false);
+  const [entered, setEntered] = useState(null);
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [capsLock, setCapsLock] = useState(false);
+  const [errorTick, setErrorTick] = useState(0);
+
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotBusy, setForgotBusy] = useState(false);
+  const [forgotSent, setForgotSent] = useState("");
+  const [forgotError, setForgotError] = useState("");
+
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const forgotRef = useRef(null);
+  const navTimer = useRef(0);
 
   useEffect(() => {
     if (!remember) {
       localStorage.removeItem("enty_last_email");
       return;
     }
-    if (ident.trim().length > 0) {
-      localStorage.setItem("enty_last_email", ident);
-    }
+    if (ident.trim().length > 0) localStorage.setItem("enty_last_email", ident);
   }, [ident, remember]);
 
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  // Momento de éxito: antes de navegar, el botón confirma que el ingreso
-  // salió bien. Sin esto, el corte al panel era tan seco que la persona no
-  // sabía si su click había registrado.
-  const [ok, setOk] = useState(false);
-  // `final` se pone en true en el éxito (con acceso) o en el error. Mientras
-  // no llegue a ninguno, el spinner del botón sigue sumando y la tarjeta de
-  // bienvenida puede seguir mostrando la espera. Con `busy` basta para
-  // evitar que el mismo submit se lanze dos veces: React guarda la ultima
-  // promesa y el botón se queda en estado real, no hace dos click a la vez.
-
-  const [passwordError, setPasswordError] = useState("");
-  // Tick fuerza el re-render cuando el MISMO mensaje de error se repite
-  // (dos "contraseña incorrectas" seguidas no cambian el string y React no
-  // repintaría; el estado alterno garantiza que el aviso siempre se lea).
-  const [errorTick, setErrorTick] = useState(0);
-  const [entered, setEntered] = useState(null);
-  const [capsLock, setCapsLock] = useState(false);
-  // Recuperación de acceso: se pide el enlace desde el propio login (antes el
-  // endpoint existía pero NINGUNA pantalla lo llamaba). `forgotSent` muestra
-  // la respuesta genérica del backend en el mismo lugar donde aparecería el
-  // error del formulario, para no inventar un segundo patrón de aviso.
-  const [forgotBusy, setForgotBusy] = useState(false);
-  const [forgotSent, setForgotSent] = useState("");
-  const emailRef = useRef(null);
-  const passwordRef = useRef(null);
-
-  // autoFocus fijo abría el teclado al entrar en móvil y provocaba salto de
-  // layout y zoom. Solo se enfoca donde hay puntero fino (escritorio).
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
-    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      emailRef.current?.focus();
-    }
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (view === "forgot") forgotRef.current?.focus();
+    else emailRef.current?.focus();
+  }, [view]);
+
+  useEffect(() => {
+    return () => window.clearTimeout(navTimer.current);
   }, []);
+
+  useEffect(() => {
+    if (entered && !ok) setEntered(null);
+  }, [entered, ok]);
+
+  function enterWith(role, user = entered) {
+    if (!role || !user) return;
+    window.clearTimeout(navTimer.current);
+    const target = destinationFor(role, from, task);
+    withViewTransition(() => nav(target, { replace: true }));
+  }
 
   async function submit(e) {
     e.preventDefault();
-    // El form lleva noValidate: sin el, el navegador corta el envio con
-    // "Please fill out this field." en ingles antes de que corra este codigo.
     if (!ident.trim()) {
       setError(t("login.errors.requiredEmail"));
       setErrorTick((n) => n + 1);
@@ -161,22 +180,30 @@ export default function LoginPage() {
       passwordRef.current?.focus();
       return;
     }
+
     setError("");
     setBusy(true);
     try {
       const user = await login(ident, password, { remember });
-      const home = homeForRole(user);
-      if (home === "/login") {
+      const roles = operationalRoles(user);
+      if (!roles.length) {
         setError(t("login.errors.noRole"));
         setErrorTick((n) => n + 1);
         setBusy(false);
         return;
       }
-      setOk(true);
+      const preferred = preferredRoleFor(user, roles, task, from);
       setEntered(user);
-      const pause = prefersReducedMotion() ? 320 : 1600;
-      await new Promise((r) => setTimeout(r, pause));
-      withViewTransition(() => nav(from || home, { replace: true }));
+      setSelectedRole(preferred);
+      setOk(true);
+      setBusy(false);
+      if (roles.length === 1) {
+        const pause = prefersReducedMotion() ? 320 : 1500;
+        navTimer.current = window.setTimeout(
+          () => enterWith(preferred, user),
+          pause,
+        );
+      }
     } catch (err) {
       setError(loginErrorMessage(err, t));
       setErrorTick((n) => n + 1);
@@ -185,252 +212,300 @@ export default function LoginPage() {
     }
   }
 
-  // Si por cualquier motivo la pantalla de bienvenida se queda abierta sin
-  // que el login haya terminado con éxito, la cerramos para no dejar al
-  // usuario pegado mirando una pantalla que no cambia.
-  useEffect(() => {
-    if (entered && !ok) {
-      setEntered(null);
-    }
-  }, [entered, ok]);
+  function openForgot() {
+    setForgotEmail(ident.includes("@") ? ident.trim() : "");
+    setForgotError("");
+    setForgotSent("");
+    setError("");
+    setPasswordError("");
+    setPassword("");
+    setView("forgot");
+  }
 
-  // "¿Olvidaste tu contraseña?": usa el correo ya escrito en el campo de
-  // acceso (es el mismo dato). Sin correo, se pide enfocando el campo, no con
-  // un modal nuevo.
-  async function requestReset() {
-    const email = ident.trim();
-    if (!email.includes("@")) {
-      setError(t("login.errors.forgotNeedEmail"));
-      setErrorTick((n) => n + 1);
-      emailRef.current?.focus();
+  function backToLogin() {
+    if (forgotEmail.trim()) setIdent(forgotEmail.trim());
+    setView("login");
+  }
+
+  async function submitForgot(e) {
+    e.preventDefault();
+    const email = forgotEmail.trim();
+    if (!email) {
+      setForgotError(t("login.errors.requiredEmail"));
+      forgotRef.current?.focus();
       return;
     }
-    setError("");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setForgotError(t("login.errors.invalidEmail"));
+      forgotRef.current?.focus();
+      return;
+    }
+    setForgotError("");
     setForgotSent("");
     setForgotBusy(true);
     try {
       const r = await forgotPassword(email);
-      // El backend decide el texto: promete un enlace solo si el correo está
-      // configurado; si no, orienta al reset operado por admin. Este fallback
-      // (solo si la respuesta viniera sin `detail`) es neutral a propósito.
       setForgotSent(r?.detail || t("login.errors.forgotFallback"));
     } catch (err) {
-      setError(err?.message || t("login.errors.forgotSend"));
-      setErrorTick((n) => n + 1);
+      setForgotError(err?.message || t("login.errors.forgotSend"));
     } finally {
       setForgotBusy(false);
     }
   }
 
+  const recovery = view === "forgot";
+
   return (
-    <AuthShell minimal tone="light">
-      {/* El lienzo claro y la tarjeta son los mismos de la portada pública;
-          aquí solo vive el formulario. */}
-      <div className="auth-login-flow">
-        {/* Marca: la variante mínima no trae panel de marca, así que el
-            logotipo y la etiqueta encabezan la columna del formulario. */}
-        <div className="auth-login-brand">
-          <Logo size="lg" />
-          <p className="auth-login-tag">{t("login.brandTag")}</p>
-        </div>
-
-        <div className="auth-card auth-card-enter">
-          <h1 className="auth-login-title">{t("login.title")}</h1>
-          <p className="auth-login-sub">{t("login.subtitle")}</p>
-
-          <form onSubmit={submit} noValidate className="auth-login-form">
-            <label htmlFor="login-email" className="auth-label">
-              {t("login.labelIdent")}
-            </label>
-            <div className="auth-field auth-field--md">
-              <MailIcon className="auth-field-icon" />
-              <input
-                ref={emailRef}
-                id="login-email"
-                type="text"
-                name="username"
-                value={ident}
-                onChange={(e) => setIdent(e.target.value)}
-                placeholder={t("login.placeholderIdent")}
-                className="field auth-field-has-icon"
-                inputMode="email"
-                enterKeyHint="next"
-                autoCapitalize="none"
-                spellCheck={false}
-                required
-                aria-invalid={error ? "true" : undefined}
+    <LoginShell>
+      <div className="login-card auth-login-flow">
+        {taskKey && !recovery && (
+          <div className="login-context" role="note">
+            <span className="login-context-icon" aria-hidden="true">
+              <Icon
+                name={taskKey === "door" ? "qr" : "ticket"}
+                className="h-5 w-5"
               />
+            </span>
+            <div>
+              <strong>{t(`login.context.${taskKey}`)}</strong>
+              <span>{t(`login.context.${taskKey}Hint`)}</span>
             </div>
+          </div>
+        )}
 
-            <label htmlFor="login-password" className="auth-label auth-label--gap">
-              {t("login.labelPassword")}
-            </label>
-            <div className="auth-field auth-field--md auth-field--reveal">
-              <LockIcon className="auth-field-icon" />
-              <input
-                id="login-password"
-                type={showPass ? "text" : "password"}
-                value={password}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setPassword(value);
-                  setPasswordError(
-                    value.length > 0 && value.length < 6
-                      ? t("login.passwordHint")
-                      : "",
-                  );
-                }}
-                placeholder={t("login.placeholderPassword")}
-                ref={passwordRef}
-                name="password"
-                className="field auth-field-has-icon"
-                autoComplete="current-password"
-                enterKeyHint="go"
-                spellCheck={false}
-                required
-                onKeyUp={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
-                onKeyDown={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
-                aria-invalid={error || passwordError ? "true" : undefined}
-                aria-describedby={passwordError ? "password-hint" : undefined}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass((v) => !v)}
-                className="auth-eye"
-                aria-label={
-                  showPass ? t("login.hidePassword") : t("login.showPassword")
-                }
-                aria-pressed={showPass}
-              >
-                <EyeIcon open={showPass} />
-              </button>
-            </div>
-            {passwordError && (
-              <p id="password-hint" className="auth-hint auth-hint--soft">
-                {passwordError}
-              </p>
-            )}
-
-            {capsLock && (
-              <p id="login-caps" role="status" className="auth-hint auth-hint--warn">
-                <svg
-                  className="auth-hint-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <rect x="3" y="11" width="18" height="10" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                {t("login.capsLock")}
-              </p>
-            )}
-
-            {/* Error del servidor / credenciales: el único rojo de la
-                pantalla, siempre debajo del campo que lo causó. */}
-            {error && (
-              <p
-                key={errorTick}
-                role="alert"
-                className="auth-hint auth-hint--error auth-shake"
-              >
-                {error}
-              </p>
-            )}
-
-            {/* Respuesta al pedir el enlace de recuperación. Misma familia de
-                aviso que los errores, pero en verde de confirmación: el texto
-                genérico del backend no distingue si el correo existe. */}
-            {forgotSent && (
-              <p role="status" className="auth-hint auth-hint--ok">
-                {forgotSent}
-              </p>
-            )}
-
-            <div className="auth-row">
-              <input
-                type="checkbox"
-                id="remember-me"
-                name="remember-me"
-                className="auth-checkbox"
-                checked={remember}
-                onChange={(e) => {
-                  setRemember(e.target.checked);
-                  // Se guarda "1"/"0" explicito: borrar la clave volveria al
-                  // default (marcado) y el "no recordarme" no sobreviviria.
-                  localStorage.setItem(
-                    "enty_remember_me",
-                    e.target.checked ? "1" : "0",
-                  );
-                }}
-                aria-label={t("login.rememberAria")}
-              />
-              <label htmlFor="remember-me" className="auth-row-label">
-                {t("login.remember")}
-              </label>
-              <button
-                type="button"
-                onClick={requestReset}
-                disabled={forgotBusy}
-                className="auth-forgot"
-              >
-                {forgotBusy ? t("login.forgotBusy") : t("login.forgot")}
-              </button>
-            </div>
-
-            <button type="submit" disabled={busy || ok} className="btn-primary btn-primary--lg">
-              {ok
-                ? t("login.submitOk")
-                : busy
-                  ? t("login.submitBusy")
-                  : t("login.submit")}
+        {recovery ? (
+          <>
+            <button type="button" className="login-back" onClick={backToLogin}>
+              <Icon name="back" className="h-4 w-4" />
+              {t("login.recoveryBack")}
             </button>
+            <h1 className="login-title">{t("login.recoveryTitle")}</h1>
+            <p className="login-sub">{t("login.recoveryIntro")}</p>
 
-            {busy && (
-              <span className="btn-spinner auth-submit-spinner" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" />
-                </svg>
-              </span>
-            )}
-          </form>
+            <form onSubmit={submitForgot} noValidate className="login-form">
+              <label htmlFor="forgot-email" className="auth-label">
+                {t("login.recoveryLabel")}
+              </label>
+              <div className="auth-field auth-field--md">
+                <MailIcon className="auth-field-icon" />
+                <input
+                  ref={forgotRef}
+                  id="forgot-email"
+                  type="email"
+                  name="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder={t("login.recoveryPlaceholder")}
+                  className="field auth-field-has-icon"
+                  autoComplete="email"
+                  inputMode="email"
+                  enterKeyHint="send"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  required
+                  aria-invalid={forgotError ? "true" : undefined}
+                  aria-describedby={forgotError ? "forgot-error" : undefined}
+                />
+              </div>
 
-          {/* Contacto: queda fuera del form para que Enter no lo dispare. */}
-          <div className="auth-foot">
-            <ContactSupport
-              prompt={t("login.contactPrompt")}
-              label={t("login.contactLabel")}
-              message={t("login.contactMessage")}
-            />
+              {forgotError && (
+                <p id="forgot-error" role="alert" className="auth-hint auth-hint--error">
+                  {forgotError}
+                </p>
+              )}
+              {forgotSent && (
+                <p role="status" className="auth-hint auth-hint--ok">
+                  {forgotSent}
+                </p>
+              )}
 
-            <p className="auth-trust">{t("login.trust")}</p>
+              <button
+                type="submit"
+                disabled={forgotBusy}
+                className="btn-primary login-submit"
+              >
+                {forgotBusy ? t("login.recoveryBusy") : t("login.recoverySubmit")}
+              </button>
+              <p className="login-recovery-hint">{t("login.recoveryHint")}</p>
+            </form>
 
-            {/* Sin este enlace /register era una ruta inalcanzable: existía,
-                funcionaba y nadie podía llegar a ella desde la entrada. */}
-            <p className="auth-alt">
-              {t("login.noAccount")}{" "}
-              <TransitionLink to="/register" className="auth-alt-link">
+            <div className="login-actions">
+              <ContactSupport
+                prompt=""
+                label={t("login.contactLabel")}
+                message={t("login.contactMessage")}
+                className="login-action login-action--help"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="login-title">{t("login.title")}</h1>
+            <p className="login-sub">{t("login.subtitle")}</p>
+
+            <form onSubmit={submit} noValidate className="login-form">
+              <label htmlFor="login-email" className="auth-label">
+                {t("login.labelIdent")}
+              </label>
+              <div className="auth-field auth-field--md">
+                <MailIcon className="auth-field-icon" />
+                <input
+                  ref={emailRef}
+                  id="login-email"
+                  type="text"
+                  name="username"
+                  value={ident}
+                  onChange={(e) => setIdent(e.target.value)}
+                  placeholder={t("login.placeholderIdent")}
+                  className="field auth-field-has-icon"
+                  autoComplete="username"
+                  inputMode="email"
+                  enterKeyHint="next"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  required
+                  aria-invalid={error ? "true" : undefined}
+                  aria-describedby={error ? "login-error" : undefined}
+                />
+              </div>
+
+              <label htmlFor="login-password" className="auth-label auth-label--gap">
+                {t("login.labelPassword")}
+              </label>
+              <div className="auth-field auth-field--md auth-field--reveal">
+                <LockIcon className="auth-field-icon" />
+                <input
+                  id="login-password"
+                  type={showPass ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPassword(value);
+                    setPasswordError(
+                      value.length > 0 && value.length < 6
+                        ? t("login.passwordHint")
+                        : "",
+                    );
+                  }}
+                  placeholder={t("login.placeholderPassword")}
+                  ref={passwordRef}
+                  name="password"
+                  className="field auth-field-has-icon"
+                  autoComplete="current-password"
+                  enterKeyHint="go"
+                  spellCheck={false}
+                  required
+                  onKeyUp={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
+                  onKeyDown={(e) => setCapsLock(!!e.getModifierState?.("CapsLock"))}
+                  aria-invalid={error || passwordError ? "true" : undefined}
+                  aria-describedby={passwordError ? "password-hint" : undefined}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((v) => !v)}
+                  className="auth-eye"
+                  aria-label={
+                    showPass ? t("login.hidePassword") : t("login.showPassword")
+                  }
+                  aria-pressed={showPass}
+                >
+                  <EyeIcon open={showPass} />
+                </button>
+              </div>
+              {passwordError && (
+                <p id="password-hint" className="auth-hint auth-hint--soft">
+                  {passwordError}
+                </p>
+              )}
+
+              {capsLock && (
+                <p id="login-caps" role="status" className="auth-hint auth-hint--warn">
+                  <Icon name="lock" className="auth-hint-icon" />
+                  {t("login.capsLock")}
+                </p>
+              )}
+
+              {error && (
+                <p
+                  key={errorTick}
+                  id="login-error"
+                  role="alert"
+                  className="auth-hint auth-hint--error auth-shake"
+                >
+                  {error}
+                </p>
+              )}
+
+              <div className="login-options">
+                <label className="login-remember" htmlFor="remember-me">
+                  <input
+                    type="checkbox"
+                    id="remember-me"
+                    name="remember-me"
+                    className="auth-checkbox"
+                    checked={remember}
+                    onChange={(e) => {
+                      setRemember(e.target.checked);
+                      localStorage.setItem(
+                        "enty_remember_me",
+                        e.target.checked ? "1" : "0",
+                      );
+                    }}
+                    aria-label={t("login.rememberAria")}
+                  />
+                  <span>{t("login.remember")}</span>
+                </label>
+                <button type="button" onClick={openForgot} className="auth-forgot">
+                  {t("login.forgot")}
+                </button>
+              </div>
+              <p className="login-remember-hint">{t("login.rememberHint")}</p>
+
+              <button
+                type="submit"
+                disabled={busy || ok}
+                className="btn-primary login-submit"
+                aria-busy={busy}
+              >
+                {ok
+                  ? t("login.submitOk")
+                  : busy
+                    ? t("login.submitBusy")
+                    : t("login.submit")}
+              </button>
+            </form>
+
+            <div className="login-actions">
+              <TransitionLink to="/register" className="login-action">
                 {t("login.createAccount")}
               </TransitionLink>
-            </p>
+              <ContactSupport
+                prompt=""
+                label={t("login.contactLabel")}
+                message={t("login.contactMessage")}
+                className="login-action login-action--help"
+              />
+              <TransitionLink to="/boletas" className="login-action">
+                {t("login.myTickets")}
+              </TransitionLink>
+            </div>
 
-            {/* Selector de idioma: la UI nace en español (default del
-                producto); aquí la persona puede cambiarla y la elección se
-                recuerda (localStorage enty_locale). Solo dos idiomas hoy. */}
+            <p className="login-trust">{t("login.trust")}</p>
             <LanguageToggle />
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
-      {/* Bienvenida personalizada: nombra a quien entro y hace visible la
-          espera real con una barra que avanza hasta que el login responde.
-          `done={ok}` cierra la animacion con el exito verdadero, no con un
-          temporizador. */}
-      {entered && <WelcomeOverlay user={entered} done={ok} />}
-    </AuthShell>
+      {entered && (
+        <WelcomeOverlay
+          user={entered}
+          done={ok}
+          role={selectedRole}
+          roles={operationalRoles(entered)}
+          onSelectRole={setSelectedRole}
+          onContinue={() => enterWith(selectedRole)}
+        />
+      )}
+    </LoginShell>
   );
 }

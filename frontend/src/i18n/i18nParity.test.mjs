@@ -38,8 +38,8 @@ test("todas las hojas de los catalogos son cadenas no vacias", () => {
 });
 
 test("translate devuelve el texto y camina rutas anidadas", () => {
-  assert.equal(translate(es, "login.title"), "Iniciar sesión");
-  assert.equal(translate(en, "login.title"), "Sign in");
+  assert.equal(translate(es, "login.title"), "Entra a tu panel");
+  assert.equal(translate(en, "login.title"), "Enter your panel");
   assert.equal(translate(es, "login.errors.network").startsWith("No hay"), true);
 });
 

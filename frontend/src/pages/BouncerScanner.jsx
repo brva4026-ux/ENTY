@@ -871,9 +871,14 @@ export default function BouncerScanner() {
       )}
       <header className="door-head flex flex-wrap items-center justify-between gap-2 px-4 py-3">
         <div className="min-w-0">
+          <span className="door-role-chip">
+            <Icon name="qr" className="h-3.5 w-3.5" />
+            Puerta
+          </span>
           <h1 className="door-title text-lg font-bold tracking-tight text-white">
             Control de puerta
-          </h1>            <p className="text-xs text-zinc-500">
+          </h1>
+          <p className="text-xs text-zinc-500">
             {user?.full_name}
             {selectedEventName ? ` · ${selectedEventName}` : ""}
           </p>

@@ -35,11 +35,13 @@ async function stubForgot(page, detail) {
   );
 }
 
-/** Rellena el correo y pulsa el enlace "¿Olvidaste tu contraseña?". */
+/** Abre la recuperación, escribe el correo y pide el enlace. */
 async function requestReset(page) {
   await page.goto("/login");
   await page.getByPlaceholder(/correo o @usuario/i).fill("fan@example.test");
   await page.getByRole("button", { name: /Olvidaste tu contraseña/i }).click();
+  await page.locator("#forgot-email").fill("fan@example.test");
+  await page.getByRole("button", { name: /Enviar enlace|Enviando/i }).click();
 }
 
 test("sin correo configurado, no promete un enlace y orienta al admin", async ({
