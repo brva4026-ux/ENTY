@@ -49,12 +49,18 @@ async def team_stats(
         await cur.execute(
             """
             SELECT u.id, u.email, u.full_name, u.is_active, u.last_login_at,
+                   u.phone,
+                   (to_jsonb(u) ->> 'contact_email') AS contact_email,
+                   coalesce(
+                     (to_jsonb(u) ->> 'share_contact_with_team')::boolean, false
+                   ) AS share_contact,
                    array_agg(DISTINCT r.role)::text[] AS roles,
                    min(r.created_at) AS member_since
             FROM venue_user_roles r
             JOIN users u ON u.id = r.user_id
             WHERE r.venue_id = %s
-            GROUP BY u.id, u.email, u.full_name, u.is_active, u.last_login_at
+            GROUP BY u.id, u.email, u.full_name, u.is_active, u.last_login_at,
+                     u.phone, u.contact_email, u.share_contact_with_team
             ORDER BY u.is_active DESC, u.full_name
             """,
             (venue_id,),
@@ -127,6 +133,10 @@ async def team_stats(
                 "id": uid,
                 "email": r["email"],
                 "full_name": r["full_name"],
+                # El correo de acceso es parte del equipo; el contacto
+                # personal solo viaja si la persona lo autorizó.
+                "contact_phone": r["phone"] if r["share_contact"] else None,
+                "contact_email": r["contact_email"] if r["share_contact"] else None,
                 "roles": list(r["roles"] or []),
                 "is_active": r["is_active"],
                 "last_login_at": r["last_login_at"],

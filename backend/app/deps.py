@@ -3,6 +3,7 @@
 La identidad llega por cookie HttpOnly o Bearer para clientes API. Cada
 request revalida usuario, version de sesion y roles contra la base de datos.
 """
+import hashlib
 from typing import Annotated
 
 import psycopg
@@ -42,6 +43,53 @@ async def get_current_user(
         user = await cur.fetchone()
     if not user or not user["is_active"]:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario inactivo")
+
+    # Sesiones individuales (mig 059). El token crudo nunca se guarda: solo su
+    # SHA-256. Un token revocado deja de servir aunque no haya expirado. Los
+    # tokens anteriores a la migracion se registran en su primer uso.
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    ip = (
+        request.headers.get("x-real-ip")
+        or (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+        or "unknown"
+    )
+    try:
+        async with db.cursor() as cur:
+            await cur.execute(
+                "SELECT id, revoked_at, last_seen_at FROM user_sessions "
+                "WHERE token_hash = %s",
+                (token_hash,),
+            )
+            session_row = await cur.fetchone()
+            if session_row and session_row["revoked_at"] is not None:
+                raise HTTPException(
+                    status.HTTP_401_UNAUTHORIZED,
+                    "Sesion cerrada en este dispositivo",
+                )
+            if session_row is None:
+                await cur.execute(
+                    """INSERT INTO user_sessions
+                       (token_hash, user_id, user_agent, ip)
+                       VALUES (%s, %s, %s, %s)
+                       ON CONFLICT (token_hash) DO NOTHING""",
+                    (
+                        token_hash,
+                        user_id,
+                        (request.headers.get("user-agent") or "")[:250],
+                        ip,
+                    ),
+                )
+            else:
+                # La actividad se actualiza como mucho cada 5 minutos: es un
+                # dato real sin convertir cada request en una escritura.
+                await cur.execute(
+                    """UPDATE user_sessions SET last_seen_at = now()
+                       WHERE id = %s AND last_seen_at < now() - interval '5 minutes'""",
+                    (session_row["id"],),
+                )
+        await db.commit()
+    except psycopg.errors.UndefinedTable:
+        await db.rollback()
 
     # Revocacion de sesiones (mig 019): si la version del token no coincide
     # con la actual del usuario, alguien cambio su contraseña y este token

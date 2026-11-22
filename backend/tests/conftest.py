@@ -72,6 +72,9 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "054_exit_and_occupancy.sql",
     ROOT / "db" / "migrations" / "055_waiting_room.sql",
     ROOT / "db" / "migrations" / "056_waiting_room_functions.sql",
+    ROOT / "db" / "migrations" / "057_event_public_identity.sql",
+    ROOT / "db" / "migrations" / "058_username_and_workspace_identity.sql",
+    ROOT / "db" / "migrations" / "059_profile_contacts_sessions_push.sql",
 ]
 
 
@@ -97,6 +100,10 @@ def db():
     conn.execute(
         """
         DROP TABLE IF EXISTS notifications, push_outbox, staff_invitations, push_subscriptions, ticket_reissues,
+            -- Perfil (mig 059): cuelgan de users. DROP TABLE ... CASCADE no
+            -- borra las tablas que referencian, solo sus FKs, asi que hay que
+            -- listarlas o schema.sql choca con DuplicateTable.
+            email_change_tokens, security_events, user_sessions,
             ticket_returns, event_waitlist, ticket_contact_edits, login_attempts, password_reset_tokens, media, audit_log,
             redemptions, promoter_payouts, tickets, promoter_allocations, ticket_types, events,
             venue_user_roles, venues, users, ticket_payments,

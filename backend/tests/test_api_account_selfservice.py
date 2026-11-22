@@ -11,7 +11,9 @@ confirmación) además del camino feliz.
 # Exportación de datos
 # ---------------------------------------------------------------------------
 def test_export_incluye_perfil_y_membresias(api, world):
-    res = api.get("/auth/export", "admin")
+    res = api.post(
+        "/auth/export", "admin", {"password": api.world["password"]}
+    )
     assert res.status_code == 200, res.text
     data = res.json()
 
@@ -27,7 +29,9 @@ def test_export_incluye_perfil_y_membresias(api, world):
 
 
 def test_export_nunca_expone_el_hash_de_password(api):
-    data = api.get("/auth/export", "promoter").json()
+    data = api.post(
+        "/auth/export", "promoter", {"password": api.world["password"]}
+    ).json()
     serialized = str(data).lower()
     assert "password" not in serialized
     assert "hash" not in serialized
@@ -35,7 +39,12 @@ def test_export_nunca_expone_el_hash_de_password(api):
 
 
 def test_export_exige_sesion(api_client):
-    assert api_client.get("/auth/export").status_code == 401
+    assert api_client.post("/auth/export", json={"password": "x"}).status_code == 401
+
+
+def test_export_exige_password_correcta(api):
+    res = api.post("/auth/export", "promoter", {"password": "no-es-la-clave"})
+    assert res.status_code == 400
 
 
 # ---------------------------------------------------------------------------

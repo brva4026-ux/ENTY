@@ -17,8 +17,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.pusher import send_web_push
 from app.deps import ensure_roles, get_current_user
-from app.schemas import PushSubscribeRequest, PushUnsubscribeRequest
+from app.schemas import (
+    PushStatusOut,
+    PushSubscribeRequest,
+    PushTestOut,
+    PushTestRequest,
+    PushUnsubscribeRequest,
+)
 
 router = APIRouter(prefix="/push", tags=["push"])
 
@@ -68,7 +75,7 @@ async def subscribe(
                           p256dh=EXCLUDED.p256dh,
                           auth=EXCLUDED.auth,
                           user_agent=EXCLUDED.user_agent,
-                          created_at=now()
+                          last_seen_at=now()
             """,
             (user["id"], body.venue_id, body.endpoint, body.keys.p256dh, body.keys.auth, user_agent),
         )
@@ -93,3 +100,108 @@ async def unsubscribe(
         )
         await db.commit()
     return None
+
+
+@router.get("/status", response_model=PushStatusOut)
+async def push_status(
+    venue_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    endpoint: str | None = None,
+    permission: str = "default",
+    subscribed: bool = False,
+) -> PushStatusOut:
+    """Estado REAL de este dispositivo.
+
+    `subscribed` lo aporta el navegador (es el único que ve pushManager).
+    `registered` NO: solo es true si el endpoint exacto está guardado para
+    esta cuenta y esta venue. Esa es la diferencia entre "el interruptor se
+    ve encendido" y "el servidor puede enviarte un aviso".
+    """
+    settings = get_settings()
+    enabled = bool(settings.vapid_public_key_b64 and settings.vapid_private_key_b64)
+    row = None
+    if endpoint:
+        async with db.cursor() as cur:
+            await cur.execute(
+                """SELECT id, user_agent, last_seen_at
+                   FROM push_subscriptions
+                   WHERE endpoint=%s AND user_id=%s AND venue_id=%s""",
+                (endpoint, user["id"], venue_id),
+            )
+            row = await cur.fetchone()
+    return PushStatusOut(
+        server_enabled=enabled,
+        supported=True,
+        permission=permission if permission in {"default", "granted", "denied"} else "default",
+        subscribed=subscribed,
+        registered=bool(row),
+        endpoint=endpoint,
+        registered_at=row["last_seen_at"] if row else None,
+        device=(row["user_agent"] if row else None),
+    )
+
+
+@router.post("/test", response_model=PushTestOut)
+async def push_test(
+    body: PushTestRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+) -> PushTestOut:
+    """Envía un aviso de prueba SOLO al endpoint que lo solicita.
+
+    Web Push no devuelve confirmación de entrega: `sent=true` significa que
+    el servicio push aceptó el mensaje, no que el teléfono lo mostró.
+    """
+    ensure_roles(user, body.venue_id, "super_admin", "admin", "promotor", "bouncer")
+    settings = get_settings()
+    if not (settings.vapid_public_key_b64 and settings.vapid_private_key_b64):
+        return PushTestOut(
+            sent=False,
+            detail="El servidor no tiene configurado el envío de avisos push.",
+        )
+    async with db.cursor() as cur:
+        await cur.execute(
+            """SELECT id, endpoint, p256dh, auth
+               FROM push_subscriptions
+               WHERE endpoint=%s AND user_id=%s AND venue_id=%s""",
+            (body.endpoint, user["id"], body.venue_id),
+        )
+        sub = await cur.fetchone()
+    if not sub:
+        return PushTestOut(
+            sent=False,
+            detail="Este dispositivo no está registrado para esta organización.",
+        )
+    result = await send_web_push(
+        sub["endpoint"],
+        sub["p256dh"],
+        sub["auth"],
+        vapid_private_b64=settings.vapid_private_key_b64,
+        vapid_subject=settings.vapid_subject,
+        payload={
+            "title": "Aviso de prueba · Enty",
+            "body": "Si ves este aviso, este dispositivo recibe los avisos de puerta.",
+            "url": "/perfil?tab=preferencias",
+            "tag": f"tf-test-{sub['id']}",
+        },
+    )
+    if result.dead:
+        async with db.cursor() as cur:
+            await cur.execute("DELETE FROM push_subscriptions WHERE id=%s", (sub["id"],))
+            await db.commit()
+        return PushTestOut(
+            sent=False,
+            status_code=result.status_code,
+            detail="El navegador invalidó la suscripción. Vuelve a activar los avisos.",
+        )
+    return PushTestOut(
+        sent=bool(result.ok),
+        status_code=result.status_code,
+        detail=(
+            "Envío solicitado al servicio push. No podemos confirmar la "
+            "recepción en el dispositivo."
+            if result.ok
+            else f"El servicio push rechazó el envío ({result.error or result.status_code})."
+        ),
+    )

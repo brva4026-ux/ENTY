@@ -72,6 +72,29 @@ _IMAGE_HEADERS = {
 }
 
 
+def _public_contact(row: dict) -> tuple[str | None, str | None, str | None]:
+    """Contacto que la ficha puede mostrar, con permiso explícito.
+
+    Prioridad: contacto propio del EVENTO (intencional, mig 057) > contacto
+    del negocio solo si `public_contact_enabled` y el canal está autorizado.
+    Un dato guardado no se publica por existir.
+    """
+    event_name = row.get("event_contact_name")
+    event_phone = row.get("event_contact_phone")
+    if event_name or event_phone:
+        return event_name, event_phone, None
+
+    if not row.get("public_contact_enabled"):
+        return None, None, None
+    channels = set(row.get("public_contact_channels") or [])
+    name = row.get("venue_contact_name")
+    phone = row.get("venue_contact_phone") if "whatsapp" in channels else None
+    email = row.get("venue_contact_email") if "email" in channels else None
+    if not phone and not email:
+        return None, None, None
+    return name, phone, email
+
+
 def _qr_window(row: dict) -> tuple[bool, str | None]:
     """Ventana de activación del QR (mig 013, patrón DICE).
 
@@ -201,14 +224,20 @@ async def public_events(
                    e.starts_at, e.event_timezone, e.capacity, e.status,
                    e.category,
                    {public_venue_name_sql()} AS venue_name,
-                   -- Contacto por evento (mig 057): si el evento no define
-                   -- uno propio, cae al contacto del local (mig 036).
+                   -- Contacto por evento (mig 057) y del local (mig 036),
+                   -- separados: el fallback del local solo se usa si la
+                   -- persona autorizó publicarlo (mig 059).
+                   to_jsonb(e) ->> 'contact_name' AS event_contact_name,
+                   to_jsonb(e) ->> 'contact_phone' AS event_contact_phone,
+                   v.contact_name AS venue_contact_name,
+                   v.contact_phone AS venue_contact_phone,
+                   to_jsonb(v) ->> 'contact_email' AS venue_contact_email,
                    coalesce(
-                     to_jsonb(e) ->> 'contact_name', v.contact_name
-                   ) AS venue_contact_name,
+                     (to_jsonb(v) ->> 'public_contact_enabled')::boolean, false
+                   ) AS public_contact_enabled,
                    coalesce(
-                     to_jsonb(e) ->> 'contact_phone', v.contact_phone
-                   ) AS venue_contact_phone,
+                     to_jsonb(v) -> 'public_contact_channels', '[]'::jsonb
+                   ) AS public_contact_channels,
                    (SELECT min(tt.price_cents) FROM ticket_types tt
                      WHERE tt.event_id = e.id AND tt.is_active
                        AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price,
@@ -231,6 +260,7 @@ async def public_events(
         if want_cat and want_cat.lower() != cat.lower():
             continue
         where = " · ".join(p for p in (r["location"], r["venue_name"]) if p)
+        contact_name, contact_phone, contact_email = _public_contact(r)
         events.append(
             {
                 "id": r["id"],
@@ -245,10 +275,11 @@ async def public_events(
                 "price_cents": int(r["min_price"]) if r["min_price"] is not None else None,
                 "sold_pct": _sold_pct(r["active"], r["capacity"]),
                 "status": r["status"],
-                # Contacto del organizador (mig 036): lo consume la seccion
-                # publica "encarga tu boleta". Null si el negocio no lo publico.
-                "contact_name": r["venue_contact_name"],
-                "contact_phone": r["venue_contact_phone"],
+                # Contacto del organizador (mig 036/059): solo si está
+                # autorizado y el canal elegido lo permite.
+                "contact_name": contact_name,
+                "contact_phone": contact_phone,
+                "contact_email": contact_email,
             }
         )
     events = events[:limit]
@@ -312,12 +343,17 @@ async def public_event_detail(
                    to_jsonb(e) ->> 'video_url' AS video_url,
                    to_jsonb(e) ->> 'location_url' AS location_url,
                    {public_venue_name_sql()} AS venue_name,
+                   to_jsonb(e) ->> 'contact_name' AS event_contact_name,
+                   to_jsonb(e) ->> 'contact_phone' AS event_contact_phone,
+                   v.contact_name AS venue_contact_name,
+                   v.contact_phone AS venue_contact_phone,
+                   to_jsonb(v) ->> 'contact_email' AS venue_contact_email,
                    coalesce(
-                     to_jsonb(e) ->> 'contact_name', v.contact_name
-                   ) AS venue_contact_name,
+                     (to_jsonb(v) ->> 'public_contact_enabled')::boolean, false
+                   ) AS public_contact_enabled,
                    coalesce(
-                     to_jsonb(e) ->> 'contact_phone', v.contact_phone
-                   ) AS venue_contact_phone,
+                     to_jsonb(v) -> 'public_contact_channels', '[]'::jsonb
+                   ) AS public_contact_channels,
                    (SELECT count(*) FROM tickets t
                      WHERE t.event_id = e.id
                        AND t.status IN ('issued', 'redeemed'))::int AS active
@@ -377,6 +413,7 @@ async def public_event_detail(
     # por el aforo del evento; el publico ve la lista de espera en vez de
     # "comprar".
     sold_out = row["active"] >= min(int(quota), int(row["capacity"]))
+    contact_name, contact_phone, contact_email = _public_contact(row)
 
     # Lineup (mig 043): los artistas de la noche, en orden de cartel. Vacio si
     # el organizador no cargo ninguno (la UI muestra "por anunciar").
@@ -409,11 +446,11 @@ async def public_event_detail(
         "doors_open_at": (
             row["doors_open_at"].isoformat() if row["doors_open_at"] else None
         ),
-        # Contacto del organizador (mig 036/057): el del evento si lo definió;
-        # si no, el del local. La pantalla de compra puede ofrecer "encarga tu
-        # boleta" por WhatsApp al equipo del negocio.
-        "contact_name": row["venue_contact_name"],
-        "contact_phone": row["venue_contact_phone"],
+        # Contacto del organizador (mig 036/057/059): el del evento si lo
+        # definió; si no, el del local solo con autorización y canal elegido.
+        "contact_name": contact_name,
+        "contact_phone": contact_phone,
+        "contact_email": contact_email,
         "ticket_types": [
             {
                 "id": t["id"],

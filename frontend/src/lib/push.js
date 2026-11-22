@@ -41,6 +41,50 @@ export async function getCurrentSubscription() {
   return reg.pushManager.getSubscription();
 }
 
+/** Permiso real del navegador: default | granted | denied | unsupported. */
+export function pushPermission() {
+  if (!pushSupported()) return "unsupported";
+  return Notification.permission;
+}
+
+/** Estado confirmado por el servidor para el endpoint de este dispositivo. */
+export async function fetchPushStatus(venueId, { endpoint, permission, subscribed }) {
+  const qs = new URLSearchParams({ venue_id: String(venueId) });
+  if (endpoint) qs.set("endpoint", endpoint);
+  qs.set("permission", permission || "default");
+  qs.set("subscribed", subscribed ? "true" : "false");
+  return apiFetch(`/push/status?${qs.toString()}`);
+}
+
+/** Registra una suscripción ya existente sin volver a pedir permiso. */
+export async function registerPushSubscription(venueId, sub) {
+  const json = sub.toJSON();
+  await apiFetch("/push/subscribe", {
+    method: "POST",
+    body: JSON.stringify({
+      venue_id: venueId,
+      endpoint: json.endpoint,
+      keys: json.keys,
+    }),
+  });
+  return json.endpoint;
+}
+
+/** Reintenta el registro de una suscripción local ya concedida. */
+export async function retryPushRegistration(venueId) {
+  const sub = await getCurrentSubscription();
+  if (!sub) throw new Error("Este dispositivo no tiene una suscripción local.");
+  return registerPushSubscription(venueId, sub);
+}
+
+/** Aviso de prueba SOLO a este dispositivo. */
+export async function sendTestPush(venueId, endpoint) {
+  return apiFetch("/push/test", {
+    method: "POST",
+    body: JSON.stringify({ venue_id: venueId, endpoint }),
+  });
+}
+
 /**
  * Activa los avisos: pide permiso, suscribe el dispositivo y registra la
  * suscripción en el backend para la venue dada. Lanza Error con mensaje
@@ -69,15 +113,7 @@ export async function enablePush(venueId) {
       applicationServerKey: urlBase64ToUint8Array(config.public_key),
     }));
 
-  const json = sub.toJSON();
-  await apiFetch("/push/subscribe", {
-    method: "POST",
-    body: JSON.stringify({
-      venue_id: venueId,
-      endpoint: json.endpoint,
-      keys: json.keys,
-    }),
-  });
+  await registerPushSubscription(venueId, sub);
   return sub;
 }
 

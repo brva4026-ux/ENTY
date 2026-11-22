@@ -79,6 +79,7 @@ MIGRATIONS=(
     db/migrations/056_waiting_room_functions.sql
     db/migrations/057_event_public_identity.sql
     db/migrations/058_username_and_workspace_identity.sql
+    db/migrations/059_profile_contacts_sessions_push.sql
 )
 
 echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"

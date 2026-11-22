@@ -1,4 +1,5 @@
 """Auth: hash de passwords (bcrypt directo) y tokens JWT."""
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -47,6 +48,9 @@ def create_access_token(
     settings = get_settings()
     now = datetime.now(timezone.utc)
     payload = {
+        # `iat` tiene resolución de segundos: sin `jti`, dos logins en el mismo
+        # segundo producían el MISMO token y compartían fila de sesión.
+        "jti": secrets.token_hex(8),
         "sub": str(user_id),
         "vids": venue_ids,
         # {"<venue_id>": ["admin","promotor"]}

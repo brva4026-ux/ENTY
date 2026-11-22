@@ -152,6 +152,51 @@ async def go_live(
     suscripciones muertas (404/410 del push service) se limpian."""
     out = await _transition(venue_id, event_id, user, db, "live")
 
+    # Campana interna: independiente del push. Avisa al equipo de ESA noche
+    # (roster de event_staff) o, si no hay roster, a todo el negocio. El actor
+    # que abrió puertas no se auto-notifica. El link abre el evento correcto.
+    try:
+        async with db.cursor() as cur:
+            await cur.execute(
+                """
+                WITH recipients AS (
+                    SELECT DISTINCT r.user_id
+                      FROM venue_user_roles r
+                     WHERE r.venue_id = %s
+                       AND r.user_id <> %s
+                       AND (
+                         NOT EXISTS (
+                           SELECT 1 FROM event_staff s0 WHERE s0.event_id = %s
+                         )
+                         OR EXISTS (
+                           SELECT 1 FROM event_staff s
+                            WHERE s.event_id = %s AND s.user_id = r.user_id
+                         )
+                       )
+                )
+                INSERT INTO notifications (user_id, venue_id, kind, title, body, link)
+                SELECT user_id, %s, 'door_open', 'Puerta abierta',
+                       %s || ' ya está en puerta.',
+                       '/admin?event=' || %s || '&tab=resumen'
+                  FROM recipients
+                """,
+                (
+                    venue_id,
+                    user["id"],
+                    event_id,
+                    event_id,
+                    venue_id,
+                    out["name"],
+                    event_id,
+                ),
+            )
+            await db.commit()
+    except Exception as e:  # noqa: BLE001 — abrir puertas nunca depende de avisar
+        await db.rollback()
+        capture_exception(
+            e, context={"component": "lifecycle.door_open_notification", "event": event_id}
+        )
+
     settings = get_settings()
     if settings.vapid_private_key_b64:
         try:
