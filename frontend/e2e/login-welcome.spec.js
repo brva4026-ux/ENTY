@@ -66,6 +66,153 @@ async function passLegalGate(page) {
 }
 
 test.describe("bienvenida tras el login", () => {
+  test("Administración entra con su nombre, acento y destino", async ({ page }) => {
+    const ok = await available(page, "/login");
+    test.skip(!ok, "App no disponible");
+
+    await submitLogin(page, "admin@bar.test");
+
+    await expect(card(page)).toBeVisible({ timeout: 15_000 });
+    await expect(card(page).getByRole("heading")).toHaveText(
+      "Bienvenido a Administración",
+    );
+    await expect(page.locator(".welcome-scrim")).toHaveAttribute(
+      "data-role-accent",
+      "admin",
+    );
+    await expect(card(page).locator(".welcome-role-name")).toHaveText(
+      "Administración",
+    );
+
+    await page.waitForURL(/\/admin/, { timeout: 15_000 });
+  });
+
+  test("Promotores entra a su espacio con acento ámbar", async ({ page }) => {
+    const ok = await available(page, "/login");
+    test.skip(!ok, "App no disponible");
+
+    await submitLogin(page, "promo1@bar.test");
+
+    await expect(card(page)).toBeVisible({ timeout: 15_000 });
+    await expect(card(page).getByRole("heading")).toHaveText(
+      "Tu espacio de promotor",
+    );
+    await expect(page.locator(".welcome-scrim")).toHaveAttribute(
+      "data-role-accent",
+      "promotor",
+    );
+
+    await page.waitForURL(/\/promotor/, { timeout: 15_000 });
+  });
+
+  test("Puerta entra a su acceso con acento turquesa y aviso de asignación", async ({
+    page,
+  }) => {
+    const ok = await available(page, "/login");
+    test.skip(!ok, "App no disponible");
+
+    await submitLogin(page, "puerta");
+
+    await expect(card(page)).toBeVisible({ timeout: 15_000 });
+    await expect(card(page).getByRole("heading")).toHaveText("Tu acceso de Puerta");
+    await expect(page.locator(".welcome-scrim")).toHaveAttribute(
+      "data-role-accent",
+      "bouncer",
+    );
+    await expect(card(page).locator(".welcome-role-note")).toContainText(
+      "noche asignada",
+    );
+
+    await page.waitForURL(/\/bouncer/, { timeout: 15_000 });
+  });
+
+  test("con varios roles, elige uno y su acento cambia antes de entrar", async ({
+    page,
+  }) => {
+    // La cuenta multi-rol se simula en la respuesta de login: el seed demo no
+    // tiene una, y este test protege el selector de la bienvenida sin tocar
+    // los roles reales de la base.
+    await page.route("**/api/auth/login", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          user: {
+            id: 999,
+            full_name: "Multi Rol",
+            email: "multi@example.test",
+            username: "multirol",
+            venues: [{ id: 1, name: "Sala Demo" }],
+            roles: { 1: ["admin", "promotor", "bouncer"] },
+          },
+        }),
+      }),
+    );
+
+    const ok = await available(page, "/login");
+    test.skip(!ok, "App no disponible");
+
+    await submitLogin(page, "multi@example.test");
+
+    await expect(card(page)).toBeVisible({ timeout: 15_000 });
+    await expect(card(page).getByRole("button", { name: "Puerta", exact: true })).toBeVisible();
+    await expect(
+      card(page).getByRole("button", { name: "Administración", exact: true }),
+    ).toBeVisible();
+
+    await card(page).getByRole("button", { name: "Puerta", exact: true }).click();
+    await expect(card(page).getByRole("heading")).toHaveText("Tu acceso de Puerta");
+    await expect(page.locator(".welcome-scrim")).toHaveAttribute(
+      "data-role-accent",
+      "bouncer",
+    );
+
+    await card(page).getByRole("button", { name: "Entrar a Puerta", exact: true }).click();
+    await page.waitForURL(/\/bouncer/, { timeout: 15_000 });
+  });
+
+  test("en móvil, al enfocar el campo la portada se retira y Entrar sigue a la vista", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    const ok = await available(page, "/login");
+    test.skip(!ok, "App no disponible");
+
+    const showcase = page.locator(".login-showcase");
+    // El autofoco de escritorio puede haber retirado la portada ya; se
+    // devuelve el foco al documento para medir el estado inicial.
+    await page.evaluate(() => document.activeElement?.blur());
+    await expect(showcase).toBeVisible();
+
+    await page.locator("#login-email").focus();
+    await expect(showcase).toBeHidden();
+
+    const submit = page.getByRole("button", { name: "Entrar", exact: true });
+    const box = await submit.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box.y + box.height).toBeLessThanOrEqual(740);
+  });
+
+  test("con red lenta el botón muestra que está entrando y no pierde el formulario", async ({
+    page,
+  }) => {
+    await page.route("**/api/auth/login", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await route.continue();
+    });
+    const ok = await available(page, "/login");
+    test.skip(!ok, "App no disponible");
+
+    await submitLogin(page, "admin@bar.test");
+    await expect(
+      page.getByRole("button", { name: /Entrando/ }),
+    ).toBeVisible();
+    await expect(page.locator("#login-email")).toBeVisible();
+
+    await expect(page.getByText("¡Bienvenido!")).toBeVisible({ timeout: 15_000 });
+    await page.waitForURL(/\/admin/, { timeout: 15_000 });
+  });
+
   test("saluda con el nombre real y muestra la barra avanzando", async ({ page }) => {
     const ok = await available(page, "/login");
     test.skip(!ok, "App no disponible");

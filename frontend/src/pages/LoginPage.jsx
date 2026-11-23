@@ -12,10 +12,10 @@ import { forgotPassword } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { prefersReducedMotion } from "../lib/motion";
 import {
+  destinationFor,
   operationalRoles,
-  pathAllowsRole,
-  roleForPath,
-  roleHomeFor,
+  preferredRoleFor,
+  taskFromPath,
 } from "../lib/roles";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { withViewTransition } from "../lib/viewTransition";
@@ -68,29 +68,6 @@ function loginErrorMessage(err, t) {
   if (status === 429) return t("login.errors.tooMany");
   if (!status) return t("login.errors.network");
   return err?.message || t("login.errors.generic");
-}
-
-function taskFromPath(path) {
-  if (!path) return null;
-  if (path.startsWith("/puerta")) return { kind: "door" };
-  if (path.startsWith("/invitacion")) return { kind: "invitation" };
-  return null;
-}
-
-function preferredRoleFor(user, roles, task, from) {
-  if (task?.kind === "door" && roles.includes("bouncer")) return "bouncer";
-  if (task?.kind === "invitation" && task.role && roles.includes(task.role)) {
-    return task.role;
-  }
-  const pathRole = roleForPath(from, user);
-  if (pathRole && roles.includes(pathRole)) return pathRole;
-  return roles[0];
-}
-
-function destinationFor(role, from, task) {
-  if (from && task) return from;
-  if (from && pathAllowsRole(from, role)) return from;
-  return roleHomeFor(role);
 }
 
 export default function LoginPage() {
@@ -223,7 +200,9 @@ export default function LoginPage() {
   }
 
   function backToLogin() {
-    if (forgotEmail.trim()) setIdent(forgotEmail.trim());
+    // El identificador original (p. ej. un @usuario) manda: la recuperación
+    // solo rellena el campo si la persona llegó sin haber escrito nada.
+    if (!ident.trim() && forgotEmail.trim()) setIdent(forgotEmail.trim());
     setView("login");
   }
 
@@ -256,7 +235,7 @@ export default function LoginPage() {
   const recovery = view === "forgot";
 
   return (
-    <LoginShell>
+    <LoginShell accent={selectedRole}>
       <div className="login-card auth-login-flow">
         {taskKey && !recovery && (
           <div className="login-context" role="note">

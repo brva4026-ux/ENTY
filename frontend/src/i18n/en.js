@@ -9,6 +9,33 @@ export default {
     documentTitle: "Enter your panel",
     brandTag: "Professional ticketing, capacity and door control",
     showcaseLabel: "Enty demo: event, ticket and door scan",
+    roles: {
+      admin: {
+        label: "Administration",
+        welcome: "Welcome to Administration",
+      },
+      promotor: {
+        label: "Promoters",
+        welcome: "Your promoter space",
+      },
+      bouncer: {
+        label: "Door",
+        welcome: "Your Door access",
+      },
+    },
+    welcome: {
+      kicker: "Welcome!",
+      confirming: "Confirming permissions…",
+      choose: "Choose how to enter",
+      confirmed: "Permissions confirmed. Signing in...",
+      rolesLabel: "Your access",
+      chooseRoleAria: "Choose your role",
+      changeUsername: "Change username",
+      continue: "Enter {role}",
+      preparing: "Preparing your panel",
+      doorNote:
+        "You will enter the scanner for your assigned night. If it does not appear, ask the admin to assign you.",
+    },
     title: "Enter your panel",
     subtitle: "Sign in with your email or username.",
     labelIdent: "Email or username",

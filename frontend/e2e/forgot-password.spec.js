@@ -69,3 +69,23 @@ test("con correo configurado, muestra que se envió el enlace", async ({ page })
 
   await expect(page.getByText(/te enviamos un enlace/i)).toBeVisible();
 });
+
+/**
+ * La vuelta desde recuperación no debe borrar lo que la persona ya había
+ * escrito: si entró con @usuario, al volver sigue @usuario (no el correo de
+ * recuperación, que puede ser otro).
+ */
+test("volver de recuperación conserva el identificador original", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByPlaceholder(/correo o @usuario/i).fill("promo2");
+  await page.getByRole("button", { name: /Olvidaste tu contraseña/i }).click();
+
+  // Un usuario no es un correo: el campo de recuperación nace vacío.
+  await expect(page.locator("#forgot-email")).toHaveValue("");
+  await page.locator("#forgot-email").fill("otro@correo.test");
+  await page.getByRole("button", { name: /Volver a iniciar sesión/i }).click();
+
+  await expect(page.locator("#login-email")).toHaveValue("promo2");
+});

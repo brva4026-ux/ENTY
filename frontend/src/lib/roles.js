@@ -76,7 +76,7 @@ export const ROLE_IDENTITIES = {
     plural: "Promotores",
     icon: "ticket",
     accent: "promotor",
-    welcome: "Bienvenido a Promotores",
+    welcome: "Tu espacio de promotor",
     description: "Emite boletas y comparte tu cupo.",
     home: "/promotor",
     animation: "ticket",
@@ -86,11 +86,25 @@ export const ROLE_IDENTITIES = {
     plural: "Puerta",
     icon: "qr",
     accent: "bouncer",
-    welcome: "Bienvenido a Puerta",
+    welcome: "Tu acceso de Puerta",
     description: "Escanea y valida el ingreso de esta noche.",
     home: "/bouncer",
     animation: "scan",
   },
+};
+
+/** Identidad neutra para roles internos que aún no tienen copy de producto.
+ *  Nunca se disfraza de Puerta: un rol desconocido no debe heredar el acento
+ *  ni el destino de otro. */
+const NEUTRAL_IDENTITY = {
+  label: "Acceso",
+  plural: "Enty",
+  icon: "shield",
+  accent: "admin",
+  welcome: "Bienvenido a Enty",
+  description: "",
+  home: "/login",
+  animation: "scan",
 };
 
 /** Roles operativos en el orden en que se presentan. super_admin se pliega
@@ -108,7 +122,39 @@ export function operationalRoles(user) {
 
 /** Identidad de un rol, con una salida segura para roles internos nuevos. */
 export function roleIdentity(role) {
-  return ROLE_IDENTITIES[role] ?? ROLE_IDENTITIES.bouncer;
+  return ROLE_IDENTITIES[role] ?? NEUTRAL_IDENTITY;
+}
+
+/** Clave de traducción del rol: super_admin comparte la entrada de admin. */
+export function roleI18nKey(role) {
+  return role === "super_admin" ? "admin" : role;
+}
+
+/** Tarea de origen que se puede retomar después de autenticar. */
+export function taskFromPath(path) {
+  if (!path) return null;
+  if (path.startsWith("/puerta")) return { kind: "door" };
+  if (path.startsWith("/invitacion")) return { kind: "invitation" };
+  return null;
+}
+
+/** Rol con el que conviene entrar cuando hay una tarea de origen. */
+export function preferredRoleFor(user, roles, task, from) {
+  if (task?.kind === "door" && roles.includes("bouncer")) return "bouncer";
+  if (task?.kind === "invitation" && task.role && roles.includes(task.role)) {
+    return task.role;
+  }
+  const pathRole = roleForPath(from, user);
+  if (pathRole && roles.includes(pathRole)) return pathRole;
+  return roles[0];
+}
+
+/** Destino final: la tarea de origen manda; si no, el `from` autorizado;
+ *  si no, la herramienta propia del rol. */
+export function destinationFor(role, from, task) {
+  if (from && task) return from;
+  if (from && pathAllowsRole(from, role)) return from;
+  return roleHomeFor(role);
 }
 
 /** Destino propio de un rol (sin mirar la URL de origen). */

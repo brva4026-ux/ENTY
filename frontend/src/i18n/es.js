@@ -13,6 +13,33 @@ export default {
     documentTitle: "Entrar a tu panel",
     brandTag: "Boletería profesional, aforo y control de puerta",
     showcaseLabel: "Demostración de Enty: evento, boleta y escaneo en puerta",
+    roles: {
+      admin: {
+        label: "Administración",
+        welcome: "Bienvenido a Administración",
+      },
+      promotor: {
+        label: "Promotores",
+        welcome: "Tu espacio de promotor",
+      },
+      bouncer: {
+        label: "Puerta",
+        welcome: "Tu acceso de Puerta",
+      },
+    },
+    welcome: {
+      kicker: "¡Bienvenido!",
+      confirming: "Confirmando permisos…",
+      choose: "Elige cómo entrar",
+      confirmed: "Permisos confirmados. Ingresando...",
+      rolesLabel: "Tus accesos",
+      chooseRoleAria: "Elige tu rol",
+      changeUsername: "Cambiar usuario",
+      continue: "Entrar a {role}",
+      preparing: "Preparando tu panel",
+      doorNote:
+        "Entrarás al escáner de la noche asignada. Si no aparece, pide al admin que te asigne.",
+    },
     title: "Entra a tu panel",
     subtitle: "Accede con tu correo o nombre de usuario.",
     labelIdent: "Correo o nombre de usuario",
