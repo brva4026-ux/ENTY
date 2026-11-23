@@ -50,6 +50,23 @@ def test_lockout_by_ip_anti_spray(db):
     assert locked is True
 
 
+def test_register_bucket_does_not_lock_login_by_ip(db):
+    """Las altas limitan su endpoint, no la entrada de la misma IP."""
+    _cleanup(db)
+    ip = "203.0.113.13"
+    for _ in range(8):
+        db.execute("SELECT register_login_failure('__register__', %s)", (ip,))
+
+    register_locked = db.execute(
+        "SELECT login_locked('__register__', %s) AS locked", (ip,)
+    ).fetchone()["locked"]
+    login_locked = db.execute(
+        "SELECT login_locked('persona@example.com', %s) AS locked", (ip,)
+    ).fetchone()["locked"]
+    assert register_locked is True
+    assert login_locked is False
+
+
 def test_clear_failures_only_removes_exact_pair(db):
     _cleanup(db)
     db.execute("SELECT register_login_failure('a@example.com', '203.0.113.12')")

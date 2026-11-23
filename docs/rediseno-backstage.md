@@ -92,6 +92,8 @@ sección equivalente actual, sin romper avisos ya guardados.
 | `npx playwright test` | Suite completa en verde |
 | `test_schema_drift.py` | Pasó: `db/schema.sql` es la fuente única |
 
-La migración `061_notification_event_context.sql` está registrada en
+Las migraciones `061_notification_event_context.sql` y
+`062_login_lockout_ignores_sentinels.sql` están registradas en
 `scripts/deploy.sh` y en `backend/tests/conftest.py`. Sus funciones también
-quedaron consolidadas en `db/schema.sql`.
+quedaron consolidadas en `db/schema.sql`. La 062 evita que las altas y los
+resets agoten el cubo de IP del login.

@@ -1030,6 +1030,7 @@ CREATE FUNCTION public.login_locked(p_email text, p_ip text, p_max_failures inte
         SELECT count(*)
           FROM login_attempts
          WHERE ip = p_ip
+           AND email_norm NOT LIKE '\_\_%'
            AND at > now() - make_interval(mins => p_window_minutes)
     ) >= p_max_failures;
 $$;
