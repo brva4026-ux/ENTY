@@ -27,6 +27,13 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+// Cada alta cuenta como intento en el cubo de IP del lockout. Al terminar se
+// vuelve a sembrar: el seed limpia `login_attempts` y deja el demo listo para
+// las specs que entran después con admin@bar.test.
+test.afterAll(async ({ request }) => {
+  await request.post(`${BASE}/api/seed`).catch(() => {});
+});
+
 function sello() {
   return `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }

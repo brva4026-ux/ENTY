@@ -11,6 +11,7 @@ import {
   markNotificationsRead,
 } from "../lib/notifications";
 import { timeAgo } from "../lib/useLiveRefresh";
+import { adminTarget } from "../lib/notificationTarget";
 
 /**
  * Campana de notificaciones in-app (mig 012, transplante de unicall-blue).
@@ -56,54 +57,6 @@ const KIND_LABEL = {
   payment_approved: "Cobro",
   waitlist_offered: "Lista de espera",
 };
-
-/** Destino de una notificación dentro del rediseño de Administración.
- *
- * Los triggers guardan links con pestañas viejas (o solo `?event=`). Aquí se
- * traducen a las cuatro secciones del backstage o a Reportes/Organización.
- * El link original se respeta si apunta fuera del área admin.
- */
-function adminTarget(n) {
-  const link = n?.link;
-  const tabByKind = {
-    door_anomaly: "accesos",
-    door_open: "resumen",
-    capacity_alert: "accesos",
-    event_autoclosed: "resumen",
-    event_reminder: "resumen",
-    waitlist_offered: "resumen",
-    payment_approved: "ventas",
-    ticket_reissued: "ventas",
-    ticket_refunded: "ventas",
-  };
-  const tab = tabByKind[n?.kind];
-  if (!link || !link.startsWith("/admin")) {
-    if (tab && link?.startsWith("/admin")) return link;
-    if (n?.kind === "payout_created" || n?.kind === "payout_reviewed" || n?.kind === "payout_disputed")
-      return "/admin/reportes?tab=ventas";
-    if (n?.kind === "invitation_accepted")
-      return "/admin/organizacion?tab=equipo";
-    return link;
-  }
-
-  const [path, qs = ""] = link.split("?");
-  const params = new URLSearchParams(qs);
-  const eventId = params.get("event");
-  if (eventId) {
-    params.set("tab", tab || "resumen");
-    return `/admin?${params.toString()}`;
-  }
-  if (path === "/admin" || path === "/admin/negocio" || path === "/admin/metricas") {
-    if (n?.kind === "invitation_accepted")
-      return "/admin/organizacion?tab=equipo";
-    if (n?.kind?.startsWith("payout_"))
-      return "/admin/reportes?tab=ventas";
-    return tab
-      ? `/admin/reportes?tab=${tab === "ventas" ? "ventas" : tab === "accesos" ? "resultados" : "ventas"}`
-      : "/admin";
-  }
-  return link;
-}
 
 export default function NotificationBell() {
   const navigate = useNavigate();

@@ -29,6 +29,7 @@ export default function FunnelPage({ embedded = false }) {
   const [days, setDays] = useState(7);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!venueId) return;
@@ -41,7 +42,7 @@ export default function FunnelPage({ embedded = false }) {
     return () => {
       alive = false;
     };
-  }, [venueId, days]);
+  }, [venueId, days, reloadKey]);
 
   const steps = data?.steps ?? [];
   const top = steps[0]?.count ?? 0;
@@ -87,20 +88,35 @@ export default function FunnelPage({ embedded = false }) {
       </header>
 
       {error ? (
-        <p role="alert" className="mt-6 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          {error}
-        </p>
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-4 text-sm text-red-300"
+        >
+          <p className="font-semibold">No se pudieron cargar las métricas.</p>
+          <p className="mt-1 text-red-200/80">{error}</p>
+          <button
+            type="button"
+            onClick={() => setReloadKey((n) => n + 1)}
+            className="mt-3 rounded-full bg-red-500/20 px-3 py-1.5 text-xs font-bold text-red-100 transition hover:bg-red-500/30"
+          >
+            Reintentar
+          </button>
+        </div>
       ) : !data ? (
         <div className="mt-6 space-y-3" aria-busy="true">
+          <p className="text-sm text-zinc-400">Cargando datos del período…</p>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-14 animate-pulse rounded-xl bg-zinc-800/60" />
           ))}
         </div>
       ) : empty ? (
-        <p className="mt-8 rounded-xl border border-zinc-700/60 px-4 py-6 text-sm text-zinc-400">
-          Todavía no hay visitas registradas en este periodo. Los datos aparecen
-          cuando alguien abre uno de tus eventos desde el link público.
-        </p>
+        <div className="mt-8 rounded-xl border border-zinc-700/60 px-4 py-6 text-sm text-zinc-400">
+          <p className="font-semibold text-zinc-200">Sin actividad registrada en este período.</p>
+          <p className="mt-1">
+            Los datos aparecen cuando alguien abre uno de tus eventos desde el
+            link público e inicia una compra.
+          </p>
+        </div>
       ) : (
         <ol className="mt-6 space-y-3">
           {steps.map((s) => {

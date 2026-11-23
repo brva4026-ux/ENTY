@@ -5,15 +5,10 @@ import Icon from "./Icon";
  *
  * No es un modal: la persona ya tiene sesión y puede empezar a trabajar. La
  * tarjeta presenta el usuario generado, que es su credencial para volver a
- * entrar, y ofrece las dos salidas reales: cambiarlo o crear el primer evento
- * con el usuario sugerido.
+ * entrar, y ofrece cambiarlo. Crear el primer evento vive en el estado vacío
+ * de Eventos: una sola acción de creación a la vista.
  */
-export default function AccountReadyCard({
-  user,
-  onChangeUsername,
-  onCreateEvent,
-  onDismiss,
-}) {
+export default function AccountReadyCard({ user, onChangeUsername, onDismiss }) {
   const username = user?.username || "";
 
   return (
@@ -68,16 +63,9 @@ export default function AccountReadyCard({
         <button
           type="button"
           onClick={onChangeUsername}
-          className="btn-ghost account-ready-action"
-        >
-          Cambiar usuario
-        </button>
-        <button
-          type="button"
-          onClick={onCreateEvent}
           className="btn-primary account-ready-action"
         >
-          Crear mi primer evento
+          Cambiar usuario
           <Icon name="arrowRight" className="h-4 w-4" />
         </button>
       </div>

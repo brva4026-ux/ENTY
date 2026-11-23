@@ -251,6 +251,45 @@ html:not([data-theme="light"]) .admin-shell {
   backdrop-filter: blur(14px);
 }
 
+.admin-topbar-left {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-crumbs {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-crumb-home {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.admin-crumb-sep {
+  color: var(--admin-muted);
+}
+
+.admin-crumb-current {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--admin-muted);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Acento del rol activo: Administración siempre entra por violeta, también
    en su propio shell. La línea es la misma firma que usa el header global. */
 .admin-shell[data-role-accent] .admin-topbar {
@@ -867,6 +906,11 @@ html:not([data-theme="light"]) .admin-shell {
   margin-top: 9px;
   padding-top: 9px;
   border-top: 1px solid var(--admin-line);
+}
+
+.admin-event-actions > * {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .admin-event-actions .btn-mini,
@@ -2747,4 +2791,60 @@ html:not([data-theme="light"]) .admin-shell {
   color: var(--admin-ink-soft);
   font-size: 11px;
   font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- móvil · orden de trabajo
+   El celular no repite el titular de escritorio: el título vive en la barra
+   superior y el contenido empieza por la organización activa. La creación es
+   UNA sola acción de ancho completo, antes del buscador y de Filtros. */
+@media (max-width: 767px) {
+  .admin-topbar {
+    gap: 8px;
+    padding: 0 12px;
+  }
+
+  .admin-topbar-brand,
+  .admin-org-select,
+  .admin-org-name {
+    display: none;
+  }
+
+  .admin-topbar-actions {
+    gap: 4px;
+  }
+
+  .admin-crumbs {
+    font-size: 15px;
+  }
+
+  .admin-page-head--events {
+    display: none;
+  }
+
+  .admin-page-head > div:first-child {
+    display: none;
+  }
+
+  .admin-page-head {
+    margin-bottom: 10px;
+  }
+
+  .admin-content {
+    padding-top: 12px;
+  }
+
+  .admin-toolbar .admin-create-btn {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+
+  .admin-toolbar .admin-search {
+    grid-row: 2;
+    grid-column: 1;
+  }
+
+  .admin-toolbar .admin-filter-btn {
+    grid-row: 2;
+    grid-column: 2;
+  }
 }

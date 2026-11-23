@@ -75,6 +75,8 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "057_event_public_identity.sql",
     ROOT / "db" / "migrations" / "058_username_and_workspace_identity.sql",
     ROOT / "db" / "migrations" / "059_profile_contacts_sessions_push.sql",
+    ROOT / "db" / "migrations" / "060_backstage_coupons_lineup.sql",
+    ROOT / "db" / "migrations" / "061_notification_event_context.sql",
 ]
 
 

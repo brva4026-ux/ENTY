@@ -66,7 +66,14 @@ export default function EventCover({
 /** Texto corto que identifica el tipo de evento en la tarjeta. */
 export function eventHook(ev) {
   if (!ev) return "";
-  if (ev.category === "Música" && ev.description) return ev.description;
+  const acts = (ev.lineup || []).map((act) => act?.name).filter(Boolean);
+  if (ev.category === "Música" && acts.length) {
+    const names = acts.slice(0, 3).join(" · ");
+    return acts.length > 3 ? `${names} +${acts.length - 3}` : names;
+  }
+  if (ev.category === "Deportes" && acts.length >= 2) {
+    return `${acts[0]} vs ${acts[1]}`;
+  }
   if (ev.category === "Deportes") return ev.description || "Encuentro deportivo";
   return ev.description || "";
 }

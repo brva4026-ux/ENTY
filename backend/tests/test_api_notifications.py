@@ -194,6 +194,8 @@ def test_reissue_notifies_admins(api):
     row = feed[0]
     assert row["kind"] == "ticket_reissued"
     assert "perdio el WhatsApp" in row["body"] or "perdió el WhatsApp" in row["body"]
+    # El aviso abre la sección exacta del evento, no el panel a secas.
+    assert row["link"] == f"/admin?event={event}&tab=ventas"
 
 
 # ---------------------------------------------------------------------------

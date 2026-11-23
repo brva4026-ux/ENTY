@@ -102,6 +102,30 @@ async def fetch_lineup(cur, event_id: int) -> list[dict]:
     return list(await cur.fetchall())
 
 
+async def fetch_lineups(cur, event_ids: list[int]) -> dict[int, list[dict]]:
+    """Lineups de varios eventos en UNA consulta (tarjetas del listado).
+
+    La tarjeta de Eventos destaca el cartel sin abrir el backstage; pedir
+    `/events/{id}/lineup` por cada tarjeta sería N+1.
+    """
+    if not event_ids:
+        return {}
+    await cur.execute(
+        """
+        SELECT event_id, id, name, role, sort_order, image_url, starts_at, description
+          FROM event_lineup
+         WHERE event_id = ANY(%s)
+         ORDER BY event_id, sort_order, id
+        """,
+        (event_ids,),
+    )
+    grouped: dict[int, list[dict]] = {event_id: [] for event_id in event_ids}
+    for row in await cur.fetchall():
+        event_id = row.pop("event_id")
+        grouped.setdefault(event_id, []).append(row)
+    return grouped
+
+
 # ---------------------------------------------------------------------------
 # Consultas compartidas (mismo shape para listar, leer y devolver tras editar)
 # ---------------------------------------------------------------------------
@@ -255,6 +279,7 @@ async def list_events(
             (venue_id, limit),
         )
         rows = await cur.fetchall()
+        lineups = await fetch_lineups(cur, [row["id"] for row in rows])
 
         # Validacion fila por fila: UNA fila con datos imposibles (un evento
         # de prueba con starts_at/capacity NULL, creada a mano o por un test
@@ -263,6 +288,7 @@ async def list_events(
         # mostrando los demas eventos.
         out: list[EventOut] = []
         for row in rows:
+            row["lineup"] = lineups.get(row["id"], [])
             try:
                 out.append(EventOut.model_validate(row))
             except Exception as e:

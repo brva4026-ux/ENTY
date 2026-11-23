@@ -1080,7 +1080,7 @@ BEGIN
               || CASE WHEN v_name IS NOT NULL AND v_name <> ''
                       THEN ' (' || v_name || ')' ELSE '' END
               || '. El evento está por llenarse.',
-            '/admin'
+            '/admin?event=' || NEW.event_id || '&tab=accesos'
         );
     ELSIF v_granted = v_80 THEN
         PERFORM notify_venue_admins(
@@ -1090,7 +1090,7 @@ BEGIN
               || CASE WHEN v_name IS NOT NULL AND v_name <> '' 
                       THEN ' (' || v_name || ')' ELSE '' END
               || '. Queda poco cupo en la puerta.',
-            '/admin'
+            '/admin?event=' || NEW.event_id || '&tab=accesos'
         );
     END IF;
 
@@ -1182,7 +1182,11 @@ BEGIN
             s.user_id, v_row.venue_id, 'event_reminder',
             'Tu turno empieza pronto',
             'Faltan menos de 2 horas para "' || v_row.name || '".',
-            '/admin?event=' || v_row.id
+            CASE s.role
+                WHEN 'bouncer' THEN '/bouncer?evento=' || v_row.id
+                WHEN 'promotor' THEN '/promotor'
+                ELSE '/admin?event=' || v_row.id
+            END
         )
         FROM event_staff s WHERE s.event_id = v_row.id;
 
@@ -1295,9 +1299,12 @@ CREATE FUNCTION public.notify_ticket_reissued() RETURNS trigger
     AS $$
 DECLARE
     v_venue_id   bigint;
+    v_event_id   bigint;
+    v_event_name text;
     v_customer   text;
 BEGIN
-    SELECT e.venue_id, t.customer_name INTO v_venue_id, v_customer
+    SELECT e.venue_id, e.id, e.name, t.customer_name
+      INTO v_venue_id, v_event_id, v_event_name, v_customer
     FROM tickets t JOIN events e ON e.id = t.event_id
     WHERE t.id = NEW.ticket_id;
 
@@ -1307,9 +1314,11 @@ BEGIN
             'Boleta reemitida',
             'Se rotó el QR de la boleta de ' ||
             coalesce(v_customer, 'un invitado') ||
+            CASE WHEN v_event_name IS NOT NULL AND v_event_name <> ''
+                 THEN ' para "' || v_event_name || '"' ELSE '' END ||
             CASE WHEN NEW.reason IS NOT NULL AND NEW.reason <> ''
                  THEN ' (' || NEW.reason || ')' ELSE '' END || '.',
-            '/admin'
+            '/admin?event=' || v_event_id || '&tab=ventas'
         );
     END IF;
     RETURN NEW;
