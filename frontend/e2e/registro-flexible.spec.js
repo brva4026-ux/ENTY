@@ -66,6 +66,12 @@ test("sin negocio: la cuenta nace con el nombre de la persona", async ({
   // El espacio interno existe para poder trabajar, pero no se presenta como
   // si la persona hubiera escrito un nombre de negocio.
   await expect(page.locator(".vh-nombre-titulo")).toHaveText("Mi organización");
+
+  // La bienvenida lleva al campo exacto que promete, no solo a /perfil.
+  await page.getByRole("button", { name: "Cambiar usuario" }).click();
+  await page.waitForURL(/\/perfil#username/, { timeout: 20_000 });
+  await expect(page.locator("#username")).toBeFocused();
+  await expect(page.locator(".account-ready")).toBeHidden();
 });
 
 test("con negocio: el usuario sale del negocio, no del correo", async ({
@@ -81,19 +87,4 @@ test("con negocio: el usuario sale del negocio, no del correo", async ({
   await expect(page.locator(".account-ready-handle")).toContainText(
     `@bar.e2e.${id}`
   );
-});
-
-test("cambiar usuario desde la bienvenida enfoca el campo correcto", async ({
-  page,
-}) => {
-  const id = sello();
-  await llenarAlta(page, {
-    nombre: "Carla Ajuste",
-    email: `e2e-ajuste-${id}@test.local`,
-  });
-
-  await page.getByRole("button", { name: "Cambiar usuario" }).click();
-  await page.waitForURL(/\/perfil#username/, { timeout: 20_000 });
-  await expect(page.locator("#username")).toBeFocused();
-  await expect(page.locator(".account-ready")).toBeHidden();
 });
