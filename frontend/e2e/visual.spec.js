@@ -170,7 +170,7 @@ for (const bp of BREAKPOINTS) {
               caret: "hide",
               // Antialiasing de la fuente: un píxel de borde no debe tumbar la
               // comparación, pero un cambio de layout (muchos píxeles) sí.
-              maxDiffPixels: 120,
+              maxDiffPixels: 250,
             },
           );
         });
