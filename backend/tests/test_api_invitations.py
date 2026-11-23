@@ -181,6 +181,15 @@ def test_reactivates_deactivated_member(api):
     acc = _accept(api.client, tok, "Reactivada12")
     assert acc.status_code == 200, acc.text
 
+    # La cuenta legada (sin username) recibe uno al recontratarse y puede
+    # entrar con él, no solo con el correo.
+    username = acc.json()["user"]["username"]
+    assert username
+    login_username = api.client.post(
+        "/auth/login", json={"identifier": username, "password": "Reactivada12"}
+    )
+    assert login_username.status_code == 200, login_username.text
+
     # Puede iniciar sesión de nuevo con la contraseña que acaba de crear.
     login = api.client.post(
         "/auth/login", json={"email": prom["email"], "password": "Reactivada12"}
@@ -274,3 +283,50 @@ def test_team_can_be_invited_in_one_batch_from_same_ip(api, dbcur):
         "  WHERE venue_id = %s AND kind = 'invitation_accepted')",
         (venue,),
     )
+
+
+# ---------------------------------------------------------------------------
+# El invitado también recibe un usuario propio (mig 058)
+# ---------------------------------------------------------------------------
+def test_invitation_assigns_username_from_full_name(api):
+    """Aceptar una invitación deja un identificador utilizable, no solo correo."""
+    venue = api.world["venue_a"]
+    tag = _tag()
+    email = f"username_{tag}@t.test"
+    full_name = f"Persona Invitada {tag}"
+
+    res = _create(api, venue, email, full_name=full_name)
+    assert res.status_code == 201, res.text
+    tok = _raw_token_from(res.json()["invite_url"])
+
+    acc = _accept(api.client, tok)
+    assert acc.status_code == 200, acc.text
+    username = acc.json()["user"]["username"]
+    assert username == f"persona.invitada.{tag}"
+
+    login = api.client.post(
+        "/auth/login", json={"identifier": username, "password": "ClaveInvita1"}
+    )
+    assert login.status_code == 200, login.text
+
+
+def test_invitation_username_collision_uses_next_variant(api, db):
+    """Si la base ya está tomada, el canje no falla: usa la variante libre."""
+    venue = api.world["venue_a"]
+    tag = _tag()
+    email = f"colision_{tag}@t.test"
+    full_name = f"Persona Invitada {tag}"
+    taken = f"persona.invitada.{tag}"
+
+    db.execute(
+        "INSERT INTO users (email, password_hash, full_name, username) "
+        "VALUES (%s, 'x', 'Otra Persona', %s)",
+        (f"ocupado-{tag}@t.test", taken),
+    )
+
+    res = _create(api, venue, email, full_name=full_name)
+    assert res.status_code == 201, res.text
+    tok = _raw_token_from(res.json()["invite_url"])
+    acc = _accept(api.client, tok)
+    assert acc.status_code == 200, acc.text
+    assert acc.json()["user"]["username"] == f"{taken}-2"

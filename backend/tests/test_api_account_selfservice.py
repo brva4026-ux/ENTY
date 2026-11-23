@@ -28,6 +28,16 @@ def test_export_incluye_perfil_y_membresias(api, world):
     assert all(m["role"] for m in data["memberships"])
 
 
+def test_export_incluye_contacto_y_usuario(api):
+    data = api.post(
+        "/auth/export", "admin", {"password": api.world["password"]}
+    ).json()
+    account = data["account"]
+    assert "username" in account
+    assert "contact_email" in account
+    assert "share_contact_with_team" in account
+
+
 def test_export_nunca_expone_el_hash_de_password(api):
     data = api.post(
         "/auth/export", "promoter", {"password": api.world["password"]}
@@ -133,6 +143,22 @@ def test_borrar_cuenta_la_elimina_de_verdad(api, world):
         "/auth/login", json={"email": email, "password": password}
     )
     assert login.status_code == 401
+
+
+def test_deletion_check_adelanta_el_bloqueo_del_admin(api):
+    res = api.get("/auth/account/deletion-check", "admin")
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["can_delete"] is False
+    assert data["blockers"]
+    assert data["blockers"][0]["reason"] == "unique_admin_team"
+    assert data["blockers"][0]["venue_id"] == api.world["venue_a"]
+
+
+def test_deletion_check_permite_a_quien_no_deja_datos_de_terceros(api):
+    res = api.get("/auth/account/deletion-check", "promoter")
+    assert res.status_code == 200, res.text
+    assert res.json() == {"can_delete": True, "blockers": []}
 
 
 def test_admin_unico_con_equipo_no_puede_borrarse(api, world):

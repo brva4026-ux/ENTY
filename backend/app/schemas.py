@@ -88,6 +88,10 @@ class UserSummary(BaseModel):
     # bar en la laptop lo ve elegido en el celular. None = sin elegir, y el
     # frontend cae al primer negocio disponible (mismo default de siempre).
     active_venue_id: int | None = None
+    # Cambio de correo pendiente de verificación (mig 059). El correo de acceso
+    # sigue siendo `email` hasta que se canjea el enlace del buzón nuevo; este
+    # campo permite que la UI lo recuerde tras recargar.
+    pending_email: str | None = None
     # Primera entrada al panel (mig 058). Null en una cuenta nueva: el panel le
     # muestra el usuario generado y las dos salidas. Se marca al elegir una.
     welcome_seen_at: datetime | None = None
@@ -345,6 +349,9 @@ class LineupItemOut(BaseModel):
     name: str
     role: str | None = None
     sort_order: int = 0
+    image_url: str | None = None
+    starts_at: datetime | None = None
+    description: str | None = None
 
 
 class LineupItemCreate(BaseModel):
@@ -359,6 +366,9 @@ class LineupItemCreate(BaseModel):
 
     role: str | None = Field(default=None, max_length=60)
     sort_order: int = Field(default=0, ge=0, le=9999)
+    image_url: str | None = Field(default=None, max_length=500)
+    starts_at: datetime | None = None
+    description: str | None = Field(default=None, max_length=500)
 
 
 
@@ -932,6 +942,20 @@ class DeleteAccountRequest(BaseModel):
     confirm: str
 
 
+class DeletionBlocker(BaseModel):
+    """Organización que impide borrar la cuenta hasta transferirla."""
+    venue_id: int
+    venue_name: str
+    reason: str
+    detail: str
+
+
+class DeletionCheckOut(BaseModel):
+    """Estado confirmado por el servidor antes de mostrar el borrado."""
+    can_delete: bool
+    blockers: list[DeletionBlocker] = []
+
+
 class CloseOtherSessionsRequest(BaseModel):
     """Cierre de las demás sesiones abiertas: exige la contraseña vigente.
 
@@ -1427,6 +1451,8 @@ class CouponCreate(BaseModel):
     max_uses: int | None = Field(default=None, ge=1)
     expires_at: datetime | None = None
     is_active: bool = True
+    # NULL = aplica a todas las localidades. Una lista limita el cupón a esas.
+    ticket_type_ids: list[int] | None = None
 
     @model_validator(mode="after")
     def _value_matches_kind(self) -> "CouponCreate":
@@ -1441,6 +1467,7 @@ class CouponUpdate(BaseModel):
     max_uses: int | None = Field(default=None, ge=1)
     expires_at: datetime | None = None
     is_active: bool | None = None
+    ticket_type_ids: list[int] | None = None
 
 
 class CouponOut(BaseModel):
@@ -1454,6 +1481,7 @@ class CouponOut(BaseModel):
     used_count: int = 0
     expires_at: datetime | None = None
     is_active: bool = True
+    ticket_type_ids: list[int] | None = None
 
 
 class CouponQuoteOut(BaseModel):
@@ -1639,6 +1667,7 @@ class EventReport(BaseModel):
     redeemed: int
     pending: int
     voided: int
+    refunded: int = 0
     occupancy_pct: float
     # Recaudo vivo: suma de price_cents_snapshot de las boletas activas.
     # (Anular/reembolsar lo baja; emitir lo sube. NO es "lo vendido histórico".)
@@ -1696,6 +1725,7 @@ class ReportSummary(BaseModel):
     redeemed: int
     pending: int
     voided: int
+    refunded: int = 0
     occupancy_pct: float
     revenue_cents: int
     avg_ticket_cents: int
@@ -2077,6 +2107,11 @@ class EventStaffOut(BaseModel):
     created_at: datetime
     # Si tiene un link de puerta vigente (para saber si hay que emitirlo).
     has_link: bool = False
+    # Estado del último enlace, aunque ya no sea vigente: la puerta necesita
+    # distinguir "nunca se emitió", "venció", "se revocó" y "ya se canjeó".
+    link_expires_at: datetime | None = None
+    link_used_at: datetime | None = None
+    link_revoked_at: datetime | None = None
 
 
 class EventStaffCreate(BaseModel):

@@ -24,11 +24,20 @@ export default function LineupManager({ venueId, eventId }) {
   const [items, setItems] = useState(null);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [desc, setDesc] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [draft, setDraft] = useState({ name: "", role: "" });
+  const [draft, setDraft] = useState({
+    name: "",
+    role: "",
+    imageUrl: "",
+    startsAt: "",
+    description: "",
+  });
 
   useEffect(() => {
     let alive = true;
@@ -54,10 +63,16 @@ export default function LineupManager({ venueId, eventId }) {
         name: name.trim(),
         role: role.trim() || null,
         sort_order: nextOrder,
+        image_url: imageUrl.trim() || null,
+        starts_at: startsAt ? new Date(startsAt).toISOString() : null,
+        description: desc.trim() || null,
       });
       setItems((cur) => [...(cur || []), created]);
       setName("");
       setRole("");
+      setImageUrl("");
+      setStartsAt("");
+      setDesc("");
     } catch (e2) {
       setErr(e2.message);
     } finally {
@@ -67,7 +82,15 @@ export default function LineupManager({ venueId, eventId }) {
 
   function startEdit(item) {
     setEditingId(item.id);
-    setDraft({ name: item.name, role: item.role ?? "" });
+    setDraft({
+      name: item.name,
+      role: item.role ?? "",
+      imageUrl: item.image_url ?? "",
+      startsAt: item.starts_at
+        ? new Date(item.starts_at).toISOString().slice(0, 16)
+        : "",
+      description: item.description ?? "",
+    });
   }
 
   async function saveEdit(item) {
@@ -78,6 +101,11 @@ export default function LineupManager({ venueId, eventId }) {
         name: draft.name.trim(),
         role: draft.role.trim() || null,
         sort_order: item.sort_order,
+        image_url: draft.imageUrl.trim() || null,
+        starts_at: draft.startsAt
+          ? new Date(draft.startsAt).toISOString()
+          : null,
+        description: draft.description.trim() || null,
       });
       setItems((cur) => cur.map((i) => (i.id === item.id ? updated : i)));
       setEditingId(null);
@@ -145,10 +173,20 @@ export default function LineupManager({ venueId, eventId }) {
     <div className="card p-5">
       <p className="eyebrow">Cartel</p>
       <h3 className="display mb-1 mt-0.5 text-base">Lineup</h3>
-      <p className="mb-4 text-xs text-zinc-500">
-        Los artistas de la noche, en orden. Aparecen en la ficha pública del
-        evento, en la pestaña Lineup.
-      </p>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-xs text-zinc-500">
+          Los artistas de la noche, en orden. Aparecen en la ficha pública del
+          evento, en la pestaña Lineup.
+        </p>
+        <a
+          className="admin-inline-link"
+          href={`/evento/${eventId}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Ver cartel en la ficha
+        </a>
+      </div>
 
       {items === null ? (
         <p className="text-sm text-zinc-500">Cargando lineup…</p>
@@ -157,6 +195,35 @@ export default function LineupManager({ venueId, eventId }) {
           Agrega el primer artista o DJ para armar el cartel.
         </EmptyState>
       ) : (
+        <>
+        <div className="bs-lineup-preview" aria-label="Vista previa del cartel">
+          {items.map((item, i) => (
+            <article className="bs-lineup-poster" key={item.id}>
+              <div className="bs-lineup-media">
+                {item.image_url ? (
+                  <img src={item.image_url} alt="" loading="lazy" />
+                ) : (
+                  <span aria-hidden="true">{item.name.slice(0, 1).toUpperCase()}</span>
+                )}
+              </div>
+              <span className="bs-lineup-order tnum">
+                {i + 1}
+              </span>
+              <div className="bs-lineup-caption">
+                <strong>{item.name}</strong>
+                <span>{item.role || "Artista"}</span>
+                {item.starts_at && (
+                  <span className="tnum">
+                    {new Date(item.starts_at).toLocaleTimeString("es-CO", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
         <ul className="mb-4 space-y-2">
           {items.map((item, i) => (
             <li key={item.id} className="list-row px-3 py-2 text-sm">
@@ -179,6 +246,38 @@ export default function LineupManager({ venueId, eventId }) {
                     }
                     className="field"
                     placeholder="Rol (headliner, DJ, telonero…)"
+                  />
+                  <input
+                    aria-label="Foto del acto (URL)"
+                    value={draft.imageUrl}
+                    onChange={(e) =>
+                      setDraft({ ...draft, imageUrl: e.target.value })
+                    }
+                    className="field"
+                    placeholder="Foto opcional (URL)"
+                  />
+                  <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+                    Hora del acto
+                    <input
+                      type="datetime-local"
+                      aria-label="Hora del acto"
+                      value={draft.startsAt}
+                      onChange={(e) =>
+                        setDraft({ ...draft, startsAt: e.target.value })
+                      }
+                      className="field"
+                    />
+                  </label>
+                  <textarea
+                    aria-label="Descripción del acto"
+                    value={draft.description}
+                    onChange={(e) =>
+                      setDraft({ ...draft, description: e.target.value })
+                    }
+                    className="field sm:col-span-2"
+                    rows={2}
+                    maxLength={500}
+                    placeholder="Descripción breve (opcional)"
                   />
                   <div className="col-span-full flex gap-2">
                     <button
@@ -206,6 +305,29 @@ export default function LineupManager({ venueId, eventId }) {
                     {item.role && (
                       <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-2xs font-bold uppercase text-brand-300 ring-1 ring-brand-500/30">
                         {item.role}
+                      </span>
+                    )}
+                    {item.starts_at && (
+                      <span className="tnum text-2xs text-zinc-500">
+                        {new Date(item.starts_at).toLocaleTimeString("es-CO", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    {item.image_url && (
+                      <img
+                        src={item.image_url}
+                        alt=""
+                        loading="lazy"
+                        className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                      />
+                    )}
+                    {item.description && (
+                      <span className="max-w-64 truncate text-2xs text-zinc-500">
+                        {item.description}
                       </span>
                     )}
                   </span>
@@ -247,6 +369,7 @@ export default function LineupManager({ venueId, eventId }) {
             </li>
           ))}
         </ul>
+        </>
       )}
 
       <form onSubmit={add} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -265,6 +388,33 @@ export default function LineupManager({ venueId, eventId }) {
           className="field"
           placeholder="Rol (opcional)"
           maxLength={60}
+        />
+        <input
+          aria-label="Foto del nuevo acto (URL)"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          className="field"
+          placeholder="Foto opcional (URL)"
+          maxLength={500}
+        />
+        <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+          Hora del acto
+          <input
+            type="datetime-local"
+            aria-label="Hora del nuevo acto"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+            className="field"
+          />
+        </label>
+        <textarea
+          aria-label="Descripción del nuevo acto"
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          className="field sm:col-span-2"
+          rows={2}
+          maxLength={500}
+          placeholder="Descripción breve (opcional)"
         />
         <button
           type="submit"

@@ -2446,6 +2446,7 @@ CREATE TABLE public.coupons (
     is_active boolean DEFAULT true NOT NULL,
     created_by bigint,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    ticket_type_ids bigint[],
     CONSTRAINT coupons_code_check CHECK ((btrim(code) <> ''::text)),
     CONSTRAINT coupons_kind_check CHECK ((kind = ANY (ARRAY['percent'::text, 'fixed'::text]))),
     CONSTRAINT coupons_max_uses_check CHECK (((max_uses IS NULL) OR (max_uses > 0))),
@@ -2521,6 +2522,9 @@ CREATE TABLE public.event_lineup (
     role text,
     sort_order integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    image_url text,
+    starts_at timestamp with time zone,
+    description text,
     CONSTRAINT event_lineup_name_check CHECK ((btrim(name) <> ''::text))
 );
 

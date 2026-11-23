@@ -237,7 +237,7 @@ export default function BusinessPage() {
         >
           <DoorSection
             venueId={venueId}
-            onOpenEvent={(id) => nav(`/admin?event=${id}&tab=entradas`)}
+            onOpenEvent={(id) => nav(`/admin?event=${id}&tab=accesos`)}
           />
         </section>
       )}

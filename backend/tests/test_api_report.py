@@ -126,6 +126,7 @@ def test_report_revenue_drops_on_void(api, db):
     body = res.json()
     assert body["revenue_cents"] == 50000
     assert body["voided"] == 1
+    assert body["refunded"] == 0
     assert body["issued"] == 1
 
 

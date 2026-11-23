@@ -68,8 +68,9 @@ export function fetchVenueFunnel(venueId, days = 7) {
  * Detalle publico de un evento (pantalla de compra). Mismo caracter que el
  * catalogo: sin sesion. Un evento no publicado o inexistente responde 404.
  */
-export function fetchPublicEventDetail(eventId) {
-  return apiFetch(`/public/events/${encodeURIComponent(eventId)}`);
+export function fetchPublicEventDetail(eventId, { preview = false } = {}) {
+  const qs = preview ? "?preview=1" : "";
+  return apiFetch(`/public/events/${encodeURIComponent(eventId)}${qs}`);
 }
 
 /**
@@ -408,6 +409,7 @@ async function apiRequest(path, options = {}) {
     }
     const detail = data?.detail;
     let msg = "Error en la petición";
+    let fields = {};
     if (typeof detail === "string") {
       msg = detail;
     } else if (Array.isArray(detail)) {
@@ -415,6 +417,16 @@ async function apiRequest(path, options = {}) {
       // mostrarlos que un "Error en la petición" que no dice nada.
       const msgs = detail.map((d) => d?.msg).filter(Boolean);
       if (msgs.length) msg = msgs.join(" · ");
+      for (const item of detail) {
+        const key = Array.isArray(item?.loc)
+          ? [...item.loc]
+              .reverse()
+              .find((part) => typeof part === "string" && part !== "body")
+          : null;
+        if (key && item?.msg) {
+          fields[key] = String(item.msg).replace(/^Value error,\s*/i, "");
+        }
+      }
     } else if (res.status >= 500) {
       // Un 5xx del servidor o del proxy llega sin `detail` (FastAPI devuelve
       // "Internal Server Error" en texto plano, Vercel una página de error).
@@ -425,6 +437,7 @@ async function apiRequest(path, options = {}) {
     }
     const err = new Error(msg);
     err.status = res.status;
+    if (Object.keys(fields).length) err.fields = fields;
     // Los 5xx (y los fallos sin respuesta) son el signal que el dueño de la
     // app quiere antes que los usuarios; los 4xx son negocio normal.
     if (res.status >= 500) {

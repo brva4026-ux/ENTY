@@ -417,3 +417,143 @@ def test_reminder_fires_once_per_event(api):
 
     # Segunda corrida: ya está marcado, no vuelve a contar.
     assert api.run_sql("SELECT notify_event_reminders()") == 0
+
+
+def test_lineup_rich_fields_roundtrip_and_public(api, api_client):
+    """Imagen, hora y descripción del acto viajan al cartel público."""
+    venue = api.world["venue_a"]
+    tag = _tag()
+    ev = api.create_event("admin", venue, name=f"Lineup rico {tag}", capacity=30)
+    base = f"/venues/{venue}/events/{ev['id']}/lineup"
+    starts_at = "2030-01-01T22:30:00-05:00"
+    res = api.post(
+        base,
+        "admin",
+        {
+            "name": "DJ Luna",
+            "role": "headliner",
+            "sort_order": 0,
+            "image_url": "https://cdn.example.test/luna.jpg",
+            "starts_at": starts_at,
+            "description": "Set de cierre con visuales.",
+        },
+    )
+    assert res.status_code == 201, res.text
+    item = res.json()
+    assert item["image_url"].endswith("luna.jpg")
+    assert item["description"] == "Set de cierre con visuales."
+    assert item["starts_at"].startswith("2030-01-02T03:30:00")
+
+    api.publish("admin", venue, ev["id"])
+    detail = api_client.get(f"/public/events/{ev['id']}").json()
+    show = detail["lineup"][0]
+    assert show["image_url"].endswith("luna.jpg")
+    assert show["description"] == "Set de cierre con visuales."
+    assert show["starts_at"].startswith("2030-01-02T03:30:00")
+
+
+def test_coupon_eligible_types_limit_the_discount(api):
+    """Un cupón atado a General no descuenta en VIP."""
+    venue, ev_id, general = _priced_event(api, price=1000000)
+    vip = api.add_type(
+        "admin", venue, ev_id, name="VIP", price_cents=2000000,
+        quantity=10, is_courtesy=False,
+    )
+    base = f"/venues/{venue}/events/{ev_id}/coupons"
+    res = api.post(
+        base,
+        "admin",
+        {
+            "code": "GENERAL50",
+            "kind": "percent",
+            "value": 50,
+            "ticket_type_ids": [general["id"]],
+        },
+    )
+    assert res.status_code == 201, res.text
+    assert res.json()["ticket_type_ids"] == [general["id"]]
+
+    ok = api.client.get(
+        f"/public/events/{ev_id}/coupon",
+        params={"ticket_type_id": general["id"], "code": "GENERAL50"},
+    ).json()
+    assert ok["valid"] is True
+    assert ok["discount_in_cents"] == 500000
+
+    no = api.client.get(
+        f"/public/events/{ev_id}/coupon",
+        params={"ticket_type_id": vip["id"], "code": "GENERAL50"},
+    ).json()
+    assert no["valid"] is False
+    assert no["discount_in_cents"] == 0
+
+    upd = api.patch(f"{base}/{res.json()['id']}", "admin", {"ticket_type_ids": None})
+    assert upd.status_code == 200, upd.text
+    assert upd.json()["ticket_type_ids"] is None
+
+
+def test_coupon_rejects_type_from_another_event(api):
+    venue = api.world["venue_a"]
+    ev_a = api.create_event("admin", venue, name=f"Cupón A {_tag()}")
+    ev_b = api.create_event("admin", venue, name=f"Cupón B {_tag()}")
+    foreign = api.add_type(
+        "admin", venue, ev_b["id"], name="VIP B",
+        price_cents=100000, is_courtesy=False,
+    )
+    res = api.post(
+        f"/venues/{venue}/events/{ev_a['id']}/coupons",
+        "admin",
+        {
+            "code": "CRUZADO",
+            "kind": "fixed",
+            "value": 1000,
+            "ticket_type_ids": [foreign["id"]],
+        },
+    )
+    assert res.status_code == 400, res.text
+    assert "no pertenece" in res.json()["detail"]
+
+
+def test_draft_event_preview_requires_admin(api, api_client):
+    venue = api.world["venue_a"]
+    ev = api.create_event("admin", venue, name=f"Borrador previo {_tag()}")
+
+    # Sin sesión, el preview no existe (la ficha pública normal sigue oculta).
+    api_client.cookies.clear()
+    anon = api_client.get(f"/public/events/{ev['id']}", params={"preview": 1})
+    assert anon.status_code == 401, anon.text
+    normal = api_client.get(f"/public/events/{ev['id']}")
+    assert normal.status_code == 404, normal.text
+
+    preview = api_client.get(
+        f"/public/events/{ev['id']}",
+        params={"preview": 1},
+        headers={"Authorization": f"Bearer {api.token('admin')}"},
+    )
+    assert preview.status_code == 200, preview.text
+    assert preview.json()["name"] == ev["name"]
+
+
+def test_courtesy_type_is_always_zero(api):
+    """Una cortesía no puede guardar precio: el servidor la fuerza a $0."""
+    venue = api.world["venue_a"]
+    ev = api.create_event("admin", venue, name=f"Cortesía {_tag()}")
+    created = api.add_type(
+        "admin",
+        venue,
+        ev["id"],
+        name="Invitado",
+        price_cents=50000,
+        quantity=20,
+        is_courtesy=True,
+    )
+    assert created["price_cents"] == 0
+    assert created["is_courtesy"] is True
+
+    updated = api.patch(
+        api.type_url(venue, ev["id"], created["id"]),
+        "admin",
+        {"price_cents": 30000},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["price_cents"] == 0

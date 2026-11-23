@@ -209,3 +209,57 @@ def test_bulk_requires_admin(api):
         },
     )
     assert res.status_code == 403
+
+
+def test_upsert_capacity_cannot_drop_below_issued(api):
+    """El alta con ON CONFLICT tampoco puede bajar el cupo de lo ya emitido."""
+    scen = api.scenario(alloc_capacity=3)
+    api.emit(
+        "promoter",
+        scen["venue"],
+        scen["event"],
+        ticket_type_id=scen["type"],
+        allocation_id=scen["allocation"]["id"],
+    )
+
+    res = api.post(
+        f"/venues/{scen['venue']}/events/{scen['event']}/allocations",
+        "admin",
+        {
+            "ticket_type_id": scen["type"],
+            "promoter_id": api.world["promoter"]["id"],
+            "capacity": 0,
+        },
+    )
+    assert res.status_code == 409, res.text
+    assert "emitidas" in res.json()["detail"]
+    [alloc] = api.allocations("admin", scen["venue"], scen["event"])
+    assert alloc["capacity"] == 3
+    assert alloc["issued"] == 1
+
+
+def test_bulk_cannot_drop_below_issued(api):
+    """Repartir en lote conserva las boletas ya emitidas de cada promotor."""
+    scen = api.scenario(alloc_capacity=3)
+    api.emit(
+        "promoter",
+        scen["venue"],
+        scen["event"],
+        ticket_type_id=scen["type"],
+        allocation_id=scen["allocation"]["id"],
+    )
+
+    res = api.post(
+        f"/venues/{scen['venue']}/events/{scen['event']}/allocations/bulk",
+        "admin",
+        {
+            "ticket_type_id": scen["type"],
+            "promoter_ids": [api.world["promoter"]["id"]],
+            "total_capacity": 0,
+        },
+    )
+    assert res.status_code == 409, res.text
+    assert "emitidas" in res.json()["detail"]
+    [alloc] = api.allocations("admin", scen["venue"], scen["event"])
+    assert alloc["capacity"] == 3
+    assert alloc["issued"] == 1

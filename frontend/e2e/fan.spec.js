@@ -35,7 +35,11 @@ test("Inicio -> detalle -> Mis boletos", async ({ page }) => {
       .then((r) => r.json())
       .catch(() => null);
     const list = res?.events || [];
-    return list.find((e) => e.price_cents != null) || null;
+    return (
+      list.find(
+        (e) => (e.price_cents || 0) > 0 && (e.sold_pct ?? 0) < 100,
+      ) || null
+    );
   });
   test.skip(!event, "Sin evento con localidad de pago");
 
@@ -137,6 +141,7 @@ test("la ficha muestra video, mapa confirmado y contacto del evento", async ({
   await expect(
     page.getByRole("button", { name: /Reproducir video de Fiesta de prueba/ }),
   ).toBeVisible();
+  await expect(page.getByText("Ver video del evento")).toBeVisible();
   await expect(page.getByRole("link", { name: "Cómo llegar" })).toHaveAttribute(
     "href",
     "https://maps.example.com/evento",
@@ -146,7 +151,50 @@ test("la ficha muestra video, mapa confirmado y contacto del evento", async ({
   await expect(page.getByRole("heading", { name: "Boletas" })).toBeVisible();
 });
 
+test("un evento sin precio no manda a Mis boletas", async ({ page }) => {
+  const event = {
+    id: 7,
+    name: "Tarde de teatro",
+    description: "Entrada libre hasta completar aforo.",
+    flyer_url: null,
+    video_url: null,
+    location: "Casa de la Cultura",
+    venue: "Casa de la Cultura",
+    starts_at: "2030-04-12T20:00:00+00:00",
+    timezone: "America/Bogota",
+    category: "Teatro",
+    price_cents: null,
+    payments_enabled: false,
+    sold_pct: 10,
+    sold_out: false,
+    status: "published",
+    waiting_room: false,
+    contact_name: null,
+    contact_phone: null,
+    ticket_types: [],
+    lineup: [],
+  };
+  await page.route("**/api/public/events/7", (route) =>
+    route.fulfill({ json: event }),
+  );
+
+  const ok = await page
+    .goto("/evento/7")
+    .then(() => true)
+    .catch(() => false);
+  test.skip(!ok, "App no disponible");
+
+  await expect(page.getByRole("heading", { name: "Boletas" })).toBeVisible();
+  await expect(page.getByText("Entrada gratuita")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Ver mis boletas" }),
+  ).toHaveCount(0);
+});
+
 test("un evento inexistente muestra el estado no disponible", async ({ page }) => {
+  await page.route("**/api/public/events/99999999", (route) =>
+    route.fulfill({ status: 404, json: { detail: "Evento no encontrado" } }),
+  );
   const ok = await page
     .goto("/evento/99999999")
     .then(() => true)

@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
@@ -11,6 +11,7 @@ import { activeVenueId } from "../lib/venue";
 import { getToken } from "../lib/tokenStore";
 import { fromZonedInput, toZonedInput, isPastEvent, eventZone } from "../lib/eventTime";
 import { OnboardingChecklist, OnboardingResume } from "../components/OnboardingChecklist";
+import AccountReadyCard from "../components/AccountReadyCard";
 import {
   cachedPreferences,
   loadPreferences,
@@ -25,10 +26,14 @@ import Icon from "../components/Icon";
 import EventCreateModal from "../components/EventCreateModal";
 import AdminEventCard from "../components/AdminEventCard";
 import AdminEventWorkspace from "../components/AdminEventWorkspace";
+import { useAdminChrome } from "../components/AdminShell";
 import QrTesterModal from "../components/QrTesterModal";
 import VenueHeader from "../components/VenueHeader";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import { EVENT_CATEGORIES } from "../lib/eventCategories";
+import { money } from "../lib/format";
+import { fileToDataUrl } from "../lib/imageUpload";
+import EventPublicPreview from "../components/EventPublicPreview";
 
 /** Pestañas del backstage de un evento. Cuatro secciones que agrupan el
  *  trabajo real: montar, vender, asignar y operar la puerta. */
@@ -72,14 +77,14 @@ function calendarDiffDays(a, b) {
 
 const NEXT_ACTIONS = {
   draft: [
-    { action: "publish", label: "Publicar evento" },
+    { action: "publish", label: "Revisar y publicar" },
     { action: "cancel", label: "Cancelar", danger: true },
   ],
   published: [
     { action: "live", label: "Abrir puertas" },
     { action: "cancel", label: "Cancelar evento", danger: true },
   ],
-  live: [{ action: "end", label: "Finalizar evento" }],
+  live: [{ action: "end", label: "Finalizar evento", secondary: true }],
   ended: [
     // Reabrir (mig 034): 'ended' dejó de ser terminal. La noche se puede
     // estirar más allá de la gracia de 6 h, o el cierre fue un error.
@@ -113,8 +118,10 @@ export function canDeleteEvent(ev) {
 
 export default function AdminDashboard() {
   useDocumentTitle("Panel del negocio");
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
+  const nav = useNavigate();
   const ui = useUI();
+  const { setBreadcrumb } = useAdminChrome();
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
   // sin elección, la primera disponible (comportamiento de siempre).
   const venueId = activeVenueId(user);
@@ -148,6 +155,9 @@ export default function AdminDashboard() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [editError, setEditError] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [uploadingFlyer, setUploadingFlyer] = useState(false);
+  const [previewEvent, setPreviewEvent] = useState(null);
+  const flyerInputRef = useRef(null);
   // La pestaña activa es la de la URL (la mig 012 ya generaba ?tab=...);
   // whitelist para no renderizar una pestaña inventada por el usuario. Solo
   // pestañas de EVENTO: las del negocio viven en /admin/negocio.
@@ -282,6 +292,34 @@ export default function AdminDashboard() {
   const showOnboardingResume =
     events !== null &&
     (onboardingPref === "dismissed" || onboardingPref === "completed");
+
+  // La bienvenida de alta se muestra una sola vez. Las cuentas existentes
+  // (mig 058) ya tienen `welcome_seen_at`; las nuevas nacen con NULL.
+  const showAccountReady = Boolean(user) && !user.welcome_seen_at;
+
+  /** Marca la bienvenida como vista y deja que la persona siga trabajando. */
+  function markAccountReadySeen() {
+    setUser((current) =>
+      current
+        ? { ...current, welcome_seen_at: new Date().toISOString() }
+        : current,
+    );
+    apiFetch("/auth/welcome-seen", { method: "POST" })
+      .then(setUser)
+      .catch(() => {
+        // El panel no se bloquea si falla el marcado; se reintenta al volver.
+      });
+  }
+
+  function changeUsernameFromWelcome() {
+    markAccountReadySeen();
+    nav("/perfil?tab=cuenta#username");
+  }
+
+  function createFirstEventFromWelcome() {
+    markAccountReadySeen();
+    setCreateOpen(true);
+  }
 
   /** Guarda la decisión en el servidor y refleja el resultado en el acto. */
   function decideOnboarding(pref) {
@@ -539,9 +577,22 @@ export default function AdminDashboard() {
       es el seleccionado); `fromStrip` solo cambia la clave de `busyAction` y si,
       al abortar el pre-vuelo, hay que navegar al evento (desde el backstage ya
       se está dentro). Antes eran dos funciones con textos y reglas distintas. */
-  async function transitionEvent(ev, action, { fromStrip = false } = {}) {
+  async function transitionEvent(
+    ev,
+    action,
+    { fromStrip = false, confirmed = false } = {},
+  ) {
     if (!ev) return;
     const busyKey = fromStrip ? `${action}-${ev.id}` : action;
+    const zone = eventZone(ev);
+    const when = (value) =>
+      value
+        ? new Date(value).toLocaleString("es-CO", {
+            dateStyle: "full",
+            timeStyle: "short",
+            timeZone: zone,
+          })
+        : "Por confirmar";
 
     // PRE-VUELO: abrir puertas sin nadie en puerta era el fracaso silencioso
     // (el evento pasa a live y el escáner rechaza con 403). Se avisa ANTES del
@@ -584,7 +635,8 @@ export default function AdminDashboard() {
     if (action === "cancel") {
       const ok = await ui.confirm("¿Cancelar el evento?", {
         message:
-          "Las boletas emitidas dejarán de ser válidas en la puerta y no se podrá revertir.",
+          `${ev.name}\n${when(ev.starts_at)} · ${ev.location || "Lugar por confirmar"}\n\n` +
+          "La ficha deja de estar pública, se detiene la venta y las boletas emitidas dejan de ser válidas en la puerta. No se puede revertir.",
         danger: true,
         confirmLabel: "Sí, cancelar evento",
       });
@@ -592,22 +644,56 @@ export default function AdminDashboard() {
     }
     if (action === "end") {
       const ok = await ui.confirm("¿Finalizar el evento?", {
-        message: "La puerta dejará de aceptar escaneos.",
-        confirmLabel: "Finalizar",
+        message:
+          `${ev.name}\n${when(ev.starts_at)} · ${ev.location || "Lugar por confirmar"}\n\n` +
+          "La puerta deja de aceptar validaciones en línea. Podés reabrirla después si la noche se estira.",
+        confirmLabel: "Finalizar evento",
       });
       if (!ok) return;
     }
-    if (action === "publish") {
-      const ok = await ui.confirm("¿Publicar el evento?", {
+    if (action === "publish" && !confirmed) {
+      const activeTypes =
+        ev.id === selectedEvent
+          ? (types || []).filter((t) => t.is_active !== false)
+          : [];
+      const activeAllocations =
+        ev.id === selectedEvent
+          ? (allocations || []).filter((a) => a.is_active !== false)
+          : [];
+      const ticketLines = activeTypes.length
+        ? activeTypes
+            .map(
+              (t) =>
+                `• ${t.name}: ${
+                  t.is_courtesy ? "cortesía $0" : money(t.price_cents)
+                } · ${t.quantity} cupos`,
+            )
+            .join("\n")
+        : "• Sin localidades activas todavía.";
+      const promoterLine = activeAllocations.length
+        ? `${activeAllocations.length} cupo(s) de promotor activos: podrán emitir desde este momento.`
+        : "Sin cupos de promotor asignados: la venta directa queda en manos del admin.";
+      const ok = await ui.confirm("Revisar y publicar", {
         message:
-          "El evento pasa a la venta: los promotores pueden emitir boletas.",
-        confirmLabel: "Publicar",
+          `Evento: ${ev.name}\n` +
+          `Inicio: ${when(ev.starts_at)}\n` +
+          `Fin: ${when(ev.ends_at)}\n` +
+          `Lugar: ${ev.location || "Por confirmar"}\n\n` +
+          `Boletas configuradas:\n${ticketLines}\n\n` +
+          "Al publicar:\n" +
+          "• La ficha deja de ser un borrador y queda visible al público.\n" +
+          "• Se habilita la venta pública y el enlace de la ficha.\n" +
+          `• ${promoterLine}`,
+        confirmLabel: "Publicar evento",
+        cancelLabel: "Volver al borrador",
       });
       if (!ok) return;
     }
     if (action === "live") {
       const ok = await ui.confirm("¿Abrir puertas?", {
-        message: "La puerta empieza a aceptar escaneos.",
+        message:
+          `${ev.name}\n${when(ev.starts_at)} · ${ev.location || "Lugar por confirmar"}\n\n` +
+          "Habilita el escaneo en la puerta para esta noche. El equipo asignado recibe el aviso.",
         confirmLabel: "Abrir puertas",
       });
       if (!ok) return;
@@ -626,16 +712,22 @@ export default function AdminDashboard() {
       // la franja ya quedó al día con el evento que devolvió el POST.
       if (!fromStrip) await refreshEventData();
       ui.success(DONE_MESSAGE[action]);
+      return updated;
     } catch (err) {
-      setError(err.message);
+      setError(
+        action === "publish"
+          ? `No se pudo publicar. El evento sigue en borrador; revisa el aviso y vuelve a intentar. ${err.message}`
+          : err.message,
+      );
+      return null;
     } finally {
       setBusyAction("");
     }
   }
 
   /** Acción del backstage: el evento abierto, con la etiqueta de NEXT_ACTIONS. */
-  function runAction(action) {
-    return transitionEvent(selectedEventData, action);
+  function runAction(action, opts = {}) {
+    return transitionEvent(selectedEventData, action, opts);
   }
 
   /** Acción de la tarjeta de la franja: la tarjeta es panel de control, así que
@@ -669,6 +761,54 @@ export default function AdminDashboard() {
       location_url: ev.location_url ?? "",
       contact_name: ev.contact_name ?? "",
       contact_phone: ev.contact_phone ?? "",
+    });
+  }
+
+  /** Sube el afiche desde el editor con el mismo endpoint de medios que usa
+   *  el alta. El navegador reduce la imagen; el backend valida mime y tamaño. */
+  async function uploadEditFlyer(file) {
+    if (!file || !editingEvent) return;
+    setEditError("");
+    setUploadingFlyer(true);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      const res = await apiFetch(`/venues/${venueId}/media`, {
+        method: "POST",
+        body: JSON.stringify({ data_url: dataUrl }),
+      });
+      setEditingEvent((ev) => (ev ? { ...ev, flyer_url: res.url } : ev));
+      setBadFlyers((m) => ({ ...m, [res.url]: false }));
+      ui.success("Afiche listo");
+    } catch (err) {
+      setEditError(err.message);
+    } finally {
+      setUploadingFlyer(false);
+    }
+  }
+
+  /** Vista previa con los valores del formulario, sin esperar a guardar. */
+  function openEventPreview() {
+    if (!editingEvent || !selectedEventData) return;
+    const tz = eventZone(selectedEventData);
+    setPreviewEvent({
+      ...selectedEventData,
+      name: editingEvent.name.trim() || selectedEventData.name,
+      description: editingEvent.description.trim() || null,
+      flyer_url: editingEvent.flyer_url.trim() || null,
+      video_url: editingEvent.video_url.trim() || null,
+      location: editingEvent.location.trim() || null,
+      location_url: editingEvent.location_url.trim() || null,
+      contact_name: editingEvent.contact_name.trim() || null,
+      contact_phone: editingEvent.contact_phone.trim() || null,
+      category: editingEvent.category || selectedEventData.category,
+      starts_at:
+        fromZonedInput(editingEvent.starts_at, tz) ||
+        selectedEventData.starts_at,
+      doors_open_at:
+        fromZonedInput(editingEvent.doors_open_at, tz) || null,
+      min_age:
+        editingEvent.min_age === "" ? null : Number(editingEvent.min_age),
+      dress_code: editingEvent.dress_code.trim() || null,
     });
   }
 
@@ -788,6 +928,11 @@ export default function AdminDashboard() {
   const actions = selectedEventData
     ? (NEXT_ACTIONS[selectedEventData.status] ?? [])
     : [];
+
+  useEffect(() => {
+    setBreadcrumb(selectedEventData?.name ?? "");
+    return () => setBreadcrumb("");
+  }, [selectedEventData?.name, setBreadcrumb]);
   const editable =
     selectedEventData &&
     ["draft", "published"].includes(selectedEventData.status);
@@ -949,6 +1094,15 @@ export default function AdminDashboard() {
                 <div className="admin-error" role="alert">
                   {error}
                 </div>
+              )}
+
+              {showAccountReady && (
+                <AccountReadyCard
+                  user={user}
+                  onChangeUsername={changeUsernameFromWelcome}
+                  onCreateEvent={createFirstEventFromWelcome}
+                  onDismiss={markAccountReadySeen}
+                />
               )}
 
               {showOnboardingInvite && (
@@ -1221,10 +1375,6 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {qrTesterOpen && (
-              <QrTesterModal onClose={() => setQrTesterOpen(false)} />
-            )}
-
             {createOpen && (
               <EventCreateModal
                 venueId={venueId}
@@ -1237,6 +1387,19 @@ export default function AdminDashboard() {
             )}
           </>
         )}
+
+        {qrTesterOpen && (
+          <QrTesterModal onClose={() => setQrTesterOpen(false)} />
+        )}
+
+        {previewEvent && (
+          <EventPublicPreview
+            event={previewEvent}
+            ticketTypes={types}
+            onClose={() => setPreviewEvent(null)}
+          />
+        )}
+
         {/* Enlace viejo o evento borrado: pantalla honesta, no un limbo */}
         {selectedEvent && !selectedEventData && (
           <EventNotFound onBack={() => setSearchParams({})} />
@@ -1267,13 +1430,23 @@ export default function AdminDashboard() {
               <form onSubmit={saveEventEdit} className="card p-5">
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                   <h3 className="display text-base">Editar evento</h3>
-                  <button
-                    type="button"
-                    onClick={() => setEditingEvent(null)}
-                    className="text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
-                  >
-                    Cerrar
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={openEventPreview}
+                      className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
+                    >
+                      <Icon name="eye" className="h-3.5 w-3.5" />
+                      Vista previa móvil
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingEvent(null)}
+                      className="text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
                 </div>
                 <p className="mb-4 text-xs text-zinc-500">
                   El aforo no puede bajar de las boletas ya emitidas ni la
@@ -1372,23 +1545,86 @@ export default function AdminDashboard() {
                     />
                   </label>
 
-                  <label>
+                  <div>
                     <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Flyer (URL)
+                      Afiche del evento
                     </span>
-                    <input
-                      type="url"
-                      value={editingEvent.flyer_url}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          flyer_url: e.target.value,
-                        })
-                      }
-                      className="field"
-                      placeholder="https://…/flyer.jpg"
-                    />
-                  </label>
+                    <div className="flex items-start gap-3">
+                      {editingEvent.flyer_url &&
+                      !badFlyers[editingEvent.flyer_url] ? (
+                        <img
+                          src={editingEvent.flyer_url}
+                          alt="Afiche actual"
+                          onError={() =>
+                            setBadFlyers((m) => ({
+                              ...m,
+                              [editingEvent.flyer_url]: true,
+                            }))
+                          }
+                          decoding="async"
+                          className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
+                        />
+                      ) : (
+                        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
+                          <Icon name="camera" className="h-5 w-5" />
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <input
+                          type="url"
+                          value={editingEvent.flyer_url}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              flyer_url: e.target.value,
+                            })
+                          }
+                          className="field"
+                          placeholder="https://…/flyer.jpg"
+                          aria-label="Enlace del afiche"
+                        />
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => flyerInputRef.current?.click()}
+                            disabled={uploadingFlyer}
+                            className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
+                          >
+                            {uploadingFlyer ? "Subiendo…" : "Subir afiche"}
+                          </button>
+                          <input
+                            ref={flyerInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = "";
+                              uploadEditFlyer(file);
+                            }}
+                          />
+                          {editingEvent.flyer_url && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingEvent({
+                                  ...editingEvent,
+                                  flyer_url: "",
+                                })
+                              }
+                              className="text-2xs font-semibold text-zinc-500 transition hover:text-red-400"
+                            >
+                              Quitar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="mt-1 block text-xs text-zinc-500">
+                      Es la portada pública. Se muestra completa, sin recortar
+                      el texto de los bordes. También puedes pegar un enlace.
+                    </span>
+                  </div>
 
                   <label>
                     <span className="mb-1 block text-xs font-medium text-zinc-400">
@@ -1408,8 +1644,9 @@ export default function AdminDashboard() {
                       maxLength={2000}
                     />
                     <span className="mt-1 block text-xs text-zinc-500">
-                      Opcional. Se muestra en la ficha pública y empieza sin
-                      sonido.
+                      Opcional. Enlace público MP4 o WebM; se reproduce dentro
+                      de la ficha y empieza sin sonido. Enty no aloja videos:
+                      usa un enlace de tu hosting.
                     </span>
                   </label>
 
@@ -1661,6 +1898,7 @@ export default function AdminDashboard() {
               cajaRange={cajaRange}
               setCajaRange={setCajaRange}
               cajaBusy={cajaBusy}
+              lastUpdated={lastUpdated}
             />
             </div>
           </>

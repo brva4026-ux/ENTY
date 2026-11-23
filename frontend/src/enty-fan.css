@@ -597,11 +597,19 @@
   place-items: center;
   background: var(--e-ink-2);
 }
+.evd-poster-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
 .evd-poster-mark {
   font-size: 2rem;
   font-weight: 800;
-  letter-spacing: 0.3em;
-  color: rgba(255, 255, 255, 0.22);
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 .evd-poster-link {
   align-self: flex-start;
@@ -830,12 +838,51 @@
   text-transform: uppercase;
   background: rgba(11, 11, 15, 0.7);
 }
+.evd-video-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--e-ink-1);
+}
 .evd-video-player {
   display: block;
   width: 100%;
   max-height: 70vh;
   border-radius: 1rem;
   background: var(--e-ink-1);
+}
+/* Identidad sobre el clip: el afiche puede ser vertical y el fan verlo sin
+   audio. El degradado deja leer el texto sin tapar el centro del video. */
+.evd-video-meta {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 2.6rem 0.9rem 1.4rem;
+  color: var(--e-white);
+  pointer-events: none;
+  background: rgba(11, 11, 15, 0.72);
+}
+.evd-video-meta strong {
+  font-size: var(--e-text-base);
+  font-weight: 800;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+.evd-video-meta span {
+  font-size: var(--e-text-xs);
+  color: rgba(255, 255, 255, 0.82);
+}
+.evd-video-meta .evd-video-tags {
+  margin-top: 0.1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--e-brand-glow);
 }
 .evd-video-note {
   margin: 0.5rem 0 0;
@@ -856,6 +903,11 @@
   color: var(--e-text-primary);
   box-shadow: none;
   border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.evd-cta--disabled {
+  cursor: default;
+  opacity: 0.62;
+  pointer-events: none;
 }
 .evd-cta--ghost:hover {
   background: rgba(255, 255, 255, 0.06);
@@ -1650,4 +1702,222 @@
     max-width: none;
     margin-top: var(--e-gap-card);
   }
+}
+
+.evd-lineup-photo {
+  object-fit: cover;
+}
+
+.evd-lineup-time {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--evd-muted, rgb(154 146 168));
+}
+
+.evd-lineup-desc {
+  display: block;
+  max-width: 52ch;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--evd-muted, rgb(154 146 168));
+}
+
+.evd-preview-banner {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin: 10px auto 0;
+  width: min(100% - 24px, 960px);
+  border: 1px solid rgb(105 15 209 / 0.35);
+  border-radius: 12px;
+  background: rgb(105 15 209 / 0.12);
+  padding: 9px 12px;
+  color: inherit;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.evd-preview-banner strong {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.evd-preview-banner a {
+  margin-left: auto;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.evd-preview-cta {
+  display: block;
+  border: 1px dashed currentColor;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0.75;
+}
+
+/* --- Vista previa móvil del editor de eventos --------------------------- */
+.evd-preview-phone {
+  width: min(100%, 21rem);
+  margin: 0 auto;
+  border: 0.45rem solid var(--e-ink-3);
+  border-radius: 2rem;
+  background: var(--e-canvas);
+  overflow: hidden;
+}
+.evd-preview-screen {
+  /* La ficha pública fuerza el tema oscuro; la vista previa debe verse
+     igual aunque el admin esté en claro. */
+  --e-canvas: var(--e-ink-1);
+  --e-surface: var(--e-ink-2);
+  --e-surface-2: var(--e-ink-3);
+  --e-text-primary: var(--e-paper);
+  --e-text-secondary: color-mix(in srgb, var(--e-paper) 72%, var(--e-ink-1));
+  --e-brand-glow: var(--e-violet-400);
+  --enty-glass: rgba(255, 255, 255, 0.05);
+  --enty-glass-line: rgba(255, 255, 255, 0.12);
+
+  max-height: min(68vh, 38rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.9rem;
+  background: var(--e-ink-1);
+  color: var(--e-paper);
+}
+.evd-preview-poster {
+  display: grid;
+  place-items: center;
+  min-height: 10rem;
+  max-height: 16rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--enty-glass-line);
+  background: var(--e-ink-2);
+}
+.evd-preview-poster img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 16rem;
+  object-fit: contain;
+}
+.evd-preview-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.evd-preview-cat {
+  margin: 0.9rem 0 0;
+  color: var(--e-brand-glow);
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.evd-preview-title {
+  margin: 0.2rem 0 0;
+  color: var(--e-text-primary);
+  font-size: var(--e-text-xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  text-transform: uppercase;
+}
+.evd-preview-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.55rem 0 0;
+  color: var(--e-text-secondary);
+  font-size: var(--e-text-xs);
+}
+.evd-preview-fact svg {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--e-brand-glow);
+}
+.evd-preview-tickets {
+  margin-top: 0.9rem;
+  padding: 0.7rem;
+  border: 1px solid var(--enty-glass-line);
+  border-radius: 0.9rem;
+  background: var(--enty-glass);
+}
+.evd-preview-label {
+  margin: 0 0 0.35rem;
+  color: var(--e-text-secondary);
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.evd-preview-tickets ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.evd-preview-tickets li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--e-text-primary);
+  font-size: var(--e-text-xs);
+}
+.evd-preview-tickets li strong {
+  font-variant-numeric: tabular-nums;
+}
+.evd-preview-tickets .evd-preview-cta {
+  margin-top: 0.6rem;
+  color: var(--e-text-primary);
+}
+.evd-preview-video,
+.evd-preview-block {
+  margin-top: 0.75rem;
+  padding: 0.7rem;
+  border: 1px solid var(--enty-glass-line);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+.evd-preview-video {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--e-text-primary);
+  font-size: var(--e-text-xs);
+  font-weight: 700;
+}
+.evd-preview-prose {
+  margin: 0;
+  color: var(--e-text-secondary);
+  font-size: var(--e-text-xs);
+  line-height: 1.45;
+  white-space: pre-line;
+}
+.evd-preview-link,
+.evd-preview-share {
+  margin: 0.45rem 0 0;
+  color: var(--e-brand-glow);
+  font-size: var(--e-text-xs);
+  font-weight: 700;
+}
+.evd-preview-share {
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

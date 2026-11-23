@@ -78,11 +78,21 @@ def test_admin_reset_revokes_target_sessions(api):
 def test_price_change_is_audited(dbcur, api):
     """Cambiar el precio de un tipo deja antes/despues con quien lo hizo."""
     scen = api.scenario()
-    ttype = api.types("admin", scen["venue"], scen["event"])[0]
+    # Un tipo de cortesía siempre vale 0: cambiar su precio no produce diff y
+    # el test nunca vería la auditoría. El caso real es un tipo pagado.
+    ttype = api.add_type(
+        "admin",
+        scen["venue"],
+        scen["event"],
+        name="General",
+        price_cents=10000,
+        quantity=50,
+        is_courtesy=False,
+    )
     before_price = ttype["price_cents"]
 
     res = api.patch(
-        api.type_url(scen["venue"], scen["event"], scen["type"]),
+        api.type_url(scen["venue"], scen["event"], ttype["id"]),
         "admin",
         {"price_cents": before_price + 5000},
     )
@@ -92,7 +102,7 @@ def test_price_change_is_audited(dbcur, api):
         """SELECT actor_id, details FROM audit_log
            WHERE kind = 'ticket_type_change' AND entity_id = %s
            ORDER BY id DESC LIMIT 1""",
-        (scen["type"],),
+        (ttype["id"],),
     )
     row = dbcur.fetchone()
     assert row is not None

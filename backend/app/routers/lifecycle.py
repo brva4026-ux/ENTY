@@ -1229,13 +1229,15 @@ async def list_tickets(
         await cur.execute(
             f"""
             SELECT t.id, t.customer_name, t.customer_phone, t.customer_email, t.status,
-                   t.issued_at, t.price_cents_snapshot, t.payment_method,
+                   t.issued_at, t.redeemed_at, t.price_cents_snapshot, t.payment_method,
                    tt.name AS type_name,
                    u.full_name AS sold_by_name,
+                   ur.full_name AS redeemed_by_name,
                    (a.id IS NOT NULL) AS from_allocation
             FROM tickets t
             JOIN ticket_types tt ON tt.id = t.ticket_type_id
             LEFT JOIN users u ON u.id = t.sold_by_user_id
+            LEFT JOIN users ur ON ur.id = t.redeemed_by_user_id
             LEFT JOIN promoter_allocations a ON a.id = t.allocation_id
             WHERE t.event_id = %s{where}
             ORDER BY t.id DESC
@@ -1259,7 +1261,8 @@ async def list_tickets(
         # CSV del listado filtrado COMPLETO (sin paginar): mismo contrato de
         # permisos que el JSON — el promotor exporta solo las suyas.
         header = ["id", "asistente", "telefono", "email", "estado", "fila",
-                  "vendida_por", "con_cupo", "precio", "medio_pago", "emitida"]
+                  "vendida_por", "con_cupo", "precio", "medio_pago", "emitida",
+                  "ingreso", "valido_por"]
         rows_csv = [
             [
                 r["id"], r["customer_name"], r["customer_phone"] or "",
@@ -1268,6 +1271,8 @@ async def list_tickets(
                 (r["price_cents_snapshot"] or 0) / 100,
                 r["payment_method"] or "sin especificar",
                 r["issued_at"].isoformat() if r["issued_at"] else "",
+                r["redeemed_at"].isoformat() if r["redeemed_at"] else "",
+                r["redeemed_by_name"] or "",
             ]
             for r in rows
         ]

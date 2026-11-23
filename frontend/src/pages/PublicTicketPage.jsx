@@ -4,6 +4,7 @@ import { fetchPublicTicket, fetchTicketImage, returnTicket } from "../lib/api";
 import { eventDate, clockTime } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import Icon from "../components/Icon";
+import { EntySymbol } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
 /**
@@ -25,23 +26,6 @@ function readToken() {
   } catch {
     return raw;
   }
-}
-
-/** Isotipo Enty: la "E" con muesca de boleto, en blanco sobre la boleta. */
-function EntyMark({ className }) {
-  return (
-    <svg viewBox="0 0 64 84" className={className} aria-hidden="true">
-      <path
-        d="M8 4h48a4 4 0 0 1 4 4v14a11 11 0 0 0 0 22v14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V62a11 11 0 0 0 0-22V8a4 4 0 0 1 4-4Z"
-        fill="#FFFFFF"
-      />
-      <g fill="#0A0A0D">
-        <rect x="20" y="24" width="26" height="6" rx="3" />
-        <rect x="20" y="40" width="26" height="6" rx="3" />
-        <rect x="20" y="56" width="26" height="6" rx="3" />
-      </g>
-    </svg>
-  );
 }
 
 /** Estrella de cuatro puntas (acento de marca). */
@@ -254,7 +238,7 @@ export default function PublicTicketPage() {
         <div className="tkt">
           <div className="tkt-head">
             <div className="tkt-brand-lock">
-              <EntyMark className="tkt-mark" />
+              <EntySymbol size={28} className="tkt-mark" />
               <span>Enty</span>
             </div>
             <p className="tkt-connect">
@@ -416,7 +400,7 @@ export default function PublicTicketPage() {
                   <div className="tkt-admit">
                     <p className="tkt-admit-k">General Admission</p>
                     <div className="tkt-brand-lock tkt-brand-lock--sm">
-                      <EntyMark className="tkt-mark" />
+                      <EntySymbol size={28} className="tkt-mark" />
                       <span>Enty</span>
                     </div>
                   </div>
@@ -541,7 +525,7 @@ export default function PublicTicketPage() {
         )}
 
         <div className="tkt-brandline">
-          <img src="/icon.svg" alt="" aria-hidden="true" decoding="async" />
+          <EntySymbol size={18} className="tkt-brandline-mark" />
           <span>Enty</span>
         </div>
         <p className="tkt-footer">Guarda esta página: la necesitas en la entrada</p>

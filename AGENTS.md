@@ -1927,3 +1927,39 @@ lo marca. El editor de perfil comprueba disponibilidad con
 `GET /auth/username-available` (autenticado) y guarda con `PATCH /auth/profile`;
 el campo de estado se renderiza siempre con una línea reservada para que el
 aviso de "Comprobando…" no mueva el botón de guardar y pierda el clic.
+
+## Backstage de evento y logo
+
+El backstage es la pantalla que abre «Gestionar evento». `EventWorkbench.jsx`
+responde en la cabecera **qué evento**, **cuándo empieza** y **dónde es**, y
+ofrece las acciones de ciclo de vida del estado actual. Debajo, cada sección
+(`resumen`, `ventas`, `equipo`, `accesos`) repite ese contexto con
+`SectionContext` en `AdminEventWorkspace.jsx` y una frase de qué se puede hacer
+ahora; no es decoración: si se agrega una sección, debe incluir el contexto.
+Las pestañas usan `role="tab"` y `aria-selected`, y son sticky debajo del
+topbar (64 px desktop / 62 px móvil).
+
+El layout administrativo reserva el ancho del sidebar con
+`.admin-main { margin-left: 248px }` (212 px a ≤1080, 0 a ≤767). Sin ese
+margen el sidebar fijo tapa la cabecera del backstage y la primera columna de
+las tarjetas.
+
+La marca vive en `components/Brand.jsx`: `EntySymbol` es el boleto inclinado y
+`Logo` el lockup símbolo + «Enty». Cualquier superficie nueva debe usar esas
+piezas; el favicon (`public/icon.svg`) replica el mismo trazo.
+
+## Ficha pública y vista previa móvil
+
+La ficha que abre un fan sin cuenta es `pages/EventDetailPage.jsx`; fuerza el
+tema oscuro con `forceDarkOnce`. Su espejo para el organizador es
+`components/EventPublicPreview.jsx`: reproduce identidad, boletas, video,
+lugar y contacto dentro de un marco de teléfono. El marco redefine los tokens
+`--e-*` y `--enty-glass*` en `.evd-preview-screen` para que se vea oscuro aunque
+el admin esté en tema claro. Se abre desde «Editar evento» y desde el paso 3 de
+`EventCreateModal`.
+
+Los modales de `AdminDashboard` (`QrTesterModal`, `EventPublicPreview`) se
+renderizan fuera del bloque `{!selectedEventData && (...)}`; dentro de ese
+bloque no aparecen cuando hay un evento abierto. En `EventCreateModal`, el
+preview pausa el diálogo padre (`useDialogA11y({ open: !previewOpen })` y
+`inert`) para que Escape y el foco pertenezcan a un solo modal.

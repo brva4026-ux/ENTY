@@ -178,10 +178,13 @@ test("el fan aplica un cupón y ve el precio con descuento", async ({
     "300",
   );
 
-  await page
-    .locator('input[aria-label="Código de descuento"]')
-    .fill("TEMPRANO20");
-  await page.getByRole("button", { name: "Aplicar" }).click();
+  const couponInput = page.locator('input[aria-label="Código de descuento"]');
+  await couponInput.click();
+  await couponInput.pressSequentially("TEMPRANO20", { delay: 20 });
+  await expect(couponInput).toHaveValue("TEMPRANO20");
+  const applyCoupon = page.getByRole("button", { name: "Aplicar" });
+  await expect(applyCoupon).toBeEnabled({ timeout: 10_000 });
+  await applyCoupon.click();
 
   // Con el cupón: el aviso y el botón reflejan el precio neto (−$60).
   await expect(page.getByText(/Cupón TEMPRANO20 aplicado/)).toBeVisible({
@@ -190,4 +193,37 @@ test("el fan aplica un cupón y ve el precio con descuento", async ({
   await expect(page.getByRole("button", { name: /Pagar/ })).toContainText(
     "240",
   );
+});
+
+test("el backstage muestra evento, inicio, lugar y acciones en cada sección", async ({
+  page,
+  request,
+}) => {
+  const eventId = await seedEventId(request);
+  const events = await (
+    await request.get(`${BASE}/api/public/events?limit=100&city=Bar%20Esquina`)
+  ).json();
+  const ev = (events.events || events).find((e) => String(e.id) === String(eventId));
+
+  await loginAdmin(page);
+  await page.goto(`/admin?event=${eventId}&tab=resumen`);
+
+  const head = page.locator(".bs-head");
+  await expect(head).toBeVisible({ timeout: 10_000 });
+  await expect(head.getByRole("heading", { name: ev.name })).toBeVisible();
+  await expect(head.getByText("Inicio", { exact: true })).toBeVisible();
+  await expect(head.getByText("Lugar", { exact: true })).toBeVisible();
+  await expect(head.getByText(ev.location || "Lugar por confirmar").first()).toBeVisible();
+
+  const preview = page.getByRole("link", { name: "Abrir vista previa" });
+  await expect(preview).toHaveAttribute("href", `/evento/${eventId}?preview=1`);
+
+  for (const tab of ["Resumen", "Ventas", "Equipo", "Accesos"]) {
+    await page.getByRole("tab", { name: tab }).click();
+    const context = page.locator(".bs-section-context");
+    await expect(context).toContainText(ev.name);
+    await expect(context).toContainText(ev.location || "Lugar por confirmar");
+    await expect(context.locator(".bs-section-next")).not.toBeEmpty();
+  }
+
 });

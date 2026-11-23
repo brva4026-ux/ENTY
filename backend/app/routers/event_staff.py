@@ -46,6 +46,7 @@ from app.schemas import (
     EventAccessPreview,
     EventStaffCreate,
     EventStaffOut,
+    MessageOut,
 )
 
 router = APIRouter(tags=["personal-por-evento"])
@@ -97,12 +98,24 @@ async def list_event_staff(
             """
             SELECT s.id, s.user_id, u.full_name, u.email, s.role,
                    s.shift_start, s.shift_end, s.created_at,
-                   t.id IS NOT NULL AS has_link
+                   (
+                       t.id IS NOT NULL
+                       AND t.used_at IS NULL
+                       AND t.revoked_at IS NULL
+                       AND t.expires_at > now()
+                   ) AS has_link,
+                   t.expires_at AS link_expires_at,
+                   t.used_at AS link_used_at,
+                   t.revoked_at AS link_revoked_at
             FROM event_staff s
             JOIN users u ON u.id = s.user_id
-            LEFT JOIN event_access_tokens t
-                   ON t.event_id = s.event_id AND t.user_id = s.user_id
-                  AND t.used_at IS NULL AND t.revoked_at IS NULL
+            LEFT JOIN LATERAL (
+                SELECT id, expires_at, used_at, revoked_at
+                FROM event_access_tokens
+                WHERE event_id = s.event_id AND user_id = s.user_id
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+            ) t ON TRUE
             WHERE s.event_id = %s
             ORDER BY s.role, u.full_name
             """,
@@ -213,6 +226,42 @@ async def remove_event_staff(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Esa persona no estaba en la noche")
         await db.commit()
     return None
+
+
+@router.delete(
+    "/venues/{venue_id}/events/{event_id}/staff/{user_id}/link",
+    response_model=MessageOut,
+)
+async def revoke_event_link(
+    venue_id: int,
+    event_id: int,
+    user_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Revoca el enlace vigente sin sacar a la persona del roster.
+
+    Es distinto de quitarla de la noche: si perdió el teléfono o se fue antes,
+    se corta el acceso y la persona sigue en el equipo (o se le emite otro).
+    """
+    await _assert_venue_admin(venue_id, user)
+    await _assert_event(venue_id, event_id, db)
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            UPDATE event_access_tokens SET revoked_at = now()
+             WHERE event_id = %s AND user_id = %s
+               AND used_at IS NULL AND revoked_at IS NULL
+            """,
+            (event_id, user_id),
+        )
+        if cur.rowcount == 0:
+            await db.rollback()
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, "Esa persona no tiene un enlace vigente"
+            )
+        await db.commit()
+    return MessageOut(detail="Enlace de puerta revocado.")
 
 
 # ---------------------------------------------------------------------------

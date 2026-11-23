@@ -5,6 +5,7 @@ import { track } from "../lib/analytics";
 import FanNav from "../components/FanNav";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
+import { Logo } from "../components/Brand";
 
 /**
  * Inicio — la cara publica de Enty para el fan (mockup "1 · Inicio").
@@ -598,8 +599,7 @@ export default function HomePage({ explorar = false }) {
       <header className="home-head">
         <div className="home-head-left">
           <TransitionLink to="/inicio" className="home-wordmark" aria-label="Enty, inicio">
-            <span>Enty</span>
-            <Star />
+            <Logo />
           </TransitionLink>
           {/* Nav de escritorio: en móvil vive la barra inferior (FanNav). */}
           <nav className="home-topnav" aria-label="Secciones">
@@ -989,8 +989,7 @@ export default function HomePage({ explorar = false }) {
 
       <footer className="home-foot">
         <p className="home-foot-brand">
-          <span>Enty</span>
-          <i aria-hidden="true" />
+          <Logo size="lg" />
         </p>
         <nav className="home-foot-links" aria-label="Enlaces legales">
           <TransitionLink to="/terminos">Términos</TransitionLink>

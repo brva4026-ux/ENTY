@@ -2919,3 +2919,18 @@ html[data-theme="light"] .app-shell .dialog-close:hover {
     animation: none;
   }
 }
+
+/* Marca Enty sobre la boleta nocturna: el símbolo va en blanco (contraste
+   sobre negro) y conserva la proporción cuadrada del viewBox 48×48. */
+.tkt-mark,
+.tkt-brandline-mark {
+  color: rgb(255 255 255);
+  width: 1.16em;
+  height: 1.16em;
+  flex: 0 0 auto;
+}
+
+.tkt-brandline-mark {
+  width: 1.15rem;
+  height: 1.15rem;
+}

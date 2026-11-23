@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TransitionLink from "./TransitionLink";
 import Icon from "./Icon";
@@ -11,6 +11,14 @@ import { haptics } from "../lib/haptics";
 import { initials } from "../lib/initials";
 import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { apiFetch } from "../lib/api";
+
+const AdminChromeContext = createContext({ setBreadcrumb: () => {} });
+
+/** Permite que una página (p. ej. el Backstage) escriba el nombre del evento
+ *  en la franja superior sin acoplar AdminShell a los datos del evento. */
+export function useAdminChrome() {
+  return useContext(AdminChromeContext);
+}
 
 const ADMIN_TABS = [
   { to: "/admin", label: "Eventos", icon: "calendar" },
@@ -29,6 +37,7 @@ export default function AdminShell({ children }) {
   const nav = useNavigate();
   const ui = useUI();
   const [switching, setSwitching] = useState(false);
+  const [breadcrumb, setBreadcrumb] = useState("");
 
   const venueId = activeVenueId(user);
   const venue = (user?.venues || []).find((v) => v.id === venueId);
@@ -60,36 +69,77 @@ export default function AdminShell({ children }) {
     }
   }
 
+  const pageLabel =
+    ADMIN_TABS.find((t) => isActive(pathname, t.to))?.label ?? "Eventos";
+
   return (
+    <AdminChromeContext.Provider value={{ setBreadcrumb }}>
     <div className="admin-shell">
       <a href="#contenido-admin" className="skip-link">
         Saltar al contenido
       </a>
 
-
+      <aside className="admin-sidebar" aria-label="Navegación de Administración">
+        <TransitionLink
+          to="/admin"
+          className="admin-sidebar-brand"
+          aria-label="Enty · Eventos"
+        >
+          <Logo />
+        </TransitionLink>
+        <p className="admin-sidebar-kicker">Administración</p>
+        <nav className="admin-nav">
+          {ADMIN_TABS.map((t) => (
+            <TransitionLink
+              key={t.to}
+              to={t.to}
+              aria-current={isActive(pathname, t.to) ? "page" : undefined}
+              className={`admin-nav-link${isActive(pathname, t.to) ? " is-active" : ""}`}
+            >
+              <Icon name={t.icon} aria-hidden="true" />
+              {t.label}
+            </TransitionLink>
+          ))}
+        </nav>
+        <div className="admin-sidebar-foot">
+          <span className="admin-sidebar-venue">
+            <Icon name="users" className="h-3.5 w-3.5" aria-hidden="true" />
+            {venue?.name ?? "Tu organización"}
+          </span>
+        </div>
+      </aside>
 
       <div className="admin-main">
         <header className="admin-topbar">
-          <TransitionLink
-            to="/admin"
-            className="admin-topbar-brand"
-            aria-label="Enty · Eventos"
-          >
-            <Logo />
-          </TransitionLink>
-
-          <nav className="admin-topnav" aria-label="Secciones de Administración">
-            {ADMIN_TABS.map((t) => (
-              <TransitionLink
-                key={t.to}
-                to={t.to}
-                aria-current={isActive(pathname, t.to) ? "page" : undefined}
-                className={isActive(pathname, t.to) ? "is-active" : ""}
-              >
-                {t.label}
+          <div className="admin-topbar-left">
+            <TransitionLink
+              to="/admin"
+              className="admin-topbar-brand"
+              aria-label="Enty · Eventos"
+            >
+              <Logo />
+            </TransitionLink>
+            <nav className="admin-crumbs" aria-label="Ubicación">
+              <TransitionLink to="/admin" className="admin-crumb-home">
+                {breadcrumb ? (
+                  <>
+                    <Icon name="back" className="h-3.5 w-3.5" aria-hidden="true" />
+                    Eventos
+                  </>
+                ) : (
+                  pageLabel
+                )}
               </TransitionLink>
-            ))}
-          </nav>
+              {breadcrumb && (
+                <>
+                  <span className="admin-crumb-sep" aria-hidden="true">/</span>
+                  <span className="admin-crumb-current" title={breadcrumb}>
+                    {breadcrumb}
+                  </span>
+                </>
+              )}
+            </nav>
+          </div>
 
           <div className="admin-topbar-actions">
             {adminVenues.length > 1 ? (
@@ -171,5 +221,6 @@ export default function AdminShell({ children }) {
         </div>
       </nav>
     </div>
+    </AdminChromeContext.Provider>
   );
 }

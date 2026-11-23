@@ -36,6 +36,16 @@ export default function AllocationManager({
   const promoters = (users || []).filter((u) =>
     u.roles?.includes("promotor"),
   );
+  const totals = (allocations || []).reduce(
+    (acc, a) => {
+      if (a.is_active === false) return acc;
+      acc.capacity += a.capacity ?? 0;
+      acc.issued += a.issued ?? 0;
+      return acc;
+    },
+    { capacity: 0, issued: 0 },
+  );
+  const available = Math.max(0, totals.capacity - totals.issued);
 
   const allocationUrl = (a) =>
     `/venues/${venueId}/events/${eventId}/allocations/${a.id}`;
@@ -200,6 +210,9 @@ export default function AllocationManager({
         <div>
           <p className="eyebrow">Distribución</p>
           <h3 className="display mt-0.5 text-base">Cupos de promotor</h3>
+          <p className="mt-1 text-2xs text-zinc-500">
+            Una fila por promotor y tipo. El total del evento se muestra aparte.
+          </p>
         </div>
         {/* El cuello de botella real: sin promotores creados no hay cupo que
           asignar. El enlace evita el ida-y-vuelta a Invitaciones. */}
@@ -210,6 +223,16 @@ export default function AllocationManager({
           Invitar promotor →
         </TransitionLink>
       </div>
+      <div className="bs-allocation-total" aria-label="Total de cupos activos">
+        <span>Total del evento</span>
+        <strong className="tnum">{totals.capacity}</strong>
+        <span className="tnum">{totals.issued} emitidas</span>
+        <span className="tnum">{available} disponibles</span>
+      </div>
+      <p className="mb-3 text-2xs text-zinc-500">
+        No puedes bajar un cupo por debajo de las boletas ya emitidas: se
+        conservan y el servidor rechaza el cambio.
+      </p>
       <ul className="mb-4 space-y-2">
         {(allocations || []).map((a) => {
           const t = (types || []).find((x) => x.id === a.ticket_type_id);
@@ -287,12 +310,19 @@ export default function AllocationManager({
                   </button>
                 </div>
               ) : (
-                <QuotaMeter
-                  used={a.issued ?? 0}
-                  total={a.capacity}
-                  label="Usados"
-                  compact
-                />
+                <>
+                  <div className="bs-allocation-stats">
+                    <span>Asignadas <strong className="tnum">{a.capacity}</strong></span>
+                    <span>Emitidas <strong className="tnum">{a.issued ?? 0}</strong></span>
+                    <span>Disponibles <strong className="tnum">{Math.max(0, (a.capacity ?? 0) - (a.issued ?? 0))}</strong></span>
+                  </div>
+                  <QuotaMeter
+                    used={a.issued ?? 0}
+                    total={a.capacity}
+                    label="Usados"
+                    compact
+                  />
+                </>
               )}
             </li>
           );

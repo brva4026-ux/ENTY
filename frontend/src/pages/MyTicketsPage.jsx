@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { fetchMyTickets, fetchMyTicketToken, fetchFanTicketsWithAccess } from "../lib/api";
 import FanNav from "../components/FanNav";
-import { Spark } from "../components/Brand";
+import { Logo, Spark } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
 import TransitionLink from "../components/TransitionLink";
 
@@ -171,10 +171,7 @@ export default function MyTicketsPage() {
       <header className="home-head">
         <div className="home-head-left">
           <div className="home-wordmark">
-            <span>Enty</span>
-            <svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 0 L14.6 9.4 L24 12 L14.6 14.6 L12 24 L9.4 14.6 L0 12 L9.4 9.4 Z" fill="#8B5CF6" />
-            </svg>
+            <Logo />
           </div>
           {/* En escritorio la barra inferior no existe: sin esta nav, boletas
               se quedaba sin forma de volver al catálogo. */}

@@ -11,7 +11,7 @@ import { activeVenueId } from "../lib/venue";
 import EmptyState from "../components/EmptyState";
 import ContactEditsHistory from "../components/ContactEditsHistory";
 import { StatSkeletonRow } from "../components/Skeleton";
-import { LiveIndicator, QuotaMeter } from "../components/Brand";
+import { LiveIndicator, Logo, QuotaMeter } from "../components/Brand";
 import { STATUS_META, sortEventsForStrip } from "../components/EventWorkbench";
 import Icon from "../components/Icon";
 import { ticketWaMessage, waLink } from "../lib/whatsapp";
@@ -379,7 +379,7 @@ export default function PromoterDashboard() {
       <div className="reveal space-y-6">
         <div className="promo-hero">
           <div>
-            <p className="eyebrow">Enty</p>
+            <Logo size="md" />
             <h1
               className="display promo-hero-title"
               style={{ fontVariationSettings: '"opsz" 32' }}
