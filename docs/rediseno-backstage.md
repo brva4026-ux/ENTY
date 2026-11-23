@@ -85,7 +85,7 @@ sección equivalente actual, sin romper avisos ya guardados.
 
 | Comprobación | Resultado |
 | --- | --- |
-| `backend/.venv/bin/python -m pytest -q` | 706 pasaron, 1 omitido |
+| `backend/.venv/bin/python -m pytest -q` | 707 pasaron, 1 omitido |
 | `npm run test:unit` | Pasó |
 | `npm run lint:js` | Pasó, solo advertencias dentro del máximo |
 | `npm run build` | Pasó |
