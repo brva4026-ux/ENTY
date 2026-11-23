@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 
 import Icon from "./Icon";
 import { prefersReducedMotion } from "../lib/motion";
-import { roleIdentity } from "../lib/roles";
+import { roleI18nKey, roleIdentity } from "../lib/roles";
+import { useI18n } from "../i18n";
 
 /** Primer nombre para el saludo: "Ana Maria Lopez" -> "Ana". */
 function firstNameOf(user) {
@@ -86,8 +87,17 @@ export function WelcomeOverlay({
   const timer = useRef(0);
   const doneRef = useRef(done);
   doneRef.current = done;
+  const { t } = useI18n();
 
   const identity = roleIdentity(role);
+  const roleKey = roleI18nKey(role);
+  const welcomeKey = `login.roles.${roleKey}.welcome`;
+  const welcomeText = t(welcomeKey);
+  const welcome = welcomeText === welcomeKey ? identity.welcome : welcomeText;
+  const roleLabelKey = `login.roles.${roleKey}.label`;
+  const roleLabelText = t(roleLabelKey);
+  const roleLabel =
+    roleLabelText === roleLabelKey ? identity.label : roleLabelText;
   const name = firstNameOf(user);
   const multiple = roles.length > 1;
 
@@ -119,10 +129,10 @@ export function WelcomeOverlay({
 
   const pct = Math.round(progress);
   const status = !done
-    ? "Confirmando permisos…"
+    ? t("login.welcome.confirming")
     : multiple
-      ? "Elige cómo entrar"
-      : "Permisos confirmados. Ingresando...";
+      ? t("login.welcome.choose")
+      : t("login.welcome.confirmed");
 
   return (
     <div className="welcome-scrim" data-role-accent={identity.accent}>
@@ -137,7 +147,7 @@ export function WelcomeOverlay({
           <span className="welcome-role-icon" aria-hidden="true">
             <Icon name={identity.icon} className="h-5 w-5" />
           </span>
-          <span className="welcome-role-name">{identity.plural}</span>
+          <span className="welcome-role-name">{roleLabel}</span>
         </div>
 
         <div key={role} className="welcome-art-wrap">
@@ -145,7 +155,7 @@ export function WelcomeOverlay({
         </div>
 
         <h2 id="welcome-title" className="welcome-title">
-          {identity.welcome}
+          {welcome}
         </h2>
 
         <p className="welcome-hello">
@@ -155,16 +165,29 @@ export function WelcomeOverlay({
         <p className="welcome-account">
           {user?.username && <span>@{user.username} · </span>}
           <Link to="/perfil?tab=cuenta#username" className="welcome-account-link">
-            Cambiar usuario
+            {t("login.welcome.changeUsername")}
           </Link>
         </p>
 
+        {role === "bouncer" && (
+          <p className="welcome-role-note">{t("login.welcome.doorNote")}</p>
+        )}
+
         {multiple && (
-          <div className="welcome-role-picker" role="group" aria-label="Elige tu rol">
-            <p className="welcome-role-picker-label">Tus accesos</p>
+          <div
+            className="welcome-role-picker"
+            role="group"
+            aria-label={t("login.welcome.chooseRoleAria")}
+          >
+            <p className="welcome-role-picker-label">
+              {t("login.welcome.rolesLabel")}
+            </p>
             <div className="welcome-role-options">
               {roles.map((r) => {
                 const option = roleIdentity(r);
+                const key = roleI18nKey(r);
+                const labelKey = `login.roles.${key}.label`;
+                const labelText = t(labelKey);
                 return (
                   <button
                     key={r}
@@ -174,7 +197,7 @@ export function WelcomeOverlay({
                     onClick={() => onSelectRole?.(r)}
                   >
                     <Icon name={option.icon} className="h-4 w-4" />
-                    {option.label}
+                    {labelText === labelKey ? option.label : labelText}
                   </button>
                 );
               })}
@@ -183,7 +206,9 @@ export function WelcomeOverlay({
         )}
 
         <p className="welcome-status" role="status" aria-live="polite">
-          <span className="welcome-status-kicker">¡Bienvenido!</span>
+          <span className="welcome-status-kicker">
+            {t("login.welcome.kicker")}
+          </span>
           <span>{status}</span>
         </p>
 
@@ -193,7 +218,7 @@ export function WelcomeOverlay({
           aria-valuemin="0"
           aria-valuemax="100"
           aria-valuenow={pct}
-          aria-label="Preparando tu panel"
+          aria-label={t("login.welcome.preparing")}
         >
           <span
             className={`welcome-bar-fill${pct >= 100 ? " is-complete" : ""}`}
@@ -203,7 +228,7 @@ export function WelcomeOverlay({
 
         {done && (
           <button type="button" className="welcome-continue" onClick={onContinue}>
-            Entrar a {identity.plural}
+            {t("login.welcome.continue", { role: roleLabel })}
             <Icon name="arrowRight" className="h-4 w-4" />
           </button>
         )}

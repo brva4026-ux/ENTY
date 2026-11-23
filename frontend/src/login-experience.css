@@ -30,13 +30,24 @@
   background:
     radial-gradient(
       34rem 20rem at 8% -12%,
-      color-mix(in srgb, var(--e-violet-500) 18%, transparent),
+      color-mix(
+        in srgb,
+        var(--role-accent-strong, var(--e-violet-500))
+          var(--login-showcase-tint, 18%),
+        transparent
+      ),
       transparent 62%
     ),
     var(--e-ink-950);
 }
 
+.login-page[data-role-accent] {
+  --login-showcase-tint: 26%;
+}
+
 .login-showcase-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
@@ -863,6 +874,18 @@ html .login-showcase-brand .brand-shine {
 
 .welcome-account-link:hover {
   color: color-mix(in srgb, var(--role-accent) 78%, var(--e-white));
+}
+
+.welcome-role-note {
+  margin: 0.55rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--role-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--role-accent) 8%, transparent);
+  color: color-mix(in srgb, var(--e-white) 72%, transparent);
+  font-size: var(--e-text-2xs);
+  line-height: 1.45;
+  text-align: left;
 }
 
 .welcome-role-picker {

@@ -11,6 +11,7 @@ import { haptics } from "../lib/haptics";
 import { initials } from "../lib/initials";
 import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { apiFetch } from "../lib/api";
+import { roleIdentity } from "../lib/roles";
 
 const AdminChromeContext = createContext({ setBreadcrumb: () => {} });
 
@@ -38,6 +39,7 @@ export default function AdminShell({ children }) {
   const ui = useUI();
   const [switching, setSwitching] = useState(false);
   const [breadcrumb, setBreadcrumb] = useState("");
+  const adminIdentity = roleIdentity("admin");
 
   const venueId = activeVenueId(user);
   const venue = (user?.venues || []).find((v) => v.id === venueId);
@@ -74,7 +76,7 @@ export default function AdminShell({ children }) {
 
   return (
     <AdminChromeContext.Provider value={{ setBreadcrumb }}>
-    <div className="admin-shell">
+    <div className="admin-shell" data-role-accent={adminIdentity.accent}>
       <a href="#contenido-admin" className="skip-link">
         Saltar al contenido
       </a>
@@ -165,6 +167,14 @@ export default function AdminShell({ children }) {
                 {venue?.name ?? "Tu organización"}
               </span>
             )}
+            <span
+              className="admin-topbar-role"
+              title={`Rol activo: ${adminIdentity.label}`}
+              aria-label={`Rol activo: ${adminIdentity.label}`}
+            >
+              <Icon name={adminIdentity.icon} className="h-4 w-4" aria-hidden="true" />
+              <span>{adminIdentity.label}</span>
+            </span>
             <ThemeToggle />
             <NotificationBell />
             <TransitionLink

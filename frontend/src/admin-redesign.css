@@ -251,6 +251,36 @@ html:not([data-theme="light"]) .admin-shell {
   backdrop-filter: blur(14px);
 }
 
+/* Acento del rol activo: Administración siempre entra por violeta, también
+   en su propio shell. La línea es la misma firma que usa el header global. */
+.admin-shell[data-role-accent] .admin-topbar {
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--admin-accent) 72%,
+    transparent
+  );
+}
+
+.admin-topbar-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--admin-accent) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--admin-accent) 10%, transparent);
+  padding: 5px 9px;
+  color: var(--admin-accent-ink);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .admin-topbar-role span {
+    display: none;
+  }
+}
+
 .admin-topbar-title {
   margin: 0;
   font-size: clamp(1.15rem, 2vw, 1.45rem);
