@@ -93,7 +93,16 @@ export default function AdminEventWorkspace({
             <small>Boletas activas e ingresadas.</small>
           </div>
           <div className="bs-metric">
-            <span>Boletas pagadas</span>
+            <span>Emitidas</span>
+            <strong className="tnum">{report ? report.issued : "Sin dato"}</strong>
+            <small>
+              {report
+                ? `${Math.max(0, report.capacity - report.issued)} disponibles de ${report.capacity}.`
+                : "Boletas activas contra el aforo."}
+            </small>
+          </div>
+          <div className="bs-metric">
+            <span>Pagadas</span>
             <strong className="tnum">{paidTickets ?? "Sin dato"}</strong>
             <small>Venta pública o directa con medio de pago.</small>
           </div>

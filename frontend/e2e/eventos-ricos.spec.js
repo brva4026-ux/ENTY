@@ -67,14 +67,18 @@ test("el admin arma el lineup y lo ve en la ficha pública", async ({
   // Agrega un acto: aparece en la lista en el acto.
   await page.getByLabel("Nombre del nuevo acto").fill(act);
   await page.getByRole("button", { name: "Agregar al lineup" }).click();
-  await expect(page.getByText(act)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(act, { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
 
   // La ficha pública lo muestra en "Artistas y programación".
   await page.goto(`/evento/${eventId}`);
   await expect(
     page.getByRole("heading", { name: "Artistas y programación" }),
   ).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(act)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(act, { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
 
   // Limpieza: se quita el acto para no ensuciar el seed.
   await page.goto(`/admin?event=${eventId}&tab=lineup`);

@@ -123,6 +123,20 @@ def test_lineup_crud_and_public_detail(api, api_client):
     assert [i["name"] for i in api.get(base, "admin").json()] == ["DJ Estelar"]
 
 
+def test_event_list_includes_lineup_for_cards(api):
+    """La tarjeta de Eventos destaca el cartel sin abrir el backstage."""
+    venue = api.world["venue_a"]
+    tag = _tag()
+    ev = api.create_event("admin", venue, name=f"Cartel {tag}")
+    base = f"/venues/{venue}/events/{ev['id']}/lineup"
+    assert api.post(base, "admin", {"name": "Telonero", "sort_order": 0}).status_code == 201
+    assert api.post(base, "admin", {"name": "DJ Estelar", "sort_order": 1}).status_code == 201
+
+    rows = api.get(f"/venues/{venue}/events", "admin").json()
+    row = next(r for r in rows if r["id"] == ev["id"])
+    assert [i["name"] for i in row["lineup"]] == ["Telonero", "DJ Estelar"]
+
+
 def test_lineup_requires_admin_role(api):
     venue = api.world["venue_a"]
     ev = api.create_event("admin", venue, name=f"Lineup rol {_tag()}")

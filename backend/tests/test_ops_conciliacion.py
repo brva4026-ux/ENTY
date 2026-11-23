@@ -243,7 +243,7 @@ def _capacity_alerts(api, venue_id: int) -> list[dict]:
     with psycopg.connect(api.dsn, autocommit=True, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT title FROM notifications "
+                "SELECT title, link FROM notifications "
                 "WHERE venue_id = %s AND kind = 'capacity_alert' ORDER BY id",
                 (venue_id,),
             )
@@ -273,6 +273,8 @@ def test_capacity_alert_fires_once_per_threshold(api, world):
     api.post(f"/venues/{venue}/events/{ev}/redeem", "bouncer", {"raw_token": tokens[8]})
     alerts = _capacity_alerts(api, venue)
     assert [a["title"] for a in alerts] == ["Aforo al 80%", "Aforo al 90%"]
+    # El aviso de aforo abre la puerta de ESA noche.
+    assert {a["link"] for a in alerts} == {f"/admin?event={ev}&tab=accesos"}
 
     api.post(f"/venues/{venue}/events/{ev}/redeem", "bouncer", {"raw_token": tokens[9]})
     assert len(_capacity_alerts(api, venue)) == 2, "no avisa en cada ingreso posterior"

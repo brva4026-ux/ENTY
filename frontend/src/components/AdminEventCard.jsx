@@ -34,10 +34,25 @@ export default function AdminEventCard({
   const past = isPastEvent(ev);
   const staleLive = isStaleLive(ev);
   const live = ev.status === "live";
+  const history =
+    ev.status === "ended" ||
+    ev.status === "cancelled" ||
+    (ev.status === "published" && past);
   const sold = stat?.active ?? null;
+  const redeemed = stat?.redeemed ?? null;
   const capacity = ev.capacity ?? 0;
-  const pct = sold !== null && capacity > 0 ? Math.round((sold / capacity) * 100) : null;
+  const pctSold = sold !== null && capacity > 0 ? Math.round((sold / capacity) * 100) : null;
+  const pctIn = redeemed !== null && capacity > 0 ? Math.round((redeemed / capacity) * 100) : null;
+  const capacityLabel = capacity > 0 ? capacity : "—";
   const tz = eventZone(ev);
+  const primaryLabel = live
+    ? "Ver puerta"
+    : ev.status === "draft"
+      ? "Continuar borrador"
+      : history
+        ? "Ver resumen"
+        : "Gestionar evento";
+  const primaryTab = live ? "accesos" : "resumen";
 
   return (
     <article
@@ -74,6 +89,10 @@ export default function AdminEventCard({
 
         <p className="admin-event-meta">
           <span>
+            <Icon name="ticket" className="h-3 w-3" />
+            {ev.category || "Sin categoría"}
+          </span>
+          <span>
             <Icon name="calendar" className="h-3 w-3" />
             {eventFullDate(ev)}
           </span>
@@ -89,27 +108,47 @@ export default function AdminEventCard({
 
         <div className="admin-event-stats">
           <Stat label="Recaudo" value={stat ? money(stat.revenue_cents) : "…"} />
-          <Stat
-            label="Vendidas"
-            value={
-              sold !== null ? (
-                <>
-                  {sold}
-                  <span className="text-[10px] font-semibold text-[var(--admin-muted)]">
-                    /{capacity || "—"}
-                  </span>
-                </>
-              ) : (
-                "…"
-              )
-            }
-          />
-          <Stat
-            label="Entraron"
-            value={stat ? stat.redeemed : "…"}
-            live={live && (stat?.redeemed ?? 0) > 0}
-          />
-          {pct !== null && <Stat label="Aforo" value={`${pct}%`} />}
+          {live ? (
+            <>
+              <Stat
+                label="Ingresaron"
+                value={
+                  redeemed !== null ? (
+                    <>
+                      {redeemed}
+                      <span className="text-[10px] font-semibold text-[var(--admin-muted)]">
+                        /{capacityLabel}
+                      </span>
+                    </>
+                  ) : (
+                    "…"
+                  )
+                }
+                live={(redeemed ?? 0) > 0}
+              />
+              <Stat label="Aforo" value={pctIn !== null ? `${pctIn}%` : "—"} />
+            </>
+          ) : (
+            <>
+              <Stat
+                label="Vendidas"
+                value={
+                  sold !== null ? (
+                    <>
+                      {sold}
+                      <span className="text-[10px] font-semibold text-[var(--admin-muted)]">
+                        /{capacityLabel}
+                      </span>
+                    </>
+                  ) : (
+                    "…"
+                  )
+                }
+              />
+              <Stat label="Entraron" value={redeemed ?? "…"} />
+              <Stat label="Aforo" value={pctSold !== null ? `${pctSold}%` : "—"} />
+            </>
+          )}
           {stat?.duplicates > 0 && (
             <Stat label="Alertas" value={stat.duplicates} />
           )}
@@ -117,20 +156,32 @@ export default function AdminEventCard({
 
         <div className="admin-event-actions">
           <TransitionLink
-            to={`/admin?event=${ev.id}&tab=resumen`}
-            className="admin-link-action"
+            to={`/admin?event=${ev.id}&tab=${primaryTab}`}
+            className={live ? "btn-primary" : "admin-link-action"}
             onClick={onOpen}
           >
-            {ev.status === "draft" ? "Continuar borrador" : "Gestionar"}
+            {primaryLabel}
             <Icon name="arrowRight" className="h-3 w-3" />
           </TransitionLink>
-          <TransitionLink
-            to={`/admin?event=${ev.id}&tab=accesos`}
-            className="btn-mini"
-          >
-            Ver puerta
-          </TransitionLink>
-          {ev.status !== "ended" &&
+          {live && (
+            <TransitionLink
+              to={`/admin?event=${ev.id}&tab=resumen`}
+              className="btn-mini"
+              onClick={onOpen}
+            >
+              Gestionar evento
+            </TransitionLink>
+          )}
+          {!live && ev.status !== "draft" && (
+            <TransitionLink
+              to={`/admin?event=${ev.id}&tab=accesos`}
+              className="btn-mini"
+            >
+              Ver puerta
+            </TransitionLink>
+          )}
+          {!history &&
+            ev.status !== "ended" &&
             ev.status !== "cancelled" &&
             actions
               .filter((a) => !a.danger && (a.action !== "end" || staleLive))

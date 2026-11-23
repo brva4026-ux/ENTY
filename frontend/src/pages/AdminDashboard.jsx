@@ -128,9 +128,11 @@ export default function AdminDashboard() {
   const realVenueId = venueId ?? 0;
 
   const [events, setEvents] = useState(null); // null = primera carga (skeleton)
+  const [eventsError, setEventsError] = useState("");
   // Eventos de URL ya revalidados contra el servidor (ver más abajo): un
   // enlace a un evento ausente se relee UNA vez antes de darlo por roto.
   const probedEventsRef = useRef({});
+  const [missingEvent, setMissingEvent] = useState(null);
   // Boletas activas por evento ({id: n}): el pulso de la franja sin abrir
   // cada evento. Un solo GET agregado, no N requests.
   const [ticketCounts, setTicketCounts] = useState({});
@@ -316,11 +318,6 @@ export default function AdminDashboard() {
     nav("/perfil?tab=cuenta#username");
   }
 
-  function createFirstEventFromWelcome() {
-    markAccountReadySeen();
-    setCreateOpen(true);
-  }
-
   /** Guarda la decisión en el servidor y refleja el resultado en el acto. */
   function decideOnboarding(pref) {
     setPrefs((p) => ({ ...p, [PREF_ONBOARDING]: { ...p[PREF_ONBOARDING], value: pref } }));
@@ -391,17 +388,28 @@ export default function AdminDashboard() {
 
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
-    const data = await apiFetch(`/venues/${venueId}/events`);
-    setEvents(data);
-    // Contadores de la franja: fire-and-forget (si falla, la franja muestra
-    // su chip vacío; no rompe el listado que ya llegó).
-    apiFetch(`/venues/${venueId}/events/ticket-counts`)
-      .then(setTicketCounts)
-      .catch(() => {});
+    try {
+      const data = await apiFetch(`/venues/${venueId}/events`);
+      setEvents(data);
+      setEventsError("");
+      // Contadores de la franja: fire-and-forget (si falla, la franja muestra
+      // su chip vacío; no rompe el listado que ya llegó).
+      apiFetch(`/venues/${venueId}/events/ticket-counts`)
+        .then(setTicketCounts)
+        .catch(() => {});
+    } catch (err) {
+      setEventsError(err.message || "No pudimos cargar los eventos.");
+      // La primera carga no puede quedarse en skeleton para siempre: se pasa
+      // a un estado de error explícito, distinto de "no hay eventos".
+      setEvents((current) => current ?? []);
+      throw err;
+    }
   }, [venueId]);
 
   useEffect(() => {
-    loadEvents().catch((e) => setError(e.message));
+    setMissingEvent(null);
+    probedEventsRef.current = {};
+    loadEvents().catch(() => {});
   }, [loadEvents]);
 
   // Sincronización URL <-> selección. La URL manda si trae evento válido;
@@ -413,6 +421,7 @@ export default function AdminDashboard() {
     const wanted = urlEvent ? Number(urlEvent) : null;
     const exists = wanted !== null && events.some((e) => e.id === wanted);
     if (exists) {
+      setMissingEvent(null);
       if (wanted !== selectedEvent) setSelectedEvent(wanted); // Enlace viejo con una pestaña de venue dentro de un evento
       // (?event=5&tab=equipo): esas pestañas no existen en el backstage —
       // se normaliza al evento sin tab (aterriza en Resumen).
@@ -426,21 +435,23 @@ export default function AdminDashboard() {
       // El evento de la URL no está en el catálogo que tenemos. Puede ser un
       // enlace de verdad roto (borrado) o, más probable en la operación, un
       // aviso recién llegado a un evento que se creó DESPUÉS de esta carga
-      // (la cola de puerta crea la noche y avisa en el acto). Antes de borrar
-      // el parámetro se relee el catálogo UNA vez: solo si el evento sigue sin
-      // aparecer el enlace se declara roto. Sin este paso, el aviso se comía
-      // su propio destino y aterrizaba en el panel a secas.
+      // (la cola de puerta crea la noche y avisa en el acto). Antes de darlo
+      // por roto se relee el catálogo UNA vez. Si sigue sin aparecer, se
+      // mantiene el destino en la URL y se explica qué pasó: el admin puede
+      // volver a Eventos sin perder el contexto del aviso.
       if (probedEventsRef.current[urlEvent]) {
-        probedEventsRef.current[urlEvent] = false;
-        setSearchParams({});
+        setMissingEvent(Number(urlEvent));
       } else {
         probedEventsRef.current[urlEvent] = true;
         loadEvents().catch(() => {});
       }
-    } else if (selectedEvent !== null) {
-      // Sin ?event= en la URL: la lista es la pantalla (modo lista). Nadie
-      // aterriza "en el primer evento" por accidente: entrar es una decisión.
-      setSelectedEvent(null);
+    } else {
+      setMissingEvent(null);
+      if (selectedEvent !== null) {
+        // Sin ?event= en la URL: la lista es la pantalla (modo lista). Nadie
+        // aterriza "en el primer evento" por accidente: entrar es una decisión.
+        setSelectedEvent(null);
+      }
     }
     // selectedEvent a propósito fuera de las deps: esta pantalla solo sigue a
     // la URL y al catálogo, no re-detecciona en cada clic del selector.
@@ -1075,10 +1086,10 @@ export default function AdminDashboard() {
             el único lugar donde existen "todos los eventos": se elige uno y
             se ENTRA — el backstage no comparte pantalla con la lista.
             ================================================================= */}
-        {!selectedEventData && (
+        {!selectedEventData && !missingEvent && (
           <>
             <div className="admin-events">
-              <header className="admin-page-head">
+              <header className="admin-page-head admin-page-head--events">
                 <div>
                   <p className="eyebrow">Operación</p>
                   <h1>Eventos</h1>
@@ -1100,7 +1111,6 @@ export default function AdminDashboard() {
                 <AccountReadyCard
                   user={user}
                   onChangeUsername={changeUsernameFromWelcome}
-                  onCreateEvent={createFirstEventFromWelcome}
                   onDismiss={markAccountReadySeen}
                 />
               )}
@@ -1115,10 +1125,10 @@ export default function AdminDashboard() {
               {showOnboardingChecklist && (
                 <OnboardingChecklist
                   mode="checklist"
-                  hasEvent={events.length > 0}
+                  hasEvent={(events?.length ?? 0) > 0}
                   hasTypes={types.length > 0}
                   hasAllocations={allocations.length > 0}
-                  isPublished={events.some((e) => e.status !== "draft")}
+                  isPublished={(events ?? []).some((e) => e.status !== "draft")}
                   onStart={() => setCreateOpen(true)}
                   onGo={onboardingGo}
                   onTour={startTour}
@@ -1156,18 +1166,20 @@ export default function AdminDashboard() {
                     <span className="admin-filter-count">{activeFilterCount}</span>
                   )}
                 </button>
-                <button
-                  type="button"
-                  className="admin-create-btn"
-                  data-tour="nuevo-evento"
-                  onClick={() => {
-                    haptics.tick();
-                    setCreateOpen(true);
-                  }}
-                >
-                  <Icon name="plus" className="h-4 w-4" />
-                  Crear evento
-                </button>
+                {(events?.length ?? 0) > 0 && (
+                  <button
+                    type="button"
+                    className="admin-create-btn"
+                    data-tour="nuevo-evento"
+                    onClick={() => {
+                      haptics.tick();
+                      setCreateOpen(true);
+                    }}
+                  >
+                    <Icon name="plus" className="h-4 w-4" />
+                    Crear evento
+                  </button>
+                )}
               </div>
 
               {filtersOpen && (
@@ -1180,8 +1192,8 @@ export default function AdminDashboard() {
                   {BUCKETS.map(([id, label]) => {
                     const n =
                       id === "todos"
-                        ? events.length
-                        : events.filter((ev) => ev.status === id).length;
+                        ? (events?.length ?? 0)
+                        : (events ?? []).filter((ev) => ev.status === id).length;
                     return (
                       <button
                         key={id}
@@ -1223,6 +1235,23 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                 </div>
+              ) : eventsError ? (
+                <section data-tour="eventos">
+                  <div className="admin-empty">
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--admin-danger-soft)] text-[var(--admin-danger)]">
+                      <Icon name="alert" className="h-5 w-5" />
+                    </span>
+                    <h2>No pudimos cargar los eventos</h2>
+                    <p>{eventsError}</p>
+                    <button
+                      type="button"
+                      onClick={() => loadEvents().catch(() => {})}
+                      className="admin-create-btn mt-2"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                </section>
               ) : events.length === 0 ? (
                 <section data-tour="eventos">
                   <div className="admin-empty">
@@ -1238,9 +1267,10 @@ export default function AdminDashboard() {
                       type="button"
                       onClick={() => setCreateOpen(true)}
                       className="admin-create-btn mt-2"
+                      data-tour="nuevo-evento"
                     >
                       <Icon name="plus" className="h-4 w-4" />
-                      Crear mi primer evento
+                      Crea tu primer evento
                     </button>
                   </div>
                 </section>
@@ -1289,7 +1319,9 @@ export default function AdminDashboard() {
                         <span className="admin-live-badge">Ahora</span>
                         <span className="admin-section-count">
                           {liveEvents.length}{" "}
-                          {liveEvents.length === 1 ? "noche" : "noches"}
+                          {liveEvents.length === 1
+                            ? "noche en puerta"
+                            : "noches en puerta"}
                         </span>
                       </div>
                       <div className="admin-event-grid">
@@ -1304,7 +1336,9 @@ export default function AdminDashboard() {
                         <h2>Próximos eventos</h2>
                         <span className="admin-section-count">
                           {upcoming.length}{" "}
-                          {upcoming.length === 1 ? "evento" : "eventos"}
+                          {upcoming.length === 1
+                            ? "próximo evento"
+                            : "próximos eventos"}
                         </span>
                       </div>
                       <div className="admin-event-grid">
@@ -1318,7 +1352,8 @@ export default function AdminDashboard() {
                       <div className="admin-section-head">
                         <h2>Borradores</h2>
                         <span className="admin-section-count">
-                          {drafts.length} por terminar
+                          {drafts.length}{" "}
+                          {drafts.length === 1 ? "borrador" : "borradores"}
                         </span>
                       </div>
                       <div className="admin-event-grid">
@@ -1363,7 +1398,9 @@ export default function AdminDashboard() {
                         <h2>Historial</h2>
                         <span className="admin-section-count">
                           {history.length}{" "}
-                          {history.length === 1 ? "evento" : "eventos"}
+                          {history.length === 1
+                            ? "evento en historial"
+                            : "eventos en historial"}
                         </span>
                       </div>
                       <div className="admin-event-grid">
@@ -1400,10 +1437,23 @@ export default function AdminDashboard() {
           />
         )}
 
-        {/* Enlace viejo o evento borrado: pantalla honesta, no un limbo */}
-        {selectedEvent && !selectedEventData && (
-          <EventNotFound onBack={() => setSearchParams({})} />
-        )}        {selectedEvent && selectedEventData && (
+        {/* Enlace viejo, evento borrado o sin acceso: pantalla honesta con el
+            destino todavía en la URL, para que el aviso no se pierda. */}
+        {(missingEvent || (selectedEvent && !selectedEventData)) && (
+          <EventNotFound
+            reason={
+              missingEvent
+                ? `No encontramos el evento #${missingEvent}. Puede que se haya eliminado o que ya no tengas acceso a esta organización.`
+                : undefined
+            }
+            onBack={() => {
+              setMissingEvent(null);
+              probedEventsRef.current = {};
+              setSearchParams({});
+            }}
+          />
+        )}
+        {selectedEvent && selectedEventData && (
           <>
             {/* Backstage del evento: identidad, pulso y ciclo de vida */}
             <EventWorkbench

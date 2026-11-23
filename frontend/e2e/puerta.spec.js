@@ -65,15 +65,16 @@ test("el admin entra y ve la portada de su negocio", async ({ page }) => {
 
   // Portada: identidad de la organización y el listado de sus noches.
   await expect(page.getByText("Organización activa")).toBeVisible();
-  await expect(page.getByText("Bar Esquina").first()).toBeVisible();
+  await expect(page.locator(".vh-identidad")).toContainText("Bar Esquina");
   await expect(page.getByRole("heading", { name: "Próximos eventos" })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Crear evento" }),
   ).toBeVisible();
 
-  // Y el hub de Reportes monta con sus sub-pestañas.
+  // Y el hub de Reportes monta con sus sub-pestañas. En móvil el título vive
+  // en la miga de la barra superior, no repetido en el contenido.
   await page.goto("/admin/reportes");
-  await expect(page.getByRole("heading", { name: "Reportes" })).toBeVisible();
+  await expect(page.locator(".admin-crumbs")).toContainText("Reportes");
   await expect(
     page.getByRole("tab", { name: "Ventas y caja", selected: true }),
   ).toBeVisible();
