@@ -147,6 +147,8 @@ export default function AdminDashboard() {
   const urlEvent = searchParams.get("event");
   const urlTab = searchParams.get("tab") || "resumen";
   const [error, setError] = useState("");
+  // Acción que falló: permite reintentar sin volver a buscar el botón.
+  const [failedAction, setFailedAction] = useState("");
   // Modal de crear evento: cerrado por defecto — el admin trabaja en su
   // evento, no mira un formulario gigante todo el día.
   const [createOpen, setCreateOpen] = useState(false);
@@ -647,7 +649,9 @@ export default function AdminDashboard() {
       const ok = await ui.confirm("¿Cancelar el evento?", {
         message:
           `${ev.name}\n${when(ev.starts_at)} · ${ev.location || "Lugar por confirmar"}\n\n` +
-          "La ficha deja de estar pública, se detiene la venta y las boletas emitidas dejan de ser válidas en la puerta. No se puede revertir.",
+          "La ficha deja de estar pública, se detiene la venta y las boletas emitidas dejan de ser válidas en la puerta. " +
+          "Los pagos ya registrados no se devuelven automáticamente: revisa Cobros y las boletas reembolsadas antes de conciliar. " +
+          "No se puede revertir.",
         danger: true,
         confirmLabel: "Sí, cancelar evento",
       });
@@ -712,6 +716,7 @@ export default function AdminDashboard() {
 
     setBusyAction(busyKey);
     setError("");
+    setFailedAction("");
     try {
       const updated = await apiFetch(
         `/venues/${venueId}/events/${ev.id}/${action}`,
@@ -725,6 +730,7 @@ export default function AdminDashboard() {
       ui.success(DONE_MESSAGE[action]);
       return updated;
     } catch (err) {
+      setFailedAction(action);
       setError(
         action === "publish"
           ? `No se pudo publicar. El evento sigue en borrador; revisa el aviso y vuelve a intentar. ${err.message}`
@@ -1455,6 +1461,22 @@ export default function AdminDashboard() {
         )}
         {selectedEvent && selectedEventData && (
           <>
+            {error && (
+              <div className="admin-error admin-error--workspace" role="alert">
+                <span>{error}</span>
+                {failedAction && (
+                  <button
+                    type="button"
+                    className="btn-mini"
+                    data-variant="brand"
+                    onClick={() => runAction(failedAction)}
+                    disabled={Boolean(busyAction)}
+                  >
+                    Reintentar
+                  </button>
+                )}
+              </div>
+            )}
             {/* Backstage del evento: identidad, pulso y ciclo de vida */}
             <EventWorkbench
               ev={selectedEventData}
@@ -1940,7 +1962,11 @@ export default function AdminDashboard() {
               venueId={venueId}
               eventId={selectedEvent}
               onChanged={refreshEventData}
-              onError={setError}
+              onTypesChanged={setTypes}
+              onError={(message) => {
+                setFailedAction("");
+                setError(message);
+              }}
               onQrTest={() => setQrTesterOpen(true)}
               closing={closing}
               onCloseNight={closeNight}

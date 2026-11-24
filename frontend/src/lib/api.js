@@ -153,13 +153,14 @@ export function fetchMyTicketToken(ticketId, credential) {
 
 /**
  * Listado paginado y filtrado de boletas. Devuelve { total, items }.
- * filters: { status, type_id, q, limit, offset } (todos opcionales).
+ * filters: { status, type_id, q, courtesy, limit, offset } (todos opcionales).
  */
 export function listTicketsPaged(venueId, eventId, filters = {}) {
   const qs = new URLSearchParams();
   if (filters.status) qs.set("status", filters.status);
   if (filters.type_id) qs.set("type_id", filters.type_id);
   if (filters.q) qs.set("q", filters.q);
+  if (filters.courtesy != null) qs.set("courtesy", String(filters.courtesy));
   if (filters.limit) qs.set("limit", String(filters.limit));
   if (filters.offset) qs.set("offset", String(filters.offset));
   const suffix = qs.toString() ? `?${qs}` : "";
@@ -175,6 +176,7 @@ export async function downloadTicketsCsv(venueId, eventId, filters = {}) {
   if (filters.status) qs.set("status", filters.status);
   if (filters.type_id) qs.set("type_id", filters.type_id);
   if (filters.q) qs.set("q", filters.q);
+  if (filters.courtesy != null) qs.set("courtesy", String(filters.courtesy));
   const token = getToken();
   const res = await fetch(
     `/api/venues/${venueId}/events/${eventId}/tickets?${qs}`,

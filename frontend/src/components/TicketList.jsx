@@ -40,7 +40,19 @@ const PAYMENT_METHOD_LABEL = {
   cortesia: "Cortesía",
 };
 
-export default function TicketList({ venueId, eventId, types = [], onChanged, onError }) {
+export default function TicketList({
+  venueId,
+  eventId,
+  types = [],
+  onChanged,
+  onError,
+  courtesyOnly = false,
+  showTypeFilter = true,
+  title = "Boletas emitidas",
+  description,
+  emptyTitle = "Aún no hay boletas para este evento",
+  emptyBody = "Cuando un promotor emita la primera, aparecerá aquí con su estado en vivo.",
+}) {
   const ui = useUI();
   const [voidingId, setVoidingId] = useState(null);
   const [reason, setReason] = useState("Error de digitación");
@@ -66,27 +78,31 @@ export default function TicketList({ venueId, eventId, types = [], onChanged, on
   const [typeId, setTypeId] = useState("");
   const [page, setPage] = useState(0); // 0-indexed
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const load = useCallback(async () => {
     if (!eventId) return;
     setLoading(true);
+    setLoadError("");
     try {
       const data = await listTicketsPaged(venueId, eventId, {
         status: status || undefined,
         type_id: typeId || undefined,
         q: q || undefined,
+        courtesy: courtesyOnly ? true : undefined,
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
       });
       setItems(data.items);
       setTotal(data.total);
     } catch (e) {
-      onError(e.message);
+      setLoadError(e.message);
       setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [venueId, eventId, status, typeId, q, page]);
+  }, [venueId, eventId, status, typeId, q, page, courtesyOnly]);
 
   useEffect(() => {
     load();
@@ -292,8 +308,11 @@ export default function TicketList({ venueId, eventId, types = [], onChanged, on
     <div className="card p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="eyebrow">Auditorio</p>
-          <h3 className="display mt-0.5 text-base">Boletas emitidas</h3>
+          <p className="eyebrow">{courtesyOnly ? "Lista nominal" : "Auditorio"}</p>
+          <h3 className="display mt-0.5 text-base">{title}</h3>
+          {description && (
+            <p className="mt-1 max-w-2xl text-xs text-zinc-500">{description}</p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -311,7 +330,7 @@ export default function TicketList({ venueId, eventId, types = [], onChanged, on
             Recaudo
           </button>
           <button
-            onClick={() => downloadTicketsCsv(venueId, eventId, { status, type_id: typeId, q })}
+            onClick={() => downloadTicketsCsv(venueId, eventId, { status, type_id: typeId, q, courtesy: courtesyOnly ? true : undefined })}
             disabled={loading}
             className="btn-ghost text-xs font-bold"
             data-tip="Exporta el listado filtrado completo"
@@ -346,7 +365,7 @@ export default function TicketList({ venueId, eventId, types = [], onChanged, on
             </button>
           ))}
         </div>
-        {types.length > 0 && (
+        {showTypeFilter && types.length > 0 && (
           <select
             aria-label="Filtrar por tipo de boleta"
             value={typeId}
@@ -389,6 +408,14 @@ export default function TicketList({ venueId, eventId, types = [], onChanged, on
         {loading ? "Cargando…" : `${total} ${plural(total, "boleta", "boletas")}`}
         {!loading && total > 0 && ` · página ${page + 1} de ${totalPages}`}
       </p>
+      {loadError && (
+        <div className="admin-error mb-3" role="alert">
+          <span>{loadError}</span>
+          <button type="button" className="btn-mini" onClick={load}>
+            Reintentar
+          </button>
+        </div>
+      )}
       <ul className="space-y-2">
         {loading &&
           [1, 2, 3].map((i) => <li key={i} className="skeleton h-16" />)}
@@ -450,7 +477,7 @@ export default function TicketList({ venueId, eventId, types = [], onChanged, on
                       </span>
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span
                       className={`rounded-full px-2 py-0.5 text-2xs font-bold uppercase ring-1 ${st.cls}`}
                     >
@@ -647,18 +674,17 @@ export default function TicketList({ venueId, eventId, types = [], onChanged, on
               </li>
             );
           })}
-        {!loading && items.length === 0 && total === 0 && (
+        {!loading && !loadError && items.length === 0 && total === 0 && (
           <li className="list-none">
             <EmptyState
               icon="ticket"
-              title="Aún no hay boletas para este evento"
+              title={emptyTitle}
             >
-              Cuando un promotor emita la primera, aparecerá aquí con su estado
-              en vivo.
+              {emptyBody}
             </EmptyState>
           </li>
         )}
-        {!loading && items.length === 0 && total > 0 && (
+        {!loading && !loadError && items.length === 0 && total > 0 && (
           <li className="list-row px-3 py-3 text-sm text-zinc-500">
             Ninguna boleta coincide con el filtro.
           </li>

@@ -1143,6 +1143,7 @@ async def list_tickets(
     status: str | None = None,
     type_id: int | None = None,
     q: str | None = None,
+    courtesy: bool | None = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
@@ -1157,6 +1158,7 @@ async def list_tickets(
       recibio su QR).
     - `?status=` issued|redeemed|voided|refunded — "las anuladas del evento".
     - `?type_id=` fila/tipo del evento — "las VIP".
+    - `?courtesy=true|false` — solo cortesías o solo boletas pagadas.
     - `?q=` texto libre sobre el nombre del asistente.
     - `?limit=&offset=` pagina de a 50 (max 200).
 
@@ -1206,7 +1208,18 @@ async def list_tickets(
         q_filter = " AND t.customer_name ILIKE %s"
         params.append(f"%{q.strip()}%")
 
-    where = f"{owner_filter}{phone_filter}{status_filter}{type_filter}{q_filter}"
+    courtesy_filter = ""
+    if courtesy is not None:
+        courtesy_filter = (
+            " AND EXISTS (SELECT 1 FROM ticket_types ct"
+            " WHERE ct.id = t.ticket_type_id AND ct.is_courtesy = %s)"
+        )
+        params.append(courtesy)
+
+    where = (
+        f"{owner_filter}{phone_filter}{status_filter}{type_filter}"
+        f"{q_filter}{courtesy_filter}"
+    )
 
     async with db.cursor() as cur:
         await cur.execute(
@@ -1253,7 +1266,15 @@ async def list_tickets(
         if is_csv:
             await write_audit(
                 cur, venue_id, user["id"], "export", "tickets_csv", event_id,
-                {"filas": len(rows), "filtros": {"status": status, "q": q, "type_id": type_id}},
+                {
+                    "filas": len(rows),
+                    "filtros": {
+                        "status": status,
+                        "q": q,
+                        "type_id": type_id,
+                        "courtesy": courtesy,
+                    },
+                },
             )
             await db.commit()
 

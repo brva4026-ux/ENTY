@@ -179,6 +179,14 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
         Una cortesía siempre vale $0 y necesita un cupo definido. Los cupos
         disponibles se calculan con las boletas emitidas de cada localidad.
       </p>
+      {err && (
+        <p
+          role="alert"
+          className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400 ring-1 ring-red-500/30"
+        >
+          {err}
+        </p>
+      )}
       <ul className="mb-4 space-y-2">
         {(types || []).map((t) => (
           <li
@@ -256,7 +264,7 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
                     </span>
                   )}
                 </span>
-                <span className="flex items-center gap-2">
+                <span className="flex flex-wrap items-center gap-2">
                   <span className="tnum text-zinc-400">
                     {t.price_cents > 0
                       ? `$${(t.price_cents / 100).toLocaleString("es-CO")}`
@@ -386,7 +394,6 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
           />
           Cortesía
         </label>
-        {err && <p className="col-span-full text-xs text-red-400">{err}</p>}
         {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
         <button
           type="submit"

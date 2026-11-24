@@ -43,7 +43,12 @@ const EMPTY_FORM = {
   customer_email: "",
 };
 
-export default function PaymentsPanel({ venueId, events = [], initialEventId = "" }) {
+export default function PaymentsPanel({
+  venueId,
+  events = [],
+  initialEventId = "",
+  report = null,
+}) {
   const [eventId, setEventId] = useState(() =>
     initialEventId ? String(initialEventId) : "",
   );
@@ -52,6 +57,7 @@ export default function PaymentsPanel({ venueId, events = [], initialEventId = "
   const [form, setForm] = useState(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
   // Último cobro creado: su URL es lo único que el admin necesita AHORA
   // (mandarla). Se guarda con el contacto para armar el wa.me directo.
   const [created, setCreated] = useState(null);
@@ -59,21 +65,50 @@ export default function PaymentsPanel({ venueId, events = [], initialEventId = "
 
   const activeTypes = types.filter((t) => t.is_active);
   const event = events.find((e) => String(e.id) === String(eventId));
+  const paymentsLoaded = payments !== null;
+  const paidCents = paymentsLoaded
+    ? payments.items
+        .filter((p) => p.status === "approved")
+        .reduce((n, p) => n + (p.amount_in_cents ?? 0), 0)
+    : null;
+  const pendingItems = paymentsLoaded
+    ? payments.items.filter((p) => p.status === "pending")
+    : [];
+  const pendingCents = paymentsLoaded
+    ? pendingItems.reduce((n, p) => n + (p.amount_in_cents ?? 0), 0)
+    : null;
+  const reviewItems = paymentsLoaded
+    ? payments.items.filter((p) => p.status === "paid_unfulfilled")
+    : [];
 
   useEffect(() => {
     if (!eventId && events.length === 1) setEventId(String(events[0].id));
   }, [eventId, events]);
 
+  // El backstage puede cambiar de evento sin desmontar el panel. Sin este
+  // sync, el selector conservaba el evento anterior y "Cargando…" quedaba
+  // mostrando cobros de otra noche.
+  useEffect(() => {
+    if (
+      initialEventId &&
+      events.length <= 1 &&
+      String(initialEventId) !== String(eventId)
+    ) {
+      setEventId(String(initialEventId));
+    }
+  }, [initialEventId, eventId, events.length]);
+
   const loadPayments = useCallback(async () => {
     if (!eventId) return;
     setPayments(null);
+    setLoadError("");
     try {
       const data = await apiFetch(
         `/venues/${venueId}/events/${eventId}/payments`,
       );
       setPayments(data);
     } catch (err) {
-      setError(err.message);
+      setLoadError(err.message);
       setPayments({ total: 0, items: [] });
     }
   }, [venueId, eventId]);
@@ -173,26 +208,71 @@ export default function PaymentsPanel({ venueId, events = [], initialEventId = "
 
   return (
     <div className="space-y-4">
-      {/* Selector de evento: el cobro siempre pertenece a una noche. */}
+      {/* Selector de evento: el cobro siempre pertenece a una noche. En el
+          backstage ya hay una noche abierta, así que se muestra como dato. */}
       <div className="card p-4">
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-zinc-400">
-            Evento
-          </span>
-          <select
-            value={eventId}
-            onChange={(e) => setEventId(e.target.value)}
-            className="field"
-          >
-            <option value="">Elige el evento…</option>
-            {events.map((ev) => (
-              <option key={ev.id} value={ev.id}>
-                {ev.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {events.length > 1 ? (
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-zinc-400">
+              Evento
+            </span>
+            <select
+              value={eventId}
+              onChange={(e) => setEventId(e.target.value)}
+              className="field"
+            >
+              <option value="">Elige el evento…</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <p className="text-sm text-zinc-400">
+            Evento{" "}
+            <strong className="text-zinc-100">{event?.name ?? "por elegir"}</strong>
+          </p>
+        )}
       </div>
+
+      {eventId && (
+        <div className="card p-4 bs-payment-summary">
+          <div className="bs-state-grid bs-state-grid--metrics mt-2">
+            <div className="bs-metric">
+              <span>Dinero cobrado</span>
+              <strong className="tnum">
+                {loadError ? "Sin dato" : paidCents == null ? "…" : money(paidCents)}
+              </strong>
+              <small>Pagos aprobados por Wompi.</small>
+            </div>
+            <div className="bs-metric">
+              <span>Pagos pendientes</span>
+              <strong className="tnum">
+                {loadError ? "Sin dato" : pendingCents == null ? "…" : money(pendingCents)}
+              </strong>
+              <small>
+                {loadError
+                  ? "No se pudo leer la lista."
+                  : `${pendingItems.length} ${pendingItems.length === 1 ? "cobro" : "cobros"} por confirmar.`}
+              </small>
+            </div>
+            <div className="bs-metric">
+              <span>Reembolsos</span>
+              <strong className="tnum">{report ? report.refunded ?? 0 : "Sin dato"}</strong>
+              <small>Boletas reembolsadas en este evento.</small>
+            </div>
+            <div className="bs-metric">
+              <span>Pagos por revisar</span>
+              <strong className="tnum" data-tone={reviewItems.length ? "warn" : undefined}>
+                {loadError ? "Sin dato" : paymentsLoaded ? reviewItems.length : "…"}
+              </strong>
+              <small>Pagados sin boleta emitida; requieren reembolso o emisión.</small>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sin evento elegido aún: en vez de un vacío mudo, guiar a la acción
           (la misma gramática de EmptyState en el resto de la app). */}
@@ -369,13 +449,21 @@ export default function PaymentsPanel({ venueId, events = [], initialEventId = "
 
           {/* Cobros del evento: estado y boleta emitida, del más nuevo abajo
               de la creación (el listado va del más nuevo al más viejo). */}
-          {payments === null ? (
+          {loadError && (
+            <div className="admin-error" role="alert">
+              <span>{loadError}</span>
+              <button type="button" className="btn-mini" onClick={loadPayments}>
+                Reintentar
+              </button>
+            </div>
+          )}
+          {payments === null && !loadError ? (
             <div className="card p-4 text-sm text-zinc-500">Cargando…</div>
-          ) : payments.total === 0 ? (
+          ) : (payments?.total ?? 0) === 0 && !loadError ? (
             <div className="card p-4 text-sm text-zinc-500">
               Aún no hay cobros para este evento.
             </div>
-          ) : (
+          ) : (payments?.total ?? 0) > 0 ? (
             <div className="card p-4">
               <p className="display mb-3 text-base">
                 Cobros del evento{" "}
@@ -441,7 +529,7 @@ export default function PaymentsPanel({ venueId, events = [], initialEventId = "
                 })}
               </ul>
             </div>
-          )}
+          ) : null}
         </>
       )}
     </div>

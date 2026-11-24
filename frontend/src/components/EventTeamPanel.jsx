@@ -343,6 +343,43 @@ function Roster({
   linkReciente,
   event,
 }) {
+  const linkState = (p) => {
+    if (usados.has(p.user_id) || p.link_used_at) {
+      return { label: "Activado", tone: "live", detail: "Enlace canjeado · escáner activo" };
+    }
+    if (p.link_revoked_at) {
+      return { label: "Revocado", tone: "warn", detail: "Enlace revocado" };
+    }
+    if (p.has_link && p.link_expires_at && new Date(p.link_expires_at) <= new Date()) {
+      return {
+        label: "Vencido",
+        tone: "warn",
+        detail: `Enlace vencido el ${new Date(p.link_expires_at).toLocaleDateString("es-CO")}`,
+      };
+    }
+    if (p.has_link) {
+      return {
+        label: "Pendiente",
+        tone: "pending",
+        detail: `Vigente hasta ${
+          p.link_expires_at
+            ? new Date(p.link_expires_at).toLocaleString("es-CO", {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "—"
+        }${linkReciente?.user_id === p.user_id ? " · lo tenés en pantalla" : ""}`,
+      };
+    }
+    return {
+      label: "Sin enlace",
+      tone: "muted",
+      detail: "Sin enlace: no puede entrar a la puerta",
+    };
+  };
+
   return (
     <div className="card p-4">
       <div className="flex items-center gap-2">
@@ -363,39 +400,24 @@ function Roster({
             className="flex items-center gap-2 rounded-lg bg-zinc-940 px-3 py-2"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-zinc-100">
-                {p.full_name}
+              <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-zinc-100">
+                <span className="truncate">{p.full_name}</span>
+                {(() => {
+                  const state = linkState(p);
+                  return (
+                    <span
+                      className="bs-status"
+                      data-status={state.tone === "live" ? "live" : undefined}
+                      data-tone={state.tone}
+                    >
+                      <span className="bs-status-dot" aria-hidden="true" />
+                      {state.label}
+                    </span>
+                  );
+                })()}
               </p>
               <p className="truncate text-2xs text-zinc-500">
-                {usados.has(p.user_id) || p.link_used_at ? (
-                  <span className="text-emerald-400">
-                    Enlace canjeado · escáner activo
-                  </span>
-                ) : p.has_link ? (
-                  <span className="text-emerald-400">
-                    Vigente hasta{" "}
-                    {p.link_expires_at
-                      ? new Date(p.link_expires_at).toLocaleString("es-CO", {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "—"}
-                    {linkReciente?.user_id === p.user_id
-                      ? " · lo tenés en pantalla"
-                      : ""}
-                  </span>
-                ) : p.link_revoked_at ? (
-                  <span className="text-amber-400">Enlace revocado</span>
-                ) : p.link_expires_at ? (
-                  <span className="text-amber-400">
-                    Enlace vencido el{" "}
-                    {new Date(p.link_expires_at).toLocaleDateString("es-CO")}
-                  </span>
-                ) : (
-                  "Sin enlace: no puede entrar a la puerta"
-                )}
+                {linkState(p).detail}
               </p>
             </div>
             <button

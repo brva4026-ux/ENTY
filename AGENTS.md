@@ -1948,6 +1948,16 @@ La marca vive en `components/Brand.jsx`: `EntySymbol` es el boleto inclinado y
 `Logo` el lockup símbolo + «Enty». Cualquier superficie nueva debe usar esas
 piezas; el favicon (`public/icon.svg`) replica el mismo trazo.
 
+Ventas se organiza en tres vistas dentro de `SalesLedger`
+(`AdminEventWorkspace.jsx`): boletas, invitados y cobros. La vista de invitados
+usa `TicketList` con `courtesyOnly`, que viaja como `?courtesy=true` hasta el
+listado y el CSV del backend. Accesos vive en `AccesosPanel.jsx` y cambia su
+lectura principal según el estado: pulso operativo, puerta en vivo o cierre.
+
+`pytest` usa la misma base que desarrollo (`TEST_DATABASE_URL` cae en
+`ticketflow`), así que una corrida borra el seed. Después de probar el backend,
+reconstruir con `.venv/bin/python scripts/reset_dev_db.py` antes de abrir la UI.
+
 ## Ficha pública y vista previa móvil
 
 La ficha que abre un fan sin cuenta es `pages/EventDetailPage.jsx`; fuerza el

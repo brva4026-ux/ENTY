@@ -1,7 +1,7 @@
 import { AuthBackdrop } from "./AuthBackdrop";
 import { LoginAurora } from "./LoginAurora";
 import { LoginVideo } from "./LoginVideo";
-import { Logo } from "./Brand";
+import { Logo, EntySymbol } from "./Brand";
 import { LegalLinks } from "./LegalLinks";
 
 /**
@@ -90,13 +90,8 @@ export function AuthShell({ children, minimal = false, tone = "dark" }) {
           </g>
         </svg>
 
-        {/* La estrella de cuatro puntas, como marca de agua de esquina. */}
-        <svg className="auth-brand-mark" viewBox="0 0 512 512" aria-hidden="true">
-          <path
-            fill="#BB5CF6"
-            d="M256 40 l58 158 158 58 -158 58 -58 158 -58 -158 -158 -58 158 -58 z"
-          />
-        </svg>
+        {/* El boleto de Enty, como marca de agua de esquina. */}
+        <EntySymbol size={416} className="auth-brand-mark" />
 
         <div className="auth-brand-top">
           <Logo size="xl" />

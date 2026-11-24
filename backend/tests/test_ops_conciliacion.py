@@ -118,6 +118,40 @@ def test_payment_method_flows_to_list_and_csv(api, world):
     assert "transferencia" in csv.text
 
 
+def test_ticket_list_filters_courtesy(api, world):
+    """Invitados y cortesías es una vista real: el filtro separa la lista
+    nominal de las boletas pagadas, también en el CSV."""
+    venue, ev, paid_tid = _live_event_with_type(api, world)
+    free = api.add_type(
+        "admin", venue, ev,
+        name="Cortesia", price_cents=0, quantity=10, is_courtesy=True,
+    )
+    assert _emit(api, venue, ev, type_id=paid_tid).status_code == 201
+    assert _emit(api, venue, ev, type_id=free["id"]).status_code == 201
+
+    all_tickets = api.get(f"/venues/{venue}/events/{ev}/tickets", "admin").json()
+    assert all_tickets["total"] == 2
+
+    courtesy = api.get(
+        f"/venues/{venue}/events/{ev}/tickets?courtesy=true", "admin"
+    ).json()
+    assert courtesy["total"] == 1
+    assert courtesy["items"][0]["type_name"] == "Cortesia"
+
+    paid = api.get(
+        f"/venues/{venue}/events/{ev}/tickets?courtesy=false", "admin"
+    ).json()
+    assert paid["total"] == 1
+    assert paid["items"][0]["type_name"] == "General"
+
+    csv = api.get(
+        f"/venues/{venue}/events/{ev}/tickets?format=csv&courtesy=true", "admin"
+    )
+    assert csv.status_code == 200, csv.text
+    assert "Cortesia" in csv.text
+    assert "General" not in csv.text
+
+
 def test_closing_csv_breaks_cash_down_by_payment_method(api, world):
     """El cierre agrupa por medio: el efectivo es el único número contable
     contra el cajón; el resto se concilia aparte."""
