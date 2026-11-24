@@ -36,10 +36,15 @@ async def _ensure_fan_ticket(
         "SELECT id FROM tickets WHERE event_id=%s AND customer_email=%s",
         (event_id, email),
     )
-    if await cur.fetchone():
+    existing = await cur.fetchone()
+    if existing:
+        await cur.execute(
+            "UPDATE tickets SET sale_channel='promoter_quota' WHERE id=%s",
+            (existing["id"],),
+        )
         return
     await cur.execute(
-        "SELECT emit_ticket(%s, %s, %s, %s, %s, %s, %s, %s)",
+        "SELECT emit_ticket(%s, %s, %s, %s, %s, %s, %s, %s) AS id",
         (
             event_id,
             ticket_type_id,
@@ -50,6 +55,10 @@ async def _ensure_fan_ticket(
             phone,
             email,
         ),
+    )
+    await cur.execute(
+        "UPDATE tickets SET sale_channel='promoter_quota' WHERE id=%s",
+        ((await cur.fetchone())["id"],),
     )
 
 

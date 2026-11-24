@@ -31,6 +31,7 @@ export default function FanCheckoutModal({
   onClose,
   onPaid,
   waitingPass = null,
+  promoterRef = null,
   onWaitingPassRejected = null,
 }) {
   const { dialogRef, titleId } = useDialogA11y({ onClose });
@@ -201,6 +202,9 @@ export default function FanCheckoutModal({
         // Pase de la sala de espera (mig 055/056). Sin él, el servidor
         // rechaza el cobro con 429 cuando el evento tiene la sala activa.
         waiting_pass: waitingPass || null,
+        // Atribución del link del promotor (mig 063). El servidor la valida
+        // contra el evento; si ya no sirve, la compra sigue sin atribución.
+        promoter_ref: promoterRef || null,
       });
       // Recuerda el contacto: es con el que reclamará su QR en /boletas.
       const contact = (email.trim() || phone.trim()).toLowerCase();

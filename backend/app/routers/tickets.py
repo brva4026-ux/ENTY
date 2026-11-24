@@ -89,11 +89,46 @@ async def emit_ticket(
     raw_token = secrets.token_urlsafe(24)  # ~32 bytes de entropia -> va al QR
 
     async with db.cursor() as cur:
+        # Idempotencia (mig 063): un doble toque o un reintento después de
+        # perder la respuesta no puede gastar dos cupos. La clave es del
+        # cliente y se guarda con la boleta; el índice único cierra la carrera
+        # entre dos requests simultáneos.
+        if body.client_request_id:
+            await cur.execute(
+                """
+                SELECT id, status::text AS status, sale_channel
+                  FROM tickets
+                 WHERE event_id=%s AND sold_by_user_id=%s
+                   AND client_request_id=%s
+                """,
+                (event_id, user["id"], body.client_request_id),
+            )
+            existing = await cur.fetchone()
+            if existing:
+                return TicketEmitResponse(
+                    ticket_id=existing["id"],
+                    raw_token=None,
+                    status=existing["status"],
+                    duplicate=True,
+                    sale_channel=existing["sale_channel"],
+                )
+
         await cur.execute(
             "SELECT 1 FROM events WHERE id=%s AND venue_id=%s", (event_id, venue_id)
         )
         if not await cur.fetchone():
             raise HTTPException(404, "Evento no encontrado")
+
+        # Origen legible: cupo asignado, emisión directa del promotor o venta
+        # de taquilla de la organización. La atribución (sold_by_user_id) ya
+        # existía; esto la vuelve explícita para ventas y comisiones.
+        roles_here = (user.get("roles") or {}).get(venue_id) or []
+        if body.allocation_id is not None:
+            sale_channel = "promoter_quota"
+        elif "promotor" in roles_here and "admin" not in roles_here:
+            sale_channel = "promoter_direct"
+        else:
+            sale_channel = "venue"
 
         try:
             await cur.execute(
@@ -114,12 +149,91 @@ async def emit_ticket(
                 ),
             )
             row = await cur.fetchone()
+            ticket_id = row["emit_ticket"] if isinstance(row, dict) else row[0]
+            if body.client_request_id:
+                await cur.execute(
+                    "UPDATE tickets SET client_request_id=%s, sale_channel=%s WHERE id=%s",
+                    (body.client_request_id, sale_channel, ticket_id),
+                )
+            else:
+                await cur.execute(
+                    "UPDATE tickets SET sale_channel=%s WHERE id=%s",
+                    (sale_channel, ticket_id),
+                )
             await db.commit()
+        except psycopg.errors.UniqueViolation:
+            # Otra request con la misma clave ganó la carrera. Se revierte
+            # esta emisión y se devuelve la boleta que sí quedó guardada.
+            await db.rollback()
+            async with db.cursor() as cur2:
+                await cur2.execute(
+                    """
+                    SELECT id, status::text AS status, sale_channel
+                      FROM tickets
+                     WHERE event_id=%s AND sold_by_user_id=%s
+                       AND client_request_id=%s
+                    """,
+                    (event_id, user["id"], body.client_request_id),
+                )
+                existing = await cur2.fetchone()
+            if not existing:
+                raise
+            return TicketEmitResponse(
+                ticket_id=existing["id"],
+                raw_token=None,
+                status=existing["status"],
+                duplicate=True,
+                sale_channel=existing["sale_channel"],
+            )
         except psycopg.errors.Error as e:
             _handle(venue_id, e)
 
-    ticket_id = row["emit_ticket"] if isinstance(row, dict) else row[0]
-    return TicketEmitResponse(ticket_id=ticket_id, raw_token=raw_token, status="issued")
+    return TicketEmitResponse(
+        ticket_id=ticket_id,
+        raw_token=raw_token,
+        status="issued",
+        sale_channel=sale_channel,
+    )
+
+
+@router.get(
+    "/events/{event_id}/tickets/by-request/{client_request_id}",
+    response_model=TicketEmitResponse,
+)
+async def ticket_by_request(
+    venue_id: int,
+    event_id: int,
+    client_request_id: str,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Recupera el resultado de una emisión cuyo response se perdió.
+
+    No devuelve el token crudo (la DB solo guarda su hash). La UI muestra
+    «Comprobando emisión» y, si la boleta existe, ofrece reemitir el enlace.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.id, t.status::text AS status, t.sale_channel
+              FROM tickets t
+              JOIN events e ON e.id = t.event_id
+             WHERE t.event_id=%s AND e.venue_id=%s
+               AND t.sold_by_user_id=%s AND t.client_request_id=%s
+            """,
+            (event_id, venue_id, user["id"], client_request_id),
+        )
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Todavía no hay una boleta para este intento")
+    return TicketEmitResponse(
+        ticket_id=row["id"],
+        raw_token=None,
+        status=row["status"],
+        duplicate=True,
+        sale_channel=row["sale_channel"],
+    )
 
 
 @router.get("/events/{event_id}/tickets/mine", response_model=TicketHistoryOut)
@@ -145,8 +259,10 @@ async def my_tickets(
 
         await cur.execute(
             """
-            SELECT t.id, t.customer_name, t.customer_phone, t.status::text AS status,
-                   t.issued_at, tt.name AS ticket_type, tt.is_courtesy
+            SELECT t.id, t.customer_name, t.customer_phone, t.customer_email,
+                   t.status::text AS status, t.issued_at, t.redeemed_at,
+                   t.price_cents_snapshot, t.payment_method, t.sale_channel,
+                   tt.name AS ticket_type, tt.is_courtesy
             FROM tickets t
             JOIN ticket_types tt ON tt.id = t.ticket_type_id
             WHERE t.event_id = %s AND t.sold_by_user_id = %s
@@ -163,10 +279,15 @@ async def my_tickets(
                 ticket_id=r["id"],
                 customer_name=r["customer_name"],
                 customer_phone=r["customer_phone"],
+                customer_email=r["customer_email"],
                 ticket_type=r["ticket_type"],
                 is_courtesy=r["is_courtesy"] or False,
                 status=r["status"],
                 issued_at=r["issued_at"],
+                price_cents=r["price_cents_snapshot"] or 0,
+                payment_method=r["payment_method"],
+                sale_channel=r["sale_channel"] or "venue",
+                redeemed_at=r["redeemed_at"],
             )
             for r in rows
         ]

@@ -78,6 +78,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "060_backstage_coupons_lineup.sql",
     ROOT / "db" / "migrations" / "061_notification_event_context.sql",
     ROOT / "db" / "migrations" / "062_login_lockout_ignores_sentinels.sql",
+    ROOT / "db" / "migrations" / "063_promoter_workspace.sql",
 ]
 
 
@@ -103,6 +104,7 @@ def db():
     conn.execute(
         """
         DROP TABLE IF EXISTS notifications, push_outbox, staff_invitations, push_subscriptions, ticket_reissues,
+            promoter_sale_issues, promoter_payout_items, promoter_link_events, promoter_links,
             -- Perfil (mig 059): cuelgan de users. DROP TABLE ... CASCADE no
             -- borra las tablas que referencian, solo sus FKs, asi que hay que
             -- listarlas o schema.sql choca con DuplicateTable.

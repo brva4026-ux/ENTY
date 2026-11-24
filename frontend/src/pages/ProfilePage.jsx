@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { activeVenueId, setActiveVenueId } from "../lib/venue";
-import { ROLE_LABELS, ROLE_VISUALS, topRole } from "../lib/roles";
+import { ROLE_LABELS, ROLE_VISUALS, operationalRoles, roleIdentity, topRole } from "../lib/roles";
 import { useUI } from "../lib/ui";
 import { haptics } from "../lib/haptics";
 import { fileToDataUrl } from "../lib/imageUpload";
@@ -587,10 +587,8 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  // Rol de cabecera = el más alto (mismo criterio que el topbar), y su
-  // identidad visual sale de ROLE_VISUALS para no divergir del equipo.
-  const role = topRole(user) ?? "bouncer";
-  const visual = ROLE_VISUALS[role] ?? ROLE_VISUALS.bouncer;
+  // Rol de cabecera = el de la organización activa, no el más alto de la
+  // cuenta: el perfil debe decir desde dónde estás operando ahora.
   const activeVenueRole = activeVenue
     ? topRole({
         roles: {
@@ -598,7 +596,10 @@ export default function ProfilePage() {
         },
       })
     : null;
+  const role = activeVenueRole ?? topRole(user) ?? "bouncer";
+  const visual = ROLE_VISUALS[role] ?? ROLE_VISUALS.bouncer;
   const activeVenueVisual = ROLE_VISUALS[activeVenueRole] ?? visual;
+  const switchableRoles = operationalRoles(user);
 
   const memberSince = longDate(user.created_at);
   const lastSeen = sinceLabel(user.last_login_at);
@@ -675,6 +676,7 @@ export default function ProfilePage() {
     resetVenueDraft();
     if (action?.type === "tab") applyTab(action.id);
     if (action?.type === "venue") performVenueSwitch(action.venue);
+    if (action?.type === "role") switchRole(action.role);
     if (action?.type === "link") nav(action.href);
   }
 
@@ -686,6 +688,7 @@ export default function ProfilePage() {
     setPendingAction(null);
     if (action?.type === "tab") applyTab(action.id);
     if (action?.type === "venue") performVenueSwitch(action.venue);
+    if (action?.type === "role") switchRole(action.role);
     if (action?.type === "link") nav(action.href);
   }
 
@@ -1054,11 +1057,35 @@ export default function ProfilePage() {
       setCurrentVenueId(venue.id);
       setUser(updated);
       ui.success(`Trabajando en ${venue.name}.`);
+      return true;
     } catch (err) {
       ui.error(err.message || "No pudimos cambiar de organización.");
+      return false;
     } finally {
       setVenueSwitchBusy(false);
     }
+  }
+
+  /** Cambia de rol llevando la organización activa a una donde ese rol exista. */
+  async function switchRole(nextRole) {
+    if (venueSwitchBusy) return;
+    const wanted = nextRole === "admin" ? ["admin", "super_admin"] : [nextRole];
+    const targetVenue = (user.venues || []).find((v) =>
+      (user.roles?.[String(v.id)] || []).some((r) => wanted.includes(r)),
+    );
+    if (targetVenue && targetVenue.id !== currentVenueId) {
+      const ok = await performVenueSwitch(targetVenue);
+      if (!ok) return;
+    }
+    nav(roleIdentity(nextRole).home);
+  }
+
+  function requestRoleSwitch(nextRole) {
+    if (guardDirty) {
+      setPendingAction({ type: "role", role: nextRole });
+      return;
+    }
+    switchRole(nextRole);
   }
 
   function switchVenue(venue) {
@@ -1211,6 +1238,26 @@ export default function ProfilePage() {
                   : "Sin organización activa"}
               </span>
             </div>
+            {switchableRoles.length > 1 && (
+              <div className="pf-role-switch" role="group" aria-label="Cambiar de rol">
+                <span className="pf-hint">Cambiar de rol:</span>
+                {switchableRoles.map((r) => {
+                  const ident = roleIdentity(r);
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      className={`pf-context-option${r === role ? " is-on" : ""}`}
+                      aria-pressed={r === role}
+                      onClick={() => requestRoleSwitch(r)}
+                    >
+                      <Icon name={ident.icon} className="h-3.5 w-3.5" aria-hidden="true" />
+                      {roleLabel(r)}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Acciones de la sesión: el perfil es donde se cierra sesión. */}

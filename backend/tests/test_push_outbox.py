@@ -92,10 +92,19 @@ def test_drain_once_marks_letter_processed(db, dbcur, world):
         conn = await psycopg.AsyncConnection.connect(
             _dsn(), autocommit=True, row_factory=dict_row
         )
+        total = 0
         try:
-            return await _drain_once(conn)
+            # La suite comparte la DB y los triggers de asignación dejan cartas
+            # pendientes. Drenamos tandas hasta vaciar la cola para que el
+            # contrato se verifique sobre la carta de ESTE test.
+            for _ in range(200):
+                processed = await _drain_once(conn)
+                if processed == 0:
+                    break
+                total += processed
         finally:
             await conn.close()
+        return total
 
     processed = asyncio.run(_drain())
     assert processed >= 1

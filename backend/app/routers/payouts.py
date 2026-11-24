@@ -181,6 +181,31 @@ async def generate_payout(
             )
         payout_id = (await cur.fetchone())["id"]
 
+        # Congela las boletas incluidas (mig 063): el detalle que verá el
+        # promotor después no cambia si una boleta se anula más tarde. Los
+        # totales de la liquidación siguen siendo la fuente de verdad.
+        await cur.execute(
+            """
+            INSERT INTO promoter_payout_items
+                (payout_id, ticket_id, event_id, ticket_type_id, issued_at,
+                 price_cents, sale_channel, status_at_close)
+            SELECT %s, t.id, t.event_id, t.ticket_type_id, t.issued_at,
+                   t.price_cents_snapshot, coalesce(t.sale_channel, 'venue'),
+                   t.status::text
+              FROM tickets t
+              JOIN events e ON e.id = t.event_id
+             WHERE e.venue_id = %s
+               AND t.sold_by_user_id = %s
+               AND t.status IN ('issued','redeemed')
+               AND t.issued_at >= %s::date
+               AND t.issued_at < (%s::date + INTERVAL '1 day')
+            """,
+            (
+                payout_id, venue_id, body.promoter_id,
+                body.period_start, body.period_end,
+            ),
+        )
+
         row = await _get_payout(cur, venue_id, payout_id)
         # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
     return row

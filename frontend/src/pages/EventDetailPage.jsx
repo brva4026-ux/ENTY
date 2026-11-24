@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { fetchPublicEventDetail } from "../lib/api";
+import { fetchPublicEventDetail, recordPromoterLinkVisit } from "../lib/api";
 import ContactSupport from "../components/ContactSupport";
 import FanCheckoutModal from "../components/FanCheckoutModal";
 import WaitingRoomOverlay from "../components/WaitingRoomOverlay";
@@ -168,6 +168,21 @@ export default function EventDetailPage() {
   // Referencia del checkout al volver de Wompi (redirect_url del cobro).
   const payRef = searchParams.get("pago");
   const preview = searchParams.get("preview") === "1";
+  // Link público de un promotor (mig 063). Solo se usa para atribuir; no se
+  // muestra ni se comparte de vuelta.
+  const promoterRef = searchParams.get("ref");
+
+  useEffect(() => {
+    if (!promoterRef) return;
+    const key = `tf_promo_visit_${promoterRef}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      /* modo privado: se cuenta igual */
+    }
+    recordPromoterLinkVisit(promoterRef).catch(() => {});
+  }, [promoterRef]);
 
   /** Acciones del cartel (volver, favorito, compartir). Se dibujan sobre la
    *  portada, que es la misma pieza en móvil y escritorio. Es una función de
@@ -1009,6 +1024,7 @@ export default function EventDetailPage() {
         <FanCheckoutModal
           event={data}
           reference={payRef}
+          promoterRef={promoterRef}
           waitingPass={waitingRoom.passToken}
           onWaitingPassRejected={() => {
             // El pase vencio o no le tocaba: vuelve a la fila a por otro.

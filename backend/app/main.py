@@ -39,6 +39,7 @@ from app.routers import (
     notifications,
     payments,
     payouts,
+    promoter,
     public,
     public_tickets,
     push,
@@ -220,6 +221,7 @@ def create_app() -> FastAPI:
     app.include_router(event_staff.router)
     app.include_router(scanner.router)
     app.include_router(payouts.router)
+    app.include_router(promoter.router)
     app.include_router(public.router)
     app.include_router(waitlist.router)
     app.include_router(waiting_room.router)
