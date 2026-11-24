@@ -2307,6 +2307,10 @@ html:not([data-theme="light"]) .admin-shell {
   }
 
   .bs-back {
+    padding: 7px 9px;
+  }
+
+  .bs-back-label {
     display: none;
   }
 

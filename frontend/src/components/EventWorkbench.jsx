@@ -201,9 +201,14 @@ export default function EventWorkbench({
             </div>
 
             <div className="bs-head-actions">
-              <button type="button" onClick={onExit} className="bs-back">
+              <button
+                type="button"
+                onClick={onExit}
+                className="bs-back"
+                aria-label="Volver a Eventos"
+              >
                 <Icon name="back" className="h-4 w-4" aria-hidden="true" />
-                Volver a Eventos
+                <span className="bs-back-label">Volver a Eventos</span>
               </button>
               {menuItems.length > 0 && (
                 <ActionMenu label={`Opciones de ${ev.name}`} items={menuItems} />
