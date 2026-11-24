@@ -3039,10 +3039,6 @@ html:not([data-theme="light"]) .admin-shell {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .bs-kicker {
-    display: none;
-  }
-
   .bs-actions {
     gap: 6px;
   }
