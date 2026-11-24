@@ -45,6 +45,12 @@ const KIND_TILE = {
   sales_closed: { icon: "money", tile: "bg-emerald-500/15 text-emerald-400" },
   sale_issue_created: { icon: "flag", tile: "bg-rose-500/15 text-rose-400" },
   sale_issue_resolved: { icon: "check", tile: "bg-emerald-500/15 text-emerald-400" },
+  door_incident_opened: { icon: "flag", tile: "bg-rose-500/15 text-rose-400" },
+  door_incident_updated: { icon: "flag", tile: "bg-amber-500/15 text-amber-400" },
+  door_incident_resolved: { icon: "check", tile: "bg-emerald-500/15 text-emerald-400" },
+  door_shift_requested: { icon: "users", tile: "bg-amber-500/15 text-amber-400" },
+  door_shift_changed: { icon: "clock", tile: "bg-teal-500/15 text-teal-300" },
+  door_device_revoked: { icon: "lock", tile: "bg-rose-500/15 text-rose-400" },
 };
 
 const KIND_LABEL = {
@@ -66,6 +72,12 @@ const KIND_LABEL = {
   sales_closed: "Ventas cerradas",
   sale_issue_created: "Incidencia",
   sale_issue_resolved: "Incidencia resuelta",
+  door_incident_opened: "Incidencia de puerta",
+  door_incident_updated: "Incidencia actualizada",
+  door_incident_resolved: "Incidencia resuelta",
+  door_shift_requested: "Relevo de puerta",
+  door_shift_changed: "Turno de puerta",
+  door_device_revoked: "Puerta",
 };
 
 export default function NotificationBell() {

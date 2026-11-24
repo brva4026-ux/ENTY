@@ -1,3 +1,14 @@
+/**
+ * Puerta — la app del puesto.
+ *
+ * Una sola pantalla para la noche: escanear (centro), cambiar de cifra
+ * (Entrada/Salida), abrir código manual, resolver incidencias y revisar el
+ * turno. La cámara no se tapa con menús; las tres acciones viven al pie.
+ *
+ * La autorización es del TELÉFONO (mig 064): el link de Puerta se canjea una
+ * vez y deja un token de dispositivo. Relevar o revocar el puesto lo mata en
+ * el servidor, no solo en esta interfaz.
+ */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
@@ -10,239 +21,315 @@ import {
 } from "../lib/wakeLock";
 import { useAuth } from "../lib/auth";
 import { useUI } from "../lib/ui";
-import { forceDarkOnce } from "../lib/theme";
 import { haptics } from "../lib/haptics";
-import { useLiveRefresh } from "../lib/useLiveRefresh";
 import {
   downloadSnapshot,
   getSnapshot,
   pendingCount,
+  pendingIncidentCount,
+  queueIncident,
   queueRedemption,
+  syncIncidentQueue,
   syncQueue,
   validateOffline,
 } from "../lib/doorCache";
-import { LiveIndicator } from "../components/Brand";
-import { PushToggle } from "../components/PushToggle";
+import { clearDoorDevice, doorHeaders, getDoorDevice } from "../lib/doorDevice";
+import { Logo } from "../components/Brand";
 import Icon from "../components/Icon";
-import ActionMenu from "../components/ActionMenu";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
-const RESULT_STYLES = {
+const RESULT_RESET_MS = 7000;
+
+const RESULT_META = {
   GRANTED: {
-    bg: "bg-emerald-600",
-    text: "ENTRA",
-    icon: "✓",
-    sub: "Boleta válida",
+    tone: "ok",
+    icon: "check",
+    kicker: "Ingreso confirmado",
+    title: "Puede entrar",
+  },
+  EXITED: {
+    tone: "ok",
+    icon: "arrowRight",
+    kicker: "Salida registrada",
+    title: "Salió del recinto",
+  },
+  GRANTED_OFFLINE: {
+    tone: "ok",
+    icon: "check",
+    kicker: "Validada en este teléfono",
+    title: "Puede entrar",
+    detail: "Pendiente de confirmar cuando vuelva la conexión.",
   },
   ALREADY_REDEEMED: {
-    bg: "bg-red-600",
-    text: "YA USADA",
-    icon: "✗",
-    sub: "Presentada anteriormente",
+    tone: "danger",
+    icon: "close",
+    kicker: "Boleta ya utilizada",
+    title: "No puede volver a entrar",
+  },
+  ALREADY_REDEEMED_OFFLINE: {
+    tone: "danger",
+    icon: "close",
+    kicker: "Escaneada en este teléfono",
+    title: "Ya está en la cola de sincronización",
+  },
+  ALREADY_OUTSIDE: {
+    tone: "warn",
+    icon: "alert",
+    kicker: "Salida repetida",
+    title: "Ya había salido",
+  },
+  WRONG_TYPE: {
+    tone: "warn",
+    icon: "arrowRight",
+    kicker: "Tipo de boleta incorrecto",
+    title: "Indicá el acceso correcto",
+  },
+  UNDER_AGE: {
+    tone: "warn",
+    icon: "shield",
+    kicker: "Restricción de edad",
+    title: "No cumple la edad mínima",
+  },
+  NOT_ACTIVE: {
+    tone: "warn",
+    icon: "clock",
+    kicker: "QR todavía no activo",
+    title: "Todavía no puede entrar",
   },
   NOT_FOUND: {
-    bg: "bg-red-600",
-    text: "NO EXISTE",
-    icon: "✗",
-    sub: "Código inválido",
+    tone: "danger",
+    icon: "close",
+    kicker: "Código no encontrado",
+    title: "No es una boleta de esta noche",
   },
   INVALID_EVENT: {
-    bg: "bg-zinc-700",
-    text: "OTRO EVENTO",
-    icon: "!",
-    sub: "Boleta de otra fiesta",
+    tone: "warn",
+    icon: "alert",
+    kicker: "Otra noche",
+    title: "Boleta de otro evento",
   },
   EVENT_NOT_LIVE: {
-    bg: "bg-zinc-700",
-    text: "EVENTO CERRADO",
-    icon: "!",
-    sub: "La puerta no está abierta",
+    tone: "warn",
+    icon: "lock",
+    kicker: "Puerta cerrada",
+    title: "El evento no está abierto",
   },
   NOT_VALID: {
-    bg: "bg-red-600",
-    text: "ANULADA",
-    icon: "✗",
-    sub: "Boleta revocada",
-  },
-  // Edad mínima (mig 051): la boleta es válida, pero su dueño no cumple la
-  // restricción del evento. Ámbar, no rojo: no es fraude ni QR quemado — es
-  // una persona que no puede pasar (y el detalle trae la edad mínima).
-  UNDER_AGE: {
-    bg: "bg-amber-600",
-    text: "NO CUMPLE EDAD",
-    icon: "!",
-    sub: "Evento con edad mínima",
-  },
-  // Boleta válida del evento pero de otra fila: no entra y NO se consume
-  // (puede entrar por la fila correcta). El detalle dice de qué fila era.
-  WRONG_TYPE: {
-    bg: "bg-amber-600",
-    text: "FILA EQUIVOCADA",
-    icon: "!",
-    sub: "",
-  },
-  NETWORK_ERROR: {
-    bg: "bg-amber-600",
-    text: "SIN RED",
-    icon: "!",
-    sub: "Revisa tu conexión",
-  },
-  // Error HTTP con mensaje del servidor (p.ej. el evento fue borrado mientras
-  // el portero lo tenía seleccionado): se muestra el detalle real.
-  SCAN_ERROR: { bg: "bg-amber-600", text: "ERROR", icon: "!", sub: "" },
-  // Mig 013: boleta VÁLIDA cuya ventana de activación aún no abrió. Ámbar
-  // (no rojo: no es fraude, es temprano). El detalle trae la hora exacta.
-  NOT_ACTIVE: {
-    bg: "bg-amber-600",
-    text: "AÚN NO ACTIVA",
-    icon: "⏳",
-    sub: "",
-  },
-  // Modo offline: la boleta está en el snapshot descargado. Entra AQUÍ, y la
-  // DB dará la palabra final cuando el escaneo se sincronice.
-  GRANTED_OFFLINE: {
-    bg: "bg-emerald-600",
-    text: "ENTRA (OFFLINE)",
-    icon: "✓",
-    sub: "Validada con el caché de puerta · se sincroniza al volver la red",
-  },
-  // Doble escaneo sin red del MISMO teléfono: la boleta ya está en la cola de
-  // sync, así que NO vuelve a entrar (el snapshot, al ser una foto previa, la
-  // seguía viendo viva).
-  ALREADY_REDEEMED_OFFLINE: {
-    bg: "bg-red-600",
-    text: "YA USADA (OFFLINE)",
-    icon: "✗",
-    sub: "Ya se escaneó en este teléfono · pendiente de sync",
+    tone: "danger",
+    icon: "close",
+    kicker: "Boleta anulada",
+    title: "No puede entrar",
   },
   SNAPSHOT_MISSING: {
-    bg: "bg-amber-600",
-    text: "SIN CACHÉ",
-    icon: "!",
-    sub: "No hay descarga de puerta para este evento",
+    tone: "warn",
+    icon: "alert",
+    kicker: "Sin caché de puerta",
+    title: "No se puede verificar sin red",
+    detail: "Prepará la puerta sin conexión desde Turno.",
   },
-  // Offline y la boleta NO está en el snapshot: probablemente se emitió
-  // después de la descarga. Ámbar, no rojo: no se puede confirmar sin red y
-  // rechazarla sería negar una boleta legítima. Que la DB decida al sincronizar.
   NOT_IN_CACHE: {
-    bg: "bg-amber-600",
-    text: "NO CONFIRMABLE",
-    icon: "!",
-    sub: "No está en la caché (pudo emitirse después). Reconectá para validar.",
+    tone: "warn",
+    icon: "alert",
+    kicker: "No está en la caché",
+    title: "No se puede confirmar sin red",
+    detail: "Pudo emitirse después de la descarga. Reconectá para validar.",
+  },
+  NETWORK_ERROR: {
+    tone: "warn",
+    icon: "alert",
+    kicker: "Sin conexión",
+    title: "No se pudo validar",
+  },
+  DEVICE_REVOKED: {
+    tone: "danger",
+    icon: "lock",
+    kicker: "Autorización de este teléfono",
+    title: "El puesto ya no está autorizado",
+    detail: "Pedile a Administración un link nuevo para este puesto.",
+  },
+  OFFLINE_EXIT: {
+    tone: "warn",
+    icon: "alert",
+    kicker: "Salida sin conexión",
+    title: "La salida necesita conexión",
+    detail: "El aforo lo descuenta el servidor. No se inventa una salida local.",
+  },
+  SCAN_ERROR: {
+    tone: "warn",
+    icon: "alert",
+    kicker: "No se pudo registrar",
+    title: "Revisá el aviso",
   },
 };
 
-// ms que dura el resultado en pantalla antes de volver a escanear
-const RESULT_RESET_MS = 4000;
+const INCIDENT_REASONS = [
+  "Boleta no válida",
+  "QR dañado o ilegible",
+  "Boleta duplicada",
+  "Problema de aforo",
+  "Persona sin boleta",
+  "Otro",
+];
 
-// Etiquetas del log local (cortas: la fila se lee de un vistazo en la puerta).
-const SCAN_LOG_LABEL = {
-  GRANTED: "ENTRA",
-  ALREADY_REDEEMED: "YA USADA",
-  NOT_FOUND: "NO EXISTE",
-  INVALID_EVENT: "OTRO EVENTO",
-  EVENT_NOT_LIVE: "EVENTO CERRADO",
-  NOT_VALID: "ANULADA",
-  UNDER_AGE: "NO CUMPLE EDAD",
-  WRONG_TYPE: "FILA EQUIVOCADA",
-  NETWORK_ERROR: "SIN RED",
-  SCAN_ERROR: "ERROR",
-  NOT_ACTIVE: "AÚN NO ACTIVA",
-  GRANTED_OFFLINE: "ENTRA (OFFLINE)",
-  ALREADY_REDEEMED_OFFLINE: "YA USADA (OFFLINE)",
-  SNAPSHOT_MISSING: "SIN CACHÉ",
-  NOT_IN_CACHE: "NO CONFIRMABLE",
+const INCIDENT_STATUS = {
+  open: { label: "Abierta", tone: "warn" },
+  reviewing: { label: "En revisión", tone: "info" },
+  resolved: { label: "Resuelta", tone: "ok" },
 };
-// Anti-spam de reintentos de NOT_ACTIVE: el servidor no cobra por cada
-// escaneo, pero martillar no cambia la hora del evento.
-const RETRY_COOLDOWN_MS = 20_000;
 
-// Modo kiosco: ms que hay que MANTENER presionado "Salir" para desbloquear.
-// Un toque accidental (bolsillo, roce, niño curioso) no saca a nadie del
-// escáner en plena fila — el patrón de los puntos de venta.
-const EXIT_HOLD_MS = 1500;
+function clock(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+}
+
+function dateTime(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("es-CO", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function waHref(phone, text = "") {
+  const digits = String(phone || "").replace(/[^\d]/g, "");
+  return digits ? `https://wa.me/${digits}?text=${encodeURIComponent(text)}` : null;
+}
+
+function ResultSheet({ result, onClose, onIncident }) {
+  const meta = RESULT_META[result.code] || RESULT_META.SCAN_ERROR;
+  return (
+    <div className="door2-result-backdrop" role="presentation" onClick={onClose}>
+      <section
+        className="door2-result"
+        data-tone={meta.tone}
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={meta.kicker}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="door2-result-icon">
+          <Icon name={meta.icon} className="h-8 w-8" />
+        </div>
+        <p className="door2-result-kicker">{meta.kicker}</p>
+        <h2>{meta.title}</h2>
+        {result.customer_name && <p className="door2-result-name">{result.customer_name}</p>}
+        <div className="door2-result-tags">
+          {result.ticket_type && <span>{result.ticket_type}</span>}
+          {result.ticket_id && <span>#{String(result.ticket_id).padStart(4, "0")}</span>}
+        </div>
+        {(result.detail || meta.detail) && (
+          <p className="door2-result-detail">{result.detail || meta.detail}</p>
+        )}
+        <div className="door2-result-actions">
+          {result.ticket_id && onIncident && (
+            <button type="button" className="door2-btn door2-btn--soft" onClick={onIncident}>
+              <Icon name="flag" className="h-4 w-4" />
+              Reportar incidencia
+            </button>
+          )}
+          <button type="button" className="door2-btn door2-btn--primary" onClick={onClose}>
+            Volver a escanear
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Sheet({ title, subtitle, onClose, children }) {
+  return (
+    <div className="door2-sheet-backdrop" role="presentation" onClick={onClose}>
+      <section
+        className="door2-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="door2-sheet-head">
+          <button type="button" className="door2-back" onClick={onClose} aria-label="Volver">
+            <Icon name="back" className="h-5 w-5" />
+          </button>
+          <div>
+            <h2>{title}</h2>
+            {subtitle && <p>{subtitle}</p>}
+          </div>
+          <span className="door2-sheet-spacer" aria-hidden="true" />
+        </header>
+        <div className="door2-sheet-body">{children}</div>
+      </section>
+    </div>
+  );
+}
 
 export default function BouncerScanner() {
-  useDocumentTitle("Control de puerta");
-  const { user, logout } = useAuth();
+  useDocumentTitle("Puerta · Enty");
+  const { user } = useAuth();
   const ui = useUI();
   const venueId = activeVenueId(user);
-
-  // La puerta SIEMPRE oscura: en un recinto a oscuras un flash de fondo
-  // blanco ciega al portero. forceDarkOnce pone el candado y devuelve el
-  // restaurador que se ejecuta al desmontar (sale el tema del usuario).
-  useEffect(() => {
-    const restore = forceDarkOnce();
-    return restore;
-  }, []);
-
-  const [events, setEvents] = useState(null); // null = primera carga (skeleton)
-  // Evento YA FIJO por el link de puerta. Si vino, esta persona está
-  // asignada a esa noche (mig 025): el selector se aparta y el escaner se
-  // abre en su turno, no en el primero que aparezca.
   const [searchParams] = useSearchParams();
   const fijo = Number(searchParams.get("evento")) || null;
+  const deepIncident = Number(searchParams.get("incidencia")) || null;
+
+  const [events, setEvents] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(fijo);
+  const [context, setContext] = useState(null);
+  const [contextError, setContextError] = useState("");
   const [scanning, setScanning] = useState(false);
-  // La cámara está EN preparar (permiso + hardware): el botón dice lo que pasa
-  // y no parece un cuelgue en móviles lentos, donde puede tardar segundos.
   const [starting, setStarting] = useState(false);
-  // Petición de canje en vuelo: la retícula cambia a "validando" (anillo).
   const [validating, setValidating] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [manualCode, setManualCode] = useState("");
-  // Reintento de NOT_ACTIVE: token esperando y disponibilidad del reintento.
-  const [pendingRetry, setPendingRetry] = useState(null); // raw_token
-  const [retryIn, setRetryIn] = useState(0); // segundos restantes de cooldown
-  // Filtro de fila (v1.1): cuando la venue tiene varias entradas (VIP,
-  // general…), cada teléfono puede quedar asignado a UNA fila. Vacío =
-  // aceptar boletas de cualquier tipo (comportamiento clásico).
-  const [types, setTypes] = useState([]);
-  const [rowFilter, setRowFilter] = useState("");
-  // Puerta de origen (mig 042): en venues con varios accesos, cada teléfono
-  // se identifica con su puerta ("puerta-1", "VIP"…). Vacío = puerta sin
-  // identificar (la verdad, no un valor inventado). Se persiste en
-  // localStorage porque es un dato de ESTE teléfono, no de la sesión: el
-  // bouncer no debería re-elegir su puerta cada vez que abre el escáner.
-  const [doorId, setDoorId] = useState(
-    () => localStorage.getItem("tf_door_id") ?? "",
-  );
-  // Modo del escáner (fase 1 V2): la misma pistola sirve para la puerta de
-  // ENTRADA y para la de SALIDA. Sin egreso, `inside` solo crece y el aforo
-  // termina bloqueando el recinto. Se guarda por teléfono como la puerta.
+  const [panel, setPanel] = useState(null); // manual | incidents | shift
   const [scanMode, setScanMode] = useState(
     () => localStorage.getItem("tf_scan_mode") || "in",
   );
+  const [offline, setOffline] = useState(!navigator.onLine);
+  const [pendingScans, setPendingScans] = useState(0);
+  const [pendingIncidents, setPendingIncidents] = useState(0);
+  const [snapInfo, setSnapInfo] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
-  // Log de los últimos escaneos de ESTE dispositivo (el más nuevo primero).
-  // Para "yo sí entré": el portero muestra la hora y el resultado sin depender
-  // del admin. Nunca sale del teléfono — no es reporte, es respaldo en puerta.
-  const [scanLog, setScanLog] = useState([]);
-  const [logOpen, setLogOpen] = useState(false);
-  // Kiosco (default): pantalla completa, sin selector de evento ni Salir a un
-  // toque. La puerta no navega libre; desbloquear exige mantener presionado.
-  const [kiosk, setKiosk] = useState(true);
-  const [holdPct, setHoldPct] = useState(0);
-  const holdTimerRef = useRef(null);
-  const holdTickRef = useRef(null);
-  // Un solo tick háptico por umbral del desbloqueo (50% y 100%): la mano
-  // siente el progreso sin mirar la barra.
-  const holdBuzz50Ref = useRef(false);
-  const holdBuzz100Ref = useRef(false);
+  const [incidents, setIncidents] = useState([]);
+  const [incidentLoading, setIncidentLoading] = useState(false);
+  const [incidentDetail, setIncidentDetail] = useState(null);
+  const [incidentView, setIncidentView] = useState("list");
+  const [incidentReason, setIncidentReason] = useState(INCIDENT_REASONS[0]);
+  const [incidentNote, setIncidentNote] = useState("");
+  const [incidentTicket, setIncidentTicket] = useState(null);
+  const [incidentComment, setIncidentComment] = useState("");
+  const [incidentChannel, setIncidentChannel] = useState("note");
+  const [incidentBusy, setIncidentBusy] = useState(false);
+
+  const [shiftRequests, setShiftRequests] = useState([]);
+  const [shiftForm, setShiftForm] = useState(false);
+  const [shiftReason, setShiftReason] = useState("");
+  const [shiftPhone, setShiftPhone] = useState("");
+
   const html5Ref = useRef(null);
   const lastScannedRef = useRef("");
   const resetTimerRef = useRef(null);
+  const autoPrepRef = useRef(new Set());
 
-  // Lista de eventos: carga inicial + refresco periódico. El bouncer abre la
-  // app antes de que arranque la fiesta; si el admin "abre puertas" o crea el
-  // evento mientras tanto, el selector se actualiza sin recargar. Solo se
-  // auto-selecciona el primero la PRIMERA vez: nunca se cambia el evento en
-  // pleno turno por una recarga de fondo.
-  //
-  // `fijo` es el evento del link de puerta (/puerta?token=…): cuando viene,
-  // la persona YA está asignada a esa noche (mig 025) y el selector se
-  // aparta — elegir otra sería cambiar de turno con un toque de más.
+  useEffect(() => {
+    if (deepIncident) {
+      setPanel("incidents");
+      loadIncident(deepIncident);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepIncident]);
+
+  useEffect(() => {
+    localStorage.setItem("tf_scan_mode", scanMode);
+  }, [scanMode]);
+
   const loadEvents = useCallback(async () => {
     if (!venueId) return;
     try {
@@ -250,93 +337,162 @@ export default function BouncerScanner() {
       setEvents(data);
       setSelectedEvent((prev) => {
         if (fijo) return fijo;
-        return prev ?? (data.length ? data[0].id : null);
+        if (prev) return prev;
+        return data.find((e) => e.status === "live")?.id ?? data[0]?.id ?? null;
       });
+      return data;
     } catch (e) {
+      setEvents((prev) => prev ?? []);
       setError(e.message);
-      setEvents((prev) => prev ?? []); // null = cargando; un fallo no es "cargando"
+      return [];
     }
   }, [venueId, fijo]);
 
   useEffect(() => {
     loadEvents();
-    return () => {
-      stopScanner();
-      clearTimeout(holdTimerRef.current);
-      clearInterval(holdTickRef.current);
-    };
   }, [loadEvents]);
 
-  const lastEventsUpdate = useLiveRefresh(loadEvents, true, 20_000);
-
-  // Tipos del evento seleccionado: alimentan el filtro de fila. Si el
-  // endpoint falla o no hay tipos, el filtro queda vacío y el escaneo
-  // funciona igual (es opcional, nunca bloquea la puerta).
-  const loadTypes = useCallback(async () => {
-    if (!venueId || !selectedEvent) {
-      setTypes([]);
-      return;
-    }
+  const loadContext = useCallback(async () => {
+    if (!venueId || !selectedEvent) return;
     try {
       const data = await apiFetch(
-        `/venues/${venueId}/events/${selectedEvent}/types`,
+        `/venues/${venueId}/events/${selectedEvent}/door-context`,
+        { headers: doorHeaders(selectedEvent), fresh: true },
       );
-      setTypes(data.filter((t) => t.is_active !== false));
-    } catch {
-      setTypes([]);
+      setContext(data);
+      setContextError("");
+    } catch (e) {
+      setContextError(e.message || "No pudimos leer el estado de la puerta.");
+      if (e.status === 403) setContext(null);
     }
   }, [venueId, selectedEvent]);
 
   useEffect(() => {
-    loadTypes();
-    // Cambiar de evento resetea la fila: un filtro del evento anterior no
-    // debe aplicar silenciosamente al siguiente.
-    setRowFilter("");
-  }, [loadTypes]);
+    loadContext();
+    const id = setInterval(() => {
+      if (!document.hidden) loadContext();
+    }, 15000);
+    const onVisible = () => {
+      if (!document.hidden) loadContext();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [loadContext]);
 
-  // limpieza del timer al desmontar (y del wake lock: la pantalla vuelve a
-  // apagarse normal cuando el bouncer sale del escáner)
-  useEffect(
-    () => () => {
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      releaseWakeLock();
-    },
-    [],
-  );
-
-  // Cuenta atrás del cooldown de reintento (solo mientras hay uno pendiente).
-  // La dependencia es el booleano "está en cooldown", no el contador: si
-  // dependiera de `retryIn`, el interval se recrearía cada segundo (funciona,
-  // pero tira y levanta un timer por nada). Extraído a variable para que el
-  // linter pueda verificarlo estáticamente.
-  const cooling = retryIn > 0;
   useEffect(() => {
-    if (!cooling) return;
-    const id = setInterval(() => setRetryIn((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(id);
-  }, [cooling]);
+    let alive = true;
+    if (!selectedEvent) {
+      setSnapInfo(null);
+      return undefined;
+    }
+    getSnapshot(selectedEvent)
+      .then((s) => {
+        if (alive) setSnapInfo(s ? { count: s.count, generated_at: s.generated_at } : null);
+      })
+      .catch(() => alive && setSnapInfo(null));
+    return () => {
+      alive = false;
+    };
+  }, [selectedEvent]);
+
+  useEffect(() => {
+    if (!selectedEvent || snapInfo || context?.event_status !== "live") return;
+    if (autoPrepRef.current.has(selectedEvent)) return;
+    autoPrepRef.current.add(selectedEvent);
+    downloadSnapshot(venueId, selectedEvent)
+      .then((snap) => setSnapInfo({ count: snap.count, generated_at: snap.generated_at }))
+      .catch(() => autoPrepRef.current.delete(selectedEvent));
+  }, [selectedEvent, snapInfo, context?.event_status, venueId]);
+
+  useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+
+  const refreshPending = useCallback(async () => {
+    if (!selectedEvent) return;
+    try {
+      setPendingScans(await pendingCount(selectedEvent));
+      setPendingIncidents(await pendingIncidentCount(selectedEvent));
+    } catch {
+      setPendingScans(0);
+      setPendingIncidents(0);
+    }
+  }, [selectedEvent]);
+
+  useEffect(() => {
+    refreshPending();
+  }, [refreshPending]);
+
+  const loadIncidents = useCallback(async () => {
+    if (!venueId || !selectedEvent) return;
+    try {
+      const data = await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/door-incidents`,
+        { headers: doorHeaders(selectedEvent), fresh: true },
+      );
+      setIncidents(data);
+    } catch {
+      /* la lista no debe tumbar el escaneo */
+    }
+  }, [venueId, selectedEvent]);
+
+  const loadShiftRequests = useCallback(async () => {
+    if (!venueId || !selectedEvent) return;
+    try {
+      const data = await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/door-shift-requests`,
+        { fresh: true },
+      );
+      setShiftRequests(data);
+    } catch {
+      /* se reintenta al abrir Turno */
+    }
+  }, [venueId, selectedEvent]);
+
+  useEffect(() => {
+    loadIncidents();
+    loadShiftRequests();
+  }, [loadIncidents, loadShiftRequests]);
+
+  async function loadIncident(id) {
+    if (!venueId || !selectedEvent || !id) return;
+    setIncidentLoading(true);
+    try {
+      const data = await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/door-incidents/${id}`,
+        { headers: doorHeaders(selectedEvent), fresh: true },
+      );
+      setIncidentDetail(data);
+      setIncidentView("detail");
+    } catch (e) {
+      ui.error(e.message);
+    } finally {
+      setIncidentLoading(false);
+    }
+  }
 
   async function startScanner() {
     setError("");
-    setResult(null);
     if (!selectedEvent) {
-      setError("Selecciona un evento primero");
+      setError("Elegí el evento de esta noche.");
       return;
     }
     setStarting(true);
-    // El gesto de activar la cámara habilita también el audio (iOS lo exige)
-    // y mantiene la pantalla encendida durante el servicio.
     requestWakeLock();
     autoReacquireWakeLock();
     try {
-      // Import dinámico: html5-qrcode pesa ~230KB y solo se usa al abrir la
-      // cámara. Con el import estático, entrar al escáner bajaba la librería
-      // completa antes de poder mostrar nada; con éste, el chunk "scanner" se
-      // pide en el gesto de activar (cuando el usuario ya decidió escanear).
-      // El service worker precachea el chunk, así que en puerta con red mala
-      // sigue disponible offline.
       const { Html5Qrcode } = await import("html5-qrcode");
-      const qr = new Html5Qrcode("qr-reader-region");
+      const qr = new Html5Qrcode("door2-qr-region");
       html5Ref.current = qr;
       await qr.start(
         { facingMode: "environment" },
@@ -345,7 +501,7 @@ export default function BouncerScanner() {
         () => {},
       );
       setScanning(true);
-      haptics.tick(); // la cámara respondió: confirmación sutil en la mano
+      haptics.tick();
     } catch (err) {
       setError("No se pudo iniciar la cámara: " + (err?.message || err));
     } finally {
@@ -367,170 +523,99 @@ export default function BouncerScanner() {
     setScanning(false);
   }
 
+  useEffect(
+    () => () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      stopScanner();
+    },
+    [],
+  );
+
+  function closeResult() {
+    setResult(null);
+    lastScannedRef.current = "";
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+  }
+
+  function scheduleReset() {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(closeResult, RESULT_RESET_MS);
+  }
+
   async function redeemToken(rawToken, { manual = false } = {}) {
-    if (!selectedEvent) {
-      setError("Selecciona un evento primero");
-      return;
-    }
-    // ignora lecturas repetidas del mismo código (bouncer apunta al mismo QR);
-    // la entrada manual siempre se envía porque fue un submit explícito
+    if (!selectedEvent) return;
     if (!manual && rawToken === lastScannedRef.current) return;
     lastScannedRef.current = rawToken;
+    setValidating(true);
+    const typeId = context?.assigned_ticket_type_id ?? null;
+    const doorName = context?.assigned_door ?? null;
 
-    // ===== RUTA OFFLINE =====
-    // Sin red PERO con snapshot descargado: se valida contra el caché y la
-    // redención se ENCOLA. La DB arbitrará al sincronizar; por eso el verde
-    // dice "OFFLINE" en el texto y el log distingue GRANTED_OFFLINE.
     if (!navigator.onLine) {
-      setValidating(true);
+      if (scanMode === "out") {
+        setResult({ code: "OFFLINE_EXIT" });
+        setValidating(false);
+        scheduleReset();
+        return;
+      }
       try {
-        const local = await validateOffline(rawToken, selectedEvent, rowFilter || null);
+        const local = await validateOffline(rawToken, selectedEvent, typeId);
         if (local.code === "GRANTED_OFFLINE") {
           await queueRedemption(rawToken, {
-            typeId: rowFilter || null,
-            // El evento va con el item: la cola es del teléfono y un bouncer
-            // puede haber trabajado dos eventos, así que sin esto el sync
-            // mandaba los tokens del otro evento contra el seleccionado.
+            typeId,
             eventId: selectedEvent,
-            doorId: doorId.trim() || null,
+            doorId: doorName,
           });
           await refreshPending();
         }
         setResult(local);
-        setScanLog((prev) =>
-          [
-            {
-              at: new Date().toISOString(),
-              code: local.code,
-              name: local.customer_name ?? null,
-              detail:
-                local.code === "GRANTED_OFFLINE"
-                  ? "pendiente de sync"
-                  : null,
-            },
-            ...prev,
-          ].slice(0, 20),
-        );
         if (local.code === "GRANTED_OFFLINE") {
           haptics.door.granted();
-          try {
-            playForCode("GRANTED");
-          } catch {
-            /* ignore */
-          }
+          playForCode("GRANTED");
         } else {
           haptics.door.attention();
-          // NOT_IN_CACHE es ámbar (atención), no rojo: el sonido acompaña el
-          // color para que el bouncer no confunda "no confirmable" con "no
-          // existe" en una fila ruidosa.
-          try {
-            playForCode(local.code);
-          } catch {
-            /* ignore */
-          }
+          playForCode(local.code);
         }
+        scheduleReset();
       } catch {
         setResult({ code: "SNAPSHOT_MISSING" });
-        haptics.door.attention();
+        playOffline();
       } finally {
         setValidating(false);
-        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-        resetTimerRef.current = setTimeout(resetScan, RESULT_RESET_MS);
       }
       return;
     }
-    // ===== RUTA ONLINE (server-autoritativo, sin cambios) =====
-    // Validando: la retícula detiene el barrido y late con el anillo de marca.
-    // Sin esto, el tiempo entre lectura y respuesta se ve congelado.
-    setValidating(true);
+
     try {
       const data = await apiFetch(
         `/venues/${venueId}/events/${selectedEvent}/redeem`,
         {
           method: "POST",
-          // Con fila asignada, el servidor rechaza boletas de otro tipo con
-          // code=WRONG_TYPE (sin consumirlas). Sin filtro se omite el campo.
+          headers: doorHeaders(selectedEvent),
           body: JSON.stringify({
             raw_token: rawToken,
-            ...(rowFilter ? { ticket_type_id: rowFilter } : {}),
-            // Puerta de origen (mig 042): vacío = sin identificar.
-            ...(doorId.trim() ? { door_id: doorId.trim() } : {}),
+            ...(typeId ? { ticket_type_id: typeId } : {}),
+            ...(doorName ? { door_id: doorName } : {}),
           }),
         },
       );
       setResult(data);
-      // El contador de la cabecera tiene que reflejar ESTE escaneo: sin esto
-      // el número quedaba congelado hasta cambiar de evento.
-      refreshStats();
-      // Al log local: hora + resultado + nombre si el server lo devolvió.
-      setScanLog((prev) =>
-        [
-          {
-            at: new Date().toISOString(),
-            code: data.code ?? (data.redeemed ? "GRANTED" : "NOT_VALID"),
-            name: data.customer_name ?? null,
-            detail: data.detail ?? null,
-          },
-          ...prev,
-        ].slice(0, 20),
-      );
-      // Tres canales al mismo tiempo: vista (pantalla), tacto (vibración)
-      // y oído (firma sonora por resultado — en un roncino no se siente la
-      // vibración y no siempre se puede mirar la pantalla). Cada familia
-      // tiene su firma táctil, la misma gramática de los sonidos.
-      if (data.redeemed) {
-        haptics.door.granted();
-      } else if (data.code === "NOT_ACTIVE") {
-        haptics.door.wait(); // no es rechazo: es "espera, tu boleta sirve"
-      } else if (
-        ["WRONG_TYPE", "INVALID_EVENT", "EVENT_NOT_LIVE", "UNDER_AGE"].includes(
-          data.code,
-        )
-      ) {
-        haptics.door.attention(); // ámbar: corregir, no castigar
-      } else {
-        haptics.door.denied();
+      loadContext();
+      loadIncidents();
+      if (data.redeemed) haptics.door.granted();
+      else if (["WRONG_TYPE", "UNDER_AGE", "NOT_ACTIVE"].includes(data.code))
+        haptics.door.attention();
+      else haptics.door.denied();
+      playForCode(data.code ?? (data.redeemed ? "GRANTED" : "NOT_VALID"));
+      scheduleReset();
+    } catch (e) {
+      const code = e.status === 403 ? "DEVICE_REVOKED" : e.status ? "SCAN_ERROR" : "NETWORK_ERROR";
+      setResult({ code, detail: e.message });
+      if (e.status === 403) {
+        setContextError(e.message);
+        loadContext();
       }
-      try {
-        playForCode(data.code ?? (data.redeemed ? "GRANTED" : "NOT_VALID"));
-      } catch {
-        /* el audio nunca debe romper el canje */
-      }
-      if (data.code === "NOT_ACTIVE") {
-        // No entra pero su boleta sirve: queda "aparcado" para reintentar
-        // desde la misma pantalla cuando llegue la hora.
-        setPendingRetry(rawToken);
-        setRetryIn(RETRY_COOLDOWN_MS / 1000);
-      } else {
-        setPendingRetry(null);
-      }
-      // auto-reset para volver a escanear sin tocar nada
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      resetTimerRef.current = setTimeout(resetScan, RESULT_RESET_MS);
-    } catch (err) {
-      // Un error HTTP trae semántica de negocio desde el servidor (err.status
-      // + mensaje accionable); solo la falta de conexión es "sin red".
-      const errCode = err.status ? "SCAN_ERROR" : "NETWORK_ERROR";
-      setResult({ code: errCode, detail: err.message });
-      // Los fallos también quedan: "se escaneó y no pasó nada" es una
-      // discusión de puerta tan real como un canje dudoso.
-      setScanLog((prev) =>
-        [
-          {
-            at: new Date().toISOString(),
-            code: errCode,
-            name: null,
-            detail: err.message,
-          },
-          ...prev,
-        ].slice(0, 20),
-      );
-      if (!err.status) {
-        try {
-          playOffline(); // "no puedes trabajar así" — distinto de un rechazo
-        } catch {
-          /* ignore */
-        }
+      if (!e.status) {
+        playOffline();
         haptics.door.offline();
       }
     } finally {
@@ -538,878 +623,890 @@ export default function BouncerScanner() {
     }
   }
 
-  async function onScanSuccess(decodedText) {
-    if (scanMode === "out") return exitToken(decodedText);
-    await redeemToken(decodedText);
-  }
-
-  async function submitManual(e) {
-    e.preventDefault();
-    const token = manualCode.trim();
-    if (token.length < 8) {
-      setError("El código es demasiado corto");
-      return;
-    }
-    setError("");
-    setManualCode("");
-    if (scanMode === "out") return exitToken(token, { manual: true });
-    await redeemToken(token, { manual: true });
-  }
-
-  /* Egreso (fase 1 V2): la persona SALE del recinto. Libera su lugar y, en
-     los eventos que lo permiten, habilita el reingreso. Es la operación que
-     hace posible que el aforo no se llene para siempre. */
   async function exitToken(rawToken, { manual = false } = {}) {
-    if (!selectedEvent) {
-      setError("Selecciona un evento primero");
-      return;
-    }
+    if (!selectedEvent) return;
     if (!manual && rawToken === lastScannedRef.current) return;
     lastScannedRef.current = rawToken;
-
-    // Sin red no se inventa una salida: el servidor es quien descuenta.
     if (!navigator.onLine) {
-      setResult({
-        code: "OFFLINE",
-        customer_name: null,
-        detail: "Sin red: la salida necesita conexión",
-      });
+      setResult({ code: "OFFLINE_EXIT" });
+      scheduleReset();
       return;
     }
-
     setValidating(true);
     try {
       const data = await apiFetch(
         `/venues/${venueId}/events/${selectedEvent}/exit`,
         {
           method: "POST",
+          headers: doorHeaders(selectedEvent),
           body: JSON.stringify({
             raw_token: rawToken,
-            ...(doorId.trim() ? { door_id: doorId.trim() } : {}),
+            ...(context?.assigned_door ? { door_id: context.assigned_door } : {}),
           }),
         },
       );
-      const exited = data.code === "EXITED";
       setResult({
         code: data.code,
         customer_name: data.customer_name ?? null,
-        redeemed: exited,
+        ticket_type: data.ticket_type ?? null,
+        ticket_id: data.ticket_id ?? null,
         detail:
           data.code === "ALREADY_OUTSIDE"
-            ? "Ya había salido"
+            ? "Ya había salido del recinto."
             : data.code === "EXITED"
-              ? "Salida registrada"
-              : "Esa boleta no es de este evento",
+              ? "La salida libera lugar para el aforo."
+              : null,
       });
-      refreshStats();
-      setScanLog((prev) =>
-        [
-          {
-            at: new Date().toISOString(),
-            code: data.code,
-            name: data.customer_name ?? null,
-            detail: "salida",
-          },
-          ...prev,
-        ].slice(0, 20),
-      );
-      if (exited) haptics.door.granted();
+      if (data.code === "EXITED") haptics.door.granted();
       else haptics.door.attention();
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      resetTimerRef.current = setTimeout(resetScan, RESULT_RESET_MS);
+      playForCode(data.code === "EXITED" ? "GRANTED" : "WRONG_TYPE");
+      loadContext();
+      scheduleReset();
     } catch (e) {
-      setError(e?.message || "No se pudo registrar la salida");
+      setResult({
+        code: e.status === 403 ? "DEVICE_REVOKED" : "SCAN_ERROR",
+        detail: e.message,
+      });
     } finally {
       setValidating(false);
     }
   }
 
-  function resetScan() {
-    setResult(null);
-    lastScannedRef.current = "";
+  async function onScanSuccess(decodedText) {
+    if (panel || result) return;
+    if (scanMode === "out") await exitToken(decodedText);
+    else await redeemToken(decodedText);
   }
 
-  /** Reintento del token aparcado por NOT_ACTIVE: mismo flujo que un
-      escaneo (manual:true salta el dedupe del mismo código). */
-  async function retryPending() {
-    if (!pendingRetry || retryIn > 0) return;
-    await redeemToken(pendingRetry, { manual: true });
-  }
-
-  const style = result
-    ? (RESULT_STYLES[result.code] ?? RESULT_STYLES.NOT_FOUND)
-    : null;
-  const selectedEventName =
-    (events ?? []).find((ev) => ev.id === selectedEvent)?.name ?? "";
-
-  // ===== Modo kiosco: desbloqueo por mantener presionado =====
-  function startHold() {
-    const t0 = Date.now();
-    setHoldPct(0);
-    holdBuzz50Ref.current = false;
-    holdBuzz100Ref.current = false;
-    holdTickRef.current = setInterval(() => {
-      const pct = Math.min(100, ((Date.now() - t0) / EXIT_HOLD_MS) * 100);
-      setHoldPct(pct);
-      // Ticks al 50% y al 100%: el progreso del desbloqueo se SIENTE.
-      if (pct >= 100 && !holdBuzz100Ref.current) {
-        holdBuzz100Ref.current = true;
-        haptics.tick();
-      } else if (pct >= 50 && !holdBuzz50Ref.current) {
-        holdBuzz50Ref.current = true;
-        haptics.tick();
-      }
-    }, 50);
-    holdTimerRef.current = setTimeout(() => {
-      clearInterval(holdTickRef.current);
-      setKiosk(false);
-      setHoldPct(0);
-      haptics.success(); // desbloqueado: confirmación de acción completada
-    }, EXIT_HOLD_MS);
-  }
-  function cancelHold() {
-    clearTimeout(holdTimerRef.current);
-    clearInterval(holdTickRef.current);
-    setHoldPct(0);
-    holdBuzz50Ref.current = false;
-    holdBuzz100Ref.current = false;
-  }
-  // ===== Modo offline de puerta =====
-  // Snapshot descargado para el evento elegido (null = no hay). Con él, la
-  // puerta valida sin red comparando SHA-256; sin él, sin red no hay magia
-  // posible (server-autoritativo) y el banner lo dice.
-  const [snapInfo, setSnapInfo] = useState(null); // {count, generated_at}
-  // Eventos cuyo caché ya intentamos anticipar en esta sesión (una vez cada
-  // uno): evita re-bajar en cada refresco de 20s.
-  const autoPrepRef = useRef(new Set());
-  // Cuántos escaneos offline esperan sincronización (badge del banner).
-  const [pendingSync, setPendingSync] = useState(0);
-  const [syncing, setSyncing] = useState(false);
-  // Contador del evento al vuelo: lo pide junto con el snapshot para no gastar
-  // un request extra; si falla, el badge "quedan X" no aparece (no miente).
-  const [eventPulse, setEventPulse] = useState(null);
-  // Lo que movió ESTE escáner en la noche (redemptions.scanned_by_user_id):
-  // la cabecera ya dice cuántos entraron en total; esto dice cuántos fueron
-  // por esta puerta. Se refresca después de cada escaneo, no una vez.
-  const [myScans, setMyScans] = useState(null);
-  // Ocupación REAL (mig 052-054): cuánta gente hay ADENTRO ahora. `pulse`
-  // cuenta ingresos acumulados de la noche, que no sirve para decidir si
-  // cabe alguien más: 300 ingresos pueden ser 300 personas o 100 que ya
-  // se fueron. `inside` es la única cifra que manda para el aforo.
-  const [occupancy, setOccupancy] = useState(null);
-
-  const refreshPending = useCallback(async () => {
-    try {
-      setPendingSync(await pendingCount());
-    } catch {
-      setPendingSync(0);
-    }
-  }, []);
-
-  // Contadores de la cabecera: el pulso del EVENTO (cuántos entraron en total)
-  // y lo que movió ESTE escáner. Se piden juntos y se refrescan DESPUÉS de
-  // cada escaneo y de cada sincronización: un contador que no cambia al
-  // escanear no sirve para nada.
-  const refreshStats = useCallback(async () => {
-    if (!selectedEvent) {
-      setEventPulse(null);
-      setMyScans(null);
-      setOccupancy(null);
+  async function submitManual(e) {
+    e.preventDefault();
+    const token = manualCode.trim();
+    if (token.length < 8) {
+      setError("El código es demasiado corto.");
       return;
     }
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/pulse`)
-      .then(setEventPulse)
-      .catch(() => {});
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/scanner-stats`)
-      .then(setMyScans)
-      .catch(() => {});
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/occupancy`)
-      .then(setOccupancy)
-      .catch(() => {});
-  }, [selectedEvent, venueId]);
+    setError("");
+    setManualCode("");
+    setPanel(null);
+    if (scanMode === "out") await exitToken(token, { manual: true });
+    else await redeemToken(token, { manual: true });
+  }
 
-  // Info del snapshot al (cambiar de) evento; NO lo descarga solo: la
-  // descarga es un botón (consume datos personales y ancho de banda).
-  useEffect(() => {
-    let alive = true;
-    if (!selectedEvent) {
-      setSnapInfo(null);
-      setEventPulse(null);
-      setMyScans(null);
-      setOccupancy(null);
-      return;
-    }
-    getSnapshot(selectedEvent)
-      .then((s) => alive && setSnapInfo(s ? { count: s.count, generated_at: s.generated_at } : null))
-      .catch(() => alive && setSnapInfo(null));
-    // Contadores del turno (pulso del evento + lo de este escáner). Antes
-    // este efecto tenía el MISMO fetch duplicado y un `return` de limpieza en
-    // el medio: el callback terminaba en ese return, así que refreshPending()
-    // nunca corría y el badge de pendientes quedaba siempre en 0 — justo el
-    // dato que el bouncer necesita sin red.
-    refreshStats();
-    refreshPending();
-    return () => {
-      alive = false;
-    };
-  }, [selectedEvent, venueId, refreshPending, refreshStats]);
-
-  // Ley de Tesler: cuando las puertas abren, el sistema prepara el caché sin
-  // pedirlo. Si el evento elegido está `live` y el teléfono aún no tiene
-  // snapshot, se descarga solo (una vez por evento): el bouncer no tiene que
-  // acordarse de tocar "Descargar" antes de que el wifi del recinto falle.
-  // El botón manual sigue existiendo para forzar/actualizar; esto solo cubre
-  // el caso en que nadie se acordó.
-  useEffect(() => {
-    if (!selectedEvent || snapInfo) return;
-    const ev = (events ?? []).find((e) => e.id === selectedEvent);
-    if (!ev || ev.status !== "live") return;
-    if (autoPrepRef.current.has(selectedEvent)) return;
-    autoPrepRef.current.add(selectedEvent);
-    let alive = true;
-    downloadSnapshot(venueId, selectedEvent)
-      .then((snap) => {
-        if (alive)
-          setSnapInfo({ count: snap.count, generated_at: snap.generated_at });
-      })
-      .catch(() => {
-        // Sin red justo ahora: el botón manual sigue ahí. Se libera la marca
-        // para reintentar en el próximo refresco de la lista de eventos.
-        autoPrepRef.current.delete(selectedEvent);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [selectedEvent, events, snapInfo, venueId]);
-
-  /** Descarga manual del snapshot: la puerta prepara su modo sin red. */
   async function prepareOffline() {
     if (!selectedEvent) return;
-    setError("");
     try {
       const snap = await downloadSnapshot(venueId, selectedEvent);
       setSnapInfo({ count: snap.count, generated_at: snap.generated_at });
       haptics.tick();
+      ui.success(`Puerta preparada sin conexión: ${snap.count} boletas.`);
     } catch (e) {
-      setError("No se pudo descargar el caché de puerta: " + e.message);
+      ui.error("No se pudo descargar el caché: " + e.message);
     }
   }
 
-  /** Sincroniza la cola offline; la DB re-evalúa cada token. */
   async function doSync() {
-    if (syncing || pendingSync === 0) return;
+    if (syncing || !selectedEvent) return;
     setSyncing(true);
     try {
-      const out = await syncQueue(venueId, selectedEvent);
-      await Promise.all([refreshPending(), refreshStats()]);
-      ui.toast(
-        `Sincronizado: ${out.granted} entraron, ${out.already_redeemed} ya estaban, ${out.rejected} rechazadas`,
-      );
+      const [scans, incs] = await Promise.all([
+        pendingScans > 0 ? syncQueue(venueId, selectedEvent) : null,
+        pendingIncidents > 0 ? syncIncidentQueue(venueId, selectedEvent) : null,
+      ]);
+      await refreshPending();
+      await loadContext();
+      await loadIncidents();
+      const sc = scans ? `${scans.granted} entraron, ${scans.already_redeemed} ya estaban` : null;
+      const ic = incs ? `${incs.synced} incidencias enviadas` : null;
+      ui.success([sc, ic].filter(Boolean).join(" · ") || "Nada pendiente.");
     } catch {
-      /* la red aún no: la cola espera; el banner sigue avisando */
+      ui.error("Todavía no hay conexión. La cola sigue guardada.");
     } finally {
       setSyncing(false);
     }
   }
 
-  // La puerta no puede esperar a que un escaneo falle para enterarse: el
-  // banner de red aparece en vivo con el estado real de conexión.
-  // OJO: `offline` se declara ANTES del efecto que lo usa en sus deps —
-  // leerlo en [offline] con el useState abajo era un TDZ que tumbaba toda
-  // la pantalla de puerta al montar ("Cannot access '$' before init").
-  const [offline, setOffline] = useState(!navigator.onLine);
   useEffect(() => {
-    const on = () => setOffline(false);
-    const off = () => setOffline(true);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
-  }, []);
-
-  // Al volver la conexión: sincroniza solo (y reintenta el badge).
-  useEffect(() => {
-    if (!offline && pendingSync > 0 && selectedEvent) {
+    if (!offline && (pendingScans > 0 || pendingIncidents > 0) && selectedEvent) {
       doSync();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offline]);
 
-  return (
-    <div className="app-shell door-shell flex min-h-[100dvh] flex-col bg-zinc-950 pb-[env(safe-area-inset-bottom)]">
-      {/* Sin red: si hay snapshot, la puerta SIGUE trabajando (valida contra
-          el caché y encola); si no hay, aquí no hay magia posible — el banner
-          lo dice sin inventar una validez que no se puede verificar. */}
-      {offline && (
-        <div
-          role="alert"
-          className="flex items-center justify-center gap-2 bg-amber-950/80 px-4 py-2 text-center text-xs font-semibold text-amber-200"
-        >
-          <Icon name="alert" className="h-3.5 w-3.5 shrink-0" />
-          <span>
-            {snapInfo
-              ? `Sin conexión: validando con el caché (${snapInfo.count} boletas). Los ingresos se sincronizan al reconectar.${pendingSync > 0 ? ` Pendientes: ${pendingSync}.` : ""}`
-              : "Sin conexión y sin caché de puerta: descarga el caché con red para poder canjear offline."}
-          </span>
-        </div>
-      )}
-      {/* La puerta existe para una noche EN PUERTA. Si el evento todavía no
-          abrió (draft/publicado) o ya cerró (terminado/cancelado), el escáner
-          rechaza todo y el bouncer quedaría adivinando por qué. Este aviso lo
-          dice antes de que empiece a escanear. */}
-      {selectedEvent && eventPulse && eventPulse.status !== "live" && (
-        <div
-          role="status"
-          className="bg-amber-950/70 px-4 py-2 text-center text-xs font-semibold text-amber-200"
-        >
-          {["ended", "cancelled"].includes(eventPulse.status)
-            ? "Esta noche ya cerró: el escáner no va a aceptar boletas."
-            : "La noche todavía no abrió: el escáner va a rechazar las boletas hasta que el admin abra puertas."}
-        </div>
-      )}
-      <header className="door-head flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-        <div className="min-w-0">
-          <span className="door-role-chip">
-            <Icon name="qr" className="h-3.5 w-3.5" />
-            Puerta
-          </span>
-          <h1 className="door-title text-lg font-bold tracking-tight text-white">
-            Control de puerta
-          </h1>
-          <p className="text-xs text-zinc-500">
-            {user?.full_name}
-            {selectedEventName ? ` · ${selectedEventName}` : ""}
-          </p>
-          {/* Contador del turno: lo que el bouncer necesita ver para saber
-              quién entra y cuántos quedan, sin tocar el selector ni el bajo. */}
-          {fijo && eventPulse && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-2xs">
-              {/* ADENTRO, no "ingresaron". El aforo se decide con la gente
-                  que está dentro AHORA: quien entró y salió ya liberó su
-                  lugar. Mostrar capacity - redeemed como "quedan" era el
-                  error que este cambio corrige. */}
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                <span className="text-zinc-200 font-semibold text-2xs">
-                  {occupancy ? occupancy.inside : eventPulse.redeemed}
-                </span>
-                <span className="text-zinc-500">adentro</span>
-              </span>
-              <span className="tnum text-zinc-600">
-                {occupancy
-                  ? occupancy.free_seats
-                  : Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
-              </span>
-              <span className="text-zinc-500">libres de {eventPulse.capacity}</span>
-              {occupancy && occupancy.exits > 0 && (
-                <span className="text-zinc-500">· {occupancy.exits} salieron</span>
-              )}
-              {eventPulse.issued > 0 && (
-                <span className="text-zinc-500">· {eventPulse.issued - eventPulse.redeemed} pendientes</span>
-              )}
-              {/* Lo que movió este escáner: en un evento con dos puertas, el
-                  total del evento no dice si la noche la trabajó esta puerta. */}
-              {myScans && myScans.granted > 0 && (
-                <span className="text-emerald-300/90">
-                  · vos: {myScans.granted}
-                </span>
-              )}
-            </div>
-          )
+  function openIncidentForResult() {
+    setIncidentTicket(
+      result?.ticket_id
+        ? {
+            id: result.ticket_id,
+            ref: `#${String(result.ticket_id).padStart(4, "0")}`,
+            type: result.ticket_type,
           }
-          {!fijo && eventPulse && eventPulse.issued > 0 && (
-            <div className="mt-2 flex items-center gap-2 text-2xs text-zinc-500">
-              <span className="flex items-center gap-1.5">
-                <Icon name="ticket" className="h-3 w-3 text-zinc-600" />
-                <span className="text-zinc-200">
-                  {occupancy ? occupancy.inside : eventPulse.redeemed}
-                </span>
-                <span className="text-zinc-500">adentro ·</span>
-              </span>
-              <span className="tnum text-zinc-600">
-                {occupancy
-                  ? occupancy.free_seats
-                  : Math.max(0, eventPulse.capacity - eventPulse.redeemed)}
-              </span>
-              <span className="text-zinc-500">libres de {eventPulse.capacity}</span>
-              {/* Mismo contador que en el modo con link: sin él, el bouncer
-                  que entra por el menú no ve cuánto movió su escáner. */}
-              {myScans && myScans.granted > 0 && (
-                <span className="text-emerald-300/90">
-                  · vos: {myScans.granted}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-        {kiosk ? (
-          /* Kiosco: salir exige MANTENER presionado (la barra llena el botón
-             como feedback). Un toque accidental — bolsillo, roce — no saca a
-             nadie del escáner en plena fila. El selector de evento y la
-             navegación viven detrás del desbloqueo. */
-          <button
-            onMouseDown={startHold}
-            onMouseUp={cancelHold}
-            onMouseLeave={cancelHold}
-            onTouchStart={startHold}
-            onTouchEnd={cancelHold}
-            onTouchCancel={cancelHold}
-            onContextMenu={(e) => e.preventDefault()}
-            className="relative min-h-[44px] select-none overflow-hidden rounded-lg border border-zinc-700 px-4 font-semibold text-zinc-300"
-            aria-label="Mantén presionado para salir del modo kiosco"
-          >
-            <span
-              className="absolute inset-y-0 left-0 bg-zinc-600"
-              style={{ width: `${holdPct}%` }}
-              aria-hidden="true"
-            />
-            <span className="relative">Mantén para salir</span>
-          </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline-flex">
-              <LiveIndicator lastUpdated={lastEventsUpdate} live={false} />
-            </span>
-            {/* Con link de puerta la noche YA está elegida (mig 025): el selector se
-                aparta a propósito. Dejarlo sería ofrecerle a alguien que ya
-                sabe su noche cambiar de turno con un toque accidental. */}
-            {!fijo && (
-              <select
-                aria-label="Elige el evento de la noche"
-                value={selectedEvent ?? ""}
-                onChange={(e) => setSelectedEvent(Number(e.target.value))}
-                className="max-w-[52vw] rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-sm text-white sm:max-w-none"
-              >
-                <option value="" disabled>
-                  Evento…
-                </option>
-                {events === null
-                  ? null // el select se renderiza vacío un instante; el error global cubre fallos
-                  : events.map((ev) => (
-                      <option key={ev.id} value={ev.id}>
-                        {ev.name}
-                      </option>
-                    ))}
-              </select>
-            )}
-            {/* "Cerrar sesión" sale de la primera fila: en la puerta el
-                error caro es cerrar sesión a mitad de fila, no quedarse
-                dentro. Al menú "…" (Ley de Hick), junto a "Bloquear". */}
-            <ActionMenu
-              label="Más opciones de la puerta"
-              align="right"
-              items={[
-                {
-                  key: "lock",
-                  label: "Bloquear pantalla",
-                  icon: "lock",
-                  onClick: () => setKiosk(true),
-                },
-                {
-                  key: "logout",
-                  label: "Cerrar sesión",
-                  icon: "logout",
-                  danger: true,
-                  onClick: logout,
-                },
-              ]}
-            />
-          </div>
-        )}
-      </header>
+        : null,
+    );
+    setIncidentReason(
+      result?.code === "ALREADY_REDEEMED"
+        ? "Boleta duplicada"
+        : result?.code === "WRONG_TYPE"
+          ? "Boleta no válida"
+          : INCIDENT_REASONS[0],
+    );
+    setIncidentNote(result?.detail || "");
+    setIncidentView("new");
+    setIncidentDetail(null);
+    setPanel("incidents");
+    setResult(null);
+  }
 
-      {/* Resultado a pantalla completa (semántica: verde entra, rojo no) */}
-      {style ? (
-        <button
-          onClick={resetScan}
-          /* El resultado se ANUNCIA (lectores de pantalla): en la oscuridad
-             de la puerta el canal de respaldo no puede ser solo visual.
-             `role="status"` implica aria-live="polite"; aquí se quiere el
-             anuncio inmediato, así que se declara `assertive` sin el role. */
-          aria-live="assertive"
-          className={`scan-result flex flex-1 flex-col items-center justify-center ${style.bg} p-6 transition-colors`}
-          data-result={result?.code === "GRANTED" || result?.code === "GRANTED_OFFLINE" ? "ok" : "no"}
-        >
-          {/* El icono gigante es decorado para ojo humano (ya está el color,
-              el texto y el anuncio): oculto al lector para no leerlo dos veces. */}
-          <span
-            aria-hidden="true"
-            className="animate-pop text-8xl font-black text-white drop-shadow-lg"
-          >
-            {style.icon}
-          </span>
-          <span className="animate-scale-in mt-4 text-5xl font-black uppercase tracking-tight text-white">
-            {style.text}
-          </span>
-          <span className="animate-fade mt-2 text-lg font-semibold text-white/90">
-            {(result?.code === "SCAN_ERROR" ||
-              result?.code === "WRONG_TYPE" ||
-              result?.code === "ALREADY_REDEEMED" ||
-              result?.code === "UNDER_AGE" ||
-              result?.code === "NOT_ACTIVE") &&
-            result.detail
-              ? result.detail
-              : style.sub}
-          </span>
-          {result?.code === "NOT_ACTIVE" && (
-            <span className="animate-fade mt-3 max-w-sm rounded-xl bg-black/25 px-4 py-2 text-center text-sm font-medium text-white/85">
-              La boleta es válida: se escanea igual cuando llegue la hora. No se
-              gastó.
-            </span>
-          )}
-          {result?.customer_name && (
-            <span className="animate-pop mt-5 rounded-full bg-black/30 px-5 py-1.5 text-2xl font-semibold text-white">
-              {result.customer_name}
-            </span>
-          )}
-          <span className="absolute bottom-8 text-sm font-medium text-white/70">
-            Toca para escanear otro
+  function openIncidentList() {
+    setPanel("incidents");
+    setIncidentView("list");
+    setIncidentDetail(null);
+    setIncidentTicket(null);
+    setIncidentNote("");
+    loadIncidents();
+  }
+
+  async function createIncident(e) {
+    e.preventDefault();
+    if (!selectedEvent || incidentBusy) return;
+    setIncidentBusy(true);
+    const payload = {
+      reason: incidentReason,
+      note: incidentNote.trim() || null,
+      ...(incidentTicket?.id ? { ticket_id: incidentTicket.id } : {}),
+      ...(incidentTicket?.ref ? { ticket_ref: incidentTicket.ref } : {}),
+    };
+    try {
+      const data = await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/door-incidents`,
+        {
+          method: "POST",
+          headers: doorHeaders(selectedEvent),
+          body: JSON.stringify(payload),
+        },
+      );
+      setIncidents((prev) => [data, ...prev]);
+      setIncidentNote("");
+      setIncidentTicket(null);
+      setIncidentView("list");
+      ui.success("Incidencia reportada. Administración ya la ve.");
+      loadContext();
+    } catch (err) {
+      if (!err.status && !navigator.onLine) {
+        await queueIncident(selectedEvent, payload);
+        await refreshPending();
+        setIncidentNote("");
+        setIncidentTicket(null);
+        setIncidentView("list");
+        ui.success("Incidencia guardada. Se envía al reconectar.");
+      } else {
+        ui.error(err.message);
+      }
+    } finally {
+      setIncidentBusy(false);
+    }
+  }
+
+  async function sendIncidentComment(channel = "note") {
+    if (!incidentDetail || incidentBusy) return;
+    const body =
+      incidentComment.trim() ||
+      (channel === "call"
+        ? "Llamada realizada a Administración."
+        : channel === "whatsapp"
+          ? "Mensaje enviado a Administración."
+          : "");
+    if (!body) return;
+    setIncidentBusy(true);
+    try {
+      const data = await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/door-incidents/${incidentDetail.id}/comments`,
+        {
+          method: "POST",
+          headers: doorHeaders(selectedEvent),
+          body: JSON.stringify({ body, channel }),
+        },
+      );
+      setIncidentDetail(data);
+      setIncidentComment("");
+      loadIncidents();
+    } catch (e) {
+      ui.error(e.message);
+    } finally {
+      setIncidentBusy(false);
+    }
+  }
+
+  async function requestShift(e) {
+    e.preventDefault();
+    if (!selectedEvent) return;
+    try {
+      await apiFetch(
+        `/venues/${venueId}/events/${selectedEvent}/door-shift-requests`,
+        {
+          method: "POST",
+          headers: doorHeaders(selectedEvent),
+          body: JSON.stringify({
+            reason: shiftReason.trim(),
+            requested_phone: shiftPhone.trim() || null,
+          }),
+        },
+      );
+      setShiftReason("");
+      setShiftPhone("");
+      setShiftForm(false);
+      loadShiftRequests();
+      ui.success("Relevo solicitado. Administración lo va a revisar.");
+    } catch (err) {
+      ui.error(err.message);
+    }
+  }
+
+  function clearAuthorization() {
+    if (!selectedEvent) return;
+    clearDoorDevice(selectedEvent);
+    setContext(null);
+    setContextError("Este teléfono ya no tiene autorización guardada.");
+  }
+
+  const selectedEventData = (events ?? []).find((e) => e.id === selectedEvent);
+  const device = context?.device || getDoorDevice(selectedEvent);
+  const openIncidents = incidents.filter((i) => i.status !== "resolved").length;
+  const authorized = Boolean(
+    device?.status ? device.status === "active" : device?.token,
+  );
+
+  if (!selectedEvent && events !== null) {
+    return (
+      <main className="door2-shell door2-empty">
+        <Logo size="lg" />
+        <h1>No hay una noche asignada</h1>
+        <p>
+          Abrí el link de Puerta que te envió Administración. Ese link deja este
+          teléfono autorizado para una noche y un puesto concretos.
+        </p>
+        <button type="button" className="door2-btn door2-btn--primary" onClick={loadEvents}>
+          Reintentar
+        </button>
+      </main>
+    );
+  }
+
+  return (
+    <main className="door2-shell">
+      <header className="door2-top">
+        <Logo size="sm" compact />
+        <button type="button" className="door2-event-button" onClick={() => setPanel("shift")}>
+          <span className="door2-kicker">Puerta</span>
+          <strong>{context?.event_name || selectedEventData?.name || "Cargando noche…"}</strong>
+          <span>
+            {context?.assigned_door || "Sin acceso asignado"} · {user?.full_name}
           </span>
         </button>
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center p-4">
-          {/* Retícula de escaneo: esquinas de encuadre + barrido en vivo.
-              Al validar, el barrido se detiene y late el anillo de marca:
-              la pantalla comunica "estoy pensando", no "me colgué". */}
-          <div
-            className={`scan-frame ${validating ? "is-busy" : ""} w-full max-w-sm`}
-          >
-            <div
-              id="qr-reader-region"
-              className="w-full overflow-hidden rounded-2xl ring-1 ring-zinc-800"
-            />
-            {scanning && (
-              <>
-                <span className="scan-corner" aria-hidden="true" />
-                <span className="scan-sweep" aria-hidden="true" />
-              </>
-            )}
+        <button
+          type="button"
+          className="door2-icon-button"
+          aria-label="Abrir turno"
+          onClick={() => {
+            setPanel("shift");
+            loadShiftRequests();
+          }}
+        >
+          <Icon name="clock" className="h-5 w-5" />
+        </button>
+      </header>
+
+      <div className="door2-content">
+        {offline && (
+          <div className="door2-banner" data-tone="warn" role="alert">
+            <Icon name="alert" className="h-4 w-4" />
+            <span>
+              {snapInfo
+                ? `Sin conexión: validando con ${snapInfo.count} boletas del caché.`
+                : "Sin conexión y sin caché: prepará la puerta desde Turno antes de la fila."}
+              {pendingScans > 0 && ` ${pendingScans} ingresos esperan sincronizar.`}
+            </span>
           </div>
-          {!scanning && (
-            <button
-              onClick={startScanner}
-              disabled={starting}
-              className={`btn-primary mt-4 w-full max-w-sm !py-4 !text-lg ${
-                starting ? "is-busy" : ""
-              }`}
-            >
-              {starting && (
-                <svg
-                  className="btn-spinner"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="9" />
-                </svg>
-              )}
-              {starting ? "Abriendo cámara…" : "Activar cámara"}
-            </button>
+        )}
+        {contextError && (
+          <div className="door2-banner" data-tone="danger" role="alert">
+            <Icon name="lock" className="h-4 w-4" />
+            <span>{contextError}</span>
+            <button type="button" onClick={() => setPanel("shift")}>Ver turno</button>
+          </div>
+        )}
+        {context && !context.door_open && (
+          <div className="door2-banner" data-tone="warn" role="status">
+            <Icon name="lock" className="h-4 w-4" />
+            <span>
+              {["ended", "cancelled"].includes(context.event_status)
+                ? "Esta noche ya cerró. La puerta no acepta más boletas."
+                : "La noche todavía no abrió. Administración tiene que abrir puertas."}
+            </span>
+          </div>
+        )}
+
+        <section className="door2-overview" aria-label="Estado de la puerta">
+          <div className="door2-state" data-open={context?.door_open ? "true" : "false"}>
+            <span className="door2-state-dot" aria-hidden="true" />
+            <strong>{context?.door_open ? "Puerta abierta" : "Puerta cerrada"}</strong>
+            <small>
+              {context
+                ? `${context.assigned_door || "Sin acceso"} · ${context.capacity} de aforo`
+                : "Sin estado del servidor"}
+            </small>
+          </div>
+          <div className="door2-metrics">
+            <div>
+              <span>Dentro</span>
+              <strong>{context?.inside ?? "—"}</strong>
+              <small>ahora</small>
+            </div>
+            <div>
+              <span>Ingresos</span>
+              <strong>{context?.admitted ?? "—"}</strong>
+              <small>acumulados</small>
+            </div>
+            <div>
+              <span>Salidas</span>
+              <strong>{context?.exits ?? "—"}</strong>
+              <small>registradas</small>
+            </div>
+          </div>
+        </section>
+
+        <section className="door2-scanner-card" data-scanning={scanning ? "true" : "false"}>
+          <div id="door2-qr-region" className="door2-qr-region" />
+          {!scanning && !starting && (
+            <div className="door2-scanner-cover">
+              <div className="door2-scanner-icon">
+                <Icon name="qr" className="h-9 w-9" />
+              </div>
+              <p>Apuntá al QR del invitado</p>
+              <button
+                type="button"
+                className="door2-btn door2-btn--primary"
+                onClick={startScanner}
+              >
+                <Icon name="camera" className="h-4 w-4" />
+                Activar cámara
+              </button>
+            </div>
+          )}
+          {starting && (
+            <div className="door2-scanner-cover">
+              <span className="door2-spinner" aria-hidden="true" />
+              <p>Preparando la cámara…</p>
+            </div>
           )}
           {scanning && (
-            <button onClick={stopScanner} className="btn-ghost mt-4">
-              Detener escaneo
-            </button>
+            <>
+              <div className="door2-reticle" data-busy={validating ? "true" : "false"} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="door2-scan-mode-chip">
+                {scanMode === "in" ? "Entrada" : "Salida"}
+              </div>
+              <button type="button" className="door2-stop" onClick={stopScanner}>
+                Detener cámara
+              </button>
+            </>
           )}
+          {error && <p className="door2-scanner-error">{error}</p>}
+        </section>
 
-          {error && (
-            <p className="mt-3 max-w-sm text-center text-sm text-red-400">
-              {error}
-            </p>
-          )}
-
-          {/* Reintento de la boleta aparcada por NOT_ACTIVE: sigue visible
-              (aunque el resultado se haya ido) hasta que entre o se escanee
-              otra boleta. Cooldown anti-spam de 20s. */}
-          {pendingRetry && (
-            <button
-              onClick={retryPending}
-              disabled={retryIn > 0}
-              className="btn-ghost mt-3 w-full max-w-sm font-semibold disabled:opacity-50"
-            >
-              {retryIn > 0
-                ? `Reintentar en ${retryIn}s`
-                : "Reintentar boleta en espera"}
-            </button>
-          )}
-
-          {/* Respaldo manual: cámara rota, permisos denegados, QR dañado */}
-          <form
-            onSubmit={submitManual}
-            className="mt-5 flex w-full max-w-sm items-center gap-2"
+        <section className="door2-mode" role="group" aria-label="Qué se registra">
+          <button
+            type="button"
+            data-active={scanMode === "in" ? "true" : "false"}
+            onClick={() => setScanMode("in")}
           >
-            <input
-              aria-label="Código de la boleta"
-              value={manualCode}
-              onChange={(e) => setManualCode(e.target.value)}
-              placeholder="O escribe el código de la boleta"
-              autoComplete="off"
-              spellCheck={false}
-              className="field min-w-0 flex-1"
-            />
-            <button
-              type="submit"
-              className="btn-ghost min-h-[44px] shrink-0 font-bold"
-            >
-              Validar
+            <Icon name="check" className="h-4 w-4" />
+            <span>
+              <strong>Entrada</strong>
+              <small>Validar ingreso</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            data-active={scanMode === "out" ? "true" : "false"}
+            onClick={() => setScanMode("out")}
+          >
+            <Icon name="arrowRight" className="h-4 w-4" />
+            <span>
+              <strong>Salida</strong>
+              <small>Liberar aforo</small>
+            </span>
+          </button>
+        </section>
+        <p className="door2-mode-note">
+          {scanMode === "out"
+            ? "La salida se registra con red. Sin conexión no se inventa: el aforo lo descuenta el servidor."
+            : context?.allow_reentry
+              ? "Este evento permite reingreso: una boleta que salió puede volver a entrar."
+              : "Este evento no permite reingreso: la salida no habilita una nueva entrada."}
+        </p>
+
+        <nav className="door2-actions" aria-label="Acciones de Puerta">
+          <button type="button" onClick={() => setPanel("manual")}>
+            <span className="door2-action-icon"><Icon name="qr" className="h-5 w-5" /></span>
+            <strong>Código manual</strong>
+            <small>QR dañado</small>
+          </button>
+          <button type="button" onClick={openIncidentList}>
+            <span className="door2-action-icon"><Icon name="flag" className="h-5 w-5" /></span>
+            <strong>Incidencias</strong>
+            <small>{openIncidents ? `${openIncidents} abiertas` : "Sin pendientes"}</small>
+            {openIncidents > 0 && <span className="door2-badge">{openIncidents}</span>}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPanel("shift");
+              loadShiftRequests();
+            }}
+          >
+            <span className="door2-action-icon"><Icon name="clock" className="h-5 w-5" /></span>
+            <strong>Turno</strong>
+            <small>{authorized ? "Autorizado" : "Sin autorización"}</small>
+          </button>
+        </nav>
+      </div>
+
+      {result && (
+        <ResultSheet
+          result={result}
+          onClose={closeResult}
+          onIncident={openIncidentForResult}
+        />
+      )}
+
+      {panel === "manual" && (
+        <Sheet
+          title="Código manual"
+          subtitle={`${context?.assigned_door || "Puerta"} · ${scanMode === "in" ? "Entrada" : "Salida"}`}
+          onClose={() => setPanel(null)}
+        >
+          <form className="door2-form" onSubmit={submitManual}>
+            <label>
+              Código del QR
+              <input
+                autoFocus
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                placeholder="Pegá o escribí el código"
+                inputMode="text"
+                autoComplete="off"
+                spellCheck="false"
+              />
+            </label>
+            <p className="door2-hint">
+              Se valida contra esta noche y este puesto. No cambia la boleta ni
+              el aforo por escribirlo a mano.
+            </p>
+            <button type="submit" className="door2-btn door2-btn--primary door2-btn--wide">
+              {scanMode === "in" ? "Validar ingreso" : "Registrar salida"}
             </button>
           </form>
+        </Sheet>
+      )}
 
-          {/* Filtro de fila: chips horizontales (scroll en pantallas chicas).
-              Activo = blanco, igual que el patrón de chips del admin.
-              `gap-2` (8px) cumple la separación mínima entre objetivos
-              táctiles adyacentes: con dedos en la puerta, 6px pegaban el
-              toque a la fila de al lado. */}
-          {types.length > 0 && (
-            <div className="no-scrollbar mt-3 w-full max-w-sm overflow-x-auto">
-              <div className="flex w-max items-center gap-2">
-                <button
-                  onClick={() => {
-                    setRowFilter("");
-                    haptics.tick();
-                  }}
-                  aria-pressed={rowFilter === ""}
-                  className={`chip min-h-[44px] rounded-full px-4 text-xs font-semibold ${
-                    rowFilter === ""
-                      ? "chip-active"
-                      : "bg-zinc-800/70 text-zinc-300"
-                  }`}
+      {panel === "incidents" && (
+        <Sheet
+          title="Incidencias"
+          subtitle={`${context?.event_name || "Evento"} · solo las de tu turno`}
+          onClose={() => setPanel(null)}
+        >
+          {incidentView === "detail" && incidentDetail ? (
+            <div className="door2-incident-detail">
+              <button
+                type="button"
+                className="door2-link"
+                onClick={() => {
+                  setIncidentView("list");
+                  setIncidentDetail(null);
+                  loadIncidents();
+                }}
+              >
+                <Icon name="back" className="h-4 w-4" /> Todas las incidencias
+              </button>
+              <div className="door2-incident-head">
+                <span
+                  className="door2-pill"
+                  data-tone={INCIDENT_STATUS[incidentDetail.status]?.tone}
                 >
-                  Todas las filas
-                </button>
-                {types.map((t) => (
+                  {INCIDENT_STATUS[incidentDetail.status]?.label}
+                </span>
+                <span className="door2-mono">
+                  {incidentDetail.ticket_ref || `#${incidentDetail.id}`}
+                </span>
+              </div>
+              <h3>{incidentDetail.reason}</h3>
+              {incidentDetail.note && <p>{incidentDetail.note}</p>}
+              <dl className="door2-facts">
+                <div><dt>Puesto</dt><dd>{incidentDetail.door_name || "—"}</dd></div>
+                <div><dt>Abierta por</dt><dd>{incidentDetail.created_by_name}</dd></div>
+                <div><dt>Hora</dt><dd>{dateTime(incidentDetail.created_at)}</dd></div>
+                {incidentDetail.ticket_type_name && (
+                  <div><dt>Boleta</dt><dd>{incidentDetail.ticket_type_name}</dd></div>
+                )}
+              </dl>
+              {incidentDetail.resolution_guidance && (
+                <div className="door2-guidance">
+                  <span>Indicación de Administración</span>
+                  <p>{incidentDetail.resolution_guidance}</p>
+                </div>
+              )}
+              {context?.ops_contact_phone && (
+                <div className="door2-contact">
+                  <div>
+                    <span>Contacto operativo</span>
+                    <strong>{context.ops_contact_name || "Administración"}</strong>
+                    <small>{context.ops_contact_phone}</small>
+                  </div>
+                  <div className="door2-contact-actions">
+                    <a className="door2-btn door2-btn--soft" href={`tel:${context.ops_contact_phone}`}>
+                      Llamar
+                    </a>
+                    <a
+                      className="door2-btn door2-btn--soft"
+                      href={waHref(context.ops_contact_phone, `Incidencia: ${incidentDetail.reason}`)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      WhatsApp
+                    </a>
+                  </div>
+                </div>
+              )}
+              <div className="door2-thread">
+                {incidentDetail.comments?.length === 0 && (
+                  <p className="door2-hint">Todavía no hay respuestas.</p>
+                )}
+                {(incidentDetail.comments || []).map((c) => (
+                  <div key={c.id} className="door2-comment" data-channel={c.channel}>
+                    <div>
+                      <strong>{c.author_name}</strong>
+                      <span>
+                        {c.author_role === "admin"
+                          ? "Administración"
+                          : c.author_role === "promotor"
+                            ? "Promotor"
+                            : "Puerta"}{" "}
+                        · {clock(c.created_at)}
+                      </span>
+                    </div>
+                    <p>{c.body}</p>
+                  </div>
+                ))}
+              </div>
+              {incidentDetail.can_comment && incidentDetail.status !== "resolved" && (
+                <div className="door2-comment-form">
+                  <textarea
+                    value={incidentComment}
+                    onChange={(e) => setIncidentComment(e.target.value)}
+                    placeholder="Escribí el contexto para Administración o el promotor…"
+                    rows={3}
+                  />
+                  <div className="door2-comment-actions">
+                    <select
+                      value={incidentChannel}
+                      onChange={(e) => setIncidentChannel(e.target.value)}
+                      aria-label="Canal del registro"
+                    >
+                      <option value="note">Nota</option>
+                      <option value="call">Resultado de llamada</option>
+                      <option value="whatsapp">Resultado de WhatsApp</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="door2-btn door2-btn--primary"
+                      disabled={incidentBusy || !incidentComment.trim()}
+                      onClick={() => sendIncidentComment(incidentChannel)}
+                    >
+                      Enviar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : incidentView === "new" ? (
+            <form className="door2-form" onSubmit={createIncident}>
+              <button
+                type="button"
+                className="door2-link"
+                onClick={() => setIncidentView("list")}
+              >
+                <Icon name="back" className="h-4 w-4" /> Volver
+              </button>
+              <label>
+                Motivo
+                <select value={incidentReason} onChange={(e) => setIncidentReason(e.target.value)}>
+                  {INCIDENT_REASONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Qué pasó (opcional)
+                <textarea
+                  value={incidentNote}
+                  onChange={(e) => setIncidentNote(e.target.value)}
+                  rows={3}
+                  placeholder="Contá lo que viste en la puerta. Sin datos de más: nombre y puesto alcanzan."
+                />
+              </label>
+              {incidentTicket ? (
+                <div className="door2-attached">
+                  <Icon name="ticket" className="h-4 w-4" />
+                  <span>Boleta {incidentTicket.ref}{incidentTicket.type ? ` · ${incidentTicket.type}` : ""}</span>
+                  <button type="button" onClick={() => setIncidentTicket(null)} aria-label="Quitar boleta">
+                    <Icon name="close" className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <p className="door2-hint">
+                  Sin boleta adjunta: el caso igual queda para Administración.
+                </p>
+              )}
+              <button
+                type="submit"
+                className="door2-btn door2-btn--primary door2-btn--wide"
+                disabled={incidentBusy}
+              >
+                {offline ? "Guardar y enviar al reconectar" : "Reportar incidencia"}
+              </button>
+            </form>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="door2-btn door2-btn--soft door2-btn--wide"
+                onClick={() => {
+                  setIncidentTicket(null);
+                  setIncidentNote("");
+                  setIncidentView("new");
+                }}
+              >
+                <Icon name="plus" className="h-4 w-4" />
+                Reportar incidencia
+              </button>
+              {pendingIncidents > 0 && (
+                <p className="door2-hint">
+                  {pendingIncidents} incidencia(s) guardada(s) en el teléfono, esperando conexión.
+                </p>
+              )}
+              <div className="door2-incident-list">
+                {incidentLoading && <p className="door2-hint">Cargando…</p>}
+                {!incidentLoading && incidents.length === 0 && (
+                  <div className="door2-empty-small">
+                    <Icon name="check" className="h-6 w-6" />
+                    <strong>Ninguna incidencia del turno</strong>
+                    <span>Si algo no cuadra en la puerta, reportalo acá.</span>
+                  </div>
+                )}
+                {incidents.map((inc) => (
                   <button
-                    key={t.id}
-                    onClick={() => {
-                      setRowFilter(t.id);
-                      haptics.tick();
-                    }}
-                    aria-pressed={rowFilter === t.id}
-                    className={`chip min-h-[44px] rounded-full px-4 text-xs font-semibold ${
-                      rowFilter === t.id
-                        ? "chip-active"
-                        : "bg-zinc-800/70 text-zinc-300"
-                    }`}
+                    type="button"
+                    key={inc.id}
+                    className="door2-incident-row"
+                    onClick={() => loadIncident(inc.id)}
                   >
-                    {t.name}
+                    <span className="door2-pill" data-tone={INCIDENT_STATUS[inc.status]?.tone}>
+                      {INCIDENT_STATUS[inc.status]?.label}
+                    </span>
+                    <strong>{inc.reason}</strong>
+                    <small>
+                      {inc.ticket_ref || `#${inc.id}`} · {clock(inc.created_at)}
+                      {inc.ticket_type_name ? ` · ${inc.ticket_type_name}` : ""}
+                    </small>
+                    <Icon name="chevronDown" className="h-4 w-4 door2-incident-chevron" />
                   </button>
                 ))}
               </div>
-            </div>
+            </>
           )}
-
-          {/* Modo entrada/salida (fase 1 V2). El aforo se libera con
-              egresos: si el escáner solo sabe sumar, el recinto se llena y
-              nadie más entra aunque la gente se haya ido. */}
-          <div className="mt-3 w-full max-w-sm">
-            <div
-              role="group"
-              aria-label="Modo del escáner"
-              className="grid grid-cols-2 gap-1 rounded-xl border border-zinc-800 bg-zinc-900/40 p-1"
-            >
-              {[
-                { id: "in", label: "Entrada" },
-                { id: "out", label: "Salida" },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => {
-                    setScanMode(m.id);
-                    localStorage.setItem("tf_scan_mode", m.id);
-                    resetScan();
-                    haptics.tick();
-                  }}
-                  aria-pressed={scanMode === m.id}
-                  className={`min-h-[44px] rounded-lg text-sm font-medium transition ${
-                    scanMode === m.id
-                      ? "bg-zinc-100 text-zinc-900"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1 text-2xs text-zinc-600">
-              {scanMode === "out"
-                ? "Cada escaneo descuenta a una persona del recinto."
-                : "Cada escaneo suma un ingreso al recinto."}
-            </p>
-          </div>
-
-          {/* Puerta de origen (mig 042): identifica ESTE teléfono dentro del
-              evento. Con varios accesos, permite después medir cuántos entraron
-              por cada uno. Se guarda por dispositivo: el bouncer lo escribe una
-              vez. Vacío = puerta sin identificar. */}
-          <div className="mt-3 w-full max-w-sm">
-            <label className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3">
-              <Icon name="door" className="h-4 w-4 shrink-0 text-zinc-500" />
-              <input
-                type="text"
-                value={doorId}
-                onChange={(e) => {
-                  setDoorId(e.target.value);
-                  localStorage.setItem("tf_door_id", e.target.value);
-                }}
-                maxLength={40}
-                placeholder="Puerta de este teléfono (opcional)"
-                aria-label="Puerta de origen"
-                className="min-h-[44px] min-w-0 flex-1 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
-              />
-              {doorId.trim() && (
-                <button
-                  onClick={() => {
-                    setDoorId("");
-                    localStorage.removeItem("tf_door_id");
-                    haptics.tick();
-                  }}
-                  className="btn-icon shrink-0"
-                  aria-label="Quitar puerta de origen"
-                >
-                  <Icon name="close" className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </label>
-            <p className="mt-1 text-2xs text-zinc-600">
-              Se guarda en este teléfono y viaja con cada escaneo (también sin
-              red).
-            </p>
-          </div>
-
-          <p className="mt-4 max-w-sm text-center text-xs text-zinc-600">
-            Verde = entra · Rojo = no entra. El resultado también aparece con el
-            código manual.
-          </p>
-
-          {/* Log de los últimos escaneos de este teléfono: respaldo para
-              discusiones en puerta ("yo sí entré"). Colapsado por defecto:
-              durante el turno manda el escaneo, no la lectura. */}
-          {scanLog.length > 0 && (
-            <div className="mt-4 w-full max-w-sm">
-              <button
-                onClick={() => setLogOpen((v) => !v)}
-                className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-900"
-              >
-                <span>
-                  Últimos escaneos{" "}
-                  <span className="tnum text-zinc-500">({scanLog.length})</span>
-                </span>
-                <span className="text-zinc-500">
-                  {logOpen ? "ocultar ▲" : "ver ▼"}
-                </span>
-              </button>
-              {logOpen && (
-                <ul className="mt-2 divide-y divide-zinc-800/70 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
-                  {scanLog.map((s, i) => (
-                    <li
-                      key={`${s.at}-${i}`}
-                      className="flex items-center gap-2 px-3 py-1.5 text-xs"
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                          s.code === "GRANTED"
-                            ? "bg-emerald-400"
-                            : [
-                                  "NOT_ACTIVE",
-                                  "WRONG_TYPE",
-                                  "NETWORK_ERROR",
-                                  "SCAN_ERROR",
-                                ].includes(s.code)
-                              ? "bg-amber-400"
-                              : "bg-red-400"
-                        }`}
-                      />
-                      <span className="tnum shrink-0 text-zinc-500">
-                        {new Date(s.at).toLocaleTimeString("es-CO", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                        })}
-                      </span>
-                      <span className="truncate font-semibold text-zinc-300">
-                        {SCAN_LOG_LABEL[s.code] ?? s.code}
-                        {s.name ? ` · ${s.name}` : ""}
-                      </span>
-                      {s.detail && i === 0 && (
-                        <span className="ml-auto truncate text-zinc-600">
-                          {s.detail}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-1 text-center text-2xs text-zinc-600">
-                Solo en este dispositivo · sirve para aclarar en puerta
-              </p>
-            </div>
-          )}
-
-          {/* Caché de puerta (modo offline): estado + descarga manual. Se
-              anticipa sola cuando el evento está en puerta (arriba); este
-              botón fuerza la descarga o la actualiza si el aforo cambió. La
-              descarga baja nombres+hashes del evento, nada de tokens. */}
-          <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-zinc-300">
-                Caché de puerta (sin red)
-              </p>
-              {snapInfo ? (
-                <button
-                  onClick={prepareOffline}
-                  disabled={starting}
-                  className="btn-mini"
-                  data-variant="brand"
-                >
-                  Actualizar
-                </button>
-              ) : (
-                <button
-                  onClick={prepareOffline}
-                  disabled={starting || !selectedEvent}
-                  className="btn-mini"
-                  data-variant="brand"
-                >
-                  Descargar
-                </button>
-              )}
-            </div>
-            {snapInfo ? (
-              <p className="tnum mt-1 text-2xs text-zinc-500">
-                {snapInfo.count} boletas vivas · descargado{" "}
-                {new Date(snapInfo.generated_at).toLocaleTimeString("es-CO", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-                {offline && " · validando sin red"}
-              </p>
-            ) : (
-              <p className="mt-1 text-2xs text-zinc-500">
-                Baja los hashes de las boletas vigentes para validar en la fila
-                aunque el dato se caiga. Nada de tokens: solo huellas SHA-256.
-              </p>
-            )}
-            {pendingSync > 0 && (
-              <button
-                onClick={doSync}
-                disabled={syncing}
-                className="btn-mini mt-1.5"
-                data-variant="success"
-              >
-                {syncing
-                  ? "Sincronizando…"
-                  : `Sincronizar ${pendingSync} escaneo${pendingSync === 1 ? "" : "s"}`}
-              </button>
-            )}
-          </div>
-
-          {/* Aviso push cuando el admin abra puertas (published -> live) */}
-          <div className="w-full max-w-sm">
-            <PushToggle venueId={venueId} />
-          </div>
-        </div>
+        </Sheet>
       )}
-    </div>
+
+      {panel === "shift" && (
+        <Sheet
+          title="Turno"
+          subtitle={`${context?.event_name || "Evento"} · ${context?.assigned_door || "Sin puesto"}`}
+          onClose={() => setPanel(null)}
+        >
+          <div className="door2-auth-card" data-authorized={authorized ? "true" : "false"}>
+            <div className="door2-auth-head">
+              <span className="door2-auth-icon">
+                <Icon name={authorized ? "shield" : "lock"} className="h-5 w-5" />
+              </span>
+              <div>
+                <strong>{authorized ? "Teléfono autorizado" : "Sin autorización de dispositivo"}</strong>
+                <span>
+                  {authorized
+                    ? `${device?.door_name || context?.assigned_door || "Puerta"} · ${device?.phone || user?.phone || "sin teléfono registrado"}`
+                    : "Abrí el link de Puerta de este puesto para poder escanear."}
+                </span>
+              </div>
+            </div>
+            <dl className="door2-facts">
+              <div><dt>Evento</dt><dd>{context?.event_name || selectedEventData?.name || "—"}</dd></div>
+              <div><dt>Puesto</dt><dd>{context?.assigned_door || device?.door_name || "—"}</dd></div>
+              <div>
+                <dt>Turno</dt>
+                <dd>
+                  {context?.shift_start || context?.shift_end
+                    ? `${clock(context.shift_start)} – ${clock(context.shift_end)}`
+                    : "Toda la noche"}
+                </dd>
+              </div>
+              <div><dt>Vence</dt><dd>{dateTime(device?.expires_at || context?.device?.expires_at)}</dd></div>
+              <div><dt>Última lectura</dt><dd>{dateTime(context?.last_verified_at)}</dd></div>
+              <div><dt>Incidencias abiertas</dt><dd>{openIncidents}</dd></div>
+            </dl>
+            {!authorized && (
+              <button type="button" className="door2-btn door2-btn--soft" onClick={clearAuthorization}>
+                Borrar credencial de este teléfono
+              </button>
+            )}
+          </div>
+
+          {!fijo && events?.length > 1 && (
+            <div className="door2-field-block">
+              <label>
+                Evento de esta noche
+                <select
+                  value={selectedEvent || ""}
+                  onChange={(e) => setSelectedEvent(Number(e.target.value) || null)}
+                >
+                  {events.map((ev) => (
+                    <option key={ev.id} value={ev.id}>{ev.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+
+          <div className="door2-offline-card">
+            <div>
+              <p className="door2-card-kicker">Modo sin conexión</p>
+              <strong>
+                {snapInfo ? `${snapInfo.count} boletas listas` : "Sin caché descargado"}
+              </strong>
+              <span>
+                {snapInfo
+                  ? `Actualizado ${dateTime(snapInfo.generated_at)}.`
+                  : "Descargalo con red antes de que falle la señal del recinto."}
+              </span>
+            </div>
+            <div className="door2-counter-row">
+              <span><b>{pendingScans}</b> ingresos</span>
+              <span><b>{pendingIncidents}</b> incidencias</span>
+            </div>
+            <div className="door2-inline-actions">
+              <button type="button" className="door2-btn door2-btn--soft" onClick={prepareOffline}>
+                {snapInfo ? "Actualizar caché" : "Preparar sin conexión"}
+              </button>
+              {(pendingScans > 0 || pendingIncidents > 0) && (
+                <button
+                  type="button"
+                  className="door2-btn door2-btn--primary"
+                  onClick={doSync}
+                  disabled={syncing || offline}
+                >
+                  {syncing ? "Sincronizando…" : "Sincronizar ahora"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="door2-shift-card">
+            <div className="door2-shift-head">
+              <div>
+                <p className="door2-card-kicker">Relevo</p>
+                <strong>Cambio de teléfono o de persona</strong>
+              </div>
+              <button
+                type="button"
+                className="door2-btn door2-btn--soft"
+                onClick={() => setShiftForm((v) => !v)}
+              >
+                {shiftForm ? "Cancelar" : "Solicitar"}
+              </button>
+            </div>
+            {shiftForm ? (
+              <form className="door2-form" onSubmit={requestShift}>
+                <label>
+                  Motivo
+                  <input
+                    value={shiftReason}
+                    onChange={(e) => setShiftReason(e.target.value)}
+                    placeholder="Ej: termina mi turno a las 2:00"
+                    required
+                    minLength={3}
+                  />
+                </label>
+                <label>
+                  Teléfono del relevo (opcional)
+                  <input
+                    value={shiftPhone}
+                    onChange={(e) => setShiftPhone(e.target.value)}
+                    placeholder="300 123 4567"
+                    inputMode="tel"
+                  />
+                </label>
+                <p className="door2-hint">
+                  Administración aprueba, transfiere o revoca el puesto. El
+                  teléfono anterior deja de registrar operaciones.
+                </p>
+                <button type="submit" className="door2-btn door2-btn--primary door2-btn--wide">
+                  Enviar solicitud
+                </button>
+              </form>
+            ) : (
+              <div className="door2-shift-list">
+                {shiftRequests.length === 0 && (
+                  <p className="door2-hint">Sin solicitudes en esta noche.</p>
+                )}
+                {shiftRequests.map((r) => (
+                  <div key={r.id} className="door2-shift-row">
+                    <span className="door2-pill" data-tone={r.status === "approved" ? "ok" : r.status === "rejected" ? "danger" : "warn"}>
+                      {r.status === "approved" ? "Aprobado" : r.status === "rejected" ? "Rechazado" : "Pendiente"}
+                    </span>
+                    <strong>{r.reason}</strong>
+                    <small>{clock(r.created_at)}{r.reviewed_by_name ? ` · revisó ${r.reviewed_by_name}` : ""}</small>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {context?.ops_contact_phone && (
+            <div className="door2-contact">
+              <div>
+                <span>Contacto operativo</span>
+                <strong>{context.ops_contact_name || "Administración"}</strong>
+                <small>{context.ops_contact_phone}</small>
+              </div>
+              <div className="door2-contact-actions">
+                <a className="door2-btn door2-btn--soft" href={`tel:${context.ops_contact_phone}`}>
+                  Llamar
+                </a>
+                <a
+                  className="door2-btn door2-btn--soft"
+                  href={waHref(context.ops_contact_phone, "Consulta desde Puerta")}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              </div>
+            </div>
+          )}
+        </Sheet>
+      )}
+    </main>
   );
 }

@@ -22,6 +22,8 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
   const [candidatos, setCandidatos] = useState([]);
   const [elegido, setElegido] = useState("");
   const [rolNuevo, setRolNuevo] = useState("bouncer");
+  const [puestoNuevo, setPuestoNuevo] = useState("");
+  const [tipoNuevo, setTipoNuevo] = useState("");
   // Turno (opcional): la ventana en que esa persona trabaja la noche. Sin
   // turno, el link vale para toda la noche. Con turno, el escáner se cierra
   // fuera de la ventana y quien queda en puerta a las 3 a.m. es el que estaba
@@ -32,6 +34,15 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
   const [emitiendo, setEmitiendo] = useState(false);
   // El último link emitido, en claro, SOLO en memoria de esta sesión.
   const [linkReciente, setLinkReciente] = useState(null);
+  // Puesto y teléfono con los que se emite el link. No se generan links
+  // "sueltos": la autorización es de un teléfono y un acceso concretos.
+  const [linkDraft, setLinkDraft] = useState(null);
+  const [tipos, setTipos] = useState([]);
+  const [relevos, setRelevos] = useState([]);
+  const [relevoDraft, setRelevoDraft] = useState({});
+  const [transferFor, setTransferFor] = useState(null);
+  const [transferTo, setTransferTo] = useState("");
+  const [transferPhone, setTransferPhone] = useState("");
 
   const cargar = useCallback(async () => {
     const data = await apiFetch(`/venues/${venueId}/events/${event.id}/staff`);
@@ -41,6 +52,27 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
   useEffect(() => {
     cargar().catch((e) => ui.error(e.message));
   }, [cargar, ui]);
+
+  const cargarRelevos = useCallback(async () => {
+    try {
+      const data = await apiFetch(
+        `/venues/${venueId}/events/${event.id}/door-shift-requests`,
+      );
+      setRelevos(data);
+    } catch {
+      setRelevos([]);
+    }
+  }, [venueId, event.id]);
+
+  useEffect(() => {
+    cargarRelevos();
+  }, [cargarRelevos]);
+
+  useEffect(() => {
+    apiFetch(`/venues/${venueId}/events/${event.id}/types`)
+      .then((data) => setTipos((data || []).filter((t) => t.is_active !== false)))
+      .catch(() => setTipos([]));
+  }, [venueId, event.id]);
 
   // Candidatos: el equipo de la venue, para elegir a quién poner esta noche.
   // Se cargan una vez: son pocas personas y no cambian durante la noche.
@@ -71,12 +103,16 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
           role: rolNuevo,
           shift_start: turnoInicio ? new Date(turnoInicio).toISOString() : null,
           shift_end: turnoFin ? new Date(turnoFin).toISOString() : null,
+          door_name: puestoNuevo.trim() || null,
+          door_ticket_type_id: tipoNuevo ? Number(tipoNuevo) : null,
         }),
       });
       haptics.success();
       setElegido("");
       setTurnoInicio("");
       setTurnoFin("");
+      setPuestoNuevo("");
+      setTipoNuevo("");
       await cargar();
       ui.success("Persona asignada a esta noche");
     } catch (e) {
@@ -121,20 +157,134 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
     }
   }
 
-  async function generarLink(uid) {
-    setEmitiendo(uid);
+  function abrirLinkForm(persona) {
+    setLinkDraft({
+      user_id: persona.user_id,
+      full_name: persona.full_name,
+      door_name: persona.door_name || "",
+      ticket_type_id: persona.door_ticket_type_id
+        ? String(persona.door_ticket_type_id)
+        : "",
+      phone: persona.device_phone || persona.phone || "",
+    });
+  }
+
+  async function generarLink() {
+    if (!linkDraft) return;
+    setEmitiendo(linkDraft.user_id);
     try {
       const r = await apiFetch(
-        `/venues/${venueId}/events/${event.id}/staff/${uid}/link`,
-        { method: "POST" },
+        `/venues/${venueId}/events/${event.id}/staff/${linkDraft.user_id}/link`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            door_name: linkDraft.door_name.trim() || null,
+            ticket_type_id: linkDraft.ticket_type_id
+              ? Number(linkDraft.ticket_type_id)
+              : null,
+            phone: linkDraft.phone.trim() || null,
+          }),
+        },
       );
       haptics.success();
-      setLinkReciente({ user_id: uid, ...r });
+      setLinkReciente({ user_id: linkDraft.user_id, ...r });
       onLinkSent?.(r);
+      setLinkDraft(null);
+      await cargar();
     } catch (e) {
       ui.error(e.message);
     } finally {
       setEmitiendo(null);
+    }
+  }
+
+  function abrirTransferencia(persona) {
+    setTransferFor(persona);
+    setTransferTo("");
+    setTransferPhone(persona.device_phone || persona.phone || "");
+  }
+
+  async function transferirTelefono() {
+    if (!transferFor?.device_id || !transferTo) {
+      ui.error("Elegí el teléfono o la persona de reemplazo.");
+      return;
+    }
+    setOcupado(true);
+    try {
+      const r = await apiFetch(
+        `/venues/${venueId}/events/${event.id}/door-devices/${transferFor.device_id}/transfer`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: Number(transferTo),
+            phone: transferPhone.trim() || null,
+            note: "Transferencia directa desde Administración.",
+          }),
+        },
+      );
+      setLinkReciente({
+        user_id: Number(transferTo),
+        access_url: r.access_url,
+        event_name: event.name,
+        expires_at: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
+      });
+      setTransferFor(null);
+      await Promise.all([cargar(), cargarRelevos()]);
+      ui.success("Puesto transferido. El teléfono anterior quedó fuera.");
+    } catch (e) {
+      ui.error(e.message);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function aprobarRelevo(solicitud) {
+    const draft = relevoDraft[solicitud.id] || {};
+    if (!draft.user_id) {
+      ui.error("Elegí a la persona de relevo.");
+      return;
+    }
+    setOcupado(true);
+    try {
+      const r = await apiFetch(
+        `/venues/${venueId}/events/${event.id}/door-shift-requests/${solicitud.id}/approve`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: Number(draft.user_id),
+            phone: draft.phone || solicitud.requested_phone || null,
+            note: "Relevo aprobado desde Administración.",
+          }),
+        },
+      );
+      setLinkReciente({
+        user_id: Number(draft.user_id),
+        access_url: r.access_url,
+        event_name: event.name,
+        expires_at: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
+      });
+      await Promise.all([cargar(), cargarRelevos()]);
+      ui.success("Puesto relevado. El teléfono anterior quedó fuera.");
+    } catch (e) {
+      ui.error(e.message);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function rechazarRelevo(solicitud) {
+    setOcupado(true);
+    try {
+      await apiFetch(
+        `/venues/${venueId}/events/${event.id}/door-shift-requests/${solicitud.id}/reject`,
+        { method: "POST", body: JSON.stringify({ note: "Rechazado por Administración." }) },
+      );
+      await cargarRelevos();
+      ui.success("Solicitud rechazada.");
+    } catch (e) {
+      ui.error(e.message);
+    } finally {
+      setOcupado(false);
     }
   }
 
@@ -201,6 +351,111 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
             })}
             . Si lo perdes, generá uno nuevo.
           </p>
+        </div>
+      )}
+
+      {/* ---------- Puesto y teléfono del link ---------- */}
+      {linkDraft && (
+        <div className="card p-4">
+          <p className="eyebrow">Puesto de {linkDraft.full_name}</p>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            Un link = una noche + un puesto + un teléfono. El puesto define qué
+            tipo de boleta puede entrar y las cifras de aforo.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+              Nombre del acceso
+              <input
+                value={linkDraft.door_name}
+                onChange={(e) => setLinkDraft({ ...linkDraft, door_name: e.target.value })}
+                placeholder="Acceso VIP, General…"
+                className="field"
+                maxLength={60}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+              Tipo de boleta
+              <select
+                value={linkDraft.ticket_type_id}
+                onChange={(e) => setLinkDraft({ ...linkDraft, ticket_type_id: e.target.value })}
+                className="field"
+              >
+                <option value="">Todas las boletas</option>
+                {tipos.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-2xs text-zinc-500 sm:col-span-2">
+              Teléfono autorizado
+              <input
+                value={linkDraft.phone}
+                onChange={(e) => setLinkDraft({ ...linkDraft, phone: e.target.value })}
+                placeholder="300 123 4567"
+                className="field"
+                inputMode="tel"
+                maxLength={40}
+              />
+            </label>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={generarLink}
+              disabled={emitiendo === linkDraft.user_id}
+              className="btn-primary"
+            >
+              {emitiendo === linkDraft.user_id ? "Generando…" : "Generar link de puesto"}
+            </button>
+            <button type="button" onClick={() => setLinkDraft(null)} className="bs-secondary">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {transferFor && (
+        <div className="card p-4">
+          <p className="eyebrow">Transferir {transferFor.door_name || "puesto"}</p>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            El teléfono de {transferFor.full_name} deja de operar en el acto.
+            La persona nueva recibe un link para abrir el puesto desde su teléfono.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+              Persona de reemplazo
+              <select
+                value={transferTo}
+                onChange={(e) => setTransferTo(e.target.value)}
+                className="field"
+              >
+                <option value="">Elegí a la persona…</option>
+                {(rows ?? [])
+                  .filter((p) => p.role === "bouncer" && p.user_id !== transferFor.user_id)
+                  .map((p) => (
+                    <option key={p.user_id} value={p.user_id}>{p.full_name}</option>
+                  ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+              Teléfono autorizado
+              <input
+                value={transferPhone}
+                onChange={(e) => setTransferPhone(e.target.value)}
+                className="field"
+                inputMode="tel"
+                placeholder="300 123 4567"
+              />
+            </label>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="btn-primary" disabled={ocupado || !transferTo} onClick={transferirTelefono}>
+              Transferir puesto
+            </button>
+            <button type="button" className="bs-secondary" onClick={() => setTransferFor(null)}>
+              Cancelar
+            </button>
+          </div>
         </div>
       )}
 
@@ -271,11 +526,117 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
               />
             </label>
           </div>
+          {rolNuevo === "bouncer" && (
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+                Puesto de puerta
+                <input
+                  value={puestoNuevo}
+                  onChange={(e) => setPuestoNuevo(e.target.value)}
+                  placeholder="Acceso VIP, General…"
+                  className="field"
+                  maxLength={60}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+                Tipo de boleta del puesto
+                <select
+                  value={tipoNuevo}
+                  onChange={(e) => setTipoNuevo(e.target.value)}
+                  className="field"
+                >
+                  <option value="">Todas las boletas</option>
+                  {tipos.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
           {(turnoInicio || turnoFin) && (
             <p className="mt-1.5 text-2xs text-zinc-500">
               Fuera de esta ventana su escáner rechaza los ingresos.
             </p>
           )}
+        </div>
+      )}
+
+      {/* ---------- Relevos pendientes ---------- */}
+      {relevos.some((r) => r.status === "pending") && (
+        <div className="card border-amber-800 bg-amber-950/30 p-4">
+          <p className="eyebrow">Relevos pendientes</p>
+          <p className="mt-0.5 text-xs text-zinc-400">
+            Puerta pidió cambiar de teléfono o de persona. Aprobar revoca el
+            teléfono anterior y emite un link nuevo al reemplazo.
+          </p>
+          <div className="mt-3 space-y-3">
+            {relevos.filter((r) => r.status === "pending").map((r) => {
+              const puerta = (rows ?? []).filter(
+                (p) => p.role === "bouncer" && p.user_id !== r.requested_by,
+              );
+              const draft = relevoDraft[r.id] || {};
+              return (
+                <div key={r.id} className="rounded-lg bg-black/20 p-3">
+                  <p className="text-sm font-semibold text-zinc-100">
+                    {r.requested_by_name} · {r.door_name || "Puerta"}
+                  </p>
+                  <p className="text-xs text-zinc-400">{r.reason}</p>
+                  {r.requested_phone && (
+                    <p className="mt-1 text-2xs text-zinc-500">
+                      Teléfono pedido: {r.requested_phone}
+                    </p>
+                  )}
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <select
+                      value={draft.user_id || ""}
+                      onChange={(e) =>
+                        setRelevoDraft({
+                          ...relevoDraft,
+                          [r.id]: { ...draft, user_id: e.target.value },
+                        })
+                      }
+                      className="field flex-1"
+                      aria-label="Persona de relevo"
+                    >
+                      <option value="">Elegí el relevo…</option>
+                      {puerta.map((p) => (
+                        <option key={p.user_id} value={p.user_id}>{p.full_name}</option>
+                      ))}
+                    </select>
+                    <input
+                      value={draft.phone || r.requested_phone || ""}
+                      onChange={(e) =>
+                        setRelevoDraft({
+                          ...relevoDraft,
+                          [r.id]: { ...draft, phone: e.target.value },
+                        })
+                      }
+                      className="field sm:w-44"
+                      placeholder="Teléfono"
+                      aria-label="Teléfono del relevo"
+                    />
+                    <button
+                      type="button"
+                      className="btn-primary shrink-0"
+                      disabled={ocupado}
+                      onClick={() => aprobarRelevo(r)}
+                    >
+                      Aprobar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-mini shrink-0"
+                      data-variant="danger"
+                      disabled={ocupado}
+                      onClick={() => rechazarRelevo(r)}
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -301,7 +662,8 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
             icon="door"
             filas={puerta}
             usados={usados}
-            onLink={generarLink}
+            onLink={abrirLinkForm}
+            onTransfer={abrirTransferencia}
             onRevoke={revocarLink}
             onQuitar={quitar}
             emitiendo={emitiendo}
@@ -315,7 +677,8 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
             icon="ticket"
             filas={venta}
             usados={usados}
-            onLink={generarLink}
+            onLink={abrirLinkForm}
+            onTransfer={abrirTransferencia}
             onRevoke={revocarLink}
             onQuitar={quitar}
             emitiendo={emitiendo}
@@ -336,6 +699,7 @@ function Roster({
   filas,
   usados,
   onLink,
+  onTransfer,
   onRevoke,
   onQuitar,
   emitiendo,
@@ -344,6 +708,20 @@ function Roster({
   event,
 }) {
   const linkState = (p) => {
+    if (p.device_status === "active") {
+      return {
+        label: "Teléfono activo",
+        tone: "live",
+        detail: `${p.door_name || "Puerta"}${p.device_phone ? ` · ${p.device_phone}` : ""}`,
+      };
+    }
+    if (p.device_status === "revoked" || p.device_status === "replaced") {
+      return {
+        label: p.device_status === "replaced" ? "Relevado" : "Revocado",
+        tone: "warn",
+        detail: "El teléfono anterior ya no opera",
+      };
+    }
     if (usados.has(p.user_id) || p.link_used_at) {
       return { label: "Activado", tone: "live", detail: "Enlace canjeado · escáner activo" };
     }
@@ -421,7 +799,7 @@ function Roster({
               </p>
             </div>
             <button
-              onClick={() => onLink(p.user_id)}
+              onClick={() => onLink(p)}
               disabled={emitiendo === p.user_id || ocupado}
               className="btn-mini shrink-0"
               data-variant={p.has_link ? undefined : "brand"}
@@ -438,9 +816,18 @@ function Roster({
               ) : (
                 <Icon name="link" className="h-3.5 w-3.5" />
               )}
-              {usados.has(p.user_id) ? "Rotar" : p.has_link ? "Reenviar" : "Link"}
+              {p.device_status === "active" ? "Rotar" : p.has_link ? "Reenviar" : "Link"}
             </button>
-            {p.has_link && (
+            {p.device_status === "active" && onTransfer && (
+              <button
+                onClick={() => onTransfer(p)}
+                className="btn-mini shrink-0"
+                aria-label={`Transferir el puesto de ${p.full_name}`}
+              >
+                Transferir
+              </button>
+            )}
+            {(p.has_link || p.device_status === "active") && (
               <button
                 onClick={() => onRevoke(p.user_id, p.full_name)}
                 disabled={ocupado}

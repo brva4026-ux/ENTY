@@ -4,6 +4,7 @@ import Icon from "../../components/Icon";
 import TransitionLink from "../../components/TransitionLink";
 import { PromoterAlert, PromoterDrawer, PromoterEmpty, PromoterSkeleton } from "../../components/PromoterUI";
 import { PromoterTicketCard, PromoterTicketFullscreen } from "../../components/PromoterTicket";
+import DoorIncidentsPanel from "../../components/DoorIncidentsPanel";
 import { useAuth } from "../../lib/auth";
 import { useUI } from "../../lib/ui";
 import { activeVenueId } from "../../lib/venue";
@@ -356,9 +357,25 @@ export default function PromoterEventView() {
               <Icon name="ticket" aria-hidden="true" />
               Mis ventas del evento
             </TransitionLink>
+            <button
+              type="button"
+              className="promoter-btn"
+              onClick={() =>
+                document
+                  .getElementById("incidencias-promotor")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+            >
+              <Icon name="flag" aria-hidden="true" />
+              Incidencias de puerta
+            </button>
           </div>
         </div>
       </section>
+
+      <div id="incidencias-promotor">
+        <DoorIncidentsPanel venueId={venueId} eventId={Number(eventId)} role="promotor" />
+      </div>
 
       {!event.assignment_active && (
         <PromoterAlert tone="warn">

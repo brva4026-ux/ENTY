@@ -1,4 +1,5 @@
 import DoorPulse from "./DoorPulse";
+import DoorIncidentsPanel from "./DoorIncidentsPanel";
 import Icon from "./Icon";
 import { LiveIndicator } from "./Brand";
 import { SectionContext } from "./EventSummary";
@@ -24,6 +25,7 @@ export default function AccesosPanel({
   setCajaRange,
   cajaBusy,
   lastUpdated,
+  venueId,
 }) {
   const paidTickets = report?.by_payment_method
     ?.filter((p) => p.payment_method && p.payment_method !== "cortesia")
@@ -321,11 +323,19 @@ export default function AccesosPanel({
                 ✓
               </span>
               {s.full_name}
-              {s.has_link ? " · link emitido" : " · sin link"}
+              {s.device_active
+                ? ` · ${s.door_name || "Puerta"} · ${s.device_phone || "teléfono autorizado"}`
+                : s.has_link
+                  ? " · link emitido"
+                  : " · sin link"}
             </li>
           ))}
         </ul>
       </div>
+
+      {venueId && (
+        <DoorIncidentsPanel venueId={venueId} eventId={ev.id} role="admin" />
+      )}
 
       {report && <DoorPulse pulse={report.door_pulse} isLive={isLive} />}
 

@@ -16,9 +16,10 @@ usuario en ese evento.
 from typing import Annotated
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.core.db import get_db
+from app.core.door_auth import authorize_door_device
 from app.deps import ensure_roles, get_current_user
 from app.schemas import ExitIn, ExitOut, OccupancyOut, ScannerStats
 
@@ -118,6 +119,7 @@ async def register_exit(
     body: ExitIn,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    x_door_device: Annotated[str | None, Header(alias="X-Door-Device")] = None,
 ):
     """Registra que una persona SALE del recinto.
 
@@ -134,10 +136,22 @@ async def register_exit(
         if not await cur.fetchone():
             raise HTTPException(404, "Evento no encontrado")
 
+        device = await authorize_door_device(
+            cur,
+            event_id=event_id,
+            venue_id=venue_id,
+            user=user,
+            raw_token=x_door_device,
+        )
         try:
             await cur.execute(
                 "SELECT register_exit(%s, %s, %s, NULL, %s)",
-                (event_id, body.raw_token, user["id"], body.door_id),
+                (
+                    event_id,
+                    body.raw_token,
+                    user["id"],
+                    (device["door_name"] if device else None) or body.door_id,
+                ),
             )
             row = await cur.fetchone()
             code = row["register_exit"] if isinstance(row, dict) else row[0]
@@ -152,8 +166,10 @@ async def register_exit(
         async with db.cursor() as cur:
             await cur.execute(
                 """
-                SELECT id, customer_name FROM tickets
-                 WHERE token_hash = encode(digest(%s, 'sha256'), 'hex')
+                SELECT t.id, t.customer_name, tt.name AS type_name
+                  FROM tickets t
+                  LEFT JOIN ticket_types tt ON tt.id=t.ticket_type_id
+                 WHERE t.token_hash = encode(digest(%s, 'sha256'), 'hex')
                 """,
                 (body.raw_token,),
             )
@@ -161,4 +177,5 @@ async def register_exit(
         if t:
             out.ticket_id = t["id"]
             out.customer_name = t["customer_name"]
+            out.ticket_type = t["type_name"]
     return out

@@ -41,6 +41,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
 from app.schemas import (
+    EventAccessCreate,
     EventAccessGranted,
     EventAccessOut,
     EventAccessPreview,
@@ -96,8 +97,9 @@ async def list_event_staff(
     async with db.cursor() as cur:
         await cur.execute(
             """
-            SELECT s.id, s.user_id, u.full_name, u.email, s.role,
+            SELECT s.id, s.user_id, u.full_name, u.email, u.phone, s.role,
                    s.shift_start, s.shift_end, s.created_at,
+                   s.door_name, s.door_ticket_type_id,
                    (
                        t.id IS NOT NULL
                        AND t.used_at IS NULL
@@ -106,7 +108,12 @@ async def list_event_staff(
                    ) AS has_link,
                    t.expires_at AS link_expires_at,
                    t.used_at AS link_used_at,
-                   t.revoked_at AS link_revoked_at
+                   t.revoked_at AS link_revoked_at,
+                   d.id AS device_id,
+                   d.status AS device_status,
+                   d.phone AS device_phone,
+                   d.expires_at AS device_expires_at,
+                   d.last_seen_at AS device_last_seen_at
             FROM event_staff s
             JOIN users u ON u.id = s.user_id
             LEFT JOIN LATERAL (
@@ -116,6 +123,13 @@ async def list_event_staff(
                 ORDER BY created_at DESC, id DESC
                 LIMIT 1
             ) t ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT id, status, phone, expires_at, last_seen_at
+                FROM event_door_devices
+                WHERE event_id = s.event_id AND user_id = s.user_id
+                ORDER BY (status = 'active') DESC, activated_at DESC NULLS LAST, id DESC
+                LIMIT 1
+            ) d ON TRUE
             WHERE s.event_id = %s
             ORDER BY s.role, u.full_name
             """,
@@ -148,7 +162,7 @@ async def assign_event_staff(
         # una fila que nadie puede abrir (nadie tiene cuenta).
         await cur.execute(
             """
-            SELECT u.id, u.full_name, u.email
+            SELECT u.id, u.full_name, u.email, u.phone
             FROM users u
             JOIN venue_user_roles r ON r.user_id = u.id
             WHERE r.venue_id = %s AND u.id = %s AND u.is_active
@@ -162,19 +176,36 @@ async def assign_event_staff(
                 "Esa persona no es parte de tu equipo. Invítala primero.",
             )
 
+        if body.door_ticket_type_id is not None:
+            await cur.execute(
+                "SELECT 1 FROM ticket_types WHERE id = %s AND event_id = %s",
+                (body.door_ticket_type_id, event_id),
+            )
+            if not await cur.fetchone():
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "Ese tipo de boleta no pertenece al evento.",
+                )
+
         # Reasignar el rol es la operación normal ("cambió de puesto esta
         # noche"), no un error: se actualiza la fila.
         await cur.execute(
             """
-            INSERT INTO event_staff (event_id, user_id, role, shift_start, shift_end, assigned_by)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO event_staff
+                (event_id, user_id, role, shift_start, shift_end, assigned_by,
+                 door_name, door_ticket_type_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (event_id, user_id) DO UPDATE
                 SET role = EXCLUDED.role,
                     shift_start = EXCLUDED.shift_start,
-                    shift_end = EXCLUDED.shift_end
+                    shift_end = EXCLUDED.shift_end,
+                    door_name = EXCLUDED.door_name,
+                    door_ticket_type_id = EXCLUDED.door_ticket_type_id
             RETURNING id, created_at
             """,
-            (event_id, body.user_id, body.role, body.shift_start, body.shift_end, user["id"]),
+            (event_id, body.user_id, body.role, body.shift_start, body.shift_end,
+             user["id"], (body.door_name or "").strip() or None,
+             body.door_ticket_type_id),
         )
         saved = await cur.fetchone()
         await db.commit()
@@ -184,10 +215,13 @@ async def assign_event_staff(
         user_id=body.user_id,
         full_name=member["full_name"],
         email=member["email"],
+        phone=member["phone"],
         role=body.role,
         shift_start=body.shift_start,
         shift_end=body.shift_end,
         created_at=saved["created_at"],
+        door_name=(body.door_name or "").strip() or None,
+        door_ticket_type_id=body.door_ticket_type_id,
         has_link=False,
     )
 
@@ -216,6 +250,12 @@ async def remove_event_staff(
         await cur.execute(
             "DELETE FROM event_access_tokens WHERE event_id = %s AND user_id = %s",
             (event_id, user_id),
+        )
+        await cur.execute(
+            """UPDATE event_door_devices
+                  SET status='revoked', revoked_at=now(), revoked_by=%s
+                WHERE event_id=%s AND user_id=%s AND status='active'""",
+            (user["id"], event_id, user_id),
         )
         await cur.execute(
             "DELETE FROM event_staff WHERE event_id = %s AND user_id = %s RETURNING id",
@@ -255,7 +295,14 @@ async def revoke_event_link(
             """,
             (event_id, user_id),
         )
-        if cur.rowcount == 0:
+        link_rows = cur.rowcount
+        await cur.execute(
+            """UPDATE event_door_devices
+                  SET status='revoked', revoked_at=now(), revoked_by=%s
+                WHERE event_id=%s AND user_id=%s AND status='active'""",
+            (user["id"], event_id, user_id),
+        )
+        if link_rows == 0 and cur.rowcount == 0:
             await db.rollback()
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND, "Esa persona no tiene un enlace vigente"
@@ -278,6 +325,7 @@ async def create_event_link(
     user_id: int,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    body: EventAccessCreate | None = None,
 ):
     """Emite (o rota) el link de puerta de esa persona para esa noche.
 
@@ -289,14 +337,34 @@ async def create_event_link(
 
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT 1 FROM event_staff WHERE event_id = %s AND user_id = %s",
+            """SELECT door_name, door_ticket_type_id
+                 FROM event_staff WHERE event_id = %s AND user_id = %s""",
             (event_id, user_id),
         )
-        if not await cur.fetchone():
+        staff = await cur.fetchone()
+        if not staff:
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
                 "Asigná esa persona a la noche antes de generar su link.",
             )
+
+        door_name = (body.door_name if body else None) or staff["door_name"]
+        door_name = (door_name or "").strip() or None
+        ticket_type_id = (
+            body.ticket_type_id if body and body.ticket_type_id is not None
+            else staff["door_ticket_type_id"]
+        )
+        phone = ((body.phone if body else None) or "").strip() or None
+        if ticket_type_id is not None:
+            await cur.execute(
+                "SELECT 1 FROM ticket_types WHERE id = %s AND event_id = %s",
+                (ticket_type_id, event_id),
+            )
+            if not await cur.fetchone():
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "Ese tipo de boleta no pertenece al evento.",
+                )
 
         raw = token_urlsafe(_TOKEN_BYTES)
         # El índice único parcial (event_id, user_id) WHERE vigente obliga a
@@ -311,11 +379,14 @@ async def create_event_link(
         )
         await cur.execute(
             """
-            INSERT INTO event_access_tokens (event_id, user_id, token_hash, expires_at, created_by)
-            VALUES (%s, %s, %s, now() + %s, %s)
+            INSERT INTO event_access_tokens
+                (event_id, user_id, token_hash, expires_at, created_by,
+                 door_name, ticket_type_id, phone)
+            VALUES (%s, %s, %s, now() + %s, %s, %s, %s, %s)
             RETURNING id, expires_at, created_at
             """,
-            (event_id, user_id, _hash_token(raw), timedelta(hours=_LINK_HOURS), user["id"]),
+            (event_id, user_id, _hash_token(raw), timedelta(hours=_LINK_HOURS),
+             user["id"], door_name, ticket_type_id, phone),
         )
         row = await cur.fetchone()
         await db.commit()
@@ -328,6 +399,9 @@ async def create_event_link(
         access_url=f"/puerta?token={raw}",
         expires_at=row["expires_at"],
         created_at=row["created_at"],
+        door_name=door_name,
+        ticket_type_id=ticket_type_id,
+        phone=phone,
     )
 
 
@@ -346,6 +420,7 @@ async def preview_event_access(
         await cur.execute(
             """
             SELECT t.id, t.event_id, t.user_id, t.expires_at, t.used_at, t.revoked_at,
+                   t.door_name, t.ticket_type_id, t.phone,
                    e.name, e.status, e.starts_at, u.full_name
             FROM event_access_tokens t
             JOIN events e ON e.id = t.event_id
@@ -377,6 +452,9 @@ async def preview_event_access(
         expires_at=row["expires_at"],
         used=bool(row["used_at"]),
         revoked=bool(row["revoked_at"]),
+        door_name=row["door_name"],
+        ticket_type_id=row["ticket_type_id"],
+        phone=row["phone"],
     )
 
 
@@ -395,7 +473,8 @@ async def redeem_event_access(
     async with db.cursor() as cur:
         await cur.execute(
             """
-            SELECT t.id, t.event_id, t.user_id
+            SELECT t.id, t.event_id, t.user_id, t.expires_at,
+                   t.door_name, t.ticket_type_id, t.phone
             FROM event_access_tokens t
             WHERE t.token_hash = %s
               AND t.user_id = %s
@@ -422,6 +501,39 @@ async def redeem_event_access(
         if not await cur.fetchone():
             await db.rollback()
             raise HTTPException(status.HTTP_409_CONFLICT, "Ese link ya se usó")
+        # Un puesto tiene UN teléfono activo. El link nuevo reemplaza al
+        # anterior en la misma transacción; el token viejo deja de servir.
+        if row["door_name"]:
+            await cur.execute(
+                """UPDATE event_door_devices
+                      SET status='replaced', revoked_at=now()
+                    WHERE event_id=%s AND lower(door_name)=lower(%s)
+                      AND status='active'""",
+                (row["event_id"], row["door_name"]),
+            )
+
+        device_raw = token_urlsafe(_TOKEN_BYTES)
+        await cur.execute(
+            """INSERT INTO event_door_devices
+                   (event_id, user_id, door_name, ticket_type_id, phone,
+                    token_hash, status, created_by, activated_at, expires_at)
+               VALUES (%s, %s, %s, %s, %s, %s, 'active', %s, now(), %s)
+               RETURNING id""",
+            (
+                row["event_id"], row["user_id"], row["door_name"],
+                row["ticket_type_id"], row["phone"], _hash_token(device_raw),
+                row["user_id"], row["expires_at"],
+            ),
+        )
+        device = await cur.fetchone()
         await db.commit()
 
-    return EventAccessGranted(event_id=row["event_id"])
+    return EventAccessGranted(
+        event_id=row["event_id"],
+        device_id=device["id"],
+        device_token=device_raw,
+        door_name=row["door_name"],
+        ticket_type_id=row["ticket_type_id"],
+        phone=row["phone"],
+        expires_at=row["expires_at"],
+    )

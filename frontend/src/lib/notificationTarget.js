@@ -4,8 +4,16 @@ export function promoterTarget(n) {
   if (!link || !link.startsWith("/promotor")) return null;
   const [path, qs = ""] = link.split("?");
   const params = new URLSearchParams(qs);
+  const directEvent = path.match(/^\/promotor\/evento\/(\d+)/);
+  if (directEvent) {
+    const incident = params.get("incidencia");
+    return `/promotor/evento/${directEvent[1]}${incident ? `?incidencia=${encodeURIComponent(incident)}` : ""}`;
+  }
   const eventId = params.get("event");
-  if (eventId) return `/promotor/evento/${eventId}`;
+  if (eventId) {
+    const incident = params.get("incidencia");
+    return `/promotor/evento/${eventId}${incident ? `?incidencia=${encodeURIComponent(incident)}` : ""}`;
+  }
   const tab = params.get("tab");
   if (tab === "liquidaciones" || tab === "comisiones" || path.endsWith("/liquidaciones")) {
     return "/promotor/comisiones";
@@ -28,6 +36,12 @@ export function adminTarget(n) {
   const tabByKind = {
     door_anomaly: "accesos",
     door_open: "resumen",
+    door_incident_opened: "accesos",
+    door_incident_updated: "accesos",
+    door_incident_resolved: "accesos",
+    door_shift_requested: "equipo",
+    door_shift_changed: "equipo",
+    door_device_revoked: "accesos",
     capacity_alert: "accesos",
     event_autoclosed: "resumen",
     event_reminder: "resumen",

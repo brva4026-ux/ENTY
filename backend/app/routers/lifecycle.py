@@ -160,33 +160,38 @@ async def go_live(
             await cur.execute(
                 """
                 WITH recipients AS (
-                    SELECT DISTINCT r.user_id
+                    SELECT DISTINCT r.user_id, s.role AS staff_role
                       FROM venue_user_roles r
+                      LEFT JOIN event_staff s
+                             ON s.event_id = %s AND s.user_id = r.user_id
                      WHERE r.venue_id = %s
                        AND r.user_id <> %s
                        AND (
                          NOT EXISTS (
                            SELECT 1 FROM event_staff s0 WHERE s0.event_id = %s
                          )
-                         OR EXISTS (
-                           SELECT 1 FROM event_staff s
-                            WHERE s.event_id = %s AND s.user_id = r.user_id
-                         )
+                         OR s.id IS NOT NULL
                        )
                 )
                 INSERT INTO notifications (user_id, venue_id, kind, title, body, link)
                 SELECT user_id, %s, 'door_open', 'Puerta abierta',
                        %s || ' ya está en puerta.',
-                       '/admin?event=' || %s || '&tab=resumen'
+                       CASE staff_role
+                         WHEN 'bouncer' THEN '/bouncer?evento=' || %s
+                         WHEN 'promotor' THEN '/promotor/evento/' || %s
+                         ELSE '/admin?event=' || %s || '&tab=resumen'
+                       END
                   FROM recipients
                 """,
                 (
+                    event_id,
                     venue_id,
                     user["id"],
                     event_id,
-                    event_id,
                     venue_id,
                     out["name"],
+                    event_id,
+                    event_id,
                     event_id,
                 ),
             )
@@ -326,7 +331,28 @@ async def event_preflight(
                        SELECT 1 FROM event_access_tokens t
                        WHERE t.event_id = s.event_id AND t.user_id = s.user_id
                          AND t.used_at IS NOT NULL AND t.revoked_at IS NULL
-                   ) AS link_used
+                   ) AS link_used,
+                   EXISTS (
+                       SELECT 1 FROM event_door_devices d
+                       WHERE d.event_id = s.event_id AND d.user_id = s.user_id
+                         AND d.status = 'active'
+                         AND (d.expires_at IS NULL OR d.expires_at > now())
+                   ) AS device_active,
+                   (SELECT d.phone FROM event_door_devices d
+                     WHERE d.event_id = s.event_id AND d.user_id = s.user_id
+                       AND d.status = 'active'
+                       AND (d.expires_at IS NULL OR d.expires_at > now())
+                     ORDER BY d.activated_at DESC LIMIT 1) AS device_phone,
+                   COALESCE(s.door_name,
+                     (SELECT d.door_name FROM event_door_devices d
+                       WHERE d.event_id = s.event_id AND d.user_id = s.user_id
+                         AND d.status = 'active'
+                       ORDER BY d.activated_at DESC LIMIT 1)
+                   ) AS door_name,
+                   (SELECT d.expires_at FROM event_door_devices d
+                     WHERE d.event_id = s.event_id AND d.user_id = s.user_id
+                       AND d.status = 'active'
+                     ORDER BY d.activated_at DESC LIMIT 1) AS device_expires_at
             FROM event_staff s
             JOIN users u ON u.id = s.user_id
             WHERE s.event_id = %s
@@ -349,7 +375,7 @@ async def event_preflight(
     puerta = [r for r in roster if r["role"] == "bouncer"]
     venta = [r for r in roster if r["role"] == "promotor"]
     # Con link usado = la persona ya canjeó su acceso y tiene el escáner listo.
-    ready = any(r["link_used"] for r in puerta)
+    ready = any(r["link_used"] or r["device_active"] for r in puerta)
     return EventPreflight(
         event_id=event_id,
         event_name=ev["name"],
@@ -366,6 +392,10 @@ async def event_preflight(
                 "shift_start": r["shift_start"],
                 "shift_end": r["shift_end"],
                 "link_used": r["link_used"],
+                "device_active": r["device_active"],
+                "device_phone": r["device_phone"],
+                "door_name": r["door_name"],
+                "device_expires_at": r["device_expires_at"],
             }
             for r in puerta
         ],

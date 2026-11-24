@@ -1360,6 +1360,9 @@ class RedeemOut(BaseModel):
     redeemed: bool = False
     # Detalle opcional para la puerta (p.ej. WRONG_TYPE: "Boleta de General").
     detail: str | None = None
+    # Tipo de boleta cuando el servidor lo conoce: la puerta lo muestra junto
+    # al resultado (General, VIP u otro) sin exponer el token.
+    ticket_type: str | None = None
 
 
 class DoorSnapshotEntry(BaseModel):
@@ -2116,11 +2119,22 @@ class EventStaffOut(BaseModel):
     user_id: int
     full_name: str
     email: str
+    phone: str | None = None
     # Rol DENTRO de la noche: "bouncer" (puerta) o "promotor" (venta).
     role: Literal["bouncer", "promotor"]
     shift_start: datetime | None = None
     shift_end: datetime | None = None
     created_at: datetime
+    # Puesto de puerta asignado (mig 064): "Acceso VIP", "General"…
+    door_name: str | None = None
+    door_ticket_type_id: int | None = None
+    # Dispositivo activo del puesto. La UI de Administración lo usa para
+    # mostrar el teléfono autorizado y revocarlo.
+    device_id: int | None = None
+    device_status: str | None = None
+    device_phone: str | None = None
+    device_expires_at: datetime | None = None
+    device_last_seen_at: datetime | None = None
     # Si tiene un link de puerta vigente (para saber si hay que emitirlo).
     has_link: bool = False
     # Estado del último enlace, aunque ya no sea vigente: la puerta necesita
@@ -2137,6 +2151,16 @@ class EventStaffCreate(BaseModel):
     # Turno opcional: sin esto el link vale para la noche entera.
     shift_start: datetime | None = None
     shift_end: datetime | None = None
+    # Puesto de puerta (mig 064). Se copia al link y al dispositivo.
+    door_name: str | None = Field(default=None, max_length=60)
+    door_ticket_type_id: int | None = None
+
+
+class EventAccessCreate(BaseModel):
+    """Puesto y teléfono con los que se emite un link de puerta."""
+    door_name: str | None = Field(default=None, max_length=60)
+    ticket_type_id: int | None = None
+    phone: str | None = Field(default=None, max_length=40)
 
 
 class EventAccessOut(BaseModel):
@@ -2149,6 +2173,9 @@ class EventAccessOut(BaseModel):
     access_url: str
     expires_at: datetime
     created_at: datetime
+    door_name: str | None = None
+    ticket_type_id: int | None = None
+    phone: str | None = None
 
 
 class EventAccessPreview(BaseModel):
@@ -2161,11 +2188,158 @@ class EventAccessPreview(BaseModel):
     expires_at: datetime
     used: bool = False
     revoked: bool = False
+    door_name: str | None = None
+    ticket_type_id: int | None = None
+    phone: str | None = None
 
 
 class EventAccessGranted(BaseModel):
-    """Respuesta del canje: a qué noche quedó atada esta persona."""
+    """Respuesta del canje: a qué noche y puesto quedó atado el dispositivo.
+
+    `device_token` es el secreto de ESTE teléfono. No se vuelve a mostrar:
+    se guarda en el navegador y viaja en cada escaneo. Revocar el dispositivo
+    o relevar el puesto lo invalida en el servidor.
+    """
     event_id: int
+    device_id: int | None = None
+    device_token: str | None = None
+    door_name: str | None = None
+    ticket_type_id: int | None = None
+    phone: str | None = None
+    expires_at: datetime | None = None
+
+
+class DoorDeviceOut(BaseModel):
+    """Autorización del teléfono de un puesto (mig 064)."""
+    id: int
+    event_id: int
+    user_id: int
+    door_name: str | None = None
+    ticket_type_id: int | None = None
+    phone: str | None = None
+    status: str
+    activated_at: datetime | None = None
+    expires_at: datetime | None = None
+    last_seen_at: datetime | None = None
+
+
+class DoorContextOut(BaseModel):
+    """Todo lo que Puerta necesita para decidir antes de escanear."""
+    event_id: int
+    event_name: str
+    event_status: str
+    starts_at: datetime
+    capacity: int
+    allow_reentry: bool = False
+    door_open: bool = False
+    inside: int = 0
+    admitted: int = 0
+    exits: int = 0
+    reentries: int = 0
+    issued: int = 0
+    rejected: int = 0
+    last_verified_at: datetime | None = None
+    assigned_door: str | None = None
+    assigned_ticket_type_id: int | None = None
+    shift_start: datetime | None = None
+    shift_end: datetime | None = None
+    open_incidents: int = 0
+    device: DoorDeviceOut | None = None
+    ops_contact_name: str | None = None
+    ops_contact_phone: str | None = None
+
+
+class DoorShiftRequestCreate(BaseModel):
+    reason: str = Field(min_length=3, max_length=300)
+    requested_phone: str | None = Field(default=None, max_length=40)
+
+
+class DoorShiftRequestOut(BaseModel):
+    id: int
+    event_id: int
+    device_id: int | None = None
+    requested_by: int
+    requested_by_name: str
+    requested_phone: str | None = None
+    reason: str
+    status: str
+    reviewed_by_name: str | None = None
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
+    created_at: datetime
+    door_name: str | None = None
+    access_url: str | None = None
+
+
+class DoorShiftApprove(BaseModel):
+    user_id: int
+    phone: str | None = Field(default=None, max_length=40)
+    note: str | None = Field(default=None, max_length=300)
+
+
+class DoorIncidentCreate(BaseModel):
+    reason: str = Field(min_length=3, max_length=120)
+    note: str | None = Field(default=None, max_length=1000)
+    door_name: str | None = Field(default=None, max_length=60)
+    ticket_id: int | None = None
+    ticket_ref: str | None = Field(default=None, max_length=80)
+    client_request_id: str | None = Field(default=None, max_length=80)
+
+
+class DoorIncidentCommentCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=2000)
+    channel: Literal["note", "call", "whatsapp"] = "note"
+
+
+class DoorIncidentStatusUpdate(BaseModel):
+    status: Literal["open", "reviewing", "resolved"]
+    guidance: str | None = Field(default=None, max_length=1000)
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class DoorIncidentPromoterRequest(BaseModel):
+    promoter_id: int | None = None
+    note: str | None = Field(default=None, max_length=500)
+
+
+class DoorIncidentCommentOut(BaseModel):
+    id: int
+    author_id: int
+    author_name: str
+    author_role: str
+    body: str
+    channel: str
+    created_at: datetime
+
+
+class DoorIncidentOut(BaseModel):
+    id: int
+    event_id: int
+    status: str
+    reason: str
+    note: str | None = None
+    door_name: str | None = None
+    ticket_id: int | None = None
+    ticket_ref: str | None = None
+    ticket_type_name: str | None = None
+    created_by: int
+    created_by_name: str
+    created_at: datetime
+    updated_at: datetime
+    status_changed_by_name: str | None = None
+    status_changed_at: datetime | None = None
+    resolved_at: datetime | None = None
+    resolution_guidance: str | None = None
+    promoter_id: int | None = None
+    promoter_name: str | None = None
+    promoter_access: bool = False
+    assigned_admin_name: str | None = None
+    can_comment: bool = False
+    can_manage: bool = False
+
+
+class DoorIncidentDetailOut(DoorIncidentOut):
+    comments: list[DoorIncidentCommentOut] = []
 
 
 class EventPulse(BaseModel):
@@ -2227,6 +2401,7 @@ class ExitOut(BaseModel):
     code: str = ""  # EXITED | ALREADY_OUTSIDE | NOT_FOUND | INVALID_EVENT
     ticket_id: int | None = None
     customer_name: str | None = None
+    ticket_type: str | None = None
     exited: bool = False
 
 
@@ -2418,6 +2593,11 @@ class PreflightStaff(BaseModel):
     shift_end: datetime | None = None
     # True = ya canjeó su link: tiene el escáner de esta noche abierto.
     link_used: bool = False
+    # Teléfono autorizado y vigente (mig 064).
+    device_active: bool = False
+    device_phone: str | None = None
+    door_name: str | None = None
+    device_expires_at: datetime | None = None
 
 
 class EventPreflight(BaseModel):

@@ -30,6 +30,7 @@ from app.core.schema_guard import verify_schema_at_boot
 from app.routers import (
     analytics,
     auth,
+    door,
     event_staff,
     events,
     invitations,
@@ -212,6 +213,7 @@ def create_app() -> FastAPI:
     app.include_router(lifecycle.router)
     app.include_router(push.router)
     app.include_router(notifications.router)
+    app.include_router(door.router)
     app.include_router(tickets.router)
     app.include_router(public_tickets.router)
     app.include_router(media.router)

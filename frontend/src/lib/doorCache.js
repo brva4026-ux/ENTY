@@ -21,11 +21,13 @@
  */
 
 import { getToken } from "./tokenStore";
+import { doorHeaders } from "./doorDevice";
 
 const DB_NAME = "ticketflow-door";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_SNAPSHOT = "snapshot"; // key = eventId -> DoorSnapshotOut
 const STORE_QUEUE = "queue"; // key = scanId -> DoorSyncItem
+const STORE_INCIDENTS = "incidents"; // key = clientRequestId -> incidente pendiente
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -47,6 +49,9 @@ function openDb() {
         // equivocado no.
         db.deleteObjectStore(STORE_QUEUE);
         db.createObjectStore(STORE_QUEUE, { keyPath: "scan_id" });
+      }
+      if (!db.objectStoreNames.contains(STORE_INCIDENTS)) {
+        db.createObjectStore(STORE_INCIDENTS, { keyPath: "client_request_id" });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -89,6 +94,7 @@ export async function sha256Hex(text) {
 export async function downloadSnapshot(venueId, eventId) {
   const snap = await apiFetchJson(
     `/venues/${venueId}/events/${eventId}/door-snapshot`,
+    { headers: doorHeaders(eventId) },
   );
   const db = await openDb();
   try {
@@ -214,11 +220,17 @@ export async function queueRedemption(
 }
 
 /** Cuántos escaneos esperan sincronización (para el badge de la puerta). */
-export async function pendingCount() {
+export async function pendingCount(eventId = null) {
   const db = await openDb();
   try {
     const tx = db.transaction(STORE_QUEUE, "readonly");
-    return await reqAsPromise(tx.objectStore(STORE_QUEUE).count());
+    if (eventId == null) {
+      return await reqAsPromise(tx.objectStore(STORE_QUEUE).count());
+    }
+    const all = (await reqAsPromise(tx.objectStore(STORE_QUEUE).getAll())) ?? [];
+    return all.filter(
+      (it) => it.event_id == null || String(it.event_id) === String(eventId),
+    ).length;
   } finally {
     db.close();
   }
@@ -253,7 +265,7 @@ export async function syncQueue(venueId, eventId) {
       `/venues/${venueId}/events/${eventId}/door-sync`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: doorHeaders(eventId, { "Content-Type": "application/json" }),
         body: JSON.stringify(
           items.map((it) => ({
             raw_token: it.raw_token,
@@ -283,6 +295,78 @@ export async function syncQueue(venueId, eventId) {
       for (const id of confirmed) store.delete(id);
     }
     return out;
+  } finally {
+    db.close();
+  }
+}
+
+/** Encola una incidencia creada sin red. El server la reconoce por
+ *  client_request_id y no la duplica cuando vuelve la conexión. */
+export async function queueIncident(eventId, payload) {
+  const clientRequestId = newScanId();
+  const db = await openDb();
+  try {
+    const tx = db.transaction(STORE_INCIDENTS, "readwrite");
+    await reqAsPromise(
+      tx.objectStore(STORE_INCIDENTS).put({
+        client_request_id: clientRequestId,
+        event_id: eventId ?? null,
+        payload,
+        created_at: new Date().toISOString(),
+      }),
+    );
+    return clientRequestId;
+  } finally {
+    db.close();
+  }
+}
+
+export async function pendingIncidentCount(eventId = null) {
+  const db = await openDb();
+  try {
+    const tx = db.transaction(STORE_INCIDENTS, "readonly");
+    const all = (await reqAsPromise(tx.objectStore(STORE_INCIDENTS).getAll())) ?? [];
+    return all.filter(
+      (it) => eventId == null || String(it.event_id) === String(eventId),
+    ).length;
+  } finally {
+    db.close();
+  }
+}
+
+/** Envía las incidencias encoladas de ESTE evento. */
+export async function syncIncidentQueue(venueId, eventId) {
+  const db = await openDb();
+  let items = [];
+  try {
+    const tx = db.transaction(STORE_INCIDENTS, "readonly");
+    const all = (await reqAsPromise(tx.objectStore(STORE_INCIDENTS).getAll())) ?? [];
+    items = all.filter(
+      (it) => it.event_id == null || String(it.event_id) === String(eventId),
+    );
+    let synced = 0;
+    let failed = 0;
+    for (const item of items) {
+      try {
+        await apiFetchJson(
+          `/venues/${venueId}/events/${eventId}/door-incidents`,
+          {
+            method: "POST",
+            headers: doorHeaders(eventId, { "Content-Type": "application/json" }),
+            body: JSON.stringify({
+              ...item.payload,
+              client_request_id: item.client_request_id,
+            }),
+          },
+        );
+        const write = db.transaction(STORE_INCIDENTS, "readwrite");
+        write.objectStore(STORE_INCIDENTS).delete(item.client_request_id);
+        synced += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    return { synced, failed };
   } finally {
     db.close();
   }

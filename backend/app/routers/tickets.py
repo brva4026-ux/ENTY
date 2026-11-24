@@ -10,10 +10,11 @@ from typing import Annotated
 from zoneinfo import ZoneInfo
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
+from app.core.door_auth import authorize_door_device
 from app.core.lifecycle import auto_close_expired
 from app.deps import ensure_roles, get_current_user
 from app.schemas import (
@@ -301,6 +302,7 @@ async def redeem(
     body: TicketRedeemRequest,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    x_door_device: Annotated[str | None, Header(alias="X-Door-Device")] = None,
 ):
     ensure_roles(user, venue_id, "super_admin", "admin", "bouncer")
     roles = user["roles"].get(venue_id, [])
@@ -330,6 +332,20 @@ async def redeem(
                 "en puerta, pedile al admin que lo ajuste.",
             )
 
+    # Autorización del teléfono (mig 064). El bouncer no puede escanear con
+    # cualquier sesión: el puesto y el ticket type salen del dispositivo, no
+    # del cuerpo del request. Administración sigue exenta para cubrir huecos.
+    async with db.cursor() as cur_auth:
+        device = await authorize_door_device(
+            cur_auth,
+            event_id=event_id,
+            venue_id=venue_id,
+            user=user,
+            raw_token=x_door_device,
+        )
+    effective_type = device["ticket_type_id"] if device else body.ticket_type_id
+    effective_door = (device["door_name"] if device else None) or body.door_id
+
     # Rate limit de puerta (mig 019): cada redeem escribe en redemptions, así
     # que el límite se calcula con lo que ya hay. 40 escaneos / 10 s por
     # usuario (4/s) está muy por encima del ritmo humano de una fila y muy
@@ -356,8 +372,8 @@ async def redeem(
         try:
             await cur.execute(
                 "SELECT redeem_ticket(%s, %s, %s, %s, %s, %s)",
-                (event_id, body.raw_token, user["id"], body.ticket_type_id,
-                 None, body.door_id),
+                (event_id, body.raw_token, user["id"], effective_type,
+                 None, effective_door),
             )
             row = await cur.fetchone()
             code = row["redeem_ticket"] if isinstance(row, dict) else row[0]
@@ -457,7 +473,10 @@ async def redeem(
             if info:
                 out.ticket_id = info["id"]
                 out.customer_name = info["customer_name"]
+                out.ticket_type = info["type_name"]
                 out.detail = f"Boleta de {info['type_name']}"
+                if device and device["door_name"]:
+                    out.detail += f" · este acceso es {device['door_name']}"
     if code == "ALREADY_REDEEMED":
         # La discusión clásica de puerta ("¿ya la usé?") se resuelve con el
         # NOMBRE y la HORA del primer canje, no con un "presentada antes" seco.
@@ -467,8 +486,10 @@ async def redeem(
             await cur2.execute(
                 """
                 SELECT t.id, t.customer_name, t.redeemed_at,
-                       e.event_timezone
-                FROM tickets t JOIN events e ON e.id = t.event_id
+                       e.event_timezone, tt.name AS type_name
+                FROM tickets t
+                JOIN events e ON e.id = t.event_id
+                LEFT JOIN ticket_types tt ON tt.id = t.ticket_type_id
                 WHERE t.event_id=%s
                   AND t.token_hash = encode(digest(%s, 'sha256'), 'hex')
                 """,
@@ -478,6 +499,7 @@ async def redeem(
         if info:
             out.ticket_id = info["id"]
             out.customer_name = info["customer_name"]
+            out.ticket_type = info["type_name"]
             if info["redeemed_at"]:
                 try:
                     tz = ZoneInfo(info["event_timezone"])
@@ -510,7 +532,9 @@ async def redeem(
         async with db.cursor() as cur2:
             await cur2.execute(
                 """
-                SELECT t.id, t.customer_name FROM tickets t
+                SELECT t.id, t.customer_name, tt.name AS type_name
+                FROM tickets t
+                LEFT JOIN ticket_types tt ON tt.id = t.ticket_type_id
                 WHERE t.event_id=%s AND t.status='redeemed'
                   AND t.token_hash = encode(digest(%s, 'sha256'), 'hex')
                 """,
@@ -520,6 +544,7 @@ async def redeem(
             if info:
                 out.ticket_id = info["id"]
                 out.customer_name = info["customer_name"]
+                out.ticket_type = info["type_name"]
     return out
 
 
@@ -791,6 +816,7 @@ async def door_snapshot(
     event_id: int,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    x_door_device: Annotated[str | None, Header(alias="X-Door-Device")] = None,
 ):
     """Lista de validación para la puerta SIN red.
 
@@ -804,6 +830,14 @@ async def door_snapshot(
     # La puerta también cierra lo vencido (app/core/lifecycle.py): es la
     # pantalla que el bouncer abre antes de la fiesta, sin pasar por el panel.
     await auto_close_expired(db, context="door_snapshot")
+    async with db.cursor() as cur_auth:
+        await authorize_door_device(
+            cur_auth,
+            event_id=event_id,
+            venue_id=venue_id,
+            user=user,
+            raw_token=x_door_device,
+        )
 
     async with db.cursor() as cur:
         await cur.execute(
@@ -851,6 +885,7 @@ async def door_sync(
     body: list[DoorSyncItem],
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+    x_door_device: Annotated[str | None, Header(alias="X-Door-Device")] = None,
 ):
     """Reconcilia las redenciones que el bouncer hizo sin red.
 
@@ -879,6 +914,17 @@ async def door_sync(
             413,
             "Demasiados escaneos en una sola sincronización (máx 200)",
         )
+
+    async with db.cursor() as cur_auth:
+        device = await authorize_door_device(
+            cur_auth,
+            event_id=event_id,
+            venue_id=venue_id,
+            user=user,
+            raw_token=x_door_device,
+        )
+    effective_type = device["ticket_type_id"] if device else None
+    effective_door = device["door_name"] if device else None
 
     granted = already = rejected = 0
     results: list[DoorSyncResult] = []
@@ -917,9 +963,9 @@ async def door_sync(
                         event_id,
                         item.raw_token,
                         user["id"],
-                        item.ticket_type_id,
+                        effective_type if effective_type is not None else item.ticket_type_id,
                         item.scanned_at,
-                        item.door_id,
+                        effective_door or item.door_id,
                     ),
                 )
                 row = await cur.fetchone()

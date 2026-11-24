@@ -322,6 +322,7 @@ export default function AdminEventWorkspace({
         setCajaRange={setCajaRange}
         cajaBusy={cajaBusy}
         lastUpdated={lastUpdated}
+        venueId={venueId}
       />
     );
   }

@@ -79,6 +79,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "061_notification_event_context.sql",
     ROOT / "db" / "migrations" / "062_login_lockout_ignores_sentinels.sql",
     ROOT / "db" / "migrations" / "063_promoter_workspace.sql",
+    ROOT / "db" / "migrations" / "064_door_workspace.sql",
 ]
 
 
@@ -103,7 +104,9 @@ def db():
     # Esquema limpio en cada sesión de tests (orden inverso de dependencias)
     conn.execute(
         """
-        DROP TABLE IF EXISTS notifications, push_outbox, staff_invitations, push_subscriptions, ticket_reissues,
+        DROP TABLE IF EXISTS door_incident_comments, door_incidents, door_shift_requests,
+            event_door_devices, notifications, push_outbox, staff_invitations,
+            push_subscriptions, ticket_reissues,
             promoter_sale_issues, promoter_payout_items, promoter_link_events, promoter_links,
             -- Perfil (mig 059): cuelgan de users. DROP TABLE ... CASCADE no
             -- borra las tablas que referencian, solo sus FKs, asi que hay que
