@@ -512,12 +512,20 @@ class TicketEmitRequest(BaseModel):
     # sabe cuánto efectivo debería haber. En una boleta gratis se ignora
     # (siempre es cortesía); sin especificar, la venta directa asume efectivo.
     payment_method: Literal["efectivo", "transferencia", "online"] | None = None
+    # Idempotencia del cliente (mig 063): el mismo intento repetido por doble
+    # toque, timeout o reconexión devuelve la MISMA boleta, no una segunda.
+    client_request_id: str | None = Field(default=None, min_length=8, max_length=100)
 
 
 class TicketEmitResponse(BaseModel):
     ticket_id: int
-    raw_token: str
+    raw_token: str | None = None
     status: str
+    # True = la boleta ya existía para este client_request_id. `raw_token`
+    # puede venir vacío: la UI debe recuperar el enlace con una reemisión
+    # explícita, no asumir que la entrega ocurrió.
+    duplicate: bool = False
+    sale_channel: str | None = None
 
 
 class TicketReissueRequest(BaseModel):
@@ -601,10 +609,15 @@ class TicketHistoryItem(BaseModel):
     ticket_id: int
     customer_name: str
     customer_phone: str | None = None
+    customer_email: str | None = None
     ticket_type: str
     is_courtesy: bool = False
     status: str
     issued_at: datetime
+    price_cents: int = 0
+    payment_method: str | None = None
+    sale_channel: str = "venue"
+    redeemed_at: datetime | None = None
 
 
 class TicketHistoryOut(BaseModel):
@@ -1218,6 +1231,9 @@ class PublicCheckoutRequest(BaseModel):
     # evento tiene la sala activa; si está apagada se ignora por completo, así
     # que su ausencia no cambia el checkout de ningún evento existente.
     waiting_pass: str | None = Field(default=None, max_length=200)
+    # Link público del promotor (mig 063). Se valida contra el evento y la
+    # asignación; si no sirve, la compra sigue como pública sin atribución.
+    promoter_ref: str | None = Field(default=None, max_length=80)
 
 
 class WaitingRoomJoinRequest(BaseModel):
@@ -2227,6 +2243,171 @@ class MyEventOut(BaseModel):
     my_capacity: int = 0
     my_issued: int = 0
     my_redeemed: int = 0
+
+
+# --------------------------------------------------------------------------
+# Espacio de promotor (mig 063)
+# --------------------------------------------------------------------------
+class PromoterTypeOut(BaseModel):
+    id: int
+    name: str
+    price_cents: int
+    quantity: int
+    is_courtesy: bool
+    is_active: bool
+    global_issued: int = 0
+    pending_reserved: int = 0
+    available: int = 0
+    my_capacity: int = 0
+    my_issued: int = 0
+    my_remaining: int = 0
+    modes: list[str] = []
+
+
+class PromoterEventOut(BaseModel):
+    id: int
+    venue_id: int
+    venue_name: str
+    name: str
+    category: str | None = None
+    flyer_url: str | None = None
+    starts_at: datetime
+    ends_at: datetime | None = None
+    location: str | None = None
+    status: str
+    capacity: int
+    assignment_active: bool = True
+    my_capacity: int = 0
+    my_issued: int = 0
+    my_redeemed: int = 0
+    link_sold: int = 0
+    direct_sold: int = 0
+    available_total: int = 0
+    can_sell: bool = False
+    sell_reason: str | None = None
+    ticket_types: list[PromoterTypeOut] = []
+
+
+class PromoterEventDetailOut(PromoterEventOut):
+    description: str | None = None
+    doors_open_at: datetime | None = None
+    dress_code: str | None = None
+    min_age: int | None = None
+    location_url: str | None = None
+    contact_name: str | None = None
+    contact_phone: str | None = None
+    currency: str = "COP"
+    public_path: str = ""
+    allocations: list[AllocationOut] = []
+
+
+class PromoterSaleOut(BaseModel):
+    ticket_id: int
+    event_id: int
+    event_name: str
+    event_starts_at: datetime
+    customer_name: str
+    customer_phone: str | None = None
+    customer_email: str | None = None
+    ticket_type: str
+    price_cents: int = 0
+    payment_method: str | None = None
+    sale_channel: str = "promoter_direct"
+    status: str
+    payment_state: str = "reported"
+    admission_state: str = "pending"
+    issued_at: datetime
+    redeemed_at: datetime | None = None
+    attention: bool = False
+    issue_id: int | None = None
+    issue_status: str | None = None
+    can_reissue: bool = False
+    has_phone: bool = False
+    has_email: bool = False
+
+
+class PromoterSalesOut(BaseModel):
+    total: int
+    items: list[PromoterSaleOut]
+
+
+class PromoterIssueCreate(BaseModel):
+    kind: Literal["contact", "payment", "delivery", "duplicate", "other"] = "other"
+    note: str = Field(min_length=5, max_length=500)
+
+
+class PromoterIssueOut(BaseModel):
+    id: int
+    ticket_id: int
+    kind: str
+    note: str
+    status: str
+    resolution_note: str | None = None
+    created_at: datetime
+    resolved_at: datetime | None = None
+
+
+class PromoterSaleDetailOut(PromoterSaleOut):
+    venue_name: str
+    event_status: str
+    payment_reference: str | None = None
+    payment_status: str | None = None
+    payment_provider: str | None = None
+    reissue_blocked_reason: str | None = None
+    issues: list[PromoterIssueOut] = []
+
+
+class PromoterLinkOut(BaseModel):
+    public_id: str
+    url: str
+    is_active: bool = True
+    visits: int = 0
+    checkouts: int = 0
+    purchases: int = 0
+    attributed_revenue_cents: int = 0
+    attributed_commission_cents: int = 0
+    commission_pct: float = 0
+    period_label: str = "Histórico del link"
+
+
+class PromoterCommissionPayoutOut(PayoutOut):
+    items_count: int = 0
+    can_dispute: bool = False
+
+
+class PromoterCommissionsOut(BaseModel):
+    currency: str = "COP"
+    commission_pct: float = 0
+    generated_cents: int = 0
+    pending_settlement_cents: int = 0
+    paid_cents: int = 0
+    unsettled_cents: int = 0
+    attributed_revenue_cents: int = 0
+    eligible_sales_count: int = 0
+    generated_includes_paid: bool = True
+    definition: str = ""
+    payouts: list[PromoterCommissionPayoutOut] = []
+
+
+class PromoterPayoutItemOut(BaseModel):
+    ticket_id: int
+    event_id: int
+    event_name: str
+    ticket_type: str
+    customer_name: str
+    issued_at: datetime
+    price_cents: int
+    sale_channel: str
+    status_at_close: str
+
+
+class PromoterPayoutDetailOut(PayoutOut):
+    items: list[PromoterPayoutItemOut] = []
+    currency: str = "COP"
+    base_cents: int = 0
+    adjustment_cents: int = 0
+    rule: str = ""
+    can_dispute: bool = False
 
 
 class PreflightStaff(BaseModel):

@@ -33,6 +33,9 @@ import "./login-experience.css";
 // navegación lateral y tarjetas de operación. Al final para ser la capa más
 // específica del área admin sin tocar las pantallas de promotor/puerta.
 import "./admin-redesign.css";
+// Espacio de promotor: misma estructura de shell que Administración, con
+// lienzo cálido y acento ámbar. Va después para ganar en su área.
+import "./promoter-redesign.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";
@@ -277,7 +280,7 @@ function App() {
                   redirección conserva el mes y la sub-pestaña equivalente. */}
               <Route path="/admin/negocio" element={<LegacyBusinessRedirect />} />
               <Route
-                path="/promotor"
+                path="/promotor/*"
                 element={
                   <RequireRole role="promotor">
                     <Layout>

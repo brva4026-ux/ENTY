@@ -10,6 +10,7 @@ async def create_reserved_payment(
     db, *, event_id, ticket_type_id, reference, amount, customer_name,
     customer_phone, customer_email, user_id, coupon_id, discount,
     expires_at, name, description, redirect_url, customer_birth_date=None,
+    promoter_id=None, sale_channel=None,
 ):
     try:
         async with db.cursor() as cur:
@@ -20,6 +21,16 @@ async def create_reserved_payment(
                  customer_birth_date),
             )
             payment_id = (await cur.fetchone())["id"]
+            if promoter_id is not None or sale_channel is not None:
+                await cur.execute(
+                    """
+                    UPDATE ticket_payments
+                       SET promoter_id = COALESCE(%s, promoter_id),
+                           sale_channel = COALESCE(%s, sale_channel)
+                     WHERE id = %s
+                    """,
+                    (promoter_id, sale_channel, payment_id),
+                )
         await db.commit()
     except psycopg.Error as error:
         http = translate_db_error(error, overrides={

@@ -729,15 +729,50 @@ async def public_checkout(
 
         reference = payment_reference(event_id)
         email = (body.customer_email or "").strip() or None
+        promoter_id = None
+        link_id = None
+        if body.promoter_ref:
+            # El link es público y no revela datos del promotor. Solo atribuye
+            # si sigue activo, pertenece al evento y la persona conserva la
+            # asignación y el rol. Un link viejo no rompe la compra: se ignora.
+            await cur.execute(
+                """
+                SELECT l.id, l.promoter_id
+                  FROM promoter_links l
+                  JOIN events e ON e.id = l.event_id
+                  JOIN event_staff s ON s.event_id = l.event_id
+                                    AND s.user_id = l.promoter_id
+                                    AND s.role = 'promotor'
+                  JOIN venue_user_roles r ON r.venue_id = e.venue_id
+                                         AND r.user_id = l.promoter_id
+                                         AND r.role = 'promotor'
+                 WHERE l.public_id = %s AND l.event_id = %s AND l.is_active
+                """,
+                (body.promoter_ref, event_id),
+            )
+            link = await cur.fetchone()
+            if link:
+                promoter_id = link["promoter_id"]
+                link_id = link["id"]
+                await cur.execute(
+                    """
+                    INSERT INTO promoter_link_events (link_id, kind, reference)
+                    VALUES (%s, 'checkout_started', %s)
+                    """,
+                    (link_id, reference),
+                )
         _, link = await create_reserved_payment(
             db, event_id=event_id, ticket_type_id=body.ticket_type_id,
             reference=reference, amount=charge_cents, customer_name=body.customer_name,
-            customer_phone=body.customer_phone, customer_email=email, user_id=None,
-            coupon_id=coupon["id"] if coupon else None, discount=discount,
-            expires_at=expires_at, name=f"Boleta - {row['event_name']}",
+            customer_phone=body.customer_phone, customer_email=email,
+            user_id=promoter_id, coupon_id=coupon["id"] if coupon else None,
+            discount=discount, expires_at=expires_at,
+            name=f"Boleta - {row['event_name']}",
             description=f"Compra del fan ({row['event_name']})",
             redirect_url=f"{s.app_public_url}/evento/{event_id}?pago={reference}",
             customer_birth_date=body.customer_birth_date,
+            promoter_id=promoter_id,
+            sale_channel="promoter_link" if promoter_id else "public",
         )
 
     return PublicCheckoutOut(
@@ -747,6 +782,34 @@ async def public_checkout(
         event_id=event_id,
         event_name=row["event_name"],
     )
+
+
+@router.post(
+    "/promoter-links/{public_id}/visit",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def promoter_link_visit(
+    public_id: str,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+) -> None:
+    """Registra una apertura del link público del promotor.
+
+    No identifica al visitante ni expone al promotor: el `public_id` es la
+    única llave. Se cuenta una apertura por llamada; el frontend la hace una
+    vez al montar la ficha, no en cada scroll.
+    """
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            INSERT INTO promoter_link_events (link_id, kind)
+            SELECT id, 'view' FROM promoter_links
+             WHERE public_id = %s AND is_active
+            """,
+            (public_id,),
+        )
+        await db.commit()
+    return None
 
 
 @router.get("/checkout/{reference}", response_model=PublicCheckoutStatusOut)

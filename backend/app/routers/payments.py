@@ -252,7 +252,8 @@ async def wompi_webhook(
     async with db.cursor() as cur:
         await cur.execute(
             """
-            SELECT id, reference FROM ticket_payments
+            SELECT id, reference, promoter_id, sale_channel
+              FROM ticket_payments
              WHERE provider = 'wompi' AND provider_ref = %s
             """,
             (link_id,),
@@ -271,6 +272,23 @@ async def wompi_webhook(
                 (payment["reference"], transaction_id, tx_status, amount, raw_token, raw),
             )
             row = await cur.fetchone()
+            ticket_id = row["approve_ticket_payment"] if isinstance(row, dict) else row[0]
+            if ticket_id and payment["sale_channel"] == "promoter_link":
+                await cur.execute(
+                    "UPDATE tickets SET sale_channel='promoter_link' WHERE id=%s",
+                    (ticket_id,),
+                )
+                await cur.execute(
+                    """
+                    INSERT INTO promoter_link_events (link_id, kind, reference)
+                    SELECT l.id, 'purchase_approved', %s
+                      FROM promoter_links l
+                     WHERE l.event_id = (SELECT event_id FROM ticket_payments WHERE id=%s)
+                       AND l.promoter_id = %s
+                    ON CONFLICT DO NOTHING
+                    """,
+                    (payment["reference"], payment["id"], payment["promoter_id"]),
+                )
             await db.commit()
         except psycopg.errors.Error as e:
             _handle(e)

@@ -12,6 +12,7 @@ import {
   hasRole,
 } from "../lib/roles";
 import AdminShell from "./AdminShell";
+import PromoterShell from "./PromoterShell";
 import { haptics } from "../lib/haptics";
 import { initials } from "../lib/initials";
 import { Logo } from "./Brand";
@@ -123,8 +124,12 @@ export default function Layout({ children }) {
     return <LegalGate onCleared={setLegalCleared} />;
   }
 
-  // Administración tiene su propio shell (sidebar, encabezado y nav inferior
-  // de tres destinos). Promotor, puerta y perfil conservan la barra global.
+  // Administración y Promotor tienen su propio shell. Puerta y perfil
+  // conservan la barra global.
+  if (pathname.startsWith("/promotor") && hasRole(user, "promotor")) {
+    return <PromoterShell>{children}</PromoterShell>;
+  }
+
   if (pathname.startsWith("/admin") && hasRole(user, "admin")) {
     return <AdminShell>{children}</AdminShell>;
   }

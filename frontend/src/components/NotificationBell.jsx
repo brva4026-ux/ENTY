@@ -11,7 +11,7 @@ import {
   markNotificationsRead,
 } from "../lib/notifications";
 import { timeAgo } from "../lib/useLiveRefresh";
-import { adminTarget } from "../lib/notificationTarget";
+import { adminTarget, promoterTarget } from "../lib/notificationTarget";
 
 /**
  * Campana de notificaciones in-app (mig 012, transplante de unicall-blue).
@@ -40,6 +40,11 @@ const KIND_TILE = {
   capacity_alert: { icon: "alert", tile: "bg-amber-500/15 text-amber-400" },
   payment_approved: { icon: "money", tile: "bg-emerald-500/15 text-emerald-400" },
   waitlist_offered: { icon: "clock", tile: "bg-brand-500/15 text-brand-300" },
+  event_assigned: { icon: "calendar", tile: "bg-amber-500/15 text-amber-400" },
+  allocation_changed: { icon: "users", tile: "bg-amber-500/15 text-amber-400" },
+  sales_closed: { icon: "money", tile: "bg-emerald-500/15 text-emerald-400" },
+  sale_issue_created: { icon: "flag", tile: "bg-rose-500/15 text-rose-400" },
+  sale_issue_resolved: { icon: "check", tile: "bg-emerald-500/15 text-emerald-400" },
 };
 
 const KIND_LABEL = {
@@ -56,6 +61,11 @@ const KIND_LABEL = {
   capacity_alert: "Aforo",
   payment_approved: "Cobro",
   waitlist_offered: "Lista de espera",
+  event_assigned: "Evento asignado",
+  allocation_changed: "Cupo",
+  sales_closed: "Ventas cerradas",
+  sale_issue_created: "Incidencia",
+  sale_issue_resolved: "Incidencia resuelta",
 };
 
 export default function NotificationBell() {
@@ -168,7 +178,7 @@ export default function NotificationBell() {
       markNotificationsRead([n.id]).catch(() => {});
     }
     setOpen(false);
-    const target = adminTarget(n);
+    const target = promoterTarget(n) || adminTarget(n);
     if (target) navigate(target);
   };
 

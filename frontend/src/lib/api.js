@@ -252,6 +252,76 @@ export function reissueTicket(venueId, eventId, ticketId, reason) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Espacio de promotor (mig 063)
+// ---------------------------------------------------------------------------
+export function fetchPromoterEvents(venueId) {
+  return apiFetch(`/venues/${venueId}/promoter/events`);
+}
+
+export function fetchPromoterEvent(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/promoter/events/${eventId}`);
+}
+
+export function fetchPromoterSales(venueId, filters = {}) {
+  const qs = new URLSearchParams();
+  for (const key of ["q", "event_id", "type_id", "channel", "status", "limit", "offset"]) {
+    if (filters[key] != null && filters[key] !== "") qs.set(key, String(filters[key]));
+  }
+  if (filters.attention) qs.set("attention", "true");
+  const tail = qs.toString() ? `?${qs}` : "";
+  return apiFetch(`/venues/${venueId}/promoter/sales${tail}`);
+}
+
+export function fetchPromoterSale(venueId, ticketId) {
+  return apiFetch(`/venues/${venueId}/promoter/sales/${ticketId}`);
+}
+
+export function editTicketContact(venueId, eventId, ticketId, payload) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/tickets/${ticketId}/contact`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
+export function createPromoterIssue(venueId, ticketId, payload) {
+  return apiFetch(`/venues/${venueId}/promoter/sales/${ticketId}/issue`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resolvePromoterIssue(venueId, ticketId, issueId) {
+  return apiFetch(
+    `/venues/${venueId}/promoter/sales/${ticketId}/issue/${issueId}/resolve`,
+    { method: "POST" },
+  );
+}
+
+export function fetchPromoterCommissions(venueId) {
+  return apiFetch(`/venues/${venueId}/promoter/commissions`);
+}
+
+export function fetchPromoterPayout(venueId, payoutId) {
+  return apiFetch(`/venues/${venueId}/promoter/commissions/${payoutId}`);
+}
+
+export function fetchPromoterLink(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/promoter/events/${eventId}/link`);
+}
+
+export function recordPromoterLinkVisit(publicId) {
+  return apiFetch(`/public/promoter-links/${encodeURIComponent(publicId)}/visit`, {
+    method: "POST",
+  });
+}
+
+export function fetchTicketByRequest(venueId, eventId, requestId) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/tickets/by-request/${encodeURIComponent(requestId)}`,
+  );
+}
+
 /**
  * Reembolsa una boleta (mig 043): asigna el estado `refunded` que existía sin
  * dueño. Libera el cupo y deja la salida en caja. El monto es opcional (por

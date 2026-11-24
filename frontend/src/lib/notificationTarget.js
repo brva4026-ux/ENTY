@@ -1,3 +1,22 @@
+/** Destino de una notificación del espacio de promotor. */
+export function promoterTarget(n) {
+  const link = n?.link;
+  if (!link || !link.startsWith("/promotor")) return null;
+  const [path, qs = ""] = link.split("?");
+  const params = new URLSearchParams(qs);
+  const eventId = params.get("event");
+  if (eventId) return `/promotor/evento/${eventId}`;
+  const tab = params.get("tab");
+  if (tab === "liquidaciones" || tab === "comisiones" || path.endsWith("/liquidaciones")) {
+    return "/promotor/comisiones";
+  }
+  if (tab === "boletas" || tab === "ventas") return "/promotor/ventas";
+  if (path === "/promotor" && (n?.kind === "payout_created" || n?.kind === "payout_reviewed" || n?.kind === "payout_disputed")) {
+    return "/promotor/comisiones";
+  }
+  return path || "/promotor";
+}
+
 /** Destino de una notificación dentro del rediseño de Administración.
  *
  * Los triggers guardan links con pestañas viejas (o solo `?event=`). Aquí se
