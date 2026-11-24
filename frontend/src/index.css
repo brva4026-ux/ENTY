@@ -5812,6 +5812,7 @@ html[data-motion="reduce"] .auth-aurora-sheen {
   bottom: -16%;
   width: 26rem;
   height: 26rem;
+  color: var(--e-violet-400);
   opacity: 0.06;
   pointer-events: none;
   z-index: 0;

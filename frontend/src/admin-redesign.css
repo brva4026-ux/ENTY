@@ -987,12 +987,21 @@ html:not([data-theme="light"]) .admin-shell {
 }
 
 .admin-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   border: 1px solid color-mix(in srgb, var(--admin-danger) 35%, var(--admin-line));
   border-radius: 12px;
   background: var(--admin-danger-soft);
   padding: 12px 14px;
   color: var(--admin-danger);
   font-size: 13px;
+}
+
+.admin-error--workspace {
+  margin-bottom: 12px;
 }
 
 /* ---------------------------------------------------------------- reportes */
@@ -1879,7 +1888,7 @@ html:not([data-theme="light"]) .admin-shell {
 .bs-poster {
   position: relative;
   z-index: 1;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 1px solid var(--admin-line-strong);
   border-radius: 14px;
@@ -1963,10 +1972,17 @@ html:not([data-theme="light"]) .admin-shell {
   color: var(--admin-live);
 }
 
-.bs-status[data-status="cancelled"] {
+.bs-status[data-status="cancelled"],
+.bs-status[data-tone="warn"] {
   border-color: rgb(185 28 28 / 0.35);
   background: var(--admin-danger-soft);
   color: var(--admin-danger);
+}
+
+.bs-status[data-tone="pending"] {
+  border-color: rgb(109 40 217 / 0.35);
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-ink);
 }
 
 .bs-warning {
@@ -2066,6 +2082,110 @@ html:not([data-theme="light"]) .admin-shell {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+/* Ventas: tres vistas con propósito explícito (boletas, invitados, cobros). */
+.bs-subnav-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bs-subnav-head h2 {
+  margin: 2px 0 0;
+  color: var(--admin-ink);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.bs-subnav {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  background: var(--admin-surface-2);
+  padding: 3px;
+}
+
+.bs-subnav-tab {
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bs-subnav-tab[aria-selected="true"] {
+  background: var(--admin-accent);
+  color: rgb(255 255 255);
+}
+
+.bs-subnav-purpose {
+  margin: 9px 0 14px;
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.bs-sales-list > .card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* Puerta en vivo / cierre: la lectura principal antes de la tabla de datos. */
+.bs-live-hero {
+  border-left: 3px solid var(--admin-live);
+}
+
+.bs-live-hero--ended {
+  border-left-color: var(--admin-accent);
+}
+
+.bs-live-hero-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.bs-live-hero-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  color: var(--admin-ink);
+  font-size: clamp(1.15rem, 1rem + 0.6vw, 1.45rem);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+}
+
+.bs-live-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bs-live-hero .bs-state-grid {
+  margin-top: 14px;
+}
+
+.bs-payment-summary .bs-state-grid {
+  margin-top: 10px;
+}
+
+.bs-state-grid.bs-state-grid--five {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .bs-primary {
@@ -2172,12 +2292,29 @@ html:not([data-theme="light"]) .admin-shell {
   }
 
   .bs-title-row {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .bs-title-block {
+    flex: 1;
   }
 
   .bs-head-actions {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    margin-left: auto;
+    justify-content: flex-end;
+  }
+
+  .bs-back {
+    display: none;
+  }
+
+  .bs-facts strong,
+  .bs-facts span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
   }
 
   .bs-facts {
@@ -2803,18 +2940,38 @@ html:not([data-theme="light"]) .admin-shell {
     padding: 0 12px;
   }
 
-  .admin-topbar-brand,
+  .admin-topbar-brand {
+    display: inline-flex;
+  }
+
+  .admin-topbar-brand .enty-logo-word {
+    display: inline;
+    font-size: 18px;
+  }
+
   .admin-org-select,
-  .admin-org-name {
+  .admin-org-name,
+  .admin-topbar-role,
+  .admin-logout {
     display: none;
   }
 
   .admin-topbar-actions {
-    gap: 4px;
+    gap: 2px;
+  }
+
+  .admin-topbar-left {
+    gap: 7px;
   }
 
   .admin-crumbs {
-    font-size: 15px;
+    font-size: 14px;
+    gap: 5px;
+  }
+
+  .admin-crumb-sep,
+  .admin-crumb-current {
+    display: none;
   }
 
   .admin-page-head--events {
@@ -2846,5 +3003,60 @@ html:not([data-theme="light"]) .admin-shell {
   .admin-toolbar .admin-filter-btn {
     grid-row: 2;
     grid-column: 2;
+  }
+}
+
+@media (max-width: 767px) {
+  .bs-subnav-head {
+    align-items: stretch;
+  }
+
+  .bs-subnav {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .bs-subnav-tab {
+    flex: 0 1 auto;
+    padding: 0 9px;
+  }
+
+  .bs-live-hero-head {
+    flex-direction: column;
+  }
+
+  .bs-live-hero-actions {
+    width: 100%;
+  }
+
+  .bs-live-hero-actions .btn-primary,
+  .bs-live-hero-actions .bs-secondary {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .bs-state-grid.bs-state-grid--five {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bs-kicker {
+    display: none;
+  }
+
+  .bs-actions {
+    gap: 6px;
+  }
+
+  .bs-actions .btn-primary,
+  .bs-actions .bs-secondary {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 0;
+    justify-content: center;
+    padding-inline: 8px;
+  }
+
+  .bs-sales-list .tabbar {
+    flex-wrap: wrap;
   }
 }
