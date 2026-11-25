@@ -14,7 +14,7 @@
   --admin-surface-3: rgb(243 233 214);
   --admin-ink: rgb(42 31 20);
   --admin-ink-soft: rgb(104 86 65);
-  --admin-muted: rgb(133 112 85);
+  --admin-muted: rgb(115 96 74);
   --admin-line: rgb(231 215 190);
   --admin-line-strong: rgb(209 187 151);
   --admin-accent: rgb(245 165 36);
@@ -239,7 +239,7 @@ html:not([data-theme="light"]) .promoter-shell {
 .promoter-search input {
   width: 100%;
   min-height: 44px;
-  border: 1px solid var(--admin-line-strong);
+  border: 1px solid var(--admin-muted);
   border-radius: 12px;
   background: var(--admin-surface);
   padding: 0 12px 0 38px;

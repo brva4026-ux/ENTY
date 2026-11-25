@@ -49,7 +49,7 @@ test("la puerta entra y monta el escáner con caché de puerta", async ({
   await expect(
     page.getByRole("heading", { name: "Control de puerta" }),
   ).toBeVisible();
-  await expect(page.getByText("Caché de puerta (sin red)")).toBeVisible();
+  await expect(page.getByText("Apuntá al QR del invitado")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Activar cámara" }),
   ).toBeVisible();

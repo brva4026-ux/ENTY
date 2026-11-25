@@ -45,7 +45,8 @@ test("escritorio: el perfil usa dos columnas y la organización activa está a l
   expect(side && main && main.x > side.x + side.width - 1).toBeTruthy();
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/\S+/);
-  await expect(page.getByText(/Organización activa:/)).toBeVisible();
+  await expect(page.locator(".pf-hero-org-label")).toHaveText("Organización activa");
+  await expect(page.locator(".pf-hero-org-wrap")).toBeVisible();
   await expect(page.getByRole("tab")).toHaveCount(5);
   await expect(page.getByRole("tab", { name: "Mi perfil" })).toHaveAttribute(
     "aria-selected",
@@ -62,7 +63,7 @@ test("las pestañas se sincronizan con la URL y muestran su panel", async ({
   await expect(page.getByRole("heading", { name: "Seguridad de la cuenta" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Correo de acceso" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Sesiones abiertas" })).toBeVisible();
-  await expect(page.getByText("Esta sesión", { exact: true })).toBeVisible({
+  await expect(page.getByText("Este dispositivo", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
 

@@ -12,6 +12,7 @@ import { initials } from "../lib/initials";
 import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { apiFetch } from "../lib/api";
 import { operationalRoles, roleIdentity } from "../lib/roles";
+import useDocumentTitle from "../lib/useDocumentTitle";
 
 const TABS = [
   { to: "/promotor", label: "Mis eventos", icon: "calendar" },
@@ -36,6 +37,7 @@ function pageTitle(pathname) {
 export default function PromoterShell({ children }) {
   const { user, logout, setUser } = useAuth();
   const { pathname } = useLocation();
+  useDocumentTitle(pageTitle(pathname));
   const nav = useNavigate();
   const ui = useUI();
   const [switching, setSwitching] = useState(false);

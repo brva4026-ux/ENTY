@@ -893,6 +893,7 @@ export default function BouncerScanner() {
 
   return (
     <main className="door2-shell">
+      <h1 className="sr-only">Control de puerta</h1>
       <header className="door2-top">
         <Logo size="sm" compact />
         <button type="button" className="door2-event-button" onClick={() => setPanel("shift")}>
