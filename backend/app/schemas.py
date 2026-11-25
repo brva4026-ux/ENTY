@@ -3008,3 +3008,134 @@ class EventPreflight(BaseModel):
     door_staff: list[PreflightStaff] = []
     tickets_issued: int = 0
     tickets_redeemed: int = 0
+
+
+# --------------------------------------------------------------------------
+# Suite operativa y comercial (mig 071)
+# --------------------------------------------------------------------------
+class TransportPointIn(BaseModel):
+    kind: Literal["recogida", "parqueadero", "regreso", "otro"] = "otro"
+    name: str = Field(min_length=1, max_length=120)
+    detail: str | None = Field(default=None, max_length=500)
+    schedule: str | None = Field(default=None, max_length=160)
+    map_url: str | None = Field(default=None, max_length=500)
+    sort_order: int = 0
+
+
+class MapPointIn(BaseModel):
+    kind: Literal["baño", "atencion", "encuentro", "accesible", "salida", "otro"] = "otro"
+    name: str = Field(min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=500)
+    accessible: bool = False
+    sort_order: int = 0
+
+
+class CheckoutRecoveryIn(BaseModel):
+    ticket_type_id: int | None = None
+    customer_name: str | None = Field(default=None, max_length=120)
+    customer_phone: str | None = Field(default=None, max_length=40)
+    customer_email: str | None = Field(default=None, max_length=160)
+
+
+class ShiftIn(BaseModel):
+    shift_start: datetime | None = None
+    shift_end: datetime | None = None
+    break_start: datetime | None = None
+    break_end: datetime | None = None
+    station: str | None = Field(default=None, max_length=80)
+
+
+class CheckinIn(BaseModel):
+    note: str | None = Field(default=None, max_length=300)
+
+
+class OpsOrderIn(BaseModel):
+    message: str = Field(min_length=1, max_length=1000)
+    target: str | None = Field(default=None, max_length=120)
+
+
+class EquipmentIn(BaseModel):
+    item_name: str = Field(min_length=1, max_length=120)
+    serial: str | None = Field(default=None, max_length=120)
+    responsible_user_id: int | None = None
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class EquipmentPatch(BaseModel):
+    status: Literal["prestado", "devuelto", "perdido"] | None = None
+    responsible_user_id: int | None = None
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class BookingIn(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    event_id: int | None = None
+    starts_at: datetime
+    ends_at: datetime
+    setup_starts_at: datetime | None = None
+    teardown_ends_at: datetime | None = None
+    status: Literal["tentativa", "confirmada", "cancelada"] = "tentativa"
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class MilestoneIn(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    due_date: date
+    owner_user_id: int | None = None
+    status: Literal["pendiente", "hecho", "bloqueado"] = "pendiente"
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class CourtesyIn(BaseModel):
+    ticket_type_id: int | None = None
+    quantity: int = Field(gt=0, le=200)
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class CourtesyReviewIn(BaseModel):
+    status: Literal["aprobada", "rechazada"]
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class DocumentIn(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    url: str = Field(min_length=1, max_length=1000)
+    version: str = Field(default="1", max_length=40)
+    access_role: Literal["admin", "equipo", "todos"] = "equipo"
+    owner_user_id: int | None = None
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class TicketChangeIn(BaseModel):
+    new_event_id: int
+    new_type_id: int
+    payment_method: Literal["efectivo", "transferencia", "online", "cortesia"] | None = None
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class ResaleIn(BaseModel):
+    ticket_id: int
+    price_cents: int = Field(ge=0)
+    seller_name: str | None = Field(default=None, max_length=120)
+    seller_phone: str | None = Field(default=None, max_length=40)
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class ResaleSellIn(BaseModel):
+    buyer_name: str = Field(min_length=1, max_length=120)
+    buyer_phone: str | None = Field(default=None, max_length=40)
+    buyer_email: str | None = Field(default=None, max_length=160)
+    payment_method: Literal["efectivo", "transferencia", "online", "cortesia"] = "efectivo"
+
+
+class ResaleRequestIn(BaseModel):
+    buyer_name: str = Field(min_length=1, max_length=120)
+    buyer_phone: str | None = Field(default=None, max_length=40)
+    buyer_email: str | None = Field(default=None, max_length=160)
+
+
+class BundleIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    event_ids: list[int] = Field(min_length=1)
+    price_cents: int = Field(ge=0)
+    quantity: int = Field(gt=0)

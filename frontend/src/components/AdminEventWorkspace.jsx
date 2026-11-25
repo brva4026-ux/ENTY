@@ -10,6 +10,7 @@ import BoxOfficePanel from "./BoxOfficePanel";
 import AccreditationsPanel from "./AccreditationsPanel";
 import SessionsPanel from "./SessionsPanel";
 import BreakEvenPanel from "./BreakEvenPanel";
+import EventExtrasPanel from "./EventExtrasPanel";
 import EventSummary, { SectionContext } from "./EventSummary";
 import { money, plural } from "../lib/format";
 
@@ -354,6 +355,18 @@ export default function AdminEventWorkspace({
           next="Entrega pases de prensa, artistas y producción con su propia vigencia y zona."
         />
         <AccreditationsPanel venueId={venueId} eventId={eventId} ev={ev} />
+      </div>
+    );
+  }
+
+  if (section === "operacion") {
+    return (
+      <div className="admin-workspace-panel">
+        <SectionContext
+          ev={ev}
+          next="Transporte, plano, turnos, órdenes, equipos, hitos, documentos, reventa y pronóstico."
+        />
+        <EventExtrasPanel venueId={venueId} eventId={eventId} types={types} />
       </div>
     );
   }

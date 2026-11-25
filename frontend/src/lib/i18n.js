@@ -1,0 +1,73 @@
+export const LANGUAGES = [
+  { id: "es", label: "Español" },
+  { id: "en", label: "English" },
+  { id: "pt", label: "Português" },
+];
+
+const DICT = {
+  es: {
+    buy: "Comprar boleto",
+    confirming: "Confirmando tu pago",
+    wait: "Esto puede tardar unos segundos.",
+    close: "Cerrar",
+    type: "Localidad",
+    name: "Tu nombre (va impreso en la boleta)",
+    phone: "Teléfono (WhatsApp)",
+    email: "Correo (opcional)",
+    coupon: "Código de descuento",
+    birth: "Fecha de nacimiento (para verificar la edad)",
+    ageNote: "Evento para mayores de {age}: lo verificamos antes de cobrar.",
+    pay: "Pagar {amount}",
+    opening: "Abriendo pago…",
+    soldOut: "agotada",
+    approved: "¡Pago aprobado! Tu boleta ya está lista.",
+    claim: "Recógela con tu contacto en “Mis boletas”, donde verás tu QR para la puerta.",
+    noTypes: "Este evento no tiene localidades de pago disponibles por ahora.",
+    whatsapp: "Encargar por WhatsApp",
+  },
+  en: {
+    buy: "Buy ticket",
+    confirming: "Confirming your payment",
+    wait: "This may take a few seconds.",
+    close: "Close",
+    type: "Ticket type",
+    name: "Your name (printed on the ticket)",
+    phone: "Phone (WhatsApp)",
+    email: "Email (optional)",
+    coupon: "Discount code",
+    birth: "Date of birth (age check)",
+    ageNote: "Event for ages {age}+: we verify before charging.",
+    pay: "Pay {amount}",
+    opening: "Opening payment…",
+    soldOut: "sold out",
+    approved: "Payment approved! Your ticket is ready.",
+    claim: "Claim it with your contact in “My tickets”, where you will see your door QR.",
+    noTypes: "This event has no paid ticket types available right now.",
+    whatsapp: "Order via WhatsApp",
+  },
+  pt: {
+    buy: "Comprar ingresso",
+    confirming: "Confirmando seu pagamento",
+    wait: "Isso pode levar alguns segundos.",
+    close: "Fechar",
+    type: "Setor",
+    name: "Seu nome (impresso no ingresso)",
+    phone: "Telefone (WhatsApp)",
+    email: "E-mail (opcional)",
+    coupon: "Código de desconto",
+    birth: "Data de nascimento (verificação de idade)",
+    ageNote: "Evento para maiores de {age}: verificamos antes da cobrança.",
+    pay: "Pagar {amount}",
+    opening: "Abrindo pagamento…",
+    soldOut: "esgotado",
+    approved: "Pagamento aprovado! Seu ingresso está pronto.",
+    claim: "Retire com seu contato em “Meus ingressos”, onde verá o QR da porta.",
+    noTypes: "Este evento não tem setores pagos disponíveis agora.",
+    whatsapp: "Pedir pelo WhatsApp",
+  },
+};
+
+export function t(lang, key, vars = {}) {
+  const text = DICT[lang]?.[key] ?? DICT.es[key] ?? key;
+  return text.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? `{${name}}`);
+}

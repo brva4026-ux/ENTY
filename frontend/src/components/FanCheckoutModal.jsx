@@ -7,6 +7,7 @@ import {
 } from "../lib/api";
 import { money } from "../lib/format";
 import { waLink } from "../lib/whatsapp";
+import { t } from "../lib/i18n";
 
 /**
  * Checkout público del fan: elige localidad, deja su contacto y va a pagar a
@@ -34,6 +35,7 @@ export default function FanCheckoutModal({
   waitingPass = null,
   promoterRef = null,
   onWaitingPassRejected = null,
+  lang = "es",
 }) {
   const { dialogRef, titleId } = useDialogA11y({ onClose });
 
@@ -261,16 +263,16 @@ export default function FanCheckoutModal({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 id={titleId} className="display text-lg">
-              {reference ? "Confirmando tu pago" : "Comprar boleto"}
+              {reference ? t(lang, "confirming") : t(lang, "buy")}
             </h3>
             <p className="mt-0.5 text-xs text-zinc-500">
               {reference
-                ? "Esto puede tardar unos segundos."
+                ? t(lang, "wait")
                 : event?.name}
             </p>
           </div>
           <button type="button" onClick={onClose} className="btn-mini">
-            Cerrar ✕
+            {t(lang, "close")} ✕
           </button>
         </div>
 
@@ -281,11 +283,10 @@ export default function FanCheckoutModal({
             {approved ? (
               <>
                 <p className="text-sm font-semibold text-emerald-300">
-                  ¡Pago aprobado! Tu boleta ya está lista.
+                  {t(lang, "approved")}
                 </p>
                 <p className="text-xs text-zinc-400">
-                  Recógela con tu contacto en “Mis boletas”, donde verás tu QR
-                  para la puerta.
+                  {t(lang, "claim")}
                 </p>
                 <button
                   type="button"
@@ -364,13 +365,13 @@ export default function FanCheckoutModal({
           </div>
         ) : types.length === 0 ? (
           <p className="text-sm text-zinc-300">
-            Este evento no tiene localidades de pago disponibles por ahora.
+            {t(lang, "noTypes")}
           </p>
         ) : (
           <form onSubmit={submit} noValidate className="space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-semibold text-zinc-400">
-                Localidad
+                {t(lang, "type")}
               </span>
               <select
                 className="field"
@@ -380,7 +381,7 @@ export default function FanCheckoutModal({
                 {types.map((t) => (
                   <option key={t.id} value={t.id} disabled={t.sold_out}>
                     {t.name} — {money(t.price_cents)}
-                    {t.sold_out ? " (agotada)" : ""}
+                    {t.sold_out ? ` (${t(lang, "soldOut")})` : ""}
                   </option>
                 ))}
               </select>
@@ -388,7 +389,7 @@ export default function FanCheckoutModal({
 
             <label className="block">
               <span className="mb-1 block text-xs font-semibold text-zinc-400">
-                Tu nombre (va impreso en la boleta)
+                {t(lang, "name")}
               </span>
               <input
                 ref={(el) => {
@@ -413,7 +414,7 @@ export default function FanCheckoutModal({
 
             <label className="block">
               <span className="mb-1 block text-xs font-semibold text-zinc-400">
-                Teléfono (WhatsApp)
+                {t(lang, "phone")}
               </span>
               <input
                 ref={(el) => {
@@ -439,7 +440,7 @@ export default function FanCheckoutModal({
             {minAge && (
               <label className="block">
                 <span className="mb-1 block text-xs font-semibold text-zinc-400">
-                  Fecha de nacimiento (para verificar la edad)
+                  {t(lang, "birth")}
                 </span>
                 <input
                   ref={(el) => {
@@ -460,15 +461,14 @@ export default function FanCheckoutModal({
                   }
                 />
                 <span className="mt-1 block text-2xs text-zinc-500">
-                  Evento para mayores de {minAge}: lo verificamos antes de
-                  cobrar.
+                  {t(lang, "ageNote", { age: minAge })}
                 </span>
               </label>
             )}
 
             <label className="block">
               <span className="mb-1 block text-xs font-semibold text-zinc-400">
-                Correo (opcional)
+                {t(lang, "email")}
               </span>
               <input
                 ref={(el) => {
@@ -550,7 +550,7 @@ export default function FanCheckoutModal({
                 target="_blank"
                 rel="noreferrer"
               >
-                Encargar por WhatsApp
+                {t(lang, "whatsapp")}
               </a>
             )}
 
@@ -560,14 +560,14 @@ export default function FanCheckoutModal({
               disabled={!selected || busy || selected.sold_out}
             >
               {busy
-                ? "Abriendo pago…"
+                ? t(lang, "opening")
                 : selected
-                  ? `Pagar ${money(
+                  ? t(lang, "pay", { amount: money(
                       quote?.valid
                         ? quote.final_in_cents
                         : selected.price_cents,
-                    )}`
-                  : "Comprar"}
+                    ) })
+                  : t(lang, "buy")}
             </button>
           </form>
         )}

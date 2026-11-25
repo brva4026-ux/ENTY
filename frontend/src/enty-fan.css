@@ -1932,3 +1932,90 @@
   font-size: var(--e-text-xs, 11px);
   font-weight: 500;
 }
+
+/* Suite pública (mig 071): idioma, transporte, plano y reventa */
+.evd-lang-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--evd-muted, #a1a1aa);
+  font-size: 12px;
+}
+
+.evd-lang-row select {
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.evd-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, #22c55e 38%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, #22c55e 10%, transparent);
+  color: #d1fae5;
+}
+
+.evd-recovery span {
+  color: #a7f3d0;
+  font-size: 13px;
+}
+
+.evd-extra-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.evd-extra-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 12px;
+}
+
+.evd-extra-card strong {
+  font-size: 14px;
+}
+
+.evd-extra-card span,
+.evd-extra-card small {
+  color: var(--evd-muted, #a1a1aa);
+  font-size: 12px;
+}
+
+.evd-extra-card a {
+  color: #93c5fd;
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.evd-resale-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.evd-resale-form input {
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}

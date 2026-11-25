@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { fetchPublicEventDetail, recordPromoterLinkVisit } from "../lib/api";
+import {
+  fetchPublicEventDetail,
+  getCheckoutRecovery,
+  publicEventExtras,
+  publicResales,
+  recordPromoterLinkVisit,
+  requestResale,
+} from "../lib/api";
 import ContactSupport from "../components/ContactSupport";
 import FanCheckoutModal from "../components/FanCheckoutModal";
 import WaitingRoomOverlay from "../components/WaitingRoomOverlay";
@@ -146,6 +153,29 @@ export default function EventDetailPage() {
   const [favPop, setFavPop] = useState(false);
   const [copied, setCopied] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [extras, setExtras] = useState(null);
+  const [resales, setResales] = useState([]);
+  const [recovery, setRecovery] = useState(null);
+  const [lang, setLang] = useState(() => {
+    try { return localStorage.getItem("tf_lang") || "es"; } catch { return "es"; }
+  });
+  const [resaleForm, setResaleForm] = useState({ id: null, name: "", phone: "" });
+  const [resaleMsg, setResaleMsg] = useState("");
+
+  async function requestResaleOffer(e) {
+    e.preventDefault();
+    if (!resaleForm.id || !resaleForm.name.trim()) return;
+    try {
+      const res = await requestResale(resaleForm.id, {
+        buyer_name: resaleForm.name.trim(),
+        buyer_phone: resaleForm.phone.trim() || null,
+      });
+      setResaleMsg(res.detail || "Solicitud enviada.");
+      setResaleForm({ id: null, name: "", phone: "" });
+    } catch (err) {
+      setResaleMsg(err.message || "No pudimos enviar la solicitud.");
+    }
+  }
   // Video opcional (mig 057): no se descarga hasta que el fan toca play, y
   // empieza silenciado para no sorprender. Si falla, la ficha sigue.
   const [videoStarted, setVideoStarted] = useState(false);
@@ -249,6 +279,31 @@ export default function EventDetailPage() {
   useEffect(() => {
     if (data) setFav(readFavs().has(Number(data.id)));
   }, [data]);
+
+  useEffect(() => {
+    if (!id) return undefined;
+    let alive = true;
+    Promise.all([
+      publicEventExtras(id).catch(() => ({ transport: [], map_points: [] })),
+      publicResales(id).catch(() => []),
+    ]).then(([ex, rs]) => {
+      if (!alive) return;
+      setExtras(ex);
+      setResales(rs || []);
+    });
+    return () => { alive = false; };
+  }, [id]);
+
+  useEffect(() => {
+    const token = searchParams.get("retomar");
+    if (!token) return;
+    getCheckoutRecovery(token).then(setRecovery).catch(() => setRecovery(null));
+  }, [searchParams]);
+
+  useEffect(() => {
+    try { localStorage.setItem("tf_lang", lang); } catch { /* privado */ }
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   // Embudo, paso 2: abrió este evento. Se dispara una sola vez por id, aunque
   // la pantalla se re-renderice por favoritos o pestañas.
@@ -628,6 +683,26 @@ export default function EventDetailPage() {
           <div className="evd-info">
             <p className="evd-eyebrow">{data.category || "Evento"}</p>
             <h1 className="evd-title">{data.name}</h1>
+            <div className="evd-lang-row">
+              <label htmlFor="evd-lang">Idioma</label>
+              <select id="evd-lang" value={lang} onChange={(e) => setLang(e.target.value)}>
+                <option value="es">Español</option>
+                <option value="en">English</option>
+                <option value="pt">Português</option>
+              </select>
+            </div>
+            {recovery && (
+              <div className="evd-recovery" role="status">
+                <strong>Retoma tu compra</strong>
+                <span>
+                  {recovery.type_name || "Tu localidad"} · {money(recovery.price_cents)}
+                  {recovery.available != null ? ` · ${recovery.available} disponibles` : ""}
+                </span>
+                <button type="button" className="evd-cta" onClick={() => setCheckoutOpen(true)}>
+                  Retomar compra
+                </button>
+              </div>
+            )}
             <p className="evd-when">
               <Icon name="calendar" className="h-4 w-4" />
               <span>
@@ -941,6 +1016,78 @@ export default function EventDetailPage() {
               </section>
             )}
 
+            {extras?.transport?.length > 0 && (
+              <section className="evd-section" aria-labelledby="evd-transport-title">
+                <h2 id="evd-transport-title" className="evd-section-title">
+                  Transporte
+                </h2>
+                <div className="evd-extra-list">
+                  {extras.transport.map((t) => (
+                    <div className="evd-extra-card" key={t.id}>
+                      <strong>{t.name}</strong>
+                      <span>{t.kind}{t.schedule ? ` · ${t.schedule}` : ""}</span>
+                      {t.detail && <small>{t.detail}</small>}
+                      {t.map_url && (
+                        <a href={t.map_url} target="_blank" rel="noreferrer">Ver mapa</a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {extras?.map_points?.length > 0 && (
+              <section className="evd-section" aria-labelledby="evd-map-title">
+                <h2 id="evd-map-title" className="evd-section-title">
+                  Puntos de encuentro
+                </h2>
+                <div className="evd-extra-list">
+                  {extras.map_points.map((p) => (
+                    <div className="evd-extra-card" key={p.id}>
+                      <strong>{p.name}</strong>
+                      <span>{p.kind}{p.accessible ? " · accesible" : ""}</span>
+                      {p.description && <small>{p.description}</small>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {resales.length > 0 && (
+              <section className="evd-section" aria-labelledby="evd-resale-title">
+                <h2 id="evd-resale-title" className="evd-section-title">
+                  Reventa oficial
+                </h2>
+                <p className="evd-muted">
+                  Boletas de personas que no pueden ir, a precio controlado.
+                  Enty anula el QR anterior al confirmar la compra.
+                </p>
+                {resaleMsg && <p className="evd-muted" role="status">{resaleMsg}</p>}
+                <div className="evd-extra-list">
+                  {resales.map((r) => (
+                    <div className="evd-extra-card" key={r.id}>
+                      <strong>{r.type_name} · {money(r.price_cents)}</strong>
+                      <span>Vende {r.seller_first_name}</span>
+                      {resaleForm.id === r.id ? (
+                        <form className="evd-resale-form" onSubmit={requestResaleOffer}>
+                          <input placeholder="Tu nombre" value={resaleForm.name}
+                            onChange={(e) => setResaleForm((f) => ({ ...f, name: e.target.value }))} />
+                          <input placeholder="Tu WhatsApp" value={resaleForm.phone}
+                            onChange={(e) => setResaleForm((f) => ({ ...f, phone: e.target.value }))} />
+                          <button type="submit" className="evd-cta">Enviar solicitud</button>
+                        </form>
+                      ) : (
+                        <button type="button" className="evd-cta evd-cta--ghost"
+                          onClick={() => setResaleForm({ id: r.id, name: "", phone: "" })}>
+                          Quiero esta boleta
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <section className="evd-section" aria-labelledby="evd-contact-title">
               <h2 id="evd-contact-title" className="evd-section-title">
                 Contacto
@@ -1033,6 +1180,7 @@ export default function EventDetailPage() {
           reference={payRef}
           contactHref={organizerWa}
           promoterRef={promoterRef}
+          lang={lang}
           waitingPass={waitingRoom.passToken}
           onWaitingPassRejected={() => {
             // El pase vencio o no le tocaba: vuelve a la fila a por otro.

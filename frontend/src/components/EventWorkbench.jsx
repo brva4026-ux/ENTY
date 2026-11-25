@@ -66,6 +66,7 @@ const TABS = [
   { id: "ventas", label: "Ventas", icon: "ticket" },
   { id: "equipo", label: "Equipo", icon: "users" },
   { id: "accesos", label: "Accesos", icon: "door" },
+  { id: "operacion", label: "Operación", icon: "chart" },
   { id: "acreditaciones", label: "Acreditaciones", icon: "shield" },
   { id: "sesiones", label: "Sesiones", icon: "calendar" },
 ];
