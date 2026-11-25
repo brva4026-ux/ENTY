@@ -84,6 +84,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "066_event_change_notices.sql",
     ROOT / "db" / "migrations" / "067_accreditations.sql",
     ROOT / "db" / "migrations" / "068_sessions_and_passes.sql",
+    ROOT / "db" / "migrations" / "069_event_costs.sql",
 ]
 
 
@@ -148,7 +149,8 @@ def db():
                 event_change_notices,
                 event_accreditations,
                 ticket_payment_tickets,
-                pass_sessions CASCADE;
+                pass_sessions,
+                event_costs CASCADE;
         -- event_staff / event_access_tokens (mig 025) referencian users y events:
         -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
         -- el orden de borrado no dependa de las FK.

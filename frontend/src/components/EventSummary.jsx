@@ -102,6 +102,13 @@ function PublicPreview({ ev, onSection, onEdit, editable }) {
           type="button"
           className="btn-mini"
           data-variant="brand"
+          onClick={() => onSection("rentabilidad")}
+        >
+          Ver rentabilidad
+        </button>
+        <button
+          type="button"
+          className="btn-mini"
           onClick={() => onSection("ventas")}
         >
           Ver ventas

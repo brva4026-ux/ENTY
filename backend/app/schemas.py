@@ -496,6 +496,61 @@ class PassOut(BaseModel):
     sessions: list[PassSessionOut] = Field(default_factory=list)
 
 
+class EventCostCreate(BaseModel):
+    description: str = Field(min_length=1, max_length=160)
+    category: str = Field(default="otro", max_length=40)
+    amount_cents: int = Field(ge=0)
+    status: Literal["estimated", "committed", "paid"] = "estimated"
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class EventCostUpdate(BaseModel):
+    description: str | None = Field(default=None, min_length=1, max_length=160)
+    category: str | None = Field(default=None, max_length=40)
+    amount_cents: int | None = Field(default=None, ge=0)
+    status: Literal["estimated", "committed", "paid"] | None = None
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class EventCostOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    description: str
+    category: str
+    amount_cents: int
+    status: str
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class BreakEvenOut(BaseModel):
+    """Cuánto cuesta la noche y cuánto falta por vender para cubrirlo."""
+
+    event_id: int
+    capacity: int
+    live_tickets: int
+    paid_tickets: int
+    avg_ticket_cents: int
+    avg_ticket_basis: str
+    gross_revenue_cents: int
+    refunded_cents: int
+    collected_cents: int
+    estimated_cents: int
+    committed_cents: int
+    paid_cents: int
+    target_cents: int
+    target_basis: str
+    remaining_cents: int
+    covered_pct: float
+    tickets_remaining: int | None = None
+    capacity_left: int
+    projected_revenue_cents: int
+    projected_result_cents: int
+    status: str
+    costs: list[EventCostOut] = Field(default_factory=list)
+
+
 class TicketTypeUpdate(BaseModel):
     """Edición parcial de un tipo de boleta. Solo se aplican los campos enviados.
 

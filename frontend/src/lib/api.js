@@ -373,6 +373,38 @@ export function revokeAccreditation(venueId, eventId, accreditationId) {
 }
 
 // ---------------------------------------------------------------------------
+// Punto de equilibrio (mig 069): costos del evento y caja real.
+// ---------------------------------------------------------------------------
+
+export function getBreakEven(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/break-even`);
+}
+
+export function listCosts(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/costs`);
+}
+
+export function createCost(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/costs`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCost(venueId, eventId, costId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/costs/${costId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCost(venueId, eventId, costId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/costs/${costId}`, {
+    method: "DELETE",
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Sesiones y pases (mig 068): un evento puede tener varias jornadas y un
 // pase emite una boleta por cada una al confirmarse el pago.
 // ---------------------------------------------------------------------------

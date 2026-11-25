@@ -9,6 +9,7 @@ import PaymentsPanel from "./PaymentsPanel";
 import BoxOfficePanel from "./BoxOfficePanel";
 import AccreditationsPanel from "./AccreditationsPanel";
 import SessionsPanel from "./SessionsPanel";
+import BreakEvenPanel from "./BreakEvenPanel";
 import EventSummary, { SectionContext } from "./EventSummary";
 import { money, plural } from "../lib/format";
 
@@ -172,6 +173,18 @@ export default function AdminEventWorkspace({
         venueId={venueId}
         eventId={eventId}
       />
+    );
+  }
+
+  if (section === "rentabilidad") {
+    return (
+      <div className="admin-workspace-panel">
+        <SectionContext
+          ev={ev}
+          next="Registra los costos de la noche y mira cuánto falta vender para cubrirlos."
+        />
+        <BreakEvenPanel venueId={venueId} eventId={eventId} ev={ev} />
+      </div>
     );
   }
 

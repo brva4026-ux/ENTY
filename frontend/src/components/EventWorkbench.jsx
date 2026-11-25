@@ -1,8 +1,8 @@
 /* EventWorkbench — ficha de UN evento.
  *
  * La ficha conserva la URL compartible `/admin?event=<id>&tab=<sección>`.
- * Las cuatro secciones son las del rediseño: Resumen, Ventas, Equipo y
- * Accesos. Las pestañas viejas (Lineup, Boletas, Cupones, Cupos, Noche,
+ * Las secciones del rediseño: Resumen, Rentabilidad, Ventas, Equipo,
+ * Accesos, Acreditaciones y Sesiones. Las pestañas viejas (Lineup, Boletas, Cupones, Cupos, Noche,
  * Entradas) se normalizan en AdminDashboard para no romper enlaces.
  */
 import { useEffect, useRef, useState } from "react";
@@ -62,6 +62,7 @@ export function sortEventsForStrip(events) {
 
 const TABS = [
   { id: "resumen", label: "Resumen", icon: "chart" },
+  { id: "rentabilidad", label: "Rentabilidad", icon: "money" },
   { id: "ventas", label: "Ventas", icon: "ticket" },
   { id: "equipo", label: "Equipo", icon: "users" },
   { id: "accesos", label: "Accesos", icon: "door" },
@@ -305,7 +306,7 @@ export default function EventWorkbench({
         ))}
       </nav>
       <p className="bs-tabs-hint" aria-hidden="true">
-        Desliza para ver las seis secciones →
+        Desliza para ver las siete secciones →
       </p>
     </div>
   );
