@@ -263,6 +263,14 @@ function DemoVideo() {
   const [ended, setEnded] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  // Al arrancar, el botón de portada desaparece; el foco pasa al reproductor
+  // para que quien navega con teclado no lo pierda en el <body>.
+  useEffect(() => {
+    if (!started) return;
+    const frame = requestAnimationFrame(() => ref.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [started]);
+
   function play() {
     const el = ref.current;
     if (!el) return;
@@ -301,6 +309,8 @@ function DemoVideo() {
         controls={started}
         playsInline
         preload="none"
+        tabIndex={started ? 0 : -1}
+        aria-label="Demostración de Enty: emisión, validación y aforo"
         aria-describedby="lp-demo-desc"
         onEnded={() => setEnded(true)}
         onError={() => setFailed(true)}

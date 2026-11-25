@@ -441,6 +441,10 @@
   object-fit: cover;
   background: var(--e-ink-1);
 }
+.lp-demo-video:focus-visible {
+  outline: 3px solid var(--e-violet-400);
+  outline-offset: -4px;
+}
 
 /* Portada propia: deja claro que se toca para reproducir. Es un <button>
    real, así que llega por teclado y se anuncia. */
