@@ -32,6 +32,8 @@ from app.schemas import (
     ReportByDoor,
     ReportByPaymentMethod,
     ReportByPromoter,
+    ReportPayments,
+    ReportRefunds,
     ReportSummary,
     VenueDoor,
     VenueDoorEvent,
@@ -302,6 +304,13 @@ async def event_report(
         )
         by_payment_method = await cur.fetchall()
 
+        await cur.execute(
+            "SELECT coalesce(sum(amount_in_cents), 0)::bigint AS refunded_cents "
+            "FROM ticket_refunds WHERE event_id=%s",
+            (event_id,),
+        )
+        refunded_cents = (await cur.fetchone())["refunded_cents"]
+
         # Desglose de puerta (mig 042): qué hizo cada acceso. NULL agrupa los
         # escaneos sin puerta identificada (teléfonos viejos o sin configurar).
         await cur.execute(
@@ -327,6 +336,7 @@ async def event_report(
         capacity=ev["capacity"],
         **_totals(by_status, ev["capacity"]),
         revenue_cents=revenue,
+        refunded_cents=refunded_cents,
         by_type=by_type,
         by_promoter=by_promoter,
         door_duplicates=rd["duplicates"],
@@ -459,6 +469,39 @@ async def event_summary(
         )
         scanned_by = await cur.fetchall()
 
+        await cur.execute(
+            """
+            SELECT count(*) FILTER (WHERE status='approved')::int AS approved_count,
+                   coalesce(sum(amount_in_cents) FILTER (WHERE status='approved'), 0)::bigint
+                     AS approved_cents,
+                   count(*) FILTER (WHERE status='pending')::int AS pending_count,
+                   coalesce(sum(amount_in_cents) FILTER (WHERE status='pending'), 0)::bigint
+                     AS pending_cents,
+                   count(*) FILTER (WHERE status='paid_unfulfilled')::int AS unfulfilled_count,
+                   coalesce(sum(amount_in_cents) FILTER (WHERE status='paid_unfulfilled'), 0)::bigint
+                     AS unfulfilled_cents,
+                   count(*) FILTER (WHERE status IN ('declined','voided','expired'))::int
+                     AS declined_count
+              FROM ticket_payments WHERE event_id=%(ev)s
+                AND (%(since)s::timestamptz IS NULL OR created_at >= %(since)s::timestamptz)
+                AND (%(until)s::timestamptz IS NULL OR created_at <  %(until)s::timestamptz)
+            """,
+            t_params | {"ev": event_id},
+        )
+        pay = await cur.fetchone()
+
+        await cur.execute(
+            """
+            SELECT count(*)::int AS count,
+                   coalesce(sum(amount_in_cents), 0)::bigint AS amount_cents
+              FROM ticket_refunds WHERE event_id=%(ev)s
+                AND (%(since)s::timestamptz IS NULL OR created_at >= %(since)s::timestamptz)
+                AND (%(until)s::timestamptz IS NULL OR created_at <  %(until)s::timestamptz)
+            """,
+            t_params | {"ev": event_id},
+        )
+        refunds = await cur.fetchone()
+
     granted = door["granted"]
     failed = door["total"] - granted
     paid = money["paid_tickets"]
@@ -488,6 +531,8 @@ async def event_summary(
             "last_granted_at": door["last_granted_at"],
             "scanned_by": scanned_by,
         },
+        payments=ReportPayments(**pay),
+        refunds=ReportRefunds(**refunds),
         by_type=by_type,
         by_promoter=by_promoter,
     )
@@ -547,6 +592,35 @@ async def event_summary_csv(
             params,
         )
         door = await cur.fetchone()
+        await cur.execute(
+            """
+            SELECT count(*) FILTER (WHERE status='approved')::int AS approved_count,
+                   coalesce(sum(amount_in_cents) FILTER (WHERE status='approved'), 0)::bigint
+                     AS approved_cents,
+                   count(*) FILTER (WHERE status='pending')::int AS pending_count,
+                   coalesce(sum(amount_in_cents) FILTER (WHERE status='pending'), 0)::bigint
+                     AS pending_cents,
+                   count(*) FILTER (WHERE status='paid_unfulfilled')::int AS unfulfilled_count,
+                   coalesce(sum(amount_in_cents) FILTER (WHERE status='paid_unfulfilled'), 0)::bigint
+                     AS unfulfilled_cents
+              FROM ticket_payments WHERE event_id=%(ev)s
+                AND (%(since)s::timestamptz IS NULL OR created_at >= %(since)s::timestamptz)
+                AND (%(until)s::timestamptz IS NULL OR created_at <  %(until)s::timestamptz)
+            """,
+            params,
+        )
+        pay = await cur.fetchone()
+        await cur.execute(
+            """
+            SELECT count(*)::int AS count,
+                   coalesce(sum(amount_in_cents), 0)::bigint AS amount_cents
+              FROM ticket_refunds WHERE event_id=%(ev)s
+                AND (%(since)s::timestamptz IS NULL OR created_at >= %(since)s::timestamptz)
+                AND (%(until)s::timestamptz IS NULL OR created_at <  %(until)s::timestamptz)
+            """,
+            params,
+        )
+        refunds = await cur.fetchone()
         # Auditoria (mig 019): el cierre de caja es dato financiero; queda
         # registrado quien lo exporto y con que rango.
         await write_audit(
@@ -586,7 +660,13 @@ async def event_summary_csv(
     wtr.writerow(["Cortesias", money["courtesy"]])
     wtr.writerow(["Anuladas", by_status.get("voided", 0)])
     wtr.writerow(["Reembolsadas", by_status.get("refunded", 0)])
+    wtr.writerow(["Dinero reembolsado (COP)", money_cop(refunds["amount_cents"])])
     wtr.writerow(["Promedio por boleta paga (COP)", money_cop(round(revenue / paid)) if paid else 0])
+    wtr.writerow([])
+    wtr.writerow(["Cobros online", "Cantidad", "Monto (COP)"])
+    wtr.writerow(["Aprobados con boleta", pay["approved_count"], money_cop(pay["approved_cents"])])
+    wtr.writerow(["Pendientes", pay["pending_count"], money_cop(pay["pending_cents"])])
+    wtr.writerow(["Aprobados SIN boleta", pay["unfulfilled_count"], money_cop(pay["unfulfilled_cents"])])
     wtr.writerow([])
     wtr.writerow(["Puerta", "Entras", "Rechazadas", "Total escaneos"])
     granted = door["granted"]

@@ -23,6 +23,7 @@ from app.schemas import (
     DoorSyncItem,
     DoorSyncOut,
     DoorSyncResult,
+    PaymentOut,
     RedeemOut,
     TicketContactEditOut,
     TicketContactEditRequest,
@@ -31,10 +32,12 @@ from app.schemas import (
     TicketEmitResponse,
     TicketHistoryItem,
     TicketHistoryOut,
+    TicketOperationalHistoryOut,
     TicketRedeemRequest,
     TicketReissueRequest,
     TicketReissueResponse,
     TicketReturnOut,
+    TicketTimelineEntry,
 )
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["tickets"])
@@ -292,6 +295,487 @@ async def my_tickets(
             )
             for r in rows
         ]
+    )
+
+
+@router.get(
+    "/events/{event_id}/tickets/{ticket_id}/history",
+    response_model=TicketOperationalHistoryOut,
+)
+async def ticket_operational_history(
+    venue_id: int,
+    event_id: int,
+    ticket_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Expediente operativo de una boleta.
+
+    Responde en una sola vista las preguntas que hoy obligan a saltar entre
+    listados: ¿cómo se pagó?, ¿quién la emitió?, ¿se reemitió?, ¿entró?,
+    ¿hubo una incidencia? El promotor ve solo sus boletas; el admin, todas
+    las del evento. Los hashes del QR no se exponen: se cuenta qué pasó.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+    roles = user["roles"].get(venue_id, [])
+    is_staff = any(r in ("super_admin", "admin") for r in roles)
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT t.id, t.event_id, t.status::text AS status, t.issued_at,
+                   t.voided_at, t.redeemed_at, t.price_cents_snapshot,
+                   t.payment_method, t.sold_by_user_id, t.customer_name,
+                   t.customer_phone, t.customer_email,
+                   COALESCE(t.sale_channel, 'venue') AS sale_channel,
+                   tt.name AS type_name, tt.is_courtesy,
+                   us.full_name AS sold_by_name,
+                   ur.full_name AS redeemed_by_name
+              FROM tickets t
+              JOIN events e ON e.id = t.event_id
+              JOIN ticket_types tt ON tt.id = t.ticket_type_id
+              LEFT JOIN users us ON us.id = t.sold_by_user_id
+              LEFT JOIN users ur ON ur.id = t.redeemed_by_user_id
+             WHERE t.id=%s AND t.event_id=%s AND e.venue_id=%s
+            """,
+            (ticket_id, event_id, venue_id),
+        )
+        ticket = await cur.fetchone()
+        if not ticket:
+            raise HTTPException(404, "Boleta no encontrada")
+        if not is_staff and ticket["sold_by_user_id"] != user["id"]:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Solo puedes ver el historial de tus propias boletas",
+            )
+
+        await cur.execute(
+            """
+            SELECT id, reference, status, amount_in_cents, customer_name,
+                   customer_phone, customer_email, transaction_id,
+                   approved_at, created_at, fulfillment_error
+              FROM ticket_payments
+             WHERE ticket_id=%s
+             ORDER BY id DESC LIMIT 1
+            """,
+            (ticket_id,),
+        )
+        pay = await cur.fetchone()
+
+        payment = (
+            PaymentOut(
+                id=pay["id"],
+                reference=pay["reference"],
+                status=pay["status"],
+                amount_in_cents=pay["amount_in_cents"],
+                customer_name=pay["customer_name"],
+                customer_phone=pay["customer_phone"],
+                customer_email=pay["customer_email"],
+                ticket_id=ticket_id,
+                transaction_id=pay["transaction_id"],
+                approved_at=pay["approved_at"],
+                created_at=pay["created_at"],
+                fulfillment_error=pay["fulfillment_error"],
+            )
+            if pay
+            else None
+        )
+
+        entries: list[TicketTimelineEntry] = []
+
+        channel_label = {
+            "venue": "Taquilla de la organización",
+            "public": "Compra en línea",
+            "promoter_direct": "Emisión directa del promotor",
+            "promoter_quota": "Cupo del promotor",
+            "promoter_link": "Enlace del promotor",
+            "online": "Compra en línea",
+        }.get(ticket["sale_channel"], ticket["sale_channel"])
+        entries.append(
+            TicketTimelineEntry(
+                id=f"ticket-{ticket_id}-issued",
+                kind="issued",
+                at=ticket["issued_at"],
+                title="Boleta emitida",
+                detail=(
+                    f"{ticket['type_name']} · {channel_label}"
+                    + (" · Cortesía" if ticket["is_courtesy"] else "")
+                ),
+                actor_name=ticket["sold_by_name"],
+                amount_cents=ticket["price_cents_snapshot"],
+                status=ticket["status"],
+                channel=ticket["sale_channel"],
+            )
+        )
+
+        if payment:
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"payment-{payment.id}-created",
+                    kind="payment_created",
+                    at=payment.created_at,
+                    title="Cobro creado",
+                    detail=f"Referencia {payment.reference}",
+                    amount_cents=payment.amount_in_cents,
+                    status=payment.status,
+                    channel="online",
+                )
+            )
+            if payment.status == "approved":
+                entries.append(
+                    TicketTimelineEntry(
+                        id=f"payment-{payment.id}-approved",
+                        kind="payment_approved",
+                        at=payment.approved_at or payment.created_at,
+                        title="Pago aprobado",
+                        detail="El cobro quedó conciliado con esta boleta.",
+                        amount_cents=payment.amount_in_cents,
+                        status="approved",
+                        channel="online",
+                    )
+                )
+            elif payment.status == "paid_unfulfilled":
+                entries.append(
+                    TicketTimelineEntry(
+                        id=f"payment-{payment.id}-review",
+                        kind="payment_review",
+                        at=payment.approved_at or payment.created_at,
+                        title="Pago aprobado sin boleta",
+                        detail=payment.fulfillment_error
+                        or "El cobro se aprobó pero la emisión no se completó.",
+                        amount_cents=payment.amount_in_cents,
+                        status="paid_unfulfilled",
+                        channel="online",
+                    )
+                )
+            elif payment.status in ("declined", "voided", "expired"):
+                entries.append(
+                    TicketTimelineEntry(
+                        id=f"payment-{payment.id}-closed",
+                        kind="payment_closed",
+                        at=payment.created_at,
+                        title={
+                            "declined": "Pago rechazado",
+                            "voided": "Cobro anulado",
+                            "expired": "Cobro expirado",
+                        }[payment.status],
+                        detail="Este cobro no emitió una boleta.",
+                        amount_cents=payment.amount_in_cents,
+                        status=payment.status,
+                        channel="online",
+                    )
+                )
+
+        await cur.execute(
+            """
+            SELECT r.id, r.created_at, r.reason, u.full_name AS actor_name
+              FROM ticket_reissues r
+              LEFT JOIN users u ON u.id = r.reissued_by_user_id
+             WHERE r.ticket_id=%s
+             ORDER BY r.created_at, r.id
+            """,
+            (ticket_id,),
+        )
+        for row in await cur.fetchall():
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"reissue-{row['id']}",
+                    kind="reissued",
+                    at=row["created_at"],
+                    title="QR reemitido",
+                    detail=(
+                        "Se generó un QR nuevo y el anterior dejó de funcionar."
+                        + (f" Motivo: {row['reason']}" if row["reason"] else "")
+                    ),
+                    actor_name=row["actor_name"],
+                    status="issued",
+                    channel="reissue",
+                )
+            )
+
+        await cur.execute(
+            """
+            SELECT ce.id, ce.created_at, ce.old_name, ce.new_name,
+                   ce.old_phone, ce.new_phone, ce.reason,
+                   u.full_name AS actor_name
+              FROM ticket_contact_edits ce
+              LEFT JOIN users u ON u.id = ce.edited_by_user_id
+             WHERE ce.ticket_id=%s
+             ORDER BY ce.created_at, ce.id
+            """,
+            (ticket_id,),
+        )
+        for row in await cur.fetchall():
+            changes = []
+            if row["old_name"] != row["new_name"]:
+                changes.append(f"nombre: {row['old_name']} → {row['new_name']}")
+            if row["old_phone"] != row["new_phone"]:
+                changes.append(
+                    f"teléfono: {row['old_phone'] or 'sin dato'} → "
+                    f"{row['new_phone'] or 'sin dato'}"
+                )
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"contact-{row['id']}",
+                    kind="contact_updated",
+                    at=row["created_at"],
+                    title="Contacto corregido",
+                    detail="; ".join(changes)
+                    + (f" · Motivo: {row['reason']}" if row["reason"] else ""),
+                    actor_name=row["actor_name"],
+                    channel="contact",
+                )
+            )
+
+        await cur.execute(
+            """
+            SELECT r.id, r.scanned_at, r.outcome, r.door_id,
+                   u.full_name AS actor_name
+              FROM redemptions r
+              LEFT JOIN users u ON u.id = r.scanned_by_user_id
+             WHERE r.ticket_id=%s
+             ORDER BY r.scanned_at, r.id
+            """,
+            (ticket_id,),
+        )
+        scan_copy = {
+            "granted": ("Ingreso registrado", "Entrada válida."),
+            "granted_forced": (
+                "Ingreso autorizado",
+                "Administración permitió el ingreso fuera de la ventana del QR.",
+            ),
+            "already_redeemed": (
+                "Segundo escaneo",
+                "El QR ya había sido usado; no sumó otro ingreso.",
+            ),
+            "wrong_type": (
+                "QR rechazado por acceso",
+                "La boleta es de otra localidad; no se consumió.",
+            ),
+            "not_active": ("QR rechazado", "El QR aún no estaba activo."),
+            "under_age": ("QR rechazado", "No cumple la edad mínima del evento."),
+            "not_found": ("QR no encontrado", "El código no corresponde a una boleta."),
+            "not_valid": (
+                "QR rechazado",
+                "La boleta está anulada o reembolsada; no se consumió.",
+            ),
+            "invalid_event": (
+                "QR de otro evento",
+                "La boleta pertenece a un evento distinto.",
+            ),
+            "event_not_live": (
+                "Evento no abierto",
+                "El evento no estaba en venta ni en puerta al escanear.",
+            ),
+            "capacity_reached": (
+                "Aforo completo",
+                "El recinto llegó a su capacidad; la boleta no se consumió.",
+            ),
+        }
+        for row in await cur.fetchall():
+            # El procedimiento guarda el outcome en minúsculas; normalizar
+            # evita que una variante histórica se muestre como "no reconocido".
+            outcome = str(row["outcome"]).lower()
+            title, detail = scan_copy.get(
+                outcome, ("Intento de escaneo", "Resultado no reconocido.")
+            )
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"scan-{row['id']}",
+                    kind=(
+                        "scan_granted"
+                        if outcome in ("granted", "granted_forced")
+                        else "scan_duplicate"
+                        if outcome == "already_redeemed"
+                        else "scan_rejected"
+                    ),
+                    at=row["scanned_at"],
+                    title=title,
+                    detail=detail + (f" Puerta: {row['door_id']}." if row["door_id"] else ""),
+                    actor_name=row["actor_name"],
+                    status=outcome,
+                    channel=row["door_id"] or "door",
+                )
+            )
+
+        await cur.execute(
+            """
+            SELECT tr.id, tr.created_at, u.full_name AS actor_name
+              FROM ticket_returns tr
+              LEFT JOIN users u ON u.id = tr.returned_by_user_id
+             WHERE tr.ticket_id=%s
+             ORDER BY tr.created_at, tr.id
+            """,
+            (ticket_id,),
+        )
+        for row in await cur.fetchall():
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"return-{row['id']}",
+                    kind="returned",
+                    at=row["created_at"],
+                    title="Boleta devuelta",
+                    detail="El QR anterior quedó invalidado y el cupo volvió al evento.",
+                    actor_name=row["actor_name"],
+                    channel="return",
+                )
+            )
+
+        await cur.execute(
+            """
+            SELECT rf.id, rf.created_at, rf.amount_in_cents, rf.reason,
+                   u.full_name AS actor_name
+              FROM ticket_refunds rf
+              LEFT JOIN users u ON u.id = rf.refunded_by_user_id
+             WHERE rf.ticket_id=%s
+             ORDER BY rf.created_at, rf.id
+            """,
+            (ticket_id,),
+        )
+        for row in await cur.fetchall():
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"refund-{row['id']}",
+                    kind="refunded",
+                    at=row["created_at"],
+                    title="Reembolso registrado",
+                    detail=row["reason"] or "Sin motivo registrado.",
+                    actor_name=row["actor_name"],
+                    amount_cents=row["amount_in_cents"],
+                    channel="refund",
+                )
+            )
+
+        await cur.execute(
+            """
+            SELECT i.id, i.created_at, i.status, i.reason, i.note,
+                   i.resolution_guidance, i.resolved_at,
+                   u.full_name AS actor_name
+              FROM door_incidents i
+              LEFT JOIN users u ON u.id = i.created_by
+             WHERE i.ticket_id=%s
+             ORDER BY i.created_at, i.id
+            """,
+            (ticket_id,),
+        )
+        for row in await cur.fetchall():
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"incident-{row['id']}",
+                    kind="incident",
+                    at=row["created_at"],
+                    title="Incidencia en puerta",
+                    detail=" · ".join(
+                        part for part in (row["reason"], row["note"]) if part
+                    ),
+                    actor_name=row["actor_name"],
+                    status=row["status"],
+                    channel="incident",
+                )
+            )
+            if row["resolved_at"]:
+                entries.append(
+                    TicketTimelineEntry(
+                        id=f"incident-{row['id']}-resolved",
+                        kind="incident_resolved",
+                        at=row["resolved_at"],
+                        title="Incidencia resuelta",
+                        detail=row["resolution_guidance"]
+                        or "Administración cerró la incidencia.",
+                        status="resolved",
+                        channel="incident",
+                    )
+                )
+
+        await cur.execute(
+            """
+            SELECT c.id, c.created_at, c.body, c.author_role,
+                   u.full_name AS actor_name
+              FROM door_incident_comments c
+              JOIN door_incidents i ON i.id = c.incident_id
+              JOIN users u ON u.id = c.author_id
+             WHERE i.ticket_id=%s
+             ORDER BY c.created_at, c.id
+            """,
+            (ticket_id,),
+        )
+        for row in await cur.fetchall():
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"incident-comment-{row['id']}",
+                    kind="incident_comment",
+                    at=row["created_at"],
+                    title="Comentario de la incidencia",
+                    detail=row["body"],
+                    actor_name=row["actor_name"],
+                    actor_role=row["author_role"],
+                    channel="incident",
+                )
+            )
+
+        await cur.execute(
+            """
+            SELECT a.id, a.created_at, a.details, u.full_name AS actor_name
+              FROM audit_log a
+              LEFT JOIN users u ON u.id = a.actor_id
+             WHERE a.entity='ticket' AND a.entity_id=%s
+               AND a.kind='ticket_voided'
+             ORDER BY a.created_at, a.id
+            """,
+            (ticket_id,),
+        )
+        void_rows = await cur.fetchall()
+        for row in void_rows:
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"void-{row['id']}",
+                    kind="voided",
+                    at=row["created_at"],
+                    title="Boleta anulada",
+                    detail=(row["details"] or {}).get("reason")
+                    or "Sin motivo registrado.",
+                    actor_name=row["actor_name"],
+                    status="voided",
+                    channel="void",
+                )
+            )
+        if ticket["voided_at"] and not void_rows:
+            entries.append(
+                TicketTimelineEntry(
+                    id=f"ticket-{ticket_id}-voided",
+                    kind="voided",
+                    at=ticket["voided_at"],
+                    title="Boleta anulada",
+                    detail="Anulación anterior al registro de auditoría.",
+                    status="voided",
+                    channel="void",
+                )
+            )
+
+    entries.sort(key=lambda e: (e.at, e.id))
+    return TicketOperationalHistoryOut(
+        ticket_id=ticket["id"],
+        event_id=ticket["event_id"],
+        ticket_type=ticket["type_name"],
+        status=ticket["status"],
+        issued_at=ticket["issued_at"],
+        redeemed_at=ticket["redeemed_at"],
+        redeemed_by_name=ticket["redeemed_by_name"],
+        customer_name=ticket["customer_name"],
+        customer_phone=ticket["customer_phone"],
+        customer_email=ticket["customer_email"],
+        price_cents=ticket["price_cents_snapshot"] or 0,
+        payment_method=ticket["payment_method"],
+        sale_channel=ticket["sale_channel"],
+        payment=payment,
+        timeline=entries,
+        viewer_role="admin" if is_staff else "promotor",
+        can_reissue=ticket["status"] == "issued",
+        can_refund=is_staff and ticket["status"] == "issued",
+        can_void=is_staff and ticket["status"] == "issued",
+        can_retry_fulfillment=bool(
+            is_staff and payment and payment.status == "paid_unfulfilled"
+        ),
     )
 
 

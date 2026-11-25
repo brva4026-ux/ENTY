@@ -80,6 +80,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "062_login_lockout_ignores_sentinels.sql",
     ROOT / "db" / "migrations" / "063_promoter_workspace.sql",
     ROOT / "db" / "migrations" / "064_door_workspace.sql",
+    ROOT / "db" / "migrations" / "065_fulfill_paid_payment.sql",
 ]
 
 

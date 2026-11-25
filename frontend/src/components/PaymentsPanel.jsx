@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "../lib/api";
+import { apiFetch, fulfillPaidPayment, publicTicketPageUrl } from "../lib/api";
 import { money } from "../lib/format";
 import { haptics } from "../lib/haptics";
-import { paymentWaMessage, waLink } from "../lib/whatsapp";
+import { paymentWaMessage, ticketWaMessage, waLink } from "../lib/whatsapp";
 import Icon from "./Icon";
 
 /**
@@ -62,6 +62,8 @@ export default function PaymentsPanel({
   // (mandarla). Se guarda con el contacto para armar el wa.me directo.
   const [created, setCreated] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [resolved, setResolved] = useState(null);
+  const [resolvingId, setResolvingId] = useState(null);
 
   const activeTypes = types.filter((t) => t.is_active);
   const event = events.find((e) => String(e.id) === String(eventId));
@@ -119,6 +121,7 @@ export default function PaymentsPanel({
     setTypes([]);
     setForm((f) => ({ ...f, ticket_type_id: "" }));
     setCreated(null);
+    setResolved(null);
     apiFetch(`/venues/${venueId}/events/${eventId}/types`)
       .then(setTypes)
       .catch(() => setTypes([]));
@@ -198,6 +201,43 @@ export default function PaymentsPanel({
       )
     : null;
 
+  async function resolvePayment(p) {
+    const ok = window.confirm(
+      `¿Emitir la boleta del cobro de ${p.customer_name}? Se reutiliza el pago aprobado; no se cobra dos veces.`,
+    );
+    if (!ok) return;
+    setResolvingId(p.id);
+    setError("");
+    setResolved(null);
+    try {
+      const out = await fulfillPaidPayment(venueId, eventId, p.id);
+      await loadPayments();
+      setResolved({
+        ...out,
+        payment: p,
+        url: out.raw_token ? publicTicketPageUrl(out.raw_token) : null,
+      });
+      haptics.tick();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResolvingId(null);
+    }
+  }
+
+  const resolvedWaHref =
+    resolved?.url && resolved.payment
+      ? waLink(
+          resolved.payment.customer_phone,
+          ticketWaMessage({
+            customerName: resolved.payment.customer_name,
+            eventName: event?.name,
+            ticketId: resolved.ticket_id,
+            url: resolved.url,
+          }),
+        )
+      : null;
+
   if (events.length === 0) {
     return (
       <div className="card p-6 text-center text-sm text-zinc-400">
@@ -260,8 +300,16 @@ export default function PaymentsPanel({
             </div>
             <div className="bs-metric">
               <span>Reembolsos</span>
-              <strong className="tnum">{report ? report.refunded ?? 0 : "Sin dato"}</strong>
-              <small>Boletas reembolsadas en este evento.</small>
+              <strong className="tnum">
+                {report
+                  ? report.refunded_cents != null
+                    ? money(report.refunded_cents)
+                    : `${report.refunded ?? 0} boletas`
+                  : "Sin dato"}
+              </strong>
+              <small>
+                {report ? `${report.refunded ?? 0} boletas reembolsadas.` : ""}
+              </small>
             </div>
             <div className="bs-metric">
               <span>Pagos por revisar</span>
@@ -325,6 +373,44 @@ export default function PaymentsPanel({
                   Abrir enlace
                 </a>
               </div>
+            </div>
+          )}
+
+          {resolved && (
+            <div className="card border-emerald-900/60 p-4">
+              <p className="display mb-1 text-base">
+                {resolved.duplicate
+                  ? "La boleta ya estaba emitida"
+                  : `Boleta #${resolved.ticket_id} emitida`}
+              </p>
+              <p className="mb-3 text-xs leading-relaxed text-zinc-400">
+                {resolved.duplicate
+                  ? "Ese cobro ya tenía una boleta. No se generó otra ni se cobró de nuevo."
+                  : `El cobro de ${resolved.payment.customer_name} quedó conciliado. Envía el QR al asistente; el enlace es de un solo uso y no se puede volver a leer.`}
+              </p>
+              {resolved.url && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {resolvedWaHref && (
+                    <a
+                      href={resolvedWaHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-primary !px-3 !py-1.5 text-xs"
+                    >
+                      <Icon name="whatsapp" className="h-4 w-4" />
+                      Enviar QR por WhatsApp
+                    </a>
+                  )}
+                  <a
+                    href={resolved.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-ghost !px-3 !py-1.5 text-xs font-bold"
+                  >
+                    Abrir boleta
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
@@ -490,6 +576,11 @@ export default function PaymentsPanel({
                           {p.reference}
                           {p.ticket_id ? ` · boleta #${p.ticket_id}` : ""}
                         </p>
+                        {p.fulfillment_error && (
+                          <p className="mt-0.5 text-2xs text-red-300">
+                            {p.fulfillment_error}
+                          </p>
+                        )}
                       </div>
                       <span className="tnum font-semibold text-zinc-100">
                         {money(p.amount_in_cents)}
@@ -499,6 +590,17 @@ export default function PaymentsPanel({
                       >
                         {st.label}
                       </span>
+                      {p.status === "paid_unfulfilled" && (
+                        <button
+                          type="button"
+                          onClick={() => resolvePayment(p)}
+                          disabled={resolvingId === p.id}
+                          className="btn-mini"
+                          data-variant="brand"
+                        >
+                          {resolvingId === p.id ? "Emitiendo…" : "Emitir boleta"}
+                        </button>
+                      )}
                       {p.status === "pending" && p.payment_url && (
                         (() => {
                           const href = waLink(

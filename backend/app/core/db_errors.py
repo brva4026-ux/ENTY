@@ -99,6 +99,10 @@ DB_ERRORS: dict[str, tuple[int, str]] = {
     # Cobros online (payments.py)
     "payment_amount_mismatch": (409, "El monto pagado no coincide con el cobrado"),
     "payment_not_approvable": (409, "El cobro ya no esta pendiente: no se puede aprobar"),
+    "payment_not_fulfillable": (
+        409,
+        "Ese cobro no esta pendiente de emision: no se puede resolver",
+    ),
     "payment_not_found": (404, "Cobro no encontrado"),
     # Lista de espera (waitlist.py)
     "waitlist_not_needed": (409, "El evento aun tiene boletas: no hay lista de espera"),

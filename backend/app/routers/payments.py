@@ -23,6 +23,7 @@ from typing import Annotated
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.core.audit import write_audit
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
@@ -31,6 +32,7 @@ from app.deps import ensure_roles, get_current_user
 from app.schemas import (
     PaymentCreateOut,
     PaymentCreateRequest,
+    PaymentFulfillOut,
     PaymentOut,
     PaymentsListOut,
 )
@@ -142,6 +144,121 @@ async def create_payment(
     )
 
 
+@router.post(
+    "/venues/{venue_id}/events/{event_id}/payments/{payment_id}/fulfill",
+    response_model=PaymentFulfillOut,
+)
+async def fulfill_payment(
+    venue_id: int,
+    event_id: int,
+    payment_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Emite la boleta de un cobro que Wompi aprobó sin poder emitirla.
+
+    Es la salida operativa de `paid_unfulfilled`: el dinero ya entró, pero la
+    boleta no existe (se llenó el aforo, el evento estaba cerrado, el cupón se
+    agotó). Administración libera cupo o reabre la venta y reintenta aquí.
+    Reutiliza el cobro original; nunca crea un segundo pago.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+
+    async with db.transaction(), db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT p.id, p.status, p.ticket_id, p.fulfillment_error
+              FROM ticket_payments p
+              JOIN events e ON e.id = p.event_id
+             WHERE p.id=%s AND p.event_id=%s AND e.venue_id=%s
+             FOR UPDATE OF p
+            """,
+            (payment_id, event_id, venue_id),
+        )
+        payment = await cur.fetchone()
+        if not payment:
+            raise HTTPException(404, "Cobro no encontrado")
+        if payment["status"] == "approved" and payment["ticket_id"]:
+            return PaymentFulfillOut(
+                payment_id=payment_id,
+                ticket_id=payment["ticket_id"],
+                duplicate=True,
+            )
+        if payment["status"] != "paid_unfulfilled":
+            raise HTTPException(
+                409,
+                "Ese cobro no está pendiente de emisión: "
+                f"su estado es {payment['status']}.",
+            )
+
+        raw_token = secrets.token_urlsafe(24)
+        try:
+            await cur.execute(
+                "SELECT fulfill_paid_payment(%s, %s, %s)",
+                (payment_id, raw_token, user["id"]),
+            )
+            row = await cur.fetchone()
+            ticket_id = (
+                row["fulfill_paid_payment"] if isinstance(row, dict) else row[0]
+            )
+        except psycopg.errors.Error as error:
+            http = translate_db_error(
+                error,
+                overrides={
+                    "payment_not_fulfillable": (
+                        409,
+                        "Ese cobro ya no se puede emitir.",
+                    ),
+                    "ticket_type_sold_out": (
+                        409,
+                        "No hay cupo en esa localidad. Libera cupo o amplía "
+                        "la cantidad y vuelve a intentar.",
+                    ),
+                    "event_at_capacity": (
+                        409,
+                        "El evento está lleno. Libera cupo o amplía el aforo "
+                        "y vuelve a intentar.",
+                    ),
+                    "event_not_open_for_sales": (
+                        409,
+                        "El evento no está abierto para venta. Reábrelo o "
+                        "gestiona el reembolso del cobro.",
+                    ),
+                    "ticket_type_inactive": (
+                        409,
+                        "La localidad está inactiva. Actívala y vuelve a intentar.",
+                    ),
+                    "coupon_unavailable": (
+                        409,
+                        "El cupón de este cobro ya no está disponible.",
+                    ),
+                },
+            )
+            if http is not None:
+                raise http from error
+            raise
+
+        await write_audit(
+            cur,
+            venue_id,
+            user["id"],
+            "payment_fulfilled",
+            "ticket_payment",
+            payment_id,
+            {
+                "event_id": event_id,
+                "ticket_id": ticket_id,
+                "previous_error": payment["fulfillment_error"],
+            },
+        )
+
+    return PaymentFulfillOut(
+        payment_id=payment_id,
+        ticket_id=ticket_id,
+        raw_token=raw_token,
+    )
+
+
 @router.get(
     "/venues/{venue_id}/events/{event_id}/payments",
     response_model=PaymentsListOut,
@@ -171,7 +288,7 @@ async def list_payments(
             """
             SELECT id, reference, status, amount_in_cents, customer_name,
                    customer_phone, customer_email, provider_ref, ticket_id,
-                   transaction_id, approved_at, created_at
+                   transaction_id, approved_at, created_at, fulfillment_error
               FROM ticket_payments
              WHERE event_id = %s
              ORDER BY id DESC
@@ -195,6 +312,7 @@ async def list_payments(
             transaction_id=r["transaction_id"],
             approved_at=r["approved_at"],
             created_at=r["created_at"],
+            fulfillment_error=r["fulfillment_error"],
             # URL reconstruida del provider_ref: sirve para REENVIAR el
             # enlace mientras el cobro sigue pendiente.
             payment_url=(

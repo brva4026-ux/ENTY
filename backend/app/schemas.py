@@ -1,6 +1,6 @@
 import re
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -1318,11 +1318,76 @@ class PaymentOut(BaseModel):
     transaction_id: str | None = None
     approved_at: datetime | None = None
     created_at: datetime
+    # Un pago aprobado puede quedar sin boleta (aforo lleno, evento cerrado).
+    # Administración necesita ver el motivo exacto para resolverlo.
+    fulfillment_error: str | None = None
 
 
 class PaymentsListOut(BaseModel):
     total: int
     items: list[PaymentOut]
+
+
+class PaymentFulfillOut(BaseModel):
+    """Resultado de resolver un cobro aprobado sin boleta."""
+
+    payment_id: int
+    ticket_id: int
+    raw_token: str | None = None
+    duplicate: bool = False
+    status: str = "issued"
+
+
+class TicketTimelineEntry(BaseModel):
+    """Un hecho operativo de una boleta, en orden cronológico.
+
+    El historial no es una copia de tablas: es la historia que el equipo
+    necesita contar en puerta ("este QR se reemitió", "este pago llegó sin
+    boleta", "esta persona ya entró a las 22:14"). Los hashes de token nunca
+    salen: se describen como "QR anterior" y "QR nuevo".
+    """
+
+    id: str
+    kind: str
+    at: datetime
+    title: str
+    detail: str | None = None
+    actor_name: str | None = None
+    actor_role: str | None = None
+    amount_cents: int | None = None
+    status: str | None = None
+    channel: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class TicketOperationalHistoryOut(BaseModel):
+    """Expediente de una boleta para Administración y su promotor.
+
+    El admin ve dinero y datos completos. El promotor ve solo sus boletas y
+    conserva el contacto del asistente (es su venta), pero no puede anular,
+    reembolsar ni resolver cobros ajenos.
+    """
+
+    ticket_id: int
+    event_id: int
+    ticket_type: str
+    status: str
+    issued_at: datetime
+    redeemed_at: datetime | None = None
+    redeemed_by_name: str | None = None
+    customer_name: str
+    customer_phone: str | None = None
+    customer_email: str | None = None
+    price_cents: int = 0
+    payment_method: str | None = None
+    sale_channel: str = "venue"
+    payment: PaymentOut | None = None
+    timeline: list[TicketTimelineEntry] = Field(default_factory=list)
+    viewer_role: str
+    can_reissue: bool = False
+    can_refund: bool = False
+    can_void: bool = False
+    can_retry_fulfillment: bool = False
 
 
 class WaitlistJoinRequest(BaseModel):
@@ -1608,6 +1673,8 @@ class TicketOut(BaseModel):
     customer_email: str | None = None
     status: str
     issued_at: datetime
+    redeemed_at: datetime | None = None
+    redeemed_by_name: str | None = None
     price_cents_snapshot: int
     type_name: str | None = None
     sold_by_name: str | None = None
@@ -1615,6 +1682,7 @@ class TicketOut(BaseModel):
     # Medio de pago (mig 042). NULL en boletas históricas de venta directa:
     # no se inventa el dato. La UI lo muestra como "sin especificar".
     payment_method: str | None = None
+    sale_channel: str = "venue"
 
 
 class TicketListOut(BaseModel):
@@ -1709,6 +1777,9 @@ class EventReport(BaseModel):
     # Recaudo vivo: suma de price_cents_snapshot de las boletas activas.
     # (Anular/reembolsar lo baja; emitir lo sube. NO es "lo vendido histórico".)
     revenue_cents: int = 0
+    # Dinero devuelto en el evento. Se muestra aparte del recaudo vigente:
+    # "cobré X y devolví Y" no es lo mismo que "me quedan X".
+    refunded_cents: int = 0
     by_type: list[ReportByType]
     by_promoter: list[ReportByPromoter]
     # Salud de puerta (redemptions, sin dinero). Solo vista admin: un pico de
@@ -1745,6 +1816,31 @@ class DoorScanStats(BaseModel):
     scanned_by: list[dict] = []
 
 
+class ReportPayments(BaseModel):
+    """Cobros online del evento, separados por lo que el dinero ya es.
+
+    `approved` es dinero cobrado y conciliado con boleta. `unfulfilled` es
+    dinero cobrado SIN boleta: no se puede cerrar la noche sin resolverlo.
+    `pending` es un cobro que aún no es dinero. Sumarlos todos sería un
+    informe mentiroso; por eso van en cubos distintos.
+    """
+
+    approved_count: int = 0
+    approved_cents: int = 0
+    pending_count: int = 0
+    pending_cents: int = 0
+    unfulfilled_count: int = 0
+    unfulfilled_cents: int = 0
+    declined_count: int = 0
+
+
+class ReportRefunds(BaseModel):
+    """Devoluciones registradas en el evento (dinero que salió)."""
+
+    count: int = 0
+    amount_cents: int = 0
+
+
 class ReportSummary(BaseModel):
     """KPIs de caja del evento. `revenue_cents` cuenta boletas vivas
     (issued + redeemed); anuladas y reembolsadas no facturan.
@@ -1769,6 +1865,8 @@ class ReportSummary(BaseModel):
     paid_tickets: int
     courtesy_tickets: int
     door: DoorScanStats
+    payments: ReportPayments = Field(default_factory=ReportPayments)
+    refunds: ReportRefunds = Field(default_factory=ReportRefunds)
     by_type: list[dict]
     by_promoter: list[dict]
 

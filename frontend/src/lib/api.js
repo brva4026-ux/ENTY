@@ -242,6 +242,19 @@ export function waitlistLeave(token) {
   });
 }
 
+export function fetchTicketHistory(venueId, eventId, ticketId) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/tickets/${ticketId}/history`,
+  );
+}
+
+export function fulfillPaidPayment(venueId, eventId, paymentId) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/payments/${paymentId}/fulfill`,
+    { method: "POST" },
+  );
+}
+
 export function reissueTicket(venueId, eventId, ticketId, reason) {
   return apiFetch(
     `/venues/${venueId}/events/${eventId}/tickets/${ticketId}/reissue`,

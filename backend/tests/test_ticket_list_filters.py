@@ -13,14 +13,14 @@ def _setup_event_with_tickets(api):
     general = api.add_type("admin", venue, ev["id"], name="General", price_cents=5000000, quantity=50, is_courtesy=False)
     api.publish("admin", venue, ev["id"])
 
-    for name in ("Ana García", "Luis Pérez", "Ana Luiza"):
+    for index, name in enumerate(("Ana García", "Luis Pérez", "Ana Luiza")):
         res = api.post(
             f"/venues/{venue}/events/{ev['id']}/tickets",
             "admin",
             {
                 "ticket_type_id": general["id"],
                 "customer_name": name,
-                "customer_phone": "3001112233",
+                "customer_phone": f"30011122{index:02d}",
             },
         )
         assert res.status_code == 201, res.text
@@ -46,6 +46,24 @@ def test_filter_by_q_matches_name_substring(api):
     body = res.json()
     assert body["total"] == 2
     assert {i["customer_name"] for i in body["items"]} == {"Ana García", "Ana Luiza"}
+
+
+def test_filter_by_q_matches_phone_and_ticket_id(api):
+    venue, ev, _ = _setup_event_with_tickets(api)
+    by_phone = api.client.get(
+        f"/venues/{venue}/events/{ev}/tickets?q=3001112201",
+        headers=api.headers("admin"),
+    ).json()
+    assert by_phone["total"] == 1
+    assert by_phone["items"][0]["customer_name"] == "Luis Pérez"
+
+    ticket_id = by_phone["items"][0]["id"]
+    by_id = api.client.get(
+        f"/venues/{venue}/events/{ev}/tickets?q={ticket_id}",
+        headers=api.headers("admin"),
+    ).json()
+    assert by_id["total"] == 1
+    assert by_id["items"][0]["id"] == ticket_id
 
 
 def test_filter_by_status(api):

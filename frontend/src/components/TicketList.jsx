@@ -10,6 +10,7 @@ import { plural } from "../lib/format";
 import { useUI } from "../lib/ui";
 import ContactEditsHistory from "./ContactEditsHistory";
 import EmptyState from "./EmptyState";
+import TicketHistoryModal from "./TicketHistoryModal";
 import TicketQrModal from "./TicketQrModal";
 
 const PAGE_SIZE = 50;
@@ -66,6 +67,7 @@ export default function TicketList({
   const [edit, setEdit] = useState({ name: "", phone: "", reason: "" });
   // Boleta cuyo QR se está mostrando (token ya rotado por reissue).
   const [qrTicket, setQrTicket] = useState(null);
+  const [historyId, setHistoryId] = useState(null);
 
   // ===== Listado server-driven: filtros + paginación viven en el API =====
   // (antes: 200 boletas en el DOM y Ctrl+F; ahora el server filtra y pagina,
@@ -383,11 +385,11 @@ export default function TicketList({
           className="flex min-w-52 flex-1 items-center gap-1.5"
         >
           <input
-            aria-label="Buscar por nombre del asistente"
+            aria-label="Buscar por nombre, teléfono o número de boleta"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             className="field !py-1.5 text-xs"
-            placeholder="Buscar por nombre del asistente… (Enter)"
+            placeholder="Nombre, teléfono o # de boleta… (Enter)"
           />
           {q && (
             <button
@@ -483,6 +485,14 @@ export default function TicketList({
                     >
                       {st.label}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => setHistoryId(t.id)}
+                      className="btn-mini"
+                      data-variant="brand"
+                    >
+                      Historial
+                    </button>
                     {canVoid && voidingId !== t.id && editingId !== t.id && (
                       <>
                         <button
@@ -694,6 +704,15 @@ export default function TicketList({
       {/* QR de la boleta: único por token, visible mientras el evento viva. */}
       {qrTicket && (
         <TicketQrModal ticket={qrTicket} onClose={() => setQrTicket(null)} />
+      )}
+
+      {historyId && (
+        <TicketHistoryModal
+          venueId={venueId}
+          eventId={eventId}
+          ticketId={historyId}
+          onClose={() => setHistoryId(null)}
+        />
       )}
 
       {/* Paginador: solo si hay más de una página */}

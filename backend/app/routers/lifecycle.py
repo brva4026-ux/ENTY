@@ -1007,17 +1007,18 @@ async def void_ticket(
     db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
 ):
     ensure_roles(user, venue_id, "super_admin", "admin")
-    async with db.cursor() as cur:
+    async with db.transaction(), db.cursor() as cur:
         # La boleta debe pertenecer a la venue (via evento).
         await cur.execute(
             """
-            SELECT t.id FROM tickets t
+            SELECT t.id, t.status::text AS status FROM tickets t
             JOIN events e ON e.id = t.event_id
             WHERE t.id=%s AND t.event_id=%s AND e.venue_id=%s
             """,
             (ticket_id, event_id, venue_id),
         )
-        if not await cur.fetchone():
+        row = await cur.fetchone()
+        if not row:
             raise HTTPException(404, "Boleta no encontrada en este evento")
         try:
             await cur.execute(
@@ -1025,7 +1026,13 @@ async def void_ticket(
             )
         except psycopg.errors.Error as e:
             raise _error_to_http(e) from e
-        await db.commit()
+        # La función no guarda quién ni por qué; el expediente de la boleta sí
+        # los necesita para responder "quién anuló esto" en el cierre.
+        if row["status"] != "voided":
+            await write_audit(
+                cur, venue_id, user["id"], "ticket_voided", "ticket", ticket_id,
+                {"event_id": event_id, "reason": body.reason},
+            )
     return MessageOut(detail="Boleta anulada. El cupo quedó liberado.")
 
 
@@ -1281,8 +1288,17 @@ async def list_tickets(
 
     q_filter = ""
     if q and q.strip():
-        q_filter = " AND t.customer_name ILIKE %s"
-        params.append(f"%{q.strip()}%")
+        term = q.strip()
+        # La búsqueda de mostrador arranca por lo que la persona tiene a mano:
+        # su nombre, su teléfono o el número de boleta. Antes solo el nombre,
+        # así que "pagué y no recibí mi boleta" obligaba a recorrer la lista.
+        like = f"%{term}%"
+        q_filter = (
+            " AND (t.customer_name ILIKE %s OR t.customer_phone ILIKE %s"
+            " OR t.customer_email ILIKE %s"
+            " OR CAST(t.id AS text) = %s)"
+        )
+        params.extend([like, like, like, term])
 
     courtesy_filter = ""
     if courtesy is not None:
@@ -1319,6 +1335,7 @@ async def list_tickets(
             f"""
             SELECT t.id, t.customer_name, t.customer_phone, t.customer_email, t.status,
                    t.issued_at, t.redeemed_at, t.price_cents_snapshot, t.payment_method,
+                   COALESCE(t.sale_channel, 'venue') AS sale_channel,
                    tt.name AS type_name,
                    u.full_name AS sold_by_name,
                    ur.full_name AS redeemed_by_name,
