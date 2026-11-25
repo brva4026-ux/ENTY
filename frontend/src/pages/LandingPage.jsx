@@ -267,7 +267,7 @@ function DemoVideo() {
   // para que quien navega con teclado no lo pierda en el <body>.
   useEffect(() => {
     if (!started) return;
-    const frame = requestAnimationFrame(() => ref.current?.focus());
+    const frame = requestAnimationFrame(() => ref.current?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(frame);
   }, [started]);
 
