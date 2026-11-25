@@ -1024,6 +1024,7 @@ export default function EventDetailPage() {
         <FanCheckoutModal
           event={data}
           reference={payRef}
+          contactHref={organizerWa}
           promoterRef={promoterRef}
           waitingPass={waitingRoom.passToken}
           onWaitingPassRejected={() => {

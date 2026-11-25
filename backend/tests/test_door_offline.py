@@ -6,6 +6,8 @@ El contrato de seguridad que estos tests fijan:
 3. El sync re-evalúa cada token contra la DB (redeem_ticket): una boleta
    anulada después de descargar el snapshot NO entra por haber estado en él.
 """
+import uuid
+
 import psycopg
 import pytest
 
@@ -121,3 +123,41 @@ def test_sync_double_scan_counts_already(api, world, door_event):
     out = res.json()
     assert out["granted"] == 0
     assert out["already_redeemed"] == 1
+
+
+def test_two_offline_phones_same_qr_only_one_entry(api, world, door_event):
+    """Dos teléfonos offline con el mismo QR: al sincronizar, entra una sola vez.
+
+    Es el hueco conocido del modo offline: cada teléfono valida contra su
+    propia foto y no puede ver lo que hizo el otro. La DB es el árbitro final:
+    el primer sync gana y el segundo queda ALREADY_REDEEMED. Lo importante es
+    que el conteo de puerta no sume dos ingresos por una sola boleta.
+    """
+    venue = world["venue_a"]
+    ev = door_event["ev"]
+    token = door_event["t1"]["raw_token"]
+
+    first = api.post(
+        f"/venues/{venue}/events/{ev['id']}/door-sync",
+        "bouncer",
+        [{"raw_token": token, "scan_id": str(uuid.uuid4())}],
+    )
+    second = api.post(
+        f"/venues/{venue}/events/{ev['id']}/door-sync",
+        "bouncer",
+        [{"raw_token": token, "scan_id": str(uuid.uuid4())}],
+    )
+
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+    assert first.json()["granted"] == 1
+    assert second.json()["granted"] == 0
+    assert second.json()["already_redeemed"] == 1
+    assert (
+        api.run_sql(
+            "SELECT count(*) FROM redemptions "
+            f"WHERE ticket_id={door_event['t1']['ticket_id']} "
+            "AND outcome='granted'"
+        )
+        == 1
+    )

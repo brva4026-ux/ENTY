@@ -30,6 +30,7 @@ export default function FanCheckoutModal({
   reference,
   onClose,
   onPaid,
+  contactHref = null,
   waitingPass = null,
   promoterRef = null,
   onWaitingPassRejected = null,
@@ -299,6 +300,16 @@ export default function FanCheckoutModal({
                 <p className="text-sm font-semibold text-amber-300">Recibimos tu pago y requiere revisión.</p>
                 <p className="text-xs text-zinc-400">No vuelvas a pagar. El organizador recibió un aviso para resolver tu entrada o gestionar el reembolso.</p>
                 <p className="text-xs text-zinc-400">Referencia: {reference}</p>
+                {contactHref && (
+                  <a
+                    href={contactHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-primary w-full"
+                  >
+                    Hablar con la organización
+                  </a>
+                )}
               </>
             ) : status && status.status !== "pending" ? (
               <>
@@ -330,6 +341,7 @@ export default function FanCheckoutModal({
                   Si ya pagaste, en unos minutos aparecerá tu boleta. Vuelve a
                   “Mis boletas” con tu contacto.
                 </p>
+                <p className="text-xs text-zinc-400">Referencia: {reference}</p>
                 <button
                   type="button"
                   className="btn-primary w-full"
@@ -337,6 +349,16 @@ export default function FanCheckoutModal({
                 >
                   Ver mis boletas
                 </button>
+                {contactHref && (
+                  <a
+                    href={contactHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-ghost w-full text-xs font-bold"
+                  >
+                    Hablar con la organización
+                  </a>
+                )}
               </>
             )}
           </div>

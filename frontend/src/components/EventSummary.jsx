@@ -386,6 +386,66 @@ function PublishedState({ ev, types, allocations, preflight, channels, channelEr
   );
 }
 
+function CashReconciliation({ report, onSection, title = "Cuadre de caja" }) {
+  if (!report) return null;
+  const payments = report.payments ?? {};
+  const refunds = report.refunds ?? {};
+  const unfulfilled = payments.unfulfilled_count ?? 0;
+  return (
+    <div className="bs-state-block">
+      <h3>{title}</h3>
+      <ul className="bs-payment-list">
+        <li>
+          <span>Recaudo vigente</span>
+          <strong className="tnum">{money(report.revenue_cents)}</strong>
+          <small>
+            {report.issued} emitidas · {report.redeemed} ingresaron
+          </small>
+        </li>
+        <li>
+          <span>Cobros aprobados con boleta</span>
+          <strong className="tnum">{money(payments.approved_cents ?? 0)}</strong>
+          <small>{payments.approved_count ?? 0} cobros</small>
+        </li>
+        <li>
+          <span>Cobros aprobados sin boleta</span>
+          <strong className="tnum">{money(payments.unfulfilled_cents ?? 0)}</strong>
+          <small>{unfulfilled} por resolver</small>
+        </li>
+        <li>
+          <span>Cobros pendientes</span>
+          <strong className="tnum">{money(payments.pending_cents ?? 0)}</strong>
+          <small>{payments.pending_count ?? 0} sin confirmar</small>
+        </li>
+        <li>
+          <span>Reembolsos</span>
+          <strong className="tnum">{money(refunds.amount_cents ?? 0)}</strong>
+          <small>{refunds.count ?? 0} devoluciones</small>
+        </li>
+      </ul>
+      {unfulfilled > 0 && (
+        <p className="bs-state-alert" role="status">
+          <Icon name="alert" className="h-4 w-4" aria-hidden="true" />
+          {unfulfilled}{" "}
+          {plural(unfulfilled, "cobro aprobado sin boleta", "cobros aprobados sin boleta")}
+          . Resuélvelos en Ventas antes de cerrar.
+        </p>
+      )}
+      <p className="bs-state-note">
+        Contrasta estos totales con los movimientos de{" "}
+        <button
+          type="button"
+          className="admin-inline-link"
+          onClick={() => onSection("ventas")}
+        >
+          Ventas
+        </button>{" "}
+        y el CSV de cierre.
+      </p>
+    </div>
+  );
+}
+
 function LiveState({ ev, report, lastUpdated, busyAction, onAction, onSection }) {
   const capacity = report?.capacity ?? ev.capacity;
   const incidents =
@@ -470,6 +530,8 @@ function LiveState({ ev, report, lastUpdated, busyAction, onAction, onSection })
         </div>
       </div>
 
+      <CashReconciliation report={report} onSection={onSection} title="Cuadre en vivo" />
+
       <p className="bs-state-note">
         El ritmo de la noche, el registro de escaneos y el cierre están en{" "}
         <button type="button" className="admin-inline-link" onClick={() => onSection("accesos")}>
@@ -487,8 +549,10 @@ function EndedState({ report, onSection, onCloseNight }) {
     report == null
       ? null
       : (report.door_duplicates ?? 0) + (report.door_rejected ?? 0);
+  const unfulfilled = report?.payments?.unfulfilled_count ?? 0;
   const provisional =
-    report != null && ((pending ?? 0) > 0 || (incidents ?? 0) > 0);
+    report != null &&
+    ((pending ?? 0) > 0 || (incidents ?? 0) > 0 || unfulfilled > 0);
 
   return (
     <section className="bs-state" data-state="ended" aria-labelledby="bs-state-title">
@@ -528,16 +592,26 @@ function EndedState({ report, onSection, onCloseNight }) {
         <Metric label="Recaudo vigente" value={report ? money(report.revenue_cents) : "Sin dato"} />
       </div>
 
+      <CashReconciliation report={report} onSection={onSection} title="Cuadre de cierre" />
+
       {provisional ? (
         <p className="bs-state-alert" role="status">
           <Icon name="alert" className="h-4 w-4" aria-hidden="true" />
           Cierre provisional:{" "}
-          {pending > 0 &&
-            `${pending} ${plural(pending, "boleta activa sin ingreso registrado", "boletas activas sin ingreso registrado")}`}
-          {pending > 0 && incidents > 0 ? " y " : ""}
-          {incidents > 0 &&
-            `${incidents} ${plural(incidents, "incidencia de puerta", "incidencias de puerta")}`}
-          . Revisa Accesos antes de conciliar.
+          {[
+            pending > 0
+              ? `${pending} ${plural(pending, "boleta activa sin ingreso registrado", "boletas activas sin ingreso registrado")}`
+              : null,
+            incidents > 0
+              ? `${incidents} ${plural(incidents, "incidencia de puerta", "incidencias de puerta")}`
+              : null,
+            unfulfilled > 0
+              ? `${unfulfilled} ${plural(unfulfilled, "cobro aprobado sin boleta", "cobros aprobados sin boleta")}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" y ")}
+          . Revisa Accesos y Ventas antes de conciliar.
         </p>
       ) : (
         <p className="bs-state-note">
@@ -588,6 +662,8 @@ function CancelledState({ report, onSection }) {
         />
         <Metric label="Recaudo vigente" value={report ? money(report.revenue_cents) : "Sin dato"} />
       </div>
+
+      <CashReconciliation report={report} onSection={onSection} title="Cuadre de caja" />
 
       <div className="bs-state-block">
         <h3>Pagos registrados</h3>
