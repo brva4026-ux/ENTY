@@ -3441,6 +3441,19 @@ html:not([data-theme="light"]) .admin-shell {
   transition: width 240ms ease;
 }
 
+.bs-break-even-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: var(--admin-ink-soft);
+  font-size: 11px;
+}
+
+.bs-break-even-totals b {
+  color: var(--admin-ink);
+  font-weight: 700;
+}
+
 .bs-break-even-split {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
@@ -3534,7 +3547,20 @@ html:not([data-theme="light"]) .admin-shell {
 }
 
 @media (max-width: 900px) {
-  .bs-break-even-split {
+  .bs-break-even-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: var(--admin-ink-soft);
+  font-size: 11px;
+}
+
+.bs-break-even-totals b {
+  color: var(--admin-ink);
+  font-weight: 700;
+}
+
+.bs-break-even-split {
     grid-template-columns: minmax(0, 1fr);
   }
 }

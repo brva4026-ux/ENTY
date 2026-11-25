@@ -263,6 +263,18 @@ export default function BreakEvenPanel({ venueId, eventId, ev }) {
             <span style={{ width: `${progress}%` }} />
           </div>
 
+          <div className="bs-break-even-totals">
+            <span>
+              <b>Estimado</b> {money(data.estimated_cents)}
+            </span>
+            <span>
+              <b>Registrado</b> {money(data.committed_cents)}
+            </span>
+            <span>
+              <b>Pagado</b> {money(data.paid_cents)}
+            </span>
+          </div>
+
           <div className="bs-break-even-split">
             <div className="bs-break-even-costs">
               <div className="bs-subnav-head">
