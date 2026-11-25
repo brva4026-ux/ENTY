@@ -120,9 +120,11 @@ async def _drain_once(db) -> int:
                 dead_ids.add(sub["id"])
             elif res.ok:
                 ok_any = True
-        # Procesada si al menos un dispositivo la recibió (o solo había
-        # muertos, que ya no volverán a recibir nada).
-        return ok_any or bool(subs)
+        # Procesada si al menos un dispositivo la recibió. Si todos los
+        # envíos fallaron por red, la carta queda pendiente y el próximo tick
+        # reintenta. Los endpoints muertos (404/410) sí cuentan como atendidos:
+        # se borran y no tiene sentido reintentarlos.
+        return ok_any or all(sub["id"] in dead_ids for sub in subs)
 
     try:
         results = await asyncio.wait_for(

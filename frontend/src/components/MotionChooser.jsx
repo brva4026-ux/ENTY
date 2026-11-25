@@ -10,7 +10,7 @@ import { haptics } from "../lib/haptics";
 
 /** Iconos (trazo 1.8, mismo lenguaje que ThemeChooser). */
 const ICONS = {
-  full: (
+  system: (
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -20,7 +20,8 @@ const ICONS = {
       strokeLinejoin="round"
       className="h-5 w-5"
     >
-      <path d="M3 12h4l2.5-6 4 12L16 12h5" />
+      <rect x="3" y="4.5" width="18" height="12" rx="2" />
+      <path d="M9 20.5h6M12 16.5v4" />
     </svg>
   ),
   reduce: (
@@ -39,15 +40,14 @@ const ICONS = {
   ),
 };
 
-const LABEL = { full: "Completo", reduce: "Reducido" };
+const LABEL = { system: "Sistema", reduce: "Reducido" };
 const DESC = {
-  full: "Transiciones y animaciones de la app",
+  system: "Sigue la configuración de tu dispositivo",
   reduce: "Sin movimiento: todo aparece en su sitio",
 };
 
 /** Movimiento: dos opciones, mismo patrón que el selector de tema.
- *  El sistema operativo siempre gana: si el dispositivo pide menos
- *  movimiento, "Completo" queda deshabilitado y se explica por qué. */
+ *  "Sistema" respeta `prefers-reduced-motion`; "Reducido" lo pide siempre. */
 export default function MotionChooser() {
   const [pref, setPref] = useState(getMotionPreference);
   const [sysReduce, setSysReduce] = useState(systemPrefersReduced);
@@ -68,15 +68,13 @@ export default function MotionChooser() {
         role="radiogroup"
         aria-label="Movimiento de la aplicación"
       >
-        {["full", "reduce"].map((opt) => {
+        {["system", "reduce"].map((opt) => {
           const active = pref === opt;
-          const locked = opt === "full" && sysReduce;
           return (
             <button
               key={opt}
               role="radio"
               aria-checked={active}
-              disabled={locked}
               onClick={() => {
                 setMotionPreference(opt);
                 setPref(opt);
@@ -86,7 +84,7 @@ export default function MotionChooser() {
                 active
                   ? "border-brand-500/70 bg-brand-500/[0.07]"
                   : "border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/50"
-              } ${locked ? "cursor-not-allowed opacity-50" : ""}`}
+              }`}
             >
               <span
                 className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
@@ -127,13 +125,12 @@ export default function MotionChooser() {
         })}
       </div>
 
-      {/* Cuando el SO pide menos movimiento, decirlo: si no, el botón
-          deshabilitado parece un fallo y no una decisión del dispositivo. */}
+      {/* Cuando el SO pide menos movimiento, decirlo: "Sistema" ya lo
+          respeta, así que no hay que deshabilitar una opción ni adivinar. */}
       {sysReduce && (
         <p className="pf-hint" role="status">
-          Tu dispositivo pide menos movimiento, así que Enty lo respeta: la
-          opción "Completo" vuelve a estar disponible si lo cambias en los
-          ajustes de tu sistema.
+          Tu dispositivo pide menos movimiento, así que la opción "Sistema"
+          lo respeta.
         </p>
       )}
     </div>

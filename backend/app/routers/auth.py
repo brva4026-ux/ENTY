@@ -330,6 +330,24 @@ async def _build_user_summary(db: psycopg.AsyncConnection, user_id: int) -> User
             row["role"],
         ]
 
+    # El contacto del negocio es del equipo solo si quien lo administra lo
+    # autorizó. Un miembro sin rol de administración no lo recibe en /me
+    # cuando `contact_team_visible` está apagado; el admin sí, porque es quien
+    # puede volver a encenderlo.
+    for venue_id, venue in list(venues.items()):
+        roles = roles_by_venue.get(str(venue_id), [])
+        if (
+            not any(r in {"admin", "super_admin"} for r in roles)
+            and not venue.contact_team_visible
+        ):
+            venues[venue_id] = venue.model_copy(
+                update={
+                    "contact_name": None,
+                    "contact_phone": None,
+                    "contact_email": None,
+                }
+            )
+
     return UserSummary(
         id=user["id"],
         email=user["email"],
@@ -425,6 +443,15 @@ async def login(
 
     token = create_access_token(user["id"], venue_ids, roles, user["token_version"])
     await _register_session(db, token, user["id"], request, ip)
+    # Actividad real: el perfil puede distinguir este acceso de uno anterior
+    # sin inventar una ubicación ni un dispositivo que no conozcamos.
+    await _log_security(
+        db,
+        user["id"],
+        "login",
+        detail=f"Ingreso desde {_device_label(request.headers.get('user-agent'))}.",
+        ip=ip,
+    )
     summary = await _build_user_summary(db, user["id"])
     return session_response(token, summary, remember=body.remember)
 
@@ -937,6 +964,16 @@ async def reset_password(
         )
         # Sin `db.commit()`: el bloque `db.transaction()` confirma al salir.
 
+    # La recuperación invalida también las filas de sesión: el listado del
+    # perfil no debe seguir mostrando dispositivos que ya no pueden entrar.
+    try:
+        async with db.cursor() as cur:
+            await cur.execute(
+                "DELETE FROM user_sessions WHERE user_id=%s", (row["user_id"],)
+            )
+    except psycopg.Error:
+        pass
+
     # La fecha del cambio (mig 037) va aparte y best-effort: no puede impedir
     # que alguien recupere su cuenta si la migracion aun no llego.
     await _marcar_cambio_password(db, row["user_id"])
@@ -951,6 +988,12 @@ async def reset_password(
     except psycopg.Error:
         pass
 
+    await _log_security(
+        db,
+        row["user_id"],
+        "password_reset",
+        detail="Contraseña restablecida con un enlace de recuperación.",
+    )
     return MessageOut(detail="Contraseña actualizada. Ya puedes iniciar sesión.")
 
 

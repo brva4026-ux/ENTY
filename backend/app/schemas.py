@@ -791,6 +791,14 @@ class UpdateProfileRequest(BaseModel):
     contact_email: str | None = Field(default=None, max_length=200)
     share_contact_with_team: bool | None = None
 
+    @field_validator("full_name")
+    @classmethod
+    def _full_name_shape(cls, v: str) -> str:
+        name = v.strip()
+        if len(name) < 2:
+            raise ValueError("El nombre debe tener al menos 2 caracteres.")
+        return name
+
     @field_validator("contact_email")
     @classmethod
     def _contact_email_shape(cls, v: str | None) -> str | None:
@@ -857,6 +865,16 @@ class UpdateVenueRequest(BaseModel):
     # Imagen del logo ya reducida por el navegador. Si viene, gana sobre
     # logo_url: el archivo se guarda en media y la URL se calcula en el server.
     logo_data_url: str | None = Field(default=None, max_length=1_200_000)
+
+    @field_validator("name")
+    @classmethod
+    def _venue_name_shape(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        name = v.strip()
+        if len(name) < 2:
+            raise ValueError("El nombre del negocio debe tener al menos 2 caracteres.")
+        return name
 
     @field_validator("public_contact_channels")
     @classmethod

@@ -23,6 +23,7 @@ const EMPTY = {
   ready: false,
   supported: true,
   serverEnabled: true,
+  checkFailed: false,
   permission: "default",
   subscribed: false,
   registered: false,
@@ -73,6 +74,7 @@ export function PushToggle({ venueId }) {
         ready: true,
         supported: true,
         serverEnabled: Boolean(config.enabled),
+        checkFailed: false,
         permission: status.permission,
         subscribed: status.subscribed,
         registered: status.registered,
@@ -85,7 +87,9 @@ export function PushToggle({ venueId }) {
       setState({
         ...EMPTY,
         ready: true,
+        supported: true,
         serverEnabled: false,
+        checkFailed: true,
         error: e.message || "No pudimos comprobar el estado de los avisos.",
       });
     }
@@ -179,7 +183,21 @@ export function PushToggle({ venueId }) {
     description =
       state.error ||
       "Este navegador no soporta notificaciones push. La campana interna sigue funcionando.";
+  } else if (state.checkFailed) {
+    title = "No pudimos comprobar los avisos";
+    description = `${state.error} La campana interna sigue funcionando.`;
+    action = (
+      <button
+        type="button"
+        onClick={refresh}
+        disabled={busy}
+        className="btn-ghost pf-action"
+      >
+        Reintentar comprobación
+      </button>
+    );
   } else if (!state.serverEnabled) {
+    title = "Push no disponible en el servidor";
     description =
       state.error ||
       "El servidor no tiene configurado el envío push. La campana interna sigue funcionando.";
@@ -201,13 +219,14 @@ export function PushToggle({ venueId }) {
     description = state.subscribed
       ? "El dispositivo está suscrito, pero el servidor no confirma su registro para esta organización."
       : "El navegador dio permiso, pero este dispositivo aún no tiene una suscripción activa.";
-    action = state.subscribed ? (
-      <button type="button" onClick={retry} disabled={busy} className="btn-primary">
-        {busy ? "Reintentando…" : "Reintentar registro"}
-      </button>
-    ) : (
-      <button type="button" onClick={activate} disabled={busy} className="btn-primary">
-        {busy ? "Activando…" : "Suscribir este dispositivo"}
+    action = (
+      <button
+        type="button"
+        onClick={state.subscribed ? retry : activate}
+        disabled={busy}
+        className="btn-primary"
+      >
+        {busy ? "Reintentando…" : "Reintentar"}
       </button>
     );
   } else {

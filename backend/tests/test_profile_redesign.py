@@ -103,6 +103,42 @@ def test_team_contact_visibility_hides_door_ops_contact(api):
     assert ctx.json()["ops_contact_phone"] == "573001112233"
 
 
+def test_team_me_hides_venue_contact_when_team_visibility_off(api):
+    venue = api.world["venue_a"]
+    res = api.patch(
+        f"/auth/venues/{venue}",
+        "admin",
+        {
+            "contact_name": "Reservas privadas",
+            "contact_phone": "573001112233",
+            "contact_email": "privado@local.test",
+            "contact_team_visible": False,
+        },
+    )
+    assert res.status_code == 200, res.text
+
+    # El admin conserva el dato para poder editarlo; el equipo sin permisos
+    # de administración no lo recibe en /me.
+    admin_me = api.get("/auth/me", "admin").json()
+    admin_venue = next(v for v in admin_me["venues"] if v["id"] == venue)
+    assert admin_venue["contact_phone"] == "573001112233"
+
+    team_me = api.get("/auth/me", "bouncer").json()
+    team_venue = next(v for v in team_me["venues"] if v["id"] == venue)
+    assert team_venue["contact_name"] is None
+    assert team_venue["contact_phone"] is None
+    assert team_venue["contact_email"] is None
+
+
+def test_login_activity_is_real_and_current(api):
+    api.token("promoter")
+    activity = api.get("/auth/security/activity", "promoter")
+    assert activity.status_code == 200, activity.text
+    logins = [e for e in activity.json() if e["kind"] == "login"]
+    assert logins, "el ingreso debe quedar en la actividad real"
+    assert "Ingreso desde" in logins[0]["detail"]
+
+
 def test_logout_revokes_this_session(api):
     token = api.token("promoter")
     out = api.client.post(

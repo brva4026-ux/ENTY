@@ -99,7 +99,9 @@ function changedLabel(iso) {
 }
 
 const SECURITY_LABELS = {
+  login: "Inicio de sesión",
   password_changed: "Contraseña actualizada",
+  password_reset: "Contraseña restablecida",
   sessions_revoked: "Sesiones cerradas",
   session_revoked: "Sesión cerrada",
   email_change_requested: "Verificación de correo solicitada",
@@ -138,6 +140,49 @@ function Field({ id, label, hint, children }) {
       {children}
       {hint && <span className="pf-hint">{hint}</span>}
     </label>
+  );
+}
+
+/** Contraseña enmascarada por defecto, con un control visible para revelarla.
+ *  Se usa en todos los formularios sensibles del perfil: cambiar clave,
+ *  confirmar identidad, revocar sesiones y borrar la cuenta. */
+function SecretInput({
+  id,
+  value,
+  onChange,
+  autoComplete = "current-password",
+  placeholder,
+  required = false,
+  minLength,
+  maxLength = 128,
+  describedBy,
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="pf-input-wrap">
+      <input
+        id={id}
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        className="field"
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        required={required}
+        minLength={minLength}
+        maxLength={maxLength}
+        aria-describedby={describedBy}
+      />
+      <button
+        type="button"
+        onClick={() => setShow((v) => !v)}
+        className="pf-input-btn"
+        aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
+        aria-pressed={show}
+      >
+        {show ? "Ocultar" : "Mostrar"}
+      </button>
+    </div>
   );
 }
 
@@ -224,9 +269,7 @@ export default function ProfilePage() {
   // sin querer.
   const [passOpen, setPassOpen] = useState(false);
   const [curPass, setCurPass] = useState("");
-  const [showCur, setShowCur] = useState(false);
   const [newPass, setNewPass] = useState("");
-  const [showNew, setShowNew] = useState(false);
   const [passMsg, setPassMsg] = useState(null); // {ok, text}
   const [passBusy, setPassBusy] = useState(false);
 
@@ -621,6 +664,10 @@ export default function ProfilePage() {
     user.venues?.filter((v) =>
       (user.roles?.[String(v.id)] || []).includes("admin"),
     ).length || 0;
+  // Sesiones reales del servidor: la actual se distingue de la anterior sin
+  // deducir nada del navegador ni inventar una ubicación.
+  const currentSession = sessions.find((s) => s.current);
+  const previousSession = sessions.find((s) => !s.current);
 
   function applyTab(id) {
     haptics.tick();
@@ -1010,12 +1057,12 @@ export default function ProfilePage() {
         }),
       });
       // La respuesta del servidor es la fuente de verdad: se copia entera.
-      setUser({
-        ...user,
-        venues: user.venues.map((v) =>
+      setUser((prev) => ({
+        ...prev,
+        venues: prev.venues.map((v) =>
           v.id === updated.id ? { ...v, ...updated } : v,
         ),
-      });
+      }));
       setVenueName(updated.name || "");
       setVenueLogo(updated.logo_url || "");
       setVenueColor(updated.primary_color || "");
@@ -1523,6 +1570,7 @@ export default function ProfilePage() {
                 : usernameMsg?.text || "\u00A0"}
             </p>
 
+            <h3 className="pf-sub-title">Contacto personal</h3>
             <Field
               id="phone"
               label="Teléfono de contacto"
@@ -1577,7 +1625,7 @@ export default function ProfilePage() {
                 className="pf-check"
               />
               <span>
-                <span className="pf-label">Compartir mi contacto con mi equipo</span>
+                <span className="pf-label">Compartir con mi equipo</span>
                 <span className="pf-hint">
                   Solo el equipo de tus organizaciones verá el teléfono y el
                   correo de contacto. Nunca se publican en la página del evento.
@@ -1789,14 +1837,10 @@ export default function ProfilePage() {
                   label="Contraseña actual"
                   hint="Confirmamos que eres tú antes de mover la cuenta."
                 >
-                  <input
+                  <SecretInput
                     id="email-pass"
-                    type="password"
                     value={emailPass}
                     onChange={(e) => setEmailPass(e.target.value)}
-                    className="field"
-                    autoComplete="current-password"
-                    maxLength={128}
                     required
                   />
                 </Field>
@@ -1833,8 +1877,22 @@ export default function ProfilePage() {
             <h3 className="pf-sub-title">Accesos</h3>
             <dl className="pf-details">
               <div className="pf-detail-row">
-                <dt>Último ingreso</dt>
-                <dd>{lastSeen || "Sin registro"}</dd>
+                <dt>Acceso actual</dt>
+                <dd>
+                  {currentSession
+                    ? `${sessionStamp(currentSession.created_at)} · Este dispositivo`
+                    : lastSeen || "Sin registro"}
+                </dd>
+              </div>
+              <div className="pf-detail-row">
+                <dt>Acceso anterior</dt>
+                <dd>
+                  {previousSession
+                    ? `${sessionStamp(previousSession.last_seen_at)} · ${previousSession.device}`
+                    : sessionsLoading
+                      ? "Leyendo sesiones…"
+                      : "Sin otro acceso activo registrado"}
+                </dd>
               </div>
               <div className="pf-detail-row">
                 <dt>Contraseña actualizada</dt>
@@ -1871,50 +1929,23 @@ export default function ProfilePage() {
                   label="Contraseña actual"
                   hint="Se usará para confirmar tu identidad al actualizar."
                 >
-                  <div className="pf-input-wrap">
-                    <input
-                      id="cur-pass"
-                      type={showCur ? "text" : "password"}
-                      value={curPass}
-                      onChange={(e) => setCurPass(e.target.value)}
-                      className="field"
-                      autoComplete="current-password"
-                      maxLength={128}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCur((v) => !v)}
-                      className="pf-input-btn"
-                      aria-label={showCur ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {showCur ? "Ocultar" : "Ver"}
-                    </button>
-                  </div>
+                  <SecretInput
+                    id="cur-pass"
+                    value={curPass}
+                    onChange={(e) => setCurPass(e.target.value)}
+                    required
+                  />
                 </Field>
 
                 <Field id="new-pass" label="Nueva contraseña (mínimo 8 caracteres)">
-                  <div className="pf-input-wrap">
-                    <input
-                      id="new-pass"
-                      type={showNew ? "text" : "password"}
-                      value={newPass}
-                      onChange={(e) => setNewPass(e.target.value)}
-                      className="field"
-                      autoComplete="new-password"
-                      minLength={8}
-                      maxLength={128}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNew((v) => !v)}
-                      className="pf-input-btn"
-                      aria-label={showNew ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {showNew ? "Ocultar" : "Ver"}
-                    </button>
-                  </div>
+                  <SecretInput
+                    id="new-pass"
+                    value={newPass}
+                    onChange={(e) => setNewPass(e.target.value)}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
                   {newPass && <PasswordMeter value={newPass} idPrefix="new-pass" />}
                 </Field>
 
@@ -1976,17 +2007,12 @@ export default function ProfilePage() {
                   label="Confirma tu contraseña"
                   hint="Pedimos tu contraseña para que nadie más pueda expulsarte de tu propia cuenta."
                 >
-                  <div className="pf-input-wrap">
-                    <input
-                      id="sess-pass"
-                      type="password"
-                      value={sessPass}
-                      onChange={(e) => setSessPass(e.target.value)}
-                      className="field"
-                      autoComplete="current-password"
-                      required
-                    />
-                  </div>
+                  <SecretInput
+                    id="sess-pass"
+                    value={sessPass}
+                    onChange={(e) => setSessPass(e.target.value)}
+                    required
+                  />
                 </Field>
                 <div className="pf-form-actions">
                   <button
@@ -2110,12 +2136,10 @@ export default function ProfilePage() {
                   contraseña. El servidor marcará esa sesión como revocada.
                 </p>
                 <div className="pf-inline-form">
-                  <input
-                    type="password"
+                  <SecretInput
+                    id="revoke-pass"
                     value={sessionPass}
                     onChange={(e) => setSessionPass(e.target.value)}
-                    className="field"
-                    autoComplete="current-password"
                     placeholder="Tu contraseña"
                     required
                   />
@@ -2397,7 +2421,7 @@ export default function ProfilePage() {
             {/* Contacto del organizador (mig 036): es lo que la pagina publica
                 muestra en "encargar por WhatsApp". Quien organiza esa noche
                 responde por el telefono; sin el, el evento solo vende en linea. */}
-            <h3 className="pf-sub-title">Contacto</h3>
+            <h3 className="pf-sub-title">Contacto público del negocio</h3>
             <p className="pf-hint pf-hint-block">
               Guardar un dato no lo publica. Elige explícitamente qué ve el
               público en tus fichas y qué ve tu equipo en el panel. El
@@ -2461,7 +2485,7 @@ export default function ProfilePage() {
                 className="pf-check"
               />
               <span>
-                <span className="pf-label">Mostrar este contacto a mi equipo</span>
+                <span className="pf-label">Compartir con mi equipo</span>
                 <span className="pf-hint">
                   Visible para las personas con acceso a esta organización.
                 </span>
@@ -2487,7 +2511,7 @@ export default function ProfilePage() {
                 className="pf-check"
               />
               <span>
-                <span className="pf-label">Publicar contacto en la página del evento</span>
+                <span className="pf-label">Mostrar en fichas públicas</span>
                 <span className="pf-hint">
                   Sin esta autorización, el contacto guardado no aparece en
                   ninguna ficha pública.
@@ -2795,12 +2819,10 @@ export default function ProfilePage() {
               </button>
             ) : (
               <form onSubmit={downloadData} className="pf-inline-form">
-                <input
-                  type="password"
+                <SecretInput
+                  id="export-pass"
                   value={exportPass}
                   onChange={(e) => setExportPass(e.target.value)}
-                  className="field"
-                  autoComplete="current-password"
                   placeholder="Tu contraseña"
                   required
                 />
@@ -2907,14 +2929,11 @@ export default function ProfilePage() {
                     </p>
                     <label className="pf-field" htmlFor="del-pass">
                       <span className="pf-label">Tu contraseña</span>
-                      <input
+                      <SecretInput
                         id="del-pass"
-                        type="password"
                         value={delPass}
                         onChange={(e) => setDelPass(e.target.value)}
-                        className="field"
                         placeholder="Tu contraseña"
-                        autoComplete="current-password"
                         required
                       />
                     </label>

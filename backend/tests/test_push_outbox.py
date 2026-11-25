@@ -61,6 +61,100 @@ def test_notify_venue_admins_one_letter_each(db, dbcur, world):
     assert cartas == admins_antes, "una carta por admin, ni más ni menos"
 
 
+def test_drain_once_retries_after_push_service_failure(api, dbcur, monkeypatch):
+    """Un fallo de red no puede marcar la carta como enviada.
+
+    El worker solo confirma cuando el servicio push aceptó al menos un
+    dispositivo. Si todos fallan por red, la carta queda pendiente para el
+    próximo tick; los endpoints muertos (404/410) sí se descartan.
+    """
+    import asyncio
+    import os
+
+    import psycopg
+    from psycopg.rows import dict_row
+
+    import app.core.push_worker as worker
+
+    venue = api.world["venue_a"]
+    user = api.world["promoter"]
+    endpoint = f"https://push.test/retry-{user['id']}@example.test"
+    res = api.post(
+        "/push/subscribe",
+        "promoter",
+        {
+            "venue_id": venue,
+            "endpoint": endpoint,
+            "keys": {
+                "p256dh": "p256dh-de-prueba-0123456789abcdef",
+                "auth": "auth-de-prueba-0123456789abcdef",
+            },
+        },
+    )
+    assert res.status_code == 204, res.text
+
+    title = f"Reintento {user['id']}"
+    dbcur.execute(
+        "SELECT notify_user(%s, %s, 'payout_created', %s, 'Cuerpo', '/promotor')",
+        (user["id"], venue, title),
+    )
+    outbox_id = dbcur.execute(
+        """SELECT o.id
+           FROM push_outbox o
+           JOIN notifications n ON n.id = o.notification_id
+           WHERE n.user_id=%s AND n.title=%s
+           ORDER BY o.id DESC LIMIT 1""",
+        (user["id"], title),
+    ).fetchone()["id"]
+
+    class Failed:
+        ok = False
+        dead = False
+        status_code = 503
+
+    async def fake_fail(endpoint, p256dh, auth, **kwargs):
+        return Failed()
+
+    monkeypatch.setattr(worker, "send_web_push", fake_fail)
+
+    async def drain():
+        conn = await psycopg.AsyncConnection.connect(
+            os.environ.get(
+                "TEST_DATABASE_URL",
+                "postgresql://postgres:devpassword@127.0.0.1:5432/ticketflow",
+            ),
+            autocommit=True,
+            row_factory=dict_row,
+        )
+        try:
+            for _ in range(200):
+                if await worker._drain_once(conn) == 0:
+                    break
+        finally:
+            await conn.close()
+
+    asyncio.run(drain())
+    row = dbcur.execute(
+        "SELECT processed_at FROM push_outbox WHERE id=%s", (outbox_id,)
+    ).fetchone()
+    assert row["processed_at"] is None, "un fallo de red no debe confirmar el envío"
+
+    class Ok:
+        ok = True
+        dead = False
+        status_code = 201
+
+    async def fake_ok(endpoint, p256dh, auth, **kwargs):
+        return Ok()
+
+    monkeypatch.setattr(worker, "send_web_push", fake_ok)
+    asyncio.run(drain())
+    row = dbcur.execute(
+        "SELECT processed_at FROM push_outbox WHERE id=%s", (outbox_id,)
+    ).fetchone()
+    assert row["processed_at"] is not None
+
+
 def test_drain_once_marks_letter_processed(db, dbcur, world):
     """El drenador marca procesada la carta del usuario SIN suscripciones:
     nadie a quien avisar = carta cumplida (no se reintenta eterno)."""

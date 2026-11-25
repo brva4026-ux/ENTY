@@ -179,6 +179,83 @@ test("los avisos push solo se declaran activos con registro del servidor", async
   }
 });
 
+test("movimiento: Sistema y Reducido se aplican y persisten al recargar", async ({
+  page,
+}) => {
+  await loginAdmin(page);
+  await page.goto("/perfil?tab=preferencias");
+
+  const group = page.getByRole("radiogroup", {
+    name: "Movimiento de la aplicación",
+  });
+  const system = group.getByRole("radio", { name: /Sistema/ });
+  const reduce = group.getByRole("radio", { name: /Reducido/ });
+
+  await expect(system).toHaveAttribute("aria-checked", "true");
+  await reduce.click();
+  await expect(reduce).toHaveAttribute("aria-checked", "true");
+  expect(await page.evaluate(() => localStorage.getItem("tf_motion"))).toBe(
+    "reduce",
+  );
+  expect(
+    await page.evaluate(() => document.documentElement.dataset.motion),
+  ).toBe("reduce");
+
+  await page.reload();
+  await expect(
+    page.getByRole("radiogroup", { name: "Movimiento de la aplicación" }).getByRole(
+      "radio",
+      { name: /Reducido/ },
+    ),
+  ).toHaveAttribute("aria-checked", "true");
+
+  await page
+    .getByRole("radiogroup", { name: "Movimiento de la aplicación" })
+    .getByRole("radio", { name: /Sistema/ })
+    .click();
+  expect(await page.evaluate(() => localStorage.getItem("tf_motion"))).toBe(
+    "system",
+  );
+  expect(
+    await page.evaluate(() => document.documentElement.dataset.motion),
+  ).toBeUndefined();
+});
+
+test("las contraseñas se enmascaran y el botón Mostrar las revela", async ({
+  page,
+}) => {
+  await loginAdmin(page);
+  await page.goto("/perfil?tab=seguridad");
+
+  await page.getByRole("button", { name: "Cambiar contraseña" }).click();
+  const current = page.locator("#cur-pass");
+  await expect(current).toHaveAttribute("type", "password");
+
+  const toggle = page
+    .locator("#cur-pass")
+    .locator("xpath=..")
+    .getByRole("button", { name: "Mostrar contraseña" });
+  await toggle.click();
+  await expect(current).toHaveAttribute("type", "text");
+  await page
+    .locator("#cur-pass")
+    .locator("xpath=..")
+    .getByRole("button", { name: "Ocultar contraseña" })
+    .click();
+  await expect(current).toHaveAttribute("type", "password");
+});
+
+test("Seguridad distingue el acceso actual del anterior", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto("/perfil?tab=seguridad");
+
+  await expect(page.getByText("Acceso actual", { exact: true })).toBeVisible();
+  await expect(page.getByText("Acceso anterior", { exact: true })).toBeVisible();
+  await expect(page.getByText("Este dispositivo", { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
+});
+
 test("en móvil no hay scroll horizontal y las pestañas siguen accesibles", async ({
   page,
 }) => {

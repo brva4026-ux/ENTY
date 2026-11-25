@@ -3,12 +3,13 @@
  *
  * 1. El sistema operativo (`prefers-reduced-motion`): el default de la casa.
  *    Quien ya pidió menos movimiento en su teléfono no tiene que repetirlo.
- * 2. La app (este módulo): para quien quiere quietud en Enty aunque su
- *    sistema no lo pida. Es un ajuste real, no decoración.
+ * 2. La app (este módulo): "Sistema" sigue la señal del SO; "Reducido" pide
+ *    quietud en Enty aunque el sistema no lo haga. Es un ajuste real, no
+ *    decoración.
  *
- * El SO SIEMPRE gana: si el dispositivo pide menos movimiento, elegir
- * "Completo" en la app no lo reactiva. Ignorar esa señal sería pisar una
- * preferencia de accesibilidad que el usuario ya expresó.
+ * El SO SIEMPRE gana: si el dispositivo pide menos movimiento, "Sistema" lo
+ * respeta. Ignorar esa señal sería pisar una preferencia de accesibilidad que
+ * el usuario ya expresó.
  *
  * Se aplica como `html[data-motion="reduce"]` (index.css): así el CSS apaga
  * la animación en toda la casa desde un solo atributo, sin tocar un JSX.
@@ -23,12 +24,13 @@ export function systemPrefersReduced() {
   );
 }
 
-/** Preferencia guardada: "reduce" | "full" (default: "full" = seguir al SO). */
+/** Preferencia guardada: "reduce" | "system" (default: seguir al SO).
+ *  "full" era el nombre anterior de "system": se migra al leer. */
 export function getMotionPreference() {
   try {
-    return localStorage.getItem(KEY) === "reduce" ? "reduce" : "full";
+    return localStorage.getItem(KEY) === "reduce" ? "reduce" : "system";
   } catch {
-    return "full";
+    return "system";
   }
 }
 
@@ -47,14 +49,15 @@ export function applyMotion(pref = getMotionPreference()) {
   }
 }
 
-/** Guarda la preferencia y la aplica. */
+/** Guarda la preferencia y la aplica. "full" se normaliza a "system". */
 export function setMotionPreference(pref) {
+  const normalized = pref === "reduce" ? "reduce" : "system";
   try {
-    localStorage.setItem(KEY, pref);
+    localStorage.setItem(KEY, normalized);
   } catch {
     /* sin storage: la preferencia dura la sesión */
   }
-  applyMotion(pref);
+  applyMotion(normalized);
 }
 
 /** Suscripción a cambios del sistema (para que el selector refleje la verdad). */

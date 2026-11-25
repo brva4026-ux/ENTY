@@ -6345,7 +6345,7 @@ html[data-theme="light"] .pf-dirty-chip {
   color: var(--e-amber-700);
 }
 
-/* Input con botón "Ver/Ocultar" superpuesto. */
+/* Input con botón "Mostrar/Ocultar" superpuesto. */
 .pf-input-wrap {
   position: relative;
 }
@@ -8129,9 +8129,13 @@ html[data-theme="light"] .pf-alert-warn {
   gap: 0.5rem;
   align-items: center;
 }
-.pf-inline-form .field {
+.pf-inline-form .field,
+.pf-inline-form .pf-input-wrap {
   flex: 1 1 12rem;
   min-width: 0;
+}
+.pf-inline-form .pf-input-wrap .field {
+  width: 100%;
 }
 .pf-session-list {
   display: grid;
