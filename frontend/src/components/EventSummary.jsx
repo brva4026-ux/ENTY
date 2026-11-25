@@ -446,6 +446,153 @@ function CashReconciliation({ report, onSection, title = "Cuadre de caja" }) {
   );
 }
 
+function ChangeNoticeCard({ notice }) {
+  const ui = useUI();
+  if (!notice) return null;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${notice.title}: ${notice.message}`);
+      ui.success("Aviso copiado");
+    } catch {
+      ui.error("No se pudo copiar el aviso");
+    }
+  };
+  return (
+    <div className="bs-state-block">
+      <h3>{notice.title}</h3>
+      <p className="bs-state-note">{notice.message}</p>
+      <p className="bs-state-note">
+        Afecta {notice.affected_tickets}{" "}
+        {plural(notice.affected_tickets, "boleta", "boletas")} de{" "}
+        {notice.affected_buyers}{" "}
+        {plural(notice.affected_buyers, "comprador", "compradores")}. Ya se
+        muestra en Mis boletas y en la boleta pública.
+      </p>
+      <button type="button" className="btn-mini" onClick={copy}>
+        Copiar aviso
+      </button>
+    </div>
+  );
+}
+
+function NightHealth({ ev, onSection }) {
+  const [health, setHealth] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (ev.status !== "live") return undefined;
+    let alive = true;
+    const load = () =>
+      apiFetch(`/venues/${ev.venue_id}/events/${ev.id}/night-health`)
+        .then((data) => {
+          if (!alive) return;
+          setHealth(data);
+          setError("");
+        })
+        .catch((err) => {
+          if (alive) setError(err.message || "No pudimos leer el estado de la noche.");
+        });
+    load();
+    const timer = window.setInterval(load, 30000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [ev.id, ev.status, ev.venue_id]);
+
+  if (ev.status !== "live" || (!health && !error)) return null;
+
+  const stale = health?.stale_devices ?? 0;
+  const pending = health?.pending_payments_count ?? 0;
+  const unfulfilled = health?.unfulfilled_payments_count ?? 0;
+  const incidents = health?.open_incidents ?? 0;
+  const lastSeen = health?.last_seen_at
+    ? new Date(health.last_seen_at).toLocaleTimeString("es-CO", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Sin señal";
+
+  return (
+    <div className="bs-state-block">
+      <h3>Salud de la noche</h3>
+      {error ? (
+        <p className="bs-state-alert" role="status">
+          <Icon name="alert" className="h-4 w-4" aria-hidden="true" />
+          {error}
+        </p>
+      ) : (
+        <ul className="bs-payment-list">
+          <li>
+            <span>Puestos activos</span>
+            <strong className="tnum">{health.active_devices}</strong>
+            <small>
+              {stale
+                ? `${stale} sin sincronizar hace más de 10 min`
+                : `Última señal ${lastSeen}`}
+            </small>
+          </li>
+          <li>
+            <span>Pagos por resolver</span>
+            <strong className="tnum">{pending + unfulfilled}</strong>
+            <small>
+              {money(health.pending_payments_cents + health.unfulfilled_payments_cents)}
+              {unfulfilled ? ` · ${unfulfilled} sin boleta` : ""}
+            </small>
+          </li>
+          <li>
+            <span>Incidencias abiertas</span>
+            <strong className="tnum" data-tone={incidents ? "warn" : undefined}>
+              {incidents}
+            </strong>
+            <small>Casos de puerta sin resolver.</small>
+          </li>
+        </ul>
+      )}
+
+      {stale > 0 && (
+        <p className="bs-state-alert" role="status">
+          <Icon name="alert" className="h-4 w-4" aria-hidden="true" />
+          {stale} {plural(stale, "puesto dejó", "puestos dejaron")} de sincronizar.
+          <button type="button" className="admin-inline-link" onClick={() => onSection("equipo")}>
+            Revisar equipo
+          </button>
+        </p>
+      )}
+      {unfulfilled > 0 && (
+        <p className="bs-state-alert" role="status">
+          <Icon name="alert" className="h-4 w-4" aria-hidden="true" />
+          {unfulfilled} {plural(unfulfilled, "cobro aprobado sin boleta", "cobros aprobados sin boleta")}.
+          <button type="button" className="admin-inline-link" onClick={() => onSection("ventas")}>
+            Resolver en Ventas
+          </button>
+        </p>
+      )}
+      {incidents > 0 && (
+        <p className="bs-state-alert" role="status">
+          <Icon name="alert" className="h-4 w-4" aria-hidden="true" />
+          {incidents} {plural(incidents, "incidencia abierta", "incidencias abiertas")}.
+          <button type="button" className="admin-inline-link" onClick={() => onSection("accesos")}>
+            Ver incidencias
+          </button>
+        </p>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" className="btn-mini" onClick={() => onSection("equipo")}>
+          Equipo y puestos
+        </button>
+        <button type="button" className="btn-mini" onClick={() => onSection("ventas")}>
+          Pagos
+        </button>
+        <button type="button" className="btn-mini" onClick={() => onSection("accesos")}>
+          Accesos
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LiveState({ ev, report, lastUpdated, busyAction, onAction, onSection }) {
   const capacity = report?.capacity ?? ev.capacity;
   const incidents =
@@ -531,6 +678,7 @@ function LiveState({ ev, report, lastUpdated, busyAction, onAction, onSection })
       </div>
 
       <CashReconciliation report={report} onSection={onSection} title="Cuadre en vivo" />
+      <NightHealth ev={ev} onSection={onSection} />
 
       <p className="bs-state-note">
         El ritmo de la noche, el registro de escaneos y el cierre están en{" "}
@@ -714,6 +862,7 @@ export default function EventSummary({
   return (
     <div className="admin-workspace-panel">
       <SectionContext ev={ev} next={nextByState[ev.status]} />
+      <ChangeNoticeCard notice={ev.change_notice} />
 
       {ev.status === "draft" && (
         <DraftState

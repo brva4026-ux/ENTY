@@ -893,7 +893,15 @@ export default function AdminDashboard() {
       );
       setEvents((evs) => evs.map((x) => (x.id === updated.id ? updated : x)));
       setEditingEvent(null);
-      ui.success("Cambios guardados");
+      if (updated.affected_tickets > 0) {
+        ui.success(
+          `Cambios guardados. ${updated.affected_tickets} ${
+            updated.affected_tickets === 1 ? "boleta afectada" : "boletas afectadas"
+          }: el aviso ya aparece en Mis boletas y en la boleta pública.`
+        );
+      } else {
+        ui.success("Cambios guardados");
+      }
     } catch (err) {
       setEditError(err.message);
     } finally {

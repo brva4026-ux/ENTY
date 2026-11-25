@@ -372,6 +372,18 @@ class LineupItemCreate(BaseModel):
 
 
 
+class EventChangeNoticeOut(BaseModel):
+    """Aviso de cambio de evento que ve un comprador."""
+
+    id: int
+    kind: str
+    title: str
+    message: str
+    created_at: datetime
+    affected_tickets: int = 0
+    affected_buyers: int = 0
+
+
 class EventOut(BaseModel):
     """Shape completo del evento.
 
@@ -406,6 +418,11 @@ class EventOut(BaseModel):
     dress_code: str | None = None
     doors_open_at: datetime | None = None
     lineup: list[LineupItemOut] = Field(default_factory=list)
+    # Último aviso de cambio (fecha, lugar, cancelación) y su impacto. Solo se
+    # llena en las respuestas de edición/transición y en el detalle del evento.
+    change_notice: EventChangeNoticeOut | None = None
+    affected_tickets: int = 0
+    affected_buyers: int = 0
 
 
 class TicketTypeCreate(BaseModel):
@@ -1104,6 +1121,8 @@ class PublicTicketOut(BaseModel):
     # La boleta anulada puede ser una DEVOLUCIÓN del invitado (copa distinta
     # en la página) o una anulación de staff: ticket_returns lo distingue.
     was_returned: bool = False
+    # Último cambio de fecha, lugar o cancelación posterior a la compra.
+    change_notice: EventChangeNoticeOut | None = None
 
 
 class TicketReturnOut(BaseModel):
@@ -1182,6 +1201,8 @@ class FanTicketOut(BaseModel):
     # que el fan no vea un QR que la puerta aun no honra.
     qr_active: bool = True
     qr_message: str | None = None
+    # Cambio de fecha, lugar o cancelación posterior a la compra.
+    change_notice: EventChangeNoticeOut | None = None
 
 
 class FanTicketsOut(BaseModel):
@@ -2363,6 +2384,32 @@ class DoorContextOut(BaseModel):
     device: DoorDeviceOut | None = None
     ops_contact_name: str | None = None
     ops_contact_phone: str | None = None
+
+
+class NightHealthDeviceOut(BaseModel):
+    id: int
+    door_name: str | None = None
+    user_name: str | None = None
+    ticket_type_name: str | None = None
+    status: str
+    last_seen_at: datetime | None = None
+    stale: bool = False
+
+
+class NightHealthOut(BaseModel):
+    """Estado operativo de la noche para Administración."""
+
+    event_id: int
+    generated_at: datetime
+    active_devices: int = 0
+    stale_devices: int = 0
+    last_seen_at: datetime | None = None
+    pending_payments_count: int = 0
+    pending_payments_cents: int = 0
+    unfulfilled_payments_count: int = 0
+    unfulfilled_payments_cents: int = 0
+    open_incidents: int = 0
+    devices: list[NightHealthDeviceOut] = []
 
 
 class DoorShiftRequestCreate(BaseModel):

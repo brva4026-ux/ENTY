@@ -11,6 +11,7 @@ from app.core.audit import write_audit
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
+from app.core.event_notices import record_event_change
 from app.core.observability import capture_exception
 from app.core.phone import digits_only, phone_tail_sql
 from app.core.pusher import notify_venue
@@ -101,6 +102,7 @@ async def _transition(venue_id, event_id, user, db, action):
             raise HTTPException(404, "Evento no encontrado")
 
         # Cancelar vale desde draft y published (trigger de DB valida el resto).
+        before_event = None
         if action == "cancel":
             await cur.execute("SELECT status FROM events WHERE id=%s", (event_id,))
             status_now = (await cur.fetchone())["status"]
@@ -111,6 +113,7 @@ async def _transition(venue_id, event_id, user, db, action):
                     "(en puerta, terminado o ya cancelado no)",
                 )
             p_from = status_now
+            before_event = await fetch_event(cur, event_id, venue_id)
 
         try:
             await cur.execute("SELECT set_event_status(%s, %s, %s)", (event_id, p_from, p_to))
@@ -126,6 +129,20 @@ async def _transition(venue_id, event_id, user, db, action):
             )
 
         out = await fetch_event(cur, event_id, venue_id)
+        if action == "cancel" and before_event:
+            notice = await record_event_change(
+                cur,
+                venue_id=venue_id,
+                event_id=event_id,
+                user_id=user["id"],
+                kind="cancelled",
+                before=before_event,
+                after=out,
+            )
+            if notice:
+                out["change_notice"] = notice
+                out["affected_tickets"] = notice["affected_tickets"]
+                out["affected_buyers"] = notice["affected_buyers"]
         await db.commit()
     return out
 

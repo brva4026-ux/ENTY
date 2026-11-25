@@ -2934,3 +2934,31 @@ html[data-theme="light"] .app-shell .dialog-close:hover {
   width: 1.15rem;
   height: 1.15rem;
 }
+
+/* Aviso de cambio de evento: fecha, lugar o cancelación posterior a la compra. */
+.fan-change-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.65rem 0;
+  padding: 0.7rem 0.8rem;
+  border-left: 3px solid var(--e-warn);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--e-warn) 12%, white);
+}
+.fan-change-notice strong {
+  font-size: var(--e-text-xs);
+  color: var(--e-brasa-900);
+}
+.fan-change-notice span {
+  font-size: var(--e-text-xs);
+  line-height: 1.45;
+  color: var(--e-neutral-700);
+}
+.tkt-change {
+  border-color: color-mix(in srgb, var(--e-warn) 60%, transparent);
+  background: color-mix(in srgb, var(--e-warn) 14%, transparent);
+}
+.tkt-change strong {
+  color: var(--e-warn);
+}

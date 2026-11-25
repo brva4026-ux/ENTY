@@ -283,6 +283,15 @@ export default function PublicTicketPage() {
           </div>
 
           <div className="tkt-body">
+            {ticket?.change_notice && (
+              <div className="tkt-note tkt-change" role="status">
+                <span className="tkt-note-icon">
+                  <Icon name="alert" className="h-6 w-6" />
+                </span>
+                <strong>{ticket.change_notice.title}</strong>
+                <p>{ticket.change_notice.message}</p>
+              </div>
+            )}
             {error ? (
               <div className="tkt-note">
                 <span className="tkt-note-icon">

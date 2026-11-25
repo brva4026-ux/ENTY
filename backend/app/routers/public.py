@@ -892,7 +892,19 @@ _FAN_TICKETS_SQL = f"""
            e.starts_at     AS starts_at,
            e.event_timezone AS event_timezone,
            e.qr_unlock_minutes AS qr_unlock_minutes,
-           {public_venue_name_sql()} AS venue_name
+           {public_venue_name_sql()} AS venue_name,
+           (SELECT jsonb_build_object(
+                       'id', n.id,
+                       'kind', n.kind,
+                       'title', n.title,
+                       'message', n.message,
+                       'created_at', n.created_at,
+                       'affected_tickets', n.affected_tickets,
+                       'affected_buyers', n.affected_buyers)
+              FROM event_change_notices n
+             WHERE n.event_id = e.id
+             ORDER BY n.created_at DESC, n.id DESC
+             LIMIT 1) AS change_notice
       FROM tickets t
       JOIN events e ON e.id = t.event_id
       JOIN venues v ON v.id = e.venue_id
@@ -925,6 +937,7 @@ def _fan_ticket_row(r: dict) -> dict:
         "has_link": live,
         "qr_active": qr_active,
         "qr_message": qr_message,
+        "change_notice": r.get("change_notice"),
     }
 
 
@@ -1122,7 +1135,12 @@ async def public_ticket_image(
             f"""
             SELECT t.id AS ticket_number, t.customer_name, t.status,
                    e.name AS event_name, e.location, e.starts_at, e.event_timezone,
-                   e.qr_unlock_minutes, {public_venue_name_sql()} AS venue_name
+                   e.qr_unlock_minutes, {public_venue_name_sql()} AS venue_name,
+                   (SELECT n.title || ' — ' || n.message
+                      FROM event_change_notices n
+                     WHERE n.event_id = e.id
+                     ORDER BY n.created_at DESC, n.id DESC
+                     LIMIT 1) AS change_notice
             FROM tickets t
             JOIN events e ON e.id = t.event_id
             JOIN venues v ON v.id = e.venue_id
@@ -1381,6 +1399,13 @@ async def public_ticket_page(
         <p class='ok'>{escape(status_text)}</p>{where_html}
         <p class='hint'>Presenta este QR en la puerta junto con tu documento.</p></div>"""
 
+    notice_html = (
+        f"<div class='box notice'><p class='notice-title'>Aviso del organizador</p>"
+        f"<p>{escape(row['change_notice'])}</p></div>"
+        if row.get("change_notice")
+        else ""
+    )
+
     title = f"Boleta #{row['ticket_number']} · {row['event_name']}"
     # escape() en TODA interpolacion que llega de la DB (nombre del evento,
     # lugar, cliente): sin el, un evento llamado "<script>" o un lugar con
@@ -1403,5 +1428,9 @@ async def public_ticket_page(
   .hint {{ color:#a1a1aa; font-size:.9em; }}
   .where {{ color:#e4e4e7; font-weight:600; font-size:.95em; margin:4px 0 0; }}
   .where::before {{ content:'📍 '; }}
-</style></head><body>{body}</body></html>"""
+  .notice {{ border:1px solid #f59e0b; border-radius:12px; padding:14px;
+            margin-bottom:16px; color:#fbbf24; text-align:left; }}
+  .notice p {{ margin:6px 0 0; color:#e4e4e7; font-size:.92em; }}
+  .notice-title {{ margin:0; font-weight:700; }}
+</style></head><body>{notice_html}{body}</body></html>"""
     return Response(content=html, media_type="text/html; charset=utf-8", headers=_IMAGE_HEADERS)

@@ -68,6 +68,18 @@ _TICKET_SQL = f"""
                    'DD/MM/YYYY HH24:MI') AS starts_at,
            EXISTS (SELECT 1 FROM ticket_returns tr
                     WHERE tr.ticket_id = t.id) AS was_returned,
+           (SELECT jsonb_build_object(
+                       'id', n.id,
+                       'kind', n.kind,
+                       'title', n.title,
+                       'message', n.message,
+                       'created_at', n.created_at,
+                       'affected_tickets', n.affected_tickets,
+                       'affected_buyers', n.affected_buyers)
+              FROM event_change_notices n
+             WHERE n.event_id = e.id
+             ORDER BY n.created_at DESC, n.id DESC
+             LIMIT 1) AS change_notice,
            {public_venue_name_sql()} AS venue_name
       FROM tickets t
       JOIN events e ON e.id = t.event_id
@@ -177,6 +189,7 @@ async def preview_ticket(
         can_return=can_return,
         return_until=return_until,
         was_returned=bool(row.get("was_returned")),
+        change_notice=row.get("change_notice"),
     )
 
 

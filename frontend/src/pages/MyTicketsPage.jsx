@@ -265,6 +265,13 @@ export default function MyTicketsPage() {
                     <span className={`fan-badge is-${s.tone}`}>{s.label}</span>
                   </div>
 
+                  {t.change_notice && (
+                    <div className="fan-change-notice" role="status">
+                      <strong>{t.change_notice.title}</strong>
+                      <span>{t.change_notice.message}</span>
+                    </div>
+                  )}
+
                   {t.has_link ? (
                     <div className="fan-ticket-foot">
                       <span className="fan-ticket-num">Boleta #{t.ticket_id}</span>

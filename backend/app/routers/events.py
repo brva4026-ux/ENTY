@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.core.audit import write_audit
 from app.core.db import get_db
 from app.core.db_errors import translate_db_error
+from app.core.event_notices import record_event_change
 from app.core.lifecycle import (
     auto_close_expired,
     prune_expired_rows,
@@ -86,6 +87,18 @@ async def fetch_event(cur, event_id: int, venue_id: int | None = None) -> dict |
     row = await cur.fetchone()
     if row is not None:
         row["lineup"] = await fetch_lineup(cur, event_id)
+        await cur.execute(
+            """
+            SELECT id, kind, title, message, created_at,
+                   affected_tickets, affected_buyers
+              FROM event_change_notices
+             WHERE event_id = %s
+             ORDER BY created_at DESC, id DESC
+             LIMIT 1
+            """,
+            (event_id,),
+        )
+        row["change_notice"] = await cur.fetchone()
     return row
 
 
@@ -641,6 +654,19 @@ async def update_event(
             _edit_error(e)
 
         updated = await fetch_event(cur, event_id, venue_id)
+        notice = await record_event_change(
+            cur,
+            venue_id=venue_id,
+            event_id=event_id,
+            user_id=user["id"],
+            kind="updated",
+            before=current,
+            after=updated,
+        )
+        if notice:
+            updated["change_notice"] = notice
+            updated["affected_tickets"] = notice["affected_tickets"]
+            updated["affected_buyers"] = notice["affected_buyers"]
         await db.commit()
     return updated
 

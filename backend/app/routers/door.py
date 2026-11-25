@@ -34,6 +34,8 @@ from app.schemas import (
     DoorShiftRequestCreate,
     DoorShiftRequestOut,
     MessageOut,
+    NightHealthDeviceOut,
+    NightHealthOut,
 )
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["puerta"])
@@ -1033,3 +1035,88 @@ async def request_promoter_support(
         )
         await db.commit()
     return out
+
+
+@router.get("/events/{event_id}/night-health", response_model=NightHealthOut)
+async def night_health(
+    venue_id: int,
+    event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Panel de salud de la noche: puestos, sincronización y pendientes.
+
+    Cada cifra abre una acción en el panel: puestos -> Equipo, pagos -> Ventas,
+    incidencias -> Accesos. Un puesto activo sin señal por más de 10 minutos se
+    marca `stale` para que Administración lo vea antes de que sea un problema
+    en la fila.
+    """
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT 1 FROM events WHERE id=%s AND venue_id=%s", (event_id, venue_id)
+        )
+        if not await cur.fetchone():
+            raise HTTPException(404, "Evento no encontrado")
+
+        await cur.execute(
+            """
+            SELECT d.id, d.door_name, d.status, d.last_seen_at,
+                   u.full_name AS user_name,
+                   tt.name AS ticket_type_name,
+                   (d.last_seen_at IS NULL
+                    OR d.last_seen_at < now() - interval '10 minutes') AS stale
+              FROM event_door_devices d
+              JOIN users u ON u.id = d.user_id
+              LEFT JOIN ticket_types tt ON tt.id = d.ticket_type_id
+             WHERE d.event_id = %s AND d.status = 'active'
+             ORDER BY d.door_name NULLS LAST, d.id
+            """,
+            (event_id,),
+        )
+        devices = list(await cur.fetchall())
+
+        await cur.execute(
+            """
+            SELECT count(*) FILTER (WHERE status = 'pending')::int AS pending_count,
+                   coalesce(sum(amount_in_cents)
+                            FILTER (WHERE status = 'pending'), 0)::bigint
+                       AS pending_cents,
+                   count(*) FILTER (WHERE status = 'paid_unfulfilled')::int
+                       AS unfulfilled_count,
+                   coalesce(sum(amount_in_cents)
+                            FILTER (WHERE status = 'paid_unfulfilled'), 0)::bigint
+                       AS unfulfilled_cents
+              FROM ticket_payments
+             WHERE event_id = %s
+            """,
+            (event_id,),
+        )
+        payments = await cur.fetchone()
+
+        await cur.execute(
+            """
+            SELECT count(*)::int AS n
+              FROM door_incidents
+             WHERE event_id = %s AND status IN ('open', 'reviewing')
+            """,
+            (event_id,),
+        )
+        incidents = (await cur.fetchone())["n"]
+
+    return NightHealthOut(
+        event_id=event_id,
+        generated_at=datetime.now(timezone.utc),
+        active_devices=len(devices),
+        stale_devices=sum(1 for d in devices if d["stale"]),
+        last_seen_at=max(
+            (d["last_seen_at"] for d in devices if d["last_seen_at"]),
+            default=None,
+        ),
+        pending_payments_count=payments["pending_count"],
+        pending_payments_cents=payments["pending_cents"],
+        unfulfilled_payments_count=payments["unfulfilled_count"],
+        unfulfilled_payments_cents=payments["unfulfilled_cents"],
+        open_incidents=incidents,
+        devices=[NightHealthDeviceOut(**d) for d in devices],
+    )
