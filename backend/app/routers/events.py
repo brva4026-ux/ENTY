@@ -144,9 +144,11 @@ async def fetch_lineups(cur, event_ids: list[int]) -> dict[int, list[dict]]:
 # ---------------------------------------------------------------------------
 _TYPE_SELECT = """
     SELECT tt.id, tt.event_id, tt.name, tt.price_cents, tt.quantity,
-           tt.is_courtesy, tt.is_active
+           tt.is_courtesy, tt.is_active, tt.is_pass_only,
+           tt.zone_id, z.name AS zone_name
     FROM ticket_types tt
     JOIN events e ON e.id = tt.event_id
+    LEFT JOIN event_zones z ON z.id = tt.zone_id
 """
 
 _ALLOCATION_SELECT = """
@@ -709,12 +711,20 @@ async def create_type(
         )
         if not await cur.fetchone():
             raise HTTPException(404, "Evento no encontrado")
+        if body.zone_id is not None:
+            await cur.execute(
+                "SELECT id FROM event_zones WHERE id=%s AND event_id=%s",
+                (body.zone_id, event_id),
+            )
+            if not await cur.fetchone():
+                raise HTTPException(404, "Zona no pertenece a este evento")
         await cur.execute(
             """
-            INSERT INTO ticket_types (event_id, name, price_cents, quantity, is_courtesy)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO ticket_types
+                (event_id, name, price_cents, quantity, is_courtesy, zone_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (event_id, name) DO NOTHING
-            RETURNING id, event_id, name, price_cents, quantity, is_courtesy, is_active
+            RETURNING id
             """,
             (
                 event_id,
@@ -722,6 +732,7 @@ async def create_type(
                 0 if body.is_courtesy else body.price_cents,
                 body.quantity,
                 body.is_courtesy,
+                body.zone_id,
             ),
         )
         created = await cur.fetchone()
@@ -731,8 +742,9 @@ async def create_type(
                 "Ya existe un tipo con ese nombre en este evento"
                 " (si estaba archivado, reactívalo en vez de crearlo)",
             )
+        row = await _fetch_type(cur, venue_id, event_id, created["id"])
         await db.commit()
-    return created
+    return row
 
 
 # --------------------------------------------------------------------------
@@ -949,10 +961,18 @@ async def update_type(
         if not current:
             raise HTTPException(404, "Tipo de boleta no encontrado")
 
+        data = body.model_dump(exclude_unset=True)
+        zone_sent = "zone_id" in data
+        zone_id = data.pop("zone_id", None)
+        if zone_sent and zone_id is not None:
+            await cur.execute(
+                "SELECT id FROM event_zones WHERE id=%s AND event_id=%s",
+                (zone_id, event_id),
+            )
+            if not await cur.fetchone():
+                raise HTTPException(404, "Zona no pertenece a este evento")
         # Sin los None: los campos NOT NULL nunca se envían vacíos a la DB.
-        changes = {
-            k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None
-        }
+        changes = {k: v for k, v in data.items() if v is not None}
         merged = {**current, **changes}
         if merged["is_courtesy"]:
             merged["price_cents"] = 0
@@ -972,6 +992,11 @@ async def update_type(
         except psycopg.errors.Error as e:
             _edit_error(e)
 
+        if zone_sent:
+            await cur.execute(
+                "UPDATE ticket_types SET zone_id=%s WHERE id=%s AND event_id=%s",
+                (zone_id, type_id, event_id),
+            )
         updated = await _fetch_type(cur, venue_id, event_id, type_id)
         # Auditoria (mig 019): precio y cupo son dinero — queda quien, cuando
         # y el antes/despues de lo que cambio realmente.

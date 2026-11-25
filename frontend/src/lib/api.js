@@ -405,6 +405,34 @@ export function deleteCost(venueId, eventId, costId) {
 }
 
 // ---------------------------------------------------------------------------
+// Zonas del recinto (mig 070): pista, terraza, VIP y su aforo real.
+// ---------------------------------------------------------------------------
+
+export function listZones(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/zones`);
+}
+
+export function createZone(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/zones`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateZone(venueId, eventId, zoneId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/zones/${zoneId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteZone(venueId, eventId, zoneId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/zones/${zoneId}`, {
+    method: "DELETE",
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Sesiones y pases (mig 068): un evento puede tener varias jornadas y un
 // pase emite una boleta por cada una al confirmarse el pago.
 // ---------------------------------------------------------------------------

@@ -36,6 +36,7 @@ from app.schemas import (
     MessageOut,
     NightHealthDeviceOut,
     NightHealthOut,
+    ZoneOccupancyOut,
 )
 
 router = APIRouter(prefix="/venues/{venue_id}", tags=["puerta"])
@@ -305,6 +306,37 @@ async def door_context(
         await cur.execute("SELECT * FROM event_occupancy(%s)", (event_id,))
         occ = await cur.fetchone()
 
+        await cur.execute("SELECT * FROM event_zone_occupancy(%s)", (event_id,))
+        zone_rows = await cur.fetchall()
+        zones = [
+            ZoneOccupancyOut(
+                id=r["zone_id"],
+                name=r["name"],
+                capacity=r["capacity"],
+                inside=r["inside"],
+                free_seats=r["free_seats"],
+                status=r["status"],
+            )
+            for r in zone_rows
+        ]
+
+        assigned_type_id = (
+            device["ticket_type_id"]
+            if device
+            else (staff["door_ticket_type_id"] if staff else None)
+        )
+        assigned_zone_id = None
+        if assigned_type_id is not None:
+            await cur.execute(
+                "SELECT zone_id FROM ticket_types WHERE id=%s AND event_id=%s",
+                (assigned_type_id, event_id),
+            )
+            row = await cur.fetchone()
+            assigned_zone_id = row["zone_id"] if row else None
+        assigned_zone = next(
+            (z for z in zones if z.id == assigned_zone_id), None
+        )
+
         roles = user["roles"].get(venue_id, [])
         if any(r in ("super_admin", "admin") for r in roles):
             await cur.execute(
@@ -355,6 +387,8 @@ async def door_context(
         shift_start=staff["shift_start"] if staff else None,
         shift_end=staff["shift_end"] if staff else None,
         open_incidents=open_incidents,
+        zones=zones,
+        assigned_zone=assigned_zone,
         device=DoorDeviceOut(**device) if device else None,
         # El contacto operativo es para el equipo. Si la organización decidió
         # no compartirlo internamente, la puerta no lo recibe: guardar no es

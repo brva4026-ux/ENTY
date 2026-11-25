@@ -78,6 +78,20 @@ const RESULT_META = {
     kicker: "Salida repetida",
     title: "Ya había salido",
   },
+  CAPACITY_REACHED: {
+    tone: "danger",
+    icon: "alert",
+    kicker: "Aforo completo",
+    title: "El recinto está lleno",
+    detail: "La boleta no se consumió. Esperá una salida para volver a intentar.",
+  },
+  ZONE_CAPACITY_REACHED: {
+    tone: "danger",
+    icon: "alert",
+    kicker: "Zona completa",
+    title: "No puede entrar a esta zona",
+    detail: "Redirigí a otra zona o esperá una salida. La boleta no se consumió.",
+  },
   WRONG_TYPE: {
     tone: "warn",
     icon: "arrowRight",
@@ -974,6 +988,61 @@ export default function BouncerScanner() {
             </div>
           </div>
         </section>
+
+        {context?.zones?.length > 0 && (
+          <section className="door2-zones" aria-label="Aforo por zona">
+            <div className="door2-zones-head">
+              <span>Aforo por zona</span>
+              <small>
+                {context.assigned_zone
+                  ? `Tu puesto: ${context.assigned_zone.name}`
+                  : "Todas las zonas"}
+              </small>
+            </div>
+            {context.assigned_zone?.status === "full" && (
+              <div className="door2-banner" data-tone="danger" role="alert">
+                <Icon name="alert" className="h-4 w-4" />
+                <span>
+                  {context.assigned_zone.name} está lleno. No admitas más
+                  ingresos a esta zona; redirigí a otra con cupo.
+                </span>
+              </div>
+            )}
+            {context.assigned_zone?.status === "near" && (
+              <div className="door2-banner" data-tone="warn" role="status">
+                <Icon name="alert" className="h-4 w-4" />
+                <span>
+                  {context.assigned_zone.name}: quedan{" "}
+                  {context.assigned_zone.free_seats} lugares.
+                </span>
+              </div>
+            )}
+            <div className="door2-zone-list">
+              {context.zones.map((zone) => (
+                <div
+                  key={zone.id}
+                  className="door2-zone"
+                  data-status={zone.status}
+                  data-assigned={
+                    context.assigned_zone?.id === zone.id ? "true" : undefined
+                  }
+                >
+                  <div>
+                    <strong>{zone.name}</strong>
+                    <small>
+                      {zone.inside}/{zone.capacity} adentro
+                    </small>
+                  </div>
+                  <span>
+                    {zone.status === "full"
+                      ? "Lleno"
+                      : `${zone.free_seats} libres`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="door2-scanner-card" data-scanning={scanning ? "true" : "false"}>
           <div id="door2-qr-region" className="door2-qr-region" />

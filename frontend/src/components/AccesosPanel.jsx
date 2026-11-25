@@ -1,4 +1,5 @@
 import DoorPulse from "./DoorPulse";
+import ZonesPanel from "./ZonesPanel";
 import DoorIncidentsPanel from "./DoorIncidentsPanel";
 import Icon from "./Icon";
 import { LiveIndicator } from "./Brand";
@@ -26,6 +27,8 @@ export default function AccesosPanel({
   cajaBusy,
   lastUpdated,
   venueId,
+  types,
+  onTypesChanged,
 }) {
   const paidTickets = report?.by_payment_method
     ?.filter((p) => p.payment_method && p.payment_method !== "cortesia")
@@ -82,8 +85,16 @@ export default function AccesosPanel({
         ev={ev}
         next={
           nextByStatus[ev.status] ||
-          "Abre puertas cuando el equipo esté listo, prueba un QR y cierra la noche."
+          "Configura zonas, abre puertas cuando el equipo esté listo y cierra la noche."
         }
+      />
+
+      <ZonesPanel
+        venueId={venueId}
+        eventId={ev.id}
+        types={types}
+        onTypesChanged={onTypesChanged}
+        live={isLive}
       />
 
       {ev.status === "live" && (

@@ -1870,3 +1870,99 @@
     flex-direction: column;
   }
 }
+
+/* Aforo por zona (mig 070) */
+.door2-zones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-space-2);
+  padding: var(--e-space-3);
+  border: 1px solid var(--door2-line);
+  border-radius: var(--e-radius-lg);
+  background: var(--door2-paper);
+}
+
+.door2-zones-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-space-2);
+}
+
+.door2-zones-head span {
+  color: var(--door2-ink);
+  font-size: var(--e-text-xs);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.door2-zones-head small {
+  color: var(--door2-muted);
+  font-size: var(--e-text-2xs);
+}
+
+.door2-zone-list {
+  display: grid;
+  max-height: 176px;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.door2-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-space-2);
+  padding: 8px 10px;
+  border: 1px solid var(--door2-line);
+  border-radius: var(--e-radius-md);
+  background: color-mix(in srgb, var(--door2-paper) 86%, var(--e-ink-1));
+}
+
+.door2-zone[data-assigned="true"] {
+  border-color: color-mix(in srgb, var(--door2-accent) 55%, var(--door2-line));
+  box-shadow: inset 3px 0 0 var(--door2-accent);
+}
+
+.door2-zone[data-status="near"] {
+  border-color: color-mix(in srgb, #d97706 50%, var(--door2-line));
+}
+
+.door2-zone[data-status="full"] {
+  border-color: color-mix(in srgb, #dc2626 55%, var(--door2-line));
+  background: color-mix(in srgb, #dc2626 8%, var(--door2-paper));
+}
+
+.door2-zone > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.door2-zone strong {
+  color: var(--door2-ink);
+  font-size: var(--e-text-xs);
+}
+
+.door2-zone small {
+  color: var(--door2-muted);
+  font-size: var(--e-text-2xs);
+}
+
+.door2-zone > span {
+  flex: none;
+  color: var(--door2-muted);
+  font-family: var(--e-font-mono);
+  font-size: var(--e-text-2xs);
+  font-weight: 800;
+}
+
+.door2-zone[data-status="full"] > span {
+  color: #f87171;
+}
+
+.door2-zone[data-status="near"] > span {
+  color: #fbbf24;
+}

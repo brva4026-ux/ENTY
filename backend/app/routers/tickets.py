@@ -663,6 +663,10 @@ async def ticket_operational_history(
                 "Aforo completo",
                 "El recinto llegó a su capacidad; la boleta no se consumió.",
             ),
+            "zone_capacity_reached": (
+                "Zona completa",
+                "La zona de esta boleta llegó a su tope; no se consumió.",
+            ),
         }
         for row in await cur.fetchall():
             # El procedimiento guarda el outcome en minúsculas; normalizar
@@ -1113,6 +1117,45 @@ async def redeem(
             out.ticket_id = info["id"]
             out.customer_name = info["customer_name"]
             out.detail = f"Evento para {info['min_age']}+: no puede entrar"
+    if code == "ZONE_CAPACITY_REACHED":
+        async with db.cursor() as cur2:
+            await cur2.execute(
+                """
+                SELECT t.id, t.customer_name, tt.name AS type_name,
+                       z.name AS zone_name
+                  FROM tickets t
+                  JOIN ticket_types tt ON tt.id = t.ticket_type_id
+                  LEFT JOIN event_zones z ON z.id = tt.zone_id
+                 WHERE t.event_id=%s
+                   AND t.token_hash = encode(digest(%s, 'sha256'), 'hex')
+                """,
+                (event_id, body.raw_token),
+            )
+            info = await cur2.fetchone()
+        if info:
+            out.ticket_id = info["id"]
+            out.customer_name = info["customer_name"]
+            out.ticket_type = info["type_name"]
+            zone = info["zone_name"] or "esta zona"
+            out.detail = f"{zone} está llena. Redirigí a otra zona o esperá una salida."
+    if code == "CAPACITY_REACHED":
+        async with db.cursor() as cur2:
+            await cur2.execute(
+                """
+                SELECT t.id, t.customer_name, tt.name AS type_name
+                  FROM tickets t
+                  LEFT JOIN ticket_types tt ON tt.id = t.ticket_type_id
+                 WHERE t.event_id=%s
+                   AND t.token_hash = encode(digest(%s, 'sha256'), 'hex')
+                """,
+                (event_id, body.raw_token),
+            )
+            info = await cur2.fetchone()
+        if info:
+            out.ticket_id = info["id"]
+            out.customer_name = info["customer_name"]
+            out.ticket_type = info["type_name"]
+            out.detail = "El recinto está lleno. La boleta no se consumió."
     if code == "GRANTED":
         async with db.cursor() as cur2:
             await cur2.execute(

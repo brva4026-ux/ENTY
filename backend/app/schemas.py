@@ -428,11 +428,49 @@ class EventOut(BaseModel):
     parent_event_id: int | None = None
 
 
+class ZoneCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    capacity: int = Field(gt=0)
+    sort_order: int = 0
+
+
+class ZoneUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=60)
+    capacity: int | None = Field(default=None, gt=0)
+    sort_order: int | None = None
+
+
+class ZoneOccupancyOut(BaseModel):
+    id: int
+    name: str
+    capacity: int
+    inside: int = 0
+    free_seats: int = 0
+    status: str = "open"
+
+
+class ZoneTicketTypeOut(BaseModel):
+    id: int
+    name: str
+    quantity: int
+    issued: int = 0
+
+
+class EventZoneOut(ZoneOccupancyOut):
+    event_id: int
+    sort_order: int = 0
+    ticket_type_count: int = 0
+    ticket_type_names: list[str] = Field(default_factory=list)
+    issued: int = 0
+    ticket_types: list[ZoneTicketTypeOut] = Field(default_factory=list)
+
+
 class TicketTypeCreate(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     price_cents: int = Field(ge=0)
     quantity: int = Field(gt=0)
     is_courtesy: bool = False
+    zone_id: int | None = None
 
 
 class TicketTypeOut(BaseModel):
@@ -449,6 +487,9 @@ class TicketTypeOut(BaseModel):
     # Localidad técnica de un pase: se emite en la jornada pero no se vende
     # suelta. La ficha pública la esconde.
     is_pass_only: bool = False
+    # Zona física del recinto (mig 070). NULL = sin zona configurada.
+    zone_id: int | None = None
+    zone_name: str | None = None
 
 
 class EventSessionCreate(BaseModel):
@@ -562,6 +603,7 @@ class TicketTypeUpdate(BaseModel):
     quantity: int | None = Field(default=None, gt=0)
     is_courtesy: bool | None = None
     is_active: bool | None = None
+    zone_id: int | None = None
 
 
 class AllocationCreate(BaseModel):
@@ -2564,6 +2606,8 @@ class DoorContextOut(BaseModel):
     shift_start: datetime | None = None
     shift_end: datetime | None = None
     open_incidents: int = 0
+    zones: list[ZoneOccupancyOut] = Field(default_factory=list)
+    assigned_zone: ZoneOccupancyOut | None = None
     device: DoorDeviceOut | None = None
     ops_contact_name: str | None = None
     ops_contact_phone: str | None = None

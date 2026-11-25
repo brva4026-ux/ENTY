@@ -3584,3 +3584,211 @@ html:not([data-theme="light"]) .admin-shell {
     justify-content: flex-end;
   }
 }
+
+/* Aforo por zona (mig 070) */
+.bs-zones .bs-box-office-head {
+  margin-bottom: 14px;
+}
+
+.bs-zone-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.bs-zone-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--admin-surface) 88%, var(--admin-canvas));
+}
+
+.bs-zone-card[data-status="full"] {
+  border-color: color-mix(in srgb, #dc2626 45%, var(--admin-line));
+}
+
+.bs-zone-card[data-status="near"] {
+  border-color: color-mix(in srgb, #d97706 45%, var(--admin-line));
+}
+
+.bs-zone-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bs-zone-card h3 {
+  margin: 0;
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.bs-zone-card header small {
+  display: block;
+  margin-top: 2px;
+  color: var(--admin-ink-soft);
+  font-size: 11px;
+}
+
+.bs-zone-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--admin-ink) 10%, transparent);
+}
+
+.bs-zone-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent, #4f46e5);
+  transition: width 240ms ease;
+}
+
+.bs-zone-card[data-status="near"] .bs-zone-bar > span {
+  background: #d97706;
+}
+
+.bs-zone-card[data-status="full"] .bs-zone-bar > span {
+  background: #dc2626;
+}
+
+.bs-zone-card p {
+  margin: 0;
+  color: var(--admin-ink-soft);
+  font-size: 12px;
+}
+
+.bs-zone-card p strong {
+  color: var(--admin-ink);
+  font-size: 15px;
+}
+
+.bs-zone-types {
+  min-height: 16px;
+  color: var(--admin-ink-soft);
+  font-size: 11px;
+}
+
+.bs-zone-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.bs-zone-form,
+.bs-zone-assign {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--admin-line);
+}
+
+.bs-zone-form h3,
+.bs-zone-assign h3 {
+  margin: 0 0 8px;
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.bs-zone-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.bs-zone-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--admin-ink-soft);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.bs-zone-form input,
+.bs-zone-assign select {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--admin-line);
+  border-radius: 9px;
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.bs-zone-form-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.bs-zone-assign > p {
+  margin: 0 0 10px;
+  color: var(--admin-ink-soft);
+  font-size: 12px;
+}
+
+.bs-zone-assign ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bs-zone-assign li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--admin-surface) 88%, var(--admin-canvas));
+}
+
+.bs-zone-assign li > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bs-zone-assign li strong {
+  color: var(--admin-ink);
+  font-size: 13px;
+}
+
+.bs-zone-assign li small {
+  color: var(--admin-ink-soft);
+  font-size: 11px;
+}
+
+.bs-zone-assign select {
+  width: min(190px, 48vw);
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .bs-zone-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .bs-zone-assign li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bs-zone-assign select {
+    width: 100%;
+  }
+}

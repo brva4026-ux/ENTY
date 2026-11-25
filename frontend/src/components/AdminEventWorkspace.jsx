@@ -377,6 +377,8 @@ export default function AdminEventWorkspace({
         cajaBusy={cajaBusy}
         lastUpdated={lastUpdated}
         venueId={venueId}
+        types={types}
+        onTypesChanged={onTypesChanged}
       />
     );
   }
