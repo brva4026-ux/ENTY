@@ -8,14 +8,10 @@ def test_change_notice_counts_buyers_and_reaches_public_ticket(api):
     venue, event, kind = _paid_event(api)
     ticket = _emit_paid(api, venue, event, kind)
 
-    current = next(
-        e
-        for e in api.get(f"/venues/{venue}/events", "admin").json()
-        if e["id"] == event
-    )
-    new_start = (
-        datetime.fromisoformat(current["starts_at"]) + timedelta(hours=24)
-    ).isoformat()
+    starts_at = api.run_sql(f"SELECT starts_at FROM events WHERE id={event}")
+    if isinstance(starts_at, str):
+        starts_at = datetime.fromisoformat(starts_at)
+    new_start = (starts_at + timedelta(hours=24)).isoformat()
     res = api.patch(
         f"/venues/{venue}/events/{event}",
         "admin",
@@ -36,7 +32,7 @@ def test_change_notice_counts_buyers_and_reaches_public_ticket(api):
     assert "Nuevo lugar" in page.text
 
     preview = api.client.post(
-        "/public/tickets/preview", json={"raw_token": ticket["raw_token"]}
+        "/tickets/preview", json={"raw_token": ticket["raw_token"]}
     )
     assert preview.status_code == 200, preview.text
     assert preview.json()["change_notice"]["title"] == "El evento cambió"
@@ -45,7 +41,9 @@ def test_change_notice_counts_buyers_and_reaches_public_ticket(api):
         "/public/my-tickets/access", json={"raw_token": ticket["raw_token"]}
     )
     assert access.status_code == 200, access.text
-    ticket_out = access.json()["tickets"][0]
+    ticket_out = next(
+        t for t in access.json()["tickets"] if t["ticket_id"] == ticket["ticket_id"]
+    )
     assert ticket_out["change_notice"]["title"] == "El evento cambió"
 
 
