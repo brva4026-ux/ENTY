@@ -53,7 +53,10 @@ async def _event_or_404(cur, venue_id: int, event_id: int) -> dict:
     await cur.execute(
         """SELECT e.id, e.venue_id, e.name, e.status, e.starts_at,
                   e.capacity, e.allow_reentry,
-                  v.contact_name, v.contact_phone
+                  v.contact_name, v.contact_phone,
+                  coalesce(
+                    (to_jsonb(v) ->> 'contact_team_visible')::boolean, true
+                  ) AS contact_team_visible
              FROM events e JOIN venues v ON v.id=e.venue_id
             WHERE e.id=%s AND e.venue_id=%s""",
         (event_id, venue_id),
@@ -351,8 +354,12 @@ async def door_context(
         shift_end=staff["shift_end"] if staff else None,
         open_incidents=open_incidents,
         device=DoorDeviceOut(**device) if device else None,
-        ops_contact_name=ev["contact_name"],
-        ops_contact_phone=ev["contact_phone"],
+        # El contacto operativo es para el equipo. Si la organización decidió
+        # no compartirlo internamente, la puerta no lo recibe: guardar no es
+        # autorizar, y el mismo dato alimenta la ficha pública solo por sus
+        # propios canales.
+        ops_contact_name=ev["contact_name"] if ev["contact_team_visible"] else None,
+        ops_contact_phone=ev["contact_phone"] if ev["contact_team_visible"] else None,
     )
 
 

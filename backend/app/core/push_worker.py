@@ -44,7 +44,8 @@ async def _drain_once(db) -> int:
     async with db.cursor() as cur:
         await cur.execute(
             """
-            SELECT o.id AS outbox_id, n.user_id, n.kind, n.title, n.body, n.link
+            SELECT o.id AS outbox_id, n.user_id, n.venue_id, n.kind,
+                   n.title, n.body, n.link
             FROM push_outbox o
             JOIN notifications n ON n.id = o.notification_id
             WHERE o.processed_at IS NULL
@@ -73,7 +74,7 @@ async def _drain_once(db) -> int:
     async with db.cursor() as cur:
         await cur.execute(
             """
-            SELECT ps.id, ps.user_id, ps.endpoint, ps.p256dh, ps.auth
+            SELECT ps.id, ps.user_id, ps.venue_id, ps.endpoint, ps.p256dh, ps.auth
             FROM push_subscriptions ps
             JOIN users u ON u.id = ps.user_id AND u.is_active
             WHERE ps.user_id = ANY(%s)
@@ -89,6 +90,12 @@ async def _drain_once(db) -> int:
     async def _send(letter: dict) -> bool:
         """Envía la carta a todos los dispositivos del usuario. True = procesada."""
         subs = subs_by_user.get(letter["user_id"], [])
+        # La suscripción se registra POR organización. Un aviso de la venue A
+        # no debe sonar en el teléfono por una suscripción hecha para la B.
+        # `venue_id` NULL en la notificación (avisos globales históricos) se
+        # mantiene como envío a todos los dispositivos de la cuenta.
+        if letter["venue_id"] is not None:
+            subs = [s for s in subs if s["venue_id"] == letter["venue_id"]]
         if not subs:
             return True  # nadie a quien avisar: la carta se cumple igual
         payload = {

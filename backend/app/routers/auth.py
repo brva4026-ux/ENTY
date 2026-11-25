@@ -1144,11 +1144,62 @@ async def update_venue_settings(
     ensure_roles(user, venue_id, "super_admin", "admin")
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT id, logo_url FROM venues WHERE id=%s", (venue_id,)
+            """SELECT id, logo_url, contact_phone,
+                      (to_jsonb(venues) ->> 'contact_email') AS contact_email,
+                      coalesce(
+                        (to_jsonb(venues) ->> 'public_contact_enabled')::boolean,
+                        false
+                      ) AS public_contact_enabled,
+                      coalesce(
+                        to_jsonb(venues) -> 'public_contact_channels', '[]'::jsonb
+                      ) AS public_contact_channels
+                 FROM venues WHERE id=%s""",
+            (venue_id,),
         )
         prev = await cur.fetchone()
         if not prev:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Venue no encontrada")
+
+        # Publicar contacto es una autorización con consecuencias: el canal
+        # elegido tiene que tener un dato real. Se valida aquí, con el estado
+        # final (body + lo ya guardado), porque un PATCH parcial puede activar
+        # WhatsApp sin reenviar el teléfono.
+        public_enabled = (
+            body.public_contact_enabled
+            if body.public_contact_enabled is not None
+            else bool(prev["public_contact_enabled"])
+        )
+        channels = (
+            body.public_contact_channels
+            if body.public_contact_channels is not None
+            else list(prev["public_contact_channels"] or [])
+        )
+        phone = (
+            body.contact_phone
+            if body.contact_phone is not None
+            else (prev["contact_phone"] or "")
+        )
+        email = (
+            body.contact_email
+            if body.contact_email is not None
+            else (prev["contact_email"] or "")
+        )
+        if public_enabled:
+            if not channels:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "Elige al menos un canal para publicar el contacto.",
+                )
+            if "whatsapp" in channels and not (phone or "").strip():
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "Elegiste WhatsApp pero no hay un teléfono de contacto.",
+                )
+            if "email" in channels and not (email or "").strip():
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "Elegiste correo pero no hay un correo de contacto.",
+                )
 
         if body.name is not None:
             # Configurar el nombre es configurar la identidad publica: el
@@ -1572,6 +1623,13 @@ async def close_current_session(
         except psycopg.errors.UndefinedTable:
             await db.rollback()
     response.delete_cookie(COOKIE_NAME, path="/", httponly=True, samesite="lax")
+    await _log_security(
+        db,
+        user["id"],
+        "session_revoked",
+        detail="Sesión actual cerrada desde este dispositivo.",
+        ip=_client_ip(request),
+    )
     return None
 
 
@@ -1880,6 +1938,15 @@ async def export_own_data(
         )
         acceptances = await cur.fetchall()
 
+        await cur.execute(
+            """SELECT venue_id, key, value, step, updated_at
+               FROM user_preferences
+               WHERE user_id = %s
+               ORDER BY venue_id, key""",
+            (uid,),
+        )
+        preferences = await cur.fetchall()
+
     await _log_security(
         db,
         uid,
@@ -1932,6 +1999,18 @@ async def export_own_data(
             }
             for a in acceptances
         ],
+        "preferences": [
+            {
+                "venue_id": p["venue_id"],
+                "key": p["key"],
+                "value": p["value"],
+                "step": p["step"],
+                "updated_at": p["updated_at"].isoformat()
+                if p["updated_at"]
+                else None,
+            }
+            for p in preferences
+        ],
     }
 
 
@@ -1941,8 +2020,30 @@ async def export_own_data(
 # ---------------------------------------------------------------------------
 
 @router.post("/logout")
-async def logout(request: Request, response: Response):
+async def logout(
+    request: Request,
+    response: Response,
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Cierra la sesión de ESTE dispositivo.
+
+    Además de borrar la cookie, marca la fila de `user_sessions` como
+    revocada: una copia del token tomada antes del logout deja de servir. El
+    cierre de las demás sesiones sigue siendo explícito en Seguridad.
+    """
     check_session_origin(request, required=bool(request.cookies.get(COOKIE_NAME)))
+    token = _request_token(request)
+    if token:
+        try:
+            async with db.cursor() as cur:
+                await cur.execute(
+                    "UPDATE user_sessions SET revoked_at=now() "
+                    "WHERE token_hash=%s AND revoked_at IS NULL",
+                    (_token_hash(token),),
+                )
+            await db.commit()
+        except psycopg.errors.UndefinedTable:
+            await db.rollback()
     response.delete_cookie(COOKIE_NAME, path="/", httponly=True, samesite="lax")
     response.headers["Cache-Control"] = "no-store"
     return {"message": "Sesion cerrada"}

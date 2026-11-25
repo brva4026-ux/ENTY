@@ -219,7 +219,10 @@ export default function ProfilePage() {
   const [venueMsg, setVenueMsg] = useState(null);
   const [venueBusy, setVenueBusy] = useState(false);
 
-  // Cambio de contraseña
+  // Cambio de contraseña: el formulario se abre a propósito, igual que el
+  // cambio de correo. No es un bloque permanente que invita a tocar la clave
+  // sin querer.
+  const [passOpen, setPassOpen] = useState(false);
   const [curPass, setCurPass] = useState("");
   const [showCur, setShowCur] = useState(false);
   const [newPass, setNewPass] = useState("");
@@ -280,6 +283,8 @@ export default function ProfilePage() {
   const [sessionTarget, setSessionTarget] = useState(null);
   const [sessionPass, setSessionPass] = useState("");
   const [sessionBusy, setSessionBusy] = useState(false);
+  const [sessionCurrentOpen, setSessionCurrentOpen] = useState(false);
+  const [sessionCurrentBusy, setSessionCurrentBusy] = useState(false);
   const [securityEvents, setSecurityEvents] = useState([]);
   const [securityLoading, setSecurityLoading] = useState(false);
   const [venueSwitchBusy, setVenueSwitchBusy] = useState(false);
@@ -443,7 +448,10 @@ export default function ProfilePage() {
   // Sesiones y actividad: se leen del servidor al abrir Seguridad, no de un
   // estado local que podría estar desactualizado.
   useEffect(() => {
-    if (activeTab !== "seguridad") return;
+    if (activeTab !== "seguridad") {
+      setSessionCurrentOpen(false);
+      return;
+    }
     let alive = true;
     setSessionsLoading(true);
     setSecurityLoading(true);
@@ -1164,6 +1172,28 @@ export default function ProfilePage() {
     }
   }
 
+  /** Cierra SOLO este dispositivo, con confirmación explícita.
+   *
+   *  El endpoint marca la sesión como revocada en el servidor; después se
+   *  limpia la cookie y el estado local. No es lo mismo que "cerrar las
+   *  demás": aquí la sesión que se va es la actual.
+   */
+  async function closeThisDevice() {
+    if (sessionCurrentBusy) return;
+    setSessionCurrentBusy(true);
+    try {
+      await apiFetch("/auth/sessions/current", { method: "DELETE" });
+    } catch {
+      // Si la red falla, el logout de abajo igual limpia la cookie local.
+    }
+    try {
+      await logout();
+    } catch {
+      // El guard de rutas se encarga de mandar a /login.
+    }
+    nav("/login", { replace: true });
+  }
+
   /** Descarga de los propios datos como JSON.
    *  Se usa fetch + blob (no un <a href>): el token viaja en el header, nunca
    *  en la URL, y así no queda en el historial ni en los logs del servidor. */
@@ -1232,11 +1262,35 @@ export default function ProfilePage() {
               <span className={`pf-role-chip ${visual.tabAccent}`}>
                 {roleLabel(role)}
               </span>
-              <span className="pf-hero-org">
-                {activeVenue
-                  ? `Organización activa: ${activeVenue.name}`
-                  : "Sin organización activa"}
-              </span>
+              {activeVenue ? (
+                <span className="pf-hero-org-wrap">
+                  <span className="pf-hero-org-label">Organización activa</span>
+                  {venueCount > 1 ? (
+                    <select
+                      value={activeVenue.id}
+                      onChange={(e) => {
+                        const venue = user.venues.find(
+                          (v) => String(v.id) === e.target.value,
+                        );
+                        if (venue) switchVenue(venue);
+                      }}
+                      disabled={venueSwitchBusy}
+                      className="pf-hero-org-select"
+                      aria-label="Cambiar organización activa"
+                    >
+                      {user.venues.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="pf-hero-org">{activeVenue.name}</span>
+                  )}
+                </span>
+              ) : (
+                <span className="pf-hero-org">Sin organización activa</span>
+              )}
             </div>
             {switchableRoles.length > 1 && (
               <div className="pf-role-switch" role="group" aria-label="Cambiar de rol">
@@ -1354,32 +1408,10 @@ export default function ProfilePage() {
           </div>
 
           {venueCount > 1 && (
-            <div className="pf-context-switch" role="group" aria-label="Cambiar organización activa">
-              <p className="pf-hint">
-                Cambia el contexto de todos los paneles. Se guarda en tu cuenta,
-                no en este navegador.
-              </p>
-              <div className="pf-context-options">
-                {user.venues.map((v) => {
-                  const on = v.id === activeVenue.id;
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      aria-pressed={on}
-                      disabled={venueSwitchBusy}
-                      onClick={() => switchVenue(v)}
-                      className={`pf-context-option ${on ? "is-on" : ""}`}
-                    >
-                      <span className="pf-context-option-name">{v.name}</span>
-                      <span className="pf-context-option-role">
-                        {(user.roles?.[String(v.id)] || []).map(roleLabel).join(", ")}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <p className="pf-context-hint">
+              Cambia de organización desde el selector de la cabecera. El
+              contexto se guarda en tu cuenta, no en este navegador.
+            </p>
           )}
         </section>
       )}
@@ -1812,79 +1844,109 @@ export default function ProfilePage() {
           </div>
 
           <div className="pf-sub">
-            <h3 className="pf-sub-title">Cambiar contraseña</h3>
+            <h3 className="pf-sub-title">Contraseña</h3>
             <p className="pf-hint pf-hint-block">
               Se te pedirá la contraseña actual. Al cambiarla se cierran las
-              demás sesiones abiertas.
+              demás sesiones abiertas y tendrás que entrar de nuevo con la
+              clave nueva.
             </p>
-          <form onSubmit={submitPassword} className="pf-form">
-            <Field
-              id="cur-pass"
-              label="Contraseña actual"
-              hint="Se usará para confirmar tu identidad al actualizar."
-            >
-              <div className="pf-input-wrap">
-                <input
+            {!passOpen ? (
+              <div className="pf-form-actions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPassMsg(null);
+                    setPassOpen(true);
+                  }}
+                  className="btn-ghost pf-action"
+                >
+                  <Icon name="lock" className="h-4 w-4" aria-hidden="true" />
+                  Cambiar contraseña
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={submitPassword} className="pf-form">
+                <Field
                   id="cur-pass"
-                  type={showCur ? "text" : "password"}
-                  value={curPass}
-                  onChange={(e) => setCurPass(e.target.value)}
-                  className="field"
-                  autoComplete="current-password"
-                  maxLength={128}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCur((v) => !v)}
-                  className="pf-input-btn"
-                  aria-label={showCur ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  label="Contraseña actual"
+                  hint="Se usará para confirmar tu identidad al actualizar."
                 >
-                  {showCur ? "Ocultar" : "Ver"}
-                </button>
-              </div>
-            </Field>
+                  <div className="pf-input-wrap">
+                    <input
+                      id="cur-pass"
+                      type={showCur ? "text" : "password"}
+                      value={curPass}
+                      onChange={(e) => setCurPass(e.target.value)}
+                      className="field"
+                      autoComplete="current-password"
+                      maxLength={128}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCur((v) => !v)}
+                      className="pf-input-btn"
+                      aria-label={showCur ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    >
+                      {showCur ? "Ocultar" : "Ver"}
+                    </button>
+                  </div>
+                </Field>
 
-            <Field id="new-pass" label="Nueva contraseña (mínimo 8 caracteres)">
-              <div className="pf-input-wrap">
-                <input
-                  id="new-pass"
-                  type={showNew ? "text" : "password"}
-                  value={newPass}
-                  onChange={(e) => setNewPass(e.target.value)}
-                  className="field"
-                  autoComplete="new-password"
-                  minLength={8}
-                  maxLength={128}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNew((v) => !v)}
-                  className="pf-input-btn"
-                  aria-label={showNew ? "Ocultar contraseña" : "Mostrar contraseña"}
-                >
-                  {showNew ? "Ocultar" : "Ver"}
-                </button>
-              </div>
-              {newPass && <PasswordMeter value={newPass} idPrefix="new-pass" />}
-            </Field>
+                <Field id="new-pass" label="Nueva contraseña (mínimo 8 caracteres)">
+                  <div className="pf-input-wrap">
+                    <input
+                      id="new-pass"
+                      type={showNew ? "text" : "password"}
+                      value={newPass}
+                      onChange={(e) => setNewPass(e.target.value)}
+                      className="field"
+                      autoComplete="new-password"
+                      minLength={8}
+                      maxLength={128}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNew((v) => !v)}
+                      className="pf-input-btn"
+                      aria-label={showNew ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    >
+                      {showNew ? "Ocultar" : "Ver"}
+                    </button>
+                  </div>
+                  {newPass && <PasswordMeter value={newPass} idPrefix="new-pass" />}
+                </Field>
 
-            {passMsg && (
-              <div
-                role="status"
-                className={`pf-alert ${passMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
-              >
-                {passMsg.text}
-              </div>
+                {passMsg && (
+                  <div
+                    role={passMsg.ok ? "status" : "alert"}
+                    className={`pf-alert ${passMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
+                  >
+                    {passMsg.text}
+                  </div>
+                )}
+
+                <div className="pf-form-actions">
+                  <button type="submit" disabled={passBusy} className="btn-primary">
+                    {passBusy ? "Guardando…" : "Actualizar contraseña"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPassOpen(false);
+                      setCurPass("");
+                      setNewPass("");
+                      setPassMsg(null);
+                    }}
+                    disabled={passBusy}
+                    className="btn-ghost pf-action"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
             )}
-
-            <div className="pf-form-actions">
-              <button type="submit" disabled={passBusy} className="btn-primary">
-                {passBusy ? "Guardando…" : "Actualizar contraseña"}
-              </button>
-            </div>
-          </form>
           </div>
 
           <div className="pf-sub">
@@ -1971,14 +2033,51 @@ export default function ProfilePage() {
                   <div className="pf-session-main">
                     <p className="pf-session-device">
                       {s.device}
-                      {s.current && <span className="pf-session-tag">Esta sesión</span>}
+                      {s.current && <span className="pf-session-tag">Este dispositivo</span>}
                     </p>
                     <p className="pf-session-meta">
                       Inició {sessionStamp(s.created_at)} · Última actividad{" "}
                       {sessionStamp(s.last_seen_at)}
                     </p>
                   </div>
-                  {!s.current && (
+                  {s.current ? (
+                    sessionCurrentOpen ? (
+                      <div className="pf-session-confirm">
+                        <p className="pf-hint">
+                          Vas a cerrar esta sesión. El servidor revocará el
+                          acceso de este dispositivo en el acto.
+                        </p>
+                        <div className="pf-form-actions">
+                          <button
+                            type="button"
+                            onClick={closeThisDevice}
+                            disabled={sessionCurrentBusy}
+                            className="btn-primary"
+                          >
+                            {sessionCurrentBusy
+                              ? "Cerrando…"
+                              : "Sí, cerrar este dispositivo"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSessionCurrentOpen(false)}
+                            disabled={sessionCurrentBusy}
+                            className="btn-ghost pf-action"
+                          >
+                            Seguir aquí
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setSessionCurrentOpen(true)}
+                        className="btn-ghost pf-action"
+                      >
+                        Cerrar sesión en este dispositivo
+                      </button>
+                    )
+                  ) : (
                     <button
                       type="button"
                       onClick={() => {
@@ -2301,7 +2400,9 @@ export default function ProfilePage() {
             <h3 className="pf-sub-title">Contacto</h3>
             <p className="pf-hint pf-hint-block">
               Guardar un dato no lo publica. Elige explícitamente qué ve el
-              público en tus fichas y qué ve tu equipo en el panel.
+              público en tus fichas y qué ve tu equipo en el panel. El
+              contacto propio de cada evento se conserva tal como se configuró
+              en ese evento; este bloque solo controla el contacto del negocio.
             </p>
             <Field
               id="venue-contact-name"
@@ -2562,11 +2663,48 @@ export default function ProfilePage() {
           </div>
 
           <div className="pf-sub">
-            <h3 className="pf-sub-title">Avisos de puerta</h3>
+            <h3 className="pf-sub-title">Avisos</h3>
             <p className="pf-hint pf-hint-block">
-              Comprobamos tres cosas antes de decir que está activo: permiso del
-              navegador, suscripción de este dispositivo y registro confirmado
-              por el servidor. La campana interna funciona aunque el push falle.
+              La campana interna y los avisos al teléfono son dos canales
+              distintos. La campana no depende del permiso del navegador; el
+              push sí, y solo se declara activo cuando el servidor confirma el
+              registro de este dispositivo para la organización activa.
+            </p>
+            <div className="pf-aviso-row">
+              <span className="pf-aviso-icon" aria-hidden="true">
+                <Icon name="bell" className="h-4 w-4" />
+              </span>
+              <span className="pf-aviso-copy">
+                <strong>Campana interna</strong>
+                <span>
+                  Activa para tu cuenta. Recibe lo que el servidor registró
+                  para ti, incluso si el push está bloqueado o no disponible.
+                </span>
+              </span>
+              <span className="pf-aviso-tag">Siempre disponible</span>
+            </div>
+            <div className="pf-aviso-row">
+              <span className="pf-aviso-icon" aria-hidden="true">
+                <Icon name="door" className="h-4 w-4" />
+              </span>
+              <span className="pf-aviso-copy">
+                <strong>Puerta abierta</strong>
+                <span>
+                  Aviso operativo para el equipo asignado a esa noche. Dice qué
+                  evento abrió y abre ese evento, no otro. No se desactiva
+                  desde aquí.
+                </span>
+              </span>
+              <span className="pf-aviso-tag">Operativo</span>
+            </div>
+
+            <h4 className="pf-sub-title pf-sub-title-tight">
+              Avisos a este dispositivo
+            </h4>
+            <p className="pf-hint pf-hint-block">
+              Comprobamos permiso del navegador, suscripción local y registro
+              del endpoint exacto en el servidor. Una preferencia guardada en
+              este navegador no acredita que el aviso llegue.
             </p>
             <PushToggle venueId={activeVenue?.id ?? currentVenueId} />
           </div>

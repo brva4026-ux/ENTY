@@ -8312,6 +8312,47 @@ html[data-theme="light"] .pf-push-title {
   color: var(--e-text-muted);
 }
 
+/* En móvil el índice es una tarjeta vertical: cinco destinos legibles, sin
+   scroll horizontal ni etiquetas recortadas. El panel activo se abre debajo
+   y el botón "Volver a Mi perfil" queda a la vista. */
+@media (max-width: 1023px) {
+  .pf-tabs {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: visible;
+    padding: 0.35rem;
+    border: 1px solid var(--e-border-soft);
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--e-neutral-950) 72%, transparent);
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+  html[data-theme="light"] .pf-tabs {
+    background: var(--e-white);
+  }
+  .pf-tabs .tabbar-item {
+    flex: 0 0 auto;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 0.7rem;
+  }
+  .pf-tabs::after {
+    display: none;
+  }
+  .pf-tab-dot {
+    top: 50%;
+    right: 0.8rem;
+    transform: translateY(-50%);
+  }
+  .pf-tab-label {
+    font-size: 0.8125rem;
+  }
+}
+
 @media (min-width: 1024px) {
   .pf-shell {
     display: grid;
@@ -8405,6 +8446,44 @@ html[data-theme="light"] .pf-handle {
 html[data-theme="light"] .pf-hero-org {
   color: var(--color-zinc-600);
 }
+.pf-hero-org-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.45rem;
+  min-width: 0;
+}
+.pf-hero-org-label {
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--e-text-muted);
+}
+.pf-hero-org-select {
+  max-width: min(100%, 17rem);
+  border: 1px solid var(--e-border-soft);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--e-neutral-950) 55%, transparent);
+  padding: 0.32rem 1.7rem 0.32rem 0.55rem;
+  font-size: var(--e-text-xs);
+  font-weight: 700;
+  color: var(--color-zinc-100);
+  cursor: pointer;
+}
+html[data-theme="light"] .pf-hero-org-select {
+  background: var(--e-white);
+  color: var(--e-neutral-900);
+}
+.pf-hero-org-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.pf-context-hint {
+  margin: 0.75rem 0 0;
+  font-size: var(--e-text-xs);
+  color: var(--e-text-muted);
+}
 
 /* Organización que se está editando: nombre visible antes de tocar nada. */
 .pf-editing {
@@ -8478,6 +8557,72 @@ html[data-theme="light"] .pf-editing-copy strong {
   display: block;
   font-weight: 800;
   color: inherit;
+}
+
+/* Campana interna vs push del dispositivo: dos canales, dos estados. */
+.pf-aviso-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border: 1px solid var(--e-border-hairline);
+  border-radius: 0.85rem;
+  padding: 0.7rem 0.75rem;
+  background: color-mix(in srgb, var(--e-neutral-900) 55%, transparent);
+}
+.pf-aviso-row + .pf-aviso-row {
+  margin-top: 0.5rem;
+}
+html[data-theme="light"] .pf-aviso-row {
+  background: var(--e-neutral-50);
+}
+.pf-aviso-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--e-violet-500) 14%, transparent);
+  color: var(--e-violet-300);
+}
+html[data-theme="light"] .pf-aviso-icon {
+  color: var(--e-violet-700);
+}
+.pf-aviso-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  font-size: var(--e-text-xs);
+  line-height: 1.5;
+  color: var(--e-text-muted);
+}
+.pf-aviso-copy strong {
+  font-size: var(--e-text-sm);
+  color: var(--color-zinc-100);
+}
+html[data-theme="light"] .pf-aviso-copy strong {
+  color: var(--e-neutral-900);
+}
+.pf-aviso-tag {
+  flex-shrink: 0;
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+  color: var(--e-emerald-300);
+  background: color-mix(in srgb, var(--e-emerald-500) 12%, transparent);
+}
+html[data-theme="light"] .pf-aviso-tag {
+  color: var(--e-emerald-700);
+}
+.pf-sub-title-tight {
+  margin-top: 1rem;
+}
+.pf-push-test-detail {
+  display: block;
+  margin-top: 0.15rem;
 }
 
 /* Ficha pública tal como la verá un visitante. */

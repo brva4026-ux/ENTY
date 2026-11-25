@@ -210,12 +210,34 @@ async def go_live(
                 # entera: el promotor de la noche del 14 no necesita enterarse
                 # de que abrió la del 21. Si la noche no tiene roster, cae al
                 # comportamiento anterior (todos los dispositivos de la venue):
-                # avisar de más sigue siendo mejor que no avisar.
+                # avisar de más sigue siendo mejor que no avisar. El actor que
+                # abrió puertas no se auto-notifica.
                 await cur.execute(
                     """
-                    SELECT ps.id, ps.endpoint, ps.p256dh, ps.auth
+                    SELECT ps.id, ps.endpoint, ps.p256dh, ps.auth,
+                           coalesce(
+                             (
+                               SELECT s.role::text FROM event_staff s
+                                WHERE s.event_id = %s
+                                  AND s.user_id = ps.user_id
+                                LIMIT 1
+                             ),
+                             (
+                               SELECT r.role::text FROM venue_user_roles r
+                                WHERE r.venue_id = ps.venue_id
+                                  AND r.user_id = ps.user_id
+                                ORDER BY CASE r.role
+                                           WHEN 'super_admin' THEN 0
+                                           WHEN 'admin' THEN 1
+                                           WHEN 'promotor' THEN 2
+                                           ELSE 3
+                                         END
+                                LIMIT 1
+                             )
+                           ) AS staff_role
                     FROM push_subscriptions ps
                     WHERE ps.venue_id = %s
+                      AND ps.user_id <> %s
                       AND (
                         EXISTS (
                             SELECT 1 FROM event_staff s
@@ -226,24 +248,48 @@ async def go_live(
                         )
                       )
                     """,
-                    (venue_id, event_id, event_id),
+                    (event_id, venue_id, user["id"], event_id, event_id),
                 )
                 rows = await cur.fetchall()
 
-            dead, sent = await notify_venue(
-                rows,
-                {
-                    "title": "🚪 Puertas abiertas",
-                    "body": (
-                        f"{out['name']} está en puerta. Activa el escáner para "
-                        "empezar a validar boletas."
-                    ),
-                    "tag": f"event-live-{event_id}",
-                    "url": "/bouncer",
-                },
-                vapid_private_b64=settings.vapid_private_key_b64,
-                vapid_subject=settings.vapid_subject,
-            )
+            # Cada rol aterriza donde puede operar. Antes todos abrían
+            # /bouncer, así que un admin o promotor caía en una pantalla que
+            # no era la suya. El link lleva el evento exacto.
+            links = {
+                "bouncer": f"/bouncer?evento={event_id}",
+                "promotor": f"/promotor/evento/{event_id}",
+                "admin": f"/admin?event={event_id}&tab=resumen",
+                "super_admin": f"/admin?event={event_id}&tab=resumen",
+            }
+            bodies = {
+                "bouncer": (
+                    f"{out['name']} está en puerta. Activa el escáner para "
+                    "empezar a validar boletas."
+                ),
+                "promotor": f"La puerta de {out['name']} ya abrió.",
+                "admin": f"{out['name']} ya está en puerta.",
+                "super_admin": f"{out['name']} ya está en puerta.",
+            }
+            by_role: dict[str, list[dict]] = {}
+            for row in rows:
+                by_role.setdefault(row["staff_role"] or "bouncer", []).append(row)
+
+            dead: list[int] = []
+            sent = 0
+            for role, group in by_role.items():
+                d, s = await notify_venue(
+                    group,
+                    {
+                        "title": "🚪 Puertas abiertas",
+                        "body": bodies.get(role, bodies["bouncer"]),
+                        "tag": f"event-live-{event_id}",
+                        "url": links.get(role, links["bouncer"]),
+                    },
+                    vapid_private_b64=settings.vapid_private_key_b64,
+                    vapid_subject=settings.vapid_subject,
+                )
+                dead.extend(d)
+                sent += s
 
             if dead:
                 # Cursor nuevo: el bloque `async with` de la consulta anterior

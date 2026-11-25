@@ -188,6 +188,7 @@ export function PushToggle({ venueId }) {
     description =
       "Bloqueaste las notificaciones para Enty. Habilítalas en los ajustes del navegador (candado en la barra de direcciones → Notificaciones) y recarga la página.";
   } else if (state.permission === "default") {
+    title = "Sin permiso todavía";
     description =
       "El navegador todavía no dio permiso. No pediremos nada hasta que toques el botón.";
     action = (
@@ -244,7 +245,10 @@ export function PushToggle({ venueId }) {
           role="status"
           className={`pf-alert ${testMsg.ok ? "pf-alert-ok" : "pf-alert-bad"}`}
         >
-          {testMsg.text}
+          <strong>
+            {testMsg.ok ? "Envío solicitado" : "No se pudo solicitar el envío"}
+          </strong>
+          <span className="pf-push-test-detail">{testMsg.text}</span>
         </p>
       )}
     </div>
