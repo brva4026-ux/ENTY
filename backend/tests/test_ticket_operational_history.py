@@ -8,7 +8,7 @@ Los cuatro escenarios que el equipo debe poder responder sin abrir la DB:
 """
 import uuid
 
-from tests.test_public_checkout import (
+from tests.test_public_checkout import (  # noqa: F401 (registra el fixture)
     _LINK,
     _checkout,
     _scenario,
@@ -215,7 +215,8 @@ def test_history_shows_void_and_refund_with_actor_and_reason(api):
     assert refund_history["status"] == "refunded"
 
 
-def test_admin_resolves_paid_unfulfilled_payment(api, wompi_on):
+def test_admin_resolves_paid_unfulfilled_payment(api, request):
+    wompi = request.getfixturevalue("wompi_on")
     venue, event, kind = _scenario(api, quantity=1)
     first = _checkout(api, event, kind["id"])
     assert first.status_code == 201, first.text
@@ -231,7 +232,7 @@ def test_admin_resolves_paid_unfulfilled_payment(api, wompi_on):
     assert second.status_code == 201, second.text
 
     payload = _signed_webhook(
-        wompi_on.wompi_events_secret, amount=5000000, link_id=link_id
+        wompi.wompi_events_secret, amount=5000000, link_id=link_id
     )
     assert api.client.post("/payments/wompi/webhook", json=payload).status_code == 200
     status = api.client.get(f"/public/checkout/{reference}").json()
@@ -305,12 +306,13 @@ def test_admin_resolves_paid_unfulfilled_payment(api, wompi_on):
     )
 
 
-def test_summary_reconciles_payments_and_refunds(api, wompi_on):
+def test_summary_reconciles_payments_and_refunds(api, request):
+    wompi = request.getfixturevalue("wompi_on")
     venue, event, kind = _scenario(api, quantity=10)
     checkout = _checkout(api, event, kind["id"])
     assert checkout.status_code == 201, checkout.text
     payload = _signed_webhook(
-        wompi_on.wompi_events_secret,
+        wompi.wompi_events_secret,
         amount=5000000,
         link_id=_LINK["id"],
     )
