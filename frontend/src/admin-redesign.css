@@ -3060,3 +3060,290 @@ html:not([data-theme="light"]) .admin-shell {
     flex-wrap: wrap;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Taquilla presencial (mig 067) y acreditaciones.
+   La taquilla se lee como mostrador: localidad, comprador, cobro y arqueo.
+   --------------------------------------------------------------------------- */
+
+.bs-box-office-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bs-box-office-head h2,
+.bs-box-office-cash h3 {
+  margin: 0;
+}
+
+.bs-box-office-head p,
+.bs-box-office-cash p {
+  margin: 4px 0 0;
+}
+
+.bs-box-office-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.bs-box-office-form,
+.bs-box-office-cash {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.bs-box-office-cash {
+  border-left: 1px solid var(--admin-line);
+  padding-left: 18px;
+}
+
+.bs-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bs-field {
+  display: grid;
+  gap: 5px;
+  color: var(--admin-ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bs-field > span {
+  letter-spacing: 0.02em;
+}
+
+.bs-pay-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bs-pay-method {
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 999px;
+  background: var(--admin-surface-2);
+  padding: 7px 12px;
+  color: var(--admin-ink-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.bs-pay-method[aria-pressed="true"] {
+  border-color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-ink);
+}
+
+.bs-seller-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.bs-seller-card {
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface-2);
+  padding: 10px 12px;
+}
+
+.bs-seller-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bs-seller-methods {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bs-seller-methods li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--admin-ink-soft);
+  font-size: 12px;
+}
+
+.bs-accreditation-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  background: var(--admin-surface-2);
+}
+
+.bs-accreditation-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.bs-accreditation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.bs-accreditation-row[data-revoked="true"] {
+  opacity: 0.62;
+}
+
+.bs-accreditation-row strong {
+  display: block;
+}
+
+.bs-accreditation-row p {
+  margin: 2px 0 0;
+  color: var(--admin-ink-soft);
+  font-size: 12px;
+}
+
+@media (max-width: 860px) {
+  .bs-box-office-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bs-box-office-cash {
+    border-left: 0;
+    border-top: 1px solid var(--admin-line);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+
+  .bs-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bs-accreditation-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Jornadas y pases: dos altas independientes y dos listas de lectura rápida. */
+.bs-sessions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.bs-sessions-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  background: var(--admin-surface-2);
+  padding: 14px;
+}
+
+.bs-sessions-card h3,
+.bs-sessions-section h3 {
+  margin: 0;
+}
+
+.bs-session-picker {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.bs-session-picker legend {
+  margin-bottom: 4px;
+  color: var(--admin-ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bs-session-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  padding: 7px 9px;
+  font-size: 12px;
+}
+
+.bs-session-check input {
+  margin-top: 2px;
+  accent-color: var(--admin-accent);
+}
+
+.bs-session-check span {
+  display: grid;
+  gap: 1px;
+}
+
+.bs-session-check small {
+  color: var(--admin-ink-soft);
+}
+
+.bs-sessions-section {
+  margin-top: 18px;
+}
+
+.bs-session-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.bs-session-row,
+.bs-pass-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.bs-pass-row[data-inactive="true"] {
+  opacity: 0.62;
+}
+
+.bs-session-row strong,
+.bs-pass-row strong {
+  display: block;
+}
+
+.bs-session-row p,
+.bs-pass-row p {
+  margin: 2px 0 0;
+  color: var(--admin-ink-soft);
+  font-size: 12px;
+}
+
+.bs-pass-sessions {
+  font-style: italic;
+}
+
+@media (max-width: 860px) {
+  .bs-sessions-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -37,7 +37,7 @@ import EventPublicPreview from "../components/EventPublicPreview";
 
 /** Pestañas del backstage de un evento. Cuatro secciones que agrupan el
  *  trabajo real: montar, vender, asignar y operar la puerta. */
-const EVENT_TABS = ["resumen", "ventas", "equipo", "accesos"];
+const EVENT_TABS = ["resumen", "ventas", "equipo", "accesos", "acreditaciones", "sesiones"];
 
 /** Enlaces viejos del backstage -> sección nueva equivalente. */
 const LEGACY_EVENT_TABS = {

@@ -350,6 +350,62 @@ export function refundTicket(venueId, eventId, ticketId, reason, amountCents) {
 }
 
 // ---------------------------------------------------------------------------
+// Acreditaciones (mig 067): prensa, artistas, producción y patrocinadores.
+// No son boletas ni entran en caja; la puerta las escanea igual.
+// ---------------------------------------------------------------------------
+
+export function listAccreditations(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/accreditations`);
+}
+
+export function createAccreditation(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/accreditations`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function revokeAccreditation(venueId, eventId, accreditationId) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/accreditations/${accreditationId}`,
+    { method: "DELETE" },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sesiones y pases (mig 068): un evento puede tener varias jornadas y un
+// pase emite una boleta por cada una al confirmarse el pago.
+// ---------------------------------------------------------------------------
+
+export function listSessions(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/sessions`);
+}
+
+export function createSession(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/sessions`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listPasses(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/passes`);
+}
+
+export function createPass(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/passes`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function archivePass(venueId, eventId, passId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/passes/${passId}`, {
+    method: "DELETE",
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Lineup y cupones del evento (mig 043). Solo admin: son parte de armar la
 // noche, no de operarla.
 // ---------------------------------------------------------------------------

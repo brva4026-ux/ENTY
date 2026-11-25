@@ -423,6 +423,9 @@ class EventOut(BaseModel):
     change_notice: EventChangeNoticeOut | None = None
     affected_tickets: int = 0
     affected_buyers: int = 0
+    # Evento hijo: una jornada de un evento con varias fechas. NULL = evento
+    # raíz. La UI de sesiones lo usa para agrupar.
+    parent_event_id: int | None = None
 
 
 class TicketTypeCreate(BaseModel):
@@ -443,6 +446,54 @@ class TicketTypeOut(BaseModel):
     # FALSE = archivado: sigue visible para el admin (con su historial) pero ya
     # no se puede emitir contra él.
     is_active: bool = True
+    # Localidad técnica de un pase: se emite en la jornada pero no se vende
+    # suelta. La ficha pública la esconde.
+    is_pass_only: bool = False
+
+
+class EventSessionCreate(BaseModel):
+    """Una jornada de un evento con varias fechas."""
+
+    name: str = Field(min_length=1, max_length=160)
+    starts_at: datetime
+    ends_at: datetime | None = None
+    capacity: int = Field(gt=0)
+
+
+class EventSessionOut(BaseModel):
+    id: int
+    name: str
+    starts_at: datetime
+    ends_at: datetime | None = None
+    capacity: int
+    status: str
+    pass_ticket_type_id: int | None = None
+    issued: int = 0
+
+
+class PassCreate(BaseModel):
+    """Pase que cubre varias sesiones del mismo evento."""
+
+    name: str = Field(min_length=1, max_length=60)
+    price_cents: int = Field(ge=0)
+    quantity: int = Field(gt=0)
+    session_ids: list[int] = Field(min_length=1)
+
+
+class PassSessionOut(BaseModel):
+    session_event_id: int
+    session_name: str
+    starts_at: datetime
+    session_ticket_type_id: int
+
+
+class PassOut(BaseModel):
+    id: int
+    name: str
+    price_cents: int
+    quantity: int
+    is_active: bool
+    sessions: list[PassSessionOut] = Field(default_factory=list)
 
 
 class TicketTypeUpdate(BaseModel):
@@ -1746,6 +1797,21 @@ class ReportByPromoter(BaseModel):
     redeemed: int = 0
 
 
+class ReportBySeller(BaseModel):
+    """Arqueo por cajero: quién vendió y con qué medio de pago.
+
+    La taquilla presencial necesita cuadrar el cajón por persona, no solo el
+    total del evento. `seller_id` puede ser NULL en boletas históricas sin
+    emisor identificado.
+    """
+
+    seller_id: int | None = None
+    full_name: str
+    payment_method: str | None = None
+    tickets: int = 0
+    revenue_cents: int = 0
+
+
 class ReportByPaymentMethod(BaseModel):
     """Fila del desglose de caja por medio de pago (mig 042).
 
@@ -1813,6 +1879,9 @@ class EventReport(BaseModel):
     # dinero. Convierte el recaudo en un arqueo (cuánto efectivo debería
     # haber). El promotor no lo ve.
     by_payment_method: list[ReportByPaymentMethod] = []
+    # Arqueo por cajero (taquilla presencial). Solo vista admin: permite
+    # cerrar el turno de cada persona contra su cajón.
+    by_seller: list[ReportBySeller] = []
     # Desglose de puerta por acceso (mig 042). Solo vista admin: es dato
     # operativo del negocio (cuánto trabajó cada puerta), no del promotor.
     by_door: list[ReportByDoor] = []
@@ -2291,6 +2360,65 @@ class EventStaffCreate(BaseModel):
     # Puesto de puerta (mig 064). Se copia al link y al dispositivo.
     door_name: str | None = Field(default=None, max_length=60)
     door_ticket_type_id: int | None = None
+
+
+class AccreditationCreate(BaseModel):
+    """Alta de una acreditación operativa (prensa, artista, producción…)."""
+
+    holder_name: str = Field(min_length=1, max_length=160)
+    holder_email: str | None = Field(default=None, max_length=200)
+    holder_phone: str | None = Field(default=None, max_length=40)
+    category: Literal[
+        "prensa", "artista", "produccion", "patrocinador", "invitado"
+    ] = "invitado"
+    zone: str | None = Field(default=None, max_length=80)
+    valid_from: datetime | None = None
+    valid_until: datetime | None = None
+    entries_allowed: int = Field(default=1, ge=1, le=50)
+
+    @field_validator("holder_email")
+    @classmethod
+    def _email_shape(cls, v):
+        if v is None or not v.strip():
+            return None
+        value = v.strip()
+        if not _EMAIL_RE.match(value):
+            raise ValueError("Correo inválido")
+        return value
+
+    @field_validator("holder_name", "zone")
+    @classmethod
+    def _clean_text(cls, v):
+        if v is None:
+            return None
+        return v.strip() or None
+
+
+class AccreditationOut(BaseModel):
+    """Acreditación visible en Administración. Nunca incluye el token."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    event_id: int
+    holder_name: str
+    holder_email: str | None = None
+    holder_phone: str | None = None
+    category: str
+    zone: str | None = None
+    valid_from: datetime
+    valid_until: datetime | None = None
+    entries_allowed: int
+    entries_used: int
+    status: str
+    created_at: datetime
+    revoked_at: datetime | None = None
+
+
+class AccreditationCreated(AccreditationOut):
+    """La respuesta del alta: el token en claro viaja SOLO una vez."""
+
+    raw_token: str
 
 
 class EventAccessCreate(BaseModel):

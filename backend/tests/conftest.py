@@ -82,6 +82,8 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "064_door_workspace.sql",
     ROOT / "db" / "migrations" / "065_fulfill_paid_payment.sql",
     ROOT / "db" / "migrations" / "066_event_change_notices.sql",
+    ROOT / "db" / "migrations" / "067_accreditations.sql",
+    ROOT / "db" / "migrations" / "068_sessions_and_passes.sql",
 ]
 
 
@@ -143,7 +145,10 @@ def db():
                 -- posición en la fila de los eventos nuevos.
                 event_waiting_room,
                 -- Avisos de cambio de evento (mig 066): cuelga de events.
-                event_change_notices CASCADE;
+                event_change_notices,
+                event_accreditations,
+                ticket_payment_tickets,
+                pass_sessions CASCADE;
         -- event_staff / event_access_tokens (mig 025) referencian users y events:
         -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
         -- el orden de borrado no dependa de las FK.

@@ -65,6 +65,8 @@ const TABS = [
   { id: "ventas", label: "Ventas", icon: "ticket" },
   { id: "equipo", label: "Equipo", icon: "users" },
   { id: "accesos", label: "Accesos", icon: "door" },
+  { id: "acreditaciones", label: "Acreditaciones", icon: "shield" },
+  { id: "sesiones", label: "Sesiones", icon: "calendar" },
 ];
 
 function endDateLabel(ev, tz) {
@@ -303,7 +305,7 @@ export default function EventWorkbench({
         ))}
       </nav>
       <p className="bs-tabs-hint" aria-hidden="true">
-        Desliza para ver las cuatro secciones →
+        Desliza para ver las seis secciones →
       </p>
     </div>
   );

@@ -28,6 +28,7 @@ from app.core.observability import (
 from app.core.push_worker import push_outbox_worker
 from app.core.schema_guard import verify_schema_at_boot
 from app.routers import (
+    accreditations,
     analytics,
     auth,
     door,
@@ -46,6 +47,7 @@ from app.routers import (
     push,
     redemptions,
     report,
+    sessions,
     scanner,
     seed,
     team,
@@ -221,6 +223,8 @@ def create_app() -> FastAPI:
     app.include_router(redemptions.router)
     app.include_router(team.router)
     app.include_router(event_staff.router)
+    app.include_router(accreditations.router)
+    app.include_router(sessions.router)
     app.include_router(scanner.router)
     app.include_router(payouts.router)
     app.include_router(promoter.router)

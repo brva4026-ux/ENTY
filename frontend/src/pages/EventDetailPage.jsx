@@ -679,7 +679,14 @@ export default function EventDetailPage() {
               <ul className="evd-ticket-list">
                 {ticketRows.map((t) => (
                   <li key={t.id} className="evd-ticket-row">
-                    <span className="evd-ticket-name">{t.name}</span>
+                    <span className="evd-ticket-name">
+                      {t.name}
+                      {t.sessions?.length ? (
+                        <small className="evd-ticket-includes">
+                          Incluye: {t.sessions.map((s) => s.name).join(" · ")}
+                        </small>
+                      ) : null}
+                    </span>
                     {t.sold_out && (
                       <span className="evd-ticket-badge">Agotada</span>
                     )}

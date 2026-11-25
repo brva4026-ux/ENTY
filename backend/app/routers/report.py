@@ -32,6 +32,7 @@ from app.schemas import (
     ReportByDoor,
     ReportByPaymentMethod,
     ReportByPromoter,
+    ReportBySeller,
     ReportPayments,
     ReportRefunds,
     ReportSummary,
@@ -304,6 +305,27 @@ async def event_report(
         )
         by_payment_method = await cur.fetchall()
 
+        # Arqueo por cajero: mismo criterio de caja que el desglose por medio
+        # de pago, pero agrupado por quien emitió. La taquilla necesita saber
+        # cuánto efectivo debería tener cada persona al cerrar su turno.
+        await cur.execute(
+            """
+            SELECT t.sold_by_user_id AS seller_id,
+                   COALESCE(u.full_name, 'Sin identificar') AS full_name,
+                   t.payment_method,
+                   count(*)::int AS tickets,
+                   coalesce(sum(t.price_cents_snapshot), 0)::bigint AS revenue_cents
+            FROM tickets t
+            LEFT JOIN users u ON u.id = t.sold_by_user_id
+            WHERE t.event_id = %s AND t.status IN ('issued','redeemed')
+              AND t.price_cents_snapshot > 0
+            GROUP BY t.sold_by_user_id, u.full_name, t.payment_method
+            ORDER BY full_name, t.payment_method
+            """,
+            (event_id,),
+        )
+        by_seller = await cur.fetchall()
+
         await cur.execute(
             "SELECT coalesce(sum(amount_in_cents), 0)::bigint AS refunded_cents "
             "FROM ticket_refunds WHERE event_id=%s",
@@ -342,6 +364,7 @@ async def event_report(
         door_duplicates=rd["duplicates"],
         door_rejected=rd["rejected"],
         by_payment_method=[ReportByPaymentMethod(**r) for r in by_payment_method],
+        by_seller=[ReportBySeller(**r) for r in by_seller],
         by_door=[ReportByDoor(**r) for r in by_door],
         door_pulse=door_pulse,
     )

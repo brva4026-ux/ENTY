@@ -6,6 +6,9 @@ import TicketList from "./TicketList";
 import EventTeamPanel from "./EventTeamPanel";
 import AccesosPanel from "./AccesosPanel";
 import PaymentsPanel from "./PaymentsPanel";
+import BoxOfficePanel from "./BoxOfficePanel";
+import AccreditationsPanel from "./AccreditationsPanel";
+import SessionsPanel from "./SessionsPanel";
 import EventSummary, { SectionContext } from "./EventSummary";
 import { money, plural } from "../lib/format";
 
@@ -24,6 +27,11 @@ const SALES_VIEWS = [
     id: "cobros",
     label: "Cobros",
     purpose: "Dinero cobrado, pagos pendientes y devoluciones de la noche.",
+  },
+  {
+    id: "taquilla",
+    label: "Taquilla",
+    purpose: "Venta presencial rápida contra el mismo inventario, con arqueo por cajero.",
   },
 ];
 
@@ -97,6 +105,16 @@ function SalesLedger({
             events={[ev]}
             initialEventId={ev.id}
             report={report}
+          />
+        )}
+        {view === "taquilla" && (
+          <BoxOfficePanel
+            ev={ev}
+            report={report}
+            types={types}
+            venueId={venueId}
+            eventId={eventId}
+            onChanged={onChanged}
           />
         )}
       </div>
@@ -300,6 +318,29 @@ export default function AdminEventWorkspace({
             />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (section === "sesiones") {
+    return (
+      <div className="admin-workspace-panel">
+        <SectionContext
+          ev={ev}
+          next="Agrupa varias fechas en un solo evento y vende un pase que cubre todas."
+        />
+        <SessionsPanel venueId={venueId} eventId={eventId} ev={ev} />
+      </div>
+    );
+  }
+  if (section === "acreditaciones") {
+    return (
+      <div className="admin-workspace-panel">
+        <SectionContext
+          ev={ev}
+          next="Entrega pases de prensa, artistas y producción con su propia vigencia y zona."
+        />
+        <AccreditationsPanel venueId={venueId} eventId={eventId} ev={ev} />
       </div>
     );
   }

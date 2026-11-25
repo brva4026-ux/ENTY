@@ -81,6 +81,98 @@ def _handle(venue_id: int, e: psycopg.errors.Error) -> None:
     raise e
 
 
+async def _try_redeem_accreditation(
+    db, event_id: int, raw_token: str, user: dict, door_id: str | None
+) -> RedeemOut | None:
+    """Canjea una acreditación si el token no pertenece a una boleta.
+
+    La acreditación no ocupa aforo ni caja: solo suma un ingreso dentro de su
+    vigencia. Devuelve `None` cuando el token no es una acreditación, para que
+    el flujo normal de boletas siga sin cambios.
+    """
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT a.id, a.holder_name, a.category, a.zone, a.entries_allowed,
+                   a.entries_used, a.status, a.valid_from, a.valid_until,
+                   e.status AS event_status, e.event_timezone,
+                   (a.valid_from <= now()) AS started,
+                   (a.valid_until IS NULL OR a.valid_until >= now()) AS not_expired
+              FROM event_accreditations a
+              JOIN events e ON e.id = a.event_id
+             WHERE a.event_id=%s
+               AND a.token_hash=encode(digest(%s, 'sha256'), 'hex')
+            """,
+            (event_id, raw_token),
+        )
+        acc = await cur.fetchone()
+    if not acc:
+        return None
+
+    label = f"Acreditación · {acc['category']}"
+    if acc["event_status"] not in ("live", "published"):
+        return RedeemOut(code="EVENT_NOT_LIVE", detail="El evento no está abierto")
+    if acc["status"] != "active":
+        return RedeemOut(code="NOT_VALID", detail="Acreditación revocada")
+    if not acc["started"]:
+        try:
+            tz = ZoneInfo(acc["event_timezone"])
+        except Exception:
+            tz = ZoneInfo("UTC")
+        when = acc["valid_from"].astimezone(tz).strftime("%H:%M")
+        return RedeemOut(
+            code="NOT_ACTIVE", detail=f"Acreditación válida desde las {when}"
+        )
+    if not acc["not_expired"]:
+        return RedeemOut(code="NOT_VALID", detail="Acreditación vencida")
+    if acc["entries_used"] >= acc["entries_allowed"]:
+        return RedeemOut(
+            code="ALREADY_REDEEMED",
+            detail=(
+                f"Acreditación sin ingresos disponibles "
+                f"({acc['entries_allowed']} permitidos)"
+            ),
+        )
+
+    async with db.cursor() as cur:
+        await cur.execute(
+            """
+            UPDATE event_accreditations
+               SET entries_used = entries_used + 1
+             WHERE id=%s AND status='active'
+               AND entries_used < entries_allowed
+               AND valid_from <= now()
+               AND (valid_until IS NULL OR valid_until >= now())
+            RETURNING entries_used
+            """,
+            (acc["id"],),
+        )
+        if not await cur.fetchone():
+            return RedeemOut(
+                code="ALREADY_REDEEMED", detail="Acreditación sin ingresos disponibles"
+            )
+        await cur.execute(
+            """
+            INSERT INTO redemptions
+                (ticket_id, event_id, scanned_by_user_id, outcome, door_id)
+            VALUES (NULL, %s, %s, 'granted', %s)
+            """,
+            (event_id, user["id"], door_id),
+        )
+        await db.commit()
+
+    detail = label
+    if acc["zone"]:
+        detail += f" · {acc['zone']}"
+    return RedeemOut(
+        code="GRANTED",
+        customer_name=acc["holder_name"],
+        redeemed=True,
+        detail=detail,
+        ticket_type=label,
+    )
+
+
 @router.post("/events/{event_id}/tickets", response_model=TicketEmitResponse, status_code=201)
 async def emit_ticket(
     venue_id: int,
@@ -851,6 +943,15 @@ async def redeem(
     # `force` (mig 013): solo staff, nunca el escáner automático del bouncer.
     if body.force:
         ensure_roles(user, venue_id, "super_admin", "admin")
+
+    # Acreditaciones (mig 067): mismo lector, reglas propias. Se resuelven
+    # antes de tocar `tickets` para que un pase de prensa no se registre como
+    # un QR inexistente.
+    accreditation = await _try_redeem_accreditation(
+        db, event_id, body.raw_token, user, effective_door
+    )
+    if accreditation is not None:
+        return accreditation
 
     async with db.cursor() as cur:
         try:

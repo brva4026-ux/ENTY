@@ -205,7 +205,11 @@ async def public_events(
         # llenaria con eventos de otras ciudades y el filtro devolveria casi
         # nada. La categoria es heuristica (no vive en la DB), asi que si se
         # pide se traen mas filas y se recorta al final.
-        conds = ["e.status IN ('published', 'live')", "e.starts_at >= now()"]
+        conds = [
+            "e.status IN ('published', 'live')",
+            "e.starts_at >= now()",
+            "e.parent_event_id IS NULL",
+        ]
         params: list = []
         if city and city.strip():
             conds.append(
@@ -241,6 +245,7 @@ async def public_events(
                    ) AS public_contact_channels,
                    (SELECT min(tt.price_cents) FROM ticket_types tt
                      WHERE tt.event_id = e.id AND tt.is_active
+                       AND NOT tt.is_pass_only
                        AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price,
                    (SELECT count(*) FROM tickets t
                      WHERE t.event_id = e.id
@@ -397,18 +402,40 @@ async def public_event_detail(
                      WHERE tk.ticket_type_id = t.id
                        AND tk.status NOT IN ('voided', 'refunded'))::int AS sold
             FROM ticket_types t
-            WHERE t.event_id = %s AND t.is_active
+            WHERE t.event_id = %s AND t.is_active AND NOT t.is_pass_only
             ORDER BY t.price_cents NULLS LAST, t.name
             """,
             (event_id,),
         )
         types = await cur.fetchall()
+        # Jornadas que cubre cada pase (mig 068). La ficha las muestra bajo el
+        # nombre del pase para que el fan sepa qué está comprando.
+        pass_map: dict[int, list] = {}
+        if types:
+            await cur.execute(
+                """
+                SELECT ps.pass_ticket_type_id, e.id, e.name, e.starts_at
+                  FROM pass_sessions ps
+                  JOIN events e ON e.id = ps.session_event_id
+                 WHERE ps.pass_ticket_type_id = ANY(%s)
+                 ORDER BY e.starts_at, e.id
+                """,
+                ([t["id"] for t in types],),
+            )
+            for ps in await cur.fetchall():
+                pass_map.setdefault(ps["pass_ticket_type_id"], []).append(
+                    {
+                        "id": ps["id"],
+                        "name": ps["name"],
+                        "starts_at": ps["starts_at"].isoformat(),
+                    }
+                )
         # Cupo total para el gate de agotado: SUM de TODAS las localidades,
         # igual que `join_waitlist` (que no filtra por is_active). Consultarlo
         # aparte evita que una localidad desactivada desincronice el CTA.
         await cur.execute(
             "SELECT COALESCE(SUM(quantity), 0)::int AS quota "
-            "FROM ticket_types WHERE event_id = %s",
+            "FROM ticket_types WHERE event_id = %s AND NOT is_pass_only",
             (event_id,),
         )
         quota = (await cur.fetchone())["quota"]
@@ -488,6 +515,7 @@ async def public_event_detail(
                 # localidad agotada en el checkout. Best-effort: el aforo real
                 # lo decide emit_ticket dentro de la transaccion.
                 "sold_out": t["sold"] >= t["quantity"],
+                "sessions": pass_map.get(t["id"], []),
             }
             for t in types
         ],
@@ -613,6 +641,7 @@ async def public_coupon_quote(
               FROM ticket_types t
               JOIN events e ON e.id = t.event_id
              WHERE t.id = %s AND e.id = %s
+               AND NOT t.is_pass_only
                AND e.status IN ('published', 'live') AND e.starts_at >= now()
             """,
             (ticket_type_id, event_id),
@@ -688,6 +717,7 @@ async def public_checkout(
             FROM ticket_types t
             JOIN events e ON e.id = t.event_id
             WHERE t.id = %s AND e.id = %s
+              AND NOT t.is_pass_only
               AND e.status IN ('published', 'live')
               AND e.starts_at >= now()
             """,
@@ -1302,6 +1332,7 @@ async def public_event_share_page(
                    {public_venue_name_sql()} AS venue_name,
                    (SELECT min(tt.price_cents) FROM ticket_types tt
                      WHERE tt.event_id = e.id AND tt.is_active
+                       AND NOT tt.is_pass_only
                        AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price
             FROM events e
             JOIN venues v ON v.id = e.venue_id

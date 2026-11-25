@@ -72,7 +72,7 @@ EVENT_COLUMNS = (
     "id, venue_id, name, description, flyer_url, location, starts_at, ends_at, "
     "event_timezone, capacity, qr_unlock_minutes, status, category, min_age, "
     "dress_code, doors_open_at, video_url, location_url, contact_name, "
-    "contact_phone"
+    "contact_phone, parent_event_id"
 )
 
 
@@ -288,7 +288,8 @@ async def list_events(
     async with db.cursor() as cur:
         await cur.execute(
             f"SELECT {EVENT_COLUMNS} FROM events "
-            "WHERE venue_id=%s ORDER BY starts_at DESC LIMIT %s",
+            "WHERE venue_id=%s AND parent_event_id IS NULL "
+            "ORDER BY starts_at DESC LIMIT %s",
             (venue_id, limit),
         )
         rows = await cur.fetchall()
