@@ -81,6 +81,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "063_promoter_workspace.sql",
     ROOT / "db" / "migrations" / "064_door_workspace.sql",
     ROOT / "db" / "migrations" / "065_fulfill_paid_payment.sql",
+    ROOT / "db" / "migrations" / "066_event_change_notices.sql",
 ]
 
 
@@ -140,7 +141,9 @@ def db():
                 -- Sala de espera (mig 055): cuelga de events. Mismo motivo:
                 -- sin listarla, una corrida previa deja filas que falsean la
                 -- posición en la fila de los eventos nuevos.
-                event_waiting_room CASCADE;
+                event_waiting_room,
+                -- Avisos de cambio de evento (mig 066): cuelga de events.
+                event_change_notices CASCADE;
         -- event_staff / event_access_tokens (mig 025) referencian users y events:
         -- CASCADE los resuelve igual, pero se sueltan aparte y antes para que
         -- el orden de borrado no dependa de las FK.

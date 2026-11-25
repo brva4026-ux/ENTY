@@ -1135,12 +1135,7 @@ async def public_ticket_image(
             f"""
             SELECT t.id AS ticket_number, t.customer_name, t.status,
                    e.name AS event_name, e.location, e.starts_at, e.event_timezone,
-                   e.qr_unlock_minutes, {public_venue_name_sql()} AS venue_name,
-                   (SELECT n.title || ' — ' || n.message
-                      FROM event_change_notices n
-                     WHERE n.event_id = e.id
-                     ORDER BY n.created_at DESC, n.id DESC
-                     LIMIT 1) AS change_notice
+                   e.qr_unlock_minutes, {public_venue_name_sql()} AS venue_name
             FROM tickets t
             JOIN events e ON e.id = t.event_id
             JOIN venues v ON v.id = e.venue_id
@@ -1357,7 +1352,12 @@ async def public_ticket_page(
             f"""
             SELECT t.id AS ticket_number, t.customer_name, t.status,
                    e.name AS event_name, e.location, e.starts_at, e.event_timezone,
-                   e.qr_unlock_minutes, {public_venue_name_sql()} AS venue_name
+                   e.qr_unlock_minutes, {public_venue_name_sql()} AS venue_name,
+                   (SELECT n.title || ' — ' || n.message
+                      FROM event_change_notices n
+                     WHERE n.event_id = e.id
+                     ORDER BY n.created_at DESC, n.id DESC
+                     LIMIT 1) AS change_notice
             FROM tickets t
             JOIN events e ON e.id = t.event_id
             JOIN venues v ON v.id = e.venue_id
