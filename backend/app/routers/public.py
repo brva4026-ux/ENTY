@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import HTMLResponse
+from psycopg.types.json import Jsonb
 from starlette.concurrency import run_in_threadpool
 
 from app.core.categories import EVENT_CATEGORIES
@@ -30,8 +31,14 @@ from app.core.rate_limit import enforce_rate_limit
 from app.core.refs import payment_reference
 from app.deps import ensure_roles, get_optional_current_user
 from app.schemas import (
+    FanAnswerIn,
+    FanContactCorrectionIn,
+    FanContactCorrectionOut,
     FanCredentialRequest,
     FanLookupRequest,
+    FanQuestionOut,
+    FanQuestionsOut,
+    FanStreamOut,
     FanTicketsOut,
     FanTicketTokenOut,
     PublicCheckoutOut,
@@ -121,6 +128,48 @@ def _qr_window(row: dict) -> tuple[bool, str | None]:
         f"El evento empieza el {starts_at.astimezone(tz).strftime('%d/%m %H:%M')}."
     )
     return False, msg
+
+
+def _stream_window(row: dict) -> tuple[bool, str | None, datetime | None, datetime | None]:
+    """Ventana de la transmisión de una boleta virtual (mig 075).
+
+    El horario contratado manda. Si el organizador no cargó una ventana, cae
+    al horario del evento (inicio a fin, o dos horas si no hay fin). Devuelve
+    (activa, mensaje, inicio, fin); el enlace NO se incluye aquí.
+    """
+    starts_at = row.get("stream_starts_at") or row.get("starts_at")
+    ends_at = row.get("stream_ends_at") or row.get("ends_at")
+    if starts_at is None:
+        return False, "El organizador aún no publicó el horario de la transmisión.", None, None
+    if ends_at is None:
+        ends_at = starts_at + timedelta(hours=2)
+    now = datetime.now(starts_at.tzinfo) if starts_at.tzinfo else datetime.now(timezone.utc)
+    try:
+        tz = ZoneInfo(row.get("event_timezone") or "America/Bogota")
+    except Exception:
+        tz = timezone.utc
+    if now < starts_at:
+        return (
+            False,
+            f"La transmisión abre el {starts_at.astimezone(tz).strftime('%d/%m %H:%M')}.",
+            starts_at,
+            ends_at,
+        )
+    if now > ends_at:
+        return (
+            False,
+            f"La transmisión terminó el {ends_at.astimezone(tz).strftime('%d/%m %H:%M')}.",
+            starts_at,
+            ends_at,
+        )
+    if not row.get("stream_url"):
+        return (
+            False,
+            "La transmisión está en horario, pero el organizador aún no publicó el enlace.",
+            starts_at,
+            ends_at,
+        )
+    return True, "La transmisión está abierta.", starts_at, ends_at
 
 
 def _starts_at_label(starts_at: datetime, tz_name: str | None) -> str:
@@ -372,6 +421,11 @@ async def public_event_detail(
                    -- ficha sigue funcionando con los campos viejos.
                    to_jsonb(e) ->> 'video_url' AS video_url,
                    to_jsonb(e) ->> 'location_url' AS location_url,
+                   to_jsonb(e) ->> 'stream_url' AS stream_url,
+                   (to_jsonb(e) ->> 'stream_starts_at')::timestamptz
+                       AS stream_starts_at,
+                   (to_jsonb(e) ->> 'stream_ends_at')::timestamptz
+                       AS stream_ends_at,
                    {public_venue_name_sql()} AS venue_name,
                    to_jsonb(e) ->> 'contact_name' AS event_contact_name,
                    to_jsonb(e) ->> 'contact_phone' AS event_contact_phone,
@@ -399,6 +453,7 @@ async def public_event_detail(
         await cur.execute(
             """
             SELECT t.id, t.name, t.price_cents, t.quantity, t.is_courtesy,
+                   t.is_virtual,
                    (SELECT count(*) FROM tickets tk
                      WHERE tk.ticket_type_id = t.id
                        AND tk.status NOT IN ('voided', 'refunded'))::int AS sold
@@ -498,6 +553,24 @@ async def public_event_detail(
         "doors_open_at": (
             row["doors_open_at"].isoformat() if row["doors_open_at"] else None
         ),
+        # Transmisión (mig 075): la ficha solo anuncia que existe y cuándo.
+        # La URL se entrega a cada boleta virtual dentro de la ventana.
+        "stream": (
+            {
+                "starts_at": (
+                    row["stream_starts_at"].isoformat()
+                    if row["stream_starts_at"]
+                    else row["starts_at"].isoformat()
+                ),
+                "ends_at": (
+                    row["stream_ends_at"].isoformat()
+                    if row["stream_ends_at"]
+                    else None
+                ),
+            }
+            if row["stream_url"]
+            else None
+        ),
         # Contacto del organizador (mig 036/057/059): el del evento si lo
         # definió; si no, el del local solo con autorización y canal elegido.
         "contact_name": contact_name,
@@ -512,6 +585,7 @@ async def public_event_detail(
                 else None,
                 "quantity": t["quantity"],
                 "is_courtesy": t["is_courtesy"],
+                "is_virtual": t["is_virtual"],
                 # Vendidas del tipo (boletas vivas): permite deshabilitar la
                 # localidad agotada en el checkout. Best-effort: el aforo real
                 # lo decide emit_ticket dentro de la transaccion.
@@ -945,12 +1019,22 @@ _EMAIL_MATCH = "lower(t.customer_email) = %(email)s"
 _FAN_TICKETS_SQL = f"""
     SELECT t.id            AS ticket_id,
            t.status::text  AS status,
+           t.customer_name AS customer_name,
+           t.customer_phone AS customer_phone,
            e.name          AS event_name,
            e.status        AS event_status,
            e.location      AS location,
            e.starts_at     AS starts_at,
+           e.ends_at       AS ends_at,
            e.event_timezone AS event_timezone,
            e.qr_unlock_minutes AS qr_unlock_minutes,
+           tt.is_virtual   AS is_virtual,
+           e.stream_url    AS stream_url,
+           e.stream_starts_at AS stream_starts_at,
+           e.stream_ends_at AS stream_ends_at,
+           e.stream_instructions AS stream_instructions,
+           (SELECT count(*) FROM event_questions q
+             WHERE q.event_id=e.id AND q.is_active)::int AS question_count,
            {public_venue_name_sql()} AS venue_name,
            (SELECT jsonb_build_object(
                        'id', n.id,
@@ -966,6 +1050,7 @@ _FAN_TICKETS_SQL = f"""
              LIMIT 1) AS change_notice
       FROM tickets t
       JOIN events e ON e.id = t.event_id
+      JOIN ticket_types tt ON tt.id = t.ticket_type_id
       JOIN venues v ON v.id = e.venue_id
      WHERE (%(is_email)s AND {_EMAIL_MATCH})
         OR (NOT %(is_email)s AND {_PHONE_TAIL} = right(%(phone)s, 10))
@@ -986,6 +1071,7 @@ def _fan_ticket_row(r: dict) -> dict:
     """Fila de DB -> FanTicketOut. `has_link`: se puede regenerar el QR."""
     live = r["status"] == "issued" and r["event_status"] not in ("ended", "cancelled")
     qr_active, qr_message = _qr_window(r)
+    stream_active, stream_message, _, _ = _stream_window(r)
     return {
         "ticket_id": r["ticket_id"],
         "event_name": r["event_name"],
@@ -996,6 +1082,12 @@ def _fan_ticket_row(r: dict) -> dict:
         "has_link": live,
         "qr_active": qr_active,
         "qr_message": qr_message,
+        "customer_name": r.get("customer_name"),
+        "customer_phone": r.get("customer_phone"),
+        "has_questions": bool(r.get("question_count")),
+        "is_virtual": bool(r.get("is_virtual")),
+        "stream_active": stream_active,
+        "stream_message": stream_message,
         "change_notice": r.get("change_notice"),
     }
 
@@ -1272,18 +1364,27 @@ def _share_event_html(
     location: str | None,
     flyer_url: str | None,
     min_price: int | None,
+    description: str | None = None,
+    ends_at: datetime | None = None,
+    sold_out: bool = False,
+    lineup: list[str] | None = None,
+    has_stream: bool = False,
 ) -> str:
     """HTML de la tarjeta social. Puro: sin DB, para poder probarlo aislado."""
     url = f"{base_url}/evento/{event_id}"
     image = _absolute_url(base_url, flyer_url)
     when = _starts_at_label(starts_at, tz_name)
     where = " · ".join(p for p in (venue, location) if p)
-    desc = f"{when} · {where}"
+    fallback = f"{when} · {where}"
+    clean_desc = (description or "").strip()
+    desc = clean_desc or fallback
+    meta_desc = desc if len(desc) <= 160 else f"{desc[:157].rstrip()}..."
 
     schema: dict = {
         "@context": "https://schema.org",
         "@type": "Event",
         "name": name,
+        "description": desc,
         "startDate": starts_at.isoformat(),
         "eventStatus": "https://schema.org/EventScheduled",
         # Un espacio sin identidad pública no aporta nombre; el lugar genérico
@@ -1292,6 +1393,16 @@ def _share_event_html(
         "image": [image],
         "url": url,
     }
+    if ends_at is not None:
+        schema["endDate"] = ends_at.isoformat()
+    if venue:
+        schema["organizer"] = {"@type": "Organization", "name": venue}
+    if lineup:
+        schema["performer"] = [{"@type": "PerformingGroup", "name": n} for n in lineup]
+    if has_stream:
+        schema["eventAttendanceMode"] = (
+            "https://schema.org/MixedEventAttendanceMode"
+        )
     if location:
         schema["location"]["address"] = location
     if min_price is not None:
@@ -1300,7 +1411,9 @@ def _share_event_html(
             "price": f"{min_price / 100:.2f}",
             "priceCurrency": "COP",
             "url": url,
-            "availability": "https://schema.org/InStock",
+            "availability": (
+                "https://schema.org/SoldOut" if sold_out else "https://schema.org/InStock"
+            ),
         }
     # Todo `<` se escribe como `\u003c`: ni `</script>` ni `<script>` de un
     # nombre malicioso pueden escapar del bloque. Sigue siendo JSON valido.
@@ -1313,7 +1426,8 @@ def _share_event_html(
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} — Enty</title>
-    <meta name="description" content="{escape(desc)}" />
+    <meta name="description" content="{escape(meta_desc)}" />
+    <meta name="robots" content="index, follow" />
     <link rel="canonical" href="{escape(url)}" />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="Enty" />
@@ -1357,12 +1471,19 @@ async def public_event_share_page(
     async with db.cursor() as cur:
         await cur.execute(
             f"""
-            SELECT e.name, e.flyer_url, e.location, e.starts_at, e.event_timezone,
+            SELECT e.name, e.description, e.flyer_url, e.location, e.starts_at,
+                   e.ends_at, e.capacity, e.event_timezone,
+                   to_jsonb(e) ->> 'stream_url' AS stream_url,
                    {public_venue_name_sql()} AS venue_name,
                    (SELECT min(tt.price_cents) FROM ticket_types tt
                      WHERE tt.event_id = e.id AND tt.is_active
                        AND NOT tt.is_pass_only
-                       AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price
+                       AND NOT tt.is_courtesy AND tt.price_cents > 0) AS min_price,
+                   (SELECT count(*) FROM tickets t
+                     WHERE t.event_id = e.id
+                       AND t.status IN ('issued', 'redeemed'))::int AS active,
+                   (SELECT coalesce(json_agg(l.name ORDER BY l.sort_order, l.id), '[]'::json)
+                      FROM event_lineup l WHERE l.event_id = e.id) AS lineup
             FROM events e
             JOIN venues v ON v.id = e.venue_id
             WHERE e.id = %s AND e.status IN ('published', 'live')
@@ -1384,6 +1505,11 @@ async def public_event_share_page(
         location=row["location"],
         flyer_url=row["flyer_url"],
         min_price=row["min_price"],
+        description=row["description"],
+        ends_at=row["ends_at"],
+        sold_out=bool(row["capacity"]) and row["active"] >= row["capacity"],
+        lineup=list(row["lineup"] or []),
+        has_stream=bool(row["stream_url"]),
     )
     return HTMLResponse(
         content=html,
@@ -1411,8 +1537,11 @@ async def public_ticket_page(
         await cur.execute(
             f"""
             SELECT t.id AS ticket_number, t.customer_name, t.status,
-                   e.name AS event_name, e.location, e.starts_at, e.event_timezone,
-                   e.qr_unlock_minutes, {public_venue_name_sql()} AS venue_name,
+                   e.name AS event_name, e.location, e.starts_at, e.ends_at,
+                   e.event_timezone, e.qr_unlock_minutes,
+                   tt.is_virtual, e.stream_url, e.stream_starts_at,
+                   e.stream_ends_at, e.stream_instructions,
+                   {public_venue_name_sql()} AS venue_name,
                    (SELECT n.title || ' — ' || n.message
                       FROM event_change_notices n
                      WHERE n.event_id = e.id
@@ -1420,6 +1549,7 @@ async def public_ticket_page(
                      LIMIT 1) AS change_notice
             FROM tickets t
             JOIN events e ON e.id = t.event_id
+            JOIN ticket_types tt ON tt.id = t.ticket_type_id
             JOIN venues v ON v.id = e.venue_id
             WHERE t.token_hash = encode(digest(%s, 'sha256'), 'hex')
             """,
@@ -1431,6 +1561,9 @@ async def public_ticket_page(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Boleta no encontrada")
 
     image_url = f"/api/public/tickets/{raw_token}/image.jpg"
+    # La boleta virtual no tiene QR: su vista previa usa la portada de marca,
+    # no una imagen de puerta que no existe para este tipo.
+    share_image = "/og-cover.png" if row["is_virtual"] else image_url
     # El lugar, si existe, va en la descripción de WhatsApp y en la página.
     where_line = f" · {row['location']}" if row["location"] else ""
     status_text, status_color = _STATUS_TEXT.get(row["status"], (row["status"], "#9ca3af"))
@@ -1440,6 +1573,27 @@ async def public_ticket_page(
         body = f"""
         <div class='box'><p class='bad'>{escape(status_text)}</p>
         <p>Esta boleta fue anulada por el organizador y no permite el ingreso.</p></div>"""
+    elif row["is_virtual"]:
+        # Boleta virtual (mig 075): no hay QR de puerta. El enlace se entrega
+        # solo dentro de la ventana contratada; fuera de ella se explica cuándo
+        # vuelve a abrir, sin filtrar la URL.
+        stream_active, stream_msg, _, _ = _stream_window(row)
+        if stream_active:
+            instructions = (
+                f"<p class='hint'>{escape(row['stream_instructions'])}</p>"
+                if row.get("stream_instructions")
+                else ""
+            )
+            body = f"""
+            <div class='box'><p class='ok'>Boleta virtual activa</p>
+            <p>Tu transmisión está abierta.</p>{instructions}
+            <p><a class='stream' href='{escape(row['stream_url'])}'>Ver transmisión</a></p>
+            <p class='hint'>Guarda este enlace: si se corta, vuelve aquí y ábrelo de nuevo.</p></div>"""
+        else:
+            body = f"""
+            <div class='box'><p class='ok'>Boleta virtual</p>
+            <p class='hint'>{escape(stream_msg or "")}</p>
+            <p class='hint'>Vuelve a este enlace durante el horario de la transmisión.</p></div>"""
     elif not qr_active:
         # Mig 013: el enlace sigue sirviendo (quien lo recibió no queda
         # fuera), pero el QR no se dibuja fuera de la ventana. La imagen no
@@ -1476,7 +1630,7 @@ async def public_ticket_page(
 <meta name='robots' content='noindex, nofollow'>
 <meta property='og:title' content='{escape(title)}'>
 <meta property='og:description' content='{escape(row["customer_name"])} · {escape(status_text)}{escape(where_line)}'>
-<meta property='og:image' content='{escape(image_url)}'>
+<meta property='og:image' content='{escape(share_image)}'>
 <title>{escape(title)}</title>
 <style>
   body {{ margin:0; min-height:100vh; display:grid; place-items:center;
@@ -1488,9 +1642,341 @@ async def public_ticket_page(
   .hint {{ color:#a1a1aa; font-size:.9em; }}
   .where {{ color:#e4e4e7; font-weight:600; font-size:.95em; margin:4px 0 0; }}
   .where::before {{ content:'📍 '; }}
+  .stream {{ display:inline-block; margin-top:14px; padding:12px 18px;
+            border-radius:10px; background:#7c3aed; color:#fff;
+            font-weight:700; text-decoration:none; }}
   .notice {{ border:1px solid #f59e0b; border-radius:12px; padding:14px;
             margin-bottom:16px; color:#fbbf24; text-align:left; }}
   .notice p {{ margin:6px 0 0; color:#e4e4e7; font-size:.92em; }}
   .notice-title {{ margin:0; font-weight:700; }}
 </style></head><body>{notice_html}{body}</body></html>"""
     return Response(content=html, media_type="text/html; charset=utf-8", headers=_IMAGE_HEADERS)
+
+
+# --- Autoservicio del comprador (mig 075) ---------------------------------
+#
+# Todo pasa por la misma credencial que abre Mis boletas. El contacto del
+# cuerpo nunca es la identidad: se resuelve desde el enlace firmado o desde la
+# posesión de otra boleta del mismo dueño.
+
+async def _fan_ticket_for_contact(cur, ticket_id: int, contact: str) -> dict | None:
+    key = _contact_params(contact)
+    await cur.execute(
+        f"""
+        SELECT t.id, t.customer_name, t.customer_phone, t.customer_email,
+               t.status::text AS status, e.status AS event_status,
+               e.starts_at, e.ends_at, e.event_timezone,
+               e.stream_url, e.stream_starts_at, e.stream_ends_at,
+               e.stream_instructions, tt.is_virtual
+          FROM tickets t
+          JOIN events e ON e.id = t.event_id
+          JOIN ticket_types tt ON tt.id = t.ticket_type_id
+         WHERE t.id = %(ticket_id)s
+           AND ((%(is_email)s AND {_EMAIL_MATCH})
+                OR (NOT %(is_email)s AND {_PHONE_TAIL} = right(%(phone)s, 10)))
+        """,
+        {"ticket_id": ticket_id, **key},
+    )
+    return await cur.fetchone()
+
+
+def _contact_matches_ticket(value: str, ticket: dict) -> bool:
+    """¿El contacto escrito coincide con el que tiene la boleta?"""
+    raw = (value or "").strip()
+    if not raw:
+        return False
+    if "@" in raw:
+        return bool(ticket.get("customer_email")) and (
+            raw.lower() == ticket["customer_email"].strip().lower()
+        )
+    current = digits_only(ticket.get("customer_phone") or "")
+    return bool(current) and digits_only(raw)[-10:] == current[-10:]
+
+
+@router.post("/my-tickets/{ticket_id}/questions", response_model=FanQuestionsOut)
+async def fan_ticket_questions(
+    ticket_id: int,
+    body: FanCredentialRequest,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Preguntas que el organizador hace después de comprar (mig 075)."""
+    contact = await _resolve_contact(db, body)
+    if not contact:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "El enlace venció o no es válido. Pide uno nuevo.",
+        )
+
+    async with db.cursor() as cur:
+        ticket = await _fan_ticket_for_contact(cur, ticket_id, contact)
+        if not ticket:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Boleta no encontrada")
+
+        await cur.execute(
+            """
+            SELECT q.id, q.event_id, q.prompt, q.help_text, q.kind,
+                   q.options, q.required, q.sort_order, q.closes_at,
+                   q.is_active, a.answer
+              FROM event_questions q
+              LEFT JOIN ticket_answers a
+                     ON a.question_id = q.id AND a.ticket_id = %s
+             WHERE q.event_id = (SELECT event_id FROM tickets WHERE id = %s)
+               AND q.is_active
+             ORDER BY q.sort_order, q.id
+            """,
+            (ticket_id, ticket_id),
+        )
+        rows = await cur.fetchall()
+
+    ticket_usable = ticket["status"] in ("issued", "redeemed")
+    event_open = ticket["event_status"] not in ("ended", "cancelled")
+    now = datetime.now(timezone.utc)
+    questions = []
+    for row in rows:
+        closes_at = row["closes_at"]
+        deadline_open = closes_at is None or now <= closes_at
+        if not event_open:
+            reason = "El evento ya terminó."
+        elif not ticket_usable:
+            reason = "Esta boleta ya no permite respuestas."
+        elif not deadline_open:
+            reason = "El plazo para responder terminó."
+        else:
+            reason = None
+        questions.append(
+            FanQuestionOut(
+                **{k: row[k] for k in (
+                    "id", "event_id", "prompt", "help_text", "kind", "options",
+                    "required", "sort_order", "closes_at", "is_active",
+                )},
+                answer=row["answer"],
+                can_answer=reason is None,
+                closed_reason=reason,
+            )
+        )
+    return FanQuestionsOut(ticket_id=ticket_id, questions=questions)
+
+
+def _validate_answer(question: dict, answer):
+    kind = question["kind"]
+    if kind in ("text", "textarea"):
+        if not isinstance(answer, str) or not answer.strip():
+            raise HTTPException(422, "Escribe una respuesta")
+        if len(answer) > 1000:
+            raise HTTPException(422, "La respuesta es demasiado larga")
+        return answer.strip()
+    if kind == "select":
+        options = question.get("options") or []
+        if answer not in options:
+            raise HTTPException(422, "Elige una de las opciones")
+        return answer
+    if kind == "number":
+        if isinstance(answer, bool) or not isinstance(answer, (int, float)):
+            raise HTTPException(422, "Escribe un número")
+        return answer
+    if kind == "boolean":
+        if not isinstance(answer, bool):
+            raise HTTPException(422, "Elige sí o no")
+        return answer
+    raise HTTPException(422, "Tipo de pregunta no válido")
+
+
+@router.put("/my-tickets/{ticket_id}/questions/{question_id}")
+async def fan_answer_question(
+    ticket_id: int,
+    question_id: int,
+    body: FanAnswerIn,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Guarda o actualiza una respuesta hasta la fecha límite (mig 075)."""
+    contact = await _resolve_contact(
+        db, FanCredentialRequest(token=body.token, raw_token=body.raw_token)
+    )
+    if not contact:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "El enlace venció o no es válido. Pide uno nuevo.",
+        )
+
+    async with db.cursor() as cur:
+        ticket = await _fan_ticket_for_contact(cur, ticket_id, contact)
+        if not ticket:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Boleta no encontrada")
+        if ticket["status"] not in ("issued", "redeemed"):
+            raise HTTPException(409, "Esta boleta ya no permite respuestas")
+        if ticket["event_status"] in ("ended", "cancelled"):
+            raise HTTPException(409, "El evento ya terminó")
+
+        await cur.execute(
+            """
+            SELECT q.*
+              FROM event_questions q
+             WHERE q.id = %s
+               AND q.event_id = (SELECT event_id FROM tickets WHERE id = %s)
+               AND q.is_active
+            """,
+            (question_id, ticket_id),
+        )
+        question = await cur.fetchone()
+        if not question:
+            raise HTTPException(404, "Pregunta no encontrada")
+        if question["closes_at"] is not None and datetime.now(timezone.utc) > question["closes_at"]:
+            raise HTTPException(409, "El plazo para responder terminó")
+
+        answer = _validate_answer(question, body.answer)
+        await cur.execute(
+            """
+            INSERT INTO ticket_answers
+                (question_id, ticket_id, answer, answered_by_contact)
+            VALUES (%s, %s, %s::jsonb, %s)
+            ON CONFLICT (question_id, ticket_id) DO UPDATE
+               SET answer = EXCLUDED.answer,
+                   answered_by_contact = EXCLUDED.answered_by_contact,
+                   updated_at = now()
+            RETURNING answer, updated_at
+            """,
+            (question_id, ticket_id, Jsonb(answer), contact),
+        )
+        saved = await cur.fetchone()
+        await db.commit()
+    return {
+        "question_id": question_id,
+        "answer": saved["answer"],
+        "updated_at": saved["updated_at"],
+    }
+
+
+@router.post("/my-tickets/{ticket_id}/stream", response_model=FanStreamOut)
+async def fan_ticket_stream(
+    ticket_id: int,
+    body: FanCredentialRequest,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Enlace de la transmisión, solo para una boleta virtual y en su ventana."""
+    contact = await _resolve_contact(db, body)
+    if not contact:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "El enlace venció o no es válido. Pide uno nuevo.",
+        )
+
+    async with db.cursor() as cur:
+        ticket = await _fan_ticket_for_contact(cur, ticket_id, contact)
+    if not ticket:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Boleta no encontrada")
+    if not ticket["is_virtual"]:
+        raise HTTPException(409, "Esta boleta no incluye transmisión")
+    if ticket["status"] in ("voided", "refunded"):
+        raise HTTPException(409, "Esta boleta ya no está vigente")
+
+    active, message, starts_at, ends_at = _stream_window(ticket)
+    return FanStreamOut(
+        ticket_id=ticket_id,
+        active=active,
+        url=ticket["stream_url"] if active else None,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        instructions=ticket["stream_instructions"] if active else None,
+        message=message or "",
+    )
+
+
+@router.post(
+    "/my-tickets/{ticket_id}/contact",
+    response_model=FanContactCorrectionOut,
+)
+async def fan_correct_contact(
+    ticket_id: int,
+    body: FanContactCorrectionIn,
+    request: Annotated[None, Depends(_rate_limit)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Corrección de nombre/teléfono por el comprador, sin reemitir el QR.
+
+    La credencial de Mis boletas identifica al dueño. Si además cambia el
+    teléfono, se exige el contacto actual como segundo factor: quien solo
+    tenga un enlace reenviado no puede redirigir los avisos a otro número.
+    """
+    contact = await _resolve_contact(
+        db, FanCredentialRequest(token=body.token, raw_token=body.raw_token)
+    )
+    if not contact:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "El enlace venció o no es válido. Pide uno nuevo.",
+        )
+    new_name = (body.customer_name or "").strip() or None
+    new_phone = (body.customer_phone or "").strip() or None
+    if new_name is None and new_phone is None:
+        raise HTTPException(422, "Indica qué dato quieres corregir")
+
+    async with db.cursor() as cur:
+        ticket = await _fan_ticket_for_contact(cur, ticket_id, contact)
+        if not ticket:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Boleta no encontrada")
+        if ticket["status"] != "issued":
+            raise HTTPException(409, "Esta boleta ya no se puede corregir")
+        if ticket["event_status"] in ("ended", "cancelled"):
+            raise HTTPException(409, "El evento ya terminó")
+
+        verification = "Credencial de la boleta"
+        if new_phone is not None:
+            if not _contact_matches_ticket(body.current_contact or "", ticket):
+                raise HTTPException(
+                    403,
+                    "Para cambiar el teléfono confirma el correo o teléfono "
+                    "actual de la boleta.",
+                )
+            verification += " + contacto actual confirmado"
+
+        try:
+            await cur.execute(
+                "SELECT correct_ticket_contact(%s, %s, %s, %s, %s)",
+                (
+                    ticket_id,
+                    new_name,
+                    new_phone,
+                    None,
+                    body.reason or "Autocorrección desde Mis boletas",
+                ),
+            )
+            await db.commit()
+        except psycopg.errors.Error as e:
+            primary = str(e)
+            diag = getattr(e, "diag", None)
+            if diag is not None and getattr(diag, "message_primary", ""):
+                primary = diag.message_primary
+            if "invalid_phone" in primary or "invalid_name" in primary:
+                raise HTTPException(422, "Revisa el dato que quieres corregir")
+            if "event_closed" in primary:
+                raise HTTPException(409, "El evento ya terminó")
+            if "cannot_edit_ticket_status" in primary:
+                raise HTTPException(409, "Esta boleta ya no se puede corregir")
+            raise HTTPException(400, "No pudimos corregir tus datos")
+
+        await cur.execute(
+            "SELECT customer_name, customer_phone FROM tickets WHERE id=%s",
+            (ticket_id,),
+        )
+        updated = await cur.fetchone()
+
+    changed = []
+    if new_name is not None and new_name != ticket["customer_name"]:
+        changed.append("nombre")
+    if new_phone is not None and new_phone != ticket["customer_phone"]:
+        changed.append("teléfono")
+    return FanContactCorrectionOut(
+        ticket_id=ticket_id,
+        customer_name=updated["customer_name"],
+        customer_phone=updated["customer_phone"],
+        changed=changed,
+        verification=verification,
+        message=(
+            "Datos corregidos. La boleta y el QR siguen siendo los mismos."
+            if changed
+            else "Los datos ya coincidían con lo que escribiste."
+        ),
+    )

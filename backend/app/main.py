@@ -53,6 +53,7 @@ from app.routers import (
     report,
     scanner,
     seed,
+    seo,
     sessions,
     team,
     tickets,
@@ -245,6 +246,7 @@ def create_app() -> FastAPI:
     app.include_router(waiting_room.router)
     app.include_router(payments.router)
     app.include_router(seed.router)
+    app.include_router(seo.router)
     app.include_router(analytics.router)
 
     @app.get("/health", tags=["ops"])

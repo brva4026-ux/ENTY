@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
-import { fetchMyTickets, fetchMyTicketToken, fetchFanTicketsWithAccess } from "../lib/api";
+import {
+  fetchMyTickets,
+  fetchMyTicketToken,
+  fetchFanTicketsWithAccess,
+  fetchMyTicketQuestions,
+  saveMyTicketAnswer,
+  fetchMyTicketStream,
+  correctMyTicketContact,
+} from "../lib/api";
 import FanNav from "../components/FanNav";
 import { Logo, Spark } from "../components/Brand";
 import useDocumentTitle from "../lib/useDocumentTitle";
@@ -60,6 +68,19 @@ export default function MyTicketsPage() {
   const [qr, setQr] = useState(null);
   const [qrError, setQrError] = useState("");
   const [qrBusy, setQrBusy] = useState(false);
+  const [panel, setPanel] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [panelBusy, setPanelBusy] = useState(false);
+  const [panelError, setPanelError] = useState("");
+  const [panelInfo, setPanelInfo] = useState("");
+  const [stream, setStream] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    phone: "",
+    current: "",
+    reason: "",
+  });
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -161,6 +182,133 @@ export default function MyTicketsPage() {
       if (mounted.current) setQrError(e.message || "No pudimos generar tu QR");
     } finally {
       if (mounted.current) setQrBusy(false);
+    }
+  }
+
+
+  function resetPanel() {
+    setPanel(null);
+    setPanelError("");
+    setPanelInfo("");
+    setStream(null);
+    setQuestions([]);
+    setAnswers({});
+  }
+
+  async function openQuestions(ticket) {
+    setPanel({ ticketId: ticket.ticket_id, kind: "questions" });
+    setPanelError("");
+    setPanelInfo("");
+    setPanelBusy(true);
+    try {
+      const res = await fetchMyTicketQuestions(ticket.ticket_id, credential);
+      setQuestions(res.questions || []);
+      setAnswers(
+        Object.fromEntries(
+          (res.questions || []).map((q) => [q.id, q.answer ?? ""]),
+        ),
+      );
+    } catch (e) {
+      setPanelError(e.message || "No pudimos cargar las preguntas");
+    } finally {
+      setPanelBusy(false);
+    }
+  }
+
+  async function saveAnswers() {
+    const pending = questions.filter((q) => q.can_answer);
+    const missing = pending.filter(
+      (q) =>
+        q.required &&
+        (answers[q.id] === "" || answers[q.id] === null || answers[q.id] === undefined),
+    );
+    if (missing.length) {
+      setPanelError("Responde las preguntas obligatorias antes de guardar.");
+      return;
+    }
+    setPanelBusy(true);
+    setPanelError("");
+    try {
+      for (const q of pending) {
+        const value = answers[q.id];
+        if (value === "" || value === null || value === undefined) continue;
+        await saveMyTicketAnswer(
+          panel.ticketId,
+          q.id,
+          credential,
+          q.kind === "number" ? Number(value) : value,
+        );
+      }
+      setPanelInfo("Respuestas guardadas. Gracias por ayudar al organizador.");
+      const refreshed = await fetchMyTicketQuestions(panel.ticketId, credential);
+      setQuestions(refreshed.questions || []);
+    } catch (e) {
+      setPanelError(e.message || "No pudimos guardar tus respuestas");
+    } finally {
+      setPanelBusy(false);
+    }
+  }
+
+  async function openStream(ticket) {
+    setPanel({ ticketId: ticket.ticket_id, kind: "stream" });
+    setPanelError("");
+    setPanelInfo("");
+    setPanelBusy(true);
+    try {
+      setStream(await fetchMyTicketStream(ticket.ticket_id, credential));
+    } catch (e) {
+      setPanelError(e.message || "No pudimos abrir la transmisión");
+    } finally {
+      setPanelBusy(false);
+    }
+  }
+
+  function openCorrection(ticket) {
+    setPanel({ ticketId: ticket.ticket_id, kind: "contact" });
+    setPanelError("");
+    setPanelInfo("");
+    setEditForm({
+      name: ticket.customer_name || "",
+      phone: ticket.customer_phone || "",
+      current: "",
+      reason: "",
+    });
+  }
+
+  async function saveCorrection(ticket) {
+    const phoneChanged = (editForm.phone || "").trim() !== (ticket.customer_phone || "");
+    if (phoneChanged && !editForm.current.trim()) {
+      setPanelError(
+        "Para cambiar el teléfono confirma el correo o teléfono actual de la boleta.",
+      );
+      return;
+    }
+    setPanelBusy(true);
+    setPanelError("");
+    try {
+      const res = await correctMyTicketContact(ticket.ticket_id, credential, {
+        customer_name: editForm.name.trim() || undefined,
+        customer_phone: editForm.phone.trim() || undefined,
+        current_contact: phoneChanged ? editForm.current.trim() : undefined,
+        reason: editForm.reason.trim() || undefined,
+      });
+      setData((prev) => ({
+        ...prev,
+        tickets: (prev?.tickets || []).map((row) =>
+          row.ticket_id === ticket.ticket_id
+            ? {
+                ...row,
+                customer_name: res.customer_name,
+                customer_phone: res.customer_phone,
+              }
+            : row,
+        ),
+      }));
+      setPanelInfo(res.message);
+    } catch (e) {
+      setPanelError(e.message || "No pudimos corregir tus datos");
+    } finally {
+      setPanelBusy(false);
     }
   }
 
@@ -272,10 +420,19 @@ export default function MyTicketsPage() {
                     </div>
                   )}
 
-                  {t.has_link ? (
-                    <div className="fan-ticket-foot">
-                      <span className="fan-ticket-num">Boleta #{t.ticket_id}</span>
-                      {isOpen ? (
+                  <div className="fan-ticket-foot">
+                    <span className="fan-ticket-num">Boleta #{t.ticket_id}</span>
+                    {t.is_virtual ? (
+                      <button
+                        type="button"
+                        className="home-cta fan-cta"
+                        onClick={() => openStream(t)}
+                        disabled={!t.stream_active}
+                      >
+                        {t.stream_active ? "Ver transmisión" : "Transmisión cerrada"}
+                      </button>
+                    ) : t.has_link ? (
+                      isOpen ? (
                         <button
                           type="button"
                           className="fan-link"
@@ -295,15 +452,37 @@ export default function MyTicketsPage() {
                         >
                           {t.qr_active ? "Ver mi QR" : "Aún no activo"}
                         </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="fan-ticket-foot">
-                      <span className="fan-ticket-num">Boleta #{t.ticket_id}</span>
-                    </div>
-                  )}
+                      )
+                    ) : null}
+                  </div>
 
-                  {isOpen && t.qr_active ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {t.has_questions && (
+                      <button
+                        type="button"
+                        className="btn-mini"
+                        onClick={() => openQuestions(t)}
+                      >
+                        Preguntas del organizador
+                      </button>
+                    )}
+                    {t.status === "issued" && (
+                      <button
+                        type="button"
+                        className="btn-mini"
+                        onClick={() => openCorrection(t)}
+                      >
+                        Corregir mis datos
+                      </button>
+                    )}
+                    {t.is_virtual && !t.stream_active && t.stream_message && (
+                      <span className="text-2xs text-zinc-500">
+                        {t.stream_message}
+                      </span>
+                    )}
+                  </div>
+
+                  {isOpen && !t.is_virtual && t.qr_active ? (
                     <div className="fan-qr">
                       {qrBusy ? (
                         <p className="fan-qr-hint fan-qr-loading">
@@ -330,9 +509,243 @@ export default function MyTicketsPage() {
                     </div>
                   ) : null}
 
-                  {t.has_link && !t.qr_active ? (
+                  {!t.is_virtual && t.has_link && !t.qr_active ? (
                     <p className="fan-qr-hint fan-qr-wait">{t.qr_message}</p>
                   ) : null}
+
+                  {panel?.ticketId === t.ticket_id && (
+                    <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <strong>
+                          {panel.kind === "questions"
+                            ? "Preguntas del organizador"
+                            : panel.kind === "stream"
+                              ? "Transmisión"
+                              : "Corregir mis datos"}
+                        </strong>
+                        <button
+                          type="button"
+                          className="fan-link"
+                          onClick={resetPanel}
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+
+                      {panelError && (
+                        <p className="mb-2 rounded-lg bg-red-500/10 px-2 py-1 text-xs text-red-300">
+                          {panelError}
+                        </p>
+                      )}
+                      {panelInfo && (
+                        <p className="mb-2 rounded-lg bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">
+                          {panelInfo}
+                        </p>
+                      )}
+
+                      {panel.kind === "questions" &&
+                        (panelBusy && questions.length === 0 ? (
+                          <p className="fan-qr-hint">Cargando preguntas…</p>
+                        ) : questions.length === 0 ? (
+                          <p className="fan-qr-hint">
+                            Este evento no tiene preguntas activas.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {questions.map((q) => (
+                              <label key={q.id} className="block">
+                                <span className="block text-xs font-semibold text-zinc-200">
+                                  {q.prompt}
+                                  {q.required ? " *" : ""}
+                                </span>
+                                {q.help_text && (
+                                  <small className="mb-1 block text-2xs text-zinc-500">
+                                    {q.help_text}
+                                  </small>
+                                )}
+                                {q.kind === "select" ? (
+                                  <select
+                                    className="field mt-1"
+                                    value={answers[q.id] ?? ""}
+                                    disabled={!q.can_answer || panelBusy}
+                                    onChange={(e) =>
+                                      setAnswers((prev) => ({
+                                        ...prev,
+                                        [q.id]: e.target.value,
+                                      }))
+                                    }
+                                  >
+                                    <option value="">Elige una opción</option>
+                                    {(q.options || []).map((o) => (
+                                      <option key={o} value={o}>{o}</option>
+                                    ))}
+                                  </select>
+                                ) : q.kind === "boolean" ? (
+                                  <select
+                                    className="field mt-1"
+                                    value={
+                                      answers[q.id] === ""
+                                        ? ""
+                                        : String(answers[q.id])
+                                    }
+                                    disabled={!q.can_answer || panelBusy}
+                                    onChange={(e) =>
+                                      setAnswers((prev) => ({
+                                        ...prev,
+                                        [q.id]:
+                                          e.target.value === ""
+                                            ? ""
+                                            : e.target.value === "true",
+                                      }))
+                                    }
+                                  >
+                                    <option value="">Elige una opción</option>
+                                    <option value="true">Sí</option>
+                                    <option value="false">No</option>
+                                  </select>
+                                ) : q.kind === "textarea" ? (
+                                  <textarea
+                                    className="field mt-1"
+                                    rows={3}
+                                    value={answers[q.id] ?? ""}
+                                    disabled={!q.can_answer || panelBusy}
+                                    onChange={(e) =>
+                                      setAnswers((prev) => ({
+                                        ...prev,
+                                        [q.id]: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                ) : (
+                                  <input
+                                    className="field mt-1"
+                                    type={q.kind === "number" ? "number" : "text"}
+                                    value={answers[q.id] ?? ""}
+                                    disabled={!q.can_answer || panelBusy}
+                                    onChange={(e) =>
+                                      setAnswers((prev) => ({
+                                        ...prev,
+                                        [q.id]: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                )}
+                                {!q.can_answer && q.closed_reason && (
+                                  <small className="mt-1 block text-2xs text-amber-300">
+                                    {q.closed_reason}
+                                  </small>
+                                )}
+                              </label>
+                            ))}
+                            <button
+                              type="button"
+                              className="btn-mini"
+                              onClick={saveAnswers}
+                              disabled={panelBusy}
+                            >
+                              {panelBusy ? "Guardando…" : "Guardar respuestas"}
+                            </button>
+                          </div>
+                        ))}
+
+                      {panel.kind === "stream" &&
+                        (panelBusy ? (
+                          <p className="fan-qr-hint">Abriendo transmisión…</p>
+                        ) : stream ? (
+                          <div className="space-y-2">
+                            <p className="text-xs text-zinc-300">{stream.message}</p>
+                            {stream.active && stream.url && (
+                              <a
+                                className="btn-mini inline-block"
+                                href={stream.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Abrir transmisión
+                              </a>
+                            )}
+                            {stream.instructions && (
+                              <p className="text-2xs text-zinc-500">
+                                {stream.instructions}
+                              </p>
+                            )}
+                          </div>
+                        ) : null)}
+
+                      {panel.kind === "contact" && (
+                        <form
+                          className="space-y-2"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            saveCorrection(t);
+                          }}
+                        >
+                          <p className="text-2xs text-zinc-500">
+                            Corrige el nombre o teléfono de esta boleta. No se
+                            emite otra boleta ni cambia el titular.
+                          </p>
+                          <label className="block">
+                            <span className="text-2xs text-zinc-400">Nombre</span>
+                            <input
+                              className="field mt-1"
+                              value={editForm.name}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, name: e.target.value })
+                              }
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="text-2xs text-zinc-400">Teléfono</span>
+                            <input
+                              className="field mt-1"
+                              value={editForm.phone}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, phone: e.target.value })
+                              }
+                            />
+                          </label>
+                          {(editForm.phone || "").trim() !==
+                            (t.customer_phone || "") && (
+                            <label className="block">
+                              <span className="text-2xs text-zinc-400">
+                                Confirma el correo o teléfono actual de la boleta
+                              </span>
+                              <input
+                                className="field mt-1"
+                                value={editForm.current}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    current: e.target.value,
+                                  })
+                                }
+                                placeholder="Para cambiar el teléfono"
+                              />
+                            </label>
+                          )}
+                          <label className="block">
+                            <span className="text-2xs text-zinc-400">
+                              Motivo (opcional)
+                            </span>
+                            <input
+                              className="field mt-1"
+                              value={editForm.reason}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, reason: e.target.value })
+                              }
+                            />
+                          </label>
+                          <button
+                            type="submit"
+                            className="btn-mini"
+                            disabled={panelBusy}
+                          >
+                            {panelBusy ? "Guardando…" : "Guardar corrección"}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  )}
                 </article>
               );
             })}

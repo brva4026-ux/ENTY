@@ -19,6 +19,8 @@
       ],
       "destination": "/api/public/share/evento/:id"
     },
+    { "source": "/sitemap.xml", "destination": "/api/index.py" },
+    { "source": "/robots.txt", "destination": "/api/index.py" },
     { "source": "/api/:path*", "destination": "/api/index.py" },
     { "source": "/:path*", "destination": "/index.html" }
   ],

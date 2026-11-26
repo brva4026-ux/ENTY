@@ -6,11 +6,14 @@ import {
   createLottery,
   createManualAdmission,
   createPoll,
+  createEventQuestion,
   createRecording,
   deleteRecording,
+  deleteEventQuestion,
   drawLottery,
   getAccessRules,
   getArchive,
+  getEventAdmin,
   getFeeConfig,
   getStaffingForecast,
   getVenueProfile,
@@ -19,6 +22,7 @@ import {
   listLotteries,
   listLotteryWinners,
   listManualAdmissions,
+  listEventQuestions,
   listPolls,
   listRecordings,
   listRsvps,
@@ -31,6 +35,8 @@ import {
   saveVenueProfile,
   setPollStatus,
   updateDispute,
+  updateEventAdmin,
+  updateEventQuestion,
   updateRsvp,
 } from "../lib/api";
 
@@ -47,6 +53,7 @@ const TABS = [
   ["personal", "Personal"],
   ["enlaces", "Enlaces"],
   ["archivo", "Archivo"],
+  ["preparacion", "Preparación"],
 ];
 
 function useAction() {
@@ -508,6 +515,281 @@ function ArchiveSection({ venueId, eventId }) {
   );
 }
 
+
+function toLocalInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function PreparationSection({ venueId, eventId }) {
+  const act = useAction();
+  const [questions, setQuestions] = useState([]);
+  const [form, setForm] = useState({
+    prompt: "",
+    help_text: "",
+    kind: "text",
+    options: "",
+    required: false,
+    closes_at: "",
+  });
+  const [stream, setStream] = useState({
+    url: "",
+    starts: "",
+    ends: "",
+    instructions: "",
+  });
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const rows = await act(() => listEventQuestions(venueId, eventId));
+    if (rows) setQuestions(rows);
+    const event = await act(() => getEventAdmin(venueId, eventId));
+    if (event) {
+      setStream({
+        url: event.stream_url || "",
+        starts: toLocalInput(event.stream_starts_at),
+        ends: toLocalInput(event.stream_ends_at),
+        instructions: event.stream_instructions || "",
+      });
+    }
+  }, [act, venueId, eventId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function addQuestion(e) {
+    e.preventDefault();
+    setBusy(true);
+    const created = await act(
+      () =>
+        createEventQuestion(venueId, eventId, {
+          prompt: form.prompt.trim(),
+          help_text: form.help_text.trim() || null,
+          kind: form.kind,
+          options:
+            form.kind === "select"
+              ? form.options.split(",").map((x) => x.trim()).filter(Boolean)
+              : [],
+          required: form.required,
+          closes_at: form.closes_at
+            ? new Date(form.closes_at).toISOString()
+            : null,
+        }),
+      "Pregunta publicada",
+    );
+    if (created) {
+      setQuestions((prev) => [...prev, created]);
+      setForm({
+        prompt: "",
+        help_text: "",
+        kind: "text",
+        options: "",
+        required: false,
+        closes_at: "",
+      });
+    }
+    setBusy(false);
+  }
+
+  async function toggleQuestion(row) {
+    const updated = await act(() =>
+      updateEventQuestion(venueId, eventId, row.id, {
+        is_active: !row.is_active,
+      }),
+    );
+    if (updated) {
+      setQuestions((prev) => prev.map((q) => (q.id === updated.id ? updated : q)));
+    }
+  }
+
+  async function removeQuestion(row) {
+    const ok = await act(() => deleteEventQuestion(venueId, eventId, row.id));
+    if (ok !== null) setQuestions((prev) => prev.filter((q) => q.id !== row.id));
+  }
+
+  async function saveStream(e) {
+    e.preventDefault();
+    setBusy(true);
+    const saved = await act(
+      () =>
+        updateEventAdmin(venueId, eventId, {
+          stream_url: stream.url.trim() || null,
+          stream_starts_at: stream.starts
+            ? new Date(stream.starts).toISOString()
+            : null,
+          stream_ends_at: stream.ends ? new Date(stream.ends).toISOString() : null,
+          stream_instructions: stream.instructions.trim() || null,
+        }),
+      "Transmisión guardada",
+    );
+    if (saved) {
+      setStream({
+        url: saved.stream_url || "",
+        starts: toLocalInput(saved.stream_starts_at),
+        ends: toLocalInput(saved.stream_ends_at),
+        instructions: saved.stream_instructions || "",
+      });
+    }
+    setBusy(false);
+  }
+
+  return (
+    <>
+      <p className="bs-suite-note">
+        Prepara la experiencia después de la compra: preguntas para tus
+        asistentes y la ventana de la transmisión para boletas virtuales.
+      </p>
+
+      <h4>Transmisión</h4>
+      <form className="bs-suite-form" onSubmit={saveStream}>
+        <label>
+          Enlace del directo
+          <input
+            type="url"
+            value={stream.url}
+            onChange={(e) => setStream({ ...stream, url: e.target.value })}
+            placeholder="https://…"
+          />
+        </label>
+        <label>
+          Abre
+          <input
+            type="datetime-local"
+            value={stream.starts}
+            onChange={(e) => setStream({ ...stream, starts: e.target.value })}
+          />
+        </label>
+        <label>
+          Cierra
+          <input
+            type="datetime-local"
+            value={stream.ends}
+            onChange={(e) => setStream({ ...stream, ends: e.target.value })}
+          />
+        </label>
+        <label>
+          Instrucciones
+          <textarea
+            rows={2}
+            value={stream.instructions}
+            onChange={(e) =>
+              setStream({ ...stream, instructions: e.target.value })
+            }
+            placeholder="Cómo entrar, a qué hora conectarse…"
+          />
+        </label>
+        <button className="btn-mini" type="submit" disabled={busy}>
+          Guardar transmisión
+        </button>
+      </form>
+      <p className="bs-suite-note">
+        El enlace solo se entrega a una boleta virtual dentro de esta ventana.
+        La ficha pública anuncia el horario, nunca la URL.
+      </p>
+
+      <h4>Preguntas después de comprar</h4>
+      <form className="bs-suite-form" onSubmit={addQuestion}>
+        <label>
+          Pregunta
+          <input
+            value={form.prompt}
+            onChange={(e) => setForm({ ...form, prompt: e.target.value })}
+            placeholder="¿Qué nivel de experiencia tienes?"
+            required
+          />
+        </label>
+        <label>
+          Tipo
+          <select
+            value={form.kind}
+            onChange={(e) => setForm({ ...form, kind: e.target.value })}
+          >
+            <option value="text">Texto corto</option>
+            <option value="textarea">Texto largo</option>
+            <option value="select">Selección</option>
+            <option value="number">Número</option>
+            <option value="boolean">Sí / No</option>
+          </select>
+        </label>
+        {form.kind === "select" && (
+          <label>
+            Opciones separadas por coma
+            <input
+              value={form.options}
+              onChange={(e) => setForm({ ...form, options: e.target.value })}
+              placeholder="Principiante, Intermedio, Avanzado"
+            />
+          </label>
+        )}
+        <label>
+          Ayuda (opcional)
+          <input
+            value={form.help_text}
+            onChange={(e) => setForm({ ...form, help_text: e.target.value })}
+          />
+        </label>
+        <label>
+          Cierra
+          <input
+            type="datetime-local"
+            value={form.closes_at}
+            onChange={(e) => setForm({ ...form, closes_at: e.target.value })}
+          />
+        </label>
+        <label className="bs-suite-check">
+          <input
+            type="checkbox"
+            checked={form.required}
+            onChange={(e) => setForm({ ...form, required: e.target.checked })}
+          />
+          Obligatoria
+        </label>
+        <button className="btn-mini" type="submit" disabled={busy}>
+          Agregar pregunta
+        </button>
+      </form>
+
+      <ul className="bs-suite-list">
+        {questions.map((q) => (
+          <li key={q.id}>
+            <div>
+              <b>{q.prompt}</b>
+              <small>
+                {q.kind}
+                {q.required ? " · obligatoria" : ""} · {q.answer_count}{" "}
+                respuesta(s)
+                {q.is_active === false ? " · pausada" : ""}
+              </small>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn-mini"
+                onClick={() => toggleQuestion(q)}
+              >
+                {q.is_active === false ? "Activar" : "Pausar"}
+              </button>
+              <button
+                type="button"
+                className="btn-mini"
+                data-variant="danger"
+                onClick={() => removeQuestion(q)}
+              >
+                Eliminar
+              </button>
+            </div>
+          </li>
+        ))}
+        {questions.length === 0 && (
+          <li><small>Aún no hay preguntas para este evento.</small></li>
+        )}
+      </ul>
+    </>
+  );
+}
+
 export default function EventMorePanel({ venueId, eventId, types = [] }) {
   const [tab, setTab] = useState("ingreso");
   const props = { venueId, eventId, types };
@@ -537,6 +819,7 @@ export default function EventMorePanel({ venueId, eventId, types = [] }) {
         {tab === "personal" && <StaffingSection {...props} />}
         {tab === "enlaces" && <LinkCheckSection {...props} />}
         {tab === "archivo" && <ArchiveSection {...props} />}
+        {tab === "preparacion" && <PreparationSection {...props} />}
       </div>
     </section>
   );

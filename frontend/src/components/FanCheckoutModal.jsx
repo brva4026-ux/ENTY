@@ -385,10 +385,11 @@ export default function FanCheckoutModal({
                 value={typeId ?? ""}
                 onChange={(e) => setTypeId(Number(e.target.value))}
               >
-                {types.map((t) => (
-                  <option key={t.id} value={t.id} disabled={t.sold_out}>
-                    {t.name} — {money(t.price_cents)}
-                    {t.sold_out ? ` (${t(lang, "soldOut")})` : ""}
+                {types.map((type) => (
+                  <option key={type.id} value={type.id} disabled={type.sold_out}>
+                    {type.name}
+                    {type.is_virtual ? " · Virtual" : ""} — {money(type.price_cents)}
+                    {type.sold_out ? ` (${t(lang, "soldOut")})` : ""}
                   </option>
                 ))}
               </select>

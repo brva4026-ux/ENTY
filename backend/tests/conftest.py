@@ -90,6 +90,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "072_enty_more.sql",
     ROOT / "db" / "migrations" / "073_enty_onboarding.sql",
     ROOT / "db" / "migrations" / "074_payout_verification_and_fees.sql",
+    ROOT / "db" / "migrations" / "075_questions_stream_and_seo.sql",
 ]
 
 
@@ -460,6 +461,7 @@ class Api:
         price_cents: int = 0,
         quantity: int = 10,
         is_courtesy: bool = True,
+        is_virtual: bool = False,
     ) -> dict:
         res = self.post(
             f"/venues/{venue_id}/events/{event_id}/types",
@@ -469,6 +471,7 @@ class Api:
                 "price_cents": price_cents,
                 "quantity": quantity,
                 "is_courtesy": is_courtesy,
+                "is_virtual": is_virtual,
             },
         )
         assert res.status_code == 201, res.text
@@ -505,6 +508,7 @@ class Api:
         ticket_type_id: int,
         allocation_id: int | None,
         customer_name: str = "Asistente",
+        customer_phone: str = "3001234567",
     ) -> dict:
         res = self.post(
             f"/venues/{venue_id}/events/{event_id}/tickets",
@@ -513,7 +517,7 @@ class Api:
                 "ticket_type_id": ticket_type_id,
                 "allocation_id": allocation_id,
                 "customer_name": customer_name,
-                "customer_phone": "3001234567",
+                "customer_phone": customer_phone,
             },
         )
         assert res.status_code == 201, res.text
