@@ -50,3 +50,18 @@ CREATE TABLE IF NOT EXISTS ticket_answers (
 
 CREATE INDEX IF NOT EXISTS idx_ticket_answers_ticket
     ON ticket_answers (ticket_id, question_id);
+
+-- Las respuestas pueden contener datos del comprador. El backend entra como
+-- owner (bypassa RLS); la Data API de Supabase no tiene por qué verlas.
+ALTER TABLE event_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ticket_answers ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        EXECUTE 'REVOKE ALL ON TABLE event_questions, ticket_answers FROM anon';
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        EXECUTE 'REVOKE ALL ON TABLE event_questions, ticket_answers FROM authenticated';
+    END IF;
+END $$;

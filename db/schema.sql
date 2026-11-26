@@ -7002,3 +7002,47 @@ CREATE TABLE IF NOT EXISTS public.ticket_answers (
 );
 CREATE INDEX IF NOT EXISTS idx_ticket_answers_ticket
     ON public.ticket_answers (ticket_id, question_id);
+
+-- Las respuestas pueden contener datos del comprador. El backend entra como
+-- owner (bypassa RLS); la Data API de Supabase no tiene por qué verlas.
+ALTER TABLE public.event_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ticket_answers ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        EXECUTE 'REVOKE ALL ON TABLE public.event_questions, public.ticket_answers FROM anon';
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        EXECUTE 'REVOKE ALL ON TABLE public.event_questions, public.ticket_answers FROM authenticated';
+    END IF;
+END $$;
+
+
+-- --- Migracion 076: cerrar la Data API de Supabase sobre public -------------
+DO $$
+DECLARE r record;
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+            EXECUTE format('REVOKE ALL ON TABLE public.%I FROM anon', r.tablename);
+        END LOOP;
+        FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public' LOOP
+            EXECUTE format('REVOKE ALL ON SEQUENCE public.%I FROM anon', r.sequencename);
+        END LOOP;
+        REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+            EXECUTE format('REVOKE ALL ON TABLE public.%I FROM authenticated', r.tablename);
+        END LOOP;
+        FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public' LOOP
+            EXECUTE format('REVOKE ALL ON SEQUENCE public.%I FROM authenticated', r.sequencename);
+        END LOOP;
+        REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM authenticated;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM authenticated;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM authenticated;
+    END IF;
+END $$;
