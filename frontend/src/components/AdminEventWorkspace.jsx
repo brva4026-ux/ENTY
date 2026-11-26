@@ -11,6 +11,7 @@ import AccreditationsPanel from "./AccreditationsPanel";
 import SessionsPanel from "./SessionsPanel";
 import BreakEvenPanel from "./BreakEvenPanel";
 import EventExtrasPanel from "./EventExtrasPanel";
+import EventMorePanel from "./EventMorePanel";
 import EventSummary, { SectionContext } from "./EventSummary";
 import { money, plural } from "../lib/format";
 
@@ -367,6 +368,7 @@ export default function AdminEventWorkspace({
           next="Transporte, plano, turnos, órdenes, equipos, hitos, documentos, reventa y pronóstico."
         />
         <EventExtrasPanel venueId={venueId} eventId={eventId} types={types} />
+        <EventMorePanel venueId={venueId} eventId={eventId} types={types} />
       </div>
     );
   }

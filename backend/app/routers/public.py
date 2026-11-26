@@ -756,7 +756,22 @@ async def public_checkout(
                 "Ese cupón cubre el precio completo: pídele al organizador "
                 "una boleta de cortesía.",
             )
-
+        # Costos transparentes (mig 072): el comprador ve y paga el mismo total
+        # que muestra la ficha. El cupón descuenta la boleta, no los cargos.
+        await cur.execute(
+            "SELECT service_fee_cents, payment_fee_pct, tax_pct"
+            " FROM event_fee_config WHERE event_id=%s",
+            (event_id,),
+        )
+        fee_cfg = await cur.fetchone()
+        if fee_cfg:
+            service = int(fee_cfg["service_fee_cents"])
+            base_for_pct = charge_cents + service
+            charge_cents = (
+                base_for_pct
+                + round(base_for_pct * float(fee_cfg["payment_fee_pct"]) / 100)
+                + round(base_for_pct * float(fee_cfg["tax_pct"]) / 100)
+            )
         reference = payment_reference(event_id)
         email = (body.customer_email or "").strip() or None
         promoter_id = None

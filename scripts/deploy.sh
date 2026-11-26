@@ -92,6 +92,7 @@ MIGRATIONS=(
     db/migrations/069_event_costs.sql
     db/migrations/070_zones.sql
     db/migrations/071_enty_suite.sql
+    db/migrations/072_enty_more.sql
 )
 
 echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"

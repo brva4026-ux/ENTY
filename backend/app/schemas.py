@@ -3139,3 +3139,114 @@ class BundleIn(BaseModel):
     event_ids: list[int] = Field(min_length=1)
     price_cents: int = Field(ge=0)
     quantity: int = Field(gt=0)
+
+
+# --------------------------------------------------------------------------
+# Doce frentes nuevos (mig 072)
+# --------------------------------------------------------------------------
+class ManualAdmissionIn(BaseModel):
+    ticket_id: int
+    reason: str = Field(min_length=3, max_length=300)
+    verification: str = Field(min_length=3, max_length=300)
+
+
+class DisputeIn(BaseModel):
+    payment_id: int | None = None
+    amount_cents: int = Field(ge=0)
+    reason: str = Field(min_length=3, max_length=500)
+    due_at: datetime | None = None
+    notes: str | None = Field(default=None, max_length=1000)
+
+
+class DisputePatch(BaseModel):
+    status: Literal["abierta", "en_revision", "ganada", "perdida", "cerrada"] | None = None
+    notes: str | None = Field(default=None, max_length=1000)
+    evidence: dict[str, Any] | None = None
+
+
+class FeeConfigIn(BaseModel):
+    service_fee_cents: int = Field(default=0, ge=0)
+    payment_fee_pct: float = Field(default=0, ge=0, le=100)
+    tax_pct: float = Field(default=0, ge=0, le=100)
+    show_breakdown: bool = True
+
+
+class AccessRulesIn(BaseModel):
+    dress_code: str | None = Field(default=None, max_length=500)
+    bags_policy: str | None = Field(default=None, max_length=500)
+    prohibited_items: list[str] = Field(default_factory=list)
+
+
+class PollIn(BaseModel):
+    question: str = Field(min_length=3, max_length=300)
+    opens_at: datetime | None = None
+    closes_at: datetime | None = None
+    options: list[str] = Field(min_length=2)
+
+
+class PollStatusIn(BaseModel):
+    status: Literal["borrador", "abierta", "cerrada", "publicada"]
+
+
+class PollVoteIn(BaseModel):
+    ticket_token: str = Field(min_length=8)
+    option_id: int
+
+
+class RecordingIn(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    url: str = Field(min_length=1, max_length=1000)
+    ticket_type_id: int | None = None
+    available_from: datetime | None = None
+    available_until: datetime | None = None
+
+
+class LotteryIn(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    opens_at: datetime
+    closes_at: datetime
+    draw_at: datetime | None = None
+    quantity: int = Field(gt=0, le=10000)
+    terms: str | None = Field(default=None, max_length=1000)
+
+
+class LotteryEntryIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=160)
+    phone: str | None = Field(default=None, max_length=40)
+
+
+class RsvpIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=160)
+    phone: str | None = Field(default=None, max_length=40)
+
+
+class RsvpStatusIn(BaseModel):
+    status: Literal["confirmada", "reconfirmar", "cancelada"]
+
+
+class VenueProfileIn(BaseModel):
+    stage_width_m: float | None = Field(default=None, ge=0)
+    stage_depth_m: float | None = Field(default=None, ge=0)
+    load_in_start: str | None = Field(default=None, max_length=8)
+    load_in_end: str | None = Field(default=None, max_length=8)
+    sound_system: str | None = Field(default=None, max_length=500)
+    lighting: str | None = Field(default=None, max_length=500)
+    power: str | None = Field(default=None, max_length=500)
+    capacity_notes: str | None = Field(default=None, max_length=1000)
+    technical_contact: str | None = Field(default=None, max_length=200)
+
+
+class LinkCheckIn(BaseModel):
+    url: str = Field(min_length=1, max_length=1000)
+    kind: str = Field(default="campana", max_length=40)
+
+
+class ArchiveIn(BaseModel):
+    enabled: bool = False
+    headline: str | None = Field(default=None, max_length=200)
+    summary: str | None = Field(default=None, max_length=2000)
+    photos: list[str] = Field(default_factory=list)
+    video_url: str | None = Field(default=None, max_length=1000)
+    next_event_id: int | None = None

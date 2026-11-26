@@ -11,7 +11,12 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { apiFetch } from "../lib/api";
+import {
+  apiFetch,
+  createManualAdmission,
+  getAccessRules,
+  lookupDoorTickets,
+} from "../lib/api";
 import { activeVenueId } from "../lib/venue";
 import { playForCode, playOffline } from "../lib/doorSounds";
 import {
@@ -301,7 +306,13 @@ export default function BouncerScanner() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [manualCode, setManualCode] = useState("");
-  const [panel, setPanel] = useState(null); // manual | incidents | shift
+  const [panel, setPanel] = useState(null); // manual | lookup | incidents | shift
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupRows, setLookupRows] = useState([]);
+  const [lookupTicket, setLookupTicket] = useState(null);
+  const [manualReason, setManualReason] = useState("Sin batería o teléfono descargado");
+  const [manualVerification, setManualVerification] = useState("Documento y compra confirmados");
+  const [accessRules, setAccessRules] = useState(null);
   const [scanMode, setScanMode] = useState(
     () => localStorage.getItem("tf_scan_mode") || "in",
   );
@@ -690,6 +701,53 @@ export default function BouncerScanner() {
     if (panel || result) return;
     if (scanMode === "out") await exitToken(decodedText);
     else await redeemToken(decodedText);
+  }
+
+  async function searchLookup(e) {
+    e.preventDefault();
+    if (lookupQuery.trim().length < 3) return;
+    try {
+      const rows = await lookupDoorTickets(venueId, selectedEvent, lookupQuery);
+      setLookupRows(rows || []);
+    } catch (error) {
+      setLookupRows([]);
+      setError(error.message || "No se pudo buscar");
+    }
+  }
+
+  async function admitLookup() {
+    if (!lookupTicket) return;
+    try {
+      const res = await createManualAdmission(venueId, selectedEvent, {
+        ticket_id: lookupTicket.id,
+        reason: manualReason,
+        verification: manualVerification,
+      });
+      setResult({
+        code: "GRANTED",
+        customer_name: res.customer_name || lookupTicket.customer_name,
+        ticket_type: lookupTicket.type_name,
+        detail: "Ingreso manual registrado. El QR queda marcado como usado.",
+      });
+      setLookupTicket(null);
+      setLookupRows([]);
+      setLookupQuery("");
+      setPanel(null);
+    } catch (error) {
+      setError(error.message || "No se pudo registrar el ingreso");
+    }
+  }
+
+  async function openLookup() {
+    setPanel("lookup");
+    setError(null);
+    setLookupRows([]);
+    setLookupTicket(null);
+    try {
+      setAccessRules(await getAccessRules(venueId, selectedEvent));
+    } catch {
+      setAccessRules(null);
+    }
   }
 
   async function submitManual(e) {
@@ -1125,6 +1183,11 @@ export default function BouncerScanner() {
             <strong>Código manual</strong>
             <small>QR dañado</small>
           </button>
+          <button type="button" onClick={openLookup}>
+            <span className="door2-action-icon"><Icon name="user" className="h-5 w-5" /></span>
+            <strong>Sin celular</strong>
+            <small>Buscar compra</small>
+          </button>
           <button type="button" onClick={openIncidentList}>
             <span className="door2-action-icon"><Icon name="flag" className="h-5 w-5" /></span>
             <strong>Incidencias</strong>
@@ -1180,6 +1243,76 @@ export default function BouncerScanner() {
               {scanMode === "in" ? "Validar ingreso" : "Registrar salida"}
             </button>
           </form>
+        </Sheet>
+      )}
+
+      {panel === "lookup" && (
+        <Sheet
+          title="Ingreso sin celular"
+          subtitle={`${context?.assigned_door || "Puerta"} · ${scanMode === "in" ? "Entrada" : "Salida"}`}
+          onClose={() => setPanel(null)}
+        >
+          {accessRules && (accessRules.dress_code || accessRules.bags_policy || accessRules.prohibited_items?.length > 0) && (
+            <div className="door2-lookup-rules">
+              <strong>Reglas del evento · versión {accessRules.version}</strong>
+              {accessRules.dress_code && <p>Vestimenta: {accessRules.dress_code}</p>}
+              {accessRules.bags_policy && <p>Bolsos: {accessRules.bags_policy}</p>}
+              {accessRules.prohibited_items?.length > 0 && (
+                <p>Prohibidos: {accessRules.prohibited_items.join(", ")}</p>
+              )}
+            </div>
+          )}
+          <form className="door2-form" onSubmit={searchLookup}>
+            <label>
+              Nombre, teléfono o correo
+              <input
+                autoFocus
+                value={lookupQuery}
+                onChange={(e) => setLookupQuery(e.target.value)}
+                placeholder="Ej. Camila o 3001234567"
+                autoComplete="off"
+              />
+            </label>
+            <button type="submit" className="door2-btn door2-btn--soft door2-btn--wide">
+              Buscar compra
+            </button>
+          </form>
+          <div className="door2-lookup-list">
+            {lookupRows.map((row) => (
+              <button
+                key={row.id}
+                type="button"
+                className="door2-lookup-row"
+                data-active={lookupTicket?.id === row.id}
+                onClick={() => setLookupTicket(row)}
+              >
+                <strong>{row.customer_name}</strong>
+                <span>{row.type_name} · {row.status === "redeemed" ? "Ya ingresó" : "Vigente"}</span>
+                <span>{row.customer_phone || row.customer_email || "Sin contacto"}</span>
+              </button>
+            ))}
+          </div>
+          {lookupTicket && lookupTicket.status !== "redeemed" && (
+            <div className="door2-form">
+              <label>
+                Motivo
+                <input value={manualReason} onChange={(e) => setManualReason(e.target.value)} />
+              </label>
+              <label>
+                Verificación
+                <input value={manualVerification} onChange={(e) => setManualVerification(e.target.value)} />
+              </label>
+              <button type="button" className="door2-btn door2-btn--primary door2-btn--wide" onClick={admitLookup}>
+                Registrar ingreso
+              </button>
+              <p className="door2-hint">
+                Se registra la entrada y el QR original queda como utilizado.
+              </p>
+            </div>
+          )}
+          {lookupTicket?.status === "redeemed" && (
+            <p className="door2-hint">Esa boleta ya ingresó el {new Date(lookupTicket.redeemed_at).toLocaleString()}.</p>
+          )}
         </Sheet>
       )}
 

@@ -3959,3 +3959,25 @@ html:not([data-theme="light"]) .admin-shell {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Más herramientas (mig 072) */
+.bs-suite-more { margin-top: 18px; }
+.bs-suite-more textarea,
+.bs-suite-more select {
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  color: inherit;
+  font: inherit;
+}
+.bs-suite-more .bs-suite-card label { display: grid; gap: 4px; font-size: 12px; }
+.bs-suite-more .bs-suite-card input,
+.bs-suite-more .bs-suite-card select { width: 100%; }
+.bs-suite-check { display: flex !important; align-items: center; gap: 8px; }
+.bs-suite-check input { width: auto !important; }
+.bs-suite-breakdown { display: grid; gap: 4px; margin-top: 8px; }
+.bs-suite-breakdown p { display: flex; justify-content: space-between; gap: 12px; margin: 0; font-size: 13px; }
+.bs-suite-row[data-active="true"] { border-color: #22c55e; background: color-mix(in srgb, #22c55e 12%, transparent); }
+.bs-suite-row { text-align: left; }

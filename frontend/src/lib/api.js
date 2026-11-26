@@ -864,3 +864,176 @@ export function requestCheckoutRecovery(eventId, payload) {
 export function getCheckoutRecovery(token) {
   return apiFetch(`/public/checkout-recovery/${token}`);
 }
+
+// --- Doce frentes nuevos (mig 072) ---
+export function getFeeConfig(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/fee-config`);
+}
+export function saveFeeConfig(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/fee-config`, {
+    method: "PUT", body: JSON.stringify(payload),
+  });
+}
+export function publicFees(eventId, ticketTypeId) {
+  return apiFetch(`/public/events/${eventId}/fees?ticket_type_id=${ticketTypeId}`);
+}
+export function getAccessRules(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/access-rules`);
+}
+export function saveAccessRules(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/access-rules`, {
+    method: "PUT", body: JSON.stringify(payload),
+  });
+}
+export function publicAccessRules(eventId) {
+  return apiFetch(`/public/events/${eventId}/access-rules`);
+}
+export function lookupDoorTickets(venueId, eventId, query) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/door/lookup?q=${encodeURIComponent(query)}`,
+  );
+}
+export function createManualAdmission(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/door/manual-admission`, {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+export function listManualAdmissions(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/door/manual-admissions`);
+}
+export function listDisputes(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/disputes`);
+}
+export function createDispute(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/disputes`, {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+export function updateDispute(venueId, eventId, disputeId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/disputes/${disputeId}`, {
+    method: "PATCH", body: JSON.stringify(payload),
+  });
+}
+export function listPolls(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/polls`);
+}
+export function createPoll(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/polls`, {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+export function setPollStatus(venueId, eventId, pollId, status) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/polls/${pollId}`, {
+    method: "PATCH", body: JSON.stringify({ status }),
+  });
+}
+export function publicPolls(eventId) {
+  return apiFetch(`/public/events/${eventId}/polls`);
+}
+export function votePoll(pollId, payload) {
+  return apiFetch(`/public/polls/${pollId}/vote`, {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+export function listRecordings(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/recordings`);
+}
+export function createRecording(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/recordings`, {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+export function deleteRecording(venueId, eventId, recordingId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/recordings/${recordingId}`, {
+    method: "DELETE",
+  });
+}
+export function publicRecordings(eventId, ticketToken) {
+  const suffix = ticketToken ? `?ticket_token=${encodeURIComponent(ticketToken)}` : "";
+  return apiFetch(`/public/events/${eventId}/recordings${suffix}`);
+}
+export function listLotteries(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/lotteries`);
+}
+export function createLottery(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/lotteries`, {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+export function drawLottery(venueId, eventId, lotteryId) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/lotteries/${lotteryId}/draw`,
+    { method: "POST" },
+  );
+}
+export function listLotteryWinners(venueId, eventId, lotteryId) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/lotteries/${lotteryId}/winners`,
+  );
+}
+export function publicLotteries(eventId) {
+  return apiFetch(`/public/events/${eventId}/lotteries`);
+}
+export function enterLottery(lotteryId, payload) {
+  return apiFetch(`/public/lotteries/${lotteryId}/enter`, {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+export function getLotteryWinner(token) {
+  return apiFetch(`/public/lottery-winners/${token}`);
+}
+export function claimLotteryWinner(token) {
+  return apiFetch(`/public/lottery-winners/${token}/claim`, { method: "POST" });
+}
+export function listRsvps(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/rsvps`);
+}
+export function updateRsvp(venueId, eventId, rsvpId, status) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/rsvps/${rsvpId}`, {
+    method: "PATCH", body: JSON.stringify({ status }),
+  });
+}
+export function createRsvp(eventId, payload) {
+  return apiFetch(`/public/events/${eventId}/rsvp`, {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+export function getRsvp(token) {
+  return apiFetch(`/public/rsvps/${token}`);
+}
+export function cancelRsvp(token) {
+  return apiFetch(`/public/rsvps/${token}/cancel`, { method: "POST" });
+}
+export function getVenueProfile(venueId) {
+  return apiFetch(`/venues/${venueId}/profile`);
+}
+export function saveVenueProfile(venueId, payload) {
+  return apiFetch(`/venues/${venueId}/profile`, {
+    method: "PUT", body: JSON.stringify(payload),
+  });
+}
+export function publicVenueProfile(venueId) {
+  return apiFetch(`/public/venues/${venueId}/profile`);
+}
+export function getStaffingForecast(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/staffing-forecast`);
+}
+export function listLinkChecks(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/link-checks`);
+}
+export function runLinkCheck(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/link-checks`, {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+export function getArchive(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/archive`);
+}
+export function saveArchive(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/archive`, {
+    method: "PUT", body: JSON.stringify(payload),
+  });
+}
+export function publicArchive(eventId) {
+  return apiFetch(`/public/events/${eventId}/archive`);
+}

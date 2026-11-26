@@ -7,6 +7,14 @@ import {
   publicResales,
   recordPromoterLinkVisit,
   requestResale,
+  publicAccessRules,
+  publicPolls,
+  publicRecordings,
+  publicLotteries,
+  enterLottery,
+  createRsvp,
+  publicArchive,
+  votePoll,
 } from "../lib/api";
 import ContactSupport from "../components/ContactSupport";
 import FanCheckoutModal from "../components/FanCheckoutModal";
@@ -161,6 +169,17 @@ export default function EventDetailPage() {
   });
   const [resaleForm, setResaleForm] = useState({ id: null, name: "", phone: "" });
   const [resaleMsg, setResaleMsg] = useState("");
+  const [rules, setRules] = useState(null);
+  const [polls, setPolls] = useState([]);
+  const [lotteries, setLotteries] = useState([]);
+  const [archive, setArchive] = useState(null);
+  const [recordings, setRecordings] = useState(null);
+  const [ticketCode, setTicketCode] = useState("");
+  const [voteMsg, setVoteMsg] = useState("");
+  const [lotteryForm, setLotteryForm] = useState({ id: null, name: "", email: "" });
+  const [lotteryMsg, setLotteryMsg] = useState("");
+  const [rsvpForm, setRsvpForm] = useState({ name: "", email: "" });
+  const [rsvpMsg, setRsvpMsg] = useState("");
 
   async function requestResaleOffer(e) {
     e.preventDefault();
@@ -286,10 +305,18 @@ export default function EventDetailPage() {
     Promise.all([
       publicEventExtras(id).catch(() => ({ transport: [], map_points: [] })),
       publicResales(id).catch(() => []),
-    ]).then(([ex, rs]) => {
+      publicAccessRules(id).catch(() => null),
+      publicPolls(id).catch(() => []),
+      publicLotteries(id).catch(() => []),
+      publicArchive(id).catch(() => null),
+    ]).then(([ex, rs, rl, pl, lt, ar]) => {
       if (!alive) return;
       setExtras(ex);
       setResales(rs || []);
+      setRules(rl);
+      setPolls(pl || []);
+      setLotteries(lt || []);
+      setArchive(ar);
     });
     return () => { alive = false; };
   }, [id]);
@@ -1085,6 +1112,140 @@ export default function EventDetailPage() {
                     </div>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {rules && (rules.dress_code || rules.bags_policy || rules.prohibited_items?.length > 0) && (
+              <section className="evd-section" aria-labelledby="evd-rules-title">
+                <h2 id="evd-rules-title" className="evd-section-title">Antes de venir</h2>
+                <div className="evd-extra-list">
+                  {rules.dress_code && (
+                    <div className="evd-extra-card"><strong>Vestimenta</strong><span>{rules.dress_code}</span></div>
+                  )}
+                  {rules.bags_policy && (
+                    <div className="evd-extra-card"><strong>Bolsos</strong><span>{rules.bags_policy}</span></div>
+                  )}
+                  {rules.prohibited_items?.length > 0 && (
+                    <div className="evd-extra-card"><strong>Objetos prohibidos</strong><span>{rules.prohibited_items.join(", ")}</span></div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {polls.length > 0 && (
+              <section className="evd-section" aria-labelledby="evd-poll-title">
+                <h2 id="evd-poll-title" className="evd-section-title">Votación</h2>
+                <label className="evd-muted">
+                  Tu código de boleta
+                  <input value={ticketCode} onChange={(e) => setTicketCode(e.target.value)} placeholder="Pegalo aquí para votar" />
+                </label>
+                {voteMsg && <p className="evd-muted" role="status">{voteMsg}</p>}
+                {polls.map((poll) => (
+                  <div className="evd-extra-card" key={poll.id}>
+                    <strong>{poll.question}</strong>
+                    {poll.status !== "abierta" && <span>Votación {poll.status}</span>}
+                    {(poll.options || []).map((opt) => (
+                      <button key={opt.id} type="button" className="evd-cta evd-cta--ghost"
+                        disabled={poll.status !== "abierta" || ticketCode.trim().length < 8}
+                        onClick={async () => {
+                          try {
+                            await votePoll(poll.id, { ticket_token: ticketCode.trim(), option_id: opt.id });
+                            setVoteMsg("Voto registrado.");
+                          } catch (err) {
+                            setVoteMsg(err.message || "No se pudo votar.");
+                          }
+                        }}>
+                        {opt.label}{opt.votes != null ? ` · ${opt.votes}` : ""}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </section>
+            )}
+
+            {lotteries.length > 0 && (
+              <section className="evd-section" aria-labelledby="evd-lottery-title">
+                <h2 id="evd-lottery-title" className="evd-section-title">Sorteo de acceso</h2>
+                {lotteryMsg && <p className="evd-muted" role="status">{lotteryMsg}</p>}
+                {lotteries.map((lot) => (
+                  <div className="evd-extra-card" key={lot.id}>
+                    <strong>{lot.name}</strong>
+                    <span>{lot.quantity} cupos · {lot.entries} inscritos</span>
+                    {lotteryForm.id === lot.id ? (
+                      <form className="evd-resale-form" onSubmit={async (e) => {
+                        e.preventDefault();
+                        try {
+                          await enterLottery(lot.id, { name: lotteryForm.name, email: lotteryForm.email });
+                          setLotteryMsg("Quedaste inscrito.");
+                          setLotteryForm({ id: null, name: "", email: "" });
+                        } catch (err) { setLotteryMsg(err.message || "No se pudo inscribir."); }
+                      }}>
+                        <input required placeholder="Nombre" value={lotteryForm.name} onChange={(e) => setLotteryForm((f) => ({ ...f, name: e.target.value }))} />
+                        <input required type="email" placeholder="Correo" value={lotteryForm.email} onChange={(e) => setLotteryForm((f) => ({ ...f, email: e.target.value }))} />
+                        <button type="submit" className="evd-cta">Inscribirme</button>
+                      </form>
+                    ) : (
+                      <button type="button" className="evd-cta evd-cta--ghost" onClick={() => setLotteryForm({ id: lot.id, name: "", email: "" })}>Participar</button>
+                    )}
+                  </div>
+                ))}
+              </section>
+            )}
+
+            <section className="evd-section" aria-labelledby="evd-rsvp-title">
+              <h2 id="evd-rsvp-title" className="evd-section-title">Confirmar asistencia gratis</h2>
+              <p className="evd-muted">Si el evento no requiere pago, dejá tus datos y te guardamos el lugar.</p>
+              {rsvpMsg && <p className="evd-muted" role="status">{rsvpMsg}</p>}
+              <form className="evd-resale-form" onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  await createRsvp(id, rsvpForm);
+                  setRsvpMsg("Asistencia confirmada.");
+                  setRsvpForm({ name: "", email: "" });
+                } catch (err) { setRsvpMsg(err.message || "No se pudo confirmar."); }
+              }}>
+                <input required placeholder="Nombre" value={rsvpForm.name} onChange={(e) => setRsvpForm((f) => ({ ...f, name: e.target.value }))} />
+                <input required type="email" placeholder="Correo" value={rsvpForm.email} onChange={(e) => setRsvpForm((f) => ({ ...f, email: e.target.value }))} />
+                <button type="submit" className="evd-cta">Confirmar</button>
+              </form>
+            </section>
+
+            <section className="evd-section" aria-labelledby="evd-recording-title">
+              <h2 id="evd-recording-title" className="evd-section-title">Grabación del evento</h2>
+              <p className="evd-muted">Si compraste boleta, abrí la grabación con tu código.</p>
+              <form className="evd-resale-form" onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  setRecordings(await publicRecordings(id, ticketCode.trim()));
+                } catch (err) { setRecordings([]); }
+              }}>
+                <input value={ticketCode} onChange={(e) => setTicketCode(e.target.value)} placeholder="Código de boleta" />
+                <button type="submit" className="evd-cta evd-cta--ghost">Ver grabación</button>
+              </form>
+              {recordings?.length > 0 && recordings.map((rec) => (
+                <div className="evd-extra-card" key={rec.id}>
+                  <strong>{rec.title}</strong>
+                  <a href={rec.url} target="_blank" rel="noreferrer">Abrir grabación</a>
+                </div>
+              ))}
+              {recordings?.length === 0 && <p className="evd-muted">No hay grabación disponible para esa boleta.</p>}
+            </section>
+
+            {archive && (
+              <section className="evd-section" aria-labelledby="evd-archive-title">
+                <h2 id="evd-archive-title" className="evd-section-title">Evento pasado</h2>
+                <p className="evd-place-name">{archive.headline || archive.name}</p>
+                {archive.summary && <p className="evd-muted">{archive.summary}</p>}
+                {(archive.photos || []).length > 0 && (
+                  <div className="evd-extra-list">
+                    {archive.photos.map((url) => (
+                      <a key={url} href={url} target="_blank" rel="noreferrer" className="evd-extra-card">Ver foto</a>
+                    ))}
+                  </div>
+                )}
+                {archive.next_name && (
+                  <p className="evd-muted">Próximo evento: {archive.next_name}</p>
+                )}
               </section>
             )}
 

@@ -4,6 +4,7 @@ import {
   startPublicCheckout,
   fetchPublicCheckoutStatus,
   quotePublicCoupon,
+  publicFees,
 } from "../lib/api";
 import { money } from "../lib/format";
 import { waLink } from "../lib/whatsapp";
@@ -55,6 +56,7 @@ export default function FanCheckoutModal({
   // ir a Wompi. La cotización NO consume el cupón (eso pasa en el checkout).
   const [coupon, setCoupon] = useState("");
   const [quote, setQuote] = useState(null);
+  const [fees, setFees] = useState(null);
   const [quoting, setQuoting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -114,6 +116,11 @@ export default function FanCheckoutModal({
   }, [reference]);
 
   const selected = types.find((t) => t.id === typeId) || null;
+
+  useEffect(() => {
+    if (!event?.id || !typeId) { setFees(null); return; }
+    publicFees(event.id, typeId).then(setFees).catch(() => setFees(null));
+  }, [event?.id, typeId]);
 
   // Marca un campo como culpable del aviso. `field` alimenta aria-describedby.
   //
@@ -387,6 +394,16 @@ export default function FanCheckoutModal({
               </select>
             </label>
 
+            {fees?.show_breakdown && (
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-2xs text-zinc-300">
+                <p className="flex justify-between"><span>Boleta</span><b>{money(fees.base_cents)}</b></p>
+                {fees.service_fee_cents > 0 && <p className="flex justify-between"><span>Servicio</span><b>{money(fees.service_fee_cents)}</b></p>}
+                {fees.payment_fee_cents > 0 && <p className="flex justify-between"><span>Pago</span><b>{money(fees.payment_fee_cents)}</b></p>}
+                {fees.tax_cents > 0 && <p className="flex justify-between"><span>Impuesto</span><b>{money(fees.tax_cents)}</b></p>}
+                <p className="flex justify-between text-zinc-100"><span>Total</span><b>{money(fees.total_cents)}</b></p>
+              </div>
+            )}
+
             <label className="block">
               <span className="mb-1 block text-xs font-semibold text-zinc-400">
                 {t(lang, "name")}
@@ -565,7 +582,7 @@ export default function FanCheckoutModal({
                   ? t(lang, "pay", { amount: money(
                       quote?.valid
                         ? quote.final_in_cents
-                        : selected.price_cents,
+                        : fees?.total_cents ?? selected.price_cents,
                     ) })
                   : t(lang, "buy")}
             </button>
