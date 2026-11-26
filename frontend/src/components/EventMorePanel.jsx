@@ -23,7 +23,7 @@ import {
   listRecordings,
   listRsvps,
   lookupDoorTickets,
-  publicFees,
+  adminFeePreview,
   runLinkCheck,
   saveAccessRules,
   saveArchive,
@@ -166,38 +166,73 @@ function DisputeSection({ venueId, eventId }) {
 
 function FeeSection({ venueId, eventId, types }) {
   const act = useAction();
-  const [cfg, setCfg] = useState({ service_fee_cents: 0, payment_fee_pct: 0, tax_pct: 0, show_breakdown: true });
+  const [cfg, setCfg] = useState({
+    service_fee_cents: 0,
+    payment_fee_pct: 0,
+    tax_pct: 0,
+    show_breakdown: true,
+    platform_fee_bps: 0,
+    platform_fee_fixed_cents: 0,
+    platform_fee_payer: "organizer",
+  });
   const [typeId, setTypeId] = useState(types?.[0]?.id || "");
   const [preview, setPreview] = useState(null);
-  useEffect(() => { getFeeConfig(venueId, eventId).then(setCfg).catch(() => {}); }, [venueId, eventId]);
-  useEffect(() => { if (typeId) publicFees(eventId, typeId).then(setPreview).catch(() => setPreview(null)); }, [eventId, typeId]);
+
+  const refreshPreview = useCallback(async (ticketTypeId = typeId) => {
+    if (!ticketTypeId) return;
+    try {
+      setPreview(await adminFeePreview(venueId, eventId, ticketTypeId));
+    } catch {
+      setPreview(null);
+    }
+  }, [venueId, eventId, typeId]);
+
+  useEffect(() => {
+    getFeeConfig(venueId, eventId).then(setCfg).catch(() => {});
+  }, [venueId, eventId]);
+  useEffect(() => { refreshPreview(); }, [refreshPreview]);
+
   async function save(e) {
     e.preventDefault();
     const saved = await act(() => saveFeeConfig(venueId, eventId, cfg), "Costos guardados.");
-    if (saved) setCfg(saved);
+    if (saved) {
+      setCfg(saved);
+      refreshPreview();
+    }
   }
+
   return (
     <>
-      <h4>Costos transparentes</h4>
+      <h4>Costos transparentes y comisión de Enty</h4>
       <form className="bs-suite-form" onSubmit={save}>
-        <label>Servicio (centavos)<input type="number" value={cfg.service_fee_cents} onChange={(e) => setCfg({ ...cfg, service_fee_cents: Number(e.target.value) })} /></label>
+        <label>Servicio al comprador (centavos)<input type="number" value={cfg.service_fee_cents} onChange={(e) => setCfg({ ...cfg, service_fee_cents: Number(e.target.value) })} /></label>
         <label>Comisión de pago (%)<input type="number" step="0.01" value={cfg.payment_fee_pct} onChange={(e) => setCfg({ ...cfg, payment_fee_pct: Number(e.target.value) })} /></label>
         <label>Impuesto (%)<input type="number" step="0.01" value={cfg.tax_pct} onChange={(e) => setCfg({ ...cfg, tax_pct: Number(e.target.value) })} /></label>
+        <label>Comisión de Enty (%)<input type="number" min="0" max="100" step="0.01" value={(cfg.platform_fee_bps || 0) / 100} onChange={(e) => setCfg({ ...cfg, platform_fee_bps: Math.round(Number(e.target.value) * 100) })} /></label>
+        <label>Cargo fijo de Enty (centavos)<input type="number" min="0" value={cfg.platform_fee_fixed_cents} onChange={(e) => setCfg({ ...cfg, platform_fee_fixed_cents: Number(e.target.value) })} /></label>
+        <label>¿Quién paga la comisión de Enty?
+          <select value={cfg.platform_fee_payer} onChange={(e) => setCfg({ ...cfg, platform_fee_payer: e.target.value })}>
+            <option value="organizer">El organizador, desde su liquidación</option>
+            <option value="buyer">El comprador, en el total</option>
+          </select>
+        </label>
         <label className="bs-suite-check"><input type="checkbox" checked={cfg.show_breakdown} onChange={(e) => setCfg({ ...cfg, show_breakdown: e.target.checked })} /> Mostrar desglose al comprador</label>
         <button className="btn-mini" type="submit">Guardar</button>
       </form>
       <div className="bs-suite-card">
-        <strong>Vista previa del comprador</strong>
+        <strong>Simulación de una venta</strong>
         <select value={typeId} onChange={(e) => setTypeId(Number(e.target.value))}>
           {types?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
         {preview && (
           <div className="bs-suite-breakdown">
+            <p><span>Paga el comprador</span><b>{money(preview.buyer_total_cents)}</b></p>
             <p><span>Boleta</span><b>{money(preview.base_cents)}</b></p>
             <p><span>Servicio</span><b>{money(preview.service_fee_cents)}</b></p>
-            <p><span>Pago</span><b>{money(preview.payment_fee_cents)}</b></p>
+            <p><span>Comisión de pago</span><b>{money(preview.payment_fee_cents)}</b></p>
             <p><span>Impuesto</span><b>{money(preview.tax_cents)}</b></p>
-            <p><span>Total</span><b>{money(preview.total_cents)}</b></p>
+            <p><span>Enty ({preview.platform_fee_payer === "buyer" ? "lo paga el comprador" : "lo paga el organizador"})</span><b>{money(preview.platform_fee_cents)}</b></p>
+            <p><span>Neto para el organizador</span><b>{money(preview.organizer_net_cents)}</b></p>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 """Reserva transaccional antes del cobro externo, compartida por fan y admin."""
 import psycopg
 from fastapi import HTTPException
+from psycopg.types.json import Jsonb
 
 from app.core.db_errors import translate_db_error
 from app.services import wompi
@@ -10,7 +11,7 @@ async def create_reserved_payment(
     db, *, event_id, ticket_type_id, reference, amount, customer_name,
     customer_phone, customer_email, user_id, coupon_id, discount,
     expires_at, name, description, redirect_url, customer_birth_date=None,
-    promoter_id=None, sale_channel=None,
+    promoter_id=None, sale_channel=None, fee_breakdown=None,
 ):
     try:
         async with db.cursor() as cur:
@@ -21,15 +22,26 @@ async def create_reserved_payment(
                  customer_birth_date),
             )
             payment_id = (await cur.fetchone())["id"]
-            if promoter_id is not None or sale_channel is not None:
+            if (promoter_id is not None or sale_channel is not None
+                    or fee_breakdown is not None):
+                breakdown = fee_breakdown or {}
                 await cur.execute(
                     """
                     UPDATE ticket_payments
                        SET promoter_id = COALESCE(%s, promoter_id),
-                           sale_channel = COALESCE(%s, sale_channel)
+                           sale_channel = COALESCE(%s, sale_channel),
+                           fee_breakdown = COALESCE(%s, fee_breakdown),
+                           platform_fee_cents = COALESCE(%s, platform_fee_cents),
+                           organizer_net_cents = COALESCE(%s, organizer_net_cents)
                      WHERE id = %s
                     """,
-                    (promoter_id, sale_channel, payment_id),
+                    (
+                        promoter_id, sale_channel,
+                        Jsonb(breakdown) if fee_breakdown else None,
+                        breakdown.get("platform_fee_cents"),
+                        breakdown.get("organizer_net_cents"),
+                        payment_id,
+                    ),
                 )
         await db.commit()
     except psycopg.Error as error:

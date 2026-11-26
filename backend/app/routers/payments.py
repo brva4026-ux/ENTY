@@ -93,6 +93,15 @@ async def create_payment(
         raise HTTPException(503, "Pagos online no configurados en este entorno")
 
     async with db.cursor() as cur:
+        await cur.execute(
+            "SELECT status FROM venue_payout_profiles WHERE venue_id=%s",
+            (venue_id,),
+        )
+        profile = await cur.fetchone()
+        if not profile or profile["status"] != "approved":
+            raise HTTPException(
+                409, "El organizador aún no está habilitado para cobrar en línea."
+            )
         # El tipo debe ser del evento (y del bar): evita cobrar por un tipo
         # de otro evento.
         await cur.execute(

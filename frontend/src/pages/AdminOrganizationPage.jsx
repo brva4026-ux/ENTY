@@ -9,6 +9,7 @@ import TeamManager from "../components/TeamManager";
 import InvitationsManager from "../components/InvitationsManager";
 import VenueImportPanel from "../components/VenueImportPanel";
 import VenueExitPanel from "../components/VenueExitPanel";
+import PayoutProfilePanel from "../components/PayoutProfilePanel";
 import { PushToggle } from "../components/PushToggle";
 import { LegalLinks } from "../components/LegalLinks";
 import TransitionLink from "../components/TransitionLink";
@@ -18,6 +19,7 @@ const TABS = [
   { id: "invitaciones", label: "Invitaciones" },
   { id: "importar", label: "Importar" },
   { id: "salida", label: "Salida" },
+  { id: "cobros", label: "Cobros" },
   { id: "ajustes", label: "Ajustes" },
 ];
 
@@ -177,6 +179,12 @@ export default function AdminOrganizationPage() {
       {tab === "salida" && (
         <section role="tabpanel" aria-label="Salida ordenada">
           <VenueExitPanel venueId={venueId} />
+        </section>
+      )}
+
+      {tab === "cobros" && (
+        <section role="tabpanel" aria-label="Cobros">
+          <PayoutProfilePanel venueId={venueId} />
         </section>
       )}
 

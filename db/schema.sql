@@ -4,7 +4,7 @@ BEGIN;
 -- TicketFlow — ESQUEMA COMPLETO (v2, consolidado)
 -- ============================================================================
 -- Fuente UNICA de verdad: este archivo + las migraciones de db/migrations/ en
--- orden (002..050) reproducen EXACTAMENTE la misma base. Aplicar ambos es
+-- orden (002..074) reproducen EXACTAMENTE la misma base. Aplicar ambos es
 -- seguro en cualquier estado:
 --   * instalacion nueva: schema.sql crea todo; las migraciones quedan en
 --     no-ops (todas son idempotentes: IF NOT EXISTS / OR REPLACE).
@@ -17,10 +17,10 @@ BEGIN;
 -- dump del Postgres local y falla si la base y el archivo se separan (nada
 -- entra a produccion sin pasar por aca).
 --
--- Contenido: 32 tablas (incluye rate_limit_hits de la mig 041 y
--- event_lineup / coupons / ticket_refunds de la 043), enums
--- user_role / ticket_status, extension pgcrypto, funciones de negocio y sus
--- triggers.
+-- Contenido: todas las tablas del producto (incluye rate_limit_hits,
+-- event_lineup / coupons / ticket_refunds, import_* y
+-- venue_payout_profiles de la 074), enums, extension pgcrypto, funciones de
+-- negocio y sus triggers.
 -- La logica transaccional (emit_ticket / redeem_ticket / reissue_ticket /
 -- set_event_status / void_ticket / lockout / notificaciones) vive AQUI, en
 -- la DB; los routers solo traducen parametros y errores SQL a HTTP.
@@ -6915,3 +6915,48 @@ CREATE TABLE IF NOT EXISTS public.import_rows (
 CREATE INDEX IF NOT EXISTS idx_import_rows_batch
     ON public.import_rows (batch_id, row_number);
 
+
+-- ============================================================================
+-- Migración 074 — verificación del organizador y comisión de Enty
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.venue_payout_profiles (
+    venue_id bigint PRIMARY KEY REFERENCES public.venues(id) ON DELETE CASCADE,
+    status text NOT NULL DEFAULT 'not_started'
+        CHECK (status IN ('not_started','pending','approved','rejected')),
+    legal_name text,
+    tax_id text,
+    contact_name text,
+    contact_phone text,
+    contact_email text,
+    bank_name text,
+    bank_account_type text
+        CHECK (bank_account_type IS NULL OR bank_account_type IN ('ahorros','corriente','billetera')),
+    bank_account_last4 text
+        CHECK (bank_account_last4 IS NULL OR bank_account_last4 ~ '^[0-9]{4}$'),
+    payout_provider text,
+    payout_account_ref text,
+    missing_items text[] NOT NULL DEFAULT '{}'::text[],
+    review_note text,
+    submitted_at timestamp with time zone,
+    reviewed_at timestamp with time zone,
+    reviewed_by_user_id bigint REFERENCES public.users(id) ON DELETE SET NULL,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_venue_payout_profiles_status
+    ON public.venue_payout_profiles (status);
+
+ALTER TABLE public.event_fee_config
+    ADD COLUMN IF NOT EXISTS platform_fee_bps integer NOT NULL DEFAULT 0
+        CHECK (platform_fee_bps >= 0 AND platform_fee_bps <= 10000),
+    ADD COLUMN IF NOT EXISTS platform_fee_fixed_cents bigint NOT NULL DEFAULT 0
+        CHECK (platform_fee_fixed_cents >= 0),
+    ADD COLUMN IF NOT EXISTS platform_fee_payer text NOT NULL DEFAULT 'organizer'
+        CHECK (platform_fee_payer IN ('organizer','buyer'));
+
+ALTER TABLE public.ticket_payments
+    ADD COLUMN IF NOT EXISTS platform_fee_cents bigint NOT NULL DEFAULT 0
+        CHECK (platform_fee_cents >= 0),
+    ADD COLUMN IF NOT EXISTS organizer_net_cents bigint NOT NULL DEFAULT 0
+        CHECK (organizer_net_cents >= 0),
+    ADD COLUMN IF NOT EXISTS fee_breakdown jsonb NOT NULL DEFAULT '{}'::jsonb;

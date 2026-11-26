@@ -878,6 +878,9 @@ export function saveFeeConfig(venueId, eventId, payload) {
 export function publicFees(eventId, ticketTypeId) {
   return apiFetch(`/public/events/${eventId}/fees?ticket_type_id=${ticketTypeId}`);
 }
+export function adminFeePreview(venueId, eventId, ticketTypeId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/fee-preview?ticket_type_id=${ticketTypeId}`);
+}
 export function getAccessRules(venueId, eventId) {
   return apiFetch(`/venues/${venueId}/events/${eventId}/access-rules`);
 }

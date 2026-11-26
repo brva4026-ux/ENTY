@@ -89,6 +89,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "071_enty_suite.sql",
     ROOT / "db" / "migrations" / "072_enty_more.sql",
     ROOT / "db" / "migrations" / "073_enty_onboarding.sql",
+    ROOT / "db" / "migrations" / "074_payout_verification_and_fees.sql",
 ]
 
 
@@ -123,7 +124,7 @@ def db():
             email_change_tokens, security_events, user_sessions,
             ticket_returns, event_waitlist, ticket_contact_edits, login_attempts, password_reset_tokens, media, audit_log,
             redemptions, promoter_payouts, tickets, promoter_allocations, ticket_types, events,
-            venue_user_roles, venues, users, ticket_payments,
+            venue_user_roles, venue_payout_profiles, venues, users, ticket_payments,
             -- Aceptaciones legales (mig 028): legal_acceptances referencia
             -- legal_documents, y ambas a users/venues. CASCADE resuelve el
             -- orden; se listan para que una corrida previa no deje las tablas
@@ -327,10 +328,18 @@ def world(db) -> dict:
     password_hash = hash_password(TEST_PASSWORD)
 
     def make_venue(label: str) -> int:
-        return db.execute(
+        venue_id = db.execute(
             "INSERT INTO venues (name, slug) VALUES (%s, %s) RETURNING id",
             (f"Venue {label} {tag}", f"venue-{label}-{tag}"),
         ).fetchone()["id"]
+        # La verificación de cobros (mig 074) se prueba aparte; el resto de la
+        # suite necesita un negocio que ya pueda vender.
+        db.execute(
+            "INSERT INTO venue_payout_profiles (venue_id, status) "
+            "VALUES (%s, 'approved')",
+            (venue_id,),
+        )
+        return venue_id
 
     def make_user(label: str, venue_id: int, role: str) -> dict:
         email = f"{label}-{tag}@example.test"

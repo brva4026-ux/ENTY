@@ -400,6 +400,7 @@ export default function FanCheckoutModal({
                 {fees.service_fee_cents > 0 && <p className="flex justify-between"><span>Servicio</span><b>{money(fees.service_fee_cents)}</b></p>}
                 {fees.payment_fee_cents > 0 && <p className="flex justify-between"><span>Pago</span><b>{money(fees.payment_fee_cents)}</b></p>}
                 {fees.tax_cents > 0 && <p className="flex justify-between"><span>Impuesto</span><b>{money(fees.tax_cents)}</b></p>}
+                {fees.platform_fee_cents > 0 && <p className="flex justify-between"><span>Servicio Enty</span><b>{money(fees.platform_fee_cents)}</b></p>}
                 <p className="flex justify-between text-zinc-100"><span>Total</span><b>{money(fees.total_cents)}</b></p>
               </div>
             )}

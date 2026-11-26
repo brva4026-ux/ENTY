@@ -3175,6 +3175,27 @@ class FeeConfigIn(BaseModel):
     payment_fee_pct: float = Field(default=0, ge=0, le=100)
     tax_pct: float = Field(default=0, ge=0, le=100)
     show_breakdown: bool = True
+    platform_fee_bps: int = Field(default=0, ge=0, le=10000)
+    platform_fee_fixed_cents: int = Field(default=0, ge=0)
+    platform_fee_payer: Literal["organizer", "buyer"] = "organizer"
+
+
+class PayoutProfileIn(BaseModel):
+    legal_name: str | None = Field(default=None, max_length=200)
+    tax_id: str | None = Field(default=None, max_length=60)
+    contact_name: str | None = Field(default=None, max_length=120)
+    contact_phone: str | None = Field(default=None, max_length=40)
+    contact_email: str | None = Field(default=None, max_length=254)
+    bank_name: str | None = Field(default=None, max_length=120)
+    bank_account_type: Literal["ahorros", "corriente", "billetera"] | None = None
+    bank_account_last4: str | None = Field(default=None, pattern=r"^[0-9]{4}$")
+    payout_provider: str | None = Field(default=None, max_length=80)
+    payout_account_ref: str | None = Field(default=None, max_length=200)
+
+
+class PayoutReviewIn(BaseModel):
+    status: Literal["approved", "rejected"]
+    note: str | None = Field(default=None, max_length=1000)
 
 
 class AccessRulesIn(BaseModel):

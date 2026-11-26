@@ -29,6 +29,7 @@ from app.schemas import (
     RsvpStatusIn,
     VenueProfileIn,
 )
+from app.services.fees import compute_fees
 
 router = APIRouter(tags=["more"])
 
@@ -276,10 +277,13 @@ async def get_fee_config(
         await cur.execute(
             "SELECT * FROM event_fee_config WHERE event_id=%s", (event_id,)
         )
-        return await cur.fetchone() or {
-            "event_id": event_id, "service_fee_cents": 0,
-            "payment_fee_pct": 0, "tax_pct": 0, "show_breakdown": True,
-        }
+        row = await cur.fetchone()
+    return row or {
+        "event_id": event_id, "service_fee_cents": 0,
+        "payment_fee_pct": 0, "tax_pct": 0, "show_breakdown": True,
+        "platform_fee_bps": 0, "platform_fee_fixed_cents": 0,
+        "platform_fee_payer": "organizer",
+    }
 
 
 @router.put("/venues/{venue_id}/events/{event_id}/fee-config")
@@ -297,21 +301,69 @@ async def put_fee_config(
             """
             INSERT INTO event_fee_config
                 (event_id, service_fee_cents, payment_fee_pct, tax_pct,
-                 show_breakdown)
-            VALUES (%s,%s,%s,%s,%s)
+                 show_breakdown, platform_fee_bps, platform_fee_fixed_cents,
+                 platform_fee_payer)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT (event_id) DO UPDATE
                SET service_fee_cents=EXCLUDED.service_fee_cents,
                    payment_fee_pct=EXCLUDED.payment_fee_pct,
                    tax_pct=EXCLUDED.tax_pct,
-                   show_breakdown=EXCLUDED.show_breakdown, updated_at=now()
+                   show_breakdown=EXCLUDED.show_breakdown,
+                   platform_fee_bps=EXCLUDED.platform_fee_bps,
+                   platform_fee_fixed_cents=EXCLUDED.platform_fee_fixed_cents,
+                   platform_fee_payer=EXCLUDED.platform_fee_payer,
+                   updated_at=now()
             RETURNING *
             """,
             (event_id, body.service_fee_cents, body.payment_fee_pct,
-             body.tax_pct, body.show_breakdown),
+             body.tax_pct, body.show_breakdown, body.platform_fee_bps,
+             body.platform_fee_fixed_cents, body.platform_fee_payer),
         )
         row = await cur.fetchone()
         await db.commit()
     return row
+
+
+async def _fee_config(cur, event_id: int) -> dict:
+    await cur.execute(
+        "SELECT * FROM event_fee_config WHERE event_id=%s", (event_id,)
+    )
+    return await cur.fetchone() or {}
+
+
+@router.get("/venues/{venue_id}/events/{event_id}/fee-preview")
+async def admin_fee_preview(
+    venue_id: int,
+    event_id: int,
+    ticket_type_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    """Simulación completa: comprador, Enty, pasarela y neto del organizador."""
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _event(cur, venue_id, event_id)
+        await cur.execute(
+            "SELECT price_cents FROM ticket_types WHERE id=%s AND event_id=%s",
+            (ticket_type_id, event_id),
+        )
+        tipo = await cur.fetchone()
+        if not tipo:
+            raise HTTPException(404, "Localidad no encontrada")
+        cfg = await _fee_config(cur, event_id)
+    fees = compute_fees(
+        base_cents=int(tipo["price_cents"]),
+        service_fee_cents=int(cfg.get("service_fee_cents") or 0),
+        payment_fee_pct=float(cfg.get("payment_fee_pct") or 0),
+        tax_pct=float(cfg.get("tax_pct") or 0),
+        platform_fee_bps=int(cfg.get("platform_fee_bps") or 0),
+        platform_fee_fixed_cents=int(cfg.get("platform_fee_fixed_cents") or 0),
+        platform_fee_payer=cfg.get("platform_fee_payer") or "organizer",
+    )
+    return {
+        **fees.as_dict(),
+        "show_breakdown": bool(cfg.get("show_breakdown", True)),
+    }
 
 
 @router.get("/public/events/{event_id}/fees")
@@ -328,21 +380,24 @@ async def public_fees(
         tipo = await cur.fetchone()
         if not tipo:
             raise HTTPException(404, "Localidad no encontrada")
-        await cur.execute(
-            "SELECT * FROM event_fee_config WHERE event_id=%s", (event_id,)
-        )
-        cfg = await cur.fetchone()
-    base = tipo["price_cents"]
-    service = cfg["service_fee_cents"] if cfg else 0
-    payment = round((base + service) * float(cfg["payment_fee_pct"] if cfg else 0) / 100)
-    tax = round((base + service) * float(cfg["tax_pct"] if cfg else 0) / 100)
+        cfg = await _fee_config(cur, event_id)
+    fees = compute_fees(
+        base_cents=int(tipo["price_cents"]),
+        service_fee_cents=int(cfg.get("service_fee_cents") or 0),
+        payment_fee_pct=float(cfg.get("payment_fee_pct") or 0),
+        tax_pct=float(cfg.get("tax_pct") or 0),
+        platform_fee_bps=int(cfg.get("platform_fee_bps") or 0),
+        platform_fee_fixed_cents=int(cfg.get("platform_fee_fixed_cents") or 0),
+        platform_fee_payer=cfg.get("platform_fee_payer") or "organizer",
+    )
     return {
-        "base_cents": base,
-        "service_fee_cents": service,
-        "payment_fee_cents": payment,
-        "tax_cents": tax,
-        "total_cents": base + service + payment + tax,
-        "show_breakdown": cfg["show_breakdown"] if cfg else True,
+        "base_cents": fees.base_cents,
+        "service_fee_cents": fees.service_fee_cents,
+        "payment_fee_cents": fees.payment_fee_cents,
+        "tax_cents": fees.tax_cents,
+        "platform_fee_cents": fees.platform_fee_cents,
+        "total_cents": fees.buyer_total_cents,
+        "show_breakdown": bool(cfg.get("show_breakdown", True)),
     }
 
 

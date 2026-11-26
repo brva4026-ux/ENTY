@@ -43,6 +43,7 @@ from app.routers import (
     more,
     notifications,
     payments,
+    payout_profiles,
     payouts,
     promoter,
     public,
@@ -237,6 +238,7 @@ def create_app() -> FastAPI:
     app.include_router(workspace.router)
     app.include_router(scanner.router)
     app.include_router(payouts.router)
+    app.include_router(payout_profiles.router)
     app.include_router(promoter.router)
     app.include_router(public.router)
     app.include_router(waitlist.router)

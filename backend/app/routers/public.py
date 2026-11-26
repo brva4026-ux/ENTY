@@ -40,6 +40,7 @@ from app.schemas import (
 )
 from app.services import wompi
 from app.services.checkout import create_reserved_payment
+from app.services.fees import compute_fees
 from app.services.ticket_image import build_ticket_image
 
 router = APIRouter(prefix="/public", tags=["publico"])
@@ -713,9 +714,11 @@ async def public_checkout(
             SELECT t.id AS type_id, t.price_cents, t.quantity, t.is_active,
                    e.id AS event_id, e.venue_id, e.name AS event_name,
                    e.status,
+                   COALESCE(pp.status, 'not_started') AS payout_status,
                    COALESCE(e.ends_at, e.starts_at + INTERVAL '12 hours') AS end_at
             FROM ticket_types t
             JOIN events e ON e.id = t.event_id
+            LEFT JOIN venue_payout_profiles pp ON pp.venue_id = e.venue_id
             WHERE t.id = %s AND e.id = %s
               AND NOT t.is_pass_only
               AND e.status IN ('published', 'live')
@@ -732,6 +735,11 @@ async def public_checkout(
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
                 "Esa localidad no esta disponible para compra",
+            )
+        if row["payout_status"] != "approved":
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "El organizador aún no está habilitado para cobrar en línea.",
             )
 
         now = datetime.now(timezone.utc)
@@ -756,22 +764,27 @@ async def public_checkout(
                 "Ese cupón cubre el precio completo: pídele al organizador "
                 "una boleta de cortesía.",
             )
-        # Costos transparentes (mig 072): el comprador ve y paga el mismo total
-        # que muestra la ficha. El cupón descuenta la boleta, no los cargos.
+        # Costos transparentes (mig 072) + comisión de Enty (mig 074): el
+        # comprador ve y paga el mismo total que muestra la ficha. El cupón
+        # descuenta la boleta, no los cargos.
         await cur.execute(
-            "SELECT service_fee_cents, payment_fee_pct, tax_pct"
+            "SELECT service_fee_cents, payment_fee_pct, tax_pct,"
+            " platform_fee_bps, platform_fee_fixed_cents, platform_fee_payer"
             " FROM event_fee_config WHERE event_id=%s",
             (event_id,),
         )
-        fee_cfg = await cur.fetchone()
-        if fee_cfg:
-            service = int(fee_cfg["service_fee_cents"])
-            base_for_pct = charge_cents + service
-            charge_cents = (
-                base_for_pct
-                + round(base_for_pct * float(fee_cfg["payment_fee_pct"]) / 100)
-                + round(base_for_pct * float(fee_cfg["tax_pct"]) / 100)
-            )
+        fee_cfg = await cur.fetchone() or {}
+        fees = compute_fees(
+            base_cents=list_price,
+            discount_cents=discount,
+            service_fee_cents=int(fee_cfg.get("service_fee_cents") or 0),
+            payment_fee_pct=float(fee_cfg.get("payment_fee_pct") or 0),
+            tax_pct=float(fee_cfg.get("tax_pct") or 0),
+            platform_fee_bps=int(fee_cfg.get("platform_fee_bps") or 0),
+            platform_fee_fixed_cents=int(fee_cfg.get("platform_fee_fixed_cents") or 0),
+            platform_fee_payer=fee_cfg.get("platform_fee_payer") or "organizer",
+        )
+        charge_cents = fees.buyer_total_cents
         reference = payment_reference(event_id)
         email = (body.customer_email or "").strip() or None
         promoter_id = None
@@ -818,6 +831,7 @@ async def public_checkout(
             customer_birth_date=body.customer_birth_date,
             promoter_id=promoter_id,
             sale_channel="promoter_link" if promoter_id else "public",
+            fee_breakdown=fees.as_dict(),
         )
 
     return PublicCheckoutOut(

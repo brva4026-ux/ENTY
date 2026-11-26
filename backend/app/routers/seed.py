@@ -135,6 +135,28 @@ async def seed_demo_data(db: psycopg.AsyncConnection) -> dict:
                 ("Reservas Bar Esquina", "+57 300 123 4567", venue_id),
             )
 
+        # El negocio demo ya está verificado: los E2E necesitan vender sin
+        # pasar por la revisión. Los negocios reales nuevos arrancan en
+        # `not_started` (mig 074).
+        await cur.execute(
+            """
+            INSERT INTO venue_payout_profiles
+                (venue_id, status, legal_name, tax_id, contact_name,
+                 contact_phone, bank_name, bank_account_type,
+                 bank_account_last4, reviewed_at, review_note)
+            VALUES (%s, 'approved', 'Bar Esquina SAS', '900123456-7',
+                    'Reservas Bar Esquina', '+57 300 123 4567',
+                    'Bancolombia', 'ahorros', '4567', now(),
+                    'Negocio demo del seed')
+            ON CONFLICT (venue_id) DO UPDATE
+               SET status='approved', reviewed_at=now(),
+                   missing_items='{}'::text[],
+                   review_note='Negocio demo del seed',
+                   updated_at=now()
+            """,
+            (venue_id,),
+        )
+
         # --- users ----------------------------------------------------
         # El cuarto campo es el nombre de usuario para entrar (mig 035): la
         # gente de puerta entra desde el celular y "puerta" es mucho mas rapido
