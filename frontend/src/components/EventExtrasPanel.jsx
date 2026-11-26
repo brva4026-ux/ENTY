@@ -511,6 +511,7 @@ function CourtesySection({ venueId, eventId, types }) {
     () => listCourtesyRequests(venueId, eventId), [venueId, eventId],
   );
   const [form, setForm] = useState({ quantity: "1", reason: "", ticket_type_id: "" });
+  const [issued, setIssued] = useState([]);
   async function add(e) {
     e.preventDefault();
     try {
@@ -526,8 +527,14 @@ function CourtesySection({ venueId, eventId, types }) {
   }
   async function review(id, status) {
     try {
-      await reviewCourtesyRequest(venueId, eventId, id, { status });
-      ui.toast(status === "aprobada" ? "Cortesía aprobada." : "Solicitud rechazada.", "success");
+      const res = await reviewCourtesyRequest(venueId, eventId, id, { status });
+      setIssued(res.tickets || []);
+      ui.toast(
+        status === "aprobada"
+          ? `Cortesía aprobada. ${res.tickets?.length || 0} boleta(s) emitida(s).`
+          : "Solicitud rechazada.",
+        "success",
+      );
       reload();
     } catch (err) { ui.error(err.message); }
   }
@@ -553,6 +560,20 @@ function CourtesySection({ venueId, eventId, types }) {
         ))}
         {!rows.length && <li className="bs-suite-empty">Sin solicitudes.</li>}
       </ul>
+      {issued.length > 0 && (
+        <div className="bs-suite-result">
+          <strong>Cortesías emitidas</strong>
+          {issued.map((t) => (
+            <p key={t.id}>
+              Boleta #{t.id}{" "}
+              <button type="button" className="btn-mini"
+                onClick={() => navigator.clipboard?.writeText(t.raw_token)}>
+                Copiar QR
+              </button>
+            </p>
+          ))}
+        </div>
+      )}
       <form className="bs-suite-form" onSubmit={add}>
         <select value={form.ticket_type_id}
           onChange={(e) => setForm((f) => ({ ...f, ticket_type_id: e.target.value }))}>

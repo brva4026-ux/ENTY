@@ -1081,8 +1081,35 @@ async def review_courtesy_request(
             (body.status, user["id"], body.notes, request_id),
         )
         row = await cur.fetchone()
+        tickets = []
+        if body.status == "aprobada" and row["ticket_type_id"] is not None:
+            await cur.execute(
+                "SELECT full_name FROM users WHERE id=%s", (row["requested_by"],)
+            )
+            requester = await cur.fetchone()
+            label = f"Cortesía · {requester['full_name'] if requester else 'equipo'}"
+            try:
+                for _ in range(row["quantity"]):
+                    raw = secrets.token_urlsafe(24)
+                    await cur.execute(
+                        "SELECT emit_ticket(%s,%s,NULL,%s,%s,%s,NULL,NULL,NULL,NULL) AS id",
+                        (event_id, row["ticket_type_id"], user["id"], label, raw),
+                    )
+                    ticket_id = (await cur.fetchone())["id"]
+                    await cur.execute(
+                        "UPDATE tickets SET price_cents_snapshot=0,"
+                        " payment_method='cortesia' WHERE id=%s",
+                        (ticket_id,),
+                    )
+                    tickets.append({"id": ticket_id, "raw_token": raw})
+            except psycopg.Error as error:
+                await db.rollback()
+                msg = str(error).splitlines()[0]
+                if "ticket_type_sold_out" in msg or "event_at_capacity" in msg:
+                    raise HTTPException(409, "El cupo se llenó mientras aprobabas") from error
+                raise HTTPException(409, "No pudimos emitir las cortesías") from error
         await db.commit()
-    return row
+    return {**row, "tickets": tickets}
 
 
 # ---------------------------------------------------------------------------

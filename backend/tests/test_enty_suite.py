@@ -209,6 +209,8 @@ def test_courtesy_approval_checks_capacity(api):
         {"status": "aprobada"},
     )
     assert approved.status_code == 200, approved.text
+    assert len(approved.json()["tickets"]) == 1
+    assert approved.json()["tickets"][0]["raw_token"]
 
     big = api.post(
         f"/venues/{venue}/events/{event}/courtesy-requests",
