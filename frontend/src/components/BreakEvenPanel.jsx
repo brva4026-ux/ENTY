@@ -15,12 +15,6 @@ const STATUS_LABEL = {
   paid: "Pagado",
 };
 
-const STATUS_TONE = {
-  estimated: "draft",
-  committed: "published",
-  paid: "live",
-};
-
 const RESULT_META = {
   sin_costos: {
     label: "Sin costos",
@@ -56,7 +50,7 @@ function categoryLabel(value) {
   return value ? value.replaceAll("_", " ") : "otro";
 }
 
-export default function BreakEvenPanel({ venueId, eventId, ev }) {
+export default function BreakEvenPanel({ venueId, eventId }) {
   const ui = useUI();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

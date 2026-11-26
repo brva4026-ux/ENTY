@@ -5,11 +5,11 @@ recuperación de compras, turnos, check-in, órdenes, equipos, reservas, hitos,
 cortesías, documentos, cambios/upgrades, reventa y pronóstico.
 """
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Annotated
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user

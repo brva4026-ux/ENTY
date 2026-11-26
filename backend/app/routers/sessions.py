@@ -14,12 +14,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.db import get_db
 from app.deps import ensure_roles, get_current_user
 from app.schemas import (
+    EventSessionCreate,
+    EventSessionOut,
     MessageOut,
     PassCreate,
     PassOut,
     PassSessionOut,
-    EventSessionCreate,
-    EventSessionOut,
 )
 
 router = APIRouter(tags=["sesiones"])

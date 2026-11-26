@@ -771,8 +771,11 @@
   background: rgba(255, 255, 255, 0.04);
 }
 .evd-ticket-name {
+  display: flex;
   flex: 1;
   min-width: 0;
+  flex-direction: column;
+  gap: 2px;
   font-size: var(--e-text-sm);
   font-weight: 600;
 }
@@ -1922,13 +1925,8 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.evd-ticket-name {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
 .evd-ticket-includes {
-  color: var(--e-ink-soft, #6b7280);
+  color: var(--e-text-muted);
   font-size: var(--e-text-xs, 11px);
   font-weight: 500;
 }
@@ -1939,7 +1937,7 @@
   align-items: center;
   gap: 8px;
   margin-top: 8px;
-  color: var(--evd-muted, #a1a1aa);
+  color: var(--evd-muted, var(--e-text-muted));
   font-size: 12px;
 }
 
@@ -1960,14 +1958,14 @@
   gap: 10px;
   margin: 14px 0;
   padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, #22c55e 38%, transparent);
+  border: 1px solid color-mix(in srgb, var(--e-success) 38%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, #22c55e 10%, transparent);
-  color: #d1fae5;
+  background: color-mix(in srgb, var(--e-success) 10%, transparent);
+  color: var(--e-green-300);
 }
 
 .evd-recovery span {
-  color: #a7f3d0;
+  color: var(--e-green-300);
   font-size: 13px;
 }
 
@@ -1992,12 +1990,12 @@
 
 .evd-extra-card span,
 .evd-extra-card small {
-  color: var(--evd-muted, #a1a1aa);
+  color: var(--evd-muted, var(--e-text-muted));
   font-size: 12px;
 }
 
 .evd-extra-card a {
-  color: #93c5fd;
+  color: var(--e-brand-glow);
   font-size: 12px;
   text-decoration: underline;
 }

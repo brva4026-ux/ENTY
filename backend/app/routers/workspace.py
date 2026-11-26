@@ -22,7 +22,7 @@ from typing import Annotated, Any
 from xml.etree import ElementTree as ET
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from psycopg.types.json import Jsonb
 
 from app.core.db import get_db

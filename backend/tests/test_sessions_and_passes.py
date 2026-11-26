@@ -1,6 +1,6 @@
 """Sesiones múltiples y pases que emiten una boleta por jornada."""
-from datetime import datetime, timedelta, timezone
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from tests.test_public_checkout import (  # noqa: F401
     _LINK,
@@ -50,7 +50,7 @@ def _pass(api, venue, event, sessions, *, quantity=5):
     return res.json()
 
 
-def test_pass_emits_one_ticket_per_session(api, wompi_on):
+def test_pass_emits_one_ticket_per_session(api, wompi_on):  # noqa: F811
     venue, event = _event(api)
     day1 = _session(api, venue, event, hours=30, name="Día 1")
     day2 = _session(api, venue, event, hours=54, name="Día 2")

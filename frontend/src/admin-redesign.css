@@ -3437,7 +3437,7 @@ html:not([data-theme="light"]) .admin-shell {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--admin-accent), #34d399);
+  background: linear-gradient(90deg, var(--admin-accent), var(--e-success));
   transition: width 240ms ease;
 }
 
@@ -3607,11 +3607,11 @@ html:not([data-theme="light"]) .admin-shell {
 }
 
 .bs-zone-card[data-status="full"] {
-  border-color: color-mix(in srgb, #dc2626 45%, var(--admin-line));
+  border-color: color-mix(in srgb, var(--e-danger) 45%, var(--admin-line));
 }
 
 .bs-zone-card[data-status="near"] {
-  border-color: color-mix(in srgb, #d97706 45%, var(--admin-line));
+  border-color: color-mix(in srgb, var(--e-warn) 45%, var(--admin-line));
 }
 
 .bs-zone-card header {
@@ -3646,16 +3646,16 @@ html:not([data-theme="light"]) .admin-shell {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--admin-accent, #4f46e5);
+  background: var(--admin-accent, var(--e-brand));
   transition: width 240ms ease;
 }
 
 .bs-zone-card[data-status="near"] .bs-zone-bar > span {
-  background: #d97706;
+  background: var(--e-warn);
 }
 
 .bs-zone-card[data-status="full"] .bs-zone-bar > span {
-  background: #dc2626;
+  background: var(--e-danger);
 }
 
 .bs-zone-card p {
@@ -3877,11 +3877,15 @@ html:not([data-theme="light"]) .admin-shell {
 }
 
 .bs-suite-check {
-  display: flex;
+  display: flex !important;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--admin-ink-soft);
   font-size: 12px;
+}
+
+.bs-suite-check input {
+  width: auto !important;
 }
 
 .bs-suite-table {
@@ -3898,6 +3902,7 @@ html:not([data-theme="light"]) .admin-shell {
   padding: 8px 10px;
   border: 1px solid var(--admin-line);
   border-radius: 10px;
+  text-align: left;
 }
 
 .bs-suite-row input {
@@ -3961,7 +3966,10 @@ html:not([data-theme="light"]) .admin-shell {
 }
 
 /* Más herramientas (mig 072) */
-.bs-suite-more { margin-top: 18px; }
+.bs-suite-more {
+  margin-top: 18px;
+}
+
 .bs-suite-more textarea,
 .bs-suite-more select {
   min-height: 36px;
@@ -3972,15 +3980,36 @@ html:not([data-theme="light"]) .admin-shell {
   color: inherit;
   font: inherit;
 }
-.bs-suite-more .bs-suite-card label { display: grid; gap: 4px; font-size: 12px; }
+
+.bs-suite-more .bs-suite-card label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
 .bs-suite-more .bs-suite-card input,
-.bs-suite-more .bs-suite-card select { width: 100%; }
-.bs-suite-check { display: flex !important; align-items: center; gap: 8px; }
-.bs-suite-check input { width: auto !important; }
-.bs-suite-breakdown { display: grid; gap: 4px; margin-top: 8px; }
-.bs-suite-breakdown p { display: flex; justify-content: space-between; gap: 12px; margin: 0; font-size: 13px; }
-.bs-suite-row[data-active="true"] { border-color: #22c55e; background: color-mix(in srgb, #22c55e 12%, transparent); }
-.bs-suite-row { text-align: left; }
+.bs-suite-more .bs-suite-card select {
+  width: 100%;
+}
+
+.bs-suite-breakdown {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.bs-suite-breakdown p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.bs-suite-row[data-active="true"] {
+  border-color: var(--e-success);
+  background: color-mix(in srgb, var(--e-success) 12%, transparent);
+}
 
 /* ==========================================================================
    Buscador global, importación y operación en lote (mig 073)

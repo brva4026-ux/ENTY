@@ -1217,7 +1217,7 @@ export default function EventDetailPage() {
                 e.preventDefault();
                 try {
                   setRecordings(await publicRecordings(id, ticketCode.trim()));
-                } catch (err) { setRecordings([]); }
+                } catch { setRecordings([]); }
               }}>
                 <input value={ticketCode} onChange={(e) => setTicketCode(e.target.value)} placeholder="Código de boleta" />
                 <button type="submit" className="evd-cta evd-cta--ghost">Ver grabación</button>

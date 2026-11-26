@@ -28,21 +28,19 @@ from app.core.observability import (
 from app.core.push_worker import push_outbox_worker
 from app.core.schema_guard import verify_schema_at_boot
 from app.routers import (
-    extras,
-    more,
-    workspace,
-    zones,
     accreditations,
     analytics,
     auth,
     door,
     event_staff,
     events,
+    extras,
     finance,
     invitations,
     legal,
     lifecycle,
     media,
+    more,
     notifications,
     payments,
     payouts,
@@ -52,13 +50,15 @@ from app.routers import (
     push,
     redemptions,
     report,
-    sessions,
     scanner,
     seed,
+    sessions,
     team,
     tickets,
     waiting_room,
     waitlist,
+    workspace,
+    zones,
 )
 
 logger = logging.getLogger("ticketflow.main")
