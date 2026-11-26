@@ -325,7 +325,7 @@ function LotterySection({ venueId, eventId }) {
   async function draw(row) {
     if (await act(() => drawLottery(venueId, eventId, row.id), "Sorteo realizado.")) {
       const winners = await listLotteryWinners(venueId, eventId, row.id);
-      if (winners?.[0]) window.prompt("Enlace del ganador", `${window.location.origin}/sorteo/${winners[0].token}`);
+      if (winners?.[0]) window.prompt("Token del ganador (compártelo con la persona)", winners[0].token);
       load();
     }
   }
