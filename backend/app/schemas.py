@@ -284,6 +284,10 @@ class EventUpdate(BaseModel):
     location_url: str | None = Field(default=None, max_length=2000)
     contact_name: str | None = Field(default=None, max_length=120)
     contact_phone: str | None = Field(default=None, max_length=40)
+    # Control de concurrencia optimista (mig 073): el editor envía la versión
+    # que cargó. Si otra persona guardó antes, el API responde 409 con la
+    # versión actual en vez de pisarla en silencio.
+    expected_updated_at: datetime | None = None
 
     @field_validator("flyer_url")
     @classmethod
@@ -411,6 +415,8 @@ class EventOut(BaseModel):
     capacity: int
     qr_unlock_minutes: int = 60
     status: str
+    # Versión de la fila para el bloqueo optimista del editor (mig 073).
+    updated_at: datetime | None = None
     # Mig 043: categoría elegida (NULL = sin elegir -> el catálogo cae a la
     # heurística), ficha del invitado y lineup.
     category: str | None = None
@@ -3250,3 +3256,39 @@ class ArchiveIn(BaseModel):
     photos: list[str] = Field(default_factory=list)
     video_url: str | None = Field(default=None, max_length=1000)
     next_event_id: int | None = None
+
+
+# --------------------------------------------------------------------------
+# Migración guiada y operación en lote (mig 073)
+# --------------------------------------------------------------------------
+class ImportPreviewIn(BaseModel):
+    kind: Literal["events", "guests"]
+    event_id: int | None = None
+    filename: str = Field(min_length=1, max_length=200)
+    content_base64: str = Field(min_length=1, max_length=8_000_000)
+
+
+class ImportRowIn(BaseModel):
+    row_number: int = Field(ge=1)
+    data: dict[str, Any]
+
+
+class ImportApplyIn(BaseModel):
+    kind: Literal["events", "guests"]
+    event_id: int | None = None
+    filename: str = Field(min_length=1, max_length=200)
+    rows: list[ImportRowIn] = Field(min_length=1, max_length=2000)
+
+
+class BulkPreviewIn(BaseModel):
+    entity: Literal["ticket_types"]
+    ids: list[int] = Field(min_length=1, max_length=200)
+    action: Literal["pause", "activate"]
+
+
+class BulkApplyIn(BulkPreviewIn):
+    pass
+
+
+class ReceiptIn(BaseModel):
+    raw_token: str = Field(min_length=8, max_length=500)

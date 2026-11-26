@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { apiFetch } from "../lib/api";
+import { useMemo, useState } from "react";
+import { apiFetch, applyBulk, previewBulk } from "../lib/api";
 import { useUI } from "../lib/ui";
 import EmptyState from "./EmptyState";
 
@@ -56,6 +56,69 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
   });
   const [busyId, setBusyId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [selected, setSelected] = useState([]);
+  const [bulkPreview, setBulkPreview] = useState(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const allSelected = useMemo(
+    () => (types || []).length > 0 && selected.length === (types || []).length,
+    [types, selected],
+  );
+
+  function toggleSelected(id) {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  async function reviewBulk(action) {
+    if (!selected.length) return;
+    setBulkBusy(true);
+    setErr("");
+    try {
+      const res = await previewBulk(venueId, eventId, {
+        entity: "ticket_types",
+        ids: selected,
+        action,
+      });
+      setBulkPreview({ ...res, action });
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function confirmBulk() {
+    if (!bulkPreview) return;
+    setBulkBusy(true);
+    setErr("");
+    try {
+      await applyBulk(venueId, eventId, {
+        entity: "ticket_types",
+        ids: selected,
+        action: bulkPreview.action,
+      });
+      onChange(
+        (types || []).map((t) =>
+          selected.includes(t.id)
+            ? { ...t, is_active: bulkPreview.action === "activate" }
+            : t,
+        ),
+      );
+      setInfo(
+        bulkPreview.action === "activate"
+          ? `${selected.length} tipos reactivados.`
+          : `${selected.length} tipos pausados.`,
+      );
+      setSelected([]);
+      setBulkPreview(null);
+    } catch (e2) {
+      setErr(e2.message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   const typeUrl = (t) => `/venues/${venueId}/events/${eventId}/types/${t.id}`;
   const byType = new Map((report?.by_type || []).map((t) => [t.ticket_type_id, t]));
@@ -187,6 +250,78 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
           {err}
         </p>
       )}
+      {(types || []).length > 1 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-xs">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={(e) =>
+                setSelected(e.target.checked ? (types || []).map((t) => t.id) : [])
+              }
+            />
+            Seleccionar todos
+          </label>
+          <span className="text-zinc-500">{selected.length} seleccionados</span>
+          <button
+            type="button"
+            className="admin-inline-link"
+            disabled={!selected.length || bulkBusy}
+            onClick={() => reviewBulk("pause")}
+          >
+            Pausar
+          </button>
+          <button
+            type="button"
+            className="admin-inline-link"
+            disabled={!selected.length || bulkBusy}
+            onClick={() => reviewBulk("activate")}
+          >
+            Activar
+          </button>
+        </div>
+      )}
+
+      {bulkPreview && (
+        <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+          <p className="font-semibold text-amber-300">
+            Vas a {bulkPreview.action === "pause" ? "pausar" : "activar"}{" "}
+            {bulkPreview.count} tipos de boleta
+          </p>
+          <ul className="mt-2 list-disc pl-4 text-zinc-300">
+            {bulkPreview.affected.map((row) => (
+              <li key={row.id}>
+                {row.name} · {row.issued} boletas emitidas
+              </li>
+            ))}
+          </ul>
+          {bulkPreview.action === "pause" && bulkPreview.issued_tickets > 0 && (
+            <p className="mt-2 text-amber-300">
+              Las {bulkPreview.issued_tickets} boletas ya emitidas siguen siendo
+              válidas para entrar. Solo se detiene la venta nueva.
+            </p>
+          )}
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={confirmBulk}
+              disabled={bulkBusy}
+            >
+              {bulkBusy ? "Aplicando…" : "Confirmar"}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setBulkPreview(null)}
+              disabled={bulkBusy}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       <ul className="mb-4 space-y-2">
         {(types || []).map((t) => (
           <li
@@ -195,6 +330,14 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
               t.is_active === false ? "opacity-60" : ""
             }`}
           >
+            <label className="mr-2 inline-flex items-center">
+              <input
+                type="checkbox"
+                aria-label={`Seleccionar ${t.name}`}
+                checked={selected.includes(t.id)}
+                onChange={() => toggleSelected(t.id)}
+              />
+            </label>
             {editingId === t.id ? (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input

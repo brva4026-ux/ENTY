@@ -30,6 +30,7 @@ from app.core.schema_guard import verify_schema_at_boot
 from app.routers import (
     extras,
     more,
+    workspace,
     zones,
     accreditations,
     analytics,
@@ -233,6 +234,7 @@ def create_app() -> FastAPI:
     app.include_router(zones.router)
     app.include_router(extras.router)
     app.include_router(more.router)
+    app.include_router(workspace.router)
     app.include_router(scanner.router)
     app.include_router(payouts.router)
     app.include_router(promoter.router)

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import TransitionLink from "./TransitionLink";
 import Icon from "./Icon";
 import NotificationBell from "./NotificationBell";
+import GlobalSearch from "./GlobalSearch";
 import ThemeToggle from "./ThemeToggle";
 import { Logo } from "./Brand";
 import { useAuth } from "../lib/auth";
@@ -144,6 +145,7 @@ export default function AdminShell({ children }) {
           </div>
 
           <div className="admin-topbar-actions">
+            <GlobalSearch />
             {adminVenues.length > 1 ? (
               <label className="admin-org-select">
                 <span className="sr-only">Organización activa</span>

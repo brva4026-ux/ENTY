@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { fetchPublicTicket, fetchTicketImage, returnTicket } from "../lib/api";
+import {
+  fetchPublicTicket,
+  fetchPurchaseReceipt,
+  fetchTicketImage,
+  returnTicket,
+} from "../lib/api";
 import { eventDate, clockTime } from "../lib/format";
 import { forceDarkOnce } from "../lib/theme";
 import Icon from "../components/Icon";
@@ -73,6 +78,7 @@ export default function PublicTicketPage() {
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [receiptBusy, setReceiptBusy] = useState(false);
   // La boleta pública SIEMPRE es oscura (es la credencial de la noche: se
   // muestra en la puerta a oscuras, igual que el escáner). Sin el candado,
   // un invitado con tema claro ve texto blanco sobre blanco.
@@ -153,6 +159,23 @@ export default function PublicTicketPage() {
       // el usuario cancelo el share
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function downloadReceipt() {
+    if (!token) return;
+    setReceiptBusy(true);
+    try {
+      const blob = await fetchPurchaseReceipt(token);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `comprobante-enty-${ticket?.ticket_id ?? "compra"}.html`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    } catch (err) {
+      setError(err.message || "No pudimos descargar el comprobante");
+    } finally {
+      setReceiptBusy(false);
     }
   }
 
@@ -455,6 +478,15 @@ export default function PublicTicketPage() {
                         : qrActive
                           ? "Compartir o guardar imagen"
                           : "Imagen cuando se active el QR"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadReceipt}
+                      disabled={receiptBusy}
+                      className="tkt-btn tkt-btn-quiet"
+                    >
+                      <Icon name="download" className="h-4 w-4" />
+                      {receiptBusy ? "Preparando…" : "Descargar comprobante de compra"}
                     </button>
                     {ticket?.can_return && (
                       <button

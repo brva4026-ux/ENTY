@@ -638,6 +638,7 @@ async function apiRequest(path, options = {}) {
     }
     const err = new Error(msg);
     err.status = res.status;
+    err.detail = detail;
     if (Object.keys(fields).length) err.fields = fields;
     // Los 5xx (y los fallos sin respuesta) son el signal que el dueño de la
     // app quiere antes que los usuarios; los 4xx son negocio normal.
@@ -1036,4 +1037,58 @@ export function saveArchive(venueId, eventId, payload) {
 }
 export function publicArchive(eventId) {
   return apiFetch(`/public/events/${eventId}/archive`);
+}
+
+/* -------------------------------------------------------------------------
+ * Migración guiada, lote, búsqueda y salida (mig 073)
+ * ---------------------------------------------------------------------- */
+export function previewImport(venueId, payload) {
+  return apiFetch(`/venues/${venueId}/imports/preview`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function applyImport(venueId, payload) {
+  return apiFetch(`/venues/${venueId}/imports/apply`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function previewBulk(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/bulk/preview`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function applyBulk(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/bulk/apply`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function globalSearch(query, venueId) {
+  const qs = new URLSearchParams({ q: query });
+  if (venueId) qs.set("venue_id", String(venueId));
+  return apiFetch(`/search?${qs.toString()}`);
+}
+
+export function fetchPurchaseReceipt(rawToken) {
+  return postBlob("/public/purchase-receipt", rawToken);
+}
+
+export function getExitSummary(venueId) {
+  return apiFetch(`/venues/${venueId}/exit-summary`);
+}
+
+export async function fetchVenueExport(venueId) {
+  const token = getToken();
+  const res = await fetch(`${BASE}/venues/${venueId}/export.json`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("No pudimos exportar los datos");
+  return res.blob();
 }

@@ -2019,3 +2019,120 @@
   font: inherit;
   font-size: 13px;
 }
+
+/* Preferencias de descubrimiento (mig 073): ocultar categorías o lugares. */
+.home-filter-help {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--e-text-muted);
+}
+.home-pref-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.home-pref-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--e-border-hairline);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.home-pref-item input {
+  accent-color: var(--e-brand);
+}
+
+/* Pantalla del comprador en taquilla. */
+.pos-display {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 28px clamp(20px, 5vw, 64px);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(124, 58, 237, 0.35), transparent 60%),
+    var(--e-ink-1);
+  color: var(--e-paper);
+}
+.pos-display-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pos-display-brand {
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  font-size: 14px;
+}
+.pos-display-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--e-text-muted);
+}
+.pos-display-live i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--e-success);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+}
+.pos-display-order {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 760px;
+}
+.pos-display-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 12px;
+  color: var(--e-text-muted);
+}
+.pos-display-order h1 {
+  margin: 8px 0 32px;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.05;
+}
+.pos-display-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: clamp(18px, 2.4vw, 26px);
+}
+.pos-display-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 26px 0;
+  font-size: clamp(24px, 3vw, 34px);
+}
+.pos-display-total strong {
+  color: var(--e-brand-glow);
+}
+.pos-display-method {
+  color: var(--e-text-secondary);
+}
+.pos-display-status {
+  margin-top: 18px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 14px;
+}
+.pos-display-status[data-status="paid"] {
+  background: rgba(34, 197, 94, 0.14);
+  color: var(--e-success);
+}
+.pos-display-foot {
+  font-size: 11px;
+  color: var(--e-text-muted);
+  max-width: 640px;
+}

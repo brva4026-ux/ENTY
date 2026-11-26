@@ -88,6 +88,7 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "070_zones.sql",
     ROOT / "db" / "migrations" / "071_enty_suite.sql",
     ROOT / "db" / "migrations" / "072_enty_more.sql",
+    ROOT / "db" / "migrations" / "073_enty_onboarding.sql",
 ]
 
 

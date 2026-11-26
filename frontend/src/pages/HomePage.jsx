@@ -26,6 +26,7 @@ import { Logo } from "../components/Brand";
 
 const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
 const FAVS_KEY = "tf_fan_favs";
+const HIDDEN_KEY = "tf_fan_hidden";
 
 /**
  * Fecha larga del hero: "Sáb 8 nov · 21:00". El destacado mostraba solo la
@@ -320,6 +321,19 @@ function readFavs() {
   }
 }
 
+function readHidden() {
+  try {
+    const raw = localStorage.getItem(HIDDEN_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return {
+      categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+      cities: Array.isArray(parsed.cities) ? parsed.cities : [],
+    };
+  } catch {
+    return { categories: [], cities: [] };
+  }
+}
+
 export default function HomePage({ explorar = false }) {
   useDocumentTitle(explorar ? "Explorar eventos" : "Inicio");
   const [data, setData] = useState(null);
@@ -333,6 +347,7 @@ export default function HomePage({ explorar = false }) {
   const deferredQuery = useDeferredValue(query);
   const [range, setRange] = useState("todos");
   const [favs, setFavs] = useState(() => new Set());
+  const [hidden, setHidden] = useState(readHidden);
   // Solo la última tarjeta marcada celebra (rebote): no todas al montar.
   const [favPop, setFavPop] = useState(null);
   const [bellOpen, setBellOpen] = useState(false);
@@ -483,7 +498,7 @@ export default function HomePage({ explorar = false }) {
     if (data) track("view_home", { eventCount: (data.events ?? []).length });
   }, [data]);
 
-  const events = data?.events ?? [];
+  const events = useMemo(() => data?.events ?? [], [data]);
   const chip = CATEGORY_CHIPS.find((c) => c.key === cat) ?? CATEGORY_CHIPS[0];
 
   // Ciudades del catalogo (las que de verdad tienen eventos), de mas a menos
@@ -500,6 +515,11 @@ export default function HomePage({ explorar = false }) {
   const filtered = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase();
     return events.filter((e) => {
+      if (hidden.cities.includes(cityOf(e))) return false;
+      const eventCat = CATEGORY_CHIPS.find(
+        (c) => c.key !== "todos" && c.match(e),
+      );
+      if (eventCat && hidden.categories.includes(eventCat.key)) return false;
       if (city && cityOf(e) !== city) return false;
       if (!inDateRange(e.starts_at, range)) return false;
       if (!chip.match(e)) return false;
@@ -510,7 +530,7 @@ export default function HomePage({ explorar = false }) {
         (e.location ?? "").toLowerCase().includes(q)
       );
     });
-  }, [events, chip, deferredQuery, city, range]);
+  }, [events, chip, deferredQuery, city, range, hidden]);
 
   // En modo explorar no hay destacado: la rejilla es el catálogo completo y
   // el primer evento no se roba el sitio (es lo que diferencia la pestaña
@@ -519,11 +539,20 @@ export default function HomePage({ explorar = false }) {
   const rest = explorar ? filtered : filtered.slice(1);
   // Hay un filtro puesto (texto, categoria, fecha o ciudad): cambia el mensaje
   // del vacio y el boton que lo deshace.
-  const narrowed = Boolean(query.trim()) || cat !== "todos" || range !== "todos" || Boolean(city);
+  const narrowed =
+    Boolean(query.trim()) ||
+    cat !== "todos" ||
+    range !== "todos" ||
+    Boolean(city) ||
+    hidden.categories.length > 0 ||
+    hidden.cities.length > 0;
   // Cuántos filtros avanzados (fecha + ciudad) están puestos: el botón "Filtros"
   // lo dice con un contador, así el usuario sabe que hay algo activo sin abrir.
   const activeAdvanced =
-    (range !== "todos" ? 1 : 0) + (city ? 1 : 0);
+    (range !== "todos" ? 1 : 0) +
+    (city ? 1 : 0) +
+    (hidden.categories.length ? 1 : 0) +
+    (hidden.cities.length ? 1 : 0);
 
   // La banda cinética: sellos de confianza + las ciudades con oferta real
   // (dato que no está en ningún otro sitio del primer scroll).
@@ -563,6 +592,25 @@ export default function HomePage({ explorar = false }) {
     setCat("todos");
     setRange("todos");
     setCity("");
+  }
+
+  function persistHidden(next) {
+    setHidden(next);
+    try {
+      localStorage.setItem(HIDDEN_KEY, JSON.stringify(next));
+    } catch {
+      /* almacenamiento privado */
+    }
+  }
+
+  function toggleHidden(kind, value) {
+    const current = hidden[kind] || [];
+    persistHidden({
+      ...hidden,
+      [kind]: current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value],
+    });
   }
 
   // Avisos = eventos que ocurren en los proximos 7 dias (lo unico que el
@@ -776,6 +824,48 @@ export default function HomePage({ explorar = false }) {
                 </div>
               </div>
             )}
+            <div className="home-filter-group">
+              <p className="home-filter-label">Preferencias de descubrimiento</p>
+              <p className="home-filter-help">
+                Oculta lo que no te interesa. Puedes volver a la cartelera
+                completa cuando quieras.
+              </p>
+              <div className="home-pref-list">
+                {CATEGORY_CHIPS.filter((c) => c.key !== "todos").map((c) => (
+                  <label key={c.key} className="home-pref-item">
+                    <input
+                      type="checkbox"
+                      checked={hidden.categories.includes(c.key)}
+                      onChange={() => toggleHidden("categories", c.key)}
+                    />
+                    {c.label}
+                  </label>
+                ))}
+              </div>
+              {cities.length > 0 && (
+                <div className="home-pref-list">
+                  {cities.map(([name]) => (
+                    <label key={name} className="home-pref-item">
+                      <input
+                        type="checkbox"
+                        checked={hidden.cities.includes(name)}
+                        onChange={() => toggleHidden("cities", name)}
+                      />
+                      {name}
+                    </label>
+                  ))}
+                </div>
+              )}
+              {(hidden.categories.length > 0 || hidden.cities.length > 0) && (
+                <button
+                  type="button"
+                  className="home-chip mt-2"
+                  onClick={() => persistHidden({ categories: [], cities: [] })}
+                >
+                  Mostrar toda la cartelera
+                </button>
+              )}
+            </div>
           </div>
         )}
 

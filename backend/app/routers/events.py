@@ -72,7 +72,7 @@ EVENT_COLUMNS = (
     "id, venue_id, name, description, flyer_url, location, starts_at, ends_at, "
     "event_timezone, capacity, qr_unlock_minutes, status, category, min_age, "
     "dress_code, doors_open_at, video_url, location_url, contact_name, "
-    "contact_phone, parent_event_id"
+    "contact_phone, parent_event_id, updated_at"
 )
 
 
@@ -566,10 +566,25 @@ async def update_event(
                 "Solo se pueden editar eventos en borrador o publicados "
                 "(no en puerta, terminados ni cancelados)",
             )
+        if body.expected_updated_at is not None:
+            if current.get("updated_at") != body.expected_updated_at:
+                raise HTTPException(
+                    409,
+                    {
+                        "message": (
+                            "Otra persona guardó este evento mientras lo "
+                            "editabas. Revisa ambas versiones antes de pisarla."
+                        ),
+                        "current": EventOut.model_validate(current).model_dump(
+                            mode="json"
+                        ),
+                    },
+                )
 
         # Sin los None: los campos NOT NULL nunca se envían vacíos a la DB.
         changes = {
-            k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None
+            k: v for k, v in body.model_dump(exclude_unset=True).items()
+            if v is not None and k != "expected_updated_at"
         }
         merged = {**current, **changes}
         # Normalize a str for the DB (pydantic gave us an HttpUrl object).
@@ -593,7 +608,10 @@ async def update_event(
         # Mig 043: la ficha (categoría, edad, dress code, apertura de puertas)
         # tampoco está en la firma de update_event; se aplica directo. Un
         # category="" limpia la elección (vuelve a la heurística del catálogo).
-        sent = body.model_dump(exclude_unset=True)
+        sent = {
+            k: v for k, v in body.model_dump(exclude_unset=True).items()
+            if k != "expected_updated_at"
+        }
         if "category" in sent:
             await cur.execute(
                 "UPDATE events SET category=%s WHERE id=%s",

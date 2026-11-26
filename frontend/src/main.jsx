@@ -96,6 +96,7 @@ const AcceptInvitationPage = lazyPage(
 );
 const ResetPasswordPage = lazyPage(() => import("./pages/ResetPasswordPage"));
 const DoorLinkPage = lazyPage(() => import("./pages/DoorLinkPage"));
+const PosDisplayPage = lazyPage(() => import("./pages/PosDisplayPage"));
 // Documentos legales: públicos y compartibles (un abogado, un aliado o el
 // propio usuario pueden abrirlos sin sesión). El texto lo sirve la API desde
 // backend/app/assets/legal/*.md, que es la MISMA copia que la base versiona:
@@ -244,6 +245,10 @@ function App() {
               el admin asigno a ese evento. El canje atada la persona a esa
               noche y manda al escaner sin selector. */}
               <Route path="/puerta" element={<DoorLinkPage />} />
+              {/* Pantalla del comprador en taquilla: pública, sin datos
+              internos. La ventana del operador le envía el pedido por
+              BroadcastChannel y localStorage (mismo origen). */}
+              <Route path="/taquilla/pantalla" element={<PosDisplayPage />} />
               <Route
                 path="/admin"
                 element={

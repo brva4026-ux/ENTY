@@ -116,6 +116,70 @@ export function canDeleteEvent(ev) {
   return !!ev && ev.status !== "live";
 }
 
+const EVENT_DRAFT_PREFIX = "tf_event_draft_";
+
+function readEventDraft(eventId) {
+  try {
+    const raw = localStorage.getItem(`${EVENT_DRAFT_PREFIX}${eventId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeEventDraft(eventId, data, baseUpdatedAt) {
+  try {
+    localStorage.setItem(
+      `${EVENT_DRAFT_PREFIX}${eventId}`,
+      JSON.stringify({ data, baseUpdatedAt, savedAt: Date.now() }),
+    );
+  } catch {
+    /* almacenamiento lleno o privado: el editor sigue funcionando */
+  }
+}
+
+function clearEventDraft(eventId) {
+  try {
+    localStorage.removeItem(`${EVENT_DRAFT_PREFIX}${eventId}`);
+  } catch {
+    /* nada que limpiar */
+  }
+}
+
+function formFromEvent(ev) {
+  const tz = eventZone(ev);
+  return {
+    name: ev.name ?? "",
+    description: ev.description ?? "",
+    flyer_url: ev.flyer_url ?? "",
+    location: ev.location ?? "",
+    starts_at: toZonedInput(ev.starts_at, tz),
+    ends_at: toZonedInput(ev.ends_at, tz),
+    capacity: String(ev.capacity),
+    qr_unlock_minutes: String(ev.qr_unlock_minutes ?? 60),
+    category: ev.category ?? "",
+    min_age: ev.min_age != null ? String(ev.min_age) : "",
+    dress_code: ev.dress_code ?? "",
+    doors_open_at: toZonedInput(ev.doors_open_at, tz),
+    video_url: ev.video_url ?? "",
+    location_url: ev.location_url ?? "",
+    contact_name: ev.contact_name ?? "",
+    contact_phone: ev.contact_phone ?? "",
+  };
+}
+
+const EDIT_COMPARE_FIELDS = [
+  ["name", "Nombre"],
+  ["starts_at", "Apertura"],
+  ["ends_at", "Cierre"],
+  ["capacity", "Aforo"],
+  ["location", "Lugar"],
+  ["category", "Categoría"],
+  ["description", "Descripción"],
+  ["min_age", "Edad mínima"],
+  ["dress_code", "Vestimenta"],
+];
+
 export default function AdminDashboard() {
   useDocumentTitle("Panel del negocio");
   const { user, setUser } = useAuth();
@@ -159,6 +223,8 @@ export default function AdminDashboard() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [editError, setEditError] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [editBaseline, setEditBaseline] = useState(null);
+  const [editConflict, setEditConflict] = useState(null);
   const [uploadingFlyer, setUploadingFlyer] = useState(false);
   const [previewEvent, setPreviewEvent] = useState(null);
   const flyerInputRef = useRef(null);
@@ -756,30 +822,44 @@ export default function AdminDashboard() {
 
   function startEditEvent() {
     const ev = selectedEventData;
-    const tz = eventZone(ev);
+    const fresh = formFromEvent(ev);
     setEditError("");
-    setEditingEvent({
-      name: ev.name ?? "",
-      description: ev.description ?? "",
-      flyer_url: ev.flyer_url ?? "",
-      location: ev.location ?? "",
-      starts_at: toZonedInput(ev.starts_at, tz),
-      ends_at: toZonedInput(ev.ends_at, tz),
-      capacity: String(ev.capacity),
-      qr_unlock_minutes: String(ev.qr_unlock_minutes ?? 60),
-      // Ficha (mig 043): categoría elegida + datos que pregunta la puerta.
-      category: ev.category ?? "",
-      min_age: ev.min_age != null ? String(ev.min_age) : "",
-      dress_code: ev.dress_code ?? "",
-      doors_open_at: toZonedInput(ev.doors_open_at, tz),
-      // Identidad pública (mig 057): video opcional, mapa confirmado y
-      // contacto propio del evento (si falta, la ficha usa el del local).
-      video_url: ev.video_url ?? "",
-      location_url: ev.location_url ?? "",
-      contact_name: ev.contact_name ?? "",
-      contact_phone: ev.contact_phone ?? "",
-    });
+    setEditingEvent(fresh);
+    setEditBaseline(fresh);
+    const draft = readEventDraft(ev.id);
+    if (draft?.data && JSON.stringify(draft.data) !== JSON.stringify(fresh)) {
+      setEditConflict({
+        mine: draft.data,
+        current: fresh,
+        serverChanged: draft.baseUpdatedAt !== ev.updated_at,
+        fromSave: false,
+      });
+    }
   }
+
+  function cancelEditEvent() {
+    if (selectedEventData) clearEventDraft(selectedEventData.id);
+    setEditingEvent(null);
+    setEditBaseline(null);
+    setEditConflict(null);
+  }
+
+  // Borrador local: si el navegador se cierra, el texto no se pierde. Solo
+  // se guarda cuando la ficha realmente cambió respecto de la versión cargada.
+  useEffect(() => {
+    if (!editingEvent || !selectedEventData || !editBaseline) return;
+    if (JSON.stringify(editingEvent) === JSON.stringify(editBaseline)) return;
+    const timer = setTimeout(
+      () =>
+        writeEventDraft(
+          selectedEventData.id,
+          editingEvent,
+          selectedEventData.updated_at,
+        ),
+      500,
+    );
+    return () => clearTimeout(timer);
+  }, [editingEvent, selectedEventData, editBaseline]);
 
   /** Sube el afiche desde el editor con el mismo endpoint de medios que usa
    *  el alta. El navegador reduce la imagen; el backend valida mime y tamaño. */
@@ -829,8 +909,8 @@ export default function AdminDashboard() {
     });
   }
 
-  async function saveEventEdit(e) {
-    e.preventDefault();
+  async function saveEventEdit(e, overrideExpected = null) {
+    e?.preventDefault();
     setEditError("");
 
     const tz = eventZone(selectedEventData);
@@ -888,11 +968,15 @@ export default function AdminDashboard() {
             location_url: editingEvent.location_url.trim() || null,
             contact_name: editingEvent.contact_name.trim() || null,
             contact_phone: editingEvent.contact_phone.trim() || null,
+            expected_updated_at:
+              overrideExpected || selectedEventData.updated_at || null,
           }),
         },
       );
       setEvents((evs) => evs.map((x) => (x.id === updated.id ? updated : x)));
+      clearEventDraft(selectedEventData.id);
       setEditingEvent(null);
+      setEditBaseline(null);
       if (updated.affected_tickets > 0) {
         ui.success(
           `Cambios guardados. ${updated.affected_tickets} ${
@@ -903,7 +987,16 @@ export default function AdminDashboard() {
         ui.success("Cambios guardados");
       }
     } catch (err) {
-      setEditError(err.message);
+      if (err.status === 409 && err.detail?.current) {
+        setEditConflict({
+          mine: editingEvent,
+          current: err.detail.current,
+          serverChanged: true,
+          fromSave: true,
+        });
+      } else {
+        setEditError(err.message);
+      }
     } finally {
       setSavingEdit(false);
     }
@@ -1521,7 +1614,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEditingEvent(null)}
+                      onClick={cancelEditEvent}
                       className="text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
                     >
                       Cerrar
@@ -1921,7 +2014,7 @@ export default function AdminDashboard() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setEditingEvent(null)}
+                    onClick={cancelEditEvent}
                     className="btn-ghost text-sm font-bold"
                   >
                     Cancelar
@@ -1997,6 +2090,90 @@ export default function AdminDashboard() {
             onExit={exitTour}
             onFinish={finishTour}
           />
+        )}
+
+        {editConflict && (
+          <div className="dialog-backdrop fixed inset-0 z-[90] flex items-end justify-center overflow-y-auto p-4 sm:items-center">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-conflict-title"
+              className="dialog-panel my-auto max-w-2xl"
+            >
+              <h3 id="edit-conflict-title" className="dialog-title">
+                {editConflict.fromSave
+                  ? "Otra persona guardó este evento"
+                  : "Encontramos cambios sin guardar"}
+              </h3>
+              <p className="dialog-sub">
+                {editConflict.fromSave
+                  ? "Compara las dos versiones antes de decidir. Nada se sobrescribe hasta que confirmes."
+                  : editConflict.serverChanged
+                    ? "La ficha cambió en el servidor desde tu borrador. Elige qué versión quieres usar."
+                    : "Tu navegador guardó esta ficha a medio editar. Puedes recuperarla o empezar de la versión guardada."}
+              </p>
+              <div className="mt-3 max-h-[46vh] overflow-auto rounded-lg border border-zinc-800">
+                <table className="w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-zinc-950/95">
+                    <tr>
+                      <th className="p-2">Campo</th>
+                      <th className="p-2">Tu versión</th>
+                      <th className="p-2">Versión guardada</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {EDIT_COMPARE_FIELDS.map(([key, label]) => {
+                      const mine = String(editConflict.mine?.[key] ?? "—");
+                      const theirs = String(editConflict.current?.[key] ?? "—");
+                      if (mine === theirs) return null;
+                      return (
+                        <tr key={key} className="border-t border-zinc-800 align-top">
+                          <th className="p-2 font-medium text-zinc-400">{label}</th>
+                          <td className="p-2 text-zinc-200">{mine || "—"}</td>
+                          <td className="p-2 text-zinc-200">{theirs || "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => {
+                    if (editConflict.fromSave) {
+                      const expected = editConflict.current?.updated_at;
+                      setEditConflict(null);
+                      saveEventEdit(null, expected);
+                    } else {
+                      setEditingEvent(editConflict.mine);
+                      setEditConflict(null);
+                    }
+                  }}
+                >
+                  {editConflict.fromSave ? "Sobrescribir con mi versión" : "Recuperar mi borrador"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => {
+                    if (selectedEventData) clearEventDraft(selectedEventData.id);
+                    if (editConflict.fromSave) {
+                      const restored = formFromEvent(editConflict.current);
+                      setEditingEvent(restored);
+                      setEditBaseline(restored);
+                    } else {
+                      setEditingEvent(editConflict.current);
+                    }
+                    setEditConflict(null);
+                  }}
+                >
+                  {editConflict.fromSave ? "Descartar mis cambios" : "Usar la versión guardada"}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </PullToRefresh>

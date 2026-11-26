@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, fetchTicketByRequest } from "../lib/api";
 import { money, plural } from "../lib/format";
 import { useUI } from "../lib/ui";
@@ -109,7 +109,55 @@ export default function BoxOfficePanel({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [lastTicket, setLastTicket] = useState(null);
+  const [displayOpen, setDisplayOpen] = useState(false);
   const requestRef = useRef("");
+  const channelRef = useRef(null);
+
+  useEffect(() => {
+    if (!eventId || typeof BroadcastChannel === "undefined") return undefined;
+    const channel = new BroadcastChannel(`tf_pos_${eventId}`);
+    channelRef.current = channel;
+    return () => {
+      channel.close();
+      channelRef.current = null;
+    };
+  }, [eventId]);
+
+  function publishOrder(status = "ready") {
+    if (!displayOpen) return;
+    const payload = {
+      eventName: ev?.name ?? "",
+      typeName: selectedType?.name ?? "Elige una localidad",
+      priceCents: selectedType?.price_cents ?? 0,
+      paymentMethod: paid ? form.payment_method : "",
+      status,
+      updatedAt: Date.now(),
+    };
+    try {
+      localStorage.setItem(`tf_pos_display_${eventId}`, JSON.stringify(payload));
+    } catch {
+      /* almacenamiento privado */
+    }
+    channelRef.current?.postMessage(payload);
+  }
+
+  useEffect(() => {
+    if (!displayOpen) return;
+    publishOrder("ready");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayOpen, typeId, form.payment_method]);
+
+  function openDisplay() {
+    const win = window.open(
+      `/taquilla/pantalla?evento=${eventId}`,
+      "enty-pos-display",
+      "width=1000,height=720",
+    );
+    setDisplayOpen(Boolean(win));
+    if (!win) {
+      ui.toast("El navegador bloqueó la segunda pantalla. Permite ventanas emergentes.", "error");
+    }
+  }
 
   const selectedType = activeTypes.find((t) => t.id === typeId) || null;
   const paid = selectedType && selectedType.price_cents > 0;
@@ -198,6 +246,7 @@ export default function BoxOfficePanel({
       customer_birth_date: "",
       payment_method: "efectivo",
     });
+    publishOrder("paid");
     ui.toast("Boleta emitida. Entrega el QR o el enlace.", "success");
     onChanged?.();
   }
@@ -212,10 +261,15 @@ export default function BoxOfficePanel({
             Cada boleta queda a nombre de quien la emite para cerrar su caja.
           </p>
         </div>
-        <span className="bs-status" data-status={ev.status === "live" ? "live" : "published"}>
-          <span className="bs-status-dot" aria-hidden="true" />
-          {ev.status === "live" ? "Puerta abierta" : "Venta directa"}
-        </span>
+        <div className="flex items-center gap-2">
+          <button type="button" className="btn-ghost !px-3 !py-1.5 text-2xs" onClick={openDisplay}>
+            Abrir pantalla cliente
+          </button>
+          <span className="bs-status" data-status={ev.status === "live" ? "live" : "published"}>
+            <span className="bs-status-dot" aria-hidden="true" />
+            {ev.status === "live" ? "Puerta abierta" : "Venta directa"}
+          </span>
+        </div>
       </div>
 
       <div className="bs-box-office-grid">
