@@ -121,7 +121,7 @@ export default function VenueImportPanel({ venueId }) {
 
   async function confirmImport() {
     const rows = (preview?.rows || [])
-      .filter((row) => row.status !== "duplicate")
+      .filter((row) => row.status === "valid")
       .map((row) => ({ row_number: row.row_number, data: row.data }));
     if (!rows.length) {
       setError("No hay filas nuevas para importar.");
@@ -141,7 +141,7 @@ export default function VenueImportPanel({ venueId }) {
       setFile(null);
       if (inputRef.current) inputRef.current.value = "";
       ui.success(
-        `${res.imported} filas importadas${
+        `${res.imported} ${res.imported === 1 ? "fila importada" : "filas importadas"}${
           res.duplicates ? ` · ${res.duplicates} ya existían` : ""
         }`,
       );
@@ -161,7 +161,10 @@ export default function VenueImportPanel({ venueId }) {
     : null;
 
   return (
-    <section className="admin-org-grid" aria-label="Importar desde Excel o CSV">
+    <section
+      className={`admin-org-grid${preview ? " is-previewing" : ""}`}
+      aria-label="Importar desde Excel o CSV"
+    >
       <div className="admin-settings-card">
         <h2>Importación guiada</h2>
         <p>
@@ -247,7 +250,8 @@ export default function VenueImportPanel({ venueId }) {
         )}
         {result && (
           <p className="mt-3 text-xs text-emerald-400" role="status">
-            Lote #{result.batch_id}: {result.imported} importadas,{" "}
+            Lote #{result.batch_id}: {result.imported}{" "}
+            {result.imported === 1 ? "importada" : "importadas"},{" "}
             {result.duplicates} duplicadas, {result.errors} con error.
           </p>
         )}
@@ -272,7 +276,7 @@ export default function VenueImportPanel({ venueId }) {
             </div>
             <div className="mt-3 max-h-[420px] overflow-auto">
               <table className="w-full text-left text-xs">
-                <thead className="sticky top-0 bg-zinc-950/90">
+                <thead className="sticky top-0 bg-zinc-950/90 text-zinc-100">
                   <tr>
                     <th className="p-2">#</th>
                     <th className="p-2">Estado</th>
@@ -384,7 +388,7 @@ export default function VenueImportPanel({ venueId }) {
               onClick={confirmImport}
               disabled={busy || counts.valid === 0}
             >
-              {busy ? "Importando…" : `Importar ${counts.valid} filas`}
+              {busy ? "Importando…" : `Importar ${counts.valid} ${counts.valid === 1 ? "fila" : "filas"}`}
             </button>
           </>
         )}

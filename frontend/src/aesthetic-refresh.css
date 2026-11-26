@@ -2170,14 +2170,14 @@ html[data-theme="light"] .bizdock-count {
     288px 8.4px, 300px 5.8px, 312px 11.1px, 324px 2.4px, 336px 7.9px, 348px 4.7px,
     360px 10.4px, 372px 3.2px, 384px 8.7px, 396px 5.3px, 408px 11.5px, 420px 2.7px,
     432px 0px,
-    432px 640px,
-    420px 630.9px, 408px 637.2px, 396px 632.6px, 384px 638.4px, 372px 629.8px,
-    360px 636.1px, 348px 631.5px, 336px 637.9px, 324px 630.4px, 312px 636.6px,
-    300px 632.1px, 288px 638.7px, 276px 629.4px, 264px 635.9px, 252px 631.2px,
-    240px 637.6px, 228px 630.7px, 216px 636.9px, 204px 632.4px, 192px 638.2px,
-    180px 629.9px, 168px 636.3px, 156px 631.7px, 144px 637.8px, 132px 630.2px,
-    120px 636.8px, 108px 632.3px, 96px 638.6px, 84px 629.6px, 72px 636.4px,
-    60px 631.4px, 48px 637.4px, 36px 630.8px, 24px 636.2px, 12px 631.9px, 0px 638px
+    432px 100%,
+    420px calc(100% - 9.1px), 408px calc(100% - 2.8px), 396px calc(100% - 7.4px), 384px calc(100% - 1.6px), 372px calc(100% - 10.2px),
+    360px calc(100% - 3.9px), 348px calc(100% - 8.5px), 336px calc(100% - 2.1px), 324px calc(100% - 9.6px), 312px calc(100% - 3.4px),
+    300px calc(100% - 7.9px), 288px calc(100% - 1.3px), 276px calc(100% - 10.6px), 264px calc(100% - 4.1px), 252px calc(100% - 8.8px),
+    240px calc(100% - 2.4px), 228px calc(100% - 9.3px), 216px calc(100% - 3.1px), 204px calc(100% - 7.6px), 192px calc(100% - 1.8px),
+    180px calc(100% - 10.1px), 168px calc(100% - 3.7px), 156px calc(100% - 8.3px), 144px calc(100% - 2.2px), 132px calc(100% - 9.8px),
+    120px calc(100% - 3.2px), 108px calc(100% - 7.7px), 96px calc(100% - 1.4px), 84px calc(100% - 10.4px), 72px calc(100% - 3.6px),
+    60px calc(100% - 8.6px), 48px calc(100% - 2.6px), 36px calc(100% - 9.2px), 24px calc(100% - 3.8px), 12px calc(100% - 8.1px), 0px calc(100% - 2px)
   );
   border-radius: 1.25rem;
   background:

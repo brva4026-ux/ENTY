@@ -1247,6 +1247,12 @@ html:not([data-theme="light"]) .admin-shell {
   align-items: start;
 }
 
+/* La vista previa necesita el ancho completo: en la columna lateral la tabla
+   se recortaba y las filas no se podían corregir. */
+.admin-org-grid.is-previewing {
+  grid-template-columns: 1fr;
+}
+
 .admin-settings-card {
   border: 1px solid var(--admin-line);
   border-radius: 16px;

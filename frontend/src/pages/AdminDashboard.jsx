@@ -844,23 +844,6 @@ export default function AdminDashboard() {
     setEditConflict(null);
   }
 
-  // Borrador local: si el navegador se cierra, el texto no se pierde. Solo
-  // se guarda cuando la ficha realmente cambió respecto de la versión cargada.
-  useEffect(() => {
-    if (!editingEvent || !selectedEventData || !editBaseline) return;
-    if (JSON.stringify(editingEvent) === JSON.stringify(editBaseline)) return;
-    const timer = setTimeout(
-      () =>
-        writeEventDraft(
-          selectedEventData.id,
-          editingEvent,
-          selectedEventData.updated_at,
-        ),
-      500,
-    );
-    return () => clearTimeout(timer);
-  }, [editingEvent, selectedEventData, editBaseline]);
-
   /** Sube el afiche desde el editor con el mismo endpoint de medios que usa
    *  el alta. El navegador reduce la imagen; el backend valida mime y tamaño. */
   async function uploadEditFlyer(file) {
@@ -1051,6 +1034,24 @@ export default function AdminDashboard() {
     setBreadcrumb(selectedEventData?.name ?? "");
     return () => setBreadcrumb("");
   }, [selectedEventData?.name, setBreadcrumb]);
+
+  // Borrador local: si el navegador se cierra, el texto no se pierde. Solo
+  // se guarda cuando la ficha realmente cambió respecto de la versión cargada.
+  useEffect(() => {
+    if (!editingEvent || !selectedEventData || !editBaseline) return;
+    if (JSON.stringify(editingEvent) === JSON.stringify(editBaseline)) return;
+    const timer = setTimeout(
+      () =>
+        writeEventDraft(
+          selectedEventData.id,
+          editingEvent,
+          selectedEventData.updated_at,
+        ),
+      500,
+    );
+    return () => clearTimeout(timer);
+  }, [editingEvent, selectedEventData, editBaseline]);
+
   const editable =
     selectedEventData &&
     ["draft", "published"].includes(selectedEventData.status);

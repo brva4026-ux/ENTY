@@ -1944,7 +1944,7 @@
 .evd-lang-row select {
   min-height: 30px;
   padding: 4px 8px;
-  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border: 1px solid rgba(148, 163, 184, 0.8);
   border-radius: 8px;
   background: transparent;
   color: inherit;
@@ -2010,7 +2010,7 @@
 .evd-resale-form input {
   min-height: 34px;
   padding: 6px 8px;
-  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border: 1px solid rgba(148, 163, 184, 0.8);
   border-radius: 8px;
   background: transparent;
   color: inherit;

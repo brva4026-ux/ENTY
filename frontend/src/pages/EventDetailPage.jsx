@@ -710,14 +710,6 @@ export default function EventDetailPage() {
           <div className="evd-info">
             <p className="evd-eyebrow">{data.category || "Evento"}</p>
             <h1 className="evd-title">{data.name}</h1>
-            <div className="evd-lang-row">
-              <label htmlFor="evd-lang">Idioma</label>
-              <select id="evd-lang" value={lang} onChange={(e) => setLang(e.target.value)}>
-                <option value="es">Español</option>
-                <option value="en">English</option>
-                <option value="pt">Português</option>
-              </select>
-            </div>
             {recovery && (
               <div className="evd-recovery" role="status">
                 <strong>Retoma tu compra</strong>
@@ -744,6 +736,14 @@ export default function EventDetailPage() {
                   "Lugar por confirmar"}
               </span>
             </p>
+            <div className="evd-lang-row">
+              <label htmlFor="evd-lang">Idioma</label>
+              <select id="evd-lang" value={lang} onChange={(e) => setLang(e.target.value)}>
+                <option value="es">Español</option>
+                <option value="en">English</option>
+                <option value="pt">Português</option>
+              </select>
+            </div>
 
             <div className="evd-grid">
               <div className="evd-cell">
