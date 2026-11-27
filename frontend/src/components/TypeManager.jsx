@@ -2,46 +2,12 @@ import { useMemo, useState } from "react";
 import { apiFetch, applyBulk, previewBulk } from "../lib/api";
 import { useUI } from "../lib/ui";
 import EmptyState from "./EmptyState";
-
-/** Atajos de tipos: un toque llena el formulario con lo tipico del rubro.
- * Cada uno explica para que sirve — sin adivinar nomenclaturas. */
-const PRESETS = [
-  {
-    name: "General",
-    price: "30000",
-    courtesy: false,
-  },
-  {
-    name: "VIP",
-    price: "80000",
-    courtesy: false,
-  },
-  {
-    name: "Early bird",
-    price: "20000",
-    courtesy: false,
-  },
-  {
-    name: "Cortesía",
-    price: "0",
-    courtesy: true,
-  },
-];
+import Icon from "./Icon";
+import TicketTypeCreateDialog from "./TicketTypeCreateDialog";
 
 export default function TypeManager({ venueId, eventId, types, report, onChange, capacity }) {
   const ui = useUI();
-  const [name, setName] = useState("General");
-  // El usuario piensa en PESOS ("30.000"), la DB guarda centavos: convertir
-  // en el borde. Antes pedía centavos y nadie entendía qué escribir.
-  const [price, setPrice] = useState("30000");
-  // Ley de Tesler: el aforo ya se cargó al crear el evento; no se vuelve a
-  // pedir como número a mano. La cantidad del primer tipo arranca en el aforo
-  // (el admin la reparte o la baja después).
-  const [qty, setQty] = useState(() =>
-    capacity ? String(capacity) : "50",
-  );
-  const [isCourtesy, setIsCourtesy] = useState(false);
-  const [isVirtual, setIsVirtual] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [err, setErr] = useState("");
   const [info, setInfo] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -53,7 +19,6 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
     isVirtual: false,
   });
   const [busyId, setBusyId] = useState(null);
-  const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState([]);
   const [bulkPreview, setBulkPreview] = useState(null);
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -127,28 +92,10 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
     onChange((types || []).map((x) => (x.id === updated.id ? updated : x)));
   }
 
-  async function createType(e) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const t = await apiFetch(`/venues/${venueId}/events/${eventId}/types`, {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          price_cents: priceFor(price, isCourtesy),
-          quantity: Number(qty),
-          is_courtesy: isCourtesy,
-          is_virtual: isVirtual,
-        }),
-      });
-      onChange([...(types || []), t]);
-      setErr("");
-      ui.success(`Tipo "${t.name}" agregado`);
-    } catch (e2) {
-      setErr(e2.message);
-    } finally {
-      setSaving(false);
-    }
+  function addType(type) {
+    onChange([...(types || []), type]);
+    setCreateOpen(false);
+    ui.success(`Se creó ${type.name}`);
   }
 
   function startEdit(t) {
@@ -233,17 +180,16 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
 
   return (
     <div className="card p-5">
-      <p className="eyebrow">Boletas</p>
-      <h3 className="display mb-1 mt-0.5 text-base">Tipos de boleta</h3>
-      <p className="mb-3 text-xs text-zinc-500">
-        Cada tipo es una localidad del evento: define el precio, el cupo y si
-        es cortesía o virtual. La virtual no se escanea en puerta: abre la
-        transmisión durante la ventana del evento.
-      </p>
-      <p className="mb-3 rounded-lg bg-zinc-940 px-3 py-2 text-2xs text-zinc-500">
-        Una cortesía siempre vale $0 y necesita un cupo definido. Los cupos
-        disponibles se calculan con las boletas emitidas de cada localidad.
-      </p>
+      <header className="ticket-type-list-head">
+        <div>
+          <h2 className="display">Tipos de boleta</h2>
+          {(types || []).length > 0 && <p>Precio, cupo y disponibilidad por tipo.</p>}
+        </div>
+        <button type="button" className="btn-primary" onClick={() => setCreateOpen(true)}>
+          <Icon name="plus" className="h-4 w-4" aria-hidden="true" />
+          Nuevo tipo de boleta
+        </button>
+      </header>
       {err && (
         <p
           role="alert"
@@ -252,6 +198,7 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
           {err}
         </p>
       )}
+      {info && <p role="status" className="mb-3 text-xs text-amber-300">{info}</p>}
       {(types || []).length > 1 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-xs">
           <label className="flex items-center gap-2">
@@ -468,102 +415,20 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
         {(types || []).length === 0 && (
           <li className="col-span-full list-none">
             <EmptyState icon="ticket" title="Sin tipos de boleta aún">
-              Agrega el primero abajo y ya puedes vender.
+              Crea el primer tipo para definir su precio y cupo.
             </EmptyState>
           </li>
         )}
       </ul>
-      <div className="workspace-presets" role="group" aria-label="Plantillas de boleta">
-        {PRESETS.map((preset) => (
-          <button key={preset.name} type="button" className="btn-mini"
-            aria-pressed={name === preset.name && isCourtesy === preset.courtesy}
-            data-variant={name === preset.name && isCourtesy === preset.courtesy ? "brand" : undefined}
-            onClick={() => {
-              setName(preset.name);
-              setPrice(preset.price);
-              setIsCourtesy(preset.courtesy);
-              setIsVirtual(false);
-            }}>
-            {preset.name}
-          </button>
-        ))}
-      </div>
-      <form
-        onSubmit={createType}
-        className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_5.5rem_auto] sm:items-start"
-      >
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="field sm:col-start-1 sm:row-start-1"
-          placeholder="Nombre (General, VIP…)"
-          aria-label="Nombre del tipo"
-          required
+      {createOpen && (
+        <TicketTypeCreateDialog
+          venueId={venueId}
+          eventId={eventId}
+          suggestedQuantity={(types || []).length === 0 ? capacity : null}
+          onCreated={addType}
+          onClose={() => setCreateOpen(false)}
         />
-        <label className="sm:col-start-1 sm:row-start-2">
-          <span className="sr-only">Precio</span>
-          <div className="relative">
-            <span
-              className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm ${
-                isCourtesy ? "text-zinc-600" : "text-zinc-500"
-              }`}
-            >
-              $
-            </span>
-            <input
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="field !pl-7"
-              placeholder="Precio"
-              aria-label="Precio en pesos"
-              inputMode="numeric"
-              disabled={isCourtesy}
-            />
-          </div>
-        </label>
-        <input
-          value={qty}
-          onChange={(e) => setQty(e.target.value)}
-          className="field sm:col-start-2 sm:row-start-1"
-          placeholder="Cantidad"
-          aria-label="Cantidad de boletas de este tipo"
-          inputMode="numeric"
-          required
-        />
-        <label className="flex items-center gap-2 text-sm text-zinc-300 sm:col-start-2 sm:row-start-2">
-          <input
-            type="checkbox"
-            checked={isCourtesy}
-            onChange={(e) => setIsCourtesy(e.target.checked)}
-            className="accent-brand-500"
-          />
-          Cortesía
-        </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-300 sm:col-start-3 sm:row-start-2">
-          <input
-            type="checkbox"
-            checked={isVirtual}
-            onChange={(e) => setIsVirtual(e.target.checked)}
-            className="accent-brand-500"
-          />
-          Virtual
-        </label>
-        {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
-        <button
-          type="submit"
-          className={`btn-primary sm:col-start-4 sm:row-start-1 sm:self-start ${
-            saving ? "is-busy" : ""
-          }`}
-          disabled={saving}
-        >
-          {saving && (
-            <svg className="btn-spinner" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-            </svg>
-          )}
-          {saving ? "Agregando…" : "Agregar"}
-        </button>
-      </form>
+      )}
     </div>
   );
 }
