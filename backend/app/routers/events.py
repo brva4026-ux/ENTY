@@ -729,7 +729,9 @@ async def list_types(
     _event_ctx(venue_id, user)
     async with db.cursor() as cur:
         await cur.execute(
-            _TYPE_SELECT + " WHERE tt.event_id=%s AND e.venue_id=%s ORDER BY tt.id",
+            _TYPE_SELECT
+            + " WHERE tt.event_id=%s AND e.venue_id=%s AND NOT tt.is_external"
+            + " ORDER BY tt.id",
             (event_id, venue_id),
         )
         return await cur.fetchall()

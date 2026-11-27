@@ -85,8 +85,12 @@ async def door_lookup(
             """
             SELECT t.id, t.customer_name, t.customer_phone, t.customer_email,
                    t.status, t.redeemed_at, t.price_cents_snapshot,
-                   tt.name AS type_name
-              FROM tickets t JOIN ticket_types tt ON tt.id=t.ticket_type_id
+                   t.origin, c.provider_name AS channel_provider,
+                   c.name AS channel_name, tt.name AS type_name
+              FROM tickets t
+              JOIN ticket_types tt ON tt.id=t.ticket_type_id
+              LEFT JOIN event_external_channels c
+                ON c.id = t.external_channel_id
              WHERE t.event_id=%s
                AND (t.customer_name ILIKE %s OR t.customer_phone ILIKE %s
                     OR t.customer_email ILIKE %s)
@@ -109,8 +113,16 @@ async def manual_admission(
     async with db.cursor() as cur:
         await _event(cur, venue_id, event_id)
         await cur.execute(
-            "SELECT id, status, customer_name FROM tickets"
-            " WHERE id=%s AND event_id=%s FOR UPDATE",
+            """
+            SELECT t.id, t.status, t.customer_name, t.origin,
+                   c.status AS channel_status, c.provider_name,
+                   c.confirmation_owner
+              FROM tickets t
+              LEFT JOIN event_external_channels c
+                ON c.id = t.external_channel_id
+             WHERE t.id=%s AND t.event_id=%s
+             FOR UPDATE OF t
+            """,
             (body.ticket_id, event_id),
         )
         ticket = await cur.fetchone()
@@ -120,6 +132,14 @@ async def manual_admission(
             raise HTTPException(409, "Esa boleta ya había ingresado")
         if ticket["status"] != "issued":
             raise HTTPException(409, "La boleta no está vigente")
+        if ticket["origin"] == "external":
+            if ticket["channel_status"] != "active":
+                raise HTTPException(409, "El canal invitado está pausado o cerrado")
+            if ticket["confirmation_owner"] == "provider":
+                raise HTTPException(
+                    409,
+                    f"Confirmá el ingreso en el sistema de {ticket['provider_name']}",
+                )
         await cur.execute(
             "UPDATE tickets SET status='redeemed', redeemed_at=now(),"
             " redeemed_by_user_id=%s, updated_at=now() WHERE id=%s",

@@ -91,6 +91,8 @@ SQL_FILES = [
     ROOT / "db" / "migrations" / "073_enty_onboarding.sql",
     ROOT / "db" / "migrations" / "074_payout_verification_and_fees.sql",
     ROOT / "db" / "migrations" / "075_questions_stream_and_seo.sql",
+    ROOT / "db" / "migrations" / "076_revoke_public_data_api.sql",
+    ROOT / "db" / "migrations" / "077_external_channels.sql",
 ]
 
 
@@ -115,7 +117,8 @@ def db():
     # Esquema limpio en cada sesión de tests (orden inverso de dependencias)
     conn.execute(
         """
-        DROP TABLE IF EXISTS door_incident_comments, door_incidents, door_shift_requests,
+        DROP TABLE IF EXISTS external_ticket_imports, event_external_channels,
+            door_incident_comments, door_incidents, door_shift_requests,
             event_door_devices, notifications, push_outbox, staff_invitations,
             push_subscriptions, ticket_reissues,
             promoter_sale_issues, promoter_payout_items, promoter_link_events, promoter_links,

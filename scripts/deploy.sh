@@ -97,6 +97,7 @@ MIGRATIONS=(
     db/migrations/074_payout_verification_and_fees.sql
     db/migrations/075_questions_stream_and_seo.sql
     db/migrations/076_revoke_public_data_api.sql
+    db/migrations/077_external_channels.sql
 )
 
 echo "==> 1/3 Migraciones en Supabase (ref: $PROJECT_REF)"
