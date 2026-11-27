@@ -10,25 +10,21 @@ const PRESETS = [
     name: "General",
     price: "30000",
     courtesy: false,
-    desc: "Entrada estandar de pie, la que más se vende.",
   },
   {
     name: "VIP",
     price: "80000",
     courtesy: false,
-    desc: "Zona preferencial o beneficio extra (mesa, trago, baño VIP).",
   },
   {
     name: "Early bird",
     price: "20000",
     courtesy: false,
-    desc: "Precio de preventa: premia a quien compra temprano.",
   },
   {
     name: "Cortesía",
     price: "0",
     courtesy: true,
-    desc: "No se cobra: invitados, prensa, staff. Queda fuera del recaudo.",
   },
 ];
 
@@ -477,37 +473,21 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
           </li>
         )}
       </ul>
-      {/* Atajos: un toque llena el formulario — luego se ajusta el precio. */}
-      <div className="mb-3">
-        <p className="mb-1.5 text-xs font-medium text-zinc-400">
-          Plantillas editables:
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {PRESETS.map((p) => (
-          <button
-            key={p.name}
-            type="button"
+      <div className="workspace-presets" role="group" aria-label="Plantillas de boleta">
+        {PRESETS.map((preset) => (
+          <button key={preset.name} type="button" className="btn-mini"
+            aria-pressed={name === preset.name && isCourtesy === preset.courtesy}
+            data-variant={name === preset.name && isCourtesy === preset.courtesy ? "brand" : undefined}
             onClick={() => {
-              setName(p.name);
-              setPrice(p.price);
-              setIsCourtesy(p.courtesy);
-            }}
-            aria-pressed={name === p.name && isCourtesy === p.courtesy}
-            data-tip={p.desc}
-            className="opt-chip"
-          >
-            {p.name}
+              setName(preset.name);
+              setPrice(preset.price);
+              setIsCourtesy(preset.courtesy);
+              setIsVirtual(false);
+            }}>
+            {preset.name}
           </button>
-          ))}
-        </div>
-        {PRESETS.filter((p) => p.name === name).map((p) => (
-          <p key={p.name} className="mt-1.5 text-2xs text-zinc-500">
-            {p.desc}
-          </p>
         ))}
       </div>
-      {/* Los placeholders son la etiqueta: cero párrafos explicativos. La
-          ayuda de ejemplo vive DENTRO del input (prefijo), no debajo. */}
       <form
         onSubmit={createType}
         className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_5.5rem_auto] sm:items-start"

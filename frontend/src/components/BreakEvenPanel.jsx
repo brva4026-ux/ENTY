@@ -350,6 +350,9 @@ export default function BreakEvenPanel({ venueId, eventId }) {
                     }
                   />
                 </label>
+              </div>
+              <details className="admin-task-details" key={editingId || "new"}>
+                <summary>Etapa, categoría y nota</summary>
                 <label className="bs-field">
                   <span>Etapa</span>
                   <select
@@ -364,36 +367,36 @@ export default function BreakEvenPanel({ venueId, eventId }) {
                     <option value="paid">Pagado</option>
                   </select>
                 </label>
-              </div>
-              <label className="bs-field">
-                <span>Categoría</span>
-                <select
-                  className="field"
-                  value={form.category}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, category: e.target.value }))
-                  }
-                >
-                  <option value="produccion">Producción</option>
-                  <option value="talento">Talento</option>
-                  <option value="sonido">Sonido e iluminación</option>
-                  <option value="personal">Personal</option>
-                  <option value="marketing">Marketing</option>
-                  <option value="logistica">Logística</option>
-                  <option value="otro">Otro</option>
-                </select>
-              </label>
-              <label className="bs-field">
-                <span>Nota (opcional)</span>
-                <input
-                  className="field"
-                  placeholder="Factura, proveedor, fecha de pago…"
-                  value={form.notes}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, notes: e.target.value }))
-                  }
-                />
-              </label>
+                <label className="bs-field">
+                  <span>Categoría</span>
+                  <select
+                    className="field"
+                    value={form.category}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, category: e.target.value }))
+                    }
+                  >
+                    <option value="produccion">Producción</option>
+                    <option value="talento">Talento</option>
+                    <option value="sonido">Sonido e iluminación</option>
+                    <option value="personal">Personal</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="logistica">Logística</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </label>
+                <label className="bs-field">
+                  <span>Nota (opcional)</span>
+                  <input
+                    className="field"
+                    placeholder="Factura, proveedor, fecha de pago…"
+                    value={form.notes}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, notes: e.target.value }))
+                    }
+                  />
+                </label>
+              </details>
               <div className="bs-cost-form-actions">
                 <button type="submit" className="btn-primary" disabled={busy}>
                   {busy

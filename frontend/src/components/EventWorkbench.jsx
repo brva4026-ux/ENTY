@@ -213,28 +213,17 @@ export default function EventWorkbench({
             </div>
           </div>
 
-          <dl className="bs-facts">
+          <dl className="workspace-event-facts">
             <div>
-              <dt>Inicio</dt>
-              <dd>
-                <strong>{eventFullDate(ev)}</strong>
-                <span>{formatEventTime(ev.starts_at, tz)}</span>
-              </dd>
+              <dt>Horario</dt>
+              <dd><strong>{eventFullDate(ev)}</strong><span>{formatEventTime(ev.starts_at, tz)}
+                {ev.ends_at && ` – ${endDateLabel(ev, tz)} ${formatEventTime(ev.ends_at, tz)}`}</span></dd>
             </div>
-            {ev.ends_at && (
-              <div>
-                <dt>Fin</dt>
-                <dd>
-                  <strong>{endDateLabel(ev, tz)}</strong>
-                  <span>{formatEventTime(ev.ends_at, tz)}</span>
-                </dd>
-              </div>
-            )}
             <div>
               <dt>Lugar</dt>
               <dd>
                 <strong>{ev.location || ev.venue_name || "Lugar por confirmar"}</strong>
-                {ev.location && ev.venue_name && <span>{ev.venue_name}</span>}
+                {ev.location && ev.venue_name && ev.venue_name !== ev.location && <span>{ev.venue_name}</span>}
               </dd>
             </div>
           </dl>

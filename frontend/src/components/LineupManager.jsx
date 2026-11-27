@@ -172,7 +172,7 @@ export default function LineupManager({ venueId, eventId }) {
   return (
     <div className="card p-5">
       <p className="eyebrow">Cartel</p>
-      <h3 className="display mb-1 mt-0.5 text-base">Lineup</h3>
+      <h3 className="display mb-1 mt-0.5 text-base">Artistas</h3>
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-xs text-zinc-500">
           Los artistas de la noche, en orden. Aparecen en la ficha pública del

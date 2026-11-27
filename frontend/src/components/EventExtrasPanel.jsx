@@ -802,22 +802,20 @@ function BundleSection({ venueId, eventId }) {
 }
 
 export default function EventExtrasPanel({ venueId, eventId, types = [] }) {
-  const [view, setView] = useState("transporte");
-  const current = VIEWS.find((v) => v.id === view) || VIEWS[0];
+  const [view, setView] = useState("");
   return (
     <div className="admin-panel-card bs-suite">
       <div className="bs-subnav-head">
         <div><h2>Operación y crecimiento</h2></div>
       </div>
-      <div className="bs-subnav" role="tablist" aria-label="Secciones de operación">
-        {VIEWS.map((v) => (
-          <button key={v.id} type="button" role="tab" aria-selected={view === v.id}
-            className="bs-subnav-tab" onClick={() => setView(v.id)}>
-            {v.label}
-          </button>
-        ))}
-      </div>
-      <div className="bs-suite-body" role="tabpanel" aria-label={current.label}>
+      <label className="bs-field">
+        <span>Herramienta</span>
+        <select className="field" value={view} onChange={(e) => setView(e.target.value)}>
+          <option value="">Selecciona una herramienta</option>
+          {VIEWS.map((tool) => <option key={tool.id} value={tool.id}>{tool.label}</option>)}
+        </select>
+      </label>
+      <div className="bs-suite-body">
         {view === "transporte" && <TransportSection venueId={venueId} eventId={eventId} />}
         {view === "plano" && <MapSection venueId={venueId} eventId={eventId} />}
         {view === "turnos" && <ShiftSection venueId={venueId} eventId={eventId} />}

@@ -3,7 +3,6 @@ import ZonesPanel from "./ZonesPanel";
 import DoorIncidentsPanel from "./DoorIncidentsPanel";
 import Icon from "./Icon";
 import { LiveIndicator } from "./Brand";
-import { SectionContext } from "./EventSummary";
 import { money, plural } from "../lib/format";
 import { isStaleLive } from "../lib/eventTime";
 
@@ -30,18 +29,10 @@ export default function AccesosPanel({
   types,
   onTypesChanged,
 }) {
-  const paidTickets = report?.by_payment_method
-    ?.filter((p) => p.payment_method && p.payment_method !== "cortesia")
-    .reduce((n, p) => n + (p.tickets ?? 0), 0);
   const incidents =
     report == null
       ? null
       : (report.door_duplicates ?? 0) + (report.door_rejected ?? 0);
-  const nextByStatus = {
-    live: "Sigue los ingresos y las incidencias; finaliza cuando la noche termine.",
-    ended: "Descarga el cierre y revisa las incidencias antes de conciliar.",
-    cancelled: "La puerta no opera: revisa las boletas y los pagos en Ventas.",
-  };
   const scrollToIncidents = () =>
     document
       .getElementById("accesos-incidencias")
@@ -81,21 +72,25 @@ export default function AccesosPanel({
 
   return (
     <div className="admin-workspace-panel">
-      <SectionContext
-        ev={ev}
-        next={
-          nextByStatus[ev.status] ||
-          "Configura zonas, abre puertas cuando el equipo esté listo y cierra la noche."
-        }
-      />
-
-      <ZonesPanel
-        venueId={venueId}
-        eventId={ev.id}
-        types={types}
-        onTypesChanged={onTypesChanged}
-        live={isLive}
-      />
+      <section className="admin-panel-card workspace-capacity">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2>Aforo y accesos</h2>
+            <p>{report ? `${report.redeemed} ingresos de ${ev.capacity} plazas` : `${ev.capacity} plazas · esperando el reporte`}</p>
+          </div>
+          <button type="button" className="btn-primary" onClick={onQrTest}>
+            <Icon name="qr" className="h-4 w-4" /> Probar QR
+          </button>
+        </div>
+        {report && ev.capacity > 0 && (
+          <progress aria-label="Ingresos sobre el aforo" value={report.redeemed} max={ev.capacity} />
+        )}
+        <details className="admin-task-details mt-3">
+          <summary>Zonas y localidades</summary>
+          <ZonesPanel venueId={venueId} eventId={ev.id} types={types}
+            onTypesChanged={onTypesChanged} live={isLive} />
+        </details>
+      </section>
 
       {ev.status === "live" && (
         <div className="admin-panel-card bs-live-hero">
@@ -161,51 +156,6 @@ export default function AccesosPanel({
         </div>
       )}
 
-      {ev.status !== "live" && ev.status !== "ended" && (
-        <div className="admin-panel-card">
-          <h2>Pulso operativo</h2>
-          <p>
-            Una lectura de la noche sin inventar ceros: si el servidor no
-            reporta un dato, se muestra como ausente.
-          </p>
-          <div className="bs-state-grid bs-state-grid--metrics bs-state-grid--five mt-3">
-            <div className="bs-metric">
-              <span>Dinero cobrado</span>
-              <strong className="tnum">
-                {report ? money(report.revenue_cents) : "Sin dato"}
-              </strong>
-              <small>Pagos aprobados; no incluye cortesías.</small>
-            </div>
-            <div className="bs-metric">
-              <span>Boletas emitidas</span>
-              <strong className="tnum">{report ? report.issued : "Sin dato"}</strong>
-              <small>{report ? `${report.capacity} de aforo` : "Esperando reporte"}</small>
-            </div>
-            <div className="bs-metric">
-              <span>Boletas pagadas</span>
-              <strong className="tnum">{paidTickets ?? "Sin dato"}</strong>
-              <small>
-                {paidTickets == null
-                  ? "El reporte no trae medios de pago."
-                  : `${plural(paidTickets, "boleta pagada", "boletas pagadas")} en el reporte.`}
-              </small>
-            </div>
-            <div className="bs-metric">
-              <span>Personas que ingresaron</span>
-              <strong className="tnum" data-tone="ok">
-                {report ? report.redeemed : "Sin dato"}
-              </strong>
-              <small>{report ? `${report.pending} sin ingreso` : "Esperando escaneos"}</small>
-            </div>
-            <div className="bs-metric">
-              <span>Pendientes de sincronizar</span>
-              <strong className="tnum">No disponible</strong>
-              <small>{SYNC_NOTE}</small>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div id="accesos-incidencias" className="admin-panel-card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -265,15 +215,6 @@ export default function AccesosPanel({
                 : "Abre puertas cuando el equipo esté listo. Finalizar corta los escaneos; reabrir los restaura dentro de la gracia."}
             </p>
           </div>
-          <button
-            type="button"
-            className="btn-mini"
-            data-variant="brand"
-            onClick={onQrTest}
-          >
-            <Icon name="qr" className="h-3.5 w-3.5" />
-            Probar un QR
-          </button>
         </div>
         {isStaleLive(ev) && (
           <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-300 ring-1 ring-amber-500/30">
@@ -308,9 +249,8 @@ export default function AccesosPanel({
         </div>
       </div>
 
-      <div className="admin-panel-card">
-        <h2>Preflight de puerta</h2>
-        <p>Quién está asignado y si su escáner ya está activo.</p>
+      <details className="admin-task-details">
+        <summary>Equipo y escáneres conectados</summary>
         <ul className="admin-check-list">
           <li className={(preflight?.bouncers ?? 0) > 0 ? "is-ok" : "is-warn"}>
             <span className="admin-check-icon" aria-hidden="true">
@@ -342,16 +282,25 @@ export default function AccesosPanel({
             </li>
           ))}
         </ul>
-      </div>
+      </details>
 
       {venueId && (
-        <DoorIncidentsPanel venueId={venueId} eventId={ev.id} role="admin" />
+        <details className="admin-task-details">
+          <summary>Registrar o gestionar incidencias</summary>
+          <DoorIncidentsPanel venueId={venueId} eventId={ev.id} role="admin" />
+        </details>
       )}
 
-      {report && <DoorPulse pulse={report.door_pulse} isLive={isLive} />}
+      {report && (
+        <details className="admin-task-details">
+          <summary>Registro de escaneos</summary>
+          <DoorPulse pulse={report.door_pulse} isLive={isLive} />
+        </details>
+      )}
 
       {closing && (
-        <div className="admin-panel-card">
+        <details className="admin-task-details">
+          <summary>Exportar cierre y caja</summary>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="eyebrow">Cierre de noche</p>
@@ -417,7 +366,7 @@ export default function AccesosPanel({
               </div>
             ))}
           </div>
-        </div>
+        </details>
       )}
     </div>
   );

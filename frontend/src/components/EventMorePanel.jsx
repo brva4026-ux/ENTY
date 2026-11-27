@@ -1196,21 +1196,18 @@ function ExternalChannelSection({ venueId, eventId, types = [] }) {
 
 
 export default function EventMorePanel({ venueId, eventId, types = [] }) {
-  const [tab, setTab] = useState("ingreso");
+  const [tab, setTab] = useState("");
   const props = { venueId, eventId, types };
   return (
-    <section className="bs-suite bs-suite-more">
-      <header className="bs-suite-head">
-        <div>
-          <h3>Más herramientas</h3>
-          <p>Doce frentes nuevos para operar, vender y cuidar la experiencia.</p>
-        </div>
-      </header>
-      <nav className="bs-suite-tabs" aria-label="Herramientas adicionales">
-        {TABS.map(([id, label]) => (
-          <button key={id} type="button" data-active={tab === id} onClick={() => setTab(id)}>{label}</button>
-        ))}
-      </nav>
+    <section className="admin-panel-card bs-suite bs-suite-more">
+      <h2>Herramientas complementarias</h2>
+      <label className="bs-field mt-3">
+        <span>Herramienta</span>
+        <select className="field" value={tab} onChange={(e) => setTab(e.target.value)}>
+          <option value="">Selecciona una herramienta</option>
+          {TABS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+        </select>
+      </label>
       <div className="bs-suite-body">
         {tab === "ingreso" && <DoorSection {...props} />}
         {tab === "disputas" && <DisputeSection {...props} />}

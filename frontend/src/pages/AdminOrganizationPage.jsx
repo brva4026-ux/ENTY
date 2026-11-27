@@ -47,6 +47,7 @@ export default function AdminOrganizationPage() {
   const tab = TABS.some((t) => t.id === rawTab) ? rawTab : "equipo";
 
   const [users, setUsers] = useState([]);
+  const [teamRevision, setTeamRevision] = useState(0);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -54,13 +55,13 @@ export default function AdminOrganizationPage() {
   useEffect(() => {
     if (!venueId) return;
     let alive = true;
-    apiFetch(`/venues/${venueId}/users?include_inactive=true`)
+    apiFetch(`/venues/${venueId}/users?include_inactive=true`, { fresh: true })
       .then((rows) => alive && setUsers(rows || []))
       .catch(() => alive && setUsers([]));
     return () => {
       alive = false;
     };
-  }, [venueId]);
+  }, [venueId, teamRevision]);
 
   useEffect(() => {
     if (!venue) return;
@@ -156,7 +157,10 @@ export default function AdminOrganizationPage() {
 
       {tab === "equipo" && (
         <section className="space-y-4" role="tabpanel" aria-label="Equipo">
-          <TeamManager venueId={venueId} users={users} onChanged={() => restoreSession()} />
+          <TeamManager venueId={venueId} users={users} onChanged={async () => {
+            setTeamRevision((revision) => revision + 1);
+            await restoreSession();
+          }} />
         </section>
       )}
 

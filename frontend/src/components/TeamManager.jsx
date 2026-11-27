@@ -643,10 +643,10 @@ function MemberRow({
  * Componente principal: KPIs + pestañas por rol + buscador + alta
  * ------------------------------------------------------------------------ */
 const TABS = [
-  { id: "all", label: "Todos", icon: null },
-  { id: "promotor", label: "Promotores", icon: "promotor" },
-  { id: "bouncer", label: "Puerta", icon: "bouncer" },
-  { id: "admin", label: "Admins", icon: "admin" },
+  { id: "all", label: "Todos los roles" },
+  { id: "promotor", label: "Promotores" },
+  { id: "bouncer", label: "Puerta" },
+  { id: "admin", label: "Administradores" },
 ];
 
 export default function TeamManager({ venueId, users, onChanged }) {
@@ -662,6 +662,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all");
+  const [status, setStatus] = useState("all");
   const [stats, setStats] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [resetId, setResetId] = useState(null);
@@ -702,7 +703,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
     }
   }
 
-  const members = stats?.members || [];
+  const members = stats?.members || users || [];
 
   /* Contadores por pestaña (patrón distri-stream: contador junto al icono) */
   const counts = useMemo(
@@ -723,7 +724,9 @@ export default function TeamManager({ venueId, users, onChanged }) {
   );
 
   const filtered = useMemo(() => {
-    let list = members;
+    let list = members.filter((member) =>
+      status === "all" || (member.is_active === false ? "inactive" : "active") === status,
+    );
     if (tab !== "all") {
       list = list.filter((m) => {
         const r = primaryRoleOf(m);
@@ -740,8 +743,11 @@ export default function TeamManager({ venueId, users, onChanged }) {
           m.roles.some((r) => r.includes(q)),
       );
     }
-    return list;
-  }, [members, tab, query]);
+    return [...list].sort((a, b) =>
+      Number(a.is_active === false) - Number(b.is_active === false) ||
+      a.full_name.localeCompare(b.full_name, "es"),
+    );
+  }, [members, tab, query, status]);
 
   return (
     <div className="space-y-4">
@@ -842,48 +848,19 @@ export default function TeamManager({ venueId, users, onChanged }) {
 
       {/* Pestañas por rol con icono + contador (patrón distri-stream) */}
       <div className="card p-5">
-        <div
-          className="tabbar no-scrollbar mb-4 max-w-full"
-          role="group"
-          aria-label="Filtrar por rol"
-        >
-          {TABS.map((t) => {
-            const active = tab === t.id;
-            const meta = t.icon ? ROLE_META[t.icon] : null;
-            return (
-              <button
-                key={t.id}
-                aria-pressed={active}
-                onClick={() => setTab(t.id)}
-                className="tabbar-item shrink-0 !text-xs"
-              >
-                {meta ? (
-                  <IconRole role={t.icon} className="h-3.5 w-3.5" />
-                ) : (
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-3.5 w-3.5"
-                    aria-hidden
-                  >
-                    <path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M10 3.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7ZM21 19v-1a4 4 0 0 0-2.5-3.7M15 3.6a3.5 3.5 0 0 1 0 6.8" />
-                  </svg>
-                )}
-                {t.label}
-                <span
-                  className={`tnum rounded-full px-1.5 text-2xs ring-1 ${
-                    active
-                      ? "bg-zinc-700/80 text-zinc-200 ring-zinc-600"
-                      : "bg-zinc-800/80 text-zinc-500 ring-zinc-700/70"
-                  }`}
-                >
-                  {counts[t.id]}
-                </span>
-              </button>
-            );
-          })}
+        <div className="workspace-team-filters">
+          <label>Rol
+            <select className="field" value={tab} onChange={(e) => setTab(e.target.value)}>
+              {TABS.map((t) => <option key={t.id} value={t.id}>{t.label} ({counts[t.id]})</option>)}
+            </select>
+          </label>
+          <label>Estado
+            <select className="field" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="all">Todos los estados</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </label>
         </div>
 
         {/* Lista filtrada */}
@@ -893,7 +870,7 @@ export default function TeamManager({ venueId, users, onChanged }) {
               ? "Nadie coincide con la búsqueda."
               : counts.all === 0
                 ? "Sin usuarios todavía — agrega a tu equipo con «Nuevo usuario»."
-                : "Nadie en esta pestaña todavía."}
+                : "Nadie coincide con los filtros."}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -912,12 +889,6 @@ export default function TeamManager({ venueId, users, onChanged }) {
           </ul>
         )}
 
-        {tab !== "all" && filtered.length > 0 && (
-          <p className="mt-3 text-2xs text-zinc-600">
-            {ROLE_META[tab]?.hint} — mostrando {filtered.length} de{" "}
-            {counts[tab]}.
-          </p>
-        )}
       </div>
 
       {/* Resumen ejecutivo */}

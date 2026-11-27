@@ -413,48 +413,53 @@ export default function CouponManager({ venueId, eventId, types = [] }) {
             inputMode="numeric"
           />
         </label>
-        <label className="flex flex-col gap-1 text-2xs text-zinc-500">
-          Máximo de usos
-          <input
-            value={maxUses}
-            onChange={(e) => setMaxUses(e.target.value)}
-            className="field"
-            placeholder="Sin límite"
-            inputMode="numeric"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-2xs text-zinc-500">
-          Vence
-          <input
-            type="date"
-            value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
-            className="field"
-          />
-        </label>
-        {types.length > 0 && (
-          <fieldset className="sm:col-span-2">
-            <legend className="mb-1 text-2xs font-bold uppercase tracking-wider text-zinc-500">
-              Localidades elegibles
-            </legend>
-            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-              {types.filter((t) => t.is_active !== false).map((t) => (
-                <label key={t.id} className="flex items-center gap-1.5 text-xs text-zinc-300">
-                  <input
-                    type="checkbox"
-                    checked={typeIds.includes(t.id)}
-                    onChange={() => toggleType(t.id)}
-                    className="accent-brand-500"
-                  />
-                  {t.name}
-                </label>
-              ))}
-            </div>
-            <p className="mt-1 text-2xs text-zinc-500">
-              Sin selección = todas las localidades del evento.
-            </p>
-          </fieldset>
-        )}
+        <details className="admin-task-details sm:col-span-3">
+          <summary>Límite, vencimiento y tipos de boleta</summary>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+              Máximo de usos
+              <input
+                value={maxUses}
+                onChange={(e) => setMaxUses(e.target.value)}
+                className="field"
+                placeholder="Sin límite"
+                inputMode="numeric"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+              Vence
+              <input
+                type="date"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="field"
+              />
+            </label>
+            {types.length > 0 && (
+              <fieldset className="sm:col-span-2">
+                <legend className="mb-1 text-2xs font-bold uppercase tracking-wider text-zinc-500">
+                  Localidades elegibles
+                </legend>
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                  {types.filter((t) => t.is_active !== false).map((t) => (
+                    <label key={t.id} className="flex items-center gap-1.5 text-xs text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={typeIds.includes(t.id)}
+                        onChange={() => toggleType(t.id)}
+                        className="accent-brand-500"
+                      />
+                      {t.name}
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-1 text-2xs text-zinc-500">
+                  Sin selección = todas las localidades del evento.
+                </p>
+              </fieldset>
+            )}
+          </div>
+        </details>
         <button
           type="submit"
           disabled={busy || code.trim().length < 2}

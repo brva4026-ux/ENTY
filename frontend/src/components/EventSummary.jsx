@@ -2,38 +2,9 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
 import { money, plural } from "../lib/format";
-import { formatEventTime, eventZone } from "../lib/eventTime";
 import { LiveIndicator } from "./Brand";
-import EventCover, { eventFullDate } from "./EventCover";
 import Icon from "./Icon";
 import LineupManager from "./LineupManager";
-
-/** Contexto de una sección: qué evento, cuándo, dónde y qué se hace ahora. */
-export function SectionContext({ ev, next }) {
-  const tz = eventZone(ev);
-  return (
-    <div className="bs-section-context">
-      <p>
-        <strong>{ev.name}</strong>
-        <span aria-hidden="true">·</span>
-        {eventFullDate(ev)}
-        <span aria-hidden="true">·</span>
-        {formatEventTime(ev.starts_at, tz)}
-        <span aria-hidden="true">·</span>
-        {ev.location || "Lugar por confirmar"}
-      </p>
-      <p className="bs-section-next">{next}</p>
-    </div>
-  );
-}
-
-function StatusLine({ ev }) {
-  if (ev.status === "draft") return "Borrador (no visible al público)";
-  if (ev.status === "published") return "A la venta";
-  if (ev.status === "live") return "En puerta";
-  if (ev.status === "ended") return "Finalizado";
-  return "Cancelado";
-}
 
 function Metric({ label, value, note, tone }) {
   return (
@@ -66,43 +37,29 @@ function CheckRow({ ok, label, detail, action, actionLabel }) {
   );
 }
 
-function PublicPreview({ ev, onEdit, editable }) {
+function PublicPreview({ ev, onEdit, onPreview, editable, venueId, eventId }) {
   return (
-    <div className="admin-panel-card">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2>Ficha pública</h2>
-          <p>Así ve el comprador esta noche antes de pagar.</p>
-        </div>
-        <a
-          className="admin-inline-link"
-          href={`/evento/${ev.id}?preview=1`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Abrir vista previa
-        </a>
-      </div>
-      <div className="admin-preview-card mt-3">
-        <EventCover ev={ev} showTime={false} />
-        <div className="min-w-0">
-          <b>{ev.name}</b>
-          <span>{eventFullDate(ev)}</span>
-          <span>
-            {ev.location || "Lugar por confirmar"} ·{" "}
-            {ev.category || "Sin categoría"}
-          </span>
-          <span>
-            Aforo {ev.capacity} · <StatusLine ev={ev} />
-          </span>
+    <section className="admin-panel-card workspace-public">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2>Ficha pública</h2>
+        <div className="flex flex-wrap gap-2">
+          {ev.status !== "draft" && <CopyPublicLink path={`/evento/${ev.id}`} compact />}
+          <button type="button" className="btn-mini" data-variant="brand" onClick={onPreview}>
+            Vista previa
+          </button>
+          {ev.status !== "draft" && (
+            <a className="btn-mini" href={`/evento/${ev.id}`} target="_blank" rel="noreferrer">
+              Abrir ficha
+            </a>
+          )}
+          {editable && <button type="button" className="btn-mini" onClick={onEdit}>Editar ficha</button>}
         </div>
       </div>
-      {editable && (
-        <button type="button" className="btn-mini mt-3" onClick={onEdit}>
-          Editar evento
-        </button>
-      )}
-    </div>
+      <details className="admin-task-details mt-3">
+        <summary>Artistas y orden de presentación</summary>
+        <LineupManager venueId={venueId} eventId={eventId} />
+      </details>
+    </section>
   );
 }
 
@@ -130,7 +87,7 @@ function usePublicChannels(ev) {
   return { channels, error };
 }
 
-function CopyPublicLink({ path }) {
+function CopyPublicLink({ path, compact = false }) {
   const ui = useUI();
   const url = `${window.location.origin}${path}`;
 
@@ -141,6 +98,10 @@ function CopyPublicLink({ path }) {
     } catch {
       ui.alert("Copia el enlace público", { message: url });
     }
+  }
+
+  if (compact) {
+    return <button type="button" className="btn-mini" onClick={copy}>Copiar enlace</button>;
   }
 
   return (
@@ -163,7 +124,7 @@ function CopyPublicLink({ path }) {
   );
 }
 
-function DraftState({ ev, types, busyAction, onAction, onSection, onEdit }) {
+function DraftState({ ev, types, busyAction, onAction, onSection }) {
   const activeTypes = (types || []).filter((t) => t.is_active !== false);
   const hasTickets = activeTypes.length > 0;
   const hasPublicDetails = Boolean(ev.description?.trim() && ev.location?.trim());
@@ -172,8 +133,6 @@ function DraftState({ ev, types, busyAction, onAction, onSection, onEdit }) {
       ok: hasPublicDetails,
       label: "Ficha pública",
       detail: hasPublicDetails ? ev.location : "Completa el lugar y la descripción.",
-      action: onEdit,
-      actionLabel: "Editar ficha",
     },
     {
       ok: hasTickets,
@@ -633,16 +592,12 @@ function LiveState({ ev, report, lastUpdated, busyAction, onAction, onSection })
         </div>
       </div>
 
-      <CashReconciliation report={report} onSection={onSection} title="Cuadre en vivo" />
-      <NightHealth ev={ev} onSection={onSection} />
+      <details className="admin-task-details">
+        <summary>Cuadre de caja y alertas</summary>
+        <CashReconciliation report={report} onSection={onSection} title="Cuadre en vivo" />
+        <NightHealth ev={ev} onSection={onSection} />
+      </details>
 
-      <p className="bs-state-note">
-        El ritmo de la noche, el registro de escaneos y el cierre están en{" "}
-        <button type="button" className="admin-inline-link" onClick={() => onSection("accesos")}>
-          Accesos
-        </button>
-        .
-      </p>
     </section>
   );
 }
@@ -801,6 +756,7 @@ export default function EventSummary({
   onAction,
   onSection,
   onEdit,
+  onPreview,
   editable,
   onCloseNight,
   venueId,
@@ -818,7 +774,6 @@ export default function EventSummary({
           busyAction={busyAction}
           onAction={onAction}
           onSection={onSection}
-          onEdit={onEdit}
         />
       )}
       {ev.status === "published" && (
@@ -855,9 +810,7 @@ export default function EventSummary({
         <CancelledState report={report} onSection={onSection} />
       )}
 
-      <PublicPreview ev={ev} onEdit={onEdit} editable={editable} />
-
-      <LineupManager venueId={venueId} eventId={eventId} />
+      <PublicPreview ev={ev} onEdit={onEdit} onPreview={onPreview} editable={editable} venueId={venueId} eventId={eventId} />
     </div>
   );
 }

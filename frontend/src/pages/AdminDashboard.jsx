@@ -826,6 +826,7 @@ export default function AdminDashboard() {
     setEditError("");
     setEditingEvent(fresh);
     setEditBaseline(fresh);
+    requestAnimationFrame(() => document.getElementById("workspace-event-editor")?.scrollIntoView({ block: "start" }));
     const draft = readEventDraft(ev.id);
     if (draft?.data && JSON.stringify(draft.data) !== JSON.stringify(fresh)) {
       setEditConflict({
@@ -1616,7 +1617,7 @@ export default function AdminDashboard() {
 
             {/* Edición del evento (draft/published) */}
             {editingEvent && editable && (
-              <form onSubmit={saveEventEdit} className="card p-5">
+              <form id="workspace-event-editor" onSubmit={saveEventEdit} className="card p-5 scroll-mt-24">
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                   <h3 className="display text-base">Editar evento</h3>
                   <div className="flex items-center gap-2">
@@ -1734,134 +1735,6 @@ export default function AdminDashboard() {
                     />
                   </label>
 
-                  <div>
-                    <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Afiche del evento
-                    </span>
-                    <div className="flex items-start gap-3">
-                      {editingEvent.flyer_url &&
-                      !badFlyers[editingEvent.flyer_url] ? (
-                        <img
-                          src={editingEvent.flyer_url}
-                          alt="Afiche actual"
-                          onError={() =>
-                            setBadFlyers((m) => ({
-                              ...m,
-                              [editingEvent.flyer_url]: true,
-                            }))
-                          }
-                          decoding="async"
-                          className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
-                        />
-                      ) : (
-                        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
-                          <Icon name="camera" className="h-5 w-5" />
-                        </span>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <input
-                          type="url"
-                          value={editingEvent.flyer_url}
-                          onChange={(e) =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              flyer_url: e.target.value,
-                            })
-                          }
-                          className="field"
-                          placeholder="https://…/flyer.jpg"
-                          aria-label="Enlace del afiche"
-                        />
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => flyerInputRef.current?.click()}
-                            disabled={uploadingFlyer}
-                            className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
-                          >
-                            {uploadingFlyer ? "Subiendo…" : "Subir afiche"}
-                          </button>
-                          <input
-                            ref={flyerInputRef}
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              e.target.value = "";
-                              uploadEditFlyer(file);
-                            }}
-                          />
-                          {editingEvent.flyer_url && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEditingEvent({
-                                  ...editingEvent,
-                                  flyer_url: "",
-                                })
-                              }
-                              className="text-2xs font-semibold text-zinc-500 transition hover:text-red-400"
-                            >
-                              Quitar
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="mt-1 block text-xs text-zinc-500">
-                      Es la portada pública. Se muestra completa, sin recortar
-                      el texto de los bordes. También puedes pegar un enlace.
-                    </span>
-                  </div>
-
-                  <label>
-                    <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Video (URL)
-                    </span>
-                    <input
-                      type="url"
-                      value={editingEvent.video_url}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          video_url: e.target.value,
-                        })
-                      }
-                      className="field"
-                      placeholder="https://…/video.mp4"
-                      maxLength={2000}
-                    />
-                    <span className="mt-1 block text-xs text-zinc-500">
-                      Opcional. Enlace público MP4 o WebM; se reproduce dentro
-                      de la ficha y empieza sin sonido. Enty no aloja videos:
-                      usa un enlace de tu hosting.
-                    </span>
-                  </label>
-
-                  <label>
-                    <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Enlace de mapa (URL)
-                    </span>
-                    <input
-                      type="url"
-                      value={editingEvent.location_url}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          location_url: e.target.value,
-                        })
-                      }
-                      className="field"
-                      placeholder="https://maps.google.com/…"
-                      maxLength={2000}
-                    />
-                    <span className="mt-1 block text-xs text-zinc-500">
-                      Solo se muestra "Cómo llegar" si pegas un enlace
-                      confirmado.
-                    </span>
-                  </label>
-
                   <label>
                     <span className="mb-1 block text-xs font-medium text-zinc-400">
                       Lugar
@@ -1898,126 +1771,259 @@ export default function AdminDashboard() {
                     />
                   </label>
 
-                  {/* Ficha del evento (mig 043): lo que el invitado pregunta
-                      en la puerta. Categoría, edad mínima, dress code y a qué
-                      hora abren puertas. */}
-                  <label>
-                    <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Categoría
-                    </span>
-                    <select
-                      value={editingEvent.category}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          category: e.target.value,
-                        })
-                      }
-                      className="field"
-                    >
-                      <option value="">Sin categoría (automática)</option>
-                      {EVENT_CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <details className="admin-task-details sm:col-span-full">
+                    <summary>Imagen, reglas y contacto</summary>
+                    <div className="grid gap-3.5 sm:grid-cols-2">
+                      <div>
+                        <span className="mb-1 block text-xs font-medium text-zinc-400">
+                          Afiche del evento
+                        </span>
+                        <div className="flex items-start gap-3">
+                          {editingEvent.flyer_url &&
+                          !badFlyers[editingEvent.flyer_url] ? (
+                            <img
+                              src={editingEvent.flyer_url}
+                              alt="Afiche actual"
+                              onError={() =>
+                                setBadFlyers((m) => ({
+                                  ...m,
+                                  [editingEvent.flyer_url]: true,
+                                }))
+                              }
+                              decoding="async"
+                              className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
+                            />
+                          ) : (
+                            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
+                              <Icon name="camera" className="h-5 w-5" />
+                            </span>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <input
+                              type="url"
+                              value={editingEvent.flyer_url}
+                              onChange={(e) =>
+                                setEditingEvent({
+                                  ...editingEvent,
+                                  flyer_url: e.target.value,
+                                })
+                              }
+                              className="field"
+                              placeholder="https://…/flyer.jpg"
+                              aria-label="Enlace del afiche"
+                            />
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => flyerInputRef.current?.click()}
+                                disabled={uploadingFlyer}
+                                className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
+                              >
+                                {uploadingFlyer ? "Subiendo…" : "Subir afiche"}
+                              </button>
+                              <input
+                                ref={flyerInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  e.target.value = "";
+                                  uploadEditFlyer(file);
+                                }}
+                              />
+                              {editingEvent.flyer_url && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditingEvent({
+                                      ...editingEvent,
+                                      flyer_url: "",
+                                    })
+                                  }
+                                  className="text-2xs font-semibold text-zinc-500 transition hover:text-red-400"
+                                >
+                                  Quitar
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="mt-1 block text-xs text-zinc-500">
+                          Es la portada pública. Se muestra completa, sin recortar
+                          el texto de los bordes. También puedes pegar un enlace.
+                        </span>
+                      </div>
 
-                  <label>
-                    <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Edad mínima
-                    </span>
-                    <input
-                      type="number"
-                      value={editingEvent.min_age}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          min_age: e.target.value,
-                        })
-                      }
-                      className="field"
-                      min="0"
-                      max="99"
-                      placeholder="Sin restricción"
-                    />
-                  </label>
+                      <label>
+                        <span className="mb-1 block text-xs font-medium text-zinc-400">
+                          Video (URL)
+                        </span>
+                        <input
+                          type="url"
+                          value={editingEvent.video_url}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              video_url: e.target.value,
+                            })
+                          }
+                          className="field"
+                          placeholder="https://…/video.mp4"
+                          maxLength={2000}
+                        />
+                        <span className="mt-1 block text-xs text-zinc-500">
+                          Opcional. Enlace público MP4 o WebM; se reproduce dentro
+                          de la ficha y empieza sin sonido. Enty no aloja videos:
+                          usa un enlace de tu hosting.
+                        </span>
+                      </label>
 
-                  <label>
-                    <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Dress code
-                    </span>
-                    <input
-                      value={editingEvent.dress_code}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          dress_code: e.target.value,
-                        })
-                      }
-                      className="field"
-                      placeholder="Elegante, casual…"
-                      maxLength={200}
-                    />
-                  </label>
+                      <label>
+                        <span className="mb-1 block text-xs font-medium text-zinc-400">
+                          Enlace de mapa (URL)
+                        </span>
+                        <input
+                          type="url"
+                          value={editingEvent.location_url}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              location_url: e.target.value,
+                            })
+                          }
+                          className="field"
+                          placeholder="https://maps.google.com/…"
+                          maxLength={2000}
+                        />
+                        <span className="mt-1 block text-xs text-zinc-500">
+                          Solo se muestra "Cómo llegar" si pegas un enlace
+                          confirmado.
+                        </span>
+                      </label>
 
-                  <label>
-                    <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Apertura de puertas
-                    </span>
-                    <input
-                      type="datetime-local"
-                      value={editingEvent.doors_open_at}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          doors_open_at: e.target.value,
-                        })
-                      }
-                      className="field"
-                    />
-                  </label>
+                      {/* Ficha del evento (mig 043): lo que el invitado pregunta
+                          en la puerta. Categoría, edad mínima, dress code y a qué
+                          hora abren puertas. */}
+                      <label>
+                        <span className="mb-1 block text-xs font-medium text-zinc-400">
+                          Categoría
+                        </span>
+                        <select
+                          value={editingEvent.category}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              category: e.target.value,
+                            })
+                          }
+                          className="field"
+                        >
+                          <option value="">Sin categoría (automática)</option>
+                          {EVENT_CATEGORIES.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
 
-                  <label>
-                    <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      Contacto del evento (nombre)
-                    </span>
-                    <input
-                      value={editingEvent.contact_name}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          contact_name: e.target.value,
-                        })
-                      }
-                      className="field"
-                      placeholder="Productora Norte"
-                      maxLength={120}
-                    />
-                  </label>
+                      <label>
+                        <span className="mb-1 block text-xs font-medium text-zinc-400">
+                          Edad mínima
+                        </span>
+                        <input
+                          type="number"
+                          value={editingEvent.min_age}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              min_age: e.target.value,
+                            })
+                          }
+                          className="field"
+                          min="0"
+                          max="99"
+                          placeholder="Sin restricción"
+                        />
+                      </label>
 
-                  <label>
-                    <span className="mb-1 block text-xs font-medium text-zinc-400">
-                      WhatsApp del evento
-                    </span>
-                    <input
-                      type="tel"
-                      value={editingEvent.contact_phone}
-                      onChange={(e) =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          contact_phone: e.target.value,
-                        })
-                      }
-                      className="field"
-                      placeholder="573001112233"
-                      maxLength={40}
-                    />
-                    <span className="mt-1 block text-xs text-zinc-500">
-                      Si lo dejas vacío, la ficha usa el contacto del local.
-                    </span>
-                  </label>
+                      <label>
+                        <span className="mb-1 block text-xs font-medium text-zinc-400">
+                          Dress code
+                        </span>
+                        <input
+                          value={editingEvent.dress_code}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              dress_code: e.target.value,
+                            })
+                          }
+                          className="field"
+                          placeholder="Elegante, casual…"
+                          maxLength={200}
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1 block text-xs font-medium text-zinc-400">
+                          Apertura de puertas
+                        </span>
+                        <input
+                          type="datetime-local"
+                          value={editingEvent.doors_open_at}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              doors_open_at: e.target.value,
+                            })
+                          }
+                          className="field"
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1 block text-xs font-medium text-zinc-400">
+                          Contacto del evento (nombre)
+                        </span>
+                        <input
+                          value={editingEvent.contact_name}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              contact_name: e.target.value,
+                            })
+                          }
+                          className="field"
+                          placeholder="Productora Norte"
+                          maxLength={120}
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1 block text-xs font-medium text-zinc-400">
+                          WhatsApp del evento
+                        </span>
+                        <input
+                          type="tel"
+                          value={editingEvent.contact_phone}
+                          onChange={(e) =>
+                            setEditingEvent({
+                              ...editingEvent,
+                              contact_phone: e.target.value,
+                            })
+                          }
+                          className="field"
+                          placeholder="573001112233"
+                          maxLength={40}
+                        />
+                        <span className="mt-1 block text-xs text-zinc-500">
+                          Si lo dejas vacío, la ficha usa el contacto del local.
+                        </span>
+                      </label>
+                    </div>
+                  </details>
                 </div>
 
                 {editError && (
@@ -2075,6 +2081,7 @@ export default function AdminDashboard() {
               onAction={runAction}
               onSection={setSection}
               onEdit={startEditEvent}
+              onPreview={() => setPreviewEvent(selectedEventData)}
               editable={editable}
               venueId={venueId}
               eventId={selectedEvent}

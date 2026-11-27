@@ -103,8 +103,8 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
           role: rolNuevo,
           shift_start: turnoInicio ? new Date(turnoInicio).toISOString() : null,
           shift_end: turnoFin ? new Date(turnoFin).toISOString() : null,
-          door_name: puestoNuevo.trim() || null,
-          door_ticket_type_id: tipoNuevo ? Number(tipoNuevo) : null,
+          door_name: rolNuevo === "bouncer" ? puestoNuevo.trim() || null : null,
+          door_ticket_type_id: rolNuevo === "bouncer" && tipoNuevo ? Number(tipoNuevo) : null,
         }),
       });
       haptics.success();
@@ -462,11 +462,7 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
       {/* ---------- Asignar ---------- */}
       {candidatos.length > 0 && (
         <div className="card p-4">
-          <p className="eyebrow">Sumar a esta noche</p>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            Son del equipo del bar. Lo que definís acá es quién trabaja{" "}
-            <strong className="text-zinc-300">esta</strong> noche.
-          </p>
+          <h2 className="display text-base">Asignar al evento</h2>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <select
               value={elegido}
@@ -500,64 +496,63 @@ export default function EventTeamPanel({ venueId, event, preflight, onLinkSent }
               Asignar
             </button>
           </div>
-          {/* Turno opcional: si se define, la puerta de esa persona solo
-              acepta escaneos dentro de la ventana. Dejarlo vacío = toda la
-              noche. Es la respuesta a "el bouncer de las 22:00 no debería
-              seguir abriendo a las 4:00". */}
-          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
-              Turno desde (opcional)
-              <input
-                type="datetime-local"
-                value={turnoInicio}
-                onChange={(e) => setTurnoInicio(e.target.value)}
-                className="field"
-                aria-label="Inicio del turno"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-2xs text-zinc-500">
-              Turno hasta (opcional)
-              <input
-                type="datetime-local"
-                value={turnoFin}
-                onChange={(e) => setTurnoFin(e.target.value)}
-                className="field"
-                aria-label="Fin del turno"
-              />
-            </label>
-          </div>
-          {rolNuevo === "bouncer" && (
+          <details className="admin-task-details mt-3">
+            <summary>Turno y permisos opcionales</summary>
             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-2xs text-zinc-500">
-                Puesto de puerta
+                Turno desde (opcional)
                 <input
-                  value={puestoNuevo}
-                  onChange={(e) => setPuestoNuevo(e.target.value)}
-                  placeholder="Acceso VIP, General…"
+                  type="datetime-local"
+                  value={turnoInicio}
+                  onChange={(e) => setTurnoInicio(e.target.value)}
                   className="field"
-                  maxLength={60}
+                  aria-label="Inicio del turno"
                 />
               </label>
               <label className="flex flex-col gap-1 text-2xs text-zinc-500">
-                Tipo de boleta del puesto
-                <select
-                  value={tipoNuevo}
-                  onChange={(e) => setTipoNuevo(e.target.value)}
+                Turno hasta (opcional)
+                <input
+                  type="datetime-local"
+                  value={turnoFin}
+                  onChange={(e) => setTurnoFin(e.target.value)}
                   className="field"
-                >
-                  <option value="">Todas las boletas</option>
-                  {tipos.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
+                  aria-label="Fin del turno"
+                />
               </label>
             </div>
-          )}
-          {(turnoInicio || turnoFin) && (
-            <p className="mt-1.5 text-2xs text-zinc-500">
-              Fuera de esta ventana su escáner rechaza los ingresos.
-            </p>
-          )}
+            {rolNuevo === "bouncer" && (
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+                  Puesto de puerta
+                  <input
+                    value={puestoNuevo}
+                    onChange={(e) => setPuestoNuevo(e.target.value)}
+                    placeholder="Acceso VIP, General…"
+                    className="field"
+                    maxLength={60}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-2xs text-zinc-500">
+                  Tipo de boleta del puesto
+                  <select
+                    value={tipoNuevo}
+                    onChange={(e) => setTipoNuevo(e.target.value)}
+                    className="field"
+                  >
+                    <option value="">Todas las boletas</option>
+                    {tipos.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
+            {(turnoInicio || turnoFin) && (
+              <p className="mt-1.5 text-2xs text-zinc-500">
+                Fuera de esta ventana su escáner rechaza los ingresos.
+              </p>
+            )}
+          </details>
         </div>
       )}
 

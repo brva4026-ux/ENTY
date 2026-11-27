@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal, flushSync } from "react-dom";
 import { fetchPublicTicket } from "../lib/api";
 import { eventDate } from "../lib/format";
 import Icon from "./Icon";
@@ -18,8 +19,17 @@ import { useDialogA11y } from "../lib/useDialogA11y";
  * invitado) o pegar el enlace/token crudo (si te lo pasaron por WhatsApp para
  * revisarlo antes de emitir juicio).
  */
+const TICKET_STATUS = {
+  issued: "Emitida",
+  redeemed: "Ingreso registrado",
+  voided: "Anulada",
+  refunded: "Reembolsada",
+};
+
 export default function QrTesterModal({ onClose }) {
   const { dialogRef, titleId } = useDialogA11y({ onClose });
+  const [starting, setStarting] = useState(false);
+  const mounted = useRef(false);
   const [scanning, setScanning] = useState(false);
   const [camError, setCamError] = useState("");
   const [manual, setManual] = useState("");
@@ -31,49 +41,75 @@ export default function QrTesterModal({ onClose }) {
   const stopBtnRef = useRef(null);
 
   useEffect(() => {
-    // Escape y foco los maneja useDialogA11y; aquí solo se apaga la cámara.
-    return () => stopCam();
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      void stopCam();
+    };
   }, []);
 
-  // Al arrancar la cámara, el botón "Escanear" desaparece. Sin esto el foco
-  // se queda en el body: el usuario de teclado ya no sabe dónde está y Tab
-  // empieza otra vez por el principio del diálogo.
   useEffect(() => {
     if (scanning) stopBtnRef.current?.focus();
   }, [scanning]);
 
   async function startCam() {
-    setCamError("");
-    setResult(null);
+    flushSync(() => {
+      setStarting(true);
+      setCamError("");
+      setResult(null);
+    });
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
+      if (!mounted.current) return;
       const qr = new Html5Qrcode("qr-tester-region");
       html5Ref.current = qr;
+      let scanned = false;
       await qr.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
-        (text) => {
-          // Primera lectura valida detiene la camara: no procesar en loop.
-          stopCam().then(() => check(text));
+        {
+          fps: 10,
+          qrbox: (width, height) => {
+            const size = Math.floor(Math.min(width, height) * 0.72);
+            return { width: size, height: size };
+          },
+        },
+        (value) => {
+          if (scanned || !mounted.current) return;
+          scanned = true;
+          void stopCam();
+          void check(value);
         },
         () => {},
       );
-      setScanning(true);
-    } catch (err) {
-      setCamError("No se pudo iniciar la camara: " + (err?.message || err));
+      if (!mounted.current) {
+        await releaseCamera(qr);
+      } else if (!scanned && html5Ref.current === qr) {
+        setScanning(true);
+      }
+    } catch {
+      await stopCam();
+      if (mounted.current) {
+        setCamError("No pudimos abrir la cámara. Revisa el permiso o pega el enlace de la boleta.");
+      }
+    } finally {
+      if (mounted.current) setStarting(false);
+    }
+  }
+
+  async function releaseCamera(qr) {
+    try {
+      if (qr.isScanning) await qr.stop();
+      qr.clear();
+    } catch {
+      // The region may have been removed while the camera was opening.
     }
   }
 
   async function stopCam() {
-    if (!html5Ref.current) return;
-    try {
-      await html5Ref.current.stop();
-      await html5Ref.current.clear();
-    } catch {
-      /* ignore */
-    }
+    const qr = html5Ref.current;
     html5Ref.current = null;
-    setScanning(false);
+    if (qr?.isScanning) await releaseCamera(qr);
+    if (mounted.current) setScanning(false);
   }
 
   /** Extrae el token crudo de lo escaneado/pegado: acepta enlace completo
@@ -103,9 +139,9 @@ export default function QrTesterModal({ onClose }) {
 
   const t = result?.ok ? result.data : null;
 
-  return (
+  return createPortal(
     <div
-      className="dialog-backdrop fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-4 sm:items-center"
+      className="dialog-backdrop fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto p-4 sm:items-center"
       onClick={onClose}
     >
       <div
@@ -124,7 +160,7 @@ export default function QrTesterModal({ onClose }) {
               Probador de QR
             </h2>
             <p className="dialog-sub">
-              Solo consulta la boleta — nunca la canjea
+              Consulta el estado de la boleta sin registrar un ingreso.
             </p>
           </div>
           <button
@@ -140,16 +176,18 @@ export default function QrTesterModal({ onClose }) {
           {/* Camara */}
           {!scanning && (
             <button
+              type="button"
+              disabled={starting || checking}
               onClick={startCam}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-700 py-6 text-sm font-medium text-zinc-300 transition hover:border-brand-500/60 hover:bg-brand-500/5 hover:text-brand-300"
             >
               <Icon name="camera" className="h-5 w-5" />
-              Escanear con la camara
+              {starting ? "Abriendo cámara…" : "Escanear con cámara"}
             </button>
           )}
           <div
             id="qr-tester-region"
-            className={scanning ? "overflow-hidden rounded-xl" : "hidden"}
+            className={scanning || starting ? "overflow-hidden rounded-xl" : "hidden"}
           />
           {scanning && (
             <button
@@ -157,7 +195,7 @@ export default function QrTesterModal({ onClose }) {
               onClick={stopCam}
               className="w-full rounded-xl border border-zinc-700 py-2.5 text-sm text-zinc-300 transition hover:bg-zinc-800"
             >
-              Detener camara
+              Detener cámara
             </button>
           )}
           {camError && (
@@ -189,6 +227,7 @@ export default function QrTesterModal({ onClose }) {
               aria-label="Enlace o token de la boleta"
               value={manual}
               onChange={(e) => setManual(e.target.value)}
+              aria-label="Enlace o código de la boleta"
               placeholder="Enlace del invitado (…/t#TOKEN) o token"
               className="field flex-1 font-mono text-xs"
               spellCheck="false"
@@ -217,14 +256,14 @@ export default function QrTesterModal({ onClose }) {
                 <div className="space-y-2">
                   <p className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
                     <Icon name="check" className="h-4 w-4" />
-                    El QR sirve — boleta encontrada
+                    Boleta encontrada
                   </p>
                   <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-zinc-300">
                     <dt className="text-zinc-500">Invitado</dt>
                     <dd className="font-medium">{t.customer_name}</dd>
                     <dt className="text-zinc-500">Estado</dt>
                     <dd>
-                      {t.status}
+                      {TICKET_STATUS[t.status] || t.status}
                       {t.qr_active === false && t.qr_message
                         ? ` · ${t.qr_message}`
                         : ""}
@@ -255,6 +294,7 @@ export default function QrTesterModal({ onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
