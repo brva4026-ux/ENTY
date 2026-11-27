@@ -1808,3 +1808,172 @@
   width: 44px;
   height: 44px;
 }
+
+/* Active event workspace */
+.event-sidebar-context {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.7rem 0 1rem;
+  padding: 0.85rem;
+  border: 1px solid var(--admin-line);
+  border-radius: 0.95rem;
+  background: var(--admin-accent-soft);
+}
+
+.event-sidebar-context strong {
+  color: var(--admin-ink);
+  font-size: 0.95rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.event-sidebar-context .admin-sidebar-kicker {
+  margin: 0.4rem 0 0;
+}
+
+.event-sidebar-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--admin-accent-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.event-sidebar-exit svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.event-section-title {
+  margin: 0;
+  padding: 0.45rem;
+  color: var(--admin-ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.admin-shell .admin-topbar-role.enty-role-badge {
+  display: inline-flex;
+  min-height: 34px;
+  gap: 0.45rem;
+  padding: 0.3rem 0.65rem;
+  border-color: var(--admin-line);
+  border-radius: 0.65rem;
+  background: var(--admin-accent-soft);
+}
+
+.admin-shell .enty-role-badge > svg:first-child,
+.door-role-badge svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.door-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+}
+
+.admin-shell .venue-header.is-compact .vh-banner-initials { display: none; }
+
+.admin-shell .venue-header.is-compact .vh-banner {
+  height: 100%;
+  opacity: 0.48;
+}
+
+.vh-account-name {
+  margin: 0.3rem 0 0;
+  color: var(--admin-ink-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.admin-event-shortcuts > button[data-event-bucket] {
+  display: grid;
+  justify-items: start;
+  gap: 0.25rem;
+  min-height: 5rem;
+  padding: clamp(0.45rem, 1.6vw, 1rem);
+  background: var(--admin-surface);
+}
+
+.admin-event-shortcuts > button[data-event-bucket] span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.admin-event-shortcuts > button svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--admin-accent-ink);
+}
+
+.admin-event-shortcuts > button[data-event-bucket][aria-pressed="true"] {
+  background: var(--admin-accent-soft);
+}
+
+.event-action-receipt {
+  position: sticky;
+  top: 4.25rem;
+  z-index: 25;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--admin-line);
+  border-inline-start: 4px solid var(--admin-accent);
+  border-radius: 0.9rem;
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  box-shadow: var(--admin-shadow);
+  animation: event-receipt-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.event-action-receipt-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-ink);
+}
+
+.event-action-receipt-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.event-action-receipt p {
+  margin: 0.15rem 0 0;
+  color: var(--admin-ink-soft);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+@keyframes event-receipt-in {
+  from { opacity: 0; transform: translateY(-7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-action-receipt { animation: none; }
+}
+
+html[data-motion="reduce"] .event-action-receipt { animation: none; }
+
+@media (width <= 767px) {
+  .admin-shell[data-event-workspace] .bs-navigation .section-disclosure { width: auto; }
+  .admin-shell[data-event-workspace] .admin-bottomnav a { min-height: 44px; }
+  .admin-shell .admin-topbar-role.enty-role-badge { padding-inline: 0.45rem; }
+  .admin-event-shortcuts > button[data-event-bucket] span { flex-wrap: wrap; }
+}

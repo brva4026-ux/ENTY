@@ -184,11 +184,14 @@ export default function VenueHeader({
             que la escala sea una sola fuente de verdad. */}
           <div className="vh-nombre">
             <p className="eyebrow">
-              {compact ? "Organización activa" : "Panel de la venue"}
+              {compact ? "Organización" : "Panel de la venue"}
             </p>
             <Heading className="display vh-nombre-titulo">
               {venue?.name ?? "Tu negocio"}
             </Heading>
+            {compact && user?.full_name && user.full_name !== venue?.name && (
+              <p className="vh-account-name">{user.full_name}</p>
+            )}
             {/* El estado operativo manda sobre cualquier adorno: si la puerta
               está abierta, esto es lo primero que el dueño necesita saber.
               Con más de una noche abierta no se elige un nombre "ganador"

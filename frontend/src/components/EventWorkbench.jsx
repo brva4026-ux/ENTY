@@ -6,7 +6,7 @@
  * Entradas) se normalizan en AdminDashboard para no romper enlaces.
  */
 import { useEffect, useState } from "react";
-import { useTabKeys } from "../lib/useTabKeys";
+import { EVENT_TOOLS, eventSectionLabel } from "../lib/adminEventNavigation";
 import { LiveIndicator } from "./Brand";
 import ActionMenu from "./ActionMenu";
 import SectionDisclosure from "./SectionDisclosure";
@@ -61,20 +61,6 @@ export function sortEventsForStrip(events) {
   });
 }
 
-const PRIMARY_TABS = [
-  { id: "resumen", label: "Resumen", icon: "chart" },
-  { id: "ventas", label: "Ventas", icon: "ticket" },
-  { id: "equipo", label: "Equipo", icon: "users" },
-  { id: "accesos", label: "Accesos", icon: "door" },
-];
-const PRIMARY_IDS = PRIMARY_TABS.map(({ id }) => id);
-const MORE_TABS = [
-  { id: "rentabilidad", label: "Rentabilidad" },
-  { id: "operacion", label: "Operación" },
-  { id: "acreditaciones", label: "Acreditaciones", icon: "shield" },
-  { id: "sesiones", label: "Sesiones", icon: "calendar" },
-];
-
 function endDateLabel(ev, tz) {
   if (!ev.ends_at) return "Sin hora de cierre";
   return formatEventDate(ev.ends_at, tz, {
@@ -102,14 +88,6 @@ export default function EventWorkbench({
   onExit,
 }) {
   const [now, setNow] = useState(Date.now());
-  const primaryTab = PRIMARY_IDS.includes(tab);
-  const wbTabs = useTabKeys({
-    ids: PRIMARY_IDS,
-    activeId: primaryTab ? tab : "resumen",
-    onSelect: onTab,
-    idOf: (id) => `evx-tab-${id}`,
-  });
-
   useEffect(() => {
     if (!ev || (ev.status !== "draft" && ev.status !== "published")) {
       return undefined;
@@ -259,34 +237,12 @@ export default function EventWorkbench({
       </section>
 
       <div className="bs-navigation" data-tour="tabs-evento">
-        <nav
-          className="bs-tabs"
-          role="tablist"
-          aria-label="Secciones del evento"
-        >
-          {PRIMARY_TABS.map((t) => (
-            <button
-              key={t.id}
-              id={`evx-tab-${t.id}`}
-              role="tab"
-              aria-selected={tab === t.id}
-              aria-controls="evx-tab-panel"
-              tabIndex={wbTabs.tabIndexFor(t.id)}
-              onKeyDown={wbTabs.onKeyDown}
-              onClick={() => onTab(t.id)}
-              className="bs-tab"
-            >
-              <Icon name={t.icon} className="h-4 w-4" aria-hidden="true" />
-              <span>{t.label}</span>
-            </button>
-          ))}
-        </nav>
+        <h2 className="event-section-title" id="event-section-title">{eventSectionLabel(tab)}</h2>
         <SectionDisclosure
           label="Más herramientas"
-          sections={MORE_TABS}
+          sections={EVENT_TOOLS}
           selected={tab}
           onSelect={onTab}
-          summaryId={primaryTab ? undefined : `evx-tab-${tab}`}
         />
       </div>
     </div>

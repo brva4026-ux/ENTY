@@ -191,7 +191,7 @@ export default function PromoterShell({ children }) {
             <div className="promoter-role-wrap" ref={roleRef}>
               <button
                 type="button"
-                className="admin-topbar-role promoter-role-chip"
+                className="admin-topbar-role enty-role-badge promoter-role-chip"
                 aria-haspopup={roles.length > 1 ? "menu" : undefined}
                 aria-expanded={roles.length > 1 ? roleOpen : undefined}
                 onClick={() => roles.length > 1 && setRoleOpen((v) => !v)}

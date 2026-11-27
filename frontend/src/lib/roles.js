@@ -54,7 +54,7 @@ export const ROLE_IDENTITIES = {
   admin: {
     label: "Administración",
     plural: "Administración",
-    icon: "chart",
+    icon: "shield",
     accent: "admin",
     welcome: "Bienvenido a Administración",
     description: "Ventas, aforo y equipo en un solo panel.",

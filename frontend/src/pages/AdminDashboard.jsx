@@ -35,24 +35,7 @@ import { money } from "../lib/format";
 import { fileToDataUrl } from "../lib/imageUpload";
 import EventPublicPreview from "../components/EventPublicPreview";
 
-/** Pestañas del backstage de un evento. Cuatro secciones que agrupan el
- *  trabajo real: montar, vender, asignar y operar la puerta. */
-const EVENT_TABS = ["resumen", "rentabilidad", "ventas", "equipo", "accesos", "acreditaciones", "sesiones", "operacion"];
-
-/** Enlaces viejos del backstage -> sección nueva equivalente. */
-const LEGACY_EVENT_TABS = {
-  entradas: "ventas",
-  boletas: "ventas",
-  cupones: "ventas",
-  lineup: "resumen",
-  cupos: "equipo",
-  noche: "equipo",
-};
-
-function normalizeEventTab(tab) {
-  if (EVENT_TABS.includes(tab)) return tab;
-  return LEGACY_EVENT_TABS[tab] || "resumen";
-}
+import { EVENT_TABS, normalizeEventTab } from "../lib/adminEventNavigation";
 
 /** Pestañas que eran del panel y ahora son sub-secciones del hub Negocio:
  *  sirven para redirigir enlaces viejos (/admin?tab=equipo). */
@@ -186,6 +169,7 @@ export default function AdminDashboard() {
   const nav = useNavigate();
   const ui = useUI();
   const { setBreadcrumb } = useAdminChrome();
+  const [eventReceipt, setEventReceipt] = useState(null);
   // Multi-negocio: la activa se elige en /perfil y persiste (tf_venue);
   // sin elección, la primera disponible (comportamiento de siempre).
   const venueId = activeVenueId(user);
@@ -209,6 +193,7 @@ export default function AdminDashboard() {
   // /admin?event=<id>&tab=<tab> — compartible, sobrevive recargas y back.
   const [searchParams, setSearchParams] = useSearchParams();
   const urlEvent = searchParams.get("event");
+  const activeEventRef = useRef(urlEvent);
   const urlTab = searchParams.get("tab") || "resumen";
   const [error, setError] = useState("");
   // Acción que falló: permite reintentar sin volver a buscar el botón.
@@ -454,10 +439,10 @@ export default function AdminDashboard() {
     if (createOpen && tourOpen) setTourOpen(false);
   }, [createOpen, tourOpen]);
 
-  const loadEvents = useCallback(async () => {
+  const loadEvents = useCallback(async ({ fresh = false } = {}) => {
     if (!venueId) return;
     try {
-      const data = await apiFetch(`/venues/${venueId}/events`);
+      const data = await apiFetch(`/venues/${venueId}/events`, { fresh });
       setEvents(data);
       setEventsError("");
       // Contadores de la franja: fire-and-forget (si falla, la franja muestra
@@ -595,19 +580,31 @@ export default function AdminDashboard() {
   }, [reloadUsers]);
 
   useEffect(() => {
+    activeEventRef.current = urlEvent;
+    setTypes([]);
+    setAllocations([]);
+    setReport(null);
+    setEditingEvent(null);
+    setEditBaseline(null);
+    setEditConflict(null);
+    setQrTesterOpen(false);
+    setPreviewEvent(null);
+    setError("");
+    setFailedAction("");
+  }, [urlEvent]);
+
+  useEffect(() => {
     if (!selectedEvent) return;
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/types`)
-      .then(setTypes)
-      .catch((e) => setError(e.message));
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`)
-      .then(setAllocations)
-      .catch((e) => setError(e.message));
-    apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`)
-      .then(setReport)
-      .catch((e) => setError(e.message));
-    // El listado de boletas NO se pide aquí: TicketList trae el suyo paginado
-    // y filtrado. Pedir el completo era una request muerta (nadie lee el
-    // estado `tickets`) que además traía TODAS las boletas del evento.
+    let active = true;
+    const load = (resource, apply) =>
+      apiFetch(`/venues/${venueId}/events/${selectedEvent}/${resource}`)
+        .then((data) => { if (active) apply(data); })
+        .catch((error) => { if (active) setError(error.message); });
+
+    load("types", setTypes);
+    load("allocations", setAllocations);
+    load("report", setReport);
+    return () => { active = false; };
   }, [selectedEvent, venueId]);
 
   // Progreso del primer evento SIN abrir su backstage: la guía de primeros
@@ -617,12 +614,14 @@ export default function AdminDashboard() {
   // pisar los datos del evento que el admin está editando en ese momento.
   useEffect(() => {
     if (selectedEvent || !showOnboarding || !onboardingEvent || !venueId) return;
+    let active = true;
     apiFetch(`/venues/${venueId}/events/${onboardingEvent.id}/types`)
-      .then(setTypes)
+      .then((data) => { if (active && !activeEventRef.current) setTypes(data); })
       .catch(() => {});
     apiFetch(`/venues/${venueId}/events/${onboardingEvent.id}/allocations`)
-      .then(setAllocations)
+      .then((data) => { if (active && !activeEventRef.current) setAllocations(data); })
       .catch(() => {});
+    return () => { active = false; };
   }, [selectedEvent, showOnboarding, onboardingEvent, venueId]);
 
   // Memoizado: es dependencia de reloadAll (PTR) y de useLiveRefresh; sin
@@ -630,10 +629,10 @@ export default function AdminDashboard() {
   const refreshEventData = useCallback(async () => {
     if (!selectedEvent) return;
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/report`)
-      .then(setReport)
+      .then((data) => { if (activeEventRef.current === String(selectedEvent)) setReport(data); })
       .catch(() => {});
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/allocations`)
-      .then(setAllocations)
+      .then((data) => { if (activeEventRef.current === String(selectedEvent)) setAllocations(data); })
       .catch(() => {});
     // El pulso de la franja también vive: en puerta cambia con cada escaneo.
     apiFetch(`/venues/${venueId}/events/ticket-counts`)
@@ -793,7 +792,11 @@ export default function AdminDashboard() {
       // El backstage muestra las cifras del evento abierto y necesita releerlas;
       // la franja ya quedó al día con el evento que devolvió el POST.
       if (!fromStrip) await refreshEventData();
-      ui.success(DONE_MESSAGE[action]);
+      if (action === "end") setEventReceipt({ id: ev.id, name: ev.name, action });
+      else {
+        if (action === "reopen") setEventReceipt((receipt) => receipt?.id === ev.id ? null : receipt);
+        ui.success(DONE_MESSAGE[action]);
+      }
       return updated;
     } catch (err) {
       setFailedAction(action);
@@ -1013,8 +1016,10 @@ export default function AdminDashboard() {
         setSelectedEvent(null);
         setSearchParams({});
       }
-      await loadEvents();
-      ui.success("Evento eliminado");
+      setEvents((current) => current?.filter((event) => event.id !== ev.id));
+      haptics.success();
+      setEventReceipt({ id: ev.id, name: ev.name, action: "delete" });
+      void loadEvents({ fresh: true }).catch(() => {});
     } catch (err) {
       setError(err.message);
     }
@@ -1025,7 +1030,7 @@ export default function AdminDashboard() {
   }
 
   const selectedEventData = (events ?? []).find(
-    (ev) => ev.id === selectedEvent,
+    (ev) => ev.id === selectedEvent && ev.id === Number(urlEvent),
   );
   const actions = selectedEventData
     ? (NEXT_ACTIONS[selectedEventData.status] ?? [])
@@ -1068,13 +1073,13 @@ export default function AdminDashboard() {
   // falla, la píldora simplemente no aparece (es información, no control).
   const [preflight, setPreflight] = useState(null);
   useEffect(() => {
-    if (!selectedEvent) {
-      setPreflight(null);
-      return;
-    }
+    setPreflight(null);
+    if (!selectedEvent) return;
+    let active = true;
     apiFetch(`/venues/${venueId}/events/${selectedEvent}/preflight`)
-      .then(setPreflight)
-      .catch(() => setPreflight(null));
+      .then((data) => { if (active) setPreflight(data); })
+      .catch(() => {});
+    return () => { active = false; };
   }, [selectedEvent, venueId]);
 
   // Cierre de noche (tanda 3): el botón aparece en el backstage; si el evento
@@ -1181,7 +1186,24 @@ export default function AdminDashboard() {
     <PullToRefresh onRefresh={reloadAll}>
       <div className="reveal space-y-5">
         {/* En móvil: invita a instalar la PWA (se oculta sola si ya está instalada) */}
-        <InstallPrompt />
+        {!urlEvent && <InstallPrompt />}
+        {eventReceipt && (
+          !urlEvent ||
+          (eventReceipt.action === "end" && selectedEventData?.id === eventReceipt.id && selectedEventData.status === "ended")
+        ) && (
+          <div className="event-action-receipt" key={`${eventReceipt.id}-${eventReceipt.action}`}>
+            <span className="event-action-receipt-icon">
+              <Icon name={eventReceipt.action === "end" ? "flag" : "trash"} aria-hidden="true" />
+            </span>
+            <div role="status">
+              <strong>{eventReceipt.action === "end" ? "Evento finalizado" : "Evento eliminado"}</strong>
+              <p>{eventReceipt.name}</p>
+            </div>
+            <button type="button" className="btn-mini" aria-label="Cerrar confirmación" onClick={() => setEventReceipt(null)}>
+              <Icon name="close" className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        )}
         {/* Guía del admin primerizo: acompaña hasta que el PRIMER evento está
           realmente a la venta. Primero se OFRECE (opt-in): el admin decide si
           la quiere o la hace por su cuenta, y su elección se recuerda por
@@ -1195,7 +1217,7 @@ export default function AdminDashboard() {
             el único lugar donde existen "todos los eventos": se elige uno y
             se ENTRA — el backstage no comparte pantalla con la lista.
             ================================================================= */}
-        {!selectedEventData && !missingEvent && (
+        {!urlEvent && !selectedEventData && !missingEvent && (
           <>
             <div className="admin-events">
               <header className="admin-page-head admin-page-head--events">
@@ -1220,18 +1242,19 @@ export default function AdminDashboard() {
               {!booting && !eventsError && !q && (events?.length ?? 0) > 0 && (
                 <div className="admin-event-overview admin-event-shortcuts" role="group" aria-label="Estados de eventos">
                   {[
-                    ["live", "En puerta", liveEvents.length],
-                    ["published", "Publicados", (events ?? []).filter((event) => event.status === "published").length],
-                    ["draft", "Borradores", drafts.length],
-                  ].map(([status, label, count]) => (
+                    ["live", "En puerta", liveEvents.length, "door"],
+                    ["published", "Publicados", (events ?? []).filter((event) => event.status === "published").length, "calendar"],
+                    ["draft", "Borradores", drafts.length, "edit"],
+                  ].map(([status, label, count, icon]) => (
                     <button
                       key={status}
                       type="button"
+                      data-event-bucket={status}
                       data-live={status === "live" && count > 0}
                       aria-pressed={eventBucket === status}
                       onClick={() => setEventBucket((current) => current === status ? "todos" : status)}
                     >
-                      <span>{label}</span>
+                      <span><Icon name={icon} aria-hidden="true" />{label}</span>
                       <strong>{count}</strong>
                     </button>
                   ))}
@@ -1561,9 +1584,13 @@ export default function AdminDashboard() {
           />
         )}
 
+        {urlEvent && !selectedEventData && !missingEvent && (
+          <p className="admin-panel-card" role="status">Cargando evento…</p>
+        )}
+
         {/* Enlace viejo, evento borrado o sin acceso: pantalla honesta con el
             destino todavía en la URL, para que el aviso no se pierda. */}
-        {(missingEvent || (selectedEvent && !selectedEventData)) && (
+        {missingEvent && (
           <EventNotFound
             reason={
               missingEvent
@@ -2063,11 +2090,12 @@ export default function AdminDashboard() {
             {/* ====== Pestañas dentro del backstage ====== */}
             <div
               id="evx-tab-panel"
-              role="tabpanel"
-              aria-labelledby={`evx-tab-${section}`}
+              role="region"
+              aria-labelledby="event-section-title"
               tabIndex={0}
             >
             <AdminEventWorkspace
+              key={selectedEvent}
               ev={selectedEventData}
               section={section}
               report={report}

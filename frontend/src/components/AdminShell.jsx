@@ -13,6 +13,7 @@ import { initials } from "../lib/initials";
 import { activeVenueId, setActiveVenueId } from "../lib/venue";
 import { apiFetch } from "../lib/api";
 import { roleIdentity } from "../lib/roles";
+import { EVENT_NAVIGATION, normalizeEventTab } from "../lib/adminEventNavigation";
 
 const AdminChromeContext = createContext({ setBreadcrumb: () => {} });
 
@@ -35,7 +36,7 @@ function isActive(pathname, to) {
 
 export default function AdminShell({ children }) {
   const { user, logout, setUser } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const nav = useNavigate();
   const ui = useUI();
   const [switching, setSwitching] = useState(false);
@@ -72,12 +73,23 @@ export default function AdminShell({ children }) {
     }
   }
 
+  const query = new URLSearchParams(search);
+  const eventId = pathname === "/admin" ? query.get("event") : null;
+  const eventTab = normalizeEventTab(query.get("tab"));
+  const tabs = eventId
+    ? EVENT_NAVIGATION.map((section) => ({
+        ...section,
+        to: `/admin?${new URLSearchParams({ event: eventId, tab: section.id })}`,
+        active: eventTab === section.id,
+      }))
+    : ADMIN_TABS.map((section) => ({ ...section, active: isActive(pathname, section.to) }));
+
   const pageLabel =
     ADMIN_TABS.find((t) => isActive(pathname, t.to))?.label ?? "Eventos";
 
   return (
     <AdminChromeContext.Provider value={{ setBreadcrumb }}>
-    <div className="admin-shell" data-role-accent={adminIdentity.accent}>
+    <div className="admin-shell" data-role-accent={adminIdentity.accent} data-event-workspace={eventId ? "true" : undefined}>
       <a href="#contenido-admin" className="skip-link">
         Saltar al contenido
       </a>
@@ -90,14 +102,22 @@ export default function AdminShell({ children }) {
         >
           <Logo />
         </TransitionLink>
-        <p className="admin-sidebar-kicker">Administración</p>
-        <nav className="admin-nav">
-          {ADMIN_TABS.map((t) => (
+        {eventId ? (
+          <div className="event-sidebar-context">
+            <TransitionLink to="/admin" className="event-sidebar-exit">
+              <Icon name="back" aria-hidden="true" /> Todos los eventos
+            </TransitionLink>
+            <p className="admin-sidebar-kicker">Evento activo</p>
+            <strong>{breadcrumb || "Evento"}</strong>
+          </div>
+        ) : <p className="admin-sidebar-kicker">Administración</p>}
+        <nav className="admin-nav" aria-label={eventId ? "Secciones del evento" : "Administración"}>
+          {tabs.map((t) => (
             <TransitionLink
               key={t.to}
               to={t.to}
-              aria-current={isActive(pathname, t.to) ? "page" : undefined}
-              className={`admin-nav-link${isActive(pathname, t.to) ? " is-active" : ""}`}
+              aria-current={t.active ? "page" : undefined}
+              className={`admin-nav-link${t.active ? " is-active" : ""}`}
             >
               <Icon name={t.icon} aria-hidden="true" />
               {t.label}
@@ -145,8 +165,8 @@ export default function AdminShell({ children }) {
           </div>
 
           <div className="admin-topbar-actions">
-            <GlobalSearch />
-            {adminVenues.length > 1 ? (
+            {!eventId && <GlobalSearch />}
+            {!eventId && (adminVenues.length > 1 ? (
               <label className="admin-org-select">
                 <span className="sr-only">Organización activa</span>
                 <Icon name="users" className="h-3.5 w-3.5" aria-hidden="true" />
@@ -168,9 +188,9 @@ export default function AdminShell({ children }) {
                 <Icon name="users" className="h-3.5 w-3.5" aria-hidden="true" />
                 {venue?.name ?? "Tu organización"}
               </span>
-            )}
+            ))}
             <span
-              className="admin-topbar-role"
+              className="admin-topbar-role enty-role-badge"
               title={`Rol activo: ${adminIdentity.label}`}
               aria-label={`Rol activo: ${adminIdentity.label}`}
             >
@@ -178,16 +198,16 @@ export default function AdminShell({ children }) {
               <span>{adminIdentity.label}</span>
             </span>
             <ThemeToggle />
-            <NotificationBell />
-            <TransitionLink
+            {!eventId && <NotificationBell />}
+            {!eventId && <TransitionLink
               to="/perfil"
               aria-label="Tu perfil"
               data-tip="Tu perfil"
               className="admin-avatar"
             >
               {initials(user?.full_name)}
-            </TransitionLink>
-            <button
+            </TransitionLink>}
+            {!eventId && <button
               type="button"
               className="admin-logout"
               aria-label="Cerrar sesión"
@@ -205,7 +225,7 @@ export default function AdminShell({ children }) {
               }}
             >
               <Icon name="logout" className="h-4 w-4" />
-            </button>
+            </button>}
           </div>
         </header>
 
@@ -216,15 +236,15 @@ export default function AdminShell({ children }) {
         </main>
       </div>
 
-      <nav className="admin-bottomnav" aria-label="Navegación principal">
+      <nav className="admin-bottomnav" aria-label={eventId ? "Secciones del evento" : "Navegación principal"}>
         <div className="admin-bottomnav-inner">
-          {ADMIN_TABS.map((t) => (
+          {tabs.map((t) => (
             <TransitionLink
               key={t.to}
               to={t.to}
-              aria-current={isActive(pathname, t.to) ? "page" : undefined}
+              aria-current={t.active ? "page" : undefined}
               onClick={() => haptics.tick()}
-              className={isActive(pathname, t.to) ? "is-active" : ""}
+              className={t.active ? "is-active" : ""}
             >
               <Icon name={t.icon} aria-hidden="true" />
               {t.label}

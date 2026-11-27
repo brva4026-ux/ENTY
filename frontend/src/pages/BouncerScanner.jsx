@@ -1010,7 +1010,7 @@ export default function BouncerScanner() {
         <Logo size="sm" compact />
         <div className="door2-event-identity">
           <div className="door2-event-meta">
-            <span className="door2-kicker">Puerta</span>
+            <span className="door2-kicker door-role-badge"><Icon name="door" aria-hidden="true" /> Puerta</span>
             {eventDate && <time dateTime={startsAt}>{eventDate}</time>}
           </div>
           <strong>{context?.event_name || selectedEventData?.name || "Cargando evento…"}</strong>
