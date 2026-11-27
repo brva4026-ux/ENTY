@@ -774,6 +774,35 @@ export default function EventDetailPage() {
               </div>
             </div>
 
+            {data.stream && (
+              <section className="evd-section" aria-labelledby="evd-stream-title">
+                <h2 id="evd-stream-title" className="evd-section-title">
+                  Transmisión
+                </h2>
+                <p className="text-sm text-zinc-300">
+                  Este evento tiene boletas virtuales. La transmisión abre el{" "}
+                  <b>
+                    {new Date(data.stream.starts_at).toLocaleString("es-CO", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                      timeZone: data.timezone || undefined,
+                    })}
+                  </b>
+                  {data.stream.ends_at
+                    ? ` y cierra el ${new Date(data.stream.ends_at).toLocaleString(
+                        "es-CO",
+                        {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                          timeZone: data.timezone || undefined,
+                        },
+                      )}.`
+                    : "."}{" "}
+                  El enlace se entrega en tu boleta virtual durante ese horario.
+                </p>
+              </section>
+            )}
+
             <section className="evd-section" aria-labelledby="evd-tickets-title">
               <h2 id="evd-tickets-title" className="evd-section-title">
                 Boletas
@@ -783,6 +812,9 @@ export default function EventDetailPage() {
                   <li key={t.id} className="evd-ticket-row">
                     <span className="evd-ticket-name">
                       {t.name}
+                      {t.is_virtual && (
+                        <span className="evd-ticket-badge">Virtual</span>
+                      )}
                       {t.sessions?.length ? (
                         <small className="evd-ticket-includes">
                           Incluye: {t.sessions.map((s) => s.name).join(" · ")}

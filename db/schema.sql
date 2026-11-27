@@ -6960,3 +6960,89 @@ ALTER TABLE public.ticket_payments
     ADD COLUMN IF NOT EXISTS organizer_net_cents bigint NOT NULL DEFAULT 0
         CHECK (organizer_net_cents >= 0),
     ADD COLUMN IF NOT EXISTS fee_breakdown jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+-- --- Migracion 075: preguntas, boletas virtuales y transmision ------------
+ALTER TABLE public.events
+    ADD COLUMN IF NOT EXISTS stream_url text,
+    ADD COLUMN IF NOT EXISTS stream_starts_at timestamp with time zone,
+    ADD COLUMN IF NOT EXISTS stream_ends_at timestamp with time zone,
+    ADD COLUMN IF NOT EXISTS stream_instructions text;
+
+ALTER TABLE public.ticket_types
+    ADD COLUMN IF NOT EXISTS is_virtual boolean NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS public.event_questions (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    event_id bigint NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+    prompt text NOT NULL,
+    help_text text,
+    kind text NOT NULL DEFAULT 'text'
+        CHECK (kind IN ('text', 'textarea', 'select', 'number', 'boolean')),
+    options jsonb NOT NULL DEFAULT '[]'::jsonb,
+    required boolean NOT NULL DEFAULT false,
+    sort_order integer NOT NULL DEFAULT 0,
+    closes_at timestamp with time zone,
+    is_active boolean NOT NULL DEFAULT true,
+    created_by_user_id bigint REFERENCES public.users(id) ON DELETE SET NULL,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_event_questions_event
+    ON public.event_questions (event_id, sort_order, id);
+
+CREATE TABLE IF NOT EXISTS public.ticket_answers (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    question_id bigint NOT NULL REFERENCES public.event_questions(id) ON DELETE CASCADE,
+    ticket_id bigint NOT NULL REFERENCES public.tickets(id) ON DELETE CASCADE,
+    answer jsonb NOT NULL,
+    answered_by_contact text,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+    UNIQUE (question_id, ticket_id)
+);
+CREATE INDEX IF NOT EXISTS idx_ticket_answers_ticket
+    ON public.ticket_answers (ticket_id, question_id);
+
+-- Las respuestas pueden contener datos del comprador. El backend entra como
+-- owner (bypassa RLS); la Data API de Supabase no tiene por qué verlas.
+ALTER TABLE public.event_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ticket_answers ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        EXECUTE 'REVOKE ALL ON TABLE public.event_questions, public.ticket_answers FROM anon';
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        EXECUTE 'REVOKE ALL ON TABLE public.event_questions, public.ticket_answers FROM authenticated';
+    END IF;
+END $$;
+
+
+-- --- Migracion 076: cerrar la Data API de Supabase sobre public -------------
+DO $$
+DECLARE r record;
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+            EXECUTE format('REVOKE ALL ON TABLE public.%I FROM anon', r.tablename);
+        END LOOP;
+        FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public' LOOP
+            EXECUTE format('REVOKE ALL ON SEQUENCE public.%I FROM anon', r.sequencename);
+        END LOOP;
+        REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+            EXECUTE format('REVOKE ALL ON TABLE public.%I FROM authenticated', r.tablename);
+        END LOOP;
+        FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public' LOOP
+            EXECUTE format('REVOKE ALL ON SEQUENCE public.%I FROM authenticated', r.sequencename);
+        END LOOP;
+        REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM authenticated;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM authenticated;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM authenticated;
+    END IF;
+END $$;

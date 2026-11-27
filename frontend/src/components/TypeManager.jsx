@@ -45,6 +45,7 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
     capacity ? String(capacity) : "50",
   );
   const [isCourtesy, setIsCourtesy] = useState(false);
+  const [isVirtual, setIsVirtual] = useState(false);
   const [err, setErr] = useState("");
   const [info, setInfo] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -53,6 +54,7 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
     price: "",
     qty: "",
     isCourtesy: false,
+    isVirtual: false,
   });
   const [busyId, setBusyId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -140,6 +142,7 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
           price_cents: priceFor(price, isCourtesy),
           quantity: Number(qty),
           is_courtesy: isCourtesy,
+          is_virtual: isVirtual,
         }),
       });
       onChange([...(types || []), t]);
@@ -162,6 +165,7 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
       price: String(t.price_cents / 100),
       qty: String(t.quantity),
       isCourtesy: t.is_courtesy,
+      isVirtual: !!t.is_virtual,
     });
   }
 
@@ -176,6 +180,7 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
           price_cents: priceFor(draft.price, draft.isCourtesy),
           quantity: Number(draft.qty),
           is_courtesy: draft.isCourtesy,
+          is_virtual: draft.isVirtual,
         }),
       });
       replaceType(updated);
@@ -236,7 +241,8 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
       <h3 className="display mb-1 mt-0.5 text-base">Tipos de boleta</h3>
       <p className="mb-3 text-xs text-zinc-500">
         Cada tipo es una localidad del evento: define el precio, el cupo y si
-        es cortesía. No es un producto separado del evento.
+        es cortesía o virtual. La virtual no se escanea en puerta: abre la
+        transmisión durante la ventana del evento.
       </p>
       <p className="mb-3 rounded-lg bg-zinc-940 px-3 py-2 text-2xs text-zinc-500">
         Una cortesía siempre vale $0 y necesita un cupo definido. Los cupos
@@ -376,6 +382,17 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
                   />
                   Cortesía (precio 0)
                 </label>
+                <label className="col-span-full flex items-center gap-2 text-xs text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={draft.isVirtual}
+                    onChange={(e) =>
+                      setDraft({ ...draft, isVirtual: e.target.checked })
+                    }
+                    className="accent-brand-500"
+                  />
+                  Virtual (transmisión, sin QR de puerta)
+                </label>
                 <div className="col-span-full flex gap-2">
                   <button
                     onClick={() => saveEdit(t)}
@@ -399,6 +416,11 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
                   {t.is_courtesy && (
                     <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-2xs font-bold uppercase text-emerald-300 ring-1 ring-emerald-500/30">
                       cortesía
+                    </span>
+                  )}
+                  {t.is_virtual && (
+                    <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-2xs font-bold uppercase text-sky-300 ring-1 ring-sky-500/30">
+                      virtual
                     </span>
                   )}
                   {t.is_active === false && (
@@ -536,6 +558,15 @@ export default function TypeManager({ venueId, eventId, types, report, onChange,
             className="accent-brand-500"
           />
           Cortesía
+        </label>
+        <label className="flex items-center gap-2 text-sm text-zinc-300 sm:col-start-3 sm:row-start-2">
+          <input
+            type="checkbox"
+            checked={isVirtual}
+            onChange={(e) => setIsVirtual(e.target.checked)}
+            className="accent-brand-500"
+          />
+          Virtual
         </label>
         {info && <p className="col-span-full text-xs text-amber-300">{info}</p>}
         <button

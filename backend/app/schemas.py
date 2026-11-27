@@ -329,6 +329,22 @@ class EventUpdate(BaseModel):
     min_age: int | None = Field(default=None, ge=0, le=99)
     dress_code: str | None = Field(default=None, max_length=200)
     doors_open_at: datetime | None = None
+    # Transmisión en directo (mig 075). La URL no se publica en la ficha:
+    # solo se entrega a una boleta virtual dentro de la ventana contratada.
+    stream_url: str | None = Field(default=None, max_length=2000)
+    stream_starts_at: datetime | None = None
+    stream_ends_at: datetime | None = None
+    stream_instructions: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("stream_url")
+    @classmethod
+    def _stream_public(cls, v):
+        return validate_public_http_url(v, label="transmisión") if v else v
+
+    @field_validator("stream_instructions")
+    @classmethod
+    def _stream_instructions_clean(cls, v):
+        return (v or "").strip() or None
 
     @model_validator(mode="after")
     def _check_window(self) -> "EventUpdate":
@@ -343,6 +359,21 @@ class EventUpdate(BaseModel):
                 raise ValueError("starts_at y ends_at deben usar el mismo formato de zona horaria")
             if self.ends_at <= self.starts_at:
                 raise ValueError("ends_at debe ser posterior a starts_at")
+        return self
+
+    @model_validator(mode="after")
+    def _check_stream_window(self) -> "EventUpdate":
+        if self.stream_starts_at is not None and self.stream_ends_at is not None:
+            if (self.stream_starts_at.tzinfo is None) != (
+                self.stream_ends_at.tzinfo is None
+            ):
+                raise ValueError(
+                    "stream_starts_at y stream_ends_at deben usar la misma zona horaria"
+                )
+            if self.stream_ends_at <= self.stream_starts_at:
+                raise ValueError(
+                    "stream_ends_at debe ser posterior a stream_starts_at"
+                )
         return self
 
 
@@ -423,6 +454,12 @@ class EventOut(BaseModel):
     min_age: int | None = None
     dress_code: str | None = None
     doors_open_at: datetime | None = None
+    # Transmisión en directo (mig 075). `stream_url` solo la ve el backstage;
+    # la ficha pública expone únicamente el horario y si hay directo.
+    stream_url: str | None = None
+    stream_starts_at: datetime | None = None
+    stream_ends_at: datetime | None = None
+    stream_instructions: str | None = None
     lineup: list[LineupItemOut] = Field(default_factory=list)
     # Último aviso de cambio (fecha, lugar, cancelación) y su impacto. Solo se
     # llena en las respuestas de edición/transición y en el detalle del evento.
@@ -476,6 +513,9 @@ class TicketTypeCreate(BaseModel):
     price_cents: int = Field(ge=0)
     quantity: int = Field(gt=0)
     is_courtesy: bool = False
+    # Mig 075: boleta para el público remoto. No se escanea en puerta; abre
+    # la transmisión durante la ventana del evento.
+    is_virtual: bool = False
     zone_id: int | None = None
 
 
@@ -493,6 +533,8 @@ class TicketTypeOut(BaseModel):
     # Localidad técnica de un pase: se emite en la jornada pero no se vende
     # suelta. La ficha pública la esconde.
     is_pass_only: bool = False
+    # Boleta virtual (mig 075): acceso remoto, sin QR de puerta.
+    is_virtual: bool = False
     # Zona física del recinto (mig 070). NULL = sin zona configurada.
     zone_id: int | None = None
     zone_name: str | None = None
@@ -609,6 +651,7 @@ class TicketTypeUpdate(BaseModel):
     quantity: int | None = Field(default=None, gt=0)
     is_courtesy: bool | None = None
     is_active: bool | None = None
+    is_virtual: bool | None = None
     zone_id: int | None = None
 
 
@@ -1322,6 +1365,120 @@ class FanLookupRequest(BaseModel):
     contact: str = Field(min_length=5, max_length=200)
 
 
+class EventQuestionIn(BaseModel):
+    """Pregunta que el organizador hace después de la compra (mig 075)."""
+
+    prompt: str = Field(min_length=3, max_length=300)
+    help_text: str | None = Field(default=None, max_length=500)
+    kind: Literal["text", "textarea", "select", "number", "boolean"] = "text"
+    options: list[str] = Field(default_factory=list)
+    required: bool = False
+    closes_at: datetime | None = None
+    is_active: bool = True
+
+    @field_validator("prompt")
+    @classmethod
+    def _prompt_clean(cls, v):
+        return v.strip()
+
+    @field_validator("help_text")
+    @classmethod
+    def _help_clean(cls, v):
+        return (v or "").strip() or None
+
+    @model_validator(mode="after")
+    def _select_options(self) -> "EventQuestionIn":
+        cleaned = [o.strip() for o in self.options if o.strip()]
+        if self.kind == "select" and len(cleaned) < 2:
+            raise ValueError("Una pregunta de selección necesita al menos 2 opciones")
+        self.options = cleaned
+        return self
+
+
+class EventQuestionUpdate(BaseModel):
+    prompt: str | None = Field(default=None, min_length=3, max_length=300)
+    help_text: str | None = Field(default=None, max_length=500)
+    kind: Literal["text", "textarea", "select", "number", "boolean"] | None = None
+    options: list[str] | None = None
+    required: bool | None = None
+    closes_at: datetime | None = None
+    is_active: bool | None = None
+
+    @field_validator("prompt")
+    @classmethod
+    def _prompt_clean(cls, v):
+        return v.strip() if v is not None else v
+
+    @field_validator("help_text")
+    @classmethod
+    def _help_clean(cls, v):
+        return (v or "").strip() or None
+
+
+class EventQuestionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    event_id: int
+    prompt: str
+    help_text: str | None = None
+    kind: str
+    options: list[str] = Field(default_factory=list)
+    required: bool = False
+    sort_order: int = 0
+    closes_at: datetime | None = None
+    is_active: bool = True
+    answer_count: int = 0
+
+
+class FanQuestionOut(EventQuestionOut):
+    answer: Any | None = None
+    can_answer: bool = True
+    closed_reason: str | None = None
+
+
+class FanQuestionsOut(BaseModel):
+    ticket_id: int
+    questions: list[FanQuestionOut] = Field(default_factory=list)
+
+
+class FanAnswerIn(BaseModel):
+    token: str | None = Field(default=None, max_length=2000)
+    raw_token: str | None = Field(default=None, max_length=200)
+    answer: Any
+
+
+class FanStreamOut(BaseModel):
+    ticket_id: int
+    active: bool
+    url: str | None = None
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
+    instructions: str | None = None
+    message: str
+
+
+class FanContactCorrectionIn(BaseModel):
+    token: str | None = Field(default=None, max_length=2000)
+    raw_token: str | None = Field(default=None, max_length=200)
+    customer_name: str | None = Field(default=None, min_length=1, max_length=200)
+    customer_phone: str | None = Field(default=None, min_length=5, max_length=30)
+    # Verificación adicional cuando se corrige el teléfono: el contacto
+    # actual de la boleta (correo o teléfono). No se pide para el nombre.
+    current_contact: str | None = Field(default=None, max_length=200)
+    reason: str | None = Field(default=None, max_length=200)
+
+
+class FanContactCorrectionOut(BaseModel):
+    ticket_id: int
+    customer_name: str
+    customer_phone: str | None = None
+    changed: list[str] = Field(default_factory=list)
+    verification: str
+    ownership_unchanged: bool = True
+    message: str
+
+
 class FanCredentialRequest(BaseModel):
     """Credencial del fan para ver sus boletas o regenerar un QR.
 
@@ -1355,6 +1512,16 @@ class FanTicketOut(BaseModel):
     # que el fan no vea un QR que la puerta aun no honra.
     qr_active: bool = True
     qr_message: str | None = None
+    # Datos que el comprador puede corregir desde Mis boletas (mig 075).
+    customer_name: str | None = None
+    customer_phone: str | None = None
+    # Preguntas posteriores a la compra (mig 075).
+    has_questions: bool = False
+    # Boleta virtual y ventana de la transmisión. La URL no viaja en el
+    # listado: se pide aparte, y solo se entrega dentro de la ventana.
+    is_virtual: bool = False
+    stream_active: bool = False
+    stream_message: str | None = None
     # Cambio de fecha, lugar o cancelación posterior a la compra.
     change_notice: EventChangeNoticeOut | None = None
 

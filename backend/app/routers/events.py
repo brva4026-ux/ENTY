@@ -72,7 +72,8 @@ EVENT_COLUMNS = (
     "id, venue_id, name, description, flyer_url, location, starts_at, ends_at, "
     "event_timezone, capacity, qr_unlock_minutes, status, category, min_age, "
     "dress_code, doors_open_at, video_url, location_url, contact_name, "
-    "contact_phone, parent_event_id, updated_at"
+    "contact_phone, parent_event_id, updated_at, stream_url, stream_starts_at, "
+    "stream_ends_at, stream_instructions"
 )
 
 
@@ -144,7 +145,7 @@ async def fetch_lineups(cur, event_ids: list[int]) -> dict[int, list[dict]]:
 # ---------------------------------------------------------------------------
 _TYPE_SELECT = """
     SELECT tt.id, tt.event_id, tt.name, tt.price_cents, tt.quantity,
-           tt.is_courtesy, tt.is_active, tt.is_pass_only,
+           tt.is_courtesy, tt.is_active, tt.is_pass_only, tt.is_virtual,
            tt.zone_id, z.name AS zone_name
     FROM ticket_types tt
     JOIN events e ON e.id = tt.event_id
@@ -480,9 +481,9 @@ async def duplicate_event(
             ), new_types AS (
                 INSERT INTO ticket_types (event_id, name, price_cents,
                                           currency, quantity, is_courtesy,
-                                          is_active)
+                                          is_active, is_virtual)
                 SELECT new_ev.id, tt.name, tt.price_cents, tt.currency,
-                       tt.quantity, tt.is_courtesy, TRUE
+                       tt.quantity, tt.is_courtesy, TRUE, tt.is_virtual
                 FROM ticket_types tt, new_ev
                 WHERE tt.event_id = %s AND tt.is_active
                 RETURNING id, name
@@ -654,6 +655,29 @@ async def update_event(
                 "UPDATE events SET contact_phone=%s WHERE id=%s",
                 ((body.contact_phone or "").strip() or None, event_id),
             )
+        # Mig 075: la transmisión no pasa por update_event (su firma es
+        # estable). La URL se guarda para el backstage; la ficha pública solo
+        # publica el horario.
+        if "stream_url" in sent:
+            await cur.execute(
+                "UPDATE events SET stream_url=%s WHERE id=%s",
+                ((body.stream_url or "").strip() or None, event_id),
+            )
+        if "stream_starts_at" in sent:
+            await cur.execute(
+                "UPDATE events SET stream_starts_at=%s WHERE id=%s",
+                (body.stream_starts_at, event_id),
+            )
+        if "stream_ends_at" in sent:
+            await cur.execute(
+                "UPDATE events SET stream_ends_at=%s WHERE id=%s",
+                (body.stream_ends_at, event_id),
+            )
+        if "stream_instructions" in sent:
+            await cur.execute(
+                "UPDATE events SET stream_instructions=%s WHERE id=%s",
+                ((body.stream_instructions or "").strip() or None, event_id),
+            )
 
         try:
             await cur.execute(
@@ -739,8 +763,9 @@ async def create_type(
         await cur.execute(
             """
             INSERT INTO ticket_types
-                (event_id, name, price_cents, quantity, is_courtesy, zone_id)
-            VALUES (%s, %s, %s, %s, %s, %s)
+                (event_id, name, price_cents, quantity, is_courtesy, is_virtual,
+                 zone_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (event_id, name) DO NOTHING
             RETURNING id
             """,
@@ -750,6 +775,7 @@ async def create_type(
                 0 if body.is_courtesy else body.price_cents,
                 body.quantity,
                 body.is_courtesy,
+                body.is_virtual,
                 body.zone_id,
             ),
         )
@@ -981,6 +1007,8 @@ async def update_type(
 
         data = body.model_dump(exclude_unset=True)
         zone_sent = "zone_id" in data
+        virtual_sent = "is_virtual" in data
+        is_virtual = data.pop("is_virtual", None)
         zone_id = data.pop("zone_id", None)
         if zone_sent and zone_id is not None:
             await cur.execute(
@@ -1014,6 +1042,11 @@ async def update_type(
             await cur.execute(
                 "UPDATE ticket_types SET zone_id=%s WHERE id=%s AND event_id=%s",
                 (zone_id, type_id, event_id),
+            )
+        if virtual_sent:
+            await cur.execute(
+                "UPDATE ticket_types SET is_virtual=%s WHERE id=%s AND event_id=%s",
+                (bool(is_virtual), type_id, event_id),
             )
         updated = await _fetch_type(cur, venue_id, event_id, type_id)
         # Auditoria (mig 019): precio y cupo son dinero — queda quien, cuando

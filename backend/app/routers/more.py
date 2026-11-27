@@ -15,6 +15,8 @@ from app.schemas import (
     ArchiveIn,
     DisputeIn,
     DisputePatch,
+    EventQuestionIn,
+    EventQuestionUpdate,
     FeeConfigIn,
     LinkCheckIn,
     LotteryEntryIn,
@@ -1396,3 +1398,150 @@ async def public_archive(
     if not row:
         raise HTTPException(404, "Este evento no tiene archivo público")
     return row
+
+
+# ---------------------------------------------------------------------------
+# 13. Preguntas posteriores a la compra (mig 075)
+# ---------------------------------------------------------------------------
+@router.get("/venues/{venue_id}/events/{event_id}/questions")
+async def list_questions(
+    venue_id: int,
+    event_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    ensure_roles(user, venue_id, "super_admin", "admin", "promotor")
+    async with db.cursor() as cur:
+        await _event(cur, venue_id, event_id)
+        await cur.execute(
+            """
+            SELECT q.*,
+                   (SELECT count(*) FROM ticket_answers a
+                     WHERE a.question_id=q.id)::int AS answer_count
+              FROM event_questions q
+             WHERE q.event_id=%s
+             ORDER BY q.sort_order, q.id
+            """,
+            (event_id,),
+        )
+        return await cur.fetchall()
+
+
+@router.post("/venues/{venue_id}/events/{event_id}/questions", status_code=201)
+async def create_question(
+    venue_id: int,
+    event_id: int,
+    body: EventQuestionIn,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _event(cur, venue_id, event_id)
+        await cur.execute(
+            "SELECT coalesce(max(sort_order), -1) + 1 AS next FROM event_questions"
+            " WHERE event_id=%s",
+            (event_id,),
+        )
+        sort_order = (await cur.fetchone())["next"]
+        await cur.execute(
+            """
+            INSERT INTO event_questions
+                (event_id, prompt, help_text, kind, options, required,
+                 sort_order, closes_at, is_active, created_by_user_id)
+            VALUES (%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s)
+            RETURNING *, 0 AS answer_count
+            """,
+            (
+                event_id,
+                body.prompt,
+                body.help_text,
+                body.kind,
+                psycopg.types.json.Jsonb(body.options),
+                body.required,
+                sort_order,
+                body.closes_at,
+                body.is_active,
+                user["id"],
+            ),
+        )
+        row = await cur.fetchone()
+        await db.commit()
+    return row
+
+
+@router.patch("/venues/{venue_id}/events/{event_id}/questions/{question_id}")
+async def update_question(
+    venue_id: int,
+    event_id: int,
+    question_id: int,
+    body: EventQuestionUpdate,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _event(cur, venue_id, event_id)
+        await cur.execute(
+            "SELECT * FROM event_questions WHERE id=%s AND event_id=%s",
+            (question_id, event_id),
+        )
+        current = await cur.fetchone()
+        if not current:
+            raise HTTPException(404, "Pregunta no encontrada")
+        merged = {**current, **body.model_dump(exclude_unset=True)}
+        validated = EventQuestionIn(
+            prompt=merged["prompt"],
+            help_text=merged.get("help_text"),
+            kind=merged["kind"],
+            options=merged.get("options") or [],
+            required=bool(merged["required"]),
+            closes_at=merged.get("closes_at"),
+            is_active=bool(merged["is_active"]),
+        )
+        await cur.execute(
+            """
+            UPDATE event_questions
+               SET prompt=%s, help_text=%s, kind=%s, options=%s::jsonb,
+                   required=%s, closes_at=%s, is_active=%s, updated_at=now()
+             WHERE id=%s AND event_id=%s
+            RETURNING *, (SELECT count(*) FROM ticket_answers a
+                           WHERE a.question_id=event_questions.id)::int
+                           AS answer_count
+            """,
+            (
+                validated.prompt,
+                validated.help_text,
+                validated.kind,
+                psycopg.types.json.Jsonb(validated.options),
+                validated.required,
+                validated.closes_at,
+                validated.is_active,
+                question_id,
+                event_id,
+            ),
+        )
+        row = await cur.fetchone()
+        await db.commit()
+    return row
+
+
+@router.delete("/venues/{venue_id}/events/{event_id}/questions/{question_id}")
+async def delete_question(
+    venue_id: int,
+    event_id: int,
+    question_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[psycopg.AsyncConnection, Depends(get_db)],
+):
+    ensure_roles(user, venue_id, "super_admin", "admin")
+    async with db.cursor() as cur:
+        await _event(cur, venue_id, event_id)
+        await cur.execute(
+            "DELETE FROM event_questions WHERE id=%s AND event_id=%s RETURNING id",
+            (question_id, event_id),
+        )
+        if not await cur.fetchone():
+            raise HTTPException(404, "Pregunta no encontrada")
+        await db.commit()
+    return {"detail": "Pregunta eliminada. Las respuestas asociadas también."}

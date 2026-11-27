@@ -1095,3 +1095,67 @@ export async function fetchVenueExport(venueId) {
   if (!res.ok) throw new Error("No pudimos exportar los datos");
   return res.blob();
 }
+
+// --- Preguntas posteriores a la compra (mig 075) --------------------------
+export function fetchMyTicketQuestions(ticketId, credential) {
+  return apiFetch(`/public/my-tickets/${ticketId}/questions`, {
+    method: "POST",
+    body: JSON.stringify(credential),
+  });
+}
+
+export function saveMyTicketAnswer(ticketId, questionId, credential, answer) {
+  return apiFetch(`/public/my-tickets/${ticketId}/questions/${questionId}`, {
+    method: "PUT",
+    body: JSON.stringify({ ...credential, answer }),
+  });
+}
+
+export function fetchMyTicketStream(ticketId, credential) {
+  return apiFetch(`/public/my-tickets/${ticketId}/stream`, {
+    method: "POST",
+    body: JSON.stringify(credential),
+  });
+}
+
+export function correctMyTicketContact(ticketId, credential, payload) {
+  return apiFetch(`/public/my-tickets/${ticketId}/contact`, {
+    method: "POST",
+    body: JSON.stringify({ ...credential, ...payload }),
+  });
+}
+
+export function listEventQuestions(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/questions`);
+}
+
+export function createEventQuestion(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/questions`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateEventQuestion(venueId, eventId, questionId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/questions/${questionId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteEventQuestion(venueId, eventId, questionId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/questions/${questionId}`, {
+    method: "DELETE",
+  });
+}
+
+export function getEventAdmin(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}`);
+}
+
+export function updateEventAdmin(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
