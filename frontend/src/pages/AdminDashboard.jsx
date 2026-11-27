@@ -1198,16 +1198,40 @@ export default function AdminDashboard() {
           <>
             <div className="admin-events">
               <header className="admin-page-head admin-page-head--events">
-                <div>
-                  <p className="eyebrow">Operación</p>
-                  <h1>Eventos</h1>
-                  <p>
-                    Crea, publica y opera tus noches. Abre una para montar
-                    boletas, equipo y puerta.
-                  </p>
-                </div>
+                <h1>Eventos</h1>
+                {(events?.length ?? 0) > 0 && (
+                  <button
+                    type="button"
+                    className="admin-create-btn"
+                    data-tour="nuevo-evento"
+                    onClick={() => {
+                      haptics.tick();
+                      setCreateOpen(true);
+                    }}
+                  >
+                    <Icon name="plus" className="h-4 w-4" />
+                    Crear evento
+                  </button>
+                )}
               </header>
               <VenueHeader venueId={venueId} user={user} compact />
+
+              {!booting && !eventsError && !q && eventBucket === "todos" && (events?.length ?? 0) > 0 && (
+                <dl className="admin-event-overview" aria-label="Estado de los eventos">
+                  <div data-live={liveEvents.length > 0}>
+                    <dt>En puerta</dt>
+                    <dd>{liveEvents.length}</dd>
+                  </div>
+                  <div>
+                    <dt>Próximos</dt>
+                    <dd>{upcoming.length}</dd>
+                  </div>
+                  <div>
+                    <dt>Borradores</dt>
+                    <dd>{drafts.length}</dd>
+                  </div>
+                </dl>
+              )}
 
               {error && (
                 <div className="admin-error" role="alert">
@@ -1274,20 +1298,6 @@ export default function AdminDashboard() {
                     <span className="admin-filter-count">{activeFilterCount}</span>
                   )}
                 </button>
-                {(events?.length ?? 0) > 0 && (
-                  <button
-                    type="button"
-                    className="admin-create-btn"
-                    data-tour="nuevo-evento"
-                    onClick={() => {
-                      haptics.tick();
-                      setCreateOpen(true);
-                    }}
-                  >
-                    <Icon name="plus" className="h-4 w-4" />
-                    Crear evento
-                  </button>
-                )}
               </div>
 
               {filtersOpen && (

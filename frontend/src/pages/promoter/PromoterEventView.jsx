@@ -346,7 +346,7 @@ export default function PromoterEventView() {
             <span className="promoter-stat"><b>{event.my_issued}</b><span>Emitidas</span></span>
             <span className="promoter-stat"><b>{event.my_capacity}</b><span>Mi cupo</span></span>
             <span className="promoter-stat"><b>{event.link_sold}</b><span>Por link</span></span>
-            <span className="promoter-stat"><b>{event.available_total}</b><span>Disponibles</span></span>
+            <span className="promoter-stat promoter-stat--available"><b>{event.available_total}</b><span>Disponibles</span></span>
           </div>
           <div className="promoter-event-actions">
             <button type="button" className="promoter-btn" onClick={changeEvent}>
@@ -373,10 +373,6 @@ export default function PromoterEventView() {
         </div>
       </section>
 
-      <div id="incidencias-promotor">
-        <DoorIncidentsPanel venueId={venueId} eventId={Number(eventId)} role="promotor" />
-      </div>
-
       {!event.assignment_active && (
         <PromoterAlert tone="warn">
           Tu asignación a este evento fue retirada. Puedes consultar tus ventas,
@@ -385,12 +381,12 @@ export default function PromoterEventView() {
       )}
 
       <div className="promoter-event-layout">
-        <section className="promoter-panel" aria-labelledby="vender-title">
+        <section className="promoter-panel promoter-sale-panel" aria-labelledby="vender-title">
           <div className="promoter-panel-head">
             <div>
-              <h2 className="promoter-panel-title" id="vender-title">Vender</h2>
+              <h2 className="promoter-panel-title" id="vender-title">Emitir boleta</h2>
               <p className="promoter-panel-hint">
-                Emite una boleta, entrégala por WhatsApp y confirma el ingreso.
+                Elige el tipo de boleta y los datos de quien la recibe.
               </p>
             </div>
           </div>
@@ -729,6 +725,10 @@ export default function PromoterEventView() {
             )}
           </section>
         </div>
+      </div>
+
+      <div id="incidencias-promotor">
+        <DoorIncidentsPanel venueId={venueId} eventId={Number(eventId)} role="promotor" />
       </div>
 
       {showTicket && lastTicket?.raw_token && (

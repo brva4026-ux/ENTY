@@ -279,3 +279,120 @@
   text-transform: none;
   text-shadow: none;
 }
+
+/* Operación: cifras, emisión y escáner. */
+.admin-page-head--events {
+  display: flex;
+  align-items: center;
+}
+
+.admin-page-head--events .admin-create-btn {
+  min-height: 44px;
+}
+
+.admin-event-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-space-2);
+}
+
+.admin-event-overview > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: clamp(0.5rem, 2vw, 1rem);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--e-radius-md);
+  background: var(--admin-surface);
+}
+
+.admin-event-overview dt {
+  color: var(--admin-muted);
+  font-size: var(--e-text-2xs);
+  overflow-wrap: anywhere;
+}
+
+.admin-event-overview dd {
+  margin: 0;
+  color: var(--admin-ink);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 750;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-event-overview [data-live="true"] dd {
+  color: var(--admin-live);
+}
+
+.promoter-card-stats .promoter-stat--available {
+  border: 1px solid var(--admin-line);
+  background: var(--admin-accent-soft);
+}
+
+.promoter-stat--available b {
+  color: var(--admin-accent-ink);
+  font-size: var(--e-text-xl);
+}
+
+.promoter-event-layout .promoter-sale-panel {
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border-top: 3px solid var(--admin-accent-ink);
+  scroll-margin-top: 5.5rem;
+}
+
+.promoter-sale-panel .promoter-panel-title {
+  font-size: var(--e-text-xl);
+}
+
+.promoter-sale-panel .promoter-panel-hint {
+  font-size: var(--e-text-2xs);
+}
+
+.door2-shell .door2-overview {
+  gap: var(--e-space-2);
+  padding: var(--e-space-3);
+  box-shadow: none;
+}
+
+.door2-shell .door2-metrics {
+  padding-top: var(--e-space-2);
+}
+
+.door2-shell .door2-metrics > div + div {
+  padding-inline-start: var(--e-space-2);
+  border-inline-start: 1px solid var(--door2-line);
+}
+
+.door2-shell .door2-mode button {
+  min-height: 48px;
+}
+
+.door2-shell .door2-scanner-card[data-scanning="false"] {
+  height: clamp(11rem, 26dvh, 15rem);
+}
+
+.door2-shell .door2-scanner-cover {
+  gap: var(--e-space-2);
+  padding: var(--e-space-3);
+}
+
+.door2-scanner-cover .door2-btn--primary {
+  min-height: 48px;
+}
+
+.door2-shell .door2-mode-note {
+  margin-block: 0;
+}
+
+@media (width <= 600px) {
+  .promoter-shell .promoter-event-hero-cover {
+    min-height: 7.5rem;
+    max-height: 9rem;
+  }
+
+  .door2-shell .door2-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

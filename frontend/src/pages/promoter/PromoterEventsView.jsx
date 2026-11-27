@@ -59,6 +59,7 @@ function EventCard({ event }) {
         </div>
 
         <div className="promoter-card-stats">
+          <span className="promoter-stat promoter-stat--available"><b>{event.available_total}</b><span>Disponibles</span></span>
           <span className="promoter-stat"><b>{event.my_issued}</b><span>Emitidas</span></span>
           <span className="promoter-stat"><b>{event.my_capacity}</b><span>Mi cupo</span></span>
           <span className="promoter-stat"><b>{event.link_sold}</b><span>Por link</span></span>

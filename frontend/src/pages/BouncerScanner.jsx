@@ -992,7 +992,7 @@ export default function BouncerScanner() {
           <span className="door2-kicker">Puerta</span>
           <strong>{context?.event_name || selectedEventData?.name || "Cargando noche…"}</strong>
           <span>
-            {context?.assigned_door || "Sin acceso asignado"} · {user?.full_name}
+            {[context?.assigned_door || "Sin acceso asignado", user?.full_name].filter(Boolean).join(" · ")}
           </span>
         </button>
         <button
@@ -1067,62 +1067,53 @@ export default function BouncerScanner() {
           </div>
         </section>
 
-        {context?.zones?.length > 0 && (
-          <section className="door2-zones" aria-label="Aforo por zona">
-            <div className="door2-zones-head">
-              <span>Aforo por zona</span>
-              <small>
-                {context.assigned_zone
-                  ? `Tu puesto: ${context.assigned_zone.name}`
-                  : "Todas las zonas"}
-              </small>
-            </div>
-            {context.assigned_zone?.status === "full" && (
-              <div className="door2-banner" data-tone="danger" role="alert">
-                <Icon name="alert" className="h-4 w-4" />
-                <span>
-                  {context.assigned_zone.name} está lleno. No admitas más
-                  ingresos a esta zona; redirigí a otra con cupo.
-                </span>
-              </div>
-            )}
-            {context.assigned_zone?.status === "near" && (
-              <div className="door2-banner" data-tone="warn" role="status">
-                <Icon name="alert" className="h-4 w-4" />
-                <span>
-                  {context.assigned_zone.name}: quedan{" "}
-                  {context.assigned_zone.free_seats} lugares.
-                </span>
-              </div>
-            )}
-            <div className="door2-zone-list">
-              {context.zones.map((zone) => (
-                <div
-                  key={zone.id}
-                  className="door2-zone"
-                  data-status={zone.status}
-                  data-assigned={
-                    context.assigned_zone?.id === zone.id ? "true" : undefined
-                  }
-                >
-                  <div>
-                    <strong>{zone.name}</strong>
-                    <small>
-                      {zone.inside}/{zone.capacity} adentro
-                    </small>
-                  </div>
-                  <span>
-                    {zone.status === "full"
-                      ? "Lleno"
-                      : `${zone.free_seats} libres`}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
+        {context?.assigned_zone?.status === "full" && (
+          <div className="door2-banner" data-tone="danger" role="alert">
+            <Icon name="alert" className="h-4 w-4" />
+            <span>
+              {context.assigned_zone.name} está lleno. No admitas más
+              ingresos a esta zona; redirigí a otra con cupo.
+            </span>
+          </div>
+        )}
+        {context?.assigned_zone?.status === "near" && (
+          <div className="door2-banner" data-tone="warn" role="status">
+            <Icon name="alert" className="h-4 w-4" />
+            <span>
+              {context.assigned_zone.name}: quedan{" "}
+              {context.assigned_zone.free_seats} lugares.
+            </span>
+          </div>
         )}
 
-        <section className="door2-scanner-card" data-scanning={scanning ? "true" : "false"}>
+        <section className="door2-mode" role="group" aria-label="Qué se registra">
+          <button
+            type="button"
+            data-active={scanMode === "in" ? "true" : "false"}
+            aria-pressed={scanMode === "in"}
+            onClick={() => setScanMode("in")}
+          >
+            <Icon name="check" className="h-4 w-4" />
+            <span>
+              <strong>Entrada</strong>
+              <small>Validar ingreso</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            data-active={scanMode === "out" ? "true" : "false"}
+            aria-pressed={scanMode === "out"}
+            onClick={() => setScanMode("out")}
+          >
+            <Icon name="arrowRight" className="h-4 w-4" />
+            <span>
+              <strong>Salida</strong>
+              <small>Liberar aforo</small>
+            </span>
+          </button>
+        </section>
+
+        <section className="door2-scanner-card" aria-label="Escáner QR" data-scanning={scanning ? "true" : "false"}>
           <div id="door2-qr-region" className="door2-qr-region" />
           {!scanning && !starting && (
             <div className="door2-scanner-cover">
@@ -1165,30 +1156,6 @@ export default function BouncerScanner() {
           {error && <p className="door2-scanner-error">{error}</p>}
         </section>
 
-        <section className="door2-mode" role="group" aria-label="Qué se registra">
-          <button
-            type="button"
-            data-active={scanMode === "in" ? "true" : "false"}
-            onClick={() => setScanMode("in")}
-          >
-            <Icon name="check" className="h-4 w-4" />
-            <span>
-              <strong>Entrada</strong>
-              <small>Validar ingreso</small>
-            </span>
-          </button>
-          <button
-            type="button"
-            data-active={scanMode === "out" ? "true" : "false"}
-            onClick={() => setScanMode("out")}
-          >
-            <Icon name="arrowRight" className="h-4 w-4" />
-            <span>
-              <strong>Salida</strong>
-              <small>Liberar aforo</small>
-            </span>
-          </button>
-        </section>
         <p className="door2-mode-note">
           {scanMode === "out"
             ? "La salida se registra con red. Sin conexión no se inventa: el aforo lo descuenta el servidor."
@@ -1204,7 +1171,7 @@ export default function BouncerScanner() {
             <small>QR dañado</small>
           </button>
           <button type="button" onClick={openLookup}>
-            <span className="door2-action-icon"><Icon name="user" className="h-5 w-5" /></span>
+            <span className="door2-action-icon"><Icon name="users" className="h-5 w-5" /></span>
             <strong>Sin celular</strong>
             <small>Buscar compra</small>
           </button>
@@ -1226,6 +1193,43 @@ export default function BouncerScanner() {
             <small>{authorized ? "Autorizado" : "Sin autorización"}</small>
           </button>
         </nav>
+
+        {context?.zones?.length > 0 && (
+          <section className="door2-zones" aria-label="Aforo por zona">
+            <div className="door2-zones-head">
+              <span>Aforo por zona</span>
+              <small>
+                {context.assigned_zone
+                  ? `Tu puesto: ${context.assigned_zone.name}`
+                  : "Todas las zonas"}
+              </small>
+            </div>
+            <div className="door2-zone-list">
+              {context.zones.map((zone) => (
+                <div
+                  key={zone.id}
+                  className="door2-zone"
+                  data-status={zone.status}
+                  data-assigned={
+                    context.assigned_zone?.id === zone.id ? "true" : undefined
+                  }
+                >
+                  <div>
+                    <strong>{zone.name}</strong>
+                    <small>
+                      {zone.inside}/{zone.capacity} adentro
+                    </small>
+                  </div>
+                  <span>
+                    {zone.status === "full"
+                      ? "Lleno"
+                      : `${zone.free_seats} libres`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       {result && (
