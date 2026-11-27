@@ -11,7 +11,7 @@ import AccreditationsPanel from "./AccreditationsPanel";
 import SessionsPanel from "./SessionsPanel";
 import BreakEvenPanel from "./BreakEvenPanel";
 import EventExtrasPanel from "./EventExtrasPanel";
-import EventMorePanel from "./EventMorePanel";
+import EventMorePanel, { RsvpSection } from "./EventMorePanel";
 import EventSummary, { SectionContext } from "./EventSummary";
 import { money, plural } from "../lib/format";
 
@@ -87,6 +87,9 @@ function SalesLedger({
         )}
         {view === "invitados" && (
           <div className="bs-sales-list">
+            <div className="bs-guest-import">
+              <RsvpSection key={eventId} venueId={venueId} eventId={eventId} eventName={ev.name} />
+            </div>
             <TicketList
               venueId={venueId}
               eventId={eventId}

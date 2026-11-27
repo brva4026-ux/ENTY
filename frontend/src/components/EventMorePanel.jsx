@@ -1,3 +1,4 @@
+import VenueImportPanel from "./VenueImportPanel";
 import { useCallback, useEffect, useState } from "react";
 import { useUI } from "../lib/ui";
 import { money } from "../lib/format";
@@ -398,15 +399,28 @@ function LotterySection({ venueId, eventId }) {
   );
 }
 
-function RsvpSection({ venueId, eventId }) {
+export function RsvpSection({ venueId, eventId, eventName }) {
   const act = useAction();
+  const [showImport, setShowImport] = useState(false);
   const [rows, setRows] = useState([]);
   const load = useCallback(async () => setRows(await act(() => listRsvps(venueId, eventId)) || []), [act, venueId, eventId]);
   useEffect(() => { load(); }, [load]);
   return (
     <>
-      <h4>Registro gratuito</h4>
-      <p className="bs-suite-note">Los asistentes confirman sin pasar por pago. Puedes pedir reconfirmación o liberar el lugar.</p>
+      <h3>Lista de invitados</h3>
+      <p className="bs-suite-note">Las filas importadas quedan como confirmaciones de asistencia. Las boletas con QR se emiten por separado.</p>
+      <button
+        type="button"
+        className="btn-ghost"
+        aria-expanded={showImport}
+        onClick={() => setShowImport((open) => !open)}
+      >
+        {showImport ? "Ocultar importación" : "Importar lista de invitados"}
+      </button>
+      {showImport && (
+        <VenueImportPanel venueId={venueId} guestEvent={{ id: eventId, name: eventName }} onImported={load} />
+      )}
+      {rows.length === 0 && <p className="bs-suite-note">Aún no hay confirmaciones.</p>}
       {rows.map((r) => (
         <div key={r.id} className="bs-suite-card">
           <strong>{r.name} · {r.status}</strong>

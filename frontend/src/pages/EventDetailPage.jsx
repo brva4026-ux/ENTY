@@ -722,20 +722,6 @@ export default function EventDetailPage() {
                 </button>
               </div>
             )}
-            <p className="evd-when">
-              <Icon name="calendar" className="h-4 w-4" />
-              <span>
-                {when.date}
-                {when.time ? ` · ${when.time}` : ""}
-              </span>
-            </p>
-            <p className="evd-where">
-              <Icon name="pin" className="h-4 w-4" />
-              <span>
-                {placeLabel(data.venue, data.location) ||
-                  "Lugar por confirmar"}
-              </span>
-            </p>
             <div className="evd-lang-row">
               <label htmlFor="evd-lang">Idioma</label>
               <select id="evd-lang" value={lang} onChange={(e) => setLang(e.target.value)}>
@@ -803,7 +789,7 @@ export default function EventDetailPage() {
               </section>
             )}
 
-            <section className="evd-section" aria-labelledby="evd-tickets-title">
+            <section className="evd-section evd-ticket-section" aria-labelledby="evd-tickets-title">
               <h2 id="evd-tickets-title" className="evd-section-title">
                 Boletas
               </h2>

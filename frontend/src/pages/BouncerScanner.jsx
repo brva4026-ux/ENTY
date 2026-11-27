@@ -42,6 +42,7 @@ import { clearDoorDevice, doorHeaders, getDoorDevice } from "../lib/doorDevice";
 import { Logo } from "../components/Brand";
 import Icon from "../components/Icon";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { useDialogA11y } from "../lib/useDialogA11y";
 
 const RESULT_RESET_MS = 7000;
 
@@ -236,40 +237,54 @@ function waHref(phone, text = "") {
 
 function ResultSheet({ result, onClose, onIncident }) {
   const meta = RESULT_META[result.code] || RESULT_META.SCAN_ERROR;
+  const { dialogRef, titleId } = useDialogA11y({ onClose });
+  const name = result.customer_name?.trim();
+  const person = name || meta.title;
+
   return (
     <div className="door2-result-backdrop" role="presentation" onClick={onClose}>
       <section
+        ref={dialogRef}
         className="door2-result"
         data-tone={meta.tone}
         role="alertdialog"
         aria-modal="true"
-        aria-label={meta.kicker}
+        aria-labelledby={`${titleId}-status ${titleId}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="door2-result-icon">
-          <Icon name={meta.icon} className="h-8 w-8" />
+        <header className="door2-result-status">
+          <div className="door2-result-icon">
+            <Icon name={meta.icon} className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <div>
+            <p id={`${titleId}-status`} className="door2-result-kicker">{meta.kicker}</p>
+            {name && <p className="door2-result-verdict">{meta.title}</p>}
+          </div>
+        </header>
+        <div className="door2-result-person">
+          {name && <p className="door2-result-person-label">Titular de la boleta</p>}
+          <h2 id={titleId}>{person}</h2>
+          {(result.origin_label || result.ticket_type || result.ticket_id) && (
+            <div className="door2-result-tags">
+              {result.origin_label && <span data-origin="external">{result.origin_label}</span>}
+              {result.ticket_type && <span>{result.ticket_type}</span>}
+              {result.ticket_id && <span>Boleta #{String(result.ticket_id).padStart(4, "0")}</span>}
+            </div>
+          )}
+          {(result.detail || meta.detail) && (
+            <p className="door2-result-detail">{result.detail || meta.detail}</p>
+          )}
         </div>
-        <p className="door2-result-kicker">{meta.kicker}</p>
-        <h2>{meta.title}</h2>
-        {result.customer_name && <p className="door2-result-name">{result.customer_name}</p>}
-        <div className="door2-result-tags">
-          {result.origin_label && <span data-origin="external">{result.origin_label}</span>}
-          {result.ticket_type && <span>{result.ticket_type}</span>}
-          {result.ticket_id && <span>#{String(result.ticket_id).padStart(4, "0")}</span>}
-        </div>
-        {(result.detail || meta.detail) && (
-          <p className="door2-result-detail">{result.detail || meta.detail}</p>
-        )}
         <div className="door2-result-actions">
+          <button type="button" className="door2-btn door2-btn--primary" data-dialog-autofocus onClick={onClose}>
+            Volver a escanear
+          </button>
           {result.ticket_id && onIncident && (
             <button type="button" className="door2-btn door2-btn--soft" onClick={onIncident}>
-              <Icon name="flag" className="h-4 w-4" />
+              <Icon name="flag" className="h-4 w-4" aria-hidden="true" />
               Reportar incidencia
             </button>
           )}
-          <button type="button" className="door2-btn door2-btn--primary" onClick={onClose}>
-            Volver a escanear
-          </button>
         </div>
       </section>
     </div>

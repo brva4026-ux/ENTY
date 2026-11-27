@@ -40,11 +40,13 @@ const STATUS_LABEL = {
   error: "Corregir",
 };
 
-export default function VenueImportPanel({ venueId }) {
+export default function VenueImportPanel({ venueId, guestEvent = null, onImported }) {
   const ui = useUI();
   const inputRef = useRef(null);
-  const [kind, setKind] = useState("events");
-  const [eventId, setEventId] = useState("");
+  const [kind, setKind] = useState(guestEvent ? "guests" : "events");
+  const [chosenEventId, setEventId] = useState("");
+  const eventId = guestEvent?.id ?? chosenEventId;
+  const [pastedRows, setPastedRows] = useState("");
   const [events, setEvents] = useState([]);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -53,24 +55,25 @@ export default function VenueImportPanel({ venueId }) {
   const [result, setResult] = useState(null);
 
   useEffect(() => {
-    if (!venueId) return;
+    if (!venueId || guestEvent) return;
     apiFetch(`/venues/${venueId}/events`)
       .then((rows) => setEvents(rows || []))
       .catch(() => setEvents([]));
-  }, [venueId]);
+  }, [venueId, guestEvent]);
 
   const selectedEvent = useMemo(
-    () => events.find((ev) => String(ev.id) === String(eventId)),
-    [events, eventId],
+    () => guestEvent ?? events.find((ev) => String(ev.id) === String(eventId)),
+    [events, eventId, guestEvent],
   );
 
   async function analyze(nextFile) {
-    if (!nextFile) return;
+    if (!nextFile || busy) return;
     if (kind === "guests" && !eventId) {
       setError("Elige el evento para cargar invitados.");
       return;
     }
     setFile(nextFile);
+    setPreview(null);
     setBusy(true);
     setError("");
     setResult(null);
@@ -89,6 +92,18 @@ export default function VenueImportPanel({ venueId }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  function analyzePastedRows() {
+    const text = pastedRows.trim();
+    if (!text) return;
+    const firstLine = text.split(/\r?\n/, 1)[0];
+    const tabular = firstLine.includes("\t");
+    const content = tabular
+      ? text.split(/\r?\n/).map((line) => line.split("\t")
+        .map((value) => '"' + value.replaceAll('"', '""') + '"').join(",")).join("\n")
+      : text;
+    analyze(new File([content], "filas-pegadas.csv", { type: "text/csv" }));
   }
 
   function rowProblem(data) {
@@ -137,8 +152,10 @@ export default function VenueImportPanel({ venueId }) {
         rows,
       });
       setResult(res);
+      onImported?.();
       setPreview(null);
       setFile(null);
+      setPastedRows("");
       if (inputRef.current) inputRef.current.value = "";
       ui.success(
         `${res.imported} ${res.imported === 1 ? "fila importada" : "filas importadas"}${
@@ -173,16 +190,20 @@ export default function VenueImportPanel({ venueId }) {
           mismo archivo, Enty marca lo que ya estaba cargado.
         </p>
 
-        <div className="admin-tabbar" role="tablist" aria-label="Qué vas a importar">
+        {!guestEvent && <div className="admin-tabbar" role="tablist" aria-label="Qué vas a importar">
           {KINDS.map((item) => (
             <button
               key={item.id}
               type="button"
               role="tab"
               aria-selected={kind === item.id}
+              disabled={busy}
               className={`admin-tab${kind === item.id ? " is-active" : ""}`}
               onClick={() => {
                 setKind(item.id);
+                setFile(null);
+                setPastedRows("");
+                if (inputRef.current) inputRef.current.value = "";
                 setPreview(null);
                 setResult(null);
                 setError("");
@@ -191,17 +212,22 @@ export default function VenueImportPanel({ venueId }) {
               {item.label}
             </button>
           ))}
-        </div>
+        </div>}
 
-        {kind === "guests" && (
+        {kind === "guests" && !guestEvent && (
           <label className="mt-4 block text-xs text-zinc-400">
             Evento que recibe la lista
             <select
               className="field mt-1"
               value={eventId}
+              disabled={busy}
               onChange={(e) => {
                 setEventId(e.target.value);
                 setPreview(null);
+                setFile(null);
+                setError("");
+                setResult(null);
+                if (inputRef.current) inputRef.current.value = "";
               }}
             >
               <option value="">Elige un evento…</option>
@@ -217,6 +243,7 @@ export default function VenueImportPanel({ venueId }) {
         <div className="mt-4 rounded-xl border border-dashed border-zinc-700 p-4">
           <input
             ref={inputRef}
+            disabled={busy}
             type="file"
             accept=".csv,.xlsx,.xlsm"
             className="sr-only"
@@ -243,6 +270,34 @@ export default function VenueImportPanel({ venueId }) {
           </button>
         </div>
 
+        {kind === "guests" && (
+          <div className="guest-import-paste">
+            <label>
+              Pegar invitados
+              <textarea
+                className="field"
+                rows={4}
+                value={pastedRows}
+                disabled={busy}
+                onChange={(e) => {
+                  setPastedRows(e.target.value);
+                  if (file?.name === "filas-pegadas.csv") {
+                    setPreview(null);
+                    setFile(null);
+                  }
+                }}
+                placeholder={"nombre\tcorreo\ttelefono\nAna Gómez\tana@ejemplo.com\t3001234567"}
+              />
+            </label>
+            <p className="admin-note">
+              Copia las columnas nombre y correo con sus encabezados desde Excel o Google Sheets. El teléfono es opcional.
+            </p>
+            <button type="button" className="btn-primary" disabled={busy || !pastedRows.trim() || !eventId} onClick={analyzePastedRows}>
+              Revisar filas
+            </button>
+          </div>
+        )}
+
         {error && (
           <p className="mt-3 text-xs text-red-400" role="alert">
             {error}
@@ -261,7 +316,7 @@ export default function VenueImportPanel({ venueId }) {
         <h2>Revisión antes de importar</h2>
         {!preview ? (
           <p>
-            Sube un archivo para ver la vista previa. Las filas con error se
+            Carga un archivo o pega filas para ver la vista previa. Las filas con error se
             pueden corregir aquí mismo; las duplicadas no se vuelven a cargar.
           </p>
         ) : (
@@ -270,7 +325,7 @@ export default function VenueImportPanel({ venueId }) {
               <span className="admin-chip">{counts.valid} listas</span>
               <span className="admin-chip">{counts.duplicate} ya cargadas</span>
               <span className="admin-chip">{counts.error} por corregir</span>
-              {selectedEvent && kind === "guests" && (
+              {selectedEvent?.name && kind === "guests" && (
                 <span className="admin-chip">Para: {selectedEvent.name}</span>
               )}
             </div>

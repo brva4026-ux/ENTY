@@ -396,3 +396,223 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Confirmación del escáner. */
+.door2-result-backdrop .door2-result {
+  padding: var(--e-space-4) var(--e-space-4) calc(var(--e-space-4) + env(safe-area-inset-bottom));
+  border-top-width: 0;
+  max-height: 92dvh;
+  overflow-y: auto;
+  text-align: start;
+}
+
+.door2-result-status {
+  display: flex;
+  align-items: center;
+  gap: var(--e-space-3);
+  padding: var(--e-space-3);
+  border: 1px solid color-mix(in srgb, var(--door2-tone) 42%, var(--door2-line));
+  border-radius: var(--e-radius-lg);
+  background: color-mix(in srgb, var(--door2-tone) 16%, var(--door2-paper));
+}
+
+.door2-result-status .door2-result-icon {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0;
+  background: var(--door2-tone);
+  color: var(--e-ink-950);
+}
+
+.door2-result-status .door2-result-kicker {
+  color: var(--door2-ink);
+  letter-spacing: 0.02em;
+}
+
+.door2-result-verdict {
+  margin: 0;
+  color: var(--door2-muted);
+  font-size: var(--e-text-2xs);
+}
+
+.door2-result-person {
+  margin-top: var(--e-space-4);
+  padding: var(--e-space-4);
+  border: 1px solid var(--door2-line);
+  border-radius: var(--e-radius-lg);
+  background: var(--door2-canvas);
+}
+
+.door2-result-person .door2-result-person-label {
+  margin: 0 0 var(--e-space-1);
+  color: var(--door2-muted);
+  font-size: var(--e-text-2xs);
+}
+
+.door2-result-person h2 {
+  color: var(--door2-ink);
+  font-size: clamp(1.65rem, 7vw, 2.65rem);
+  overflow-wrap: anywhere;
+}
+
+.door2-result-person .door2-result-tags {
+  justify-content: start;
+}
+
+.door2-result .door2-result-actions {
+  margin-top: var(--e-space-3);
+}
+
+.door2-result-actions .door2-btn {
+  min-height: 48px;
+}
+
+/* Creación y listas. */
+.event-create-dialog.dialog-panel {
+  background: var(--e-surface);
+}
+
+.event-create-quick {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--e-space-4);
+}
+
+.event-create-quick label,
+.guest-import-paste label {
+  display: grid;
+  gap: var(--e-space-1);
+  min-width: 0;
+  color: var(--e-text-primary);
+  font-size: var(--e-text-2xs);
+  font-weight: 650;
+}
+
+.event-create-quick .field {
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+}
+
+.event-create-quick .event-create-name {
+  grid-column: 1 / -1;
+}
+
+.event-create-actions {
+  flex-wrap: wrap;
+  gap: var(--e-space-2);
+}
+
+.event-create-actions button {
+  min-height: 44px;
+}
+
+.guest-import-paste,
+.bs-guest-import {
+  display: grid;
+  gap: var(--e-space-3);
+  margin-block: var(--e-space-4);
+  padding: var(--e-space-4);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--e-radius-lg);
+  background: var(--admin-surface-2);
+}
+
+.guest-import-paste textarea {
+  min-width: 0;
+  margin: 0;
+  resize: vertical;
+}
+
+.guest-import-paste button,
+.bs-guest-import > button {
+  justify-self: start;
+  min-height: 44px;
+}
+
+.bs-guest-import > h3,
+.bs-guest-import > p {
+  margin: 0;
+}
+
+/* Ficha del evento y superficies de operación. */
+.evd .evd-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  letter-spacing: -0.05em;
+  line-height: 1.02;
+  overflow-wrap: anywhere;
+}
+
+.evd .evd-cell {
+  padding: var(--e-space-3);
+  border-color: var(--e-border-hairline);
+  background: var(--e-surface);
+}
+
+.evd .evd-ticket-section {
+  padding: var(--e-space-4);
+  border: 1px solid var(--e-border-hairline);
+  border-top: 3px solid var(--e-brand);
+  border-radius: var(--e-radius-lg);
+  background: var(--e-surface);
+}
+
+.evd .evd-ticket-section .evd-buy {
+  background: var(--e-surface-2);
+}
+
+.admin-shell .bs-head,
+.admin-shell .bs-sales-ledger,
+.promoter-shell .promoter-event-hero {
+  border-radius: var(--e-radius-xl);
+  box-shadow: none;
+}
+
+.admin-shell .bs-head {
+  border-top: 3px solid var(--admin-accent);
+}
+
+.admin-shell .bs-poster {
+  transform: none;
+}
+
+.admin-shell .bs-tab,
+.promoter-shell .promoter-event-actions .promoter-btn {
+  min-height: 44px;
+}
+
+.promoter-shell .promoter-event-hero-body {
+  gap: var(--e-space-3);
+}
+
+.promoter-shell .promoter-event-hero .promoter-card-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.promoter-shell .promoter-event-hero .promoter-stat {
+  min-width: 0;
+}
+
+.promoter-shell .promoter-event-hero .promoter-stat span {
+  overflow-wrap: anywhere;
+}
+
+.door2-shell .door2-actions button {
+  box-shadow: none;
+}
+
+@media (width <= 480px) {
+  .event-create-quick {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .event-create-actions > button {
+    flex: 1 1 auto;
+  }
+
+  .evd .evd-poster-fallback {
+    min-height: 10rem;
+  }
+}

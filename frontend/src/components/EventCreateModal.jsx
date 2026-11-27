@@ -96,7 +96,7 @@ function Hint({ id, children, tone = "zinc" }) {
 }
 
 /**
- * Modal de creación de evento — asistente de 3 pasos.
+ * Modal de creación de evento con guardado rápido y asistente de 3 pasos.
  *
  * Un formulario plano de 10 campos pedía adivinar: ¿qué es el aforo?, ¿el QR
  * para qué?, ¿el cierre obligatorio? Cada paso ahora agrupa una decisión con
@@ -125,6 +125,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   const uid = useId();
   const fid = (key) => `${uid}-${key}`;
   const [step, setStep] = useState(0);
+  const [guided, setGuided] = useState(false);
   const [form, setForm] = useState(defaultEventForm);
   const [formError, setFormError] = useState("");
   // `errorTick` fuerza el efecto de foco cuando el error se repite (mismo
@@ -150,6 +151,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   // primer control del paso nuevo; el primer render no cuenta, ahí manda el
   // foco inicial del diálogo.
   useEffect(() => {
+    if (!guided) return;
     if (!stepMounted.current) {
       stepMounted.current = true;
       return;
@@ -158,7 +160,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
       "input:not([type='file']), textarea, select, button",
     );
     (first ?? stepRef.current)?.focus?.();
-  }, [step]);
+  }, [guided, step]);
 
   // Error summary (WCAG / guía "Focusable Error Summary"): cuando el wizard
   // rechaza un paso, el foco viaja al resumen, que está sobre el formulario.
@@ -250,12 +252,13 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
 
   async function createEvent(e) {
     e.preventDefault();
+    if (creating || uploading || (guided && step !== STEPS.length - 1)) return;
     // Revalida todo el recorrido: nada se crea con un paso a medias.
     for (let s = 0; s < STEPS.length; s++) {
       const err = validate(s);
       if (err) {
         fail(err);
-        setStep(s);
+        if (guided) setStep(s);
         return;
       }
     }
@@ -320,7 +323,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
         aria-labelledby={titleId}
         aria-hidden={previewOpen || undefined}
         inert={previewOpen}
-        className="dialog-panel my-auto max-w-2xl"
+        className="dialog-panel event-create-dialog my-auto max-w-2xl"
       >
         <span className="dialog-grab" aria-hidden="true" />
 
@@ -342,7 +345,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           </button>
         </div>
 
-        <ol
+        {guided && <ol
           className="mb-1 flex items-center gap-1.5 px-5 pt-4"
           aria-label="Pasos"
         >
@@ -381,7 +384,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
               )}
             </li>
           ))}
-        </ol>
+        </ol>}
 
         <form onSubmit={createEvent} className="dialog-body">
           {/* Resumen de errores: arriba del formulario y con foco (WCAG
@@ -397,8 +400,48 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
               {formError}
             </p>
           )}
+          {!guided && (
+            <div className="event-create-quick">
+              <label className="event-create-name" htmlFor={fid("quick-name")}>
+                Nombre del evento
+                <input
+                  id={fid("quick-name")}
+                  className="field"
+                  value={form.name}
+                  onChange={(e) => set({ name: e.target.value })}
+                  placeholder="Noche de salsa"
+                  maxLength={200}
+                  required
+                  data-dialog-autofocus
+                />
+              </label>
+              <label htmlFor={fid("quick-date")}>
+                Fecha y hora de inicio
+                <input
+                  id={fid("quick-date")}
+                  className="field"
+                  type="datetime-local"
+                  value={form.starts_at}
+                  onChange={(e) => set({ starts_at: e.target.value })}
+                  required
+                />
+              </label>
+              <label htmlFor={fid("quick-capacity")}>
+                Aforo
+                <input
+                  id={fid("quick-capacity")}
+                  className="field"
+                  type="number"
+                  min="1"
+                  value={form.capacity}
+                  onChange={(e) => set({ capacity: e.target.value })}
+                  required
+                />
+              </label>
+            </div>
+          )}
           {/* ====== Paso 1: qué es y dónde ====== */}
-          {step === 0 && (
+          {guided && step === 0 && (
             <div
               key="s0"
               ref={stepRef}
@@ -587,7 +630,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           )}
 
           {/* ====== Paso 2: cuándo y puerta ====== */}
-          {step === 1 && (
+          {guided && step === 1 && (
             <div
               key="s1"
               ref={stepRef}
@@ -785,7 +828,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           )}
 
           {/* ====== Paso 3: aforo + revisión ====== */}
-          {step === 2 && (
+          {guided && step === 2 && (
             <div
               key="s2"
               ref={stepRef}
@@ -891,8 +934,23 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
             </div>
           )}
 
+          {!guided && (
+            <div className="dialog-foot dialog-foot--split event-create-actions">
+              <button type="button" className="btn-ghost" onClick={() => {
+                setFormError("");
+                setGuided(true);
+                setCustomDate(true);
+                requestAnimationFrame(() => stepRef.current?.querySelector("input")?.focus());
+              }}>
+                Añadir detalles
+              </button>
+              <button type="submit" className="btn-primary" disabled={creating || uploading}>
+                {creating ? "Guardando…" : "Guardar borrador"}
+              </button>
+            </div>
+          )}
           {/* ====== Navegación del asistente ====== */}
-          <div className="dialog-foot dialog-foot--split">
+          {guided && <div className="dialog-foot dialog-foot--split">
             <span className="text-xs text-zinc-600">
               Paso {step + 1} de {STEPS.length}
             </span>
@@ -927,7 +985,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                   key="submit"
                   type="submit"
                   className="btn-primary"
-                  disabled={creating}
+                  disabled={creating || uploading}
                 >
                   {creating && (
                     <svg
@@ -942,7 +1000,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 </button>
               )}
             </div>
-          </div>
+          </div>}
         </form>
       </div>
 

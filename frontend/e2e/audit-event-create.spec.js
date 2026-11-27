@@ -34,6 +34,7 @@ test("el asistente de evento solo crea al pulsar Crear evento", async ({
   await page.getByRole("button", { name: "Crear evento", exact: true }).first().click();
   const dialog = page.getByRole("dialog");
   const name = "E2E-AUDIT-" + Date.now();
+  await page.getByRole("button", { name: "Añadir detalles" }).click();
   await page.locator('input[placeholder="Noche Electrónica"]').fill(name);
 
   // Paso 1 -> 2. No se puede crear todavía.
