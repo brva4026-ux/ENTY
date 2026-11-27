@@ -454,12 +454,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: var(--e-space-2);
   width: 100%;
   padding: var(--e-space-6);
   border: 0;
-  background: color-mix(in srgb, var(--e-ink-1) 42%, transparent);
+  background: transparent;
   color: var(--e-white);
   text-align: center;
   cursor: pointer;

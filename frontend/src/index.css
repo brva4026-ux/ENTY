@@ -8789,9 +8789,10 @@ html[data-theme="light"] .pf-guard-title {
 .enty-logo {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.2em;
   color: inherit;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .enty-logo-mark {
@@ -8801,11 +8802,11 @@ html[data-theme="light"] .pf-guard-title {
 }
 
 .enty-logo-word {
-  color: currentColor;
-  font-family: var(--e-font-display, ui-sans-serif, system-ui, sans-serif);
-  font-size: 1.45em;
+  color: currentcolor;
+  font-family: var(--e-font-sans);
+  font-size: 1.55em;
   font-weight: 800;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.055em;
   line-height: 1;
 }
 
