@@ -173,6 +173,44 @@ async def _try_redeem_accreditation(
     )
 
 
+async def _external_gate(cur, event_id: int, raw_token: str):
+    """Frena boletas de un canal invitado pausado o que confirma el proveedor.
+
+    Devuelve (code, detail, origin, label) o None. Se consulta antes de
+    `redeem_ticket` para no consumir una boleta que Enty no debe confirmar.
+    """
+    await cur.execute(
+        """
+        SELECT t.id, t.origin, c.status, c.name, c.provider_name,
+               c.confirmation_owner
+          FROM tickets t
+          LEFT JOIN event_external_channels c ON c.id = t.external_channel_id
+         WHERE t.event_id=%s
+           AND t.token_hash=encode(digest(%s, 'sha256'), 'hex')
+        """,
+        (event_id, raw_token),
+    )
+    row = await cur.fetchone()
+    if not row or row["origin"] != "external":
+        return None
+    label = f"Invitado · {row['provider_name']}"
+    if row["status"] != "active":
+        detail = (
+            "El canal invitado está cerrado"
+            if row["status"] == "closed"
+            else "El canal invitado está pausado"
+        )
+        return ("CHANNEL_PAUSED", detail, "external", label)
+    if row["confirmation_owner"] == "provider":
+        return (
+            "EXTERNAL_CONFIRMATION_REQUIRED",
+            f"Confirmá el ingreso en el sistema de {row['provider_name']}",
+            "external",
+            label,
+        )
+    return None
+
+
 @router.post("/events/{event_id}/tickets", response_model=TicketEmitResponse, status_code=201)
 async def emit_ticket(
     venue_id: int,
@@ -214,6 +252,15 @@ async def emit_ticket(
         )
         if not await cur.fetchone():
             raise HTTPException(404, "Evento no encontrado")
+        await cur.execute(
+            "SELECT is_external FROM ticket_types WHERE id=%s AND event_id=%s",
+            (body.ticket_type_id, event_id),
+        )
+        type_row = await cur.fetchone()
+        if not type_row:
+            raise HTTPException(404, "Ese tipo de boleta no existe en este evento")
+        if type_row["is_external"]:
+            raise HTTPException(404, "Ese tipo no está disponible para venta")
 
         # Origen legible: cupo asignado, emisión directa del promotor o venta
         # de taquilla de la organización. La atribución (sold_by_user_id) ya
@@ -957,6 +1004,17 @@ async def redeem(
     if accreditation is not None:
         return accreditation
 
+    async with db.cursor() as cur_gate:
+        gate = await _external_gate(cur_gate, event_id, body.raw_token)
+    if gate:
+        code, detail, origin, label = gate
+        return RedeemOut(
+            code=code,
+            detail=detail,
+            origin=origin,
+            origin_label=label,
+        )
+
     async with db.cursor() as cur:
         try:
             await cur.execute(
@@ -1156,6 +1214,24 @@ async def redeem(
             out.customer_name = info["customer_name"]
             out.ticket_type = info["type_name"]
             out.detail = "El recinto está lleno. La boleta no se consumió."
+    if code == "NOT_VALID":
+        async with db.cursor() as cur2:
+            await cur2.execute(
+                """
+                SELECT t.id, t.customer_name, tt.name AS type_name
+                  FROM tickets t
+                  LEFT JOIN ticket_types tt ON tt.id = t.ticket_type_id
+                 WHERE t.event_id=%s
+                   AND t.token_hash = encode(digest(%s, 'sha256'), 'hex')
+                """,
+                (event_id, body.raw_token),
+            )
+            info = await cur2.fetchone()
+        if info:
+            out.ticket_id = info["id"]
+            out.customer_name = info["customer_name"]
+            out.ticket_type = info["type_name"]
+            out.detail = "La boleta está anulada o reembolsada."
     if code == "GRANTED":
         async with db.cursor() as cur2:
             await cur2.execute(
@@ -1173,6 +1249,22 @@ async def redeem(
                 out.ticket_id = info["id"]
                 out.customer_name = info["customer_name"]
                 out.ticket_type = info["type_name"]
+    if out.ticket_id and not out.origin_label:
+        async with db.cursor() as cur_origin:
+            await cur_origin.execute(
+                """
+                SELECT t.origin, c.provider_name
+                  FROM tickets t
+                  LEFT JOIN event_external_channels c
+                    ON c.id = t.external_channel_id
+                 WHERE t.id=%s
+                """,
+                (out.ticket_id,),
+            )
+            origin = await cur_origin.fetchone()
+        if origin and origin["origin"] == "external":
+            out.origin = "external"
+            out.origin_label = f"Invitado · {origin['provider_name']}"
     return out
 
 
@@ -1480,9 +1572,14 @@ async def door_snapshot(
         await cur.execute(
             """
             SELECT t.token_hash AS h, t.status::text AS s,
-                   t.ticket_type_id AS t, t.customer_name AS n
+                   t.ticket_type_id AS t, t.customer_name AS n,
+                   t.origin AS o,
+                   CASE WHEN t.origin='external' THEN c.provider_name END AS c
             FROM tickets t
+            LEFT JOIN event_external_channels c
+              ON c.id = t.external_channel_id
             WHERE t.event_id = %s AND t.status = 'issued'
+              AND (t.origin = 'enty' OR c.status = 'active')
             ORDER BY t.id
             """,
             (event_id,),
@@ -1490,7 +1587,10 @@ async def door_snapshot(
         rows = await cur.fetchall()
 
     entries = [
-        DoorSnapshotEntry(h=r["h"], s=r["s"], t=r["t"], n=r["n"]) for r in rows
+        DoorSnapshotEntry(
+            h=r["h"], s=r["s"], t=r["t"], n=r["n"], o=r["o"], c=r["c"]
+        )
+        for r in rows
     ]
     return DoorSnapshotOut(
         event_id=event_id,
@@ -1583,7 +1683,16 @@ async def door_sync(
                         rejected += 1
                     continue
 
-            # 2) Canje real. La hora del escaneo viaja al SQL (saneada ahí).
+            # 2) Canal invitado: pausado o confirmado por el proveedor no se
+            # canjea en Enty. Se responde sin tocar la boleta.
+            gate = await _external_gate(cur, event_id, item.raw_token)
+            if gate:
+                code = gate[0]
+                results.append(DoorSyncResult(scan_id=item.scan_id, code=code))
+                rejected += 1
+                continue
+
+            # 3) Canje real. La hora del escaneo viaja al SQL (saneada ahí).
             try:
                 await cur.execute(
                     "SELECT redeem_ticket(%s, %s, %s, %s, %s, %s)",
@@ -1607,7 +1716,7 @@ async def door_sync(
                 rejected += 1
                 continue
 
-            # 3) Dejar el recibo para que un reintento sea no-op.
+            # 4) Dejar el recibo para que un reintento sea no-op.
             if item.scan_id:
                 try:
                     await cur.execute(

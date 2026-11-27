@@ -14,10 +14,13 @@ import {
   getAccessRules,
   getArchive,
   getEventAdmin,
+  getExternalReconciliation,
   getFeeConfig,
   getStaffingForecast,
   getVenueProfile,
+  importExternalTickets,
   listDisputes,
+  listExternalChannels,
   listLinkChecks,
   listLotteries,
   listLotteryWinners,
@@ -37,7 +40,9 @@ import {
   updateDispute,
   updateEventAdmin,
   updateEventQuestion,
+  updateExternalChannel,
   updateRsvp,
+  createExternalChannel,
 } from "../lib/api";
 
 const TABS = [
@@ -54,6 +59,7 @@ const TABS = [
   ["enlaces", "Enlaces"],
   ["archivo", "Archivo"],
   ["preparacion", "Preparación"],
+  ["invitados", "Canal invitado"],
 ];
 
 function useAction() {
@@ -790,6 +796,391 @@ function PreparationSection({ venueId, eventId }) {
   );
 }
 
+const CSV_ALIASES = {
+  external_ticket_id: ["external_ticket_id", "id_externo", "id", "codigo", "ticket_id"],
+  token: ["token", "qr", "codigo_qr", "raw_token"],
+  holder_name: ["holder_name", "nombre", "name", "asistente"],
+  holder_phone: ["holder_phone", "telefono", "phone", "celular"],
+  holder_email: ["holder_email", "email", "correo"],
+  status: ["status", "estado"],
+};
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  const clean = String(text || "").replace(/^\uFEFF/, "");
+  for (let i = 0; i < clean.length; i += 1) {
+    const ch = clean[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (clean[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (ch === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else if (ch !== "\r") {
+      cell += ch;
+    }
+  }
+  if (cell || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
+  return rows.filter((r) => r.some((c) => c.trim()));
+}
+
+function normalizeStatus(value) {
+  const v = String(value || "").trim().toLowerCase();
+  if (["void", "anulada", "anulado", "cancelada"].includes(v)) return "void";
+  if (["used", "usada", "usado", "redeemed", "ingresó", "ingreso"].includes(v)) return "used";
+  return "valid";
+}
+
+function csvToRows(text) {
+  const table = parseCsv(text);
+  if (table.length < 2) {
+    return { rows: [], error: "El CSV no tiene filas de datos." };
+  }
+  const header = table[0].map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
+  const idx = {};
+  Object.entries(CSV_ALIASES).forEach(([key, names]) => {
+    idx[key] = header.findIndex((h) => names.includes(h));
+  });
+  const missing = ["external_ticket_id", "token", "holder_name"].filter(
+    (key) => idx[key] < 0,
+  );
+  if (missing.length) {
+    return {
+      rows: [],
+      error: `Faltan columnas: ${missing.join(", ")}.`,
+    };
+  }
+  const rows = [];
+  const incomplete = [];
+  table.slice(1).forEach((cells, index) => {
+    const get = (key) => (idx[key] >= 0 ? (cells[idx[key]] || "").trim() : "");
+    const row = {
+      external_ticket_id: get("external_ticket_id"),
+      token: get("token"),
+      holder_name: get("holder_name"),
+      holder_phone: get("holder_phone") || null,
+      holder_email: get("holder_email") || null,
+      status: normalizeStatus(get("status")),
+    };
+    if (!row.external_ticket_id || !row.token || !row.holder_name) {
+      incomplete.push(index + 2);
+    } else {
+      rows.push(row);
+    }
+  });
+  return {
+    rows,
+    error: incomplete.length
+      ? `Filas incompletas omitidas: ${incomplete.slice(0, 8).join(", ")}${incomplete.length > 8 ? "…" : ""}`
+      : "",
+  };
+}
+
+function ExternalChannelSection({ venueId, eventId, types = [] }) {
+  const act = useAction();
+  const [channels, setChannels] = useState([]);
+  const [form, setForm] = useState({
+    name: "",
+    provider_name: "",
+    confirmation_owner: "enty",
+    zone_id: "",
+  });
+  const [selected, setSelected] = useState(null);
+  const [csvName, setCsvName] = useState("");
+  const [csvRows, setCsvRows] = useState([]);
+  const [csvError, setCsvError] = useState("");
+  const [result, setResult] = useState(null);
+  const [recon, setRecon] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const zones = [];
+  const seenZones = new Set();
+  types.forEach((t) => {
+    if (t.zone_id && !seenZones.has(t.zone_id)) {
+      seenZones.add(t.zone_id);
+      zones.push({ id: t.zone_id, name: t.zone_name || `Zona ${t.zone_id}` });
+    }
+  });
+
+  const load = useCallback(async () => {
+    const rows = await act(() => listExternalChannels(venueId, eventId));
+    if (rows) setChannels(rows);
+  }, [act, venueId, eventId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function loadReconciliation(channelId) {
+    const data = await act(() =>
+      getExternalReconciliation(venueId, eventId, channelId),
+    );
+    if (data) setRecon(data);
+  }
+
+  async function addChannel(e) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.provider_name.trim()) return;
+    setBusy(true);
+    const created = await act(
+      () =>
+        createExternalChannel(venueId, eventId, {
+          name: form.name.trim(),
+          provider_name: form.provider_name.trim(),
+          confirmation_owner: form.confirmation_owner,
+          zone_id: form.zone_id ? Number(form.zone_id) : null,
+        }),
+      "Canal invitado creado",
+    );
+    if (created) {
+      setChannels((prev) => [created, ...prev]);
+      setSelected(created);
+      setRecon(null);
+      setForm({ name: "", provider_name: "", confirmation_owner: "enty", zone_id: "" });
+      loadReconciliation(created.id);
+    }
+    setBusy(false);
+  }
+
+  async function toggleChannel(channel) {
+    const next = channel.status === "active" ? "paused" : "active";
+    const updated = await act(
+      () =>
+        updateExternalChannel(venueId, eventId, channel.id, { status: next }),
+      next === "active" ? "Canal activado" : "Canal pausado",
+    );
+    if (updated) {
+      setChannels((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      );
+      if (selected?.id === updated.id) setSelected(updated);
+    }
+  }
+
+  function openChannel(channel) {
+    setSelected(channel);
+    setCsvRows([]);
+    setCsvName("");
+    setCsvError("");
+    setResult(null);
+    loadReconciliation(channel.id);
+  }
+
+  async function onFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const parsed = csvToRows(text);
+    setCsvName(file.name);
+    setCsvRows(parsed.rows);
+    setCsvError(parsed.error || "");
+    setResult(null);
+  }
+
+  async function doImport() {
+    if (!selected || !csvRows.length) return;
+    setBusy(true);
+    const res = await act(
+      () =>
+        importExternalTickets(venueId, eventId, selected.id, {
+          filename: csvName,
+          rows: csvRows,
+        }),
+      "Importación terminada",
+    );
+    if (res) {
+      setResult(res);
+      await load();
+      await loadReconciliation(selected.id);
+    }
+    setBusy(false);
+  }
+
+  return (
+    <>
+      <p className="bs-suite-note">
+        Opera en Enty la puerta de boletas vendidas por otro canal. Importá el
+        CSV del proveedor, elegí quién confirma cada ingreso y revisá la
+        conciliación por canal. El token se guarda hasheado, nunca en claro.
+      </p>
+
+      <h4>Nuevo canal invitado</h4>
+      <form className="bs-suite-form" onSubmit={addChannel}>
+        <label>
+          Nombre del canal
+          <input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="Taquilla invitada"
+            required
+          />
+        </label>
+        <label>
+          Proveedor
+          <input
+            value={form.provider_name}
+            onChange={(e) => setForm({ ...form, provider_name: e.target.value })}
+            placeholder="Nombre de la plataforma"
+            required
+          />
+        </label>
+        <label>
+          ¿Quién confirma el ingreso?
+          <select
+            value={form.confirmation_owner}
+            onChange={(e) =>
+              setForm({ ...form, confirmation_owner: e.target.value })
+            }
+          >
+            <option value="enty">Enty</option>
+            <option value="provider">El proveedor</option>
+            <option value="shared">Ambos (Enty registra)</option>
+          </select>
+        </label>
+        {zones.length > 0 && (
+          <label>
+            Zona (opcional)
+            <select
+              value={form.zone_id}
+              onChange={(e) => setForm({ ...form, zone_id: e.target.value })}
+            >
+              <option value="">Sin zona</option>
+              {zones.map((z) => (
+                <option key={z.id} value={z.id}>{z.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        <button className="btn-mini" type="submit" disabled={busy}>
+          Crear canal
+        </button>
+      </form>
+
+      <ul className="bs-suite-list">
+        {channels.map((c) => (
+          <li key={c.id}>
+            <div>
+              <b>{c.name}</b>
+              <small>
+                {c.provider_name} · {c.status} · {c.valid} válidas ·{" "}
+                {c.redeemed} ingresaron · {c.voided} anuladas
+              </small>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" className="btn-mini" onClick={() => openChannel(c)}>
+                Importar / conciliar
+              </button>
+              <button type="button" className="btn-mini" onClick={() => toggleChannel(c)}>
+                {c.status === "active" ? "Pausar" : "Activar"}
+              </button>
+            </div>
+          </li>
+        ))}
+        {channels.length === 0 && (
+          <li><small>Aún no hay canales invitados en este evento.</small></li>
+        )}
+      </ul>
+
+      {selected && (
+        <div className="bs-suite-card">
+          <strong>{selected.name}</strong>
+          <p className="bs-suite-note">
+            Confirma: {selected.confirmation_owner} · Localidad:{" "}
+            {selected.ticket_type_name}
+            {selected.zone_name ? ` · ${selected.zone_name}` : ""}
+          </p>
+
+          <label>
+            CSV del proveedor
+            <input type="file" accept=".csv,text/csv" onChange={onFile} />
+          </label>
+          <p className="bs-suite-note">
+            Columnas: external_ticket_id, token, holder_name, holder_phone,
+            holder_email, status. status: valid, void o used.
+          </p>
+          {csvError && <p className="bs-suite-note">{csvError}</p>}
+          {csvRows.length > 0 && (
+            <p className="bs-suite-note">
+              {csvRows.length} boletas listas para importar desde {csvName}.
+            </p>
+          )}
+          <button
+            type="button"
+            className="btn-mini"
+            disabled={!csvRows.length || busy}
+            onClick={doImport}
+          >
+            Importar {csvRows.length || ""} boletas
+          </button>
+
+          {result && (
+            <div className="bs-suite-card">
+              <strong>Resultado de la importación</strong>
+              <p>
+                {result.imported} nuevas · {result.updated} actualizadas ·{" "}
+                {result.skipped} omitidas
+              </p>
+              {result.errors.slice(0, 10).map((err) => (
+                <p key={`${err.row}-${err.external_ticket_id || ""}`}>
+                  Fila {err.row}: {err.message}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {recon && (
+            <div className="bs-suite-card">
+              <strong>Conciliación</strong>
+              <p>
+                {recon.valid} válidas · {recon.redeemed} ingresaron ·{" "}
+                {recon.voided} anuladas · {recon.total} importadas
+              </p>
+              <p>
+                Aforo: {recon.active_total} activas de {recon.capacity} ·{" "}
+                {recon.external_total} del canal invitado
+              </p>
+              {recon.capacity_warning && (
+                <p className="bs-suite-note">
+                  Las boletas activas superan el aforo. Revisá la capacidad del
+                  evento antes de abrir la puerta.
+                </p>
+              )}
+              {recon.by_door.length > 0 && (
+                <p>
+                  Ingresos por puerta:{" "}
+                  {recon.by_door.map((d) => `${d.door_id} (${d.count})`).join(" · ")}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+
 export default function EventMorePanel({ venueId, eventId, types = [] }) {
   const [tab, setTab] = useState("ingreso");
   const props = { venueId, eventId, types };
@@ -820,6 +1211,7 @@ export default function EventMorePanel({ venueId, eventId, types = [] }) {
         {tab === "enlaces" && <LinkCheckSection {...props} />}
         {tab === "archivo" && <ArchiveSection {...props} />}
         {tab === "preparacion" && <PreparationSection {...props} />}
+        {tab === "invitados" && <ExternalChannelSection {...props} />}
       </div>
     </section>
   );

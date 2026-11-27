@@ -59,7 +59,7 @@ _BY_TYPE_SQL = """
     LEFT JOIN tickets t ON t.ticket_type_id = tt.id AND t.event_id = %(ev)s
       AND (%(since)s::timestamptz IS NULL OR t.issued_at >= %(since)s::timestamptz)
       AND (%(until)s::timestamptz IS NULL OR t.issued_at <  %(until)s::timestamptz)
-    WHERE tt.event_id = %(ev)s
+    WHERE tt.event_id = %(ev)s AND NOT tt.is_external
     GROUP BY tt.id
     ORDER BY tt.id
 """
@@ -74,7 +74,7 @@ _BY_TYPE_NO_MONEY_SQL = """
            count(t.id) FILTER (WHERE t.status = 'redeemed')::int AS redeemed
     FROM ticket_types tt
     LEFT JOIN tickets t ON t.ticket_type_id = tt.id AND t.event_id = %s
-    WHERE tt.event_id = %s
+    WHERE tt.event_id = %s AND NOT tt.is_external
     GROUP BY tt.id
     ORDER BY tt.id
 """
@@ -442,9 +442,11 @@ async def event_summary(
                             FILTER (WHERE status IN ('issued','redeemed')), 0)::bigint
                      AS revenue_cents,
                    count(*) FILTER (WHERE status IN ('issued','redeemed')
-                                      AND price_cents_snapshot > 0)::int AS paid_tickets,
+                                      AND price_cents_snapshot > 0
+                                      AND origin = 'enty')::int AS paid_tickets,
                    count(*) FILTER (WHERE status IN ('issued','redeemed')
-                                      AND price_cents_snapshot = 0)::int AS courtesy_tickets
+                                      AND price_cents_snapshot = 0
+                                      AND origin = 'enty')::int AS courtesy_tickets
             FROM tickets WHERE event_id=%(ev)s
               AND (%(since)s::timestamptz IS NULL OR issued_at >= %(since)s::timestamptz)
               AND (%(until)s::timestamptz IS NULL OR issued_at <  %(until)s::timestamptz)
@@ -588,9 +590,11 @@ async def event_summary_csv(
             SELECT coalesce(sum(price_cents_snapshot)
                             FILTER (WHERE status IN ('issued','redeemed')), 0)::bigint AS revenue_cents,
                    count(*) FILTER (WHERE status IN ('issued','redeemed')
-                                      AND price_cents_snapshot > 0)::int AS paid,
+                                      AND price_cents_snapshot > 0
+                                      AND origin = 'enty')::int AS paid,
                    count(*) FILTER (WHERE status IN ('issued','redeemed')
-                                      AND price_cents_snapshot = 0)::int AS courtesy
+                                      AND price_cents_snapshot = 0
+                                      AND origin = 'enty')::int AS courtesy
             FROM tickets WHERE event_id=%(ev)s
               AND (%(since)s::timestamptz IS NULL OR issued_at >= %(since)s::timestamptz)
               AND (%(until)s::timestamptz IS NULL OR issued_at <  %(until)s::timestamptz)

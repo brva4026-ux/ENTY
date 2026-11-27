@@ -440,7 +440,11 @@ async def public_event_detail(
                    ) AS public_contact_channels,
                    (SELECT count(*) FROM tickets t
                      WHERE t.event_id = e.id
-                       AND t.status IN ('issued', 'redeemed'))::int AS active
+                       AND t.status IN ('issued', 'redeemed'))::int AS active,
+                   (SELECT count(*) FROM tickets t
+                     WHERE t.event_id = e.id
+                       AND t.status IN ('issued', 'redeemed')
+                       AND t.origin = 'enty')::int AS internal_active
             FROM events e
             JOIN venues v ON v.id = e.venue_id
             WHERE {visibility}
@@ -459,6 +463,7 @@ async def public_event_detail(
                        AND tk.status NOT IN ('voided', 'refunded'))::int AS sold
             FROM ticket_types t
             WHERE t.event_id = %s AND t.is_active AND NOT t.is_pass_only
+              AND NOT t.is_external
             ORDER BY t.price_cents NULLS LAST, t.name
             """,
             (event_id,),
@@ -491,7 +496,8 @@ async def public_event_detail(
         # aparte evita que una localidad desactivada desincronice el CTA.
         await cur.execute(
             "SELECT COALESCE(SUM(quantity), 0)::int AS quota "
-            "FROM ticket_types WHERE event_id = %s AND NOT is_pass_only",
+            "FROM ticket_types WHERE event_id = %s AND NOT is_pass_only "
+            "AND NOT is_external",
             (event_id,),
         )
         quota = (await cur.fetchone())["quota"]
@@ -519,7 +525,12 @@ async def public_event_detail(
     # hay boletas). El cupo es SUM(quantity) de TODAS las localidades, acotado
     # por el aforo del evento; el publico ve la lista de espera en vez de
     # "comprar".
-    sold_out = row["active"] >= min(int(quota), int(row["capacity"]))
+    # El cupo publico no incluye la localidad tecnica del canal invitado; el
+    # aforo si incluye sus boletas. Se agota por cualquiera de las dos vias.
+    sold_out = (
+        row["internal_active"] >= min(int(quota), int(row["capacity"]))
+        or row["active"] >= int(row["capacity"])
+    )
     contact_name, contact_phone, contact_email = _public_contact(row)
 
     # Lineup (mig 043): los artistas de la noche, en orden de cartel. Vacio si

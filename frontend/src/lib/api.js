@@ -1159,3 +1159,50 @@ export function updateEventAdmin(venueId, eventId, payload) {
     body: JSON.stringify(payload),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Canal invitado (mig 077): boletas vendidas fuera de Enty
+// ---------------------------------------------------------------------------
+export function listExternalChannels(venueId, eventId) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/external-channels`);
+}
+
+export function createExternalChannel(venueId, eventId, payload) {
+  return apiFetch(`/venues/${venueId}/events/${eventId}/external-channels`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateExternalChannel(venueId, eventId, channelId, payload) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/external-channels/${channelId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function importExternalTickets(venueId, eventId, channelId, payload) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/external-channels/${channelId}/import`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function listExternalTickets(venueId, eventId, channelId, status) {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/external-channels/${channelId}/tickets${qs}`,
+  );
+}
+
+export function getExternalReconciliation(venueId, eventId, channelId) {
+  return apiFetch(
+    `/venues/${venueId}/events/${eventId}/external-channels/${channelId}/reconciliation`,
+  );
+}

@@ -154,6 +154,8 @@ export async function validateOffline(rawToken, eventId, rowTypeId = null) {
       ticket_id: null,
       customer_name: entry.n ?? null,
       redeemed: false,
+      origin: entry.o ?? "enty",
+      origin_label: entry.c ?? null,
     };
   }
   // En la caché solo hay vivas: una boleta presente está "lista", no "usada".
@@ -163,6 +165,8 @@ export async function validateOffline(rawToken, eventId, rowTypeId = null) {
     ticket_id: null,
     customer_name: entry.n ?? null,
     redeemed: true,
+    origin: entry.o ?? "enty",
+    origin_label: entry.c ?? null,
   };
 }
 

@@ -139,6 +139,20 @@ const RESULT_META = {
     kicker: "Boleta anulada",
     title: "No puede entrar",
   },
+  CHANNEL_PAUSED: {
+    tone: "warn",
+    icon: "lock",
+    kicker: "Canal invitado",
+    title: "Canal pausado o cerrado",
+    detail: "La boleta no se consumió. Pedile a Administración que reactive el canal.",
+  },
+  EXTERNAL_CONFIRMATION_REQUIRED: {
+    tone: "warn",
+    icon: "alert",
+    kicker: "Canal invitado",
+    title: "Confirmación del proveedor",
+    detail: "Validá el ingreso en el sistema del proveedor. Enty no lo confirma.",
+  },
   SNAPSHOT_MISSING: {
     tone: "warn",
     icon: "alert",
@@ -239,6 +253,7 @@ function ResultSheet({ result, onClose, onIncident }) {
         <h2>{meta.title}</h2>
         {result.customer_name && <p className="door2-result-name">{result.customer_name}</p>}
         <div className="door2-result-tags">
+          {result.origin_label && <span data-origin="external">{result.origin_label}</span>}
           {result.ticket_type && <span>{result.ticket_type}</span>}
           {result.ticket_id && <span>#{String(result.ticket_id).padStart(4, "0")}</span>}
         </div>
@@ -727,6 +742,11 @@ export default function BouncerScanner() {
         code: "GRANTED",
         customer_name: res.customer_name || lookupTicket.customer_name,
         ticket_type: lookupTicket.type_name,
+        origin: lookupTicket.origin ?? "enty",
+        origin_label:
+          lookupTicket.origin === "external"
+            ? `Invitado · ${lookupTicket.channel_provider}`
+            : null,
         detail: "Ingreso manual registrado. El QR queda marcado como usado.",
       });
       setLookupTicket(null);
@@ -1287,7 +1307,12 @@ export default function BouncerScanner() {
                 onClick={() => setLookupTicket(row)}
               >
                 <strong>{row.customer_name}</strong>
-                <span>{row.type_name} · {row.status === "redeemed" ? "Ya ingresó" : "Vigente"}</span>
+                <span>
+                  {row.origin === "external"
+                    ? `Invitado · ${row.channel_provider}`
+                    : row.type_name}{" "}
+                  · {row.status === "redeemed" ? "Ya ingresó" : "Vigente"}
+                </span>
                 <span>{row.customer_phone || row.customer_email || "Sin contacto"}</span>
               </button>
             ))}

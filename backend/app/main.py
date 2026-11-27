@@ -34,6 +34,7 @@ from app.routers import (
     door,
     event_staff,
     events,
+    external_channels,
     extras,
     finance,
     invitations,
@@ -230,6 +231,7 @@ def create_app() -> FastAPI:
     app.include_router(redemptions.router)
     app.include_router(team.router)
     app.include_router(event_staff.router)
+    app.include_router(external_channels.router)
     app.include_router(accreditations.router)
     app.include_router(sessions.router)
     app.include_router(finance.router)

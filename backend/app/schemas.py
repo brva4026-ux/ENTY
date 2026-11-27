@@ -1788,6 +1788,10 @@ class RedeemOut(BaseModel):
     # Tipo de boleta cuando el servidor lo conoce: la puerta lo muestra junto
     # al resultado (General, VIP u otro) sin exponer el token.
     ticket_type: str | None = None
+    # Origen (mig 077): "enty" o "external". La puerta lo muestra para que el
+    # portero sepa si la boleta se vendió en Enty o en el canal invitado.
+    origin: str = "enty"
+    origin_label: str | None = None
 
 
 class DoorSnapshotEntry(BaseModel):
@@ -1801,6 +1805,103 @@ class DoorSnapshotEntry(BaseModel):
     s: str  # status: issued | redeemed | voided | refunded
     t: int | None = None  # ticket_type_id (para el filtro de fila)
     n: str | None = None  # nombre del asistente (para el log de puerta)
+    o: str = "enty"  # origen: enty | external (mig 077)
+    c: str | None = None  # etiqueta del canal invitado, si aplica
+
+
+# ---------------------------------------------------------------------------
+# Canal invitado (mig 077): boletas vendidas fuera de Enty
+# ---------------------------------------------------------------------------
+ExternalTicketStatus = Literal["valid", "void", "used"]
+
+
+class ExternalChannelCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    provider_name: str = Field(min_length=1, max_length=120)
+    confirmation_owner: Literal["enty", "provider", "shared"] = "enty"
+    zone_id: int | None = None
+
+
+class ExternalChannelUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    provider_name: str | None = Field(default=None, min_length=1, max_length=120)
+    confirmation_owner: Literal["enty", "provider", "shared"] | None = None
+    status: Literal["active", "paused", "closed"] | None = None
+    zone_id: int | None = None
+
+
+class ExternalChannelOut(BaseModel):
+    id: int
+    event_id: int
+    name: str
+    provider_name: str
+    ticket_type_id: int
+    ticket_type_name: str
+    zone_id: int | None = None
+    zone_name: str | None = None
+    confirmation_owner: str
+    status: str
+    total: int = 0
+    valid: int = 0
+    redeemed: int = 0
+    voided: int = 0
+    last_import_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ExternalTicketRowIn(BaseModel):
+    external_ticket_id: str = Field(min_length=1, max_length=200)
+    token: str = Field(min_length=8, max_length=500)
+    holder_name: str = Field(min_length=1, max_length=200)
+    holder_phone: str | None = Field(default=None, max_length=40)
+    holder_email: str | None = Field(default=None, max_length=200)
+    status: ExternalTicketStatus = "valid"
+
+
+class ExternalTicketImportIn(BaseModel):
+    filename: str | None = Field(default=None, max_length=200)
+    rows: list[ExternalTicketRowIn] = Field(min_length=1, max_length=5000)
+
+
+class ExternalTicketImportError(BaseModel):
+    row: int
+    external_ticket_id: str | None = None
+    message: str
+
+
+class ExternalTicketImportOut(BaseModel):
+    total: int
+    imported: int
+    updated: int
+    skipped: int
+    errors: list[ExternalTicketImportError]
+
+
+class ExternalChannelTicketOut(BaseModel):
+    id: int
+    external_ticket_id: str
+    customer_name: str
+    customer_phone: str | None = None
+    customer_email: str | None = None
+    status: str
+    redeemed_at: datetime | None = None
+    updated_at: datetime
+
+
+class ExternalReconciliationOut(BaseModel):
+    channel: ExternalChannelOut
+    total: int
+    valid: int
+    redeemed: int
+    voided: int
+    first_scan_at: datetime | None = None
+    last_scan_at: datetime | None = None
+    by_door: list[dict[str, Any]] = []
+    capacity: int
+    active_total: int
+    external_total: int
+    capacity_warning: bool = False
 
 
 class DoorSnapshotOut(BaseModel):
