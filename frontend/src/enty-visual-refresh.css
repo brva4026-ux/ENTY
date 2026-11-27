@@ -639,6 +639,7 @@
 
 .event-create-dialog .dialog-head {
   border-bottom: 1px solid var(--e-border-hairline);
+  background: color-mix(in srgb, var(--e-brand) 8%, var(--e-surface));
 }
 
 .event-create-dialog .dialog-title {
@@ -1194,5 +1195,232 @@
 
   .bs-head .bs-facts > div + div {
     border-top: 0;
+  }
+}
+
+/* Entradas de Enty. */
+.entry-page .login-showcase {
+  background: var(--e-ink-950) url("/media/login-bg-poster.jpg") center / cover no-repeat;
+}
+
+.entry-page .login-showcase::before {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--e-ink-950) 58%, transparent);
+  content: "";
+}
+
+.entry-page .login-showcase-inner {
+  gap: clamp(1.25rem, 3.4vh, 2.25rem);
+}
+
+.entry-page .login-showcase-copy h2 {
+  max-width: 12ch;
+  color: var(--e-white);
+  font-size: clamp(2.5rem, 4.8vw, 4.15rem);
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.entry-page .login-showcase-copy p {
+  max-width: 38ch;
+  color: color-mix(in srgb, var(--e-white) 84%, transparent);
+}
+
+.entry-product-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--e-space-3);
+  max-width: 26rem;
+  max-height: clamp(12rem, 31vh, 23rem);
+  padding: var(--e-space-3) var(--e-space-3) 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--e-white) 30%, transparent);
+  border-radius: var(--e-radius-xl);
+  background: color-mix(in srgb, var(--e-ink-950) 77%, transparent);
+}
+
+.entry-product-preview img {
+  width: 100%;
+  height: auto;
+  border: 1px solid color-mix(in srgb, var(--e-white) 20%, transparent);
+  border-radius: var(--e-radius-md);
+}
+
+.entry-product-preview img:nth-child(2) {
+  margin-top: var(--e-space-3);
+}
+
+.entry-page .login-main {
+  background: color-mix(in srgb, var(--e-violet-100) 44%, var(--e-neutral-100));
+}
+
+.entry-page .login-card {
+  border-color: color-mix(in srgb, var(--e-violet-500) 22%, var(--e-neutral-300));
+  border-top: 3px solid var(--e-violet-500);
+  border-radius: var(--e-radius-xl);
+}
+
+.entry-page .login-submit,
+.registration-form > .btn-primary {
+  border-radius: var(--e-radius-md);
+  background: var(--e-violet-600);
+  color: var(--e-white);
+}
+
+.entry-page .login-submit:hover,
+.registration-form > .btn-primary:hover {
+  background: var(--e-violet-700);
+}
+
+.entry-page--register .login-main-inner,
+.entry-page--register .login-footer {
+  max-width: 32rem;
+}
+
+.registration-card .login-title {
+  margin-bottom: var(--e-space-2);
+}
+
+.registration-intro {
+  margin: 0 0 var(--e-space-4);
+  color: var(--e-neutral-600);
+  font-size: var(--e-text-2xs);
+}
+
+.registration-form label {
+  color: var(--e-neutral-700);
+}
+
+.registration-form .field {
+  min-height: 46px;
+  border-color: var(--e-neutral-400);
+  background: var(--e-neutral-100);
+  color: var(--e-neutral-950);
+  font-size: 1rem;
+}
+
+.registration-form .field::placeholder {
+  color: var(--e-neutral-600);
+}
+
+.registration-form .field:focus {
+  border-color: var(--e-violet-600);
+  background: var(--e-white);
+}
+
+.registration-form .field[aria-invalid="true"] {
+  border-color: var(--e-danger);
+}
+
+.registration-form .field.auth-field-has-icon {
+  padding-inline-start: 2.65rem;
+}
+
+.registration-card .auth-field-icon {
+  color: var(--e-neutral-600);
+}
+
+.registration-form .registration-optional {
+  margin-inline-start: var(--e-space-1);
+  color: var(--e-neutral-600);
+  font-weight: 500;
+}
+
+.registration-username,
+.registration-consent {
+  margin: 0 0 var(--e-space-3);
+  padding: var(--e-space-3);
+  border: 1px solid var(--e-neutral-300);
+  border-radius: var(--e-radius-md);
+  font-size: var(--e-text-2xs);
+  line-height: 1.5;
+}
+
+.registration-username {
+  background: var(--e-violet-100);
+  color: var(--e-neutral-700);
+}
+
+.registration-username strong,
+.registration-consent button {
+  color: var(--e-violet-700);
+}
+
+.registration-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-space-2);
+  cursor: pointer;
+}
+
+.registration-consent button {
+  display: inline;
+  padding: 0;
+  text-align: start;
+}
+
+.registration-form [role="alert"] {
+  color: var(--e-red-700);
+}
+
+.registration-form #reg-password-reqs li[aria-invalid="false"] {
+  color: var(--e-emerald-700);
+}
+
+.registration-form #reg-password-reqs li[aria-invalid="true"],
+.registration-form #reg-venue-name-hint {
+  color: var(--e-neutral-600);
+}
+
+.event-create-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--e-space-2);
+  min-width: 0;
+}
+
+.event-create-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--e-radius-md);
+  background: var(--e-violet-600);
+  color: var(--e-white);
+}
+
+.event-create-dialog .event-create-progress {
+  margin: var(--e-space-2) var(--e-space-4) 0;
+  padding: var(--e-space-2);
+  border: 1px solid var(--e-border-hairline);
+  border-radius: var(--e-radius-md);
+}
+
+@media (width < 1024px) {
+  .entry-page .login-compact-brand {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 4rem;
+    padding: var(--e-space-2) var(--e-space-4);
+    border-radius: var(--e-radius-lg);
+    background: var(--e-ink-950) url("/media/login-bg-poster.jpg") 50% 35% / cover no-repeat;
+    color: var(--e-white);
+  }
+
+  .entry-page .login-compact-brand .enty-logo-mark {
+    color: var(--e-violet-250);
+  }
+
+  .entry-brand-watermark {
+    position: absolute;
+    z-index: -1;
+    inset-inline-end: var(--e-space-1);
+    color: color-mix(in srgb, var(--e-violet-250) 38%, transparent);
   }
 }

@@ -7,7 +7,7 @@ import { usernameBase } from "../lib/username";
 import { fetchLegalDocuments } from "../lib/legal";
 import PasswordMeter from "../components/PasswordMeter";
 import { LockIcon, MailIcon } from "../components/AuthBackdrop";
-import { AuthShell } from "../components/AuthShell";
+import { LoginShell } from "../components/LoginShell";
 import ContactSupport from "../components/ContactSupport";
 import useDocumentTitle from "../lib/useDocumentTitle";
 
@@ -197,17 +197,17 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthShell>
+    <LoginShell registration>
       <div className="relative w-full">
-        <div className="auth-card reveal p-6 sm:p-7">
-          <h1 className="display mt-1 mb-1 text-2xl">
+        <div className="login-card registration-card">
+          <h1 className="login-title">
             Crea tu cuenta de organizador
           </h1>
-          <p className="mb-5 text-sm leading-relaxed text-zinc-400">
+          <p className="registration-intro">
             Publica tu primer evento y gestiona tus boletas con Enty.
           </p>
 
-          <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} noValidate>
+          <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} noValidate className="registration-form">
             <label
               htmlFor="reg-full-name"
               className="mb-1.5 block text-xs font-medium text-zinc-400"
@@ -322,7 +322,7 @@ export default function RegisterPage() {
               htmlFor="reg-venue-name"
               className="mb-1.5 block text-xs font-medium text-zinc-400"
             >
-              Nombre del negocio u organización
+              Nombre del negocio u organización <span className="registration-optional">Opcional</span>
             </label>
             <input
               id="reg-venue-name"
@@ -342,19 +342,17 @@ export default function RegisterPage() {
             <p id="reg-venue-name-hint" className="mb-2 mt-1 text-xs leading-relaxed text-zinc-500">
               Déjalo vacío si organizas por tu cuenta.
             </p>
-            <p className="mb-4 text-xs leading-relaxed text-zinc-500">
+            <p className="registration-username">
               Tu usuario será{" "}
               <strong className="text-zinc-300">@{suggestedUsername}</strong>.
-              Se genera con el nombre del negocio o, si lo dejas vacío, con tu
-              nombre. Si ya está en uso, agregaremos un número. Podrás cambiarlo
-              después.
+              Enty lo genera a partir de tu negocio o tu nombre. Puedes cambiarlo después.
             </p>
             {errors.venue_name && fieldError("reg-venue-name-error", errors.venue_name)}
 
             {/* Aceptación de términos: bloqueante. Sin marcar, el submit está
                 deshabilitado y el backend además responde 422 — la UI no es la
                 cerradura, solo la explicación. */}
-            <label className="mb-4 flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-zinc-400">
+            <label className="registration-consent">
               <input
                 type="checkbox"
                 checked={accepted}
@@ -439,35 +437,26 @@ export default function RegisterPage() {
               {busy ? "Creando tu cuenta…" : "Crear mi cuenta"}
             </button>
           </form>
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-zinc-400">
-          <button
-            onClick={() => nav("/login")}
-            className="font-semibold text-brand-300 transition hover:text-brand-200"
-          >
-            Iniciar sesión
-          </button>
-          <span aria-hidden="true" className="text-zinc-600">·</span>
-          <button
-            onClick={() => nav("/boletas")}
-            className="font-semibold text-brand-300 transition hover:text-brand-200"
-          >
-            Ir a Mis boletas
-          </button>
-        </div>
-
-        {/* La misma salida que el login: quien no logra crear la cuenta es
-            quien más necesita hablar con alguien. Reusa el bloque de la
-            entrada para no tener dos contactos con copy distinto. */}
-        <div className="auth-foot">
-          <ContactSupport
-            prompt="¿Necesitas ayuda?"
-            label="Necesito ayuda"
-            message="Hola, necesito ayuda para crear mi cuenta en Enty."
-          />
+          <div className="login-secondary registration-links">
+            <div className="login-register">
+              <button type="button" className="login-action" onClick={() => nav("/login")}>
+                Iniciar sesión
+              </button>
+            </div>
+            <div className="login-utility">
+              <button type="button" className="login-action" onClick={() => nav("/boletas")}>
+                Ir a Mis boletas
+              </button>
+              <ContactSupport
+                prompt=""
+                label="Necesito ayuda"
+                message="Hola, necesito ayuda para crear mi cuenta en Enty."
+                className="login-action"
+              />
+            </div>
+          </div>
         </div>
       </div>
-    </AuthShell>
+    </LoginShell>
   );
 }

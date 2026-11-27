@@ -334,11 +334,16 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
 
         {/* ====== Cabecera + pasos ====== */}
         <div className="dialog-head">
-          <div className="min-w-0">
-            <h3 id={titleId} className="dialog-title">Nuevo evento</h3>
-            <p className="dialog-sub">
-              Guarda el evento como borrador y configura las boletas antes de publicarlo.
-            </p>
+          <div className="event-create-heading">
+            <span className="event-create-mark" aria-hidden="true">
+              <Icon name="calendar" className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <h3 id={titleId} className="dialog-title">Nuevo evento</h3>
+              <p className="dialog-sub">
+                Guarda el evento como borrador y configura las boletas antes de publicarlo.
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -352,7 +357,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
         </div>
 
         {guided && <ol
-          className="mb-1 flex items-center gap-1.5 px-5 pt-4"
+          className="event-create-progress mb-1 flex items-center gap-1.5 px-5 pt-4"
           aria-label="Pasos"
         >
           {STEPS.map((s, i) => (
