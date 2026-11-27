@@ -15,6 +15,7 @@ test("el asistente de evento solo crea al pulsar Crear evento", async ({
   page,
   request,
 }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
   await page.goto("/login");
   await page.locator("#login-email").fill("admin@bar.test");
   await page.locator("#login-password").fill("demo1234");
@@ -32,9 +33,9 @@ test("el asistente de evento solo crea al pulsar Crear evento", async ({
   });
 
   await page.getByRole("button", { name: "Crear evento", exact: true }).first().click();
-  const dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog", { name: "Nuevo evento" });
+  await expect(dialog.getByRole("button", { name: "Continuar" })).toBeInViewport();
   const name = "E2E-AUDIT-" + Date.now();
-  await page.getByRole("button", { name: "Añadir detalles" }).click();
   await page.locator('input[placeholder="Noche Electrónica"]').fill(name);
 
   // Paso 1 -> 2. No se puede crear todavía.

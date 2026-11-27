@@ -1536,7 +1536,8 @@ export default function AdminDashboard() {
                 onClose={() => setCreateOpen(false)}
                 onCreated={(ev) => {
                   setCreateOpen(false);
-                  loadEvents().then(() => flyToEvent(ev.id, "ventas"));
+                  setEvents((current) => [...(current ?? []).filter((item) => item.id !== ev.id), ev]);
+                  flyToEvent(ev.id, "ventas");
                 }}
               />
             )}

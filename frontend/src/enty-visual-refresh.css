@@ -616,3 +616,199 @@
     min-height: 10rem;
   }
 }
+
+.event-create-backdrop .event-create-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 42rem);
+  max-height: min(52rem, calc(100dvh - 2rem));
+  padding: 0;
+  overflow: hidden;
+}
+
+.event-create-dialog .dialog-head,
+.event-create-dialog .event-create-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-space-2);
+  padding: var(--e-space-3) var(--e-space-4);
+  background: var(--e-surface);
+}
+
+.event-create-dialog .dialog-head {
+  border-bottom: 1px solid var(--e-border-hairline);
+}
+
+.event-create-dialog .dialog-title {
+  margin: 0;
+  color: var(--e-text-primary);
+  font-size: var(--e-text-xl);
+  font-weight: 750;
+}
+
+.event-create-dialog .dialog-sub,
+.event-create-step-count {
+  margin: 0;
+  color: var(--e-text-secondary);
+  font-size: var(--e-text-2xs);
+}
+
+.event-create-dialog .dialog-close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--e-border-hairline);
+  border-radius: var(--e-radius-md);
+  color: var(--e-text-primary);
+}
+
+.event-create-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.event-create-dialog .event-create-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--e-space-4);
+}
+
+.event-create-content .field {
+  color: var(--e-text-primary);
+  font-size: max(1rem, var(--e-text-2xs));
+}
+
+.event-create-dialog .event-create-actions {
+  border-top: 1px solid var(--e-border-hairline);
+}
+
+.event-create-actions > div {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.welcome-scrim:has(.welcome-card--role) {
+  overflow-y: auto;
+  padding: clamp(0.75rem, 4vw, 2rem);
+}
+
+.welcome-card.welcome-card--role {
+  max-width: 30rem;
+  max-height: calc(100dvh - clamp(1.5rem, 8vw, 4rem));
+  overflow-y: auto;
+  align-items: stretch;
+  padding: clamp(1rem, 4vw, 1.75rem);
+  border-top: 3px solid var(--role-accent);
+  background: var(--e-ink-950);
+  text-align: start;
+}
+
+.welcome-card-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--e-space-3);
+}
+
+.welcome-card-heading .welcome-role-icon {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--e-radius-md);
+  background: color-mix(in srgb, var(--role-accent) 18%, transparent);
+  color: var(--role-accent);
+}
+
+.welcome-card-heading .welcome-session {
+  display: flex;
+  align-items: center;
+  gap: var(--e-space-1);
+  margin: 0;
+  color: var(--role-accent);
+  font-size: var(--e-text-2xs);
+}
+
+.welcome-card-heading .welcome-role-name {
+  margin: 0.15rem 0 0;
+  font-weight: 750;
+}
+
+.welcome-card--role .welcome-title {
+  color: var(--e-white);
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  line-height: 1.1;
+  text-align: start;
+}
+
+.welcome-role-tasks {
+  display: grid;
+  gap: var(--e-space-2);
+  padding: var(--e-space-3);
+  margin: var(--e-space-3) 0 0;
+  list-style: none;
+  border: 1px solid color-mix(in srgb, var(--role-accent) 28%, transparent);
+  border-radius: var(--e-radius-lg);
+  background: color-mix(in srgb, var(--role-accent) 8%, transparent);
+}
+
+.welcome-role-tasks li {
+  display: flex;
+  align-items: center;
+  gap: var(--e-space-2);
+  font-size: var(--e-text-2xs);
+}
+
+.welcome-role-tasks svg {
+  flex: none;
+  color: var(--role-accent);
+}
+
+.welcome-card--role .welcome-role-options {
+  justify-content: start;
+}
+
+.welcome-card--role .welcome-role-picker-label {
+  text-align: start;
+}
+
+.welcome-card--role .welcome-role-option {
+  min-height: 44px;
+}
+
+.welcome-card--role .welcome-continue {
+  flex: none;
+  border-radius: var(--e-radius-md);
+}
+
+.welcome-role-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--e-space-3);
+}
+
+.welcome-role-footer .welcome-email {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.welcome-role-footer .welcome-account-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-inline-start: auto;
+}
+
+@media (width <= 480px) {
+  .event-create-dialog .event-create-actions {
+    flex-wrap: wrap;
+  }
+
+  .event-create-actions > div {
+    margin-inline-start: auto;
+  }
+}

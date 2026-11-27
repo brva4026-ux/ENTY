@@ -1,19 +1,4 @@
-/**
- * Bienvenida personalizada tras el login.
- *
- * Antes, el exito eran 260 ms de un boton que decia "Listo" y un corte seco al
- * panel. Ahora hay una capa que nombra a quien entro y muestra una barra. Lo
- * que estos tests protegen, en orden de importancia:
- *
- *   1. La barra es REAL: avanza mientras el login corre y solo llega a 100
- *      cuando el backend respondio. Si alguien la cambia por un temporizador
- *      decorativo, el test de progreso lo caza.
- *   2. El saludo usa el nombre del usuario autenticado, no un texto fijo.
- *   3. Un login fallido NO muestra bienvenida: el error se corrige en el
- *      formulario, que es donde la persona puede hacer algo.
- *   4. Entrar con usuario (no solo con correo) funciona de punta a punta.
- *   5. En movil la capa no desborda a lo ancho.
- */
+/** Bienvenida por rol, autenticación y navegación al área de trabajo. */
 import { expect, test } from "@playwright/test";
 
 const DEMO_PASSWORD = "demo1234";
@@ -209,68 +194,23 @@ test.describe("bienvenida tras el login", () => {
     ).toBeVisible();
     await expect(page.locator("#login-email")).toBeVisible();
 
-    await expect(page.getByText("¡Bienvenido!")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Sesión verificada")).toBeVisible({ timeout: 15_000 });
     await page.waitForURL(/\/admin/, { timeout: 15_000 });
   });
 
-  test("saluda con el nombre real y muestra la barra avanzando", async ({ page }) => {
+  test("saluda con el nombre real y explica las tareas del rol", async ({ page }) => {
     const ok = await available(page, "/login");
     test.skip(!ok, "App no disponible");
 
     await submitLogin(page, "admin@bar.test");
-
-    // La capa aparece como region viva: un lector de pantalla la anuncia.
-    const status = page.getByRole("status").filter({ hasText: "¡Bienvenido!" });
-    await expect(status).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("¡Bienvenido!")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("Ingresando...")).toBeVisible({ timeout: 15_000 });
-
-    // El saludo usa el nombre del usuario del seed ("Admin Bar Esquina"),
-    // no un texto fijo. Y el correo real acompaña.
+    await expect(card(page).getByText("Sesión verificada")).toBeVisible();
     await expect(card(page).locator(".welcome-hello strong")).toHaveText("Admin");
-    await expect(card(page).getByText("admin@bar.test")).toBeVisible({ timeout: 15_000 });
-
-    // La barra existe, es accesible y ya avanzo de 0.
-    const bar = page.getByRole("progressbar", { name: /preparando/i });
-    await expect(bar).toBeVisible({ timeout: 15_000 });
-    const first = Number(await bar.getAttribute("aria-valuenow"));
-    expect(first).toBeGreaterThan(0);
-    expect(first).toBeLessThanOrEqual(100);
-
-    // Termina en el panel del rol.
-    await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
+    await expect(card(page).getByText("admin@bar.test")).toBeVisible();
+    await expect(card(page).getByText("Crea y publica eventos")).toBeVisible();
+    await expect(card(page).getByText("Configura boletas, precios y cupos")).toBeVisible();
+    await expect(card(page).getByText("Consulta ventas y aforo en vivo")).toBeVisible();
+    await card(page).getByRole("button", { name: "Entrar a Administración" }).click();
     await expect(page).toHaveURL(/\/admin/);
-  });
-
-  test("la barra de progreso avanza sola (no es un adorno fijo)", async ({ page }) => {
-    const ok = await available(page, "/login");
-    test.skip(!ok, "App no disponible");
-
-    await submitLogin(page, "admin@bar.test");
-    const bar = page.getByRole("progressbar", { name: /preparando/i });
-    await expect(bar).toBeVisible({ timeout: 15_000 });
-
-    // Lecturas seguidas: la barra debe ser MONOTONA (nunca retrocede). El bug
-    // que este test caza es justamente el bucle que, tras el exito, volvia a
-    // bajar el valor de 100 a ~10.
-    const reads = [];
-    for (let i = 0; i < 5; i += 1) {
-      reads.push(Number(await bar.getAttribute("aria-valuenow")));
-      await page.waitForTimeout(90);
-    }
-    for (let i = 1; i < reads.length; i += 1) {
-      expect(reads[i]).toBeGreaterThanOrEqual(reads[i - 1]);
-    }
-    expect(reads[0]).toBeGreaterThan(0);
-
-    // Y con el exito llega al 100 antes de navegar.
-    await expect
-      .poll(async () => Number(await bar.getAttribute("aria-valuenow")), {
-        timeout: 8_000,
-      })
-      .toBe(100);
-
-    await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
   });
 
   test("entrar con usuario en vez de correo", async ({ page }) => {
@@ -280,7 +220,7 @@ test.describe("bienvenida tras el login", () => {
     // "puerta" es el username del seed (mig 035), no un correo.
     await submitLogin(page, "puerta");
 
-    await expect(page.getByText("¡Bienvenido!")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Sesión verificada")).toBeVisible({ timeout: 15_000 });
     await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
     await expect(page).toHaveURL(/\/bouncer/);
   });
@@ -293,7 +233,7 @@ test.describe("bienvenida tras el login", () => {
     // por identificador Y por IP, y este spec corre desde una sola IP).
     await submitLogin(page, "no-existe-este-usuario", "contrasena-mala");
 
-    await expect(page.getByText("¡Bienvenido!")).toHaveCount(0);
+    await expect(page.getByText("Sesión verificada")).toHaveCount(0);
     await expect(page.getByRole("alert")).toBeVisible();
     // Sigue en el login, con el formulario listo para corregir.
     await expect(page).toHaveURL(/\/login/);
@@ -325,12 +265,7 @@ test.describe("bienvenida tras el login", () => {
       test.skip(true, "App no disponible");
     }
 
-    // Con movimiento reducido la pausa del login baja a 320 ms, asi que la
-    // capa vive menos que un ciclo de sondeo externo: esperarla con
-    // toBeVisible() despues del click es una carrera que se pierde en una
-    // maquina lenta (el elemento aparece y se va antes de que el locator
-    // llegue a mirar). Se observa desde la pagina y se arranca ANTES del
-    // click; el sondeo es por rAF, asi que no puede saltarse la ventana.
+    // Observa el estilo desde el primer render de la bienvenida.
     const animName = page.waitForFunction(
       () => {
         const el = document.querySelector(".welcome-card");
@@ -384,7 +319,7 @@ test.describe("ciclo del usuario en el perfil", () => {
     await page.waitForURL(/\/login/, { timeout: 15_000 });
     await submitLogin(page, uname);
 
-    await expect(page.getByText("¡Bienvenido!")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Sesión verificada")).toBeVisible({ timeout: 15_000 });
     await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15_000 });
   });
 });

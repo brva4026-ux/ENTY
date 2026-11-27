@@ -182,7 +182,6 @@ test("crear el primer evento NO apaga la guia ni la mete en el backstage", async
     .locator(".onboard-hero")
     .getByRole("button", { name: "Crear evento" })
     .click();
-  await page.getByRole("button", { name: "Añadir detalles" }).click();
   await page.locator('input[placeholder="Noche Electrónica"]').fill(
     `E2E-ONB-${Date.now()}`
   );

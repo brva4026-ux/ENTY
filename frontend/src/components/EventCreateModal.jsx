@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { apiFetch } from "../lib/api";
 import { useUI } from "../lib/ui";
 import { eventDate } from "../lib/format";
@@ -106,12 +107,15 @@ function Hint({ id, children, tone = "zinc" }) {
  */
 export default function EventCreateModal({ venueId, onClose, onCreated }) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   // Mientras la ficha móvil está abierta, este diálogo cede el foco, Escape
   // y el bloqueo de scroll al preview: dos modales activos a la vez pelearían
   // por el mismo documento.
   const { dialogRef, titleId } = useDialogA11y({
     open: !previewOpen,
-    onClose,
+    onClose: () => {
+      if (!creating) onClose();
+    },
   });
   const ui = useUI();
   // El input de archivo vive oculto: quien lo abre es el botón, que sí entra
@@ -125,14 +129,13 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   const uid = useId();
   const fid = (key) => `${uid}-${key}`;
   const [step, setStep] = useState(0);
-  const [guided, setGuided] = useState(false);
+  const [guided, setGuided] = useState(true);
   const [form, setForm] = useState(defaultEventForm);
   const [formError, setFormError] = useState("");
   // `errorTick` fuerza el efecto de foco cuando el error se repite (mismo
   // texto dos veces seguidas): sin él, el resumen no volvería a recibir foco.
   const [errorTick, setErrorTick] = useState(0);
   const errorRef = useRef(null);
-  const [creating, setCreating] = useState(false);
   // URL de flyer que ya falló al cargar: evita pintar el ícono de imagen rota.
   const [badFlyer, setBadFlyer] = useState("");
   // Subida de flyer: estado del archivo en vuelo.
@@ -202,8 +205,8 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   /** Valida un paso; devuelve "" si está listo para avanzar. */
   function validate(s) {
     if (s === 0) {
-      if (form.name.trim().length < 3) {
-        return "Ponle un nombre al evento (mínimo 3 letras).";
+      if (!form.name.trim()) {
+        return "Escribe el nombre del evento.";
       }
     }
     if (s === 1) {
@@ -211,7 +214,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
       if (Number.isNaN(start.getTime())) {
         return "Elige una fecha y hora de apertura válidas.";
       }
-      if (start.getTime() < Date.now() - 60000) {
+      if (start.getTime() <= Date.now()) {
         return "La apertura no puede ser en el pasado: elige otro día.";
       }
       const end = form.ends_at ? new Date(form.ends_at) : null;
@@ -222,8 +225,8 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
         return "El cierre debe ser posterior a la apertura.";
       }
       const qr = Number(form.qr_unlock_minutes);
-      if (!Number.isInteger(qr) || qr < 0) {
-        return "La ventana del QR debe ser 0 o más minutos.";
+      if (form.qr_unlock_minutes === "" || !Number.isInteger(qr) || qr < 0 || qr > 10080) {
+        return "La ventana del QR debe estar entre 0 y 10.080 minutos.";
       }
     }
     if (s === 2) {
@@ -297,7 +300,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
       onCreated(ev);
       ui.success("Evento creado: añade tipos y cupos 🎟️");
     } catch (err) {
-      setFormError(err.message);
+      fail(err.message || "No pudimos guardar el evento. Intenta de nuevo.");
     } finally {
       setCreating(false);
     }
@@ -307,11 +310,13 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
   const qrLabel =
     qr === 0 ? "solo al abrir puertas" : `${qr} min antes de la apertura`;
 
-  return (
+  // El contenido animado de Administración crea un bloque de contención
+  // para elementos fixed. El diálogo necesita las dimensiones del viewport.
+  return createPortal(
     <div
-      className="dialog-backdrop fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto p-4 sm:items-center"
+      className="dialog-backdrop event-create-backdrop fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto p-4 sm:items-center"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (!creating && e.target === e.currentTarget) onClose();
       }}
     >
       {/* El role vive en el panel, no en el backdrop: así el elemento que el
@@ -332,13 +337,14 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           <div className="min-w-0">
             <h3 id={titleId} className="dialog-title">Nuevo evento</h3>
             <p className="dialog-sub">
-              Nace en borrador: lo montas (tipos y cupos) antes de publicarlo.
+              Guarda el evento como borrador y configura las boletas antes de publicarlo.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="dialog-close"
+            disabled={creating}
             aria-label="Cerrar"
           >
             ✕
@@ -386,553 +392,556 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           ))}
         </ol>}
 
-        <form onSubmit={createEvent} className="dialog-body">
-          {/* Resumen de errores: arriba del formulario y con foco (WCAG
-              "Focusable Error Summary"). Antes el aviso vivía al pie, donde el
-              usuario de teclado no lo veía sin scrollear. */}
-          {formError && (
-            <p
-              ref={errorRef}
-              tabIndex={-1}
-              role="alert"
-              className="mb-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--e-focus-ring)]"
-            >
-              {formError}
-            </p>
-          )}
-          {!guided && (
-            <div className="event-create-quick">
-              <label className="event-create-name" htmlFor={fid("quick-name")}>
-                Nombre del evento
-                <input
-                  id={fid("quick-name")}
-                  className="field"
-                  value={form.name}
-                  onChange={(e) => set({ name: e.target.value })}
-                  placeholder="Noche de salsa"
-                  maxLength={200}
-                  required
-                  data-dialog-autofocus
-                />
-              </label>
-              <label htmlFor={fid("quick-date")}>
-                Fecha y hora de inicio
-                <input
-                  id={fid("quick-date")}
-                  className="field"
-                  type="datetime-local"
-                  value={form.starts_at}
-                  onChange={(e) => set({ starts_at: e.target.value })}
-                  required
-                />
-              </label>
-              <label htmlFor={fid("quick-capacity")}>
-                Aforo
-                <input
-                  id={fid("quick-capacity")}
-                  className="field"
-                  type="number"
-                  min="1"
-                  value={form.capacity}
-                  onChange={(e) => set({ capacity: e.target.value })}
-                  required
-                />
-              </label>
-            </div>
-          )}
-          {/* ====== Paso 1: qué es y dónde ====== */}
-          {guided && step === 0 && (
-            <div
-              key="s0"
-              ref={stepRef}
-              tabIndex={-1}
-              className="animate-rise grid gap-3.5 focus:outline-none sm:grid-cols-2"
-            >
-              <div className="sm:col-span-full">
-                <label
-                  htmlFor={fid("name")}
-                  className="mb-1 block text-xs font-medium text-zinc-400"
-                >
-                  Nombre del evento *
+        <form onSubmit={createEvent} noValidate className="event-create-form">
+          <div className="dialog-body event-create-content">
+            {/* Resumen de errores: arriba del formulario y con foco (WCAG
+                "Focusable Error Summary"). Antes el aviso vivía al pie, donde el
+                usuario de teclado no lo veía sin scrollear. */}
+            {formError && (
+              <p
+                ref={errorRef}
+                tabIndex={-1}
+                role="alert"
+                className="mb-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--e-focus-ring)]"
+              >
+                {formError}
+              </p>
+            )}
+            {!guided && (
+              <div className="event-create-quick">
+                <label className="event-create-name" htmlFor={fid("quick-name")}>
+                  Nombre del evento
+                  <input
+                    id={fid("quick-name")}
+                    className="field"
+                    value={form.name}
+                    onChange={(e) => set({ name: e.target.value })}
+                    placeholder="Noche de salsa"
+                    maxLength={200}
+                    required
+                    data-dialog-autofocus
+                  />
                 </label>
-                <input
-                  id={fid("name")}
-                  value={form.name}
-                  onChange={(e) => set({ name: e.target.value })}
-                  placeholder="Noche Electrónica"
-                  className="field"
-                  maxLength={200}
-                  data-dialog-autofocus
-                  aria-required="true"
-                  aria-describedby={fid("name-hint")}
-                />
-                <Hint id={fid("name-hint")}>
-                  Es lo primero que ven el promotor y la puerta. Sin tildes
-                  problemáticas: aparecerá tal cual en la boleta.
-                </Hint>
+                <label htmlFor={fid("quick-date")}>
+                  Fecha y hora de inicio
+                  <input
+                    id={fid("quick-date")}
+                    className="field"
+                    type="datetime-local"
+                    value={form.starts_at}
+                    onChange={(e) => set({ starts_at: e.target.value })}
+                    required
+                  />
+                </label>
+                <label htmlFor={fid("quick-capacity")}>
+                  Aforo
+                  <input
+                    id={fid("quick-capacity")}
+                    className="field"
+                    type="number"
+                    min="1"
+                    value={form.capacity}
+                    onChange={(e) => set({ capacity: e.target.value })}
+                    required
+                  />
+                </label>
               </div>
-              <div className="sm:col-span-full">
-                <label
-                  htmlFor={fid("category")}
-                  className="mb-1 block text-xs font-medium text-zinc-400"
-                >
-                  Categoría
-                </label>
-                <select
-                  id={fid("category")}
-                  value={form.category}
-                  onChange={(e) => set({ category: e.target.value })}
-                  className="field"
-                  aria-describedby={fid("category-hint")}
-                >
-                  <option value="">Sin categoría (la inferimos del texto)</option>
-                  {EVENT_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-                <Hint id={fid("category-hint")}>
-                  Ordena el evento en el catálogo público. Si lo dejas en
-                  blanco, lo clasificamos por el nombre.
-                </Hint>
-              </div>
-              <div className="sm:col-span-full">
-                <label
-                  htmlFor={fid("location")}
-                  className="mb-1 block text-xs font-medium text-zinc-400"
-                >
-                  Lugar del evento
-                </label>
-                <input
-                  id={fid("location")}
-                  value={form.location}
-                  onChange={(e) => set({ location: e.target.value })}
-                  className="field"
-                  placeholder="Calle 45 #12-30, Medellín"
-                  maxLength={200}
-                  aria-describedby={fid("location-hint")}
-                />
-                <Hint id={fid("location-hint")}>
-                  La dirección que leerá el invitado en su boleta y el mensaje
-                  de WhatsApp. Déjalo vacío solo si es siempre la misma del bar.
-                </Hint>
-              </div>{" "}
-              <div className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
-                  Flyer del evento (opcional)
-                </span>
-                <div className="flex items-center gap-3">
-                  {showFlyer ? (
-                    <img
-                      src={form.flyer_url}
-                      alt="Previsualización del flyer"
-                      onError={() => setBadFlyer(form.flyer_url)}
-                      decoding="async"
-                      className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
-                    />
-                  ) : (
-                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
-                      <Icon name="camera" className="h-5 w-5" />
-                    </span>
-                  )}
-                  {flyerMode === null && !showFlyer && (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => flyerInputRef.current?.click()}
-                        disabled={uploading}
-                        className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
-                      >
-                        {uploading ? "Subiendo…" : "📷 Subir imagen"}
-                      </button>
-                      {/* Oculto pero enfocable por script; se limpia para
-                          poder elegir la misma foto dos veces seguidas. */}
-                      <input
-                        ref={flyerInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          e.target.value = "";
-                          uploadFlyer(file);
-                        }}
+            )}
+            {/* ====== Paso 1: qué es y dónde ====== */}
+            {guided && step === 0 && (
+              <div
+                key="s0"
+                ref={stepRef}
+                tabIndex={-1}
+                className="animate-rise grid gap-3.5 focus:outline-none sm:grid-cols-2"
+              >
+                <div className="sm:col-span-full">
+                  <label
+                    htmlFor={fid("name")}
+                    className="mb-1 block text-xs font-medium text-zinc-400"
+                  >
+                    Nombre del evento *
+                  </label>
+                  <input
+                    id={fid("name")}
+                    value={form.name}
+                    onChange={(e) => set({ name: e.target.value })}
+                    placeholder="Noche Electrónica"
+                    className="field"
+                    maxLength={200}
+                    data-dialog-autofocus
+                    aria-required="true"
+                    aria-describedby={fid("name-hint")}
+                  />
+                  <Hint id={fid("name-hint")}>
+                    Es lo primero que ven el promotor y la puerta. Sin tildes
+                    problemáticas: aparecerá tal cual en la boleta.
+                  </Hint>
+                </div>
+                <div className="sm:col-span-full">
+                  <label
+                    htmlFor={fid("category")}
+                    className="mb-1 block text-xs font-medium text-zinc-400"
+                  >
+                    Categoría
+                  </label>
+                  <select
+                    id={fid("category")}
+                    value={form.category}
+                    onChange={(e) => set({ category: e.target.value })}
+                    className="field"
+                    aria-describedby={fid("category-hint")}
+                  >
+                    <option value="">Sin categoría (la inferimos del texto)</option>
+                    {EVENT_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <Hint id={fid("category-hint")}>
+                    Ordena el evento en el catálogo público. Si lo dejas en
+                    blanco, lo clasificamos por el nombre.
+                  </Hint>
+                </div>
+                <div className="sm:col-span-full">
+                  <label
+                    htmlFor={fid("location")}
+                    className="mb-1 block text-xs font-medium text-zinc-400"
+                  >
+                    Lugar del evento
+                  </label>
+                  <input
+                    id={fid("location")}
+                    value={form.location}
+                    onChange={(e) => set({ location: e.target.value })}
+                    className="field"
+                    placeholder="Calle 45 #12-30, Medellín"
+                    maxLength={200}
+                    aria-describedby={fid("location-hint")}
+                  />
+                  <Hint id={fid("location-hint")}>
+                    La dirección que leerá el invitado en su boleta y el mensaje
+                    de WhatsApp. Déjalo vacío solo si es siempre la misma del bar.
+                  </Hint>
+                </div>{" "}
+                <div className="sm:col-span-full">
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">
+                    Flyer del evento (opcional)
+                  </span>
+                  <div className="flex items-center gap-3">
+                    {showFlyer ? (
+                      <img
+                        src={form.flyer_url}
+                        alt="Previsualización del flyer"
+                        onError={() => setBadFlyer(form.flyer_url)}
+                        decoding="async"
+                        className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
                       />
+                    ) : (
+                      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
+                        <Icon name="camera" className="h-5 w-5" />
+                      </span>
+                    )}
+                    {flyerMode === null && !showFlyer && (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => flyerInputRef.current?.click()}
+                          disabled={uploading}
+                          className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
+                        >
+                          {uploading ? "Subiendo…" : "📷 Subir imagen"}
+                        </button>
+                        {/* Oculto pero enfocable por script; se limpia para
+                            poder elegir la misma foto dos veces seguidas. */}
+                        <input
+                          ref={flyerInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            uploadFlyer(file);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFlyerMode("enlace")}
+                          className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
+                        >
+                          🔗 Pegar enlace
+                        </button>
+                      </div>
+                    )}
+                    {flyerMode === "enlace" && (
+                      <input
+                        aria-label="Enlace del flyer"
+                        type="url"
+                        value={form.flyer_url}
+                        onChange={(e) => set({ flyer_url: e.target.value })}
+                        className="field"
+                        placeholder="https://…/flyer.jpg"
+                      />
+                    )}
+                    {showFlyer && (
                       <button
                         type="button"
-                        onClick={() => setFlyerMode("enlace")}
-                        className="btn-ghost !px-3 !py-1.5 text-2xs font-bold"
+                        onClick={() => {
+                          set({ flyer_url: "" });
+                          setFlyerMode(null);
+                        }}
+                        className="text-2xs font-semibold text-zinc-500 transition hover:text-red-400"
                       >
-                        🔗 Pegar enlace
+                        Quitar
                       </button>
-                    </div>
-                  )}
-                  {flyerMode === "enlace" && (
-                    <input
-                      aria-label="Enlace del flyer"
-                      type="url"
-                      value={form.flyer_url}
-                      onChange={(e) => set({ flyer_url: e.target.value })}
-                      className="field"
-                      placeholder="https://…/flyer.jpg"
-                    />
-                  )}
-                  {showFlyer && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        set({ flyer_url: "" });
-                        setFlyerMode(null);
-                      }}
-                      className="text-2xs font-semibold text-zinc-500 transition hover:text-red-400"
-                    >
-                      Quitar
-                    </button>
-                  )}
+                    )}
+                  </div>
+                  <Hint>
+                    Sube la foto del flyer desde tu celular o pega un enlace. Si
+                    no tienes, déjalo vacío: puedes agregarlo después con Editar.
+                  </Hint>
                 </div>
-                <Hint>
-                  Sube la foto del flyer desde tu celular o pega un enlace. Si
-                  no tienes, déjalo vacío: puedes agregarlo después con Editar.
-                </Hint>
+                <label className="sm:col-span-full">
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">
+                    Descripción (opcional)
+                  </span>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => set({ description: e.target.value })}
+                    className="field"
+                    rows={2}
+                    maxLength={2000}
+                    placeholder="¿Qué hay esta noche? Toca una idea y edítala…"
+                  />
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {DESCRIPTION_IDEAS.map(([chip, text]) => (
+                      <Chip
+                        key={chip}
+                        active={form.description.includes(text)}
+                        onClick={() =>
+                          set({
+                            description: form.description.trim()
+                              ? `${form.description.trim()} ${text}`
+                              : text,
+                          })
+                        }
+                      >
+                        {chip}
+                      </Chip>
+                    ))}
+                  </div>
+                </label>
               </div>
-              <label className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
-                  Descripción (opcional)
-                </span>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => set({ description: e.target.value })}
-                  className="field"
-                  rows={2}
-                  maxLength={2000}
-                  placeholder="¿Qué hay esta noche? Toca una idea y edítala…"
-                />
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {DESCRIPTION_IDEAS.map(([chip, text]) => (
-                    <Chip
-                      key={chip}
-                      active={form.description.includes(text)}
-                      onClick={() =>
-                        set({
-                          description: form.description.trim()
-                            ? `${form.description.trim()} ${text}`
-                            : text,
-                        })
-                      }
-                    >
-                      {chip}
-                    </Chip>
-                  ))}
-                </div>
-              </label>
-            </div>
-          )}
+            )}
 
-          {/* ====== Paso 2: cuándo y puerta ====== */}
-          {guided && step === 1 && (
-            <div
-              key="s1"
-              ref={stepRef}
-              tabIndex={-1}
-              className="animate-rise grid gap-3.5 focus:outline-none sm:grid-cols-2"
-            >
-              <div className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
-                  ¿Cuándo abre? *
-                </span>
-                {/* Atajos primero: un toque y listo. El calendario nativo es
-                  la vía de escape para la fecha rara, no la puerta de entrada. */}
-                <div className="flex flex-wrap gap-1.5">
-                  <Chip
-                    active={form.starts_at === nextWeekday(5, 20)}
-                    onClick={() => set({ starts_at: nextWeekday(5, 20) })}
-                  >
-                    🗓 Viernes 8 p. m.
-                  </Chip>
-                  <Chip
-                    active={form.starts_at === nextWeekday(6, 21)}
-                    onClick={() => set({ starts_at: nextWeekday(6, 21) })}
-                  >
-                    🗓 Sábado 9 p. m.
-                  </Chip>
-                  <Chip
-                    active={
-                      form.starts_at ===
-                      toLocalInput(
-                        (() => {
-                          const d = new Date();
-                          d.setDate(d.getDate() + 1);
-                          d.setHours(21, 0, 0, 0);
-                          return d;
-                        })(),
-                      )
-                    }
-                    onClick={() =>
-                      set({
-                        starts_at: toLocalInput(
+            {/* ====== Paso 2: cuándo y puerta ====== */}
+            {guided && step === 1 && (
+              <div
+                key="s1"
+                ref={stepRef}
+                tabIndex={-1}
+                className="animate-rise grid gap-3.5 focus:outline-none sm:grid-cols-2"
+              >
+                <div className="sm:col-span-full">
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">
+                    ¿Cuándo abre? *
+                  </span>
+                  {/* Atajos primero: un toque y listo. El calendario nativo es
+                    la vía de escape para la fecha rara, no la puerta de entrada. */}
+                  <div className="flex flex-wrap gap-1.5">
+                    <Chip
+                      active={form.starts_at === nextWeekday(5, 20)}
+                      onClick={() => set({ starts_at: nextWeekday(5, 20) })}
+                    >
+                      🗓 Viernes 8 p. m.
+                    </Chip>
+                    <Chip
+                      active={form.starts_at === nextWeekday(6, 21)}
+                      onClick={() => set({ starts_at: nextWeekday(6, 21) })}
+                    >
+                      🗓 Sábado 9 p. m.
+                    </Chip>
+                    <Chip
+                      active={
+                        form.starts_at ===
+                        toLocalInput(
                           (() => {
                             const d = new Date();
                             d.setDate(d.getDate() + 1);
                             d.setHours(21, 0, 0, 0);
                             return d;
                           })(),
-                        ),
-                      })
-                    }
-                  >
-                    🗓 Mañana 9 p. m.
-                  </Chip>
-                  <Chip
-                    active={
-                      form.starts_at ===
-                      toLocalInput(
-                        (() => {
-                          const d = new Date(Date.now() + 7 * 86400000);
-                          d.setHours(20, 0, 0, 0);
-                          return d;
-                        })(),
-                      )
-                    }
-                    onClick={() =>
-                      set({
-                        starts_at: toLocalInput(
+                        )
+                      }
+                      onClick={() =>
+                        set({
+                          starts_at: toLocalInput(
+                            (() => {
+                              const d = new Date();
+                              d.setDate(d.getDate() + 1);
+                              d.setHours(21, 0, 0, 0);
+                              return d;
+                            })(),
+                          ),
+                        })
+                      }
+                    >
+                      🗓 Mañana 9 p. m.
+                    </Chip>
+                    <Chip
+                      active={
+                        form.starts_at ===
+                        toLocalInput(
                           (() => {
                             const d = new Date(Date.now() + 7 * 86400000);
                             d.setHours(20, 0, 0, 0);
                             return d;
                           })(),
-                        ),
-                      })
-                    }
-                  >
-                    🗓 En una semana
-                  </Chip>
-                </div>
-                {customDate ? (
-                  <input
-                    aria-label="Fecha y hora de inicio"
-                    type="datetime-local"
-                    value={form.starts_at}
-                    onChange={(e) => set({ starts_at: e.target.value })}
-                    className="field mt-2"
-                    required
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setCustomDate(true)}
-                    className="mt-2 text-2xs font-semibold text-zinc-500 underline-offset-2 transition hover:text-zinc-300 hover:underline"
-                  >
-                    Otra fecha u hora…
-                  </button>
-                )}
-                <Hint>Día y hora en que abren las puertas del local.</Hint>
-              </div>
-
-              <div className="sm:col-span-full">
-                <span className="mb-1 block text-xs font-medium text-zinc-400">
-                  ¿Cuánto dura la fiesta? (opcional)
-                </span>
-                {/* Duración, no fecha-absoluta: nadie piensa "cierra 3:00 a.m.
-                  mientras crea el evento"; piensa "dura 6 horas". */}
-                <div className="flex flex-wrap gap-1.5">
-                  {form.starts_at &&
-                    [4, 5, 6, 7, 8].map((h) => {
-                      const isThis =
-                        !!form.ends_at &&
-                        Math.abs(
-                          new Date(form.ends_at) - new Date(form.starts_at),
-                        ) ===
-                          h * 3600000;
-                      return (
-                        <Chip
-                          key={h}
-                          active={isThis}
-                          onClick={() =>
-                            set({
-                              ends_at: toLocalInput(
-                                new Date(
-                                  new Date(form.starts_at).getTime() +
-                                    h * 3600000,
-                                ),
-                              ),
-                            })
-                          }
-                        >
-                          {h} horas
-                        </Chip>
-                      );
-                    })}
-                  {form.ends_at && (
-                    <Chip active={false} onClick={() => set({ ends_at: "" })}>
-                      Sin cierre
-                    </Chip>
-                  )}
-                </div>
-                <Hint>
-                  Si lo dejas sin cierre, el evento sigue "en puerta" hasta que
-                  tú lo cierres desde el backstage cuando acaba la noche.
-                </Hint>
-              </div>
-
-              <div>
-                <label
-                  htmlFor={fid("qr")}
-                  className="mb-1 block text-xs font-medium text-zinc-400"
-                >
-                  El QR del invitado se activa *
-                </label>
-                <input
-                  id={fid("qr")}
-                  type="number"
-                  value={form.qr_unlock_minutes}
-                  onChange={(e) => set({ qr_unlock_minutes: e.target.value })}
-                  className="field"
-                  min="0"
-                  required
-                  aria-describedby={fid("qr-hint")}
-                />
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  <Chip
-                    active={qr === 0}
-                    onClick={() => set({ qr_unlock_minutes: 0 })}
-                  >
-                    Con las puertas
-                  </Chip>
-                  <Chip
-                    active={qr === 60}
-                    onClick={() => set({ qr_unlock_minutes: 60 })}
-                  >
-                    1 h antes ✓
-                  </Chip>
-                  <Chip
-                    active={qr === 180}
-                    onClick={() => set({ qr_unlock_minutes: 180 })}
-                  >
-                    3 h antes
-                  </Chip>
-                </div>
-                <Hint id={fid("qr-hint")} tone="amber">
-                  Anti reenvío: el invitado solo ve su QR dentro de esta
-                  ventana, así que el enlace no circula por WhatsApp días antes.
-                  1 hora es el estándar del rubro.
-                </Hint>
-              </div>
-
-              <p className="sm:col-span-full text-2xs text-zinc-600">
-                La hora se guarda en tu zona (
-                {Intl.DateTimeFormat().resolvedOptions().timeZone}).
-              </p>
-            </div>
-          )}
-
-          {/* ====== Paso 3: aforo + revisión ====== */}
-          {guided && step === 2 && (
-            <div
-              key="s2"
-              ref={stepRef}
-              tabIndex={-1}
-              className="animate-rise space-y-4 focus:outline-none"
-            >
-              <div>
-                <label
-                  htmlFor={fid("capacity")}
-                  className="mb-1 block text-xs font-medium text-zinc-400"
-                >
-                  Aforo total (personas) *
-                </label>
-                <input
-                  id={fid("capacity")}
-                  type="number"
-                  value={form.capacity}
-                  onChange={(e) => set({ capacity: e.target.value })}
-                  className="field"
-                  placeholder="100"
-                  min="1"
-                  required
-                  aria-describedby={
-                    Number(form.capacity) > 500
-                      ? `${fid("capacity-hint")} ${fid("capacity-high")}`
-                      : fid("capacity-hint")
-                  }
-                />
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {[50, 100, 150, 200, 300].map((n) => (
-                    <Chip
-                      key={n}
-                      active={Number(form.capacity) === n}
-                      onClick={() => set({ capacity: n })}
+                        )
+                      }
+                      onClick={() =>
+                        set({
+                          starts_at: toLocalInput(
+                            (() => {
+                              const d = new Date(Date.now() + 7 * 86400000);
+                              d.setHours(20, 0, 0, 0);
+                              return d;
+                            })(),
+                          ),
+                        })
+                      }
                     >
-                      {n}
+                      🗓 En una semana
                     </Chip>
-                  ))}
-                </div>
-                <Hint id={fid("capacity-hint")}>
-                  Es el cupo FÍSICO del local (el que dice seguridad/bomberos),
-                  no lo que esperas vender: las boletas emitidas nunca pueden
-                  pasarse de aquí.
-                </Hint>
-                {Number(form.capacity) > 500 && (
-                  <Hint id={fid("capacity-high")} tone="amber">
-                    Aforo alto: confirma que el local realmente tenga esa
-                    capacidad antes de publicar.
-                  </Hint>
-                )}
-              </div>
-
-              {/* Vista previa: cómo se verá el evento en la lista y la boleta */}
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-                <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-zinc-500">
-                  Así se verá
-                </p>
-                <div className="flex items-start gap-3">
-                  {showFlyer ? (
-                    <img
-                      src={form.flyer_url}
-                      alt=""
-                      onError={() => setBadFlyer(form.flyer_url)}
-                      decoding="async"
-                      className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
+                  </div>
+                  {customDate ? (
+                    <input
+                      aria-label="Fecha y hora de inicio"
+                      type="datetime-local"
+                      value={form.starts_at}
+                      onChange={(e) => set({ starts_at: e.target.value })}
+                      className="field mt-2"
+                      required
                     />
                   ) : (
-                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
-                      <Icon name="door" className="h-6 w-6" />
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomDate(true)}
+                      className="mt-2 text-2xs font-semibold text-zinc-500 underline-offset-2 transition hover:text-zinc-300 hover:underline"
+                    >
+                      Otra fecha u hora…
+                    </button>
                   )}
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-ink">
-                      {form.name.trim() || "Evento sin nombre"}
-                    </p>
-                    <p className="mt-0.5 text-xs text-zinc-400">
-                      {form.starts_at
-                        ? eventDate(new Date(form.starts_at).toISOString())
-                        : "—"}
-                      {form.ends_at &&
-                        ` → ${eventDate(new Date(form.ends_at).toISOString())}`}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-zinc-500">
-                      {form.location || "Sin dirección"} · aforo{" "}
-                      {form.capacity || "—"} · QR {qrLabel}
-                    </p>
-                    {form.description.trim() && (
-                      <p className="mt-1 line-clamp-2 text-xs text-zinc-500">
-                        {form.description}
-                      </p>
+                  <Hint>Día y hora en que abren las puertas del local.</Hint>
+                </div>
+
+                <div className="sm:col-span-full">
+                  <span className="mb-1 block text-xs font-medium text-zinc-400">
+                    ¿Cuánto dura la fiesta? (opcional)
+                  </span>
+                  {/* Duración, no fecha-absoluta: nadie piensa "cierra 3:00 a.m.
+                    mientras crea el evento"; piensa "dura 6 horas". */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {form.starts_at &&
+                      [4, 5, 6, 7, 8].map((h) => {
+                        const isThis =
+                          !!form.ends_at &&
+                          Math.abs(
+                            new Date(form.ends_at) - new Date(form.starts_at),
+                          ) ===
+                            h * 3600000;
+                        return (
+                          <Chip
+                            key={h}
+                            active={isThis}
+                            onClick={() =>
+                              set({
+                                ends_at: toLocalInput(
+                                  new Date(
+                                    new Date(form.starts_at).getTime() +
+                                      h * 3600000,
+                                  ),
+                                ),
+                              })
+                            }
+                          >
+                            {h} horas
+                          </Chip>
+                        );
+                      })}
+                    {form.ends_at && (
+                      <Chip active={false} onClick={() => set({ ends_at: "" })}>
+                        Sin cierre
+                      </Chip>
                     )}
                   </div>
+                  <Hint>
+                    Si lo dejas sin cierre, el evento sigue "en puerta" hasta que
+                    tú lo cierres desde el backstage cuando acaba la noche.
+                  </Hint>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setPreviewOpen(true)}
-                  className="btn-ghost mt-3 !px-3 !py-1.5 text-2xs font-bold"
-                >
-                  <Icon name="eye" className="h-3.5 w-3.5" />
-                  Ver ficha pública en móvil
-                </button>
+
+                <div>
+                  <label
+                    htmlFor={fid("qr")}
+                    className="mb-1 block text-xs font-medium text-zinc-400"
+                  >
+                    El QR del invitado se activa *
+                  </label>
+                  <input
+                    id={fid("qr")}
+                    type="number"
+                    value={form.qr_unlock_minutes}
+                    onChange={(e) => set({ qr_unlock_minutes: e.target.value })}
+                    className="field"
+                    min="0"
+                    required
+                    aria-describedby={fid("qr-hint")}
+                  />
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <Chip
+                      active={qr === 0}
+                      onClick={() => set({ qr_unlock_minutes: 0 })}
+                    >
+                      Con las puertas
+                    </Chip>
+                    <Chip
+                      active={qr === 60}
+                      onClick={() => set({ qr_unlock_minutes: 60 })}
+                    >
+                      1 h antes ✓
+                    </Chip>
+                    <Chip
+                      active={qr === 180}
+                      onClick={() => set({ qr_unlock_minutes: 180 })}
+                    >
+                      3 h antes
+                    </Chip>
+                  </div>
+                  <Hint id={fid("qr-hint")} tone="amber">
+                    Anti reenvío: el invitado solo ve su QR dentro de esta
+                    ventana, así que el enlace no circula por WhatsApp días antes.
+                    1 hora es el estándar del rubro.
+                  </Hint>
+                </div>
+
+                <p className="sm:col-span-full text-2xs text-zinc-600">
+                  La hora se guarda en tu zona (
+                  {Intl.DateTimeFormat().resolvedOptions().timeZone}).
+                </p>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* ====== Paso 3: aforo + revisión ====== */}
+            {guided && step === 2 && (
+              <div
+                key="s2"
+                ref={stepRef}
+                tabIndex={-1}
+                className="animate-rise space-y-4 focus:outline-none"
+              >
+                <div>
+                  <label
+                    htmlFor={fid("capacity")}
+                    className="mb-1 block text-xs font-medium text-zinc-400"
+                  >
+                    Aforo total (personas) *
+                  </label>
+                  <input
+                    id={fid("capacity")}
+                    type="number"
+                    value={form.capacity}
+                    onChange={(e) => set({ capacity: e.target.value })}
+                    className="field"
+                    placeholder="100"
+                    min="1"
+                    required
+                    aria-describedby={
+                      Number(form.capacity) > 500
+                        ? `${fid("capacity-hint")} ${fid("capacity-high")}`
+                        : fid("capacity-hint")
+                    }
+                  />
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {[50, 100, 150, 200, 300].map((n) => (
+                      <Chip
+                        key={n}
+                        active={Number(form.capacity) === n}
+                        onClick={() => set({ capacity: n })}
+                      >
+                        {n}
+                      </Chip>
+                    ))}
+                  </div>
+                  <Hint id={fid("capacity-hint")}>
+                    Es el cupo FÍSICO del local (el que dice seguridad/bomberos),
+                    no lo que esperas vender: las boletas emitidas nunca pueden
+                    pasarse de aquí.
+                  </Hint>
+                  {Number(form.capacity) > 500 && (
+                    <Hint id={fid("capacity-high")} tone="amber">
+                      Aforo alto: confirma que el local realmente tenga esa
+                      capacidad antes de publicar.
+                    </Hint>
+                  )}
+                </div>
+
+                {/* Vista previa: cómo se verá el evento en la lista y la boleta */}
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+                  <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-zinc-500">
+                    Así se verá
+                  </p>
+                  <div className="flex items-start gap-3">
+                    {showFlyer ? (
+                      <img
+                        src={form.flyer_url}
+                        alt=""
+                        onError={() => setBadFlyer(form.flyer_url)}
+                        decoding="async"
+                        className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-700"
+                      />
+                    ) : (
+                      <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600">
+                        <Icon name="door" className="h-6 w-6" />
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-ink">
+                        {form.name.trim() || "Evento sin nombre"}
+                      </p>
+                      <p className="mt-0.5 text-xs text-zinc-400">
+                        {form.starts_at
+                          ? eventDate(new Date(form.starts_at).toISOString())
+                          : "—"}
+                        {form.ends_at &&
+                          ` → ${eventDate(new Date(form.ends_at).toISOString())}`}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-zinc-500">
+                        {form.location || "Sin dirección"} · aforo{" "}
+                        {form.capacity || "—"} · QR {qrLabel}
+                      </p>
+                      {form.description.trim() && (
+                        <p className="mt-1 line-clamp-2 text-xs text-zinc-500">
+                          {form.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewOpen(true)}
+                    className="btn-ghost mt-3 !px-3 !py-1.5 text-2xs font-bold"
+                  >
+                    <Icon name="eye" className="h-3.5 w-3.5" />
+                    Ver ficha pública en móvil
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
 
           {!guided && (
             <div className="dialog-foot dialog-foot--split event-create-actions">
@@ -942,7 +951,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
                 setCustomDate(true);
                 requestAnimationFrame(() => stepRef.current?.querySelector("input")?.focus());
               }}>
-                Añadir detalles
+                Volver al formulario completo
               </button>
               <button type="submit" className="btn-primary" disabled={creating || uploading}>
                 {creating ? "Guardando…" : "Guardar borrador"}
@@ -950,10 +959,18 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
             </div>
           )}
           {/* ====== Navegación del asistente ====== */}
-          {guided && <div className="dialog-foot dialog-foot--split">
-            <span className="text-xs text-zinc-600">
-              Paso {step + 1} de {STEPS.length}
-            </span>
+          {guided && <div className="dialog-foot dialog-foot--split event-create-actions">
+            {step === 0 ? (
+              <button type="button" className="btn-ghost" onClick={() => {
+                setFormError("");
+                setGuided(false);
+                requestAnimationFrame(() => dialogRef.current?.querySelector("[data-dialog-autofocus]")?.focus());
+              }}>
+                Formulario rápido
+              </button>
+            ) : (
+              <span className="event-create-step-count">Paso {step + 1} de {STEPS.length}</span>
+            )}
             <div className="flex items-center gap-2">
               {step > 0 && (
                 <button
@@ -1027,6 +1044,7 @@ export default function EventCreateModal({ venueId, onClose, onCreated }) {
           onClose={() => setPreviewOpen(false)}
         />
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }

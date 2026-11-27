@@ -10,7 +10,6 @@ import { WelcomeOverlay } from "../components/WelcomeOverlay";
 import { useI18n } from "../i18n";
 import { forgotPassword } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { prefersReducedMotion } from "../lib/motion";
 import {
   destinationFor,
   operationalRoles,
@@ -175,7 +174,7 @@ export default function LoginPage() {
       setOk(true);
       setBusy(false);
       if (roles.length === 1) {
-        const pause = prefersReducedMotion() ? 320 : 1500;
+        const pause = 6000;
         navTimer.current = window.setTimeout(
           () => enterWith(preferred, user),
           pause,
@@ -478,7 +477,6 @@ export default function LoginPage() {
       {entered && (
         <WelcomeOverlay
           user={entered}
-          done={ok}
           role={selectedRole}
           roles={operationalRoles(entered)}
           onSelectRole={setSelectedRole}
