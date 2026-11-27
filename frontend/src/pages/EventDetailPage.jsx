@@ -660,10 +660,20 @@ export default function EventDetailPage() {
           </div>
         </div>
       ) : (
-        <div className="evd-body">
+        <div className="evd-body evd-event-layout">
+          <header className="evd-event-heading">
+            {data.category && <p className="evd-eyebrow">{data.category}</p>}
+            <h1 className="evd-title">{data.name}</h1>
+            <p className="evd-event-at-a-glance">
+              <span><Icon name="calendar" aria-hidden="true" />{when.date}{when.time && ` · ${when.time}`}</span>
+              <span><Icon name="pin" aria-hidden="true" />{data.venue || data.location || "Lugar por confirmar"}</span>
+              <span><Icon name="ticket" aria-hidden="true" />{data.price_cents == null ? "Entrada gratuita" : `Desde ${money(data.price_cents)}`}</span>
+            </p>
+          </header>
           {/* Portada: afiche completo, con un fondo desenfocado que rellena
               los bordes. El texto de la ficha no depende de la imagen. */}
           <div className="evd-poster">
+            <div className="evd-hero-actions">{posterActions()}</div>
             <div className={`evd-poster-frame${showFlyer ? "" : " is-fallback"}`}>
               {showFlyer ? (
                 <>
@@ -689,11 +699,10 @@ export default function EventDetailPage() {
                 <div className="evd-poster-fallback" aria-hidden="true">
                   <span className="evd-poster-brand">
                     <EntySymbol size={52} />
-                    <span className="evd-poster-mark">Enty</span>
+                    <span className="evd-poster-mark">{data.name}</span>
                   </span>
                 </div>
               )}
-              <div className="evd-hero-actions">{posterActions()}</div>
             </div>
             {showFlyer && (
               <a
@@ -708,8 +717,6 @@ export default function EventDetailPage() {
           </div>
 
           <div className="evd-info">
-            <p className="evd-eyebrow">{data.category || "Evento"}</p>
-            <h1 className="evd-title">{data.name}</h1>
             {recovery && (
               <div className="evd-recovery" role="status">
                 <strong>Retoma tu compra</strong>
@@ -729,35 +736,6 @@ export default function EventDetailPage() {
                 <option value="en">English</option>
                 <option value="pt">Português</option>
               </select>
-            </div>
-
-            <div className="evd-grid">
-              <div className="evd-cell">
-                <Icon name="calendar" className="evd-cell-icon" />
-                <span className="evd-cell-k">Fecha</span>
-                <span className="evd-cell-v">{when.date}</span>
-                {when.time && <span className="evd-cell-sub">{when.time}</span>}
-              </div>
-              <div className="evd-cell">
-                <Icon name="pin" className="evd-cell-icon" />
-                <span className="evd-cell-k">Ubicación</span>
-                <span className="evd-cell-v">
-                  {data.venue || data.location || "—"}
-                </span>
-                {data.location && data.venue && (
-                  <span className="evd-cell-sub">{data.location}</span>
-                )}
-              </div>
-              <div className="evd-cell">
-                <Icon name="tag" className="evd-cell-icon" />
-                <span className="evd-cell-k">Precio</span>
-                <span className="evd-cell-v">
-                  {data.price_cents == null ? "Gratis" : money(data.price_cents)}
-                </span>
-                {data.price_cents != null && (
-                  <span className="evd-cell-sub">desde</span>
-                )}
-              </div>
             </div>
 
             {data.stream && (

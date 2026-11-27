@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../../components/Icon";
+import EventCover, { eventFullDate } from "../../components/EventCover";
 import TransitionLink from "../../components/TransitionLink";
 import { PromoterAlert, PromoterEmpty, PromoterSkeleton } from "../../components/PromoterUI";
 import { useAuth } from "../../lib/auth";
 import { activeVenueId } from "../../lib/venue";
 import { fetchPromoterEvents } from "../../lib/api";
-import { eventDate, money } from "../../lib/format";
+import { money } from "../../lib/format";
 import { eventStatusLabel, saleReasonLabel } from "../../lib/promoter";
 
 const FILTERS = [
@@ -16,30 +17,13 @@ const FILTERS = [
   { id: "closed", label: "Cerrados" },
 ];
 
-function EventCover({ event }) {
-  const date = event.starts_at ? new Date(event.starts_at) : null;
-  const valid = date && !Number.isNaN(date.getTime());
-  return (
-    <div className="promoter-cover" data-cat={event.category || "Fiesta"}>
-      {event.flyer_url ? <img src={event.flyer_url} alt="" loading="lazy" decoding="async" /> : null}
-      <span className="promoter-cover-label">{event.category || "Evento"}</span>
-      {valid && (
-        <span className="promoter-cover-date">
-          <b>{date.getDate()}</b>
-          <span>{date.toLocaleDateString("es-CO", { month: "short" })}</span>
-        </span>
-      )}
-    </div>
-  );
-}
-
 function EventCard({ event }) {
   const nav = useNavigate();
   const live = event.status === "live";
   const closed = event.status === "ended" || event.status === "cancelled";
   return (
     <article className={`promoter-event-card${live ? " is-live" : ""}${closed ? " is-closed" : ""}`}>
-      <EventCover event={event} />
+      <EventCover ev={event} className="promoter-cover" showDate={false} showTime={false} />
       <div className="promoter-card-body">
         <div className="promoter-card-top">
           <div>
@@ -54,7 +38,7 @@ function EventCard({ event }) {
         </div>
 
         <div className="promoter-card-meta">
-          <span><Icon name="calendar" className="h-3 w-3" aria-hidden="true" />{eventDate(event.starts_at)}</span>
+          <span><Icon name="calendar" className="h-3 w-3" aria-hidden="true" />{eventFullDate(event)}</span>
           {event.location && <span><Icon name="door" className="h-3 w-3" aria-hidden="true" />{event.location}</span>}
         </div>
 

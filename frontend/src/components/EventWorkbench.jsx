@@ -170,7 +170,7 @@ export default function EventWorkbench({
     <div className="bs-shell">
       <section className="bs-head" data-tour="backstage">
         <div className="bs-poster">
-          <EventCover ev={ev} showTime={false} />
+          <EventCover ev={ev} showDate={false} showTime={false} />
         </div>
 
         <div className="bs-ident">

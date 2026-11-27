@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EntySymbol } from "./Brand";
 import { eventZone, formatEventDate, formatEventTime } from "../lib/eventTime";
 
 const CATEGORY_LABEL = {
@@ -32,12 +33,13 @@ export default function EventCover({
         .replace(".", "")
         .toUpperCase()
     : "";
-  const time = formatEventTime(ev?.starts_at, tz);
+  const time = showTime ? formatEventTime(ev?.starts_at, tz) : "";
 
   return (
     <div
       className={`admin-cover ${className}`}
       data-cat={category}
+      data-artwork={hasFlyer ? "uploaded" : "generated"}
       aria-hidden="true"
     >
       {hasFlyer && (
@@ -49,7 +51,13 @@ export default function EventCover({
           onError={() => setBad(ev.flyer_url)}
         />
       )}
-      <span className="admin-cover-kicker">{label}</span>
+      {!hasFlyer && (
+        <div className="event-artwork-identity">
+          <EntySymbol size={24} />
+          <span>{label}</span>
+          <strong>{ev?.name || "Enty"}</strong>
+        </div>
+      )}
       {showDate && date && (
         <span className="admin-cover-date evx-datecal">
           <b>{day}</b>

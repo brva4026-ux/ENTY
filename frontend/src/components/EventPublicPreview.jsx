@@ -104,22 +104,6 @@ export default function EventPublicPreview({
         <div className="dialog-body">
           <div className="evd-preview-phone">
             <div className="evd-preview-screen">
-              <div className="evd-preview-poster">
-                {hasFlyer ? (
-                  <img
-                    src={event.flyer_url}
-                    alt={`Afiche de ${event.name}`}
-                    onError={() => setBadFlyer(true)}
-                    decoding="async"
-                  />
-                ) : (
-                  <span className="evd-preview-brand" aria-hidden="true">
-                    <EntySymbol size={38} />
-                    <span>Enty</span>
-                  </span>
-                )}
-              </div>
-
               <p className="evd-preview-cat">
                 {event.category || "Evento"}
               </p>
@@ -137,6 +121,22 @@ export default function EventPublicPreview({
                 <Icon name="door" className="h-4 w-4" />
                 <span>{place || "Lugar por confirmar"}</span>
               </p>
+
+              <div className="evd-preview-poster">
+                {hasFlyer ? (
+                  <img
+                    src={event.flyer_url}
+                    alt={`Afiche de ${event.name}`}
+                    onError={() => setBadFlyer(true)}
+                    decoding="async"
+                  />
+                ) : (
+                  <span className="evd-preview-brand" aria-hidden="true">
+                    <EntySymbol size={38} />
+                    <span>Enty</span>
+                  </span>
+                )}
+              </div>
 
               <div className="evd-preview-tickets">
                 <p className="evd-preview-label">Boletas</p>

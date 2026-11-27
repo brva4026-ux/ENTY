@@ -1450,26 +1450,6 @@
   color: var(--admin-live);
 }
 
-.admin-event-card[data-compact="true"] {
-  grid-template-columns: minmax(0, 6rem) minmax(0, 1fr);
-  min-height: 0;
-  overflow: visible;
-}
-
-.admin-event-card[data-compact="true"] > .admin-cover {
-  border-start-start-radius: inherit;
-  border-end-start-radius: inherit;
-}
-
-.admin-event-card[data-compact="true"]:has(.admin-event-card-menu button[aria-expanded="true"]) {
-  z-index: 5;
-}
-
-.admin-event-card[data-compact="true"] .admin-event-title {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
 .admin-event-card-footer {
   display: flex;
   min-height: 44px;
@@ -1517,13 +1497,6 @@
 .admin-task-details[open] > summary {
   border-bottom: 1px solid var(--admin-line);
 }
-
-@media (width <= 480px) {
-  .admin-event-card[data-compact="true"] {
-    grid-template-columns: minmax(0, 4.75rem) minmax(0, 1fr);
-  }
-}
-
 
 /* Event workspace */
 .workspace-event-facts {
@@ -1597,4 +1570,241 @@
 
 .admin-shell .bs-title {
   overflow-wrap: anywhere;
+}
+
+/* Event artwork and reading order */
+:is(.admin-event-card, .bs-poster, .promoter-event-card) .admin-cover {
+  display: grid;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
+  isolation: isolate;
+  background: #15121d;
+}
+
+.admin-cover[data-artwork="uploaded"]::after {
+  background: radial-gradient(ellipse at 50% 30%, #4c3f5a, #171320 75%);
+  z-index: -2;
+}
+
+:is(.admin-event-card, .bs-poster, .promoter-event-card) .admin-cover img {
+  position: relative;
+  inset: auto;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center;
+  opacity: 1;
+}
+
+.event-artwork-identity {
+  display: grid;
+  width: min(100%, 21rem);
+  align-content: center;
+  justify-items: start;
+  gap: 0.45rem;
+  padding: clamp(0.45rem, 1.5vw, 1.4rem);
+}
+
+.event-artwork-identity span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.event-artwork-identity strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: clamp(0.85rem, 2vw, 1.55rem);
+  font-weight: 800;
+  line-height: 1.06;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.admin-shell .admin-event-grid {
+  gap: clamp(0.9rem, 2vw, 1.5rem);
+}
+
+.admin-shell .admin-event-card {
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  overflow: visible;
+  border-radius: 1.2rem;
+  box-shadow: 0 10px 28px rgb(14 8 26 / 8%);
+}
+
+.admin-event-card:has(.admin-event-card-menu button[aria-expanded="true"]) {
+  z-index: 5;
+}
+
+.admin-shell .admin-event-card:focus-within,
+.admin-shell .admin-event-card:hover {
+  border-color: var(--admin-accent);
+}
+
+.admin-event-card > .admin-cover {
+  aspect-ratio: 4 / 5;
+  align-self: start;
+  margin: 0.55rem;
+  border-radius: 0.85rem;
+}
+
+.admin-event-card .admin-event-body {
+  align-self: center;
+  padding: clamp(0.6rem, 1.4vw, 1.25rem);
+}
+
+.admin-event-card .admin-event-title {
+  font-size: clamp(1.03rem, 1.6vw, 1.5rem);
+  line-height: 1.1;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.admin-event-card .admin-event-meta {
+  display: grid;
+  gap: 0.4rem;
+  white-space: normal;
+}
+
+.admin-event-card .admin-event-meta span {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.admin-event-meta svg {
+  flex: 0 0 1rem;
+  height: 1rem;
+  color: var(--admin-accent-ink);
+}
+
+.admin-shell .bs-head {
+  grid-template-columns: minmax(0, clamp(10rem, 22vw, 19rem)) minmax(0, 1fr);
+  align-items: center;
+  background: radial-gradient(ellipse at 0 0, color-mix(in srgb, var(--admin-accent) 13%, transparent), transparent 55%), var(--admin-surface);
+}
+
+.admin-shell .bs-head::before { display: none; }
+
+.admin-shell .bs-poster {
+  aspect-ratio: 4 / 5;
+  max-height: 23rem;
+  background: #15121d;
+}
+
+.admin-shell .bs-title {
+  font-size: clamp(1.55rem, 3.5vw, 3.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+}
+
+.evd .evd-event-layout {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.evd-event-heading { min-width: 0; }
+
+.evd .evd-event-heading .evd-title {
+  margin-block: 0.3rem 0.65rem;
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1.04;
+  overflow-wrap: anywhere;
+}
+
+.evd-event-at-a-glance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1.15rem;
+  color: var(--e-text-secondary);
+  font-weight: 650;
+}
+
+.evd .evd-poster-frame {
+  border-radius: 1.3rem;
+  box-shadow: 0 18px 46px rgb(15 9 27 / 15%);
+}
+
+.evd .evd-poster-brand {
+  max-width: 85%;
+  text-align: center;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.evd .evd-poster-fallback {
+  background: radial-gradient(ellipse at 25% 20%, #68519a, transparent 63%), #21162f;
+}
+
+@media (width >= 900px) {
+  .evd .evd-event-layout {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    grid-template-areas: "art heading" "art info";
+    grid-template-rows: auto 1fr;
+    column-gap: clamp(1.5rem, 4vw, 3.5rem);
+  }
+  .evd-event-heading { grid-area: heading; }
+  .evd-event-layout > .evd-poster { grid-area: art; }
+  .evd-event-layout > .evd-info { grid-area: info; }
+}
+
+@media (width <= 640px) {
+  .admin-shell .bs-head {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .admin-shell .bs-poster {
+    aspect-ratio: 5 / 3;
+    max-height: 15rem;
+  }
+
+  .admin-shell .admin-event-card {
+    grid-template-columns: minmax(7rem, 0.8fr) minmax(0, 1.2fr);
+  }
+}
+
+.home .home-row-thumb {
+  background: #21192b;
+}
+
+.home .home-row-thumb img {
+  object-fit: contain;
+}
+
+.evd-preview-screen .evd-preview-poster {
+  background: #21192b;
+}
+
+.evd-preview-screen .evd-preview-poster img {
+  object-fit: contain;
+}
+
+.evd-event-at-a-glance span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.evd-event-at-a-glance svg {
+  flex: 0 0 1rem;
+  width: 1rem;
+  height: 1rem;
+  color: var(--e-brand-glow);
+}
+
+.evd-event-layout .evd-hero-actions {
+  position: static;
+}
+
+.evd-event-layout .evd-round {
+  width: 44px;
+  height: 44px;
 }

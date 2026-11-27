@@ -55,7 +55,6 @@ export default function AdminEventCard({
   return (
     <article
       className={`admin-event-card evx-card ${live ? "is-live" : ""} ${past && !live ? "is-past" : ""}`}
-      data-compact="true"
       data-status={ev.status}
       data-event-id={ev.id}
     >
@@ -65,7 +64,7 @@ export default function AdminEventCard({
         className="admin-card-link"
         aria-label={`Abrir ${ev.name}`}
       />
-      <EventCover ev={ev} showTime={false} />
+      <EventCover ev={ev} showDate={false} showTime={false} />
 
       <div className="admin-event-body">
         <div className="admin-event-topline">
@@ -86,8 +85,8 @@ export default function AdminEventCard({
         <h3 className="admin-event-title">{ev.name}</h3>
 
         <p className="admin-event-meta">
-          {ev.starts_at && <span><span className="sr-only">{eventFullDate(ev)} · </span>{formatEventTime(ev.starts_at, tz)}</span>}
-          {(ev.location || ev.venue_name) && <span>{ev.location || ev.venue_name}</span>}
+          <span><Icon name="calendar" aria-hidden="true" /><time dateTime={ev.starts_at}>{eventFullDate(ev)}{ev.starts_at && ` · ${formatEventTime(ev.starts_at, tz)}`}</time></span>
+          <span><Icon name="pin" aria-hidden="true" />{ev.location || ev.venue_name || "Lugar por confirmar"}</span>
         </p>
 
         <div className="admin-event-stats">
