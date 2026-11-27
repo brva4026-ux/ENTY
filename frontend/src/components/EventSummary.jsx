@@ -66,7 +66,7 @@ function CheckRow({ ok, label, detail, action, actionLabel }) {
   );
 }
 
-function PublicPreview({ ev, onSection, onEdit, editable }) {
+function PublicPreview({ ev, onEdit, editable }) {
   return (
     <div className="admin-panel-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -97,42 +97,11 @@ function PublicPreview({ ev, onSection, onEdit, editable }) {
           </span>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn-mini"
-          data-variant="brand"
-          onClick={() => onSection("rentabilidad")}
-        >
-          Ver rentabilidad
+      {editable && (
+        <button type="button" className="btn-mini mt-3" onClick={onEdit}>
+          Editar evento
         </button>
-        <button
-          type="button"
-          className="btn-mini"
-          onClick={() => onSection("ventas")}
-        >
-          Ver ventas
-        </button>
-        <button
-          type="button"
-          className="btn-mini"
-          onClick={() => onSection("equipo")}
-        >
-          Ver equipo
-        </button>
-        <button
-          type="button"
-          className="btn-mini"
-          onClick={() => onSection("accesos")}
-        >
-          Ver puerta
-        </button>
-        {editable && (
-          <button type="button" className="btn-mini" onClick={onEdit}>
-            Editar evento
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -858,17 +827,8 @@ export default function EventSummary({
   eventId,
 }) {
   const { channels, error: channelError } = usePublicChannels(ev);
-  const nextByState = {
-    draft: "Completa la fecha, las localidades y la ficha; después publica.",
-    published: "Comparte el enlace y prepara a la gente que abrirá la puerta.",
-    live: "Sigue los ingresos y atiende las incidencias mientras la puerta está abierta.",
-    ended: "Revisa el cierre, descarga las cifras y concilia los pagos.",
-    cancelled: "Consulta el estado real de las boletas y los pagos.",
-  };
-
   return (
     <div className="admin-workspace-panel">
-      <SectionContext ev={ev} next={nextByState[ev.status]} />
       <ChangeNoticeCard notice={ev.change_notice} />
 
       {ev.status === "draft" && (
@@ -915,12 +875,7 @@ export default function EventSummary({
         <CancelledState report={report} onSection={onSection} />
       )}
 
-      <PublicPreview
-        ev={ev}
-        onSection={onSection}
-        onEdit={onEdit}
-        editable={editable}
-      />
+      <PublicPreview ev={ev} onEdit={onEdit} editable={editable} />
 
       <LineupManager venueId={venueId} eventId={eventId} />
     </div>

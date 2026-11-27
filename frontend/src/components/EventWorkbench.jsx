@@ -5,10 +5,11 @@
  * Accesos, Acreditaciones y Sesiones. Las pestañas viejas (Lineup, Boletas, Cupones, Cupos, Noche,
  * Entradas) se normalizan en AdminDashboard para no romper enlaces.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTabKeys } from "../lib/useTabKeys";
 import { LiveIndicator } from "./Brand";
 import ActionMenu from "./ActionMenu";
+import SectionDisclosure from "./SectionDisclosure";
 import EmptyState from "./EmptyState";
 import Icon from "./Icon";
 import TransitionLink from "./TransitionLink";
@@ -60,13 +61,16 @@ export function sortEventsForStrip(events) {
   });
 }
 
-const TABS = [
+const PRIMARY_TABS = [
   { id: "resumen", label: "Resumen", icon: "chart" },
-  { id: "rentabilidad", label: "Rentabilidad", icon: "money" },
   { id: "ventas", label: "Ventas", icon: "ticket" },
   { id: "equipo", label: "Equipo", icon: "users" },
   { id: "accesos", label: "Accesos", icon: "door" },
-  { id: "operacion", label: "Operación", icon: "chart" },
+];
+const PRIMARY_IDS = PRIMARY_TABS.map(({ id }) => id);
+const MORE_TABS = [
+  { id: "rentabilidad", label: "Rentabilidad" },
+  { id: "operacion", label: "Operación" },
   { id: "acreditaciones", label: "Acreditaciones", icon: "shield" },
   { id: "sesiones", label: "Sesiones", icon: "calendar" },
 ];
@@ -97,19 +101,14 @@ export default function EventWorkbench({
   canDelete = false,
   onExit,
 }) {
-  const tabsRef = useRef(null);
   const [now, setNow] = useState(Date.now());
+  const primaryTab = PRIMARY_IDS.includes(tab);
   const wbTabs = useTabKeys({
-    ids: TABS.map((t) => t.id),
-    activeId: tab,
+    ids: PRIMARY_IDS,
+    activeId: primaryTab ? tab : "resumen",
     onSelect: onTab,
     idOf: (id) => `evx-tab-${id}`,
   });
-
-  useEffect(() => {
-    const active = tabsRef.current?.querySelector('[aria-selected="true"]');
-    active?.scrollIntoView({ block: "nearest", inline: "center" });
-  }, [tab]);
 
   useEffect(() => {
     if (!ev || (ev.status !== "draft" && ev.status !== "published")) {
@@ -124,21 +123,16 @@ export default function EventWorkbench({
   const staleLive = isStaleLive(ev);
   const tz = eventZone(ev);
   const startMs = new Date(ev.starts_at).getTime();
+  const scheduled = ev.status === "draft" || ev.status === "published";
   const diff = startMs - now;
   let countdown = null;
-  if (ev.status === "live") {
-    countdown = `En puerta desde ${formatEventTime(ev.starts_at, tz)}`;
-  } else if (ev.status === "ended") {
-    countdown = "La noche ya cerró";
-  } else if (ev.status === "cancelled") {
-    countdown = "Evento cancelado";
-  } else if (diff <= 0) {
+  if (scheduled && diff <= 0) {
     countdown = "La hora de inicio ya pasó";
-  } else if (diff < 60 * 60 * 1000) {
+  } else if (scheduled && diff > 0 && diff < 60 * 60 * 1000) {
     countdown = `Comienza en ${Math.max(1, Math.ceil(diff / 60_000))} min`;
-  } else if (diff < 24 * 60 * 60 * 1000) {
+  } else if (scheduled && diff > 0 && diff < 24 * 60 * 60 * 1000) {
     countdown = `Comienza en ${Math.ceil(diff / 3_600_000)} h`;
-  } else if (diff < 48 * 60 * 60 * 1000) {
+  } else if (scheduled && diff > 0 && diff < 48 * 60 * 60 * 1000) {
     countdown = "Comienza mañana";
   }
   const primaryActions = actions.filter((a) => !a.danger && !a.secondary);
@@ -182,7 +176,6 @@ export default function EventWorkbench({
         <div className="bs-ident">
           <div className="bs-title-row">
             <div className="bs-title-block">
-              <p className="bs-kicker">Backstage del evento</p>
               <h1 className="bs-title">{ev.name}</h1>
               <div className="bs-status-row">
                 <span className="bs-status" data-status={ev.status}>
@@ -228,20 +221,20 @@ export default function EventWorkbench({
                 <span>{formatEventTime(ev.starts_at, tz)}</span>
               </dd>
             </div>
-            <div>
-              <dt>Fin</dt>
-              <dd>
-                <strong>{endDateLabel(ev, tz)}</strong>
-                <span>
-                  {ev.ends_at ? formatEventTime(ev.ends_at, tz) : "Por confirmar"}
-                </span>
-              </dd>
-            </div>
+            {ev.ends_at && (
+              <div>
+                <dt>Fin</dt>
+                <dd>
+                  <strong>{endDateLabel(ev, tz)}</strong>
+                  <span>{formatEventTime(ev.ends_at, tz)}</span>
+                </dd>
+              </div>
+            )}
             <div>
               <dt>Lugar</dt>
               <dd>
-                <strong>{ev.location || "Lugar por confirmar"}</strong>
-                <span>{ev.venue_name || ev.category || "Evento"}</span>
+                <strong>{ev.location || ev.venue_name || "Lugar por confirmar"}</strong>
+                {ev.location && ev.venue_name && <span>{ev.venue_name}</span>}
               </dd>
             </div>
           </dl>
@@ -269,12 +262,6 @@ export default function EventWorkbench({
                 {busyAction === action ? "Procesando…" : label}
               </button>
             ))}
-            {editable && (
-              <button type="button" onClick={onEdit} className="bs-secondary">
-                <Icon name="edit" className="h-4 w-4" aria-hidden="true" />
-                Editar evento
-              </button>
-            )}
             {lastUpdated && (
               <LiveIndicator live={Boolean(isLive)} lastUpdated={lastUpdated} />
             )}
@@ -282,33 +269,37 @@ export default function EventWorkbench({
         </div>
       </section>
 
-      <nav
-        ref={tabsRef}
-        className="bs-tabs"
-        role="tablist"
-        aria-label="Secciones del evento"
-        data-tour="tabs-evento"
-      >
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            id={`evx-tab-${t.id}`}
-            role="tab"
-            aria-selected={tab === t.id}
-            aria-controls="evx-tab-panel"
-            tabIndex={wbTabs.tabIndexFor(t.id)}
-            onKeyDown={wbTabs.onKeyDown}
-            onClick={() => onTab(t.id)}
-            className="bs-tab"
-          >
-            <Icon name={t.icon} className="h-4 w-4" aria-hidden="true" />
-            <span>{t.label}</span>
-          </button>
-        ))}
-      </nav>
-      <p className="bs-tabs-hint" aria-hidden="true">
-        Desliza para ver las siete secciones →
-      </p>
+      <div className="bs-navigation" data-tour="tabs-evento">
+        <nav
+          className="bs-tabs"
+          role="tablist"
+          aria-label="Secciones del evento"
+        >
+          {PRIMARY_TABS.map((t) => (
+            <button
+              key={t.id}
+              id={`evx-tab-${t.id}`}
+              role="tab"
+              aria-selected={tab === t.id}
+              aria-controls="evx-tab-panel"
+              tabIndex={wbTabs.tabIndexFor(t.id)}
+              onKeyDown={wbTabs.onKeyDown}
+              onClick={() => onTab(t.id)}
+              className="bs-tab"
+            >
+              <Icon name={t.icon} className="h-4 w-4" aria-hidden="true" />
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </nav>
+        <SectionDisclosure
+          label="Más herramientas"
+          sections={MORE_TABS}
+          selected={tab}
+          onSelect={onTab}
+          summaryId={primaryTab ? undefined : `evx-tab-${tab}`}
+        />
+      </div>
     </div>
   );
 }

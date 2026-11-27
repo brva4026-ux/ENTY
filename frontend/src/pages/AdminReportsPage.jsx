@@ -14,9 +14,9 @@ import FunnelPage from "./FunnelPage";
 import Icon from "../components/Icon";
 
 const TABS = [
-  { id: "ventas", label: "Ventas y caja" },
-  { id: "conversion", label: "Conversión" },
-  { id: "resultados", label: "Puerta y promotores" },
+  { id: "ventas", label: "Ventas y caja", icon: "money" },
+  { id: "conversion", label: "Conversión", icon: "chart" },
+  { id: "resultados", label: "Puerta y promotores", icon: "users" },
 ];
 
 function MoneyCard({ label, value, note, tone }) {
@@ -91,15 +91,11 @@ export default function AdminReportsPage() {
   }
 
   return (
-    <div className="admin-events">
-      <header className="admin-page-head">
+    <div className="admin-events admin-reports-page">
+      <header className="admin-page-head admin-hub-head">
         <div>
-          <p className="eyebrow">Resultados de la organización</p>
           <h1>Reportes</h1>
-          <p>
-            La foto del negocio: lo vendido, lo cobrado y lo liquidado; la
-            conversión de la ficha pública; y cómo se movió la puerta.
-          </p>
+          <p>Consulta ingresos, conversión de compra y resultados de puerta.</p>
         </div>
         <div className="admin-tabs" role="tablist" aria-label="Secciones de Reportes">
           {TABS.map((t) => (
@@ -111,6 +107,7 @@ export default function AdminReportsPage() {
               onClick={() => selectTab(t.id)}
               className="admin-tab"
             >
+              <Icon name={t.icon} className="h-4 w-4" aria-hidden="true" />
               {t.label}
             </button>
           ))}
@@ -119,13 +116,10 @@ export default function AdminReportsPage() {
 
       {tab === "ventas" && (
         <section className="space-y-5" role="tabpanel" aria-label="Ventas y caja">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="admin-report-period">
             <div>
-              <p className="eyebrow">Período</p>
-              <p className="admin-note">
-                Cifras de {labelMonth(shownMonth)} · eventos y cobros de la
-                organización activa.
-              </p>
+              <h2>Ventas y caja</h2>
+              <p className="admin-note">Cifras de {labelMonth(shownMonth)}</p>
             </div>
             <div className="admin-month-nav">
               <button

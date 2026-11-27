@@ -21,23 +21,14 @@ import { withViewTransition } from "../lib/viewTransition";
 
 const LANGUAGE_LABELS = { es: "Español", en: "English" };
 
-/** Selector de idioma del pie del login: dos botones, el activo marcado. */
 function LanguageToggle() {
   const { locale, setLocale, locales } = useI18n();
   return (
-    <p className="auth-lang" role="group" aria-label="Idioma / Language">
-      {locales.map((loc) => (
-        <button
-          key={loc}
-          type="button"
-          className="auth-lang-btn"
-          aria-pressed={locale === loc}
-          onClick={() => setLocale(loc)}
-        >
-          {LANGUAGE_LABELS[loc] ?? loc}
-        </button>
+    <select className="login-language" value={locale} onChange={(event) => setLocale(event.target.value)} aria-label="Idioma / Language">
+      {locales.map((value) => (
+        <option key={value} value={value}>{LANGUAGE_LABELS[value] ?? value}</option>
       ))}
-    </p>
+    </select>
   );
 }
 
@@ -234,7 +225,7 @@ export default function LoginPage() {
   const recovery = view === "forgot";
 
   return (
-    <LoginShell accent={selectedRole}>
+    <LoginShell accent={selectedRole} footerControl={<LanguageToggle />}>
       <div className="login-card auth-login-flow">
         {taskKey && !recovery && (
           <div className="login-context" role="note">
@@ -319,7 +310,6 @@ export default function LoginPage() {
         ) : (
           <>
             <h1 className="login-title">{t("login.title")}</h1>
-            <p className="login-sub">{t("login.subtitle")}</p>
 
             <form onSubmit={submit} noValidate className="login-form">
               <label htmlFor="login-email" className="auth-label">
@@ -347,9 +337,14 @@ export default function LoginPage() {
                 />
               </div>
 
-              <label htmlFor="login-password" className="auth-label auth-label--gap">
-                {t("login.labelPassword")}
-              </label>
+              <div className="login-password-label">
+                <label htmlFor="login-password" className="auth-label">
+                  {t("login.labelPassword")}
+                </label>
+                <button type="button" onClick={openForgot} className="auth-forgot">
+                  {t("login.forgot")}
+                </button>
+              </div>
               <div className="auth-field auth-field--md auth-field--reveal">
                 <LockIcon className="auth-field-icon" />
                 <input
@@ -433,11 +428,7 @@ export default function LoginPage() {
                   />
                   <span>{t("login.remember")}</span>
                 </label>
-                <button type="button" onClick={openForgot} className="auth-forgot">
-                  {t("login.forgot")}
-                </button>
               </div>
-              <p className="login-remember-hint">{t("login.rememberHint")}</p>
 
               <button
                 type="submit"
@@ -453,23 +444,24 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="login-actions">
-              <TransitionLink to="/register" className="login-action">
-                {t("login.createAccount")}
-              </TransitionLink>
-              <ContactSupport
-                prompt=""
-                label={t("login.contactLabel")}
-                message={t("login.contactMessage")}
-                className="login-action login-action--help"
-              />
-              <TransitionLink to="/boletas" className="login-action">
-                {t("login.myTickets")}
-              </TransitionLink>
+            <div className="login-secondary">
+              <div className="login-register">
+                <TransitionLink to="/register" className="login-action">
+                  {t("login.createAccount")}
+                </TransitionLink>
+              </div>
+              <div className="login-utility">
+                <TransitionLink to="/boletas" className="login-action">
+                  {t("login.myTickets")}
+                </TransitionLink>
+                <ContactSupport
+                  prompt=""
+                  label={t("login.contactLabel")}
+                  message={t("login.contactMessage")}
+                  className="login-action login-action--help"
+                />
+              </div>
             </div>
-
-            <p className="login-trust">{t("login.trust")}</p>
-            <LanguageToggle />
           </>
         )}
       </div>

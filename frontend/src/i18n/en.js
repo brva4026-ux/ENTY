@@ -8,7 +8,9 @@ export default {
   login: {
     documentTitle: "Enter your panel",
     brandTag: "Professional ticketing, capacity and door control",
-    showcaseLabel: "Enty demo: event, ticket and door scan",
+    showcaseLabel: "Enty",
+    showcaseTitle: "Your event operations in one place",
+    legalLinks: "Terms and privacy",
     roles: {
       admin: {
         label: "Administration",

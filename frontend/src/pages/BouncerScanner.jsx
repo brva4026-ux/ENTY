@@ -42,6 +42,7 @@ import { clearDoorDevice, doorHeaders, getDoorDevice } from "../lib/doorDevice";
 import { Logo } from "../components/Brand";
 import Icon from "../components/Icon";
 import useDocumentTitle from "../lib/useDocumentTitle";
+import { eventZone, formatEventDate } from "../lib/eventTime";
 import { useDialogA11y } from "../lib/useDialogA11y";
 
 const RESULT_RESET_MS = 7000;
@@ -976,6 +977,10 @@ export default function BouncerScanner() {
   }
 
   const selectedEventData = (events ?? []).find((e) => e.id === selectedEvent);
+  const startsAt = selectedEventData?.starts_at;
+  const eventDate = startsAt
+    ? formatEventDate(startsAt, eventZone(selectedEventData), { weekday: undefined, year: undefined, month: "long" })
+    : "";
   const device = context?.device || getDoorDevice(selectedEvent);
   const openIncidents = incidents.filter((i) => i.status !== "resolved").length;
   const authorized = Boolean(
@@ -1003,13 +1008,14 @@ export default function BouncerScanner() {
       <h1 className="sr-only">Control de puerta</h1>
       <header className="door2-top">
         <Logo size="sm" compact />
-        <button type="button" className="door2-event-button" onClick={() => setPanel("shift")}>
-          <span className="door2-kicker">Puerta</span>
-          <strong>{context?.event_name || selectedEventData?.name || "Cargando noche…"}</strong>
-          <span>
-            {[context?.assigned_door || "Sin acceso asignado", user?.full_name].filter(Boolean).join(" · ")}
-          </span>
-        </button>
+        <div className="door2-event-identity">
+          <div className="door2-event-meta">
+            <span className="door2-kicker">Puerta</span>
+            {eventDate && <time dateTime={startsAt}>{eventDate}</time>}
+          </div>
+          <strong>{context?.event_name || selectedEventData?.name || "Cargando evento…"}</strong>
+          {context?.assigned_door && <span className="door2-event-assignment">{context.assigned_door}</span>}
+        </div>
         <button
           type="button"
           className="door2-icon-button"

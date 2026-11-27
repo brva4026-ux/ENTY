@@ -1,12 +1,9 @@
 import { Logo } from "./Brand";
 import { LegalLinks } from "./LegalLinks";
-import Icon from "./Icon";
-import { roleI18nKey, roleIdentity } from "../lib/roles";
+import { roleIdentity } from "../lib/roles";
 import { useI18n } from "../i18n";
 
-const SHOWCASE_ROLES = ["admin", "promotor", "bouncer"];
-
-export function LoginShell({ children, accent = null }) {
+export function LoginShell({ children, accent = null, footerControl }) {
   const { t } = useI18n();
   const activeIdentity = accent ? roleIdentity(accent) : null;
 
@@ -19,35 +16,26 @@ export function LoginShell({ children, accent = null }) {
         <div className="login-showcase-inner">
           <div className="login-showcase-brand">
             <Logo size="lg" />
-            <span className="login-showcase-kicker">{t("login.brandTag")}</span>
           </div>
 
           <div className="login-showcase-copy">
-            <h2>Una boleta. Un ingreso. Un aforo actualizado.</h2>
-            <p>
-              Administración, promotores y puerta trabajan sobre la misma
-              sesión, con permisos reales y datos en vivo.
-            </p>
+            <h2>{t("login.showcaseTitle")}</h2>
+            <p>{t("login.brandTag")}</p>
           </div>
-
-          <ul className="login-showcase-roles" aria-label="Roles de Enty">
-            {SHOWCASE_ROLES.map((role) => {
-              const identity = roleIdentity(role);
-              return (
-                <li key={role}>
-                  <Icon name={identity.icon} className="h-4 w-4" />
-                  {t(`login.roles.${roleI18nKey(role)}.label`)}
-                </li>
-              );
-            })}
-          </ul>
         </div>
       </section>
 
       <main className="login-main">
-        <div className="login-main-inner">{children}</div>
-        <footer className="login-legal">
-          <LegalLinks />
+        <div className="login-main-inner">
+          <div className="login-compact-brand"><Logo animated={false} /></div>
+          {children}
+        </div>
+        <footer className="login-legal login-footer">
+          <details className="login-legal-disclosure">
+            <summary>{t("login.legalLinks")}</summary>
+            <LegalLinks />
+          </details>
+          {footerControl}
         </footer>
       </main>
     </div>

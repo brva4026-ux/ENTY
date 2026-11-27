@@ -12,7 +12,9 @@ export default {
   login: {
     documentTitle: "Entrar a tu panel",
     brandTag: "Boletería profesional, aforo y control de puerta",
-    showcaseLabel: "Demostración de Enty: evento, boleta y escaneo en puerta",
+    showcaseLabel: "Enty",
+    showcaseTitle: "Tu operación, en un solo lugar",
+    legalLinks: "Términos y privacidad",
     roles: {
       admin: {
         label: "Administración",

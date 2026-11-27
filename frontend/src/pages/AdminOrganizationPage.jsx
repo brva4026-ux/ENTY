@@ -13,15 +13,19 @@ import PayoutProfilePanel from "../components/PayoutProfilePanel";
 import { PushToggle } from "../components/PushToggle";
 import { LegalLinks } from "../components/LegalLinks";
 import TransitionLink from "../components/TransitionLink";
+import SectionDisclosure from "../components/SectionDisclosure";
 
-const TABS = [
+const PRIMARY_TABS = [
   { id: "equipo", label: "Equipo" },
   { id: "invitaciones", label: "Invitaciones" },
-  { id: "importar", label: "Importar" },
-  { id: "salida", label: "Salida" },
   { id: "cobros", label: "Cobros" },
   { id: "ajustes", label: "Ajustes" },
 ];
+const MORE_TABS = [
+  { id: "importar", label: "Importar datos" },
+  { id: "salida", label: "Salida de la organización" },
+];
+const TABS = [...PRIMARY_TABS, ...MORE_TABS];
 
 const EMPTY_FORM = {
   name: "",
@@ -125,29 +129,28 @@ export default function AdminOrganizationPage() {
   }
 
   return (
-    <div className="admin-events">
-      <header className="admin-page-head">
+    <div className="admin-events admin-organization-page">
+      <header className="admin-page-head admin-hub-head">
         <div>
-          <p className="eyebrow">Personas y configuración</p>
-          <h1>Organización</h1>
-          <p>
-            Permisos generales del equipo, invitaciones y ajustes del negocio.
-            Las asignaciones de una noche se resuelven dentro de cada evento.
-          </p>
+          <h1>Mi organización</h1>
+          <p>{venue?.name || "Gestiona tu equipo y los ajustes del negocio."}</p>
         </div>
-        <div className="admin-tabs" role="tablist" aria-label="Secciones de Organización">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => selectTab(t.id)}
-              className="admin-tab"
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="admin-hub-navigation">
+          <div className="admin-tabs" role="tablist" aria-label="Secciones de Organización">
+            {PRIMARY_TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
+                onClick={() => selectTab(t.id)}
+                className="admin-tab"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <SectionDisclosure label="Más ajustes" sections={MORE_TABS} selected={tab} onSelect={selectTab} />
         </div>
       </header>
 
