@@ -119,7 +119,6 @@ export default function AdminReportsPage() {
           <div className="admin-report-period">
             <div>
               <h2>Ventas y caja</h2>
-              <p className="admin-note">Cifras de {labelMonth(shownMonth)}</p>
             </div>
             <div className="admin-month-nav">
               <button
@@ -163,22 +162,20 @@ export default function AdminReportsPage() {
               <MoneyCard
                 label="Vendido"
                 value={overview ? money(overview.revenue_cents) : "—"}
-                note={`Boletas vivas de eventos de ${labelMonth(shownMonth)}.`}
+                note="Boletas activas"
               />
               <MoneyCard
                 label="Cobrado"
                 value={overview ? money(overview.collected_cents ?? 0) : "—"}
-                note={`Pagos aprobados en ${labelMonth(shownMonth)}${
-                  overview?.pending_collection_cents
-                    ? ` · ${money(overview.pending_collection_cents)} pendiente`
-                    : ""
-                }.`}
+                note={overview?.pending_collection_cents
+                  ? `${money(overview.pending_collection_cents)} pendiente`
+                  : "Pagos aprobados"}
                 tone="collected"
               />
               <MoneyCard
                 label="Liquidado"
                 value={overview ? money(overview.settled_cents ?? 0) : "—"}
-                note={`Pagos a promotores realizados en ${labelMonth(shownMonth)}.`}
+                note="Pagos a promotores"
                 tone="settled"
               />
             </div>
@@ -190,29 +187,15 @@ export default function AdminReportsPage() {
             onOpenEvent={(id) => navigate(`/admin?event=${id}&tab=resumen`)}
           />
 
-          <div className="grid gap-5 lg:grid-cols-2">
-            <section className="space-y-3" aria-labelledby="cobros-title">
-              <div>
-                <h2 id="cobros-title" className="display text-base">
-                  Cobros por evento
-                </h2>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Enlaces de pago, estado de Wompi y boleta emitida.
-                </p>
-              </div>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <details className="admin-task-details">
+              <summary>Cobros por evento</summary>
               <PaymentsPanel venueId={venueId} events={events} />
-            </section>
-            <section className="space-y-3" aria-labelledby="liquidaciones-title">
-              <div>
-                <h2 id="liquidaciones-title" className="display text-base">
-                  Liquidaciones de promotores
-                </h2>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Comisiones generadas, en disputa y pagadas.
-                </p>
-              </div>
+            </details>
+            <details className="admin-task-details">
+              <summary>Liquidaciones de promotores</summary>
               <PayoutsManager venueId={venueId} users={users} />
-            </section>
+            </details>
           </div>
         </section>
       )}
@@ -225,15 +208,9 @@ export default function AdminReportsPage() {
 
       {tab === "resultados" && (
         <section className="space-y-5" role="tabpanel" aria-label="Puerta y promotores">
-          <div className="card p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="eyebrow">Resultados de la organización</p>
-                <p className="mt-1 text-sm text-zinc-400">
-                  Totales y comparaciones entre noches. La operación de una sola
-                  noche vive dentro de Evento → Accesos.
-                </p>
-              </div>
+          <div className="admin-report-period">
+            <h2>Puerta y promotores</h2>
+
               <div className="admin-month-nav">
                 <button
                   type="button"
@@ -256,7 +233,6 @@ export default function AdminReportsPage() {
                   <Icon name="back" className="h-3.5 w-3.5 rotate-180" />
                 </button>
               </div>
-            </div>
           </div>
           <DoorSection
             venueId={venueId}

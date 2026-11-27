@@ -156,13 +156,6 @@ export default function AdminOrganizationPage() {
 
       {tab === "equipo" && (
         <section className="space-y-4" role="tabpanel" aria-label="Equipo">
-          <div className="admin-panel-card">
-            <h2>Permisos de la organización</h2>
-            <p>
-              Aquí se define quién es administrador, promotor o puerta. El
-              acceso a una noche concreta se asigna en Evento → Equipo.
-            </p>
-          </div>
           <TeamManager venueId={venueId} users={users} onChanged={() => restoreSession()} />
         </section>
       )}
@@ -287,10 +280,6 @@ export default function AdminOrganizationPage() {
           <div className="space-y-4">
             <div className="admin-legal-card">
               <h2>Documentos y consentimientos</h2>
-              <p>
-                Los documentos vigentes que aceptaste como administrador. Las
-                aceptaciones obligatorias se piden antes de operar.
-              </p>
               <LegalLinks />
               <TransitionLink className="admin-inline-link" to="/perfil?tab=cuenta">
                 Ver cuenta y aceptaciones
@@ -298,10 +287,6 @@ export default function AdminOrganizationPage() {
             </div>
             <div className="admin-legal-card">
               <h2>Avisos en el dispositivo</h2>
-              <p>
-                Push para alertas de puerta y recordatorios. La campana interna
-                funciona aunque el push esté apagado.
-              </p>
               <PushToggle venueId={venueId} />
             </div>
             <div className="admin-legal-card">

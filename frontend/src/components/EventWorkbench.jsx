@@ -135,8 +135,8 @@ export default function EventWorkbench({
   } else if (scheduled && diff > 0 && diff < 48 * 60 * 60 * 1000) {
     countdown = "Comienza mañana";
   }
-  const primaryActions = actions.filter((a) => !a.danger && !a.secondary);
-  const secondaryActions = actions.filter((a) => !a.danger && a.secondary);
+  const primaryActions = tab === "resumen" && ev.status !== "ended" ? [] : actions.filter((a) => !a.danger && !a.secondary);
+  const secondaryActions = tab === "resumen" ? [] : actions.filter((a) => !a.danger && a.secondary);
   const cancelAction = actions.find((a) => a.action === "cancel");
   const menuItems = [
     ...(editable

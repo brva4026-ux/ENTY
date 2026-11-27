@@ -1216,21 +1216,25 @@ export default function AdminDashboard() {
               </header>
               <VenueHeader venueId={venueId} user={user} compact />
 
-              {!booting && !eventsError && !q && eventBucket === "todos" && (events?.length ?? 0) > 0 && (
-                <dl className="admin-event-overview" aria-label="Estado de los eventos">
-                  <div data-live={liveEvents.length > 0}>
-                    <dt>En puerta</dt>
-                    <dd>{liveEvents.length}</dd>
-                  </div>
-                  <div>
-                    <dt>Próximos</dt>
-                    <dd>{upcoming.length}</dd>
-                  </div>
-                  <div>
-                    <dt>Borradores</dt>
-                    <dd>{drafts.length}</dd>
-                  </div>
-                </dl>
+              {!booting && !eventsError && !q && (events?.length ?? 0) > 0 && (
+                <div className="admin-event-overview admin-event-shortcuts" role="group" aria-label="Estados de eventos">
+                  {[
+                    ["live", "En puerta", liveEvents.length],
+                    ["published", "Publicados", (events ?? []).filter((event) => event.status === "published").length],
+                    ["draft", "Borradores", drafts.length],
+                  ].map(([status, label, count]) => (
+                    <button
+                      key={status}
+                      type="button"
+                      data-live={status === "live" && count > 0}
+                      aria-pressed={eventBucket === status}
+                      onClick={() => setEventBucket((current) => current === status ? "todos" : status)}
+                    >
+                      <span>{label}</span>
+                      <strong>{count}</strong>
+                    </button>
+                  ))}
+                </div>
               )}
 
               {error && (
@@ -1537,7 +1541,7 @@ export default function AdminDashboard() {
                 onCreated={(ev) => {
                   setCreateOpen(false);
                   setEvents((current) => [...(current ?? []).filter((item) => item.id !== ev.id), ev]);
-                  flyToEvent(ev.id, "ventas");
+                  flyToEvent(ev.id, "resumen");
                 }}
               />
             )}

@@ -14,6 +14,12 @@ export default {
     brandTag: "Boletería profesional, aforo y control de puerta",
     showcaseLabel: "Enty",
     showcaseTitle: "Tu operación, en un solo lugar",
+    registerShowcaseTitle: "Tu próximo evento empieza aquí.",
+    showcaseFeatures: {
+      calendar: "Publica tu evento",
+      ticket: "Vende boletas con QR",
+      qr: "Controla el ingreso y el aforo",
+    },
     legalLinks: "Términos y privacidad",
     roles: {
       admin: {

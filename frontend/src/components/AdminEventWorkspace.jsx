@@ -12,29 +12,25 @@ import SessionsPanel from "./SessionsPanel";
 import BreakEvenPanel from "./BreakEvenPanel";
 import EventExtrasPanel from "./EventExtrasPanel";
 import EventMorePanel, { RsvpSection } from "./EventMorePanel";
-import EventSummary, { SectionContext } from "./EventSummary";
-import { money, plural } from "../lib/format";
+import EventSummary from "./EventSummary";
+import { money } from "../lib/format";
 
 const SALES_VIEWS = [
   {
     id: "boletas",
     label: "Boletas",
-    purpose: "Todas las boletas del evento, con pago, emisor y estado de ingreso.",
   },
   {
     id: "invitados",
     label: "Invitados",
-    purpose: "Cortesías y lista nominal para recibir en puerta.",
   },
   {
     id: "cobros",
     label: "Cobros",
-    purpose: "Dinero cobrado, pagos pendientes y devoluciones de la noche.",
   },
   {
     id: "taquilla",
     label: "Taquilla",
-    purpose: "Venta presencial rápida contra el mismo inventario, con arqueo por cajero.",
   },
 ];
 
@@ -70,7 +66,6 @@ function SalesLedger({
           ))}
         </div>
       </div>
-      <p className="bs-subnav-purpose">{current.purpose}</p>
       <div id={`ventas-${current.id}`} role="tabpanel" aria-label={current.label}>
         {view === "boletas" && (
           <div className="bs-sales-list">
@@ -184,10 +179,6 @@ export default function AdminEventWorkspace({
   if (section === "rentabilidad") {
     return (
       <div className="admin-workspace-panel">
-        <SectionContext
-          ev={ev}
-          next="Registra los costos de la noche y mira cuánto falta vender para cubrirlos."
-        />
         <BreakEvenPanel venueId={venueId} eventId={eventId} ev={ev} />
       </div>
     );
@@ -200,79 +191,45 @@ export default function AdminEventWorkspace({
     const courtesyTickets = (report?.by_type || [])
       .filter((t) => t.is_courtesy)
       .reduce((n, t) => n + (t.issued ?? 0), 0);
-    const activeAllocations = (allocations || []).filter(
-      (a) => a.is_active !== false,
-    );
-
     return (
       <div className="admin-workspace-panel">
-        <SectionContext
-          ev={ev}
-          next="Vende en la ficha pública, reparte cupos a promotores y audita cada boleta."
-        />
-        <div className="admin-panel-card">
-          <h2>Boletas y precios</h2>
-          <p>
-            Define localidades, precios, cortesías y el aforo de cada tipo. El
-            total no puede superar el aforo del evento.
-          </p>
-        </div>
-        <div className="bs-state-grid bs-state-grid--metrics">
-          <div className="bs-metric">
-            <span>Recaudo vigente</span>
-            <strong className="tnum">{report ? money(report.revenue_cents) : "Sin dato"}</strong>
-            <small>Boletas activas e ingresadas.</small>
+        {report && ev.status !== "draft" && (
+          <div className="bs-state-grid bs-state-grid--metrics">
+            <div className="bs-metric">
+              <span>Recaudo vigente</span>
+              <strong className="tnum">{report ? money(report.revenue_cents) : "Sin dato"}</strong>
+              <small>Boletas activas e ingresadas.</small>
+            </div>
+            <div className="bs-metric">
+              <span>Emitidas</span>
+              <strong className="tnum">{report ? report.issued : "Sin dato"}</strong>
+              <small>
+                {report
+                  ? `${Math.max(0, report.capacity - report.issued)} disponibles de ${report.capacity}.`
+                  : "Boletas activas contra el aforo."}
+              </small>
+            </div>
+            <div className="bs-metric">
+              <span>Pagadas</span>
+              <strong className="tnum">{paidTickets ?? "Sin dato"}</strong>
+              <small>Venta pública o directa con medio de pago.</small>
+            </div>
+            <div className="bs-metric">
+              <span>Cortesías emitidas</span>
+              <strong className="tnum">{report ? courtesyTickets : "Sin dato"}</strong>
+              <small>Siempre a $0, con cupo propio.</small>
+            </div>
+            <div className="bs-metric">
+              <span>Anuladas</span>
+              <strong className="tnum" data-tone={report?.voided > 0 ? "warn" : undefined}>
+                {report ? report.voided : "Sin dato"}
+              </strong>
+              <small>
+                {report ? `${report.refunded ?? 0} reembolsadas` : "Sin dato de reembolsos."}
+              </small>
+            </div>
           </div>
-          <div className="bs-metric">
-            <span>Emitidas</span>
-            <strong className="tnum">{report ? report.issued : "Sin dato"}</strong>
-            <small>
-              {report
-                ? `${Math.max(0, report.capacity - report.issued)} disponibles de ${report.capacity}.`
-                : "Boletas activas contra el aforo."}
-            </small>
-          </div>
-          <div className="bs-metric">
-            <span>Pagadas</span>
-            <strong className="tnum">{paidTickets ?? "Sin dato"}</strong>
-            <small>Venta pública o directa con medio de pago.</small>
-          </div>
-          <div className="bs-metric">
-            <span>Cortesías emitidas</span>
-            <strong className="tnum">{report ? courtesyTickets : "Sin dato"}</strong>
-            <small>Siempre a $0, con cupo propio.</small>
-          </div>
-          <div className="bs-metric">
-            <span>Anuladas</span>
-            <strong className="tnum" data-tone={report?.voided > 0 ? "warn" : undefined}>
-              {report ? report.voided : "Sin dato"}
-            </strong>
-            <small>
-              {report ? `${report.refunded ?? 0} reembolsadas` : "Sin dato de reembolsos."}
-            </small>
-          </div>
-        </div>
-        <div className="admin-panel-card">
-          <h2>Cómo se venden las boletas</h2>
-          <ul className="bs-channel-explain">
-            <li>
-              <strong>Venta pública</strong>
-              <span>La ficha del evento vende en línea; el pago se confirma solo.</span>
-            </li>
-            <li>
-              <strong>Emisión por promotores</strong>
-              <span>
-                {activeAllocations.length
-                  ? `${activeAllocations.length} ${plural(activeAllocations.length, "cupo activo", "cupos activos")} en Equipo.`
-                  : "Sin cupos activos: asigna cupos en Equipo."}
-              </span>
-            </li>
-            <li>
-              <strong>Venta directa</strong>
-              <span>El admin emite desde esta pantalla sin consumir cupo de nadie.</span>
-            </li>
-          </ul>
-        </div>
+        )}
         <TypeManager
           key={eventId}
           venueId={venueId}
@@ -285,12 +242,6 @@ export default function AdminEventWorkspace({
           }}
           capacity={ev.capacity}
         />
-        <CouponManager
-          key={`coupons-${eventId}`}
-          venueId={venueId}
-          eventId={eventId}
-          types={types}
-        />
         <SalesLedger
           ev={ev}
           report={report}
@@ -300,6 +251,12 @@ export default function AdminEventWorkspace({
           onChanged={onChanged}
           onError={onError}
         />
+        <CouponManager
+          key={`coupons-${eventId}`}
+          venueId={venueId}
+          eventId={eventId}
+          types={types}
+        />
       </div>
     );
   }
@@ -307,24 +264,9 @@ export default function AdminEventWorkspace({
   if (section === "equipo") {
     return (
       <div className="admin-workspace-panel">
-        <SectionContext
-          ev={ev}
-          next="Asigna puerta y venta, emite enlaces y reparte cupos entre promotores."
-        />
-        <div className="admin-panel-card">
-          <h2>Personal de esta noche</h2>
-          <p>
-            Asigna quién escanea y quién vende. Los permisos generales se
-            administran en Organización; aquí se resuelve la noche.
-          </p>
-        </div>
         <EventTeamPanel venueId={venueId} event={ev} preflight={preflight} />
         <div className="admin-panel-card">
           <h2>Cupos de promotores</h2>
-          <p>
-            Reparte cupos por tipo de boleta. Las ventas directas del admin no
-            consumen cupo de nadie.
-          </p>
           <div className="mt-4">
             <AllocationManager
               venueId={venueId}
@@ -343,10 +285,6 @@ export default function AdminEventWorkspace({
   if (section === "sesiones") {
     return (
       <div className="admin-workspace-panel">
-        <SectionContext
-          ev={ev}
-          next="Agrupa varias fechas en un solo evento y vende un pase que cubre todas."
-        />
         <SessionsPanel venueId={venueId} eventId={eventId} ev={ev} />
       </div>
     );
@@ -354,10 +292,6 @@ export default function AdminEventWorkspace({
   if (section === "acreditaciones") {
     return (
       <div className="admin-workspace-panel">
-        <SectionContext
-          ev={ev}
-          next="Entrega pases de prensa, artistas y producción con su propia vigencia y zona."
-        />
         <AccreditationsPanel venueId={venueId} eventId={eventId} ev={ev} />
       </div>
     );
@@ -366,10 +300,6 @@ export default function AdminEventWorkspace({
   if (section === "operacion") {
     return (
       <div className="admin-workspace-panel">
-        <SectionContext
-          ev={ev}
-          next="Transporte, plano, turnos, órdenes, equipos, hitos, documentos, reventa y pronóstico."
-        />
         <EventExtrasPanel venueId={venueId} eventId={eventId} types={types} />
         <EventMorePanel venueId={venueId} eventId={eventId} types={types} />
       </div>

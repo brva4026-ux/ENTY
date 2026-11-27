@@ -10,6 +10,12 @@ export default {
     brandTag: "Professional ticketing, capacity and door control",
     showcaseLabel: "Enty",
     showcaseTitle: "Your event operations in one place",
+    registerShowcaseTitle: "Your next event starts here.",
+    showcaseFeatures: {
+      calendar: "Publish your event",
+      ticket: "Sell tickets with QR codes",
+      qr: "Manage entry and capacity",
+    },
     legalLinks: "Terms and privacy",
     roles: {
       admin: {

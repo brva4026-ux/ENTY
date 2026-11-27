@@ -1,6 +1,7 @@
 import TransitionLink from "./TransitionLink";
 import Icon from "./Icon";
-import EventCover, { eventFullDate, eventHook } from "./EventCover";
+import EventCover, { eventFullDate } from "./EventCover";
+import ActionMenu from "./ActionMenu";
 import { formatEventTime, isPastEvent, isStaleLive, eventZone } from "../lib/eventTime";
 import { money } from "../lib/format";
 
@@ -38,25 +39,23 @@ export default function AdminEventCard({
     ev.status === "ended" ||
     ev.status === "cancelled" ||
     (ev.status === "published" && past);
-  const sold = stat?.active ?? null;
-  const redeemed = stat?.redeemed ?? null;
-  const capacity = ev.capacity ?? 0;
-  const pctSold = sold !== null && capacity > 0 ? Math.round((sold / capacity) * 100) : null;
-  const pctIn = redeemed !== null && capacity > 0 ? Math.round((redeemed / capacity) * 100) : null;
-  const capacityLabel = capacity > 0 ? capacity : "—";
   const tz = eventZone(ev);
-  const primaryLabel = live
-    ? "Ver puerta"
-    : ev.status === "draft"
-      ? "Continuar borrador"
-      : history
-        ? "Ver resumen"
-        : "Gestionar evento";
-  const primaryTab = live ? "accesos" : "resumen";
+  const primaryLabel = ev.status === "draft" ? "Continuar borrador" : "Abrir evento";
+  const menu = history ? [] : actions
+    .filter((item) => !item.danger && (item.action !== "end" || staleLive))
+    .map(({ action }) => ({
+      key: action,
+      ...(ACTION[action] ?? { label: action, icon: "bolt" }),
+      onClick: () => onAction(ev, action),
+    }));
 
+  if (canDelete) {
+    menu.push({ key: "delete", label: "Eliminar evento", icon: "trash", danger: true, onClick: () => onDelete(ev) });
+  }
   return (
     <article
       className={`admin-event-card evx-card ${live ? "is-live" : ""} ${past && !live ? "is-past" : ""}`}
+      data-compact="true"
       data-status={ev.status}
       data-event-id={ev.id}
     >
@@ -66,7 +65,7 @@ export default function AdminEventCard({
         className="admin-card-link"
         aria-label={`Abrir ${ev.name}`}
       />
-      <EventCover ev={ev} />
+      <EventCover ev={ev} showTime={false} />
 
       <div className="admin-event-body">
         <div className="admin-event-topline">
@@ -85,133 +84,29 @@ export default function AdminEventCard({
         </div>
 
         <h3 className="admin-event-title">{ev.name}</h3>
-        {eventHook(ev) && <p className="admin-event-hook">{eventHook(ev)}</p>}
 
         <p className="admin-event-meta">
-          <span>
-            <Icon name="ticket" className="h-3 w-3" />
-            {ev.category || "Sin categoría"}
-          </span>
-          <span>
-            <Icon name="calendar" className="h-3 w-3" />
-            {eventFullDate(ev)}
-          </span>
-          <span>
-            <Icon name="clock" className="h-3 w-3" />
-            {formatEventTime(ev.starts_at, tz)}
-          </span>
-          <span>
-            <Icon name="door" className="h-3 w-3" />
-            {ev.location || "Lugar por confirmar"}
-          </span>
+          {ev.starts_at && <span><span className="sr-only">{eventFullDate(ev)} · </span>{formatEventTime(ev.starts_at, tz)}</span>}
+          {(ev.location || ev.venue_name) && <span>{ev.location || ev.venue_name}</span>}
         </p>
 
         <div className="admin-event-stats">
-          <Stat label="Recaudo" value={stat ? money(stat.revenue_cents) : "…"} />
-          {live ? (
-            <>
-              <Stat
-                label="Ingresaron"
-                value={
-                  redeemed !== null ? (
-                    <>
-                      {redeemed}
-                      <span className="text-[10px] font-semibold text-[var(--admin-muted)]">
-                        /{capacityLabel}
-                      </span>
-                    </>
-                  ) : (
-                    "…"
-                  )
-                }
-                live={(redeemed ?? 0) > 0}
-              />
-              <Stat label="Aforo" value={pctIn !== null ? `${pctIn}%` : "—"} />
-            </>
+          {ev.status === "draft" ? (
+            <Stat label="Aforo" value={ev.capacity ?? "—"} />
           ) : (
             <>
-              <Stat
-                label="Vendidas"
-                value={
-                  sold !== null ? (
-                    <>
-                      {sold}
-                      <span className="text-[10px] font-semibold text-[var(--admin-muted)]">
-                        /{capacityLabel}
-                      </span>
-                    </>
-                  ) : (
-                    "…"
-                  )
-                }
-              />
-              <Stat label="Entraron" value={redeemed ?? "…"} />
-              <Stat label="Aforo" value={pctSold !== null ? `${pctSold}%` : "—"} />
+              <Stat label={live ? "Ingresos" : "Boletas"} value={(live ? stat?.redeemed : stat?.active) ?? "—"} live={live} />
+              <Stat label="Recaudo" value={stat ? money(stat.revenue_cents) : "—"} />
+              {live && stat?.duplicates > 0 && <Stat label="Alertas" value={stat.duplicates} />}
             </>
-          )}
-          {stat?.duplicates > 0 && (
-            <Stat label="Alertas" value={stat.duplicates} />
           )}
         </div>
 
-        <div className="admin-event-actions">
-          <TransitionLink
-            to={`/admin?event=${ev.id}&tab=${primaryTab}`}
-            className={live ? "btn-primary" : "admin-link-action"}
-            onClick={onOpen}
-          >
-            {primaryLabel}
-            <Icon name="arrowRight" className="h-3 w-3" />
-          </TransitionLink>
-          {live && (
-            <TransitionLink
-              to={`/admin?event=${ev.id}&tab=resumen`}
-              className="btn-mini"
-              onClick={onOpen}
-            >
-              Gestionar evento
-            </TransitionLink>
-          )}
-          {!live && ev.status !== "draft" && (
-            <TransitionLink
-              to={`/admin?event=${ev.id}&tab=accesos`}
-              className="btn-mini"
-            >
-              Ver puerta
-            </TransitionLink>
-          )}
-          {!history &&
-            ev.status !== "ended" &&
-            ev.status !== "cancelled" &&
-            actions
-              .filter((a) => !a.danger && (a.action !== "end" || staleLive))
-              .map(({ action }) => {
-              const meta = ACTION[action] ?? { label: action, icon: "bolt" };
-              const busy = busyAction === `${action}-${ev.id}`;
-              return (
-                <button
-                  key={action}
-                  type="button"
-                  onClick={() => onAction?.(ev, action)}
-                  disabled={Boolean(busyAction)}
-                  className="btn-mini"
-                  data-variant={action === "end" ? "danger" : "brand"}
-                >
-                  {busy ? "…" : meta.label}
-                </button>
-              );
-            })}
-          {canDelete && (
-            <button
-              type="button"
-              onClick={() => onDelete?.(ev)}
-              className="btn-mini ml-auto"
-              data-variant="danger"
-              aria-label={`Eliminar ${ev.name}`}
-            >
-              <Icon name="trash" className="h-3 w-3" />
-            </button>
-          )}
+        <div className="admin-event-card-footer">
+          <span className="admin-event-card-open" aria-hidden="true">
+            {primaryLabel}<Icon name="arrowRight" className="h-4 w-4" />
+          </span>
+          <ActionMenu className="admin-event-card-menu" label={`Acciones de ${ev.name}`} items={menu} busy={Boolean(busyAction)} />
         </div>
       </div>
     </article>

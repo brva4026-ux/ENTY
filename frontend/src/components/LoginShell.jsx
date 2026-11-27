@@ -1,7 +1,10 @@
 import { EntySymbol, Logo } from "./Brand";
 import { LegalLinks } from "./LegalLinks";
+import Icon from "./Icon";
 import { roleIdentity } from "../lib/roles";
 import { useI18n } from "../i18n";
+
+const FEATURES = ["calendar", "ticket", "qr"];
 
 export function LoginShell({ children, accent = null, footerControl, registration = false }) {
   const { t } = useI18n();
@@ -19,13 +22,16 @@ export function LoginShell({ children, accent = null, footerControl, registratio
           </div>
 
           <div className="login-showcase-copy">
-            <h2>{registration ? "Organiza tu próximo evento." : t("login.showcaseTitle")}</h2>
-            <p>{registration ? "Publica tu fecha, distribuye boletas y controla el aforo con Enty." : t("login.brandTag")}</p>
+            <h2>{registration ? t("login.registerShowcaseTitle") : t("login.showcaseTitle")}</h2>
           </div>
-          <div className="entry-product-preview" aria-hidden="true">
-            <img src="/media/enty-puerta.webp" alt="" width="420" height="747" loading="lazy" />
-            <img src="/media/enty-aforo.webp" alt="" width="420" height="747" loading="lazy" />
-          </div>
+          <ul className="entry-feature-list">
+            {FEATURES.map((feature) => (
+              <li key={feature}>
+                <span className="entry-feature-icon"><Icon name={feature} className="h-5 w-5" aria-hidden="true" /></span>
+                {t(`login.showcaseFeatures.${feature}`)}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 

@@ -73,7 +73,7 @@ test("el clic en una tarjeta de evento abre su backstage", async ({
   // --- CAPA 2: el clic navega y monta el backstage -----------------------
   await card.click();
   await expect(page).toHaveURL(/\/admin\?event=\d+/, { timeout: 10_000 });
-  await expect(page.getByText("Backstage del evento")).toBeVisible();
+  await expect(page.locator(".bs-head").getByRole("heading", { level: 1 })).toBeVisible();
   await expect(
     page.getByRole("tab", { name: "Resumen", selected: true }),
   ).toBeVisible();

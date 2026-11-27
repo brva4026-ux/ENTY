@@ -165,34 +165,22 @@ function CopyPublicLink({ path }) {
 
 function DraftState({ ev, types, busyAction, onAction, onSection, onEdit }) {
   const activeTypes = (types || []).filter((t) => t.is_active !== false);
+  const hasTickets = activeTypes.length > 0;
+  const hasPublicDetails = Boolean(ev.description?.trim() && ev.location?.trim());
   const steps = [
     {
-      ok: Boolean(ev.location?.trim()),
-      label: "Fecha y lugar",
-      detail: ev.location
-        ? `${eventFullDate(ev)} · ${ev.location}`
-        : "Falta confirmar el lugar de la noche.",
-      action: onEdit,
-      actionLabel: "Editar",
-    },
-    {
-      ok: activeTypes.length > 0,
-      label: "Tipos de boleta",
-      detail: activeTypes.length
-        ? `${activeTypes.length} ${plural(activeTypes.length, "localidad activa", "localidades activas")} · aforo ${ev.capacity}`
-        : "Todavía no hay una localidad para vender.",
-      action: () => onSection("ventas"),
-      actionLabel: "Configurar",
-    },
-    {
-      ok: Boolean(ev.description?.trim()) && Boolean(ev.location?.trim()),
+      ok: hasPublicDetails,
       label: "Ficha pública",
-      detail:
-        ev.description?.trim() && ev.location?.trim()
-          ? "Descripción y lugar listos para publicar."
-          : "Completa la descripción y el lugar para que la ficha explique la noche.",
+      detail: hasPublicDetails ? ev.location : "Completa el lugar y la descripción.",
       action: onEdit,
-      actionLabel: "Revisar",
+      actionLabel: "Editar ficha",
+    },
+    {
+      ok: hasTickets,
+      label: "Tipos de boleta",
+      detail: hasTickets ? `${activeTypes.length} ${plural(activeTypes.length, "localidad activa", "localidades activas")}` : "Falta crear una localidad.",
+      action: hasTickets ? () => onSection("ventas") : undefined,
+      actionLabel: "Configurar",
     },
   ];
 
@@ -200,30 +188,22 @@ function DraftState({ ev, types, busyAction, onAction, onSection, onEdit }) {
     <section className="bs-state" data-state="draft" aria-labelledby="bs-state-title">
       <div className="bs-state-head">
         <div>
-          <p className="bs-stage">Borrador</p>
           <h2 id="bs-state-title">Prepara tu evento</h2>
-          <p>
-            Revisa lo esencial antes de publicar. Al hacerlo, la ficha queda
-            visible y los promotores con cupo pueden emitir boletas.
-          </p>
         </div>
         <div className="bs-state-actions">
+          {!hasTickets && (
+            <button type="button" className="btn-primary bs-primary" onClick={() => onSection("ventas")}>
+              Configurar boletas
+            </button>
+          )}
           <button
             type="button"
-            className="btn-primary bs-primary"
+            className={hasTickets ? "btn-primary bs-primary" : "bs-secondary"}
             onClick={() => onAction("publish")}
             disabled={busyAction === "publish"}
           >
             {busyAction === "publish" ? "Publicando…" : "Revisar y publicar"}
           </button>
-          <a
-            className="bs-secondary"
-            href={`/evento/${ev.id}?preview=1`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Abrir vista previa
-          </a>
         </div>
       </div>
       <ul className="admin-check-list bs-check-list">

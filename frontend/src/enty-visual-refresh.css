@@ -1200,14 +1200,7 @@
 
 /* Entradas de Enty. */
 .entry-page .login-showcase {
-  background: var(--e-ink-950) url("/media/login-bg-poster.jpg") center / cover no-repeat;
-}
-
-.entry-page .login-showcase::before {
-  position: absolute;
-  inset: 0;
-  background: color-mix(in srgb, var(--e-ink-950) 58%, transparent);
-  content: "";
+  background: color-mix(in srgb, var(--e-ink-950) 82%, var(--e-violet-700));
 }
 
 .entry-page .login-showcase-inner {
@@ -1222,34 +1215,34 @@
   text-wrap: balance;
 }
 
-.entry-page .login-showcase-copy p {
-  max-width: 38ch;
-  color: color-mix(in srgb, var(--e-white) 84%, transparent);
-}
-
-.entry-product-preview {
+.entry-feature-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+  max-width: 24rem;
+  margin: 0;
+  padding: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--e-violet-250) 54%, transparent);
+  list-style: none;
+}
+
+.entry-feature-list li {
+  display: flex;
+  align-items: center;
   gap: var(--e-space-3);
-  max-width: 26rem;
-  max-height: clamp(12rem, 31vh, 23rem);
-  padding: var(--e-space-3) var(--e-space-3) 0;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--e-white) 30%, transparent);
-  border-radius: var(--e-radius-xl);
-  background: color-mix(in srgb, var(--e-ink-950) 77%, transparent);
+  padding-block: var(--e-space-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--e-violet-250) 25%, transparent);
+  color: var(--e-white);
+  font-size: var(--e-text-sm);
 }
 
-.entry-product-preview img {
-  width: 100%;
-  height: auto;
-  border: 1px solid color-mix(in srgb, var(--e-white) 20%, transparent);
-  border-radius: var(--e-radius-md);
-}
-
-.entry-product-preview img:nth-child(2) {
-  margin-top: var(--e-space-3);
+.entry-feature-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--e-radius-sm);
+  background: color-mix(in srgb, var(--e-violet-250) 17%, transparent);
+  color: var(--e-violet-250);
 }
 
 .entry-page .login-main {
@@ -1409,7 +1402,7 @@
     min-height: 4rem;
     padding: var(--e-space-2) var(--e-space-4);
     border-radius: var(--e-radius-lg);
-    background: var(--e-ink-950) url("/media/login-bg-poster.jpg") 50% 35% / cover no-repeat;
+    background: color-mix(in srgb, var(--e-ink-950) 58%, var(--e-violet-700));
     color: var(--e-white);
   }
 
@@ -1422,5 +1415,111 @@
     z-index: -1;
     inset-inline-end: var(--e-space-1);
     color: color-mix(in srgb, var(--e-violet-250) 38%, transparent);
+  }
+}
+
+.admin-event-shortcuts > button {
+  display: grid;
+  gap: var(--e-space-1);
+  min-width: 0;
+  padding: var(--e-space-2);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--e-radius-md);
+  background: var(--admin-surface);
+  text-align: start;
+}
+
+.admin-event-shortcuts > button[aria-pressed="true"] {
+  border-color: var(--admin-accent-ink);
+  background: var(--admin-accent-soft);
+}
+
+.admin-event-shortcuts > button span {
+  color: var(--admin-muted);
+  font-size: var(--e-text-2xs);
+  overflow-wrap: anywhere;
+}
+
+.admin-event-shortcuts > button strong {
+  color: var(--admin-ink);
+  font-size: var(--e-text-xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-event-shortcuts > button[data-live="true"] strong {
+  color: var(--admin-live);
+}
+
+.admin-event-card[data-compact="true"] {
+  grid-template-columns: minmax(0, 6rem) minmax(0, 1fr);
+  min-height: 0;
+  overflow: visible;
+}
+
+.admin-event-card[data-compact="true"] > .admin-cover {
+  border-start-start-radius: inherit;
+  border-end-start-radius: inherit;
+}
+
+.admin-event-card[data-compact="true"]:has(.admin-event-card-menu button[aria-expanded="true"]) {
+  z-index: 5;
+}
+
+.admin-event-card[data-compact="true"] .admin-event-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.admin-event-card-footer {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-space-2);
+  margin-top: var(--e-space-2);
+  border-top: 1px solid var(--admin-line);
+}
+
+.admin-event-card-open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-space-1);
+  color: var(--admin-accent-ink);
+  font-size: var(--e-text-2xs);
+  font-weight: 700;
+}
+
+.admin-event-card-menu {
+  z-index: 2;
+}
+
+.admin-event-card-menu > button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.admin-task-details {
+  min-width: 0;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--e-radius-lg);
+  background: var(--admin-surface);
+}
+
+.admin-task-details > summary {
+  align-content: center;
+  min-height: 48px;
+  padding: var(--e-space-2) var(--e-space-3);
+  color: var(--admin-ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-task-details[open] > summary {
+  border-bottom: 1px solid var(--admin-line);
+}
+
+@media (width <= 480px) {
+  .admin-event-card[data-compact="true"] {
+    grid-template-columns: minmax(0, 4.75rem) minmax(0, 1fr);
   }
 }

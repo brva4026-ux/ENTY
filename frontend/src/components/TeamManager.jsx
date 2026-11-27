@@ -745,54 +745,6 @@ export default function TeamManager({ venueId, users, onChanged }) {
 
   return (
     <div className="space-y-4">
-      {/* Resumen ejecutivo */}
-      {stats && (
-        <div className="card">
-          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-800/80 px-5 py-4">
-            <div>
-              <p className="eyebrow">Resumen del equipo</p>
-              <h3 className="display mt-0.5 text-lg">
-                Quién hace qué — y qué tan bien
-              </h3>
-            </div>
-            <p className="text-xs text-zinc-500">
-              Últimos {stats.days_window} días
-            </p>
-          </div>
-          <div className="grid grid-cols-2 divide-zinc-800/80 sm:grid-cols-4 sm:divide-x">
-            <div className="px-2 py-2 text-center">
-              <p className="text-xs text-zinc-500">Miembros activos</p>
-              <p className="tnum display mt-0.5 text-2xl text-ink">
-                {stats.active_members}
-                <span className="text-base text-zinc-600">
-                  /{stats.total_members}
-                </span>
-              </p>
-            </div>
-            <div className="px-2 py-2 text-center">
-              <p className="text-xs text-zinc-500">Promotores</p>
-              <p className="tnum display mt-0.5 text-2xl text-ink">
-                {stats.promoters_active}
-              </p>
-            </div>
-            <div className="px-2 py-2 text-center">
-              <p className="text-xs text-zinc-500">Porteros</p>
-              <p className="tnum display mt-0.5 text-2xl text-ink">
-                {stats.bouncers_active}
-              </p>
-            </div>
-            <div className="px-2 py-2 text-center">
-              <p className="text-xs text-zinc-500">Entraron a trabajar</p>
-              <p
-                className={`tnum display mt-0.5 text-2xl ${stats.active_in_window === 0 ? "text-amber-400" : "text-emerald-400"}`}
-              >
-                {stats.active_in_window}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Cabecera de accesos: buscador + alta (patrón distri-stream) */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-52 flex-1">
@@ -806,6 +758,8 @@ export default function TeamManager({ venueId, users, onChanged }) {
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
         </div>
         <button
+          type="button"
+          aria-expanded={addOpen}
           onClick={() => setAddOpen((v) => !v)}
           className="btn-primary inline-flex items-center gap-1.5 whitespace-nowrap"
         >
@@ -813,6 +767,78 @@ export default function TeamManager({ venueId, users, onChanged }) {
           Nuevo usuario
         </button>
       </div>
+
+      {/* Alta de personal */}
+      {addOpen && (
+        <div className="card p-5">
+          <div className="mb-3">
+            <h3 className="display mt-0.5 text-base">Agregar al equipo</h3>
+          </div>
+          {err && <p className="mb-2 text-xs text-red-400">{err}</p>}
+          <form
+            onSubmit={createUser}
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+          >
+            <input
+              aria-label="Nombre completo"
+              value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              className="field"
+              placeholder="Nombre completo"
+              required
+            />
+            {/* Selector con icono del rol: la intención se ve antes de guardar */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {["promotor", "bouncer", "admin"].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setForm({ ...form, role: r })}
+                  aria-pressed={form.role === r}
+                  className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-bold transition-colors ${
+                    form.role === r
+                      ? "border-zinc-500 bg-zinc-800 text-ink"
+                      : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700"
+                  }`}
+                >
+                  <IconRole
+                    role={r}
+                    className={`h-3.5 w-3.5 ${ROLE_META[r].tabAccent}`}
+                  />
+                  {ROLE_META[r].label}
+                </button>
+              ))}
+            </div>
+            <input
+              aria-label="Correo de la persona"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="field"
+              type="email"
+              placeholder="correo@ejemplo.com"
+              required
+            />
+            <input
+              aria-label="Contraseña inicial"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="field"
+              type="password"
+              placeholder="Contraseña (mín. 8)"
+              minLength={8}
+              maxLength={128}
+              required
+            />
+            {form.password && <PasswordMeter value={form.password} />}
+            <button type="submit" disabled={busy} className="btn-primary col-span-full">
+              {busy ? "Creando…" : "Crear usuario"}
+            </button>
+            <p className="col-span-full text-xs text-zinc-500">
+              Si el correo ya existe, solo se le agrega el rol en esta venue.
+            </p>
+          </form>
+        </div>
+      )}
 
       {/* Pestañas por rol con icono + contador (patrón distri-stream) */}
       <div className="card p-5">
@@ -894,77 +920,42 @@ export default function TeamManager({ venueId, users, onChanged }) {
         )}
       </div>
 
-      {/* Alta de personal */}
-      {addOpen && (
-        <div className="card p-5">
-          <div className="mb-3">
-            <p className="eyebrow">Personal</p>
-            <h3 className="display mt-0.5 text-base">Agregar al equipo</h3>
-          </div>
-          {err && <p className="mb-2 text-xs text-red-400">{err}</p>}
-          <form
-            onSubmit={createUser}
-            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-          >
-            <input
-              aria-label="Nombre completo"
-              value={form.full_name}
-              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              className="field"
-              placeholder="Nombre completo"
-              required
-            />
-            {/* Selector con icono del rol: la intención se ve antes de guardar */}
-            <div className="grid grid-cols-3 gap-1.5">
-              {["promotor", "bouncer", "admin"].map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setForm({ ...form, role: r })}
-                  aria-pressed={form.role === r}
-                  className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-bold transition-colors ${
-                    form.role === r
-                      ? "border-zinc-500 bg-zinc-800 text-ink"
-                      : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700"
-                  }`}
-                >
-                  <IconRole
-                    role={r}
-                    className={`h-3.5 w-3.5 ${ROLE_META[r].tabAccent}`}
-                  />
-                  {ROLE_META[r].label}
-                </button>
-              ))}
+      {/* Resumen ejecutivo */}
+      {stats && (
+        <details className="admin-task-details">
+          <summary>Actividad del equipo · últimos {stats.days_window} días</summary>
+          <div className="grid grid-cols-2 divide-zinc-800/80 sm:grid-cols-4 sm:divide-x">
+            <div className="px-2 py-2 text-center">
+              <p className="text-xs text-zinc-500">Miembros activos</p>
+              <p className="tnum display mt-0.5 text-2xl text-ink">
+                {stats.active_members}
+                <span className="text-base text-zinc-600">
+                  /{stats.total_members}
+                </span>
+              </p>
             </div>
-            <input
-              aria-label="Correo de la persona"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="field"
-              type="email"
-              placeholder="correo@ejemplo.com"
-              required
-            />
-            <input
-              aria-label="Contraseña inicial"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="field"
-              type="password"
-              placeholder="Contraseña (mín. 8)"
-              minLength={8}
-              maxLength={128}
-              required
-            />
-            {form.password && <PasswordMeter value={form.password} />}
-            <button type="submit" disabled={busy} className="btn-primary col-span-full">
-              {busy ? "Creando…" : "Crear usuario"}
-            </button>
-            <p className="col-span-full text-xs text-zinc-500">
-              Si el correo ya existe, solo se le agrega el rol en esta venue.
-            </p>
-          </form>
-        </div>
+            <div className="px-2 py-2 text-center">
+              <p className="text-xs text-zinc-500">Promotores</p>
+              <p className="tnum display mt-0.5 text-2xl text-ink">
+                {stats.promoters_active}
+              </p>
+            </div>
+            <div className="px-2 py-2 text-center">
+              <p className="text-xs text-zinc-500">Porteros</p>
+              <p className="tnum display mt-0.5 text-2xl text-ink">
+                {stats.bouncers_active}
+              </p>
+            </div>
+            <div className="px-2 py-2 text-center">
+              <p className="text-xs text-zinc-500">Entraron a trabajar</p>
+              <p
+                className={`tnum display mt-0.5 text-2xl ${stats.active_in_window === 0 ? "text-amber-400" : "text-emerald-400"}`}
+              >
+                {stats.active_in_window}
+              </p>
+            </div>
+          </div>
+        </details>
       )}
     </div>
   );
