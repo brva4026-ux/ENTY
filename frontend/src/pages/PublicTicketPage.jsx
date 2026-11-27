@@ -257,52 +257,17 @@ export default function PublicTicketPage() {
   return (
     <div className="tkt-stage">
       <div className="tkt-wrap">
-        {/* El ticket: pase de festival de papel negro con acentos neon */}
         <div className="tkt">
           <div className="tkt-head">
             <div className="tkt-brand-lock">
               <EntySymbol size={28} className="tkt-mark" />
               <span>Enty</span>
             </div>
-            <p className="tkt-connect">
-              Music
-              <br />
-              Connects
-              <br />
-              Us<span className="tkt-arw">↗</span>
-            </p>
           </div>
 
           <div className="tkt-hero">
-            <svg
-              className="tkt-orbit"
-              viewBox="0 0 430 190"
-              aria-hidden="true"
-              preserveAspectRatio="xMidYMid meet"
-            >
-              <ellipse
-                cx="215"
-                cy="95"
-                rx="205"
-                ry="58"
-                fill="none"
-                stroke="#00E6AB"
-                strokeWidth="1.6"
-                opacity="0.8"
-                transform="rotate(-7 215 95)"
-              />
-              <path
-                d="M360 24 l6 15 15 6 -15 6 -6 15 -6 -15 -15 -6 15 -6 z"
-                fill="#00E6AB"
-                className="tkt-orbit-star"
-              />
-            </svg>
-            <p className="tkt-kicker">Festival</p>
+            <p className="tkt-kicker">Tu entrada</p>
             <h1 className="tkt-title">{ticket?.event_name ?? "Tu boleta"}</h1>
-            <p className="tkt-tags">
-              Music / Art / Nature
-              <span className="tkt-one">One Night</span>
-            </p>
           </div>
 
           <div className="tkt-body">

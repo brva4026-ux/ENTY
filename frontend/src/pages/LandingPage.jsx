@@ -541,43 +541,41 @@ export default function LandingPage() {
       </nav>
 
       <div className="lp-wrap">
-        {/* --- Marca: logotipo centrado + qué es Enty ------------------- */}
         <header className="lp-brand">
           <Logo size="lg" />
-          <p className="lp-brand-tag">Boletería, aforo y control de puerta</p>
+          <nav className="lp-header-links" aria-label="Navegación principal">
+            <TransitionLink to="/inicio">Ver eventos</TransitionLink>
+            <TransitionLink to="/login">Iniciar sesión</TransitionLink>
+          </nav>
         </header>
 
         <main id="lp-contenido">
-          {/* --- Titular: qué hace Enty y qué gana quien lo usa --------- */}
           <section className="lp-hero" aria-labelledby="lp-title">
-            <h1 id="lp-title" className="lp-title">
-              Tu evento, tus boletas y tu puerta,{" "}
-              <span className="lp-title-accent">en un solo panel.</span>
-            </h1>
-            <p className="lp-lede">
-              Publica la cartelera, reparte cupos entre promotores, emite boletas
-              con QR y valida cada ingreso desde el celular. Ventas y aforo se
-              actualizan en vivo, sin cuadernos ni listas en papel.
-            </p>
-
-            <div className="lp-cta">
-              {/* La portada solo llevaba a /login: quien quería abrir su
-                  cuenta no tenía puerta de entrada al registro (existía, pero
-                  no se anunciaba). Ahora el registro es la acción principal y
-                  el ingreso la secundaria; "Explorar" baja a las funciones. */}
-              <TransitionLink to="/register" className="lp-btn lp-btn-primary">
-                Crear cuenta
-              </TransitionLink>
-              <TransitionLink to="/login" className="lp-btn lp-btn-secondary">
-                Iniciar sesión
-              </TransitionLink>
-              <a
-                href="#funciones"
-                className="lp-btn lp-btn-ghost"
-                onClick={(e) => scrollToSection(e, "funciones")}
-              >
-                Explorar Enty
-              </a>
+            <div className="lp-hero-copy">
+              <p className="lp-brand-tag">Boletería y aforo para organizadores</p>
+              <h1 id="lp-title" className="lp-title">
+                Vende boletas. <span className="lp-title-accent">Controla la puerta.</span>
+              </h1>
+              <p className="lp-lede">
+                Publica tu evento, valida entradas con QR desde el celular y
+                consulta el aforo en vivo.
+              </p>
+              <div className="lp-cta">
+                <TransitionLink to="/register" className="lp-btn lp-btn-primary">
+                  Crear cuenta
+                </TransitionLink>
+                <a
+                  href="#funciones"
+                  className="lp-btn lp-btn-secondary"
+                  onClick={(e) => scrollToSection(e, "funciones")}
+                >
+                  Explorar Enty
+                </a>
+              </div>
+            </div>
+            <div className="lp-hero-preview">
+              <img src="/media/enty-puerta.webp" width="420" height="747" fetchPriority="high" alt="Demostración de una entrada validada en puerta" />
+              <img src="/media/enty-aforo.webp" width="420" height="747" alt="Panel que muestra el aforo actualizado" />
             </div>
           </section>
 

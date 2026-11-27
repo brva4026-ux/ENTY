@@ -63,7 +63,6 @@ function isToday(iso) {
  * primer scroll (el sitio más caro de la página) diciendo dos veces lo mismo
  * era puro ruido. La banda habla de lo que el catálogo *ofrece*; las ciudades
  * con oferta real se añaden en el render, que sí es información nueva. */
-const TICKER_TRUST = ["Aforo en vivo", "Entrada con QR", "Cortesías", "Pago seguro"];
 
 /** Fecha corta del evento, en su zona horaria: "Vie 24 oct". */
 function shortDate(iso, tz) {
@@ -164,41 +163,6 @@ function Star({ size = 8, color = "#8B5CF6" }) {
  *  visible del hero; en su lugar va un dato útil (la categoría). */
 const SOLD_ALERT_PCT = 70;
 
-/**
- * Anillo de aforo del destacado. Solo se pinta cuando el % ya es una señal
- * ("casi lleno"); con el aforo bajo el hero muestra otra cosa.
- *
- * Es una PIEZA cuadrada de 100×100, no un lienzo a sangre: antes el SVG se
- * estiraba al ancho de la tarjeta y en escritorio el "VENDIDO" salía a 70px,
- * desbordado y encima del titular. El tamaño lo fija el CSS.
- */
-function SoldRing({ pct }) {
-  const r = 43;
-  const c = 2 * Math.PI * r;
-  const shown = Math.max(0, Math.min(100, pct ?? 0));
-  return (
-    <svg className="home-ring" viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r={r} fill="none" stroke="var(--e-white)" strokeOpacity="0.16" strokeWidth="3" />
-      <circle
-        cx="50"
-        cy="50"
-        r={r}
-        fill="none"
-        stroke="var(--e-violet-250)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeDasharray={`${(shown / 100) * c} ${c}`}
-        transform="rotate(-90 50 50)"
-      />
-      <text x="50" y="53" textAnchor="middle" fontSize="25" fontWeight="300" fill="var(--e-white)" letterSpacing="-1">
-        {shown}%
-      </text>
-      <text x="50" y="68" textAnchor="middle" fontSize="11" fill="var(--e-violet-200)" letterSpacing="1.4">
-        VENDIDO
-      </text>
-    </svg>
-  );
-}
 
 /** Iconos de las categorias (circulares, trazo fino como la barra inferior). */
 function CatIcon({ name }) {
@@ -554,15 +518,6 @@ export default function HomePage({ explorar = false }) {
     (hidden.categories.length ? 1 : 0) +
     (hidden.cities.length ? 1 : 0);
 
-  // La banda cinética: sellos de confianza + las ciudades con oferta real
-  // (dato que no está en ningún otro sitio del primer scroll).
-  const tickerWords = useMemo(
-    () => [...TICKER_TRUST, ...cities.slice(0, 4).map(([name]) => name)],
-    [cities],
-  );
-
-  // El anillo solo aparece cuando el aforo ya es una señal; si no, el hero
-  // muestra la categoría (ver SOLD_ALERT_PCT).
   const heroPct = featured?.sold_pct ?? null;
   const heroCasiLleno = heroPct != null && heroPct >= SOLD_ALERT_PCT;
 
@@ -710,11 +665,9 @@ export default function HomePage({ explorar = false }) {
           <h1>
             {error
               ? "Cartelera no disponible"
-              : filtered.length === 0
-                ? "Sin resultados en la cartelera"
-                : explorar
-                  ? "Explorar eventos"
-                  : "Cartelera de eventos"}
+              : explorar
+                ? "Explorar eventos"
+                : "Cartelera de eventos"}
           </h1>
           {!error && data && filtered.length > 0 && (
             <p className="home-hero-count">
@@ -725,60 +678,62 @@ export default function HomePage({ explorar = false }) {
           )}
         </div>
 
-        <div className="home-search">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M20 20l-3.5-3.5" />
-          </svg>
-          <input
-            ref={searchRef}
-            type="search"
-            value={query}
-            onChange={(ev) => setQuery(ev.target.value)}
-            placeholder="Busca eventos o artistas…"
-            aria-label="Buscar eventos"
-          />
-        </div>
-
-        <div role="group" aria-label="Categorías" className="home-cats" ref={catsRef}>
-          {CATEGORY_CHIPS.map((c) => (
-            <button
-              key={c.key}
-              aria-pressed={c.key === cat}
-              onClick={() => setCat(c.key)}
-              className={"relative" + (c.key === cat ? " is-on" : "")}
-            >
-              <span className="home-cat-dot">
-                {c.icon ? <CatIcon name={c.icon} /> : <Star size={16} color="currentColor" />}
-              </span>
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Filtros avanzados (fecha + ciudad) detrás de un botón "Filtros".
-            Ley de Hick: en una pantalla de consumo, cada control visible es una
-            micro-decisión que retrasa "ver eventos y comprar". El buscador y
-            las categorías quedan a la vista; lo demás, un nivel más adentro.
-            El contador del botón dice cuántos filtros hay puestos. */}
-        <div className="home-filterbar" ref={filtersRef}>
-          <button
-            type="button"
-            className="home-filter-btn"
-            aria-expanded={filtersOpen}
-            aria-controls={filtersOpen ? "home-filter-panel" : undefined}
-            onClick={() => setFiltersOpen((v) => !v)}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 6h16M7 12h10M10 18h4" />
+        <div className="home-discovery">
+          <div className="home-search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
             </svg>
-            Filtros
-            {activeAdvanced > 0 && (
-              <span className="home-filter-count tnum" aria-hidden="true">
-                {activeAdvanced}
-              </span>
-            )}
-          </button>
+            <input
+              ref={searchRef}
+              type="search"
+              value={query}
+              onChange={(ev) => setQuery(ev.target.value)}
+              placeholder="Busca eventos o artistas…"
+              aria-label="Buscar eventos"
+            />
+          </div>
+
+          {/* Filtros avanzados (fecha + ciudad) detrás de un botón "Filtros".
+              Ley de Hick: en una pantalla de consumo, cada control visible es una
+              micro-decisión que retrasa "ver eventos y comprar". El buscador y
+              las categorías quedan a la vista; lo demás, un nivel más adentro.
+              El contador del botón dice cuántos filtros hay puestos. */}
+          <div className="home-filterbar" ref={filtersRef}>
+            <button
+              type="button"
+              className="home-filter-btn"
+              aria-expanded={filtersOpen}
+              aria-controls={filtersOpen ? "home-filter-panel" : undefined}
+              onClick={() => setFiltersOpen((v) => !v)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 6h16M7 12h10M10 18h4" />
+              </svg>
+              Filtros
+              {activeAdvanced > 0 && (
+                <span className="home-filter-count tnum" aria-hidden="true">
+                  {activeAdvanced}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div role="group" aria-label="Categorías" className="home-cats" ref={catsRef}>
+            {CATEGORY_CHIPS.map((c) => (
+              <button
+                key={c.key}
+                aria-pressed={c.key === cat}
+                onClick={() => setCat(c.key)}
+                className={"relative" + (c.key === cat ? " is-on" : "")}
+              >
+                <span className="home-cat-dot">
+                  {c.icon ? <CatIcon name={c.icon} /> : <Star size={16} color="currentColor" />}
+                </span>
+                {c.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {filtersOpen && (
@@ -869,19 +824,6 @@ export default function HomePage({ explorar = false }) {
           </div>
         )}
 
-        {/* Banda cinética: entre el troquel y la rejilla. Decorativa
-            (aria-hidden). Antes repetía los nombres de las categorías que están
-            justo encima en los chips; ahora lleva sellos de confianza y las
-            ciudades con oferta real. La lista va duplicada para que el loop sea
-            continuo (el keyframe mueve -50%). */}
-        <div className="home-ticker" aria-hidden="true">
-          <div className="home-ticker-track">
-            {tickerWords.concat(tickerWords).map((w, i) => (
-              <span key={`${w}-${i}`}>{w}</span>
-            ))}
-          </div>
-        </div>
-
         {/* Región viva: anuncia el resultado de filtrar sin mover el foco.
             `polite` espera a que el lector termine la frase en curso (buscar
             mientras se escribe no debe interrumpir). El nodo queda siempre en el
@@ -969,10 +911,6 @@ export default function HomePage({ explorar = false }) {
                   decoding="async"
                 />
               ) : null}
-              {/* El anillo de aforo solo se pinta cuando el % ya es una señal
-                  ("casi lleno"). Con el aforo bajo, "1% VENDIDO" ocupaba el
-                  sitio más visible del hero sin informar nada. */}
-              {!featured.flyer_url && heroCasiLleno && <SoldRing pct={heroPct} />}
               <div className="home-feature-body">
                 <div className="home-feature-top">
                   <span className="home-eyebrow">

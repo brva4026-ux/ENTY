@@ -39,6 +39,7 @@ import "./promoter-redesign.css";
 // Puerta: lienzo cálido, cámara central y tres accesos al pie. Va después de
 // las capas de panel para ser la voz propia del puesto.
 import "./door-redesign.css";
+import "./enty-visual-refresh.css";
 // Sentry primero de todo (no-op sin VITE_SENTRY_DSN): los crashes que ocurran
 // durante el arranque también se reportan.
 import { initFrontendSentry, captureError } from "./lib/sentry";

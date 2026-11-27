@@ -1,4 +1,3 @@
-import { LoginShowcase } from "./LoginShowcase";
 import { Logo } from "./Brand";
 import { LegalLinks } from "./LegalLinks";
 import Icon from "./Icon";
@@ -7,15 +6,6 @@ import { useI18n } from "../i18n";
 
 const SHOWCASE_ROLES = ["admin", "promotor", "bouncer"];
 
-/**
- * Marco de la entrada profesional: video de operación a la izquierda y
- * formulario sobre una superficie sólida a la derecha. En móvil el video se
- * convierte en una portada con reproducción a pedido y el formulario queda
- * debajo, en una sola columna que puede desplazarse con el teclado abierto.
- *
- * `accent` solo llega con una sesión ya autenticada: antes de entrar no se
- * adivina el rol de nadie. Cuando llega, tiñe el panel visual y la portada.
- */
 export function LoginShell({ children, accent = null }) {
   const { t } = useI18n();
   const activeIdentity = accent ? roleIdentity(accent) : null;
@@ -32,12 +22,7 @@ export function LoginShell({ children, accent = null }) {
             <span className="login-showcase-kicker">{t("login.brandTag")}</span>
           </div>
 
-          <div className="login-showcase-frame">
-            <LoginShowcase />
-          </div>
-
           <div className="login-showcase-copy">
-            <p className="login-showcase-eyebrow">Enty · operación</p>
             <h2>Una boleta. Un ingreso. Un aforo actualizado.</h2>
             <p>
               Administración, promotores y puerta trabajan sobre la misma

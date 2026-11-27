@@ -262,7 +262,7 @@ export default function FanCheckoutModal({
     >
       <div
         ref={dialogRef}
-        className="dialog-panel my-auto w-full max-w-md p-5"
+        className="dialog-panel fan-checkout my-auto w-full max-w-md p-5"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
