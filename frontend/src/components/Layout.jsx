@@ -100,6 +100,7 @@ export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const { pathname } = useLocation();
+  const isProfile = /^\/perfil\/?$/.test(pathname);
   const venueNames = (user?.venues || []).map((v) => v.name).join(", ");
   // El rol activo lo decide la ruta que se está viendo, no el rol más alto:
   // un admin que entra a Puerta debe ver el acento de Puerta.
@@ -177,60 +178,62 @@ export default function Layout({ children }) {
           <div className="flex min-w-0 items-center gap-3 text-sm">
             <ThemeToggle />
             <NotificationBell />
-            {activeIdentity && (
-              <span
-                className="topbar-role hidden sm:inline-flex"
-                title={`Rol activo: ${activeIdentity.label}`}
+            {!isProfile && (<>
+              {activeIdentity && (
+                <span
+                  className="topbar-role hidden sm:inline-flex"
+                  title={`Rol activo: ${activeIdentity.label}`}
+                >
+                  <Icon name={activeIdentity.icon} className="h-4 w-4" />
+                  <span className="hidden lg:inline">{activeIdentity.label}</span>
+                </span>
+              )}
+              <div className="hidden min-w-0 max-w-[9rem] text-right sm:block lg:max-w-[12rem]">
+                <p className="truncate text-sm font-medium leading-tight text-zinc-200">
+                  {user?.full_name}
+                </p>
+                <p className="truncate text-2xs leading-tight text-zinc-500">
+                  {roleLabel}
+                  {venueNames && ` · ${venueNames}`}
+                </p>
+              </div>
+              <TransitionLink
+                to="/perfil"
+                data-tip="Tu perfil"
+                aria-label="Tu perfil"
+                className="topbar-avatar topbar-hit"
               >
-                <Icon name={activeIdentity.icon} className="h-4 w-4" />
-                <span className="hidden lg:inline">{activeIdentity.label}</span>
-              </span>
-            )}
-            <div className="hidden min-w-0 max-w-[9rem] text-right sm:block lg:max-w-[12rem]">
-              <p className="truncate text-sm font-medium leading-tight text-zinc-200">
-                {user?.full_name}
-              </p>
-              <p className="truncate text-2xs leading-tight text-zinc-500">
-                {roleLabel}
-                {venueNames && ` · ${venueNames}`}
-              </p>
-            </div>
-            <TransitionLink
-              to="/perfil"
-              data-tip="Tu perfil"
-              aria-label="Tu perfil"
-              className="topbar-avatar topbar-hit"
-            >
-              {userInitials}
-            </TransitionLink>
-            <button
-              onClick={async () => {
-                try {
-                  await logout();
-                // replace: /login queda SIN location.state.from; si se apila
-                // con push, el guard RequireAuth de la ruta en la que estabas
-                // corria despues y sembraba from=/perfil (o la ruta actual) —
-                // el siguiente login aterrizaba en el perfil en vez del panel
-                // de tu rol.
-                nav("/login", { replace: true });
-                } catch {
-                  ui.toast("No pudimos cerrar la sesión. Intenta de nuevo.", "error");
-                }
-              }}
-              className="topbar-hit btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs"
-            aria-label="Cerrar sesión"
-            >
-              {/* Mismo verbo que el escáner: "salir" era ambiguo (¿salir de
-                dónde?). Cerrar sesión no se confunde con navegar.
-                Bajo 380px el verbo no entra y el botón se iba de la pantalla:
-                ahí queda el ícono, con su aria-label. */}
-              <Icon
-                name="logout"
-                className="h-4 w-4 sm:hidden"
-                aria-hidden="true"
-              />
-              <span className="hidden sm:inline">Cerrar sesión</span>
-            </button>
+                {userInitials}
+              </TransitionLink>
+              <button
+                onClick={async () => {
+                  try {
+                    await logout();
+                  // replace: /login queda SIN location.state.from; si se apila
+                  // con push, el guard RequireAuth de la ruta en la que estabas
+                  // corria despues y sembraba from=/perfil (o la ruta actual) —
+                  // el siguiente login aterrizaba en el perfil en vez del panel
+                  // de tu rol.
+                  nav("/login", { replace: true });
+                  } catch {
+                    ui.toast("No pudimos cerrar la sesión. Intenta de nuevo.", "error");
+                  }
+                }}
+                className="topbar-hit btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs"
+              aria-label="Cerrar sesión"
+              >
+                {/* Mismo verbo que el escáner: "salir" era ambiguo (¿salir de
+                  dónde?). Cerrar sesión no se confunde con navegar.
+                  Bajo 380px el verbo no entra y el botón se iba de la pantalla:
+                  ahí queda el ícono, con su aria-label. */}
+                <Icon
+                  name="logout"
+                  className="h-4 w-4 sm:hidden"
+                  aria-hidden="true"
+                />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+              </button>
+            </>)}
           </div>
         </div>
       </header>
@@ -241,7 +244,7 @@ export default function Layout({ children }) {
         id="contenido"
         className="mx-auto max-w-5xl px-4 py-6 pb-28 md:pb-8"
       >
-        {activeIdentity && (
+        {activeIdentity && !isProfile && (
           <div
             className="role-mobile-chip md:hidden"
             data-role-accent={activeIdentity.accent}
@@ -251,7 +254,7 @@ export default function Layout({ children }) {
           </div>
         )}
 
-        {roles.length > 1 && (
+        {roles.length > 1 && !isProfile && (
           <nav className="role-switch-strip" aria-label="Cambiar rol">
             {roles.map((r) => {
               const identity = roleIdentity(r);

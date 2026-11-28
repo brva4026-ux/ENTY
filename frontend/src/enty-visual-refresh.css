@@ -2192,3 +2192,197 @@ html[data-motion="reduce"] .event-action-receipt { animation: none; }
     flex-direction: column;
   }
 }
+
+/* Profile settings */
+.pf-page {
+  --pf-surface: #18151f;
+  --pf-raised: #211c2a;
+  --pf-line: #373040;
+  --pf-accent: #c8adff;
+  --pf-selected: #32234d;
+  --pf-muted: #c0b7cd;
+}
+
+html[data-theme="light"] .pf-page {
+  --pf-surface: #fffdfb;
+  --pf-raised: #f8f5fb;
+  --pf-line: #e7dfee;
+  --pf-accent: #6333ab;
+  --pf-selected: #eee4ff;
+  --pf-muted: #62576d;
+}
+
+.pf-page .pf-hero {
+  border-color: var(--pf-line);
+  padding: clamp(1rem, 3.5vw, 2.4rem);
+  background:
+    radial-gradient(ellipse at 82% 0%, color-mix(in srgb, var(--pf-accent) 20%, transparent), transparent 65%),
+    var(--pf-surface);
+}
+
+.pf-page .pf-hero-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(13rem, 17rem);
+  align-items: center;
+  gap: clamp(0.9rem, 2.5vw, 1.6rem);
+}
+
+.pf-page .pf-hero-main > .pf-avatar {
+  width: clamp(4.1rem, 8vw, 6.25rem);
+  height: clamp(4.1rem, 8vw, 6.25rem);
+  border-radius: 1.35rem;
+}
+
+.pf-page .pf-hero-main > .pf-avatar .pf-avatar-img { border-radius: inherit; }
+.pf-page .pf-hero-main > .pf-avatar .pf-avatar-ring { border-radius: inherit; }
+
+.pf-page .pf-name {
+  font-size: clamp(1.6rem, 4vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  overflow-wrap: anywhere;
+}
+
+.pf-page .pf-handle { color: var(--pf-muted); }
+
+.pf-page .pf-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-color: var(--pf-line);
+  border-radius: 0.5rem;
+  background: var(--pf-selected);
+  color: var(--pf-accent);
+}
+
+.pf-page .pf-hero-actions {
+  display: grid;
+  width: 100%;
+  gap: 0.45rem;
+}
+
+.pf-workspace {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem;
+  border: 1px solid var(--pf-line);
+  border-radius: 0.85rem;
+  background: var(--pf-surface);
+}
+
+.pf-workspace-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+
+.pf-workspace-label,
+.pf-workspace-copy small {
+  color: var(--pf-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.pf-page .pf-workspace .pf-hero-org-select {
+  width: 100%;
+  min-width: 0;
+  margin-top: 0.2rem;
+}
+
+.pf-page .pf-hero-actions .pf-action {
+  justify-self: end;
+  min-height: 44px;
+}
+
+.pf-page .pf-side {
+  padding: 0.65rem;
+  border: 1px solid var(--pf-line);
+  border-radius: 1rem;
+  background: var(--pf-surface);
+}
+
+.pf-page .tabbar.pf-tabs {
+  gap: 0.3rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pf-page .pf-tabs .tabbar-item {
+  min-height: 3.1rem;
+  padding: 0.5rem;
+  white-space: normal;
+  text-align: left;
+}
+
+.pf-page .pf-tabs .tabbar-item[aria-selected="true"] {
+  background: var(--pf-selected);
+  color: var(--pf-accent);
+}
+
+.pf-tab-copy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.pf-tab-copy small {
+  color: var(--pf-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.pf-page .pf-panel {
+  padding: clamp(1rem, 2.6vw, 1.9rem);
+  border-color: var(--pf-line);
+  border-radius: 1.15rem;
+  background: var(--pf-surface);
+}
+
+.pf-page .pf-panel-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--pf-line);
+}
+
+.pf-panel-icon {
+  display: grid;
+  flex: 0 0 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: var(--pf-selected);
+  color: var(--pf-accent);
+}
+
+.pf-panel-icon svg { width: 1.2rem; height: 1.2rem; }
+
+.pf-page .pf-panel-title { font-size: clamp(1.2rem, 2.1vw, 1.7rem); }
+.pf-page .pf-panel-hint { color: var(--pf-muted); }
+
+.pf-page .pf-sub {
+  padding: clamp(0.85rem, 2vw, 1.25rem);
+  border: 1px solid var(--pf-line);
+  border-radius: 0.85rem;
+  background: var(--pf-raised);
+}
+
+.pf-page .pf-field .field { min-height: 44px; }
+.pf-page .pf-form-actions { gap: 0.6rem; }
+
+@media (width <= 1023px) {
+  .pf-page .pf-side { margin-bottom: 0.9rem; }
+  .pf-page .tabbar.pf-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pf-tab-copy small { display: none; }
+}
+
+@media (width <= 620px) {
+  .pf-page .pf-hero-main { grid-template-columns: auto minmax(0, 1fr); }
+  .pf-page .pf-hero-actions { grid-column: 1 / -1; }
+  .pf-page .pf-panel { scroll-margin-top: 5rem; }
+}

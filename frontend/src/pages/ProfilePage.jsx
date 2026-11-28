@@ -122,11 +122,14 @@ function sessionStamp(iso) {
 }
 
 /** Cabecera de panel: un `h2` por panel, colgando del `h1` del hero. */
-function PanelHead({ title, hint }) {
+function PanelHead({ title, hint, icon }) {
   return (
     <header className="pf-panel-head">
-      <h2 className="pf-panel-title">{title}</h2>
-      {hint && <p className="pf-panel-hint">{hint}</p>}
+      <span className="pf-panel-icon"><Icon name={icon} aria-hidden="true" /></span>
+      <div>
+        <h2 className="pf-panel-title">{title}</h2>
+        {hint && <p className="pf-panel-hint">{hint}</p>}
+      </div>
     </header>
   );
 }
@@ -392,13 +395,13 @@ export default function ProfilePage() {
   // resto era una tarjeta que nunca se pintaba y dejaba un hueco.
   const tabs = useMemo(
     () => [
-      { id: "cuenta", label: "Mi perfil", icon: "users", dirty: nameDirty },
-      { id: "seguridad", label: "Seguridad", icon: "shield" },
+      { id: "cuenta", label: "Mi perfil", icon: "users", detail: "Identidad y contacto", dirty: nameDirty },
+      { id: "seguridad", label: "Seguridad", icon: "shield", detail: "Contraseña y sesiones" },
       ...(adminVenue
-        ? [{ id: "negocio", label: "Organización", icon: "money", dirty: venueDirty }]
+        ? [{ id: "negocio", label: "Organización", icon: "users", detail: "Marca y contacto público", dirty: venueDirty }]
         : []),
-      { id: "preferencias", label: "Preferencias", icon: "sparkle" },
-      { id: "privacidad", label: "Privacidad y datos", icon: "lock" },
+      { id: "preferencias", label: "Preferencias", icon: "sparkle", detail: "Tema y notificaciones" },
+      { id: "privacidad", label: "Privacidad y datos", icon: "lock", detail: "Visibilidad y descargas" },
     ],
     [adminVenue, nameDirty, venueDirty],
   );
@@ -1307,37 +1310,9 @@ export default function ProfilePage() {
 
             <div className="pf-hero-badges">
               <span className={`pf-role-chip ${visual.tabAccent}`}>
+                <Icon name={roleIdentity(role).icon} className="h-4 w-4" aria-hidden="true" />
                 {roleLabel(role)}
               </span>
-              {activeVenue ? (
-                <span className="pf-hero-org-wrap">
-                  <span className="pf-hero-org-label">Organización activa</span>
-                  {venueCount > 1 ? (
-                    <select
-                      value={activeVenue.id}
-                      onChange={(e) => {
-                        const venue = user.venues.find(
-                          (v) => String(v.id) === e.target.value,
-                        );
-                        if (venue) switchVenue(venue);
-                      }}
-                      disabled={venueSwitchBusy}
-                      className="pf-hero-org-select"
-                      aria-label="Cambiar organización activa"
-                    >
-                      {user.venues.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="pf-hero-org">{activeVenue.name}</span>
-                  )}
-                </span>
-              ) : (
-                <span className="pf-hero-org">Sin organización activa</span>
-              )}
             </div>
             {switchableRoles.length > 1 && (
               <div className="pf-role-switch" role="group" aria-label="Cambiar de rol">
@@ -1361,8 +1336,42 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Acciones de la sesión: el perfil es donde se cierra sesión. */}
           <div className="pf-hero-actions">
+            {activeVenue && (
+              <div className="pf-workspace">
+                <span className={`pf-context-logo ${activeVenueVisual.tabAccent}`} aria-hidden="true">
+                  {activeVenue.logo_url
+                    ? <img src={activeVenue.logo_url} alt="" decoding="async" />
+                    : (activeVenue.name || "?").trim().charAt(0).toUpperCase()}
+                </span>
+                <div className="pf-workspace-copy">
+                  <span className="pf-workspace-label">Organización activa</span>
+                  {venueCount > 1 ? (
+                    <select
+                      value={activeVenue.id}
+                      onChange={(e) => {
+                        const venue = user.venues.find(
+                          (v) => String(v.id) === e.target.value,
+                        );
+                        if (venue) switchVenue(venue);
+                      }}
+                      disabled={venueSwitchBusy}
+                      className="pf-hero-org-select"
+                      aria-label="Cambiar organización activa"
+                    >
+                      {user.venues.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <strong>{activeVenue.name}</strong>
+                  )}
+                  {activeVenue.is_placeholder && <small>Identidad interna</small>}
+                </div>
+              </div>
+            )}
             <button
               type="button"
               onClick={async () => {
@@ -1412,7 +1421,10 @@ export default function ProfilePage() {
               className="tabbar-item"
             >
               <Icon name={t.icon} className="h-4 w-4" aria-hidden="true" />
-              <span className="pf-tab-label">{t.label}</span>
+              <span className="pf-tab-copy">
+                <span className="pf-tab-label">{t.label}</span>
+                <small aria-hidden="true">{t.detail}</small>
+              </span>
               {t.dirty && <span className="pf-tab-dot" aria-hidden="true" />}
             </button>
           );
@@ -1421,48 +1433,6 @@ export default function ProfilePage() {
       </div>
 
       <div className="pf-main">
-      {/* Contexto de trabajo: qué organización está activa AHORA. No es un
-          detalle del formulario: decide qué eventos, equipo y reportes ve el
-          admin. El cambio solo se pinta cuando el servidor lo confirma. */}
-      {activeVenue && (
-        <section className="pf-context" aria-labelledby="pf-context-title">
-          <div className="pf-context-main">
-            <span className={`pf-context-logo ${activeVenueVisual.tabAccent}`}>
-              {activeVenue.logo_url ? (
-                <img src={activeVenue.logo_url} alt="" decoding="async" />
-              ) : (
-                (activeVenue.name || "?").trim().charAt(0).toUpperCase()
-              )}
-            </span>
-            <div className="pf-context-copy">
-              <p className="pf-context-label" id="pf-context-title">
-                Organización activa
-              </p>
-              <p className="pf-context-name">{activeVenue.name}</p>
-              <p className="pf-context-meta">
-                {activeVenueRole ? roleLabel(activeVenueRole) : "Sin rol"}
-                {activeVenue.is_placeholder
-                  ? " · identidad interna, aún no pública"
-                  : ""}
-                {venueCount > 1
-                  ? ` · ${venueCount} organizaciones en tu cuenta`
-                  : ""}
-              </p>
-            </div>
-            <span className={`pf-context-badge ${activeVenueVisual.tabAccent}`}>
-              Activa
-            </span>
-          </div>
-
-          {venueCount > 1 && (
-            <p className="pf-context-hint">
-              Cambia de organización desde el selector de la cabecera. El
-              contexto se guarda en tu cuenta, no en este navegador.
-            </p>
-          )}
-        </section>
-      )}
-
       {/* Resumen de cambios sin guardar (M-1): los puntos ámbar de cada
           pestaña dicen DÓNDE hay cambios, pero no cuántos. Una frase a nivel
           de barra responde "¿me falta guardar algo?" sin recorrer pestañas. */}
@@ -1498,7 +1468,8 @@ export default function ProfilePage() {
         >
           <PanelHead
             title="Tus datos"
-            hint="Tu nombre es el que ve tu equipo y queda registrado en las boletas que emites."
+            icon="users"
+            hint="Actualiza tu identidad, contacto y foto de perfil."
           />
           <form onSubmit={submitName} className="pf-form">
             <Field
@@ -1776,6 +1747,7 @@ export default function ProfilePage() {
         >
           <PanelHead
             title="Seguridad de la cuenta"
+            icon="shield"
             hint="El correo, la contraseña y las sesiones son las llaves de tu cuenta. Cada cambio queda registrado."
           />
 
@@ -2207,6 +2179,7 @@ export default function ProfilePage() {
         >
           <PanelHead
             title="Organización"
+            icon="users"
             hint={
               venuePlaceholder
                 ? "Aún no tienes identidad pública. El nombre interno no se muestra en tus fichas."
@@ -2674,6 +2647,7 @@ export default function ProfilePage() {
         >
           <PanelHead
             title="Apariencia"
+            icon="sparkle"
             hint='El modo "Sistema" sigue la preferencia de tu dispositivo. La puerta (escáner) siempre es oscura: un flash de blanco en un recinto a oscuras ciega.'
           />
           <ThemeChooser />
@@ -2746,6 +2720,7 @@ export default function ProfilePage() {
         >
           <PanelHead
             title="Privacidad y datos"
+            icon="lock"
             hint="Qué compartes, qué puedes descargar y qué pasa si eliminas tu cuenta. Nada se publica sin una autorización explícita."
           />
 
