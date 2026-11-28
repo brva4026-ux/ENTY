@@ -698,73 +698,154 @@
 }
 
 .welcome-card.welcome-card--role {
-  max-width: 30rem;
+  --welcome-line: rgb(255 255 255 / 14%);
+  width: min(100%, 43rem);
+  max-width: none;
   max-height: calc(100dvh - clamp(1.5rem, 8vw, 4rem));
-  overflow-y: auto;
+  overflow: auto;
   align-items: stretch;
-  padding: clamp(1rem, 4vw, 1.75rem);
-  border-top: 3px solid var(--role-accent);
-  background: var(--e-ink-950);
+  padding: 0;
+  border: 1px solid var(--welcome-line);
+  border-radius: 1.5rem;
+  background: #111019;
   text-align: start;
 }
 
-.welcome-card-heading {
+.welcome-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  isolation: isolate;
+  overflow: hidden;
+  gap: 1rem;
+  padding: clamp(1.3rem, 5vw, 2.5rem);
+  border-bottom: 1px solid var(--welcome-line);
+  background:
+    radial-gradient(ellipse at 92% -35%, color-mix(in srgb, var(--role-accent) 40%, transparent), transparent 74%),
+    linear-gradient(135deg, #221933, #15121f 70%);
+}
+
+.welcome-hero-copy { min-width: 0; }
+
+.welcome-hero-brand,
+.welcome-hero .welcome-session {
   display: flex;
   align-items: center;
-  gap: var(--e-space-3);
+  gap: 0.45rem;
 }
 
-.welcome-card-heading .welcome-role-icon {
-  flex: none;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: var(--e-radius-md);
-  background: color-mix(in srgb, var(--role-accent) 18%, transparent);
+.welcome-hero-brand {
+  margin-bottom: 1.1rem;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.welcome-hero-brand svg { color: var(--role-accent); }
+
+.welcome-hero .welcome-role-name {
+  display: inline-flex;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--role-accent) 35%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--role-accent) 10%, transparent);
   color: var(--role-accent);
-}
-
-.welcome-card-heading .welcome-session {
-  display: flex;
-  align-items: center;
-  gap: var(--e-space-1);
-  margin: 0;
-  color: var(--role-accent);
-  font-size: var(--e-text-2xs);
-}
-
-.welcome-card-heading .welcome-role-name {
-  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
   font-weight: 750;
 }
 
 .welcome-card--role .welcome-title {
-  color: var(--e-white);
-  font-size: clamp(1.4rem, 5vw, 2rem);
-  line-height: 1.1;
+  margin: 0.48rem 0 0.7rem;
+  color: #fff;
+  font-size: clamp(1.85rem, 6vw, 3.7rem);
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+  overflow-wrap: anywhere;
   text-align: start;
 }
 
+.welcome-hero .welcome-hello strong { color: inherit; font-weight: 850; }
+
+.welcome-hero .welcome-session {
+  margin: 0;
+  color: #e2dcef;
+  font-size: 0.78rem;
+}
+
+.welcome-session svg { color: var(--role-accent); }
+
+.welcome-emblem {
+  display: grid;
+  width: clamp(4rem, 22vw, 10.5rem);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid var(--welcome-line);
+  border-radius: 26%;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 10px, rgb(255 255 255 / 5%) 10px 11px),
+    color-mix(in srgb, var(--role-accent) 14%, #171321);
+  transform: rotate(-8deg);
+}
+
+.welcome-emblem span {
+  display: grid;
+  width: 69%;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--role-accent) 60%, transparent);
+  border-radius: 26%;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--role-accent) 35%, #201528), #21182e);
+  color: var(--role-accent);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 35%);
+}
+
+.welcome-emblem svg { width: 49%; height: 49%; }
+
+.welcome-card-content { padding: clamp(1rem, 4vw, 1.65rem); }
+
 .welcome-role-tasks {
   display: grid;
-  gap: var(--e-space-2);
-  padding: var(--e-space-3);
-  margin: var(--e-space-3) 0 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  padding: 0;
+  margin: 0;
   list-style: none;
-  border: 1px solid color-mix(in srgb, var(--role-accent) 28%, transparent);
-  border-radius: var(--e-radius-lg);
-  background: color-mix(in srgb, var(--role-accent) 8%, transparent);
 }
 
 .welcome-role-tasks li {
-  display: flex;
-  align-items: center;
-  gap: var(--e-space-2);
-  font-size: var(--e-text-2xs);
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border: 1px solid var(--welcome-line);
+  border-radius: 0.8rem;
+  background: rgb(255 255 255 / 4%);
+  color: #f1edf7;
+  font-size: 0.83rem;
+  line-height: 1.35;
 }
 
-.welcome-role-tasks svg {
-  flex: none;
+.welcome-task-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--role-accent) 16%, transparent);
   color: var(--role-accent);
+}
+
+.welcome-task-icon svg { width: 1rem; height: 1rem; }
+
+@media (width <= 480px) {
+  .welcome-role-tasks { grid-template-columns: 1fr; }
+
+  .welcome-role-tasks li {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    padding: 0.45rem 0.65rem;
+  }
 }
 
 .welcome-card--role .welcome-role-options {
@@ -781,7 +862,9 @@
 
 .welcome-card--role .welcome-continue {
   flex: none;
+  min-height: 3.15rem;
   border-radius: var(--e-radius-md);
+  font-size: 0.95rem;
 }
 
 .welcome-role-footer {
